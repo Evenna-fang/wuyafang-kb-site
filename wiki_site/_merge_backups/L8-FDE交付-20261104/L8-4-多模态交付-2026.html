@@ -1,0 +1,456 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L8-4-多模态交付-2026</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../../index.html">🏠 总入口</a><a href="../../graph.html">🕸 关联图谱</a><a href="../../ontology/index.html">📖 术语表</a><span class="cur">/ L8-4-多模态交付-2026</span></div><div class="wrap"><h1 id="l8-4-多模态交付视觉模型-语音交互-多模态-rag-2026">L8-4 多模态交付（视觉模型 + 语音交互 + 多模态 RAG）· 2026</h1>
+<blockquote>
+<p><a href="../00-%E7%9F%A5%E8%AF%86%E5%BA%93%E6%80%BB%E5%85%A5%E5%8F%A3.html">← 返回总入口</a><br />
+相关：<a href="FDE%E4%BA%A4%E4%BB%98%E6%96%B9%E6%B3%95%E8%AE%BA-2026.html">FDE交付方法论</a> · <a href="FDE%E9%9C%80%E6%B1%82%E8%AF%84%E4%BC%B0%E6%A1%86%E6%9E%B6-2026.html">L8-1 需求评估</a> · <a href="L8-2-Ontology%E6%9E%84%E5%BB%BA-2026.html">L8-2 Ontology构建</a> · <a href="L8-3-%E7%A7%81%E6%9C%89%E5%8C%96%E9%83%A8%E7%BD%B2-2026.html">L8-3 私有化部署</a> · <a href="FDE%E5%AE%9E%E6%88%98%E6%96%B9%E6%B3%95%E8%AE%BA-2026.html">FDE实战方法论</a></p>
+<p>能力域定位：L8「战略交付层」之 L8-4。客户知识库不再只是 PDF/Word——合同扫描件、产线摄像头、工厂 SOP 图、车间语音工单、客服通话录音都要进入同一个 AI 体系。本篇给出视觉理解、语音交互、多模态 RAG 的完整可落地方案。</p>
+</blockquote>
+<hr />
+<h2 id="why-多模态需求为什么-2026-年集中爆发">WHY —— 多模态需求为什么 2026 年集中爆发</h2>2
+<h3 id="1-客户的真实场景触发词">1. 客户的真实场景触发词</h3>3
+<ul>
+<li><strong>制造业</strong>：产线 SOP 是 JPG/截图，质检报告是扫描件，设备报警带照片。纯文本 RAG 检索不到「第 3 张图里那个红色按钮」。</li>
+<li><strong>金融 / 法务</strong>：合同 PDF 里有大量印章、手写批注、扫描表格，OCR 一遍出来结构全丢。</li>
+<li><strong>客服 / 呼叫中心</strong>：每天几万通电话，文本 RAG 处理不了 wav/mp3。</li>
+<li><strong>医疗 / 教育</strong>：病历单、试卷、板书——天生非文本。</li>
+<li><strong>现场作业</strong>：工人戴手套、不能拿手机打字，需要语音输入 + 语音播报。</li>
+</ul>
+<h3 id="2-纯文本-rag-的天花板">2. 纯文本 RAG 的天花板</h3>3
+<ul>
+<li>OCR 只能「认字」，认不出<strong>图表含义</strong>、<strong>印章真伪</strong>、<strong>红笔批注重点</strong>。</li>
+<li>表格一旦走 OCR → 切分 → embedding，行列关系全丢，问到「Q3 华南区收入」时检索不到正确单元格。</li>
+<li>音频工单如果先 OCR 成文字再入库，丢失情绪、语气、说话人、时间轴。</li>
+</ul>
+<h3 id="3-2026-年为什么现在能做">3. 2026 年为什么现在能做</h3>3
+<ul>
+<li>VLM（视觉语言模型）：Qwen2.5-VL / Qwen3-VL 系列开源，中文文档理解达到商用水平。</li>
+<li>ASR：FunASR / Whisper large-v3-turbo 准确率已接近商业 API。</li>
+<li>TTS：CosyVoice3 开源，支持零样本克隆音色。</li>
+<li>多模态 RAG：ColPali / VisRAG 等新范式把「整页当图检索」变成可行方案。</li>
+</ul>
+<hr />
+<h2 id="what-视觉-语音-多模态检索的技术选型">WHAT —— 视觉 / 语音 / 多模态检索的技术选型</h2>2
+<h3 id="1-视觉语言模型vlm选型">1. 视觉语言模型（VLM）选型</h3>3
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>参数</th>
+<th>中文文档</th>
+<th>硬件</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Qwen2.5-VL-7B / 32B</strong></td>
+<td>7B / 32B</td>
+<td>强（阿里出品）</td>
+<td>7B: 单卡 24G；32B: 2×A100</td>
+<td>合同/票据/SOP 理解，首选</td>
+</tr>
+<tr>
+<td><strong>Qwen3-VL-2B / 4B / 8B / 32B / 235B-A22B</strong>（2025 Q4）</td>
+<td>全档位</td>
+<td>强</td>
+<td>2B/4B 可 CPU/边缘；8B 单卡</td>
+<td>新一代，支持图像理解 + thinking</td>
+</tr>
+<tr>
+<td><strong>InternVL3</strong></td>
+<td>多档</td>
+<td>良</td>
+<td>同 Qwen</td>
+<td>开源备选</td>
+</tr>
+<tr>
+<td><strong>MiniCPM-V 2.6 / 4</strong></td>
+<td>小（2B-8B）</td>
+<td>良</td>
+<td>边缘设备</td>
+<td>资源受限场景</td>
+</tr>
+<tr>
+<td><strong>SmolVLM</strong></td>
+<td>256M-2.2B</td>
+<td>弱</td>
+<td>极低资源</td>
+<td>简单分类/字幕</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>部署：<strong>vLLM</strong> 直接 serve，OpenAI 兼容多模态 API（<code>{"image": "url_or_b64"}</code>）。</li>
+<li>经验数字（Spheron 2026）：VLM 显存要在 LLM 基础上加 ViT encoder 占用，并预留 20-30% KV cache 余量。Qwen3-VL-8B BF16 ≈ 18-20 GB，4090 可跑。</li>
+</ul>
+<h3 id="2-asr语音识别选型">2. ASR（语音识别）选型</h3>3
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>中文准确率</th>
+<th>速度</th>
+<th>部署难度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>FunASR / SenseVoiceSmall</strong>（阿里开源）</td>
+<td>中文第一梯队</td>
+<td>RTF 0.0076（GPU 离线加速 1200×）</td>
+<td>低，pip 一行起</td>
+</tr>
+<tr>
+<td><strong>Whisper large-v3</strong></td>
+<td>多语言强，中文稍弱</td>
+<td>慢（large-v3-turbo 5.4× 加速）</td>
+<td>低</td>
+</tr>
+<tr>
+<td><strong>faster-whisper</strong></td>
+<td>同 Whisper</td>
+<td>CTranslate2 加速 4×</td>
+<td>低</td>
+</tr>
+<tr>
+<td><strong>Paraformer-Large</strong>（FunASR 内置）</td>
+<td>中文强</td>
+<td>快</td>
+<td>低</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>中文生产首选 FunASR / SenseVoiceSmall</strong>：支持热词定制、流式 WebSocket、说话人分离、Docker 一键起。</li>
+<li>FunASR C++ runtime 在 4 vCPU / 8G 能跑 16 路并发，64 vCPU / 128G 能跑 100+ 路。</li>
+</ul>
+<h3 id="3-tts语音合成选型">3. TTS（语音合成）选型</h3>3
+<ul>
+<li><strong>CosyVoice3</strong>（阿里开源，2025）：零样本音色克隆、多语言、情感控制。</li>
+<li><strong>Bark / Piper</strong>：轻量备选，中文效果一般。</li>
+<li>生产级需求：客服呼叫中心直接上 CosyVoice3；简单播报用 Piper 够了。</li>
+</ul>
+<h3 id="4-多模态-rag-新范式">4. 多模态 RAG 新范式</h3>3
+<p>传统做法：<code>OCR → 切文本 → embedding → 文本向量库</code>。<br />
+2025-2026 新做法（<strong>ColPali / VisRAG / Qwen3-VL-Embedding</strong>）：<br />
+- <strong>ColPali</strong>：把每一页 PDF 渲染成图，用 VLM 直接对「页面图」提取 patch embedding，存进向量库。查询时直接检索「最像这张图的页面」，把原图 + 问题一起喂给 VLM 生成答案。<br />
+- <strong>Qwen3-VL-Embedding / Reranker</strong>（2026.02 发布）：官方开源的多模态 embedding 模型，把文本、图、视频统一到同一向量空间。<br />
+- 优势：<strong>不丢版面</strong>——表格、印章、批注、图表全部保留视觉语义。<br />
+- 代价：向量体积比纯文本大 5-10×，需要 Qdrant / LanceDB 支持多向量索引。</p>
+<hr />
+<h2 id="how-多模态-rag-完整搭建步骤">HOW —— 多模态 RAG 完整搭建步骤</h2>2
+<h3 id="官方源码与论文引用">官方源码与论文引用</h3>3
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>链接</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Qwen2.5-VL GitHub</td>
+<td>https://github.com/QwenLM/Qwen2.5-VL</td>
+<td>视觉语言模型</td>
+</tr>
+<tr>
+<td>Qwen3-VL GitHub</td>
+<td>https://github.com/QwenLM/Qwen3-VL</td>
+<td>新一代 VLM</td>
+</tr>
+<tr>
+<td>FunASR GitHub</td>
+<td>https://github.com/modelscope/FunASR</td>
+<td>中文语音识别</td>
+</tr>
+<tr>
+<td>CosyVoice GitHub</td>
+<td>https://github.com/FunAudioLLM/CosyVoice</td>
+<td>语音合成</td>
+</tr>
+<tr>
+<td>ColPali GitHub</td>
+<td>https://github.com/illuin-tech/colpali</td>
+<td>多模态 RAG</td>
+</tr>
+<tr>
+<td>Qwen2.5-VL 论文</td>
+<td>arXiv:2502.13923（"Qwen2.5-VL Technical Report"）</td>
+<td>VLM 技术报告</td>
+</tr>
+<tr>
+<td>Fun-ASR 论文</td>
+<td>arXiv:2509.12508（"FunASR: A Fundamental End-to-End Speech Recognition Toolkit"）</td>
+<td>端到端 ASR</td>
+</tr>
+<tr>
+<td>VisRAG 论文</td>
+<td>arXiv:2410.10594（"VisRAG: Visual Retrieval-Augmented Generation"）</td>
+<td>视觉 RAG</td>
+</tr>
+</tbody>
+</table>
+<h3 id="pip-install-命令">pip install 命令</h3>3
+<pre><code class="language-bash"># VLM 推理（vLLM 原生支持 Qwen-VL 多模态 API）
+pip install vllm
+
+# ASR（FunASR）
+pip install funasr modelscope
+
+# TTS（CosyVoice）
+pip install cosyvoice
+
+# 多模态 RAG（ColPali + Qdrant）
+pip install colpali-engine qdrant-client pymupdf
+</code></pre>
+<h3 id="完整可跑代码端到端语音问答-demo">完整可跑代码：端到端语音问答 Demo</h3>3
+<pre><code class="language-python"># multimodal_demo.py —— 语音进 → VLM 理解图 → 语音出
+from funasr import AutoModel
+from openai import OpenAI
+
+# 1. ASR：录音转文字
+asr = AutoModel(model=&quot;iic/SenseVoiceSmall&quot;, vad_model=&quot;fsmn-vad&quot;, device=&quot;cuda:0&quot;)
+query_text = asr.generate(input=&quot;/data/worker_voice.wav&quot;, language=&quot;zh&quot;, use_itn=True)[0][&quot;text&quot;]
+print(&quot;工人说：&quot;, query_text)
+
+# 2. VLM：读图回答（Qwen2.5-VL via vLLM OpenAI 兼容 API）
+vlm = OpenAI(base_url=&quot;http://127.0.0.1:8000/v1&quot;, api_key=&quot;EMPTY&quot;)
+response = vlm.chat.completions.create(
+    model=&quot;qwen2.5-vl&quot;,
+    messages=[{
+        &quot;role&quot;: &quot;user&quot;,
+        &quot;content&quot;: [
+            {&quot;type&quot;: &quot;image_url&quot;, &quot;image_url&quot;: {&quot;url&quot;: &quot;file:///data/sop_page_03.jpg&quot;}},
+            {&quot;type&quot;: &quot;text&quot;, &quot;text&quot;: query_text},
+        ],
+    }],
+    temperature=0.1,
+)
+answer = response.choices[0].message.content
+print(&quot;答案：&quot;, answer)
+
+# 3. TTS：文字转语音（CosyVoice3 零样本克隆）
+from cosyvoice.cli.cosyvoice import CosyVoice3
+cosy = CosyVoice3(&quot;iic/CosyVoice-300M&quot;)
+for out in cosy.inference_zero_shot(
+    text=answer,
+    prompt_speech_16k=load_wav(&quot;/ref/operator_voice.wav&quot;),
+    prompt_text=&quot;参考音频原文转写&quot;,
+):
+    save_wav(&quot;/out/reply.wav&quot;, out[&quot;tts_speech&quot;])
+</code></pre>
+<h3 id="步骤-1离线准备资产">步骤 1：离线准备资产</h3>3
+<pre><code class="language-bash"># 视觉模型
+huggingface-cli download Qwen/Qwen2.5-VL-7B-Instruct --local-dir /models/qwen2.5-vl-7b
+# 多模态 embedding（2026 新）
+huggingface-cli download Qwen/Qwen3-VL-Embedding-2B --local-dir /models/qwen3-vl-embedding
+# ASR / TTS
+huggingface-cli download iic/SenseVoiceSmall --local-dir /models/sensevoice-small
+huggingface-cli download iic/CosyVoice-300M --local-dir /models/cosyvoice
+</code></pre>
+<h3 id="步骤-2vlm-服务vllm-多模态">步骤 2：VLM 服务（vLLM 多模态）</h3>3
+<pre><code class="language-bash">docker run -d --name vllm-vlm --gpus all --ipc=host \
+    -v /models:/models -p 8000:8000 \
+    vllm/vllm-openai:latest \
+    --model /models/qwen2.5-vl-7b-instruct \
+    --dtype bfloat16 \
+    --max-model-len 8192 \
+    --limit-mm-per-prompt '{&quot;image&quot;: 4}' \
+    --served-model-name qwen2.5-vl
+</code></pre>
+<p>验证：</p>
+<pre><code class="language-bash">curl http://127.0.0.1:8000/v1/chat/completions -H &quot;Content-Type: application/json&quot; -d '{
+  &quot;model&quot;: &quot;qwen2.5-vl&quot;,
+  &quot;messages&quot;: [{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:[
+    {&quot;type&quot;:&quot;image_url&quot;,&quot;image_url&quot;:{&quot;url&quot;:&quot;data:image/jpeg;base64,...&quot;}},
+    {&quot;type&quot;:&quot;text&quot;,&quot;text&quot;:&quot;这张图里有几个红色按钮？&quot;}
+  ]}]
+}'
+</code></pre>
+<h3 id="步骤-3asr-服务funasr-sensevoice">步骤 3：ASR 服务（FunASR / SenseVoice）</h3>3
+<pre><code class="language-python"># asr_server.py
+from funasr import AutoModel
+from funasr.utils.postprocess_utils import rich_transcription_postprocess
+
+model = AutoModel(
+    model=&quot;/models/sensevoice-small&quot;,
+    vad_model=&quot;fsmn-vad&quot;,
+    punc_model=&quot;ct-punc&quot;,
+    device=&quot;cuda:0&quot;,
+)
+
+def transcribe(path: str, language=&quot;zh&quot;) -&gt; str:
+    res = model.generate(
+        input=path,
+        language=language,
+        use_itn=True,
+        batch_size_s=60,
+    )
+    return rich_transcription_postprocess(res[0][&quot;text&quot;])
+
+# 批量处理通话录音
+import glob
+for wav in glob.glob(&quot;/data/calls/*.wav&quot;):
+    text = transcribe(wav)
+    # 写入知识库（同时保留音频引用 + 说话人时间戳）
+    kb.insert(doc_id=wav, text=text, modality=&quot;audio&quot;, source=wav)
+</code></pre>
+<h3 id="步骤-4多模态-rag-索引colpali-风格">步骤 4：多模态 RAG 索引（ColPali 风格）</h3>3
+<pre><code class="language-python"># index_pdf.py —— 每页 PDF 当一张图
+import fitz  # PyMuPDF
+import qdrant_client
+from qdrant_client.models import Distance, VectorParams, PointStruct
+from colpali_engine.models import ColQwen2Processor, ColQwen2
+
+# 1. 加载 ColPali（或换成 Qwen3-VL-Embedding）
+processor = ColQwen2Processor.from_pretrained(&quot;/models/colqwen2&quot;)
+model = ColQwen2.from_pretrained(&quot;/models/colqwen2&quot;).cuda().eval()
+
+# 2. 初始化 Qdrant（支持多向量 MAX_SIM 度量）
+client = qdrant_client.QdrantClient(path=&quot;/data/qdrant&quot;)
+client.recreate_collection(
+    collection_name=&quot;pages&quot;,
+    vectors_config=VectorParams(size=128, distance=Distance.COSISM),
+)
+
+# 3. PDF 每页渲染成图 → 提取 patch embedding
+doc = fitz.open(&quot;/data/contract.pdf&quot;)
+for page_no, page in enumerate(doc):
+    pix = page.get_pixmap(dpi=150)
+    img = Image.frombytes(&quot;RGB&quot;, (pix.width, pix.height), pix.samples)
+    inputs = processor.process_images([img]).to(&quot;cuda&quot;)
+    with torch.no_grad():
+        patch_emb = model(**inputs).cpu().numpy()[0]  # shape: [num_patches, dim]
+    # ColPali 每页是一个 multi-vector（num_patches 个向量）
+    client.upsert(
+        collection_name=&quot;pages&quot;,
+        points=[PointStruct(id=hash((doc.name, page_no)) &amp; 0x7fffffff,
+                            vector=patch_emb.tolist(),
+                            payload={&quot;doc&quot;: doc.name, &quot;page&quot;: page_no})]
+    )
+</code></pre>
+<h3 id="步骤-5查询时多模态检索-vlm-生成">步骤 5：查询时多模态检索 + VLM 生成</h3>3
+<pre><code class="language-python">def multimodal_ask(question: str, top_k=3):
+    # 1. 用同模型编码 query（multi-vector）
+    q_inputs = processor.process_queries([question]).to(&quot;cuda&quot;)
+    with torch.no_grad():
+        q_vec = model(**q_inputs).cpu().numpy()[0]
+
+    # 2. Qdrant 多向量检索（MaxSim）
+    hits = client.search(&quot;pages&quot;, query_vector=q_vec, limit=top_k)
+
+    # 3. 取回对应页面图
+    pages_imgs = []
+    for h in hits:
+        pdf = fitz.open(h.payload[&quot;doc&quot;])
+        pix = pdf[h.payload[&quot;page&quot;]].get_pixmap(dpi=150)
+        pages_imgs.append(Image.frombytes(&quot;RGB&quot;, (pix.width, pix.height)))
+
+    # 4. 把页面图 + 问题喂给 Qwen2.5-VL
+    return vlm_chat(images=pages_imgs, question=question)
+</code></pre>
+<h3 id="步骤-6tts-播报cosyvoice3">步骤 6：TTS 播报（CosyVoice3）</h3>3
+<pre><code class="language-python">from cosyvoice.cli.cosyvoice import CosyVoice3
+cosy = CosyVoice3(&quot;/models/cosyvoice&quot;)
+
+# 零样本克隆：给 10s 参考音频，模仿音色
+for out in cosy.inference_zero_shot(
+    text=&quot;您的工单已处理完毕，工单号 WO-20261014-001。&quot;,
+    prompt_speech_16k=load_wav(&quot;/ref/operator_voice.wav&quot;),
+    prompt_text=&quot;参考音频的原文转写&quot;,
+):
+    write_wav(&quot;/out/reply.wav&quot;, out[&quot;tts_speech&quot;])
+</code></pre>
+<h3 id="步骤-7端到端链路语音进-多模态检索-语音出">步骤 7：端到端链路（语音进 → 多模态检索 → 语音出）</h3>3
+<pre><code>[工人说话] → wav
+    ↓ FunASR/SenseVoice（ASR）
+query_text
+    ↓ Qwen3-VL-Embedding（多向量编码）
+    ↓ Qdrant 多向量检索（MaxSim）
+top-k 页面图（PDF/扫描件/SOP 截图）
+    ↓ Qwen2.5-VL（VLM 读图 + 生成答案）
+answer_text
+    ↓ CosyVoice3（TTS，克隆现场操作员音色）
+[播报 wav → 扬声器]
+</code></pre>
+<h3 id="验收清单">验收清单</h3>3
+<ul>
+<li>[ ] 合同扫描件（含手写批注）能被问到具体条款位置，答案引用到<strong>具体页</strong>而不是文本片段</li>
+<li>[ ] 质检照片入库后，问「图里有几个红色按钮」能直接答对</li>
+<li>[ ] 1 小时通话录音 ASR 字错率 &lt; 10%（中文）</li>
+<li>[ ] TTS 输出音色与参考音频相似度人工评分 &gt; 4/5</li>
+<li>[ ] 多模态查询端到端延迟 &lt; 5s（4090 单卡）</li>
+</ul>
+<hr />
+<h2 id="常见坑">常见坑</h2>2
+<ol>
+<li><strong>VLM 显存算错</strong>：只算了 LLM 权重，忘了 ViT + KV cache。→ 预留 30% 余量。</li>
+<li><strong>ColPali 索引体积爆炸</strong>：每页几百个 patch 向量，1 万页 PDF ≈ 几亿向量。→ 限制 top-k，用 Qdrant on-disk HNSW，别全入内存。</li>
+<li><strong>ASR 热词没定制</strong>：产品名、型号、人名识别错。→ SenseVoice 支持 <code>hotword</code> 参数，上线前必须跑一轮热词表。</li>
+<li><strong>TTS 克隆音色侵权</strong>：直接克隆员工/客户声音有合规风险。→ 合同里明确录音授权，或用预置音色库。</li>
+<li><strong>多模态 RAG 还是走 OCR 老路</strong>：切完图再 OCR 再 embedding，等于没做多模态。→ 要么上 ColPali，要么至少把图本身挂到 chunk 上让 VLM 现场读。</li>
+</ol>
+<hr />
+<h2 id="信息来源">信息来源</h2>2
+<ul>
+<li>James Loy · "Building State-of-the-Art Vision-Enabled RAG Pipelines (2026)" · Towards AI：https://pub.towardsai.net/building-state-of-the-art-vision-enabled-rag-pipelines-2026-725ab2089595</li>
+<li>Avi Chawla · "100% Local Multimodal RAG using Qwen2.5-VL"：https://blog.dailydoseofds.com/p/100-local-multimodal-rag-using-qwen25</li>
+<li>Together AI · "Multimodal Document RAG with Llama 3.2 Vision and ColQwen2"：https://www.together.ai/blog/multimodal-document-rag-with-llama-3-2-vision-and-colqwen2</li>
+<li>VisRAG 论文 · arXiv 2410.10594：https://arxiv.org/html/2410.10594v1</li>
+<li>QwenLM/Qwen3-VL GitHub：https://github.com/QwenLM/Qwen3-VL</li>
+<li>Spheron · "Deploy Vision Language Models on GPU Cloud: Qwen3-VL, Llama 4 Scout, InternVL3"（2026）：https://www.spheron.network/blog/deploy-vision-language-models-gpu-cloud</li>
+<li>Ruoqi Jin · "ASR in 2025-2026: A Deep Dive into Speech Recognition Technology Selection"：https://ruoqijin.com/blog/asr-deep-dive-2025-2026</li>
+<li>FunASR 官方生态页：https://www.funasr.com/en/ecosystem.html</li>
+<li>Fun-ASR Technical Report · arXiv 2509.12508：https://arxiv.org/html/2509.12508v4</li>
+<li>Modal · "The Top Open Source Speech-to-Text (STT) Models in 2025"：https://modal.com/blog/open-source-stt</li>
+<li>vLLM Qwen 部署文档：https://qwen.readthedocs.io/en/latest/deployment/vllm.html</li>
+</ul>
+<h2 id="相关条目">相关条目</h2>2
+<ul>
+<li><a href="L8-4-%E5%A4%9A%E6%A8%A1%E6%80%81%E4%BA%A4%E4%BB%98-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L8-4 多模态交付 · 最佳答案</a></li>
+</ul></div></body></html>

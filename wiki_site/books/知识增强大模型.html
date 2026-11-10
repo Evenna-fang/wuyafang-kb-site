@@ -1,0 +1,166 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>知识增强大模型</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 知识增强大模型</span></div><div class="wrap"><h1 id="书章节重点-知识增强大模型">书章节重点 · 知识增强大模型</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书系统阐述知识增强大模型的技术体系，涵盖大语言模型、向量数据库、知识图谱、检索增强生成（RAG）与GraphRAG等核心技术，旨在帮助读者理解大模型固有局限并掌握以知识增强大模型能力的完整方法论，从理论到实践构建知识增强大模型应用</li><li>真正可用的系统还必须把数据治理、权限、评测、引用、反馈和运营纳入闭环</li></ul></div>2
+<p>本书系统阐述知识增强大模型的技术体系，涵盖大语言模型、向量数据库、知识图谱、检索增强生成（RAG）与GraphRAG等核心技术，旨在帮助读者理解大模型固有局限并掌握以知识增强大模型能力的完整方法论，从理论到实践构建知识增强大模型应用。全书的主线不是简单罗列工具，而是解释参数化知识与外部知识如何分工：模型负责语言理解、任务规划和自然语言生成，外部知识负责提供可更新、可核验的事实，向量检索负责找到相关片段，知识图谱负责表达实体关系与多跳结构。真正可用的系统还必须把数据治理、权限、评测、引用、反馈和运营纳入闭环。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 绪论：迎接大模型纪元</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：大模型的崛起标志着人工智能进入新纪元，但其固有特性（如幻觉、知识时效性不足）决定了单纯依赖参数化知识不够可靠</li><li>核心观点2：知识增强是弥补大模型固有缺陷的系统性路径，通过外挂知识库、知识图谱等手段提升模型的可靠性与时效性</li><li>核心观点3：知识增强大模型代表了从“纯参数化知识”向“参数化+外部知识协同”的范式转变</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：大模型的崛起标志着人工智能进入新纪元，但其固有特性（如幻觉、知识时效性不足）决定了单纯依赖参数化知识不够可靠。模型可能用流畅语言表达错误事实，也可能无法掌握训练截止后变化的信息，因此应用必须设计外部校验。</li>
+<li><strong>核心观点2</strong>：知识增强是弥补大模型固有缺陷的系统性路径，通过外挂知识库、知识图谱等手段提升模型的可靠性与时效性。增强并非把所有资料塞进提示词，而是围绕问题召回最相关、最有权限、最可信的证据。</li>
+<li><strong>核心观点3</strong>：知识增强大模型代表了从“纯参数化知识”向“参数化+外部知识协同”的范式转变。系统的边界由知识来源、检索策略、上下文编排、生成约束和验证机制共同决定。</li>
+<li><strong>核心观点4</strong>：方案选型要先识别问题来自知识缺失、知识过时、推理不足还是格式不稳定，再决定使用RAG、微调、知识图谱、工具调用或组合架构。</li>
+</ul>
+<h3 id="第2章-大语言模型">第2章 大语言模型</h3>3
+<ul>
+<li><strong>核心观点1</strong>：大模型之所以强大，在于其并非简单记忆词汇或句子，而是形成了对语言规律和知识的深层理解与泛化能力，即“语言直觉”。这种能力来自大规模数据和参数学习，但并不等于事实永远正确。</li>
+<li><strong>核心观点2</strong>：RLHF将人类反馈融入奖励预测器，但本质上仍属于强化学习框架，是大模型对齐人类偏好的关键技术。对齐改善了回答风格、拒答和指令遵循，却不能单独解决实时知识和领域事实问题。</li>
+<li><strong>核心观点3</strong>：垂直大模型通过在特定领域数据上微调或适配，可在专业场景中获得优于通用大模型的表现。是否微调要比较数据规模、更新频率、隐私要求、成本和任务稳定性，动态知识通常更适合检索增强。</li>
+<li><strong>核心观点4</strong>：大模型的使用方式多样（提示工程、微调、API调用等），需根据场景选择合适策略。提示适合快速试验，微调适合固定行为和格式，API与工具编排适合把模型接入真实系统。</li>
+<li><strong>核心观点5</strong>：应用设计要把上下文窗口、输出长度、推理成本、延迟和安全约束一起考虑，不能只依据单次问答的语言质量判断模型是否适合生产。<blockquote>
+<p>神经网络大模型不是简单地记忆词汇或句子，而是理解语言模型、知识，并具备强大的泛化能力，形成一种“语言直觉”。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 向量数据库</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：向量表示与嵌入是将文本等非结构化数据转化为可计算向量的基础，是语义检索的核心前提</li><li>核心观点2：向量相似度是检索排序的基础，余弦相似度、内积或距离度量应与嵌入模型和索引实现匹配</li><li>相似并不总意味着答案相关，实践中常需要关键词召回、元数据过滤和重排序联合修正</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：向量表示与嵌入是将文本等非结构化数据转化为可计算向量的基础，是语义检索的核心前提。嵌入模型把相近语义映射到相近空间，但分块方式、领域词汇和语言分布都会影响向量质量。</li>
+<li><strong>核心观点2</strong>：向量相似度是检索排序的基础，余弦相似度、内积或距离度量应与嵌入模型和索引实现匹配。相似并不总意味着答案相关，实践中常需要关键词召回、元数据过滤和重排序联合修正。</li>
+<li><strong>核心观点3</strong>：Milvus等向量数据库遵循“日志即数据”原则，通过日志持久化和快照日志保证数据可靠性，而非维护物理数据表。理解这一设计有助于正确处理写入、索引构建、快照、恢复和一致性问题。</li>
+<li><strong>核心观点4</strong>：向量数据库为RAG系统提供高效的语义相似度检索能力，是知识增强大模型的关键基础设施。生产部署还要关注分片、索引类型、内存、召回率、过滤条件、并发和备份恢复。</li>
+<li><strong>核心观点5</strong>：数据库选型不能脱离检索任务。数据量较小或已有关系数据库时可采用混合方案；规模扩大后再根据延迟、更新频率和运维能力选择专门的向量系统。<blockquote>
+<p>同时，Milvus遵循“日志即数据”原则，不维护物理数据表，而是通过日志持久化和快照日志来保证数据的可靠性。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第4章-检索增强生成">第4章 检索增强生成</h3>3
+<ul>
+<li><strong>核心观点1</strong>：RAG的核心价值在于动态、实时获取信息并完成知识校验，在答案中给出知识来源，从而增强大模型的可靠性和时效性。它把“回答问题”拆成查询理解、召回证据、组织上下文和受约束生成几个可观测步骤。</li>
+<li><strong>核心观点2</strong>：通用RAG流程包括文档切分、向量化索引、检索召回与生成融合等环节，Dify等工具可低代码构建RAG系统。每个环节都可能形成误差：切分破坏语义，索引遗漏证据，召回混入噪声，生成又可能忽略证据。</li>
+<li><strong>核心观点3</strong>：滑动窗口法通过对固定大小分块的优化，以重叠滑动生成文本块，确保语义连贯并保留更多上下文信息。窗口大小和重叠比例要结合文档结构、查询粒度和上下文预算评估，不能机械套用。</li>
+<li><strong>核心观点4</strong>：RAG系统最佳实践需关注分块策略、检索质量、重排序与生成质量控制等关键环节。应同时评测召回是否包含正确证据、答案是否忠实、引用是否对应，以及无答案时能否明确拒答。</li>
+<li><strong>核心观点5</strong>：知识库运营同样重要：文档要有来源、版本、权限和更新时间，更新后要重建或增量刷新索引，并通过真实问题和坏例持续回流优化。<blockquote>
+<p>RAG能够动态、实时地获取信息，并完成知识校验，在答案中给出知识的来源，从而增强大模型的可靠性和时效性。<br />
+滑动窗口法是对固定大小分块的优化，是指在分割文本块时，以一定的重叠滑动生成文本块，确保文本块内的语义连贯，从而在短片段中保留更多的上下文信息。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 知识图谱技术体系</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：知识图谱通过联想机制模拟人类从记忆中提取信息、联系概念并进行复杂推理的过程</li><li>核心观点2：实体类型（概念/类）是对共享相同特性、约束和规范的事物集合的语义化标识；关系可携带属性以表示不同维度信息</li><li>核心观点3：知识图谱模式设计遵循六韬法，大模型可辅助模式设计，图形化展示有助于更早发现并修正模式缺陷</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：知识图谱通过联想机制模拟人类从记忆中提取信息、联系概念并进行复杂推理的过程。图谱把实体、类型、关系、属性、时间和来源组织成结构化网络，适合表达跨文档和多跳关联。</li>
+<li><strong>核心观点2</strong>：实体类型（概念/类）是对共享相同特性、约束和规范的事物集合的语义化标识；关系可携带属性以表示不同维度信息。模式设计因此既要表达业务语义，也要规定取值类型、方向、基数和约束。</li>
+<li><strong>核心观点3</strong>：知识图谱模式设计遵循六韬法，大模型可辅助模式设计，图形化展示有助于更早发现并修正模式缺陷。模型生成的模式只能作为候选，仍需用样例、查询和领域专家评审验证。</li>
+<li><strong>核心观点4</strong>：DIKW模型（数据-信息-知识-智慧）为理解知识图谱在知识层次中的定位提供了框架。图谱不是原始数据的替代品，而是把数据解释成可关联、可查询、可推理的知识层。</li>
+<li><strong>核心观点5</strong>：图谱的可信度依赖实体消歧、关系抽取、来源记录和质量校验；没有治理的图谱可能只是结构化噪声。<blockquote>
+<p>通过联想机制，我们能够迅速从记忆中提取信息，将概念联系起来并进行复杂推理。<br />
+关系可以有属性，用来表示特定关系的不同维度的信息，如写作关系可以有写作时间的属性，用键值对表示为&lt;时间，1073年&gt;。<br />
+通过图形化展示，以视觉形式直接呈现这些问题，使设计者更早发现并修正模式中的缺陷。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第6章-构建知识图谱">第6章 构建知识图谱</h3>3
+<ul>
+<li><strong>核心观点1</strong>：知识图谱构建涵盖实体识别、关系抽取、属性抽取等核心任务，实体属性包括名称、地址、时间等多维度信息。建设时要区分候选事实、确认事实和冲突事实，并保留原始文本或数据证据。</li>
+<li><strong>核心观点2</strong>：大模型为关系抽取和关系属性抽取带来新范式，提示工程、少样本学习等技术显著降低了抽取门槛。与此同时，大模型输出仍可能遗漏、臆造或混淆实体，必须用模式约束、规则检查和人工抽检把关。</li>
+<li><strong>核心观点3</strong>：知识图谱构建需面向非结构化数据源，识别时间、人物、机构、地点、观点等实体类型并建立语义关联。文本切分、指代消解、别名归一和跨文档对齐决定了最终图谱是否可用。</li>
+<li><strong>核心观点4</strong>：构建流程宜采用小样本试点，先固定模式和评价集，再扩大数据规模；评价不只看抽取数量，还要看准确率、覆盖率、一致性、可追溯性和更新成本。</li>
+<li>大模型的快速发展为关系抽取和关系属性的抽取带来了新范式，包括提示工程、少样本学习等技术的应用。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 图数据库与图计算</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：JanusGraph作为分布式图数据库，借助外部搜索引擎对字符串属性建立索引，实现全文索引、模糊匹配和精确匹配等多层级检索</li><li>核心观点2：边表直观描述图中顶点之间的关系，每条边由两个顶点组成，是图数据模型的基础结构</li><li>核心观点3：图计算涵盖遍历与最短路径算法、中心性分析、社区检测等经典方法，为知识图谱的深度分析提供算法支撑</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：JanusGraph作为分布式图数据库，借助外部搜索引擎对字符串属性建立索引，实现全文索引、模糊匹配和精确匹配等多层级检索。图存储与搜索引擎分工后，需同步考虑索引一致性、查询计划和故障恢复。</li>
+<li><strong>核心观点2</strong>：边表直观描述图中顶点之间的关系，每条边由两个顶点组成，是图数据模型的基础结构。边不仅表示“连接”，还可携带方向、标签、时间、权重和来源等语义。</li>
+<li><strong>核心观点3</strong>：图计算涵盖遍历与最短路径算法、中心性分析、社区检测等经典方法，为知识图谱的深度分析提供算法支撑。不同算法对应不同业务问题，不能把结构指标直接等同于因果结论。</li>
+<li><strong>核心观点4</strong>：profile作为终末步骤，用于收集遍历统计信息（运行时间、返回元素数量等），是图查询性能优化的关键工具。优化时应观察实际步骤瓶颈，再调整索引、过滤顺序、遍历范围和返回字段。<blockquote>
+<p>这些外部的搜索引擎能够对图数据库中的字符串属性进行索引，并提供复杂的查询方法实现全文索引、模糊匹配和精确匹配等不同层级的检索。<br />
+边表详细列出了图中的每条边，每条边由两个顶点组成，分别表示边的两个端点，可以直观地描述图中顶点之间的关系。</p>
+</blockquote>
+</li>
+<li>profile是一个终末步骤，用于收集当前遍历的统计信息，如各个步骤的运行时间、返回的元素数量等。</li>
+</ul>
+<h3 id="第8章-图模互补应用范式">第8章 图模互补应用范式</h3>3
+<ul>
+<li><strong>核心观点1</strong>：图模互补是指知识图谱与大模型各取所长、相互增强的应用范式——大模型增强知识图谱的构建与推理，知识图谱增强大模型的知识可靠性。二者不是简单串联，而是让结构化约束参与检索、规划、验证和生成。</li>
+<li><strong>核心观点2</strong>：LLM-ARK等基于大模型的知识图谱推理智能体，能够提供精确、适应性强的知识图谱路径预测。智能体可以把自然语言问题拆成路径搜索步骤，但候选路径仍需经过图谱约束和证据校验。</li>
+<li><strong>核心观点3</strong>：图模互补应用范式的典型流程将知识图谱的结构化推理能力与大模型的语言理解生成能力有机融合。图谱负责实体关系和可解释路径，模型负责问题改写、结果归纳、对话和报告表达。</li>
+<li><strong>核心观点4</strong>：大模型可辅助撰写报告初稿等知识密集型任务，加速市场或研究人员的知识生产效率。初稿不能替代审核，报告应标注来源、区分事实与推断，并由专业人员确认关键结论。<blockquote>
+<p>LLM-ARK是一种基于大模型的知识图谱推理智能体，其目标是提供精确、适应能力强的知识图谱路径预测。<br />
+我们可以将以上信息作为输入，让大模型写一份报告初稿，辅助市场或研究员快速撰写报告，如下所示。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第9章 知识图谱增强生成与GraphRAG</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：知识图谱的结构化知识为模型提供强大推理能力，支持对及时更新知识的实时推理和关系推导</li><li>核心观点2：GraphRAG能够处理多跳推理、因果关系推断等复杂任务，有效捕捉知识间的潜在关联和隐含逻辑</li><li>核心观点3：知识图谱增强生成将图谱的结构化语义与生成模型的语言能力结合，是对传统RAG的重要升级</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：知识图谱的结构化知识为模型提供强大推理能力，支持对及时更新知识的实时推理和关系推导。图结构可以把分散文档中的实体对齐，并把多跳路径作为生成上下文。</li>
+<li><strong>核心观点2</strong>：GraphRAG能够处理多跳推理、因果关系推断等复杂任务，有效捕捉知识间的潜在关联和隐含逻辑。它适用于需要跨实体、跨文档和跨层级聚合的问题，但图谱构建与维护成本更高。</li>
+<li><strong>核心观点3</strong>：知识图谱增强生成将图谱的结构化语义与生成模型的语言能力结合，是对传统RAG的重要升级。系统应根据问题选择向量片段、图路径或两者混合，并对检索结果排序和去重。</li>
+<li><strong>核心观点4</strong>：GraphRAG的质量依赖图谱覆盖、实体链接、路径选择和上下文压缩；图中错误关系会沿推理链放大，因此必须提供来源和路径级评测。<blockquote>
+<p>知识图谱的结构化知识为模型提供了强大的推理能力，能够对知识图谱中及时更新的知识进行实时推理和关系推导，处理多跳推理、因果关系推断等复杂任务，进而有效地捕捉知识间的潜在关联和隐含逻辑。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第10章-知识增强大模型应用">第10章 知识增强大模型应用</h3>3
+<ul>
+<li><strong>核心观点1</strong>：知识增强大模型应用需构建涵盖应用框架、知识来源、知识运营的完整体系。框架决定调用和编排方式，知识来源决定答案边界，知识运营决定内容能否持续更新和被信任。</li>
+<li><strong>核心观点2</strong>：知识运营需遵循行业规范，金融、医疗等高敏感领域尤其要符合监管要求。权限、脱敏、审计、人工复核和风险提示应在架构早期设计，而不是上线后补丁式增加。</li>
+<li><strong>核心观点3</strong>：优秀用户体验需从应用界面、系统性能、人机协同等多角度平衡技术与用户需求。用户需要知道答案来源、更新时间、置信边界和下一步操作，而不只是看到一段听起来流畅的文字。</li>
+<li><strong>核心观点4</strong>：行业应用案例展示了知识增强大模型在真实场景中的落地路径与价值。落地通常从单一问答或辅助任务开始，经过数据治理、评测和反馈闭环后，再扩展到流程自动化与多系统协同。</li>
+<li><strong>核心观点5</strong>：上线评测至少覆盖检索召回、答案忠实、引用准确、拒答边界、延迟成本和安全合规；离线指标与真实用户反馈应结合使用。<blockquote>
+<p>●行业规范：对于某些高敏感度的应用领域，如金融或医疗行业，知识运营应遵循特定的行业规范，符合监管要求。<br />
+优秀的用户体验需要从应用程序界面、系统性能、人机协同等多个角度考虑，达到技术与用户需求的平衡。</p>
+</blockquote>
+</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">适用场景标签</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>大模型RAG系统设计与开发</li></ul></div>2
+<ul>
+<li>大模型RAG系统设计与开发</li>
+<li>知识图谱构建与应用</li>
+<li>GraphRAG技术选型与落地</li>
+<li>企业知识管理与智能问答</li>
+<li>AI应用架构师技术进阶</li>
+</ul>
+<h2 id="一句话推荐">一句话推荐</h2>2
+<p>知识增强大模型全栈技术指南。</p></div></details></div></body></html>

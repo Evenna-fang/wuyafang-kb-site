@@ -1,0 +1,327 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LoRA微调完整pipeline</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ LoRA微调完整pipeline</span></div><div class="wrap"><h1 id="lora-与-qlora-实战省什么怎么训如何验收">LoRA 与 QLoRA 实战：省什么、怎么训、如何验收</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+<p>前置：<a href="L6-%E6%95%B0%E6%8D%AE%E9%9B%86%E6%9E%84%E5%BB%BA-%E6%8C%87%E4%BB%A4%E7%9B%91%E7%9D%A3SFT.html">SFT 数据构建与训练</a>；配套：<a href="L6-%E5%BE%AE%E8%B0%83%E6%A1%86%E6%9E%B6%E4%B8%8E%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9E%E6%88%98.html">框架与分布式</a>、<a href="L6-%E6%8D%9F%E5%A4%B1%E5%87%BD%E6%95%B0%E4%B8%8E%E4%BC%98%E5%8C%96%E5%99%A8.html">训练稳定性</a>。</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>全参数微调会更新全部模型权重，并为大范围的参数保存梯度和优化器状态</li><li>LoRA 并不会自动消除以下成本：基座权重仍要加载，激活仍随序列长度、batch 和网络结构增长，反向传播仍要穿过冻结层，训练吞吐也不保证高于全参训练</li><li>QLoRA 在 LoRA 思路上进一步把冻结基座以 4-bit 量化形式加载，使用 NF4、双重量化和分页优化器降低训练内存压力</li></ul></div>2
+<p>全参数微调会更新全部模型权重，并为大范围的参数保存梯度和优化器状态。LoRA（Low-Rank Adaptation）冻结原权重，只为选中的线性层学习低秩增量，从而显著减少<strong>可训练参数及其梯度、优化器状态</strong>，并让不同任务可以共享同一基座、分别保存小型 adapter。</p>
+<p>LoRA 并不会自动消除以下成本：基座权重仍要加载，激活仍随序列长度、batch 和网络结构增长，反向传播仍要穿过冻结层，训练吞吐也不保证高于全参训练。它更不是把基座模型本身压缩成小模型。</p>
+<p>QLoRA 在 LoRA 思路上进一步把冻结基座以 4-bit 量化形式加载，使用 NF4、双重量化和分页优化器降低训练内存压力。它适合基座权重精度加载放不下或需要降低内存占用的场景，但是否更快、是否保住任务效果，必须在同一模型、数据、序列长度、batch 与硬件上测量，不能套用一个通用百分比。</p>
+<p>决策顺序：</p>
+<ol>
+<li>先确认微调确有必要，并已有独立评测集；见<a href="L6-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83-2026.html">训练总览</a>。</li>
+<li>基座精度和 LoRA 训练能稳定放下，优先跑普通 LoRA 建立质量基线。</li>
+<li>基座加载或训练内存成为瓶颈，再试 QLoRA，并重新评估质量与速度。</li>
+<li>多卡内存仍不足时，再组合梯度检查点、ZeRO/FSDP 等；这些技术解决的是不同维度的问题。</li>
+</ol>
+<h2 id="what">WHAT</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. LoRA 的数学与缩放</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>LoRA 冻结 \(W\)，学习</li><li>两者不能混用同一套“alpha 必须是 rank 两倍”的经验公式</li><li>rank、alpha、dropout 与学习率都应由任务验证集选择，而非固定最佳值</li></ul></div>3
+<p>对原线性层</p>
+<p>[<br />
+y = Wx,\qquad W\in\mathbb{R}^{d_{out}\times d_{in}}<br />
+]</p>
+<p>LoRA 冻结 (W)，学习</p>
+<p>[<br />
+W' = W + \Delta W,\qquad \Delta W = \frac{\alpha}{r}BA<br />
+]</p>
+<p>其中 (A\in\mathbb{R}^{r\times d_{in}})、(B\in\mathbb{R}^{d_{out}\times r})，秩 (r\ll\min(d_{in},d_{out}))。PEFT 默认以 Kaiming-uniform 初始化 A、以零初始化 B，因此训练开始时 (BA=0)，adapter 不改变原层输出。</p>
+<p>普通 LoRA 的缩放是 <code>lora_alpha / r</code>；rsLoRA 使用 <code>lora_alpha / sqrt(r)</code>，PEFT 通过 <code>use_rslora=True</code> 启用。两者不能混用同一套“alpha 必须是 rank 两倍”的经验公式。rank、alpha、dropout 与学习率都应由任务验证集选择，而非固定最佳值。</p>
+<h3 id="2-lora-到底省了什么">2. LoRA 到底省了什么</h3>3
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>全参训练</th>
+<th>LoRA</th>
+<th>QLoRA</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>基座权重</td>
+<td>训练精度加载并更新</td>
+<td>冻结，但仍需加载</td>
+<td>冻结，通常4-bit量化加载</td>
+</tr>
+<tr>
+<td>可训练参数</td>
+<td>全部或指定大部分</td>
+<td>仅adapter及显式解冻模块</td>
+<td>同LoRA</td>
+</tr>
+<tr>
+<td>梯度</td>
+<td>全参范围</td>
+<td>主要仅adapter</td>
+<td>主要仅adapter</td>
+</tr>
+<tr>
+<td>Adam状态</td>
+<td>全参范围，通常是主要开销之一</td>
+<td>仅adapter等可训练参数</td>
+<td>仅adapter等可训练参数</td>
+</tr>
+<tr>
+<td>激活</td>
+<td>有</td>
+<td>仍有，可能占主要显存</td>
+<td>仍有</td>
+</tr>
+<tr>
+<td>反向计算</td>
+<td>需要</td>
+<td>仍需穿过网络</td>
+<td>仍需，并增加量化相关开销</td>
+</tr>
+<tr>
+<td>默认产物</td>
+<td>完整模型checkpoint</td>
+<td>adapter+配置</td>
+<td>adapter+配置</td>
+</tr>
+</tbody>
+</table>
+<p>QLoRA 论文曾报告在单张 48GB GPU 上微调 65B 模型，这是其特定模型、序列、批量、实现与硬件设置下的结果；不能直接当作本机配置保证。论文中的 Guanaco 评估也仅限相应基准和评估口径，不等于全面达到另一模型能力。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 关键配置的真实含义</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「r」：低秩增量容量，影响 adapter 参数和计算，不是“越大越好”</li><li>「lora_alpha」：与缩放公式共同决定增量幅度</li><li>「target_modules」：决定挂接层</li></ul></div>3
+<ul>
+<li><strong><code>r</code></strong>：低秩增量容量，影响 adapter 参数和计算，不是“越大越好”。</li>
+<li><strong><code>lora_alpha</code></strong>：与缩放公式共同决定增量幅度。</li>
+<li><strong><code>target_modules</code></strong>：决定挂接层。<code>all-linear</code> 是 PEFT 文档给出的 QLoRA 常用配置，但会排除部分特殊层；是否适合某模型必须打印已挂模块确认。</li>
+<li><strong><code>lora_dropout</code></strong>：adapter 分支正则化，不控制基座其他 dropout。</li>
+<li><strong><code>bias</code></strong>：是否训练偏置，会改变可训练参数与保存内容。</li>
+<li><strong>学习率/有效 batch</strong>：优化超参，不能从 rank 推导固定答案。</li>
+<li><strong>梯度检查点</strong>：用额外重算换激活内存，和 LoRA 可组合但不是同一机制。</li>
+</ul>
+<h3 id="4-产物与合并方式">4. 产物与合并方式</h3>3
+<p>LoRA/QLoRA 默认训练产物是 adapter，不包含一份新的完整基座。部署有两条路径：</p>
+<ol>
+<li><strong>运行时挂 adapter</strong>：共享基座、多任务切换方便；要求推理服务支持对应 PEFT/LoRA 格式。</li>
+<li><strong>离线合并</strong>：以所需原始精度重新加载基座，执行 <code>merge_and_unload()</code> 并接收返回模型，再保存完整权重与 tokenizer。</li>
+</ol>
+<p>PEFT 的 <code>merge_and_unload()</code> <strong>不是原地操作</strong>：应写 <code>merged = model.merge_and_unload()</code>。量化模型反复 merge/unmerge 可能积累舍入误差；要得到高质量完整模型，不要简单把 4-bit 基座合并结果当成 bf16 全参模型。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">HOW</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="1-准备输入与实验矩阵">1. 准备输入与实验矩阵</h3>3
+<p>固定以下版本：</p>
+<ul>
+<li>基座模型与 tokenizer/chat template revision；</li>
+<li>经过审核、去重和防污染切分的 train/eval 数据快照；</li>
+<li>PyTorch、Transformers、TRL、PEFT、bitsandbytes（QLoRA 时）和 GPU 栈版本；</li>
+<li>解码配置、业务评估与通用回归集。</li>
+</ul>
+<p>先跑一个短 LoRA 基线，再只把基座加载方式替换为 QLoRA。至少记录峰值显存、tokens/s、train/eval loss、任务指标和输出长度分布。不要同时改变数据、rank、batch、序列长度后还比较两种方案。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2. 审计挂接层和可训练参数</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>model.print_trainable_parameters()</li><li>print(name, tuple(param.shape))</li><li>验收点：目标层确实出现 「lora_A/lora_B」；基座默认冻结；可训练参数列表符合预期</li></ul></div>3
+<p><strong>审计代码（示例，未实跑）</strong>：</p>
+<pre><code class="language-python">from transformers import AutoModelForCausalLM
+from peft import LoraConfig, get_peft_model
+
+model = AutoModelForCausalLM.from_pretrained(&quot;your/base-model&quot;)
+config = LoraConfig(
+    r=16,
+    lora_alpha=32,
+    lora_dropout=0.0,
+    target_modules=&quot;all-linear&quot;,
+    task_type=&quot;CAUSAL_LM&quot;,
+)
+model = get_peft_model(model, config)
+model.print_trainable_parameters()
+for name, param in model.named_parameters():
+    if param.requires_grad:
+        print(name, tuple(param.shape))
+</code></pre>
+<p>验收点：目标层确实出现 <code>lora_A/lora_B</code>；基座默认冻结；可训练参数列表符合预期。若只匹配到少数层或没有匹配，先改 target module 配置，不要靠增大学习率弥补。</p>
+<h3 id="3-qlora-sft-主路径">3. QLoRA + SFT 主路径</h3>3
+<p>以下展示当前 Transformers/PEFT/TRL 的组合方式。<code>assistant_only_loss=True</code> 的模板前提与标签检查见 SFT 篇。代码仅为接口示例，<strong>未实跑</strong>；实际运行须锁定版本、模型 revision，并按官方文档处理模型特定要求。</p>
+<pre><code class="language-python">import torch
+from datasets import load_dataset
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from peft import LoraConfig
+from trl import SFTConfig, SFTTrainer
+
+MODEL = &quot;your/instruct-base-model&quot;
+quant = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_quant_type=&quot;nf4&quot;,
+    bnb_4bit_use_double_quant=True,
+    bnb_4bit_compute_dtype=torch.bfloat16,
+)
+model = AutoModelForCausalLM.from_pretrained(
+    MODEL,
+    quantization_config=quant,
+    device_map=&quot;auto&quot;,
+)
+tokenizer = AutoTokenizer.from_pretrained(MODEL)
+train = load_dataset(&quot;json&quot;, data_files=&quot;train.jsonl&quot;, split=&quot;train&quot;)
+
+peft_config = LoraConfig(
+    r=16,
+    lora_alpha=32,
+    target_modules=&quot;all-linear&quot;,
+    lora_dropout=0.0,
+    task_type=&quot;CAUSAL_LM&quot;,
+)
+args = SFTConfig(
+    output_dir=&quot;runs/qlora-smoke&quot;,
+    max_length=1024,
+    packing=False,
+    assistant_only_loss=True,
+    report_to=[],
+)
+trainer = SFTTrainer(
+    model=model,
+    processing_class=tokenizer,
+    args=args,
+    train_dataset=train,
+    peft_config=peft_config,
+)
+trainer.train()
+trainer.save_model(&quot;runs/qlora-smoke/adapter&quot;)
+tokenizer.save_pretrained(&quot;runs/qlora-smoke/adapter&quot;)
+</code></pre>
+<p>普通 LoRA 对照实验去掉 4-bit <code>quantization_config</code>，以训练所需精度加载基座，其余条件保持一致。显存不足时按顺序检查：样本长度是否异常、micro-batch、梯度检查点、目标模块、基座量化、分布式切分。梯度累积能降低 micro-batch 的激活压力，但不会消除基座权重成本，也不等于减小总有效 batch。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4. 合并并保存完整模型</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>merged.save_pretrained(OUT)</li><li>AutoTokenizer.from_pretrained(BASE).save_pretrained(OUT)</li><li>合并前确认基座 revision 与训练完全相同；合并所需内存与训练不同，必要时在更大内存环境执行</li></ul></div>3
+<p><strong>合并代码（示例，未实跑）</strong>：</p>
+<pre><code class="language-python">import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from peft import PeftModel
+
+BASE = &quot;your/instruct-base-model&quot;
+ADAPTER = &quot;runs/qlora-smoke/adapter&quot;
+OUT = &quot;runs/qlora-smoke/merged-bf16&quot;
+
+base = AutoModelForCausalLM.from_pretrained(BASE, dtype=torch.bfloat16)
+model = PeftModel.from_pretrained(base, ADAPTER)
+merged = model.merge_and_unload()  # 必须接收返回模型
+merged.save_pretrained(OUT)
+AutoTokenizer.from_pretrained(BASE).save_pretrained(OUT)
+</code></pre>
+<p>合并前确认基座 revision 与训练完全相同；合并所需内存与训练不同，必要时在更大内存环境执行。保存后另起进程重新加载，检查 config、权重、tokenizer、chat template 和生成配置。</p>
+<h3 id="5-三层验收">5. 三层验收</h3>3
+<ol>
+<li><strong>训练层</strong>：loss/梯度无异常，可训练参数正确，adapter 能保存并重新加载。</li>
+<li><strong>模型层</strong>：与基座在独立保留集上做同条件对照；按场景报告任务指标、拒答、格式、长度及通用能力回退。</li>
+<li><strong>交付层</strong>：对最终部署形态评估——运行时 adapter 就测挂载后的服务，合并模型就测合并权重，部署前再量化就测量化后模型。</li>
+</ol>
+<p>只有训练 loss 下降不构成通过。若 QLoRA 与 LoRA 有差异，先检查是否使用同一数据顺序、有效 batch、模板、训练步数与评估解码配置，再判断量化影响。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6. 常见坑与回退</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>优先检查</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一开始就OOM</td>
+<td>基座加载、异常长样本、micro-batch</td>
+<td>缩短异常样本/减micro-batch；必要时QLoRA或分布式</td>
+</tr>
+<tr>
+<td>训练若干步后OOM</td>
+<td>长度分桶、序列增长、日志/评估额外开销</td>
+<td>固定长度审计，调整batch与评估方式</td>
+</tr>
+<tr>
+<td>adapter几乎没学</td>
+<td>target modules、requires_grad、mask、LR</td>
+<td>打印参数与labels，做小规模过拟合测试</td>
+</tr>
+<tr>
+<td>训练loss降、业务变差</td>
+<td>数据与评估错位、过拟合、模板差异</td>
+<td>回退最佳checkpoint，按场景重审数据</td>
+</tr>
+<tr>
+<td>合并后效果变化</td>
+<td>基座revision、精度、合并对象、tokenizer</td>
+<td>从原始基座重新合并，另起进程对照</td>
+</tr>
+<tr>
+<td>保存目录无法加载</td>
+<td>只存adapter却当完整模型、缺配置</td>
+<td>用PeftModel挂基座，或补齐合并模型文件</td>
+</tr>
+<tr>
+<td>量化后回归</td>
+<td>最终量化方法与校准</td>
+<td>对最终产物重测，必要时回退到已验收精度</td>
+</tr>
+</tbody>
+</table>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li>
+<p><strong>本库没有 LoRA 训练代码（<code>rag/</code> 与 <code>~/.hermes/scripts/</code> 下 grep <code>peft\|lora\|LoraConfig</code> 无命中），但有可迁移的"三层验收"实例</strong><br />
+  ```python<br />
+  # rag/ingest.py run_verify(): 长任务跑完立刻做"检索侧验收", 不靠自证<br />
+  def run_verify(col, upserted_sources, all_sources, count_after):<br />
+      """ingest末尾自动验证: 复用 query.py 的 retrieve 纯检索3条query(不生成)。</p>
+<p>打印每条query的 top1 命中源文件+score; top1源在本次入库文件内 =&gt; OK,<br />
+否则 WARN。结果追加写入 notes/processes/ingest验证记录-&lt;日期&gt;.md。<br />
+  import query as query_mod<br />
+  scope = upserted_sources or all_sources<br />
+<code></code>python<br />
+  # rag/query.py L695 weight_by_tier(): 验收口径带"来源权威级"权重, 防一手/三手混算<br />
+  def weight_by_tier(score, tier, src=""):<br />
+  score = score * CONFIG["scoring"]["tier_weight"].get(tier, 1.0)<br />
+  for prefix, boost in CONFIG["scoring"]["path_boost"].items():<br />
+<code>``
+  对应本节的"模型层与交付层验收"：产物跑完立刻用**独立入口**做一次端到端检索验收（</code>top1<code>是否落在本次新入库文件内 → OK/WARN），并留档到</code>notes/processes/ingest验证记录-&lt;日期&gt;.md<code>。
+- **和课件讲法的差异**：课件</code>LoraConfig(r=8, lora_alpha=16, target_modules="all-linear", …)<code>+</code>merge_and_unload()<code>是本库没有的；本库的"挂载"概念对应</code>sparse_linear.pt<code>头上的硬校验（</code>ingest.get_bge_model()<code>缺头直接抛错，拒绝随机初始化权重），体现同一个原则：**adapter/头是否真加载，要靠权重比对或行为对比证明，不靠 loss**。
+- **本库暂无对应实现，课件做法是**：</code>PeftModel.from_pretrained(base, adapter)<code>后用</code>model.merge_and_unload()` 保存完整权重，再在独立保留集上与基座同条件对照——这一步正是"训练 loss 下降不等于交付通过"的判据。</p>
+</li>
+</ul>
+<h2 id="来源与口径">来源与口径</h2>2
+<ol>
+<li>课件骨架：<code>raw/courseware/微调篇/day02微调之PEFT__课件__大模型微调-2-PEFT.md</code>（PEFT、LoRA 秩与训练链路）；<code>raw/courseware/微调篇/day06微调之最佳实践__课件__大模型微调-6-最佳实践.md</code>（基座选择、部署与评估）。</li>
+<li>书摘线索：<code>raw/weread/从零构建大模型.md</code>（目录含 LoRA 附录）；<code>raw/weread/大语言模型：原理、应用与优化.md</code>（目录含低参数微调与内存优化）；<code>raw/weread/Happy-LLM：从零开始构建大模型.md</code>（高效微调主题）。本地材料为目录/热门划线，不作为具体性能数字依据。</li>
+<li>原始论文：<a href="https://arxiv.org/abs/2106.09685">LoRA</a>；<a href="https://arxiv.org/abs/2305.14314">QLoRA</a>，NF4、双重量化、分页优化器及实验边界来自论文。</li>
+<li>官方接口：<a href="https://huggingface.co/docs/peft/main/en/developer_guides/lora">PEFT LoRA 文档</a>，用于初始化、<code>all-linear</code>、rsLoRA、<code>merge_and_unload()</code> 与量化合并注意事项；<a href="https://huggingface.co/docs/trl/sft_trainer">TRL SFTTrainer</a>，用于训练配置组合。</li>
+<li>实战材料：<code>raw/fullstack/微调实战-2026.md</code> 仅用于端到端评估与管线组织。本文删除了旧稿无统一条件的显存、速度、样本量和“默认/非默认”绝对结论。</li>
+</ol></div></details></div></details></div></body></html>

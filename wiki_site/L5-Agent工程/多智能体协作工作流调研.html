@@ -1,0 +1,222 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>多智能体协作工作流调研</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/多智能体协作工作流调研</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="a2a">多智能体协作工作流调研（范式 · 坑 · A2A · 链路分层）</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="file:///C:/MyData/Documents/wuyafang-l/wiki_site/raw/multi-agent/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%8D%8F%E4%BD%9C%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E4%B8%8E%E8%A7%84%E9%81%BF-20260928.html">多智能体协作常见问题与规避-20260928</a> · <a href="file:///C:/MyData/Documents/wuyafang-l/wiki_site/raw/multi-agent/%E5%A4%9AAgent%E5%8D%8F%E4%BD%9C%E8%B0%83%E7%A0%94-5%E6%96%B9%E5%90%91-20260928.html">多Agent协作调研-5方向-20260928</a> · <a href="file:///C:/MyData/Documents/wuyafang-l/wiki_site/raw/multi-agent/Agent%E9%93%BE%E8%B7%AF7%E5%B1%82%E8%B0%83%E7%A0%94-20260928.html">Agent链路7层调研-20260928</a></p>
+<p><a href="../index.html">← 返回总入口</a>
+相关：<a href="多智能体协作流程.html">多智能体协作流程</a> · <a href="多Agent还是单Agent怎么选.html">多Agent还是单Agent怎么选</a> · <a href="Agent框架与协议进展-2026.html">Agent框架与协议进展</a> · <a href="MCP到底解决什么问题.html">MCP到底解决什么问题</a> · <a href="多智能体共享记忆G-Memory.html">多智能体共享记忆G-Memory</a></p>
+</blockquote>
+<h2 id="_1">核心结论</h2>
+<p>多智能体不是默认更优解，而是"用 token 换能力"的权衡：Anthropic 官方口径下多 agent 约烧 15× chat token（单 agent 约 4×），且 token 用量单独解释 BrowseComp 80% 的方差——"多 agent 的魔法很大程度是花更多算力"。协作成立有硬前提：任务<strong>真可并行、无共享上下文强依赖、无写冲突</strong>；Cognition《Don't Build Multi-Agents》更进一步主张共享完整 agent trace、写操作单线程。生产主流骨架是 orchestrator-worker（Anthropic：lead agent 拆解 → 并行 spawn 3–5 个子 agent，内部评测比单 Opus 4 高 90.2%），另有顺序流水线、并行 fan-out、handoff、辩论等形态，各有边界。失败模式高度集中在少数几类（MAST 论文 arXiv:2503.13657，1642 条 trace：系统设计缺陷 44.2%、agent 间错位 32.3%、任务验证 23.5%），所以最值钱的不是换架构，而是<strong>拆卡前先判可并行性、通信结构化、失败先归因再反思</strong>。</p>
+<h2 id="_2">关键细节</h2>
+<h3 id="_3">协作范式与适用边界</h3>
+<table>
+<thead>
+<tr>
+<th>范式</th>
+<th>代表</th>
+<th>成立条件</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>orchestrator-worker（星型/中心编排）</td>
+<td>Anthropic Research：lead=Opus 4 → 3–5 个 Sonnet 4 子 agent（独立 context）+ CitationAgent 二遍引用</td>
+<td>任务可 breadth-first 并行、子任务独立</td>
+<td>15× token；同步 fan-out 是信息流瓶颈（lead 不能中途纠偏）</td>
+</tr>
+<tr>
+<td>sequential pipeline</td>
+<td>质量门之间串行 + 分工明确</td>
+<td>clear sequential dependencies</td>
+<td>单点慢即全线慢</td>
+</tr>
+<tr>
+<td>parallel fan-out</td>
+<td>同题多 worker 并行</td>
+<td>上下文装不下、无写冲突</td>
+<td>易重复劳动（Anthropic 曾对简单 query spawn 50 个子 agent）</td>
+</tr>
+<tr>
+<td>handoff</td>
+<td>分歧升用户</td>
+<td>需要人接手的边界</td>
+<td>交接信息易丢失</td>
+</tr>
+<tr>
+<td>debate（辩论）</td>
+<td>Claude+Codex 独立作答 → 归并</td>
+<td>高风险决策</td>
+<td>过度协商反模式：辩论实验里 correct→incorrect 翻转数在所有配置下压过反向</td>
+</tr>
+</tbody>
+</table>
+<p>反方权威：Cognition 主张默认排除多 agent——① 要共享完整 agent trace 而非零散消息；② 动作携带隐式决策，冲突决策产生坏结果（两个子 agent 各自定视觉风格，产物互相打架）。RefactorPlatform（arXiv:2609.04898）实测佐证：仓库级重构"瘦检索单 agent"达 86%，"子 agent 委派"只有 66%——<strong>多派一层子 agent 反而把任务做坏</strong>。</p>
+<h3 id="_4">常见坑与规避（实证）</h3>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>实证</th>
+<th>规避</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>通信开销 / 上下文损耗</td>
+<td>自然语言消息占 40–60% token 预算（Routed Graph Handoff, 2608.25277）；强制英文中转掉点（西语 13pp、印地语 30.6pp）</td>
+<td>typed JSON / schema 传状态；155-token 轻量 router 做图/NL 自适应切换（3.2× 压缩不掉点）；消息带来源指针</td>
+</tr>
+<tr>
+<td>死循环 / 重复劳动 / 平台期</td>
+<td>AgentWorld(2609.31590) 50+ 轮、3–20 角色最好仅 52% 成功率；Agensh(2609.26781) 中心编排者即容量瓶颈</td>
+<td>任务先试单 agent 再拆；贡献度归因（DAG-Shapley 把 LLM 调用降 80%）；隔离 lazy agent；异步共享工作区</td>
+</tr>
+<tr>
+<td>单点 / 级联故障</td>
+<td>Proxifield(2609.20889)：星型只保 38.8% 奖励，语义路由去中心化保 73.6%</td>
+<td>去中心拓扑；pre-hoc 风险推断（HalluProp AUROC 84.6%，比事后快 65×）；故障隔离 + 局部回滚（BRA-Audit）</td>
+</tr>
+<tr>
+<td>责任边界模糊 / 踢皮球</td>
+<td>DoCtOR(2608.28264)：全员反思是反模式，先归因 decisive error agent 再只让它反思，提升 22–27%</td>
+<td>角色契约显式化；先归因再反思；责任血缘图落盘</td>
+</tr>
+<tr>
+<td>评估困难</td>
+<td>SCHEMA(2608.00711)：最终答案准确率与轨迹诚实度脱钩，蒙对≠推理对</td>
+<td>加过程级指标（CCE 因果贡献度、轨迹诚实度）；长程+异步+黑盒评测</td>
+</tr>
+<tr>
+<td>幻觉传递</td>
+<td>CPB(2609.30813)：一条假信念进共享记忆后，下游在 0.97–0.99 的探测里当它为真</td>
+<td>不确定性随消息传递（logprob/语义熵）；共享记忆按来源 gating；对抗性 critic</td>
+</tr>
+<tr>
+<td>成本失控</td>
+<td>BRA-Audit 预算感知调度后端到端 token 降 17.2–40.6%；Cost-Aware HMAS 平均分析成本降 43.97%</td>
+<td>自适应分层；审计按预算贪心投放；中间输出复用；先算委派的账</td>
+</tr>
+</tbody>
+</table>
+<p>链式可靠性是底层数学：95% 单步 × 10 步 = 59.9%，× 20 步 ≈ 36%——长链必腐，每加一个 agent 就多一次上下文掉落的交接。</p>
+<h3 id="a2a-agent2agent">A2A 协议（Agent2Agent）</h3>
+<p>Google 2025-04 发布，基于 HTTP(S) + JSON-RPC 2.0 + SSE。三件核心：</p>
+<ul>
+<li><strong>Agent Card</strong>：每个 agent 在 <code>/.well-known/agent.json</code> 声明身份、能力（skills）、支持的模态、认证要求，供其他 agent 发现。</li>
+<li><strong>Task Lifecycle</strong>：标准任务状态机 submitted → working → input-required → completed/failed/canceled，支持长时任务与异步推送。</li>
+<li><strong>Rich Artifacts</strong>：结果可为文本、文件、结构化 JSON，甚至中途动态协商模态；client/server 对称，只暴露能力边界、不暴露内部 memory/tools。</li>
+</ul>
+<p>MCP vs A2A：MCP 解决 agent ↔ 工具（结构化同步调用、<code>list_tools</code> 发现），A2A 解决 agent ↔ agent（对话式可异步、Agent Card 发现、完整任务生命周期）。两者互补不互斥。</p>
+<p>落地口径：六员都在本机，短期不上 JSON-RPC server（CLI 开销更小），只借它的两个产物——① 每个 agent 写 <code>agent_card.md</code>（能力边界/输入契约/输出契约/典型任务）；② 派单走 task envelope（<code>{task_id, status, input, artifacts}</code> 落盘，而非散在 prompt 里）。长期要跨机器协作（如云端 OpenClaw）再上真协议。</p>
+<h3 id="agent">Agent 知识链路七层（输入 → 采集 → 提炼 → 分流 → 检索 → 应用 → 回流）</h3>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 输入 Intake</td>
+<td>用户 query / arXiv 订阅 / GitHub watch / 会话轨迹 / 手工笔记</td>
+</tr>
+<tr>
+<td>2 采集 Collection</td>
+<td>从输入源抓全文，raw/ 冻结快照</td>
+</tr>
+<tr>
+<td>3 提炼 Distillation</td>
+<td>raw 长文 → 3–5 行核心 + 对我们的价值，写进 wiki/</td>
+</tr>
+<tr>
+<td>4 分流 Routing/Tagging</td>
+<td>按 source_tier / 主题 / Owner 归档</td>
+</tr>
+<tr>
+<td>5 检索 Retrieval</td>
+<td>ChromaDB + bge-m3 dense+sparse，top-k 召回</td>
+</tr>
+<tr>
+<td>6 应用 Application</td>
+<td>召回 chunk 拼进 prompt 当上下文</td>
+</tr>
+<tr>
+<td>7 回流 Feedback Loop</td>
+<td>记录哪些 chunk 被采纳/忽略，反馈回提炼层</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_5">落地清单（可直接抄）</h3>
+<ol>
+<li><strong>拆卡前三问</strong>：子任务真独立？只读/无写冲突？价值配得上 fan-out 放大？任一不满足就走单 agent 串行。</li>
+<li><strong>委派契约四字段</strong>：objective / 输出格式 / 工具与来源指引 / 任务边界——只分任务不"教"委派，子 agent 会重复劳动、留空隙、误读任务。</li>
+<li><strong>并行卡声明工作域</strong>（负责的文件/目录/检索关键词），互斥才并行，重叠即串行或合并卡。</li>
+<li><strong>派单前先对单 agent 基线算账</strong>（RefactorPlatform 教训：委派可能同时更贵更差）。</li>
+<li><strong>回传契约 schema 化</strong>：交付了什么 / 证据路径 / 关键取舍 / 未解决不确定性 / 被拒动作，防多级转述信息衰减。</li>
+</ol>
+<h2 id="_6">来源</h2>
+<ul>
+<li>raw/multi-agent/外部调研-多智能体协作工作流-20260925.md（Anthropic / Cognition / LangChain / Inngest 官方博客 + MAST 论文）</li>
+<li>raw/multi-agent/多智能体协作常见问题与规避-20260928.md（arXiv 12 篇核心：AgentWorld / DoCtOR / CPB / Proxifield / RefactorPlatform 等）</li>
+<li>raw/multi-agent/A2A协议调研-20260928.md</li>
+<li>raw/multi-agent/多Agent协作调研-5方向-20260928.md</li>
+<li>raw/multi-agent/Agent链路7层调研-20260928.md</li>
+</ul>
+<h2 id="_7">相关术语</h2>
+<ul>
+<li>Orchestrator-Walker 模式 / Agent Card / Task Envelope / A2A / MCP → <code>ontology/术语表-Agent框架.md</code></li>
+<li>预算分级路由（Budget-Tiered Routing）→ <code>ontology/Agent记忆术语表.md</code></li>
+<li>步级模型路由（Step-level Model Routing）→ <code>ontology/术语表-模型部署.md</code></li>
+<li>混合检索（dense+sparse，链路第 5 层）→ <code>ontology/术语表-RAG架构.md</code></li>
+<li>MAST 论文 / 级联故障：ontology 暂无独立条目</li>
+</ul>
+<h2 id="_8">相关条目</h2>
+<ul>
+<li><a href="多智能体前沿论文速览-2026.html">多智能体前沿论文速览 2026（26 篇一手论文 · 已有 vs 缺口对照）</a></li>
+</ul></div></body></html>

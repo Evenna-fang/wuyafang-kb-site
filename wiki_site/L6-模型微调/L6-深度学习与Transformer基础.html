@@ -1,0 +1,508 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L6-深度学习与Transformer基础</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L6-深度学习与Transformer基础</span></div><div class="wrap"><h1 id="深度学习transformer-与训练稳定性">深度学习、Transformer 与训练稳定性</h1>
+<blockquote>
+<p>本文把神经网络、CNN、Transformer、损失函数与优化器放进同一条微调链路：文本如何变成张量，张量如何前向与反向传播，Decoder-only 模型如何改写表示，以及 loss、梯度、混合精度和 LoRA 挂接怎样验收。所有代码与实验均为<strong>示例，未实跑</strong>；旧稿中的本机指标不沿用。</p>
+<p>微调主流程见<a href="L6-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83-2026.html">预训练/CPT/SFT</a>，低秩公式、显存成本与合并见<a href="LoRA%E5%BE%AE%E8%B0%83%E5%AE%8C%E6%95%B4pipeline.html">LoRA/QLoRA</a>，分布式 OOM 见<a href="L6-%E5%BE%AE%E8%B0%83%E6%A1%86%E6%9E%B6%E4%B8%8E%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9E%E6%88%98.html">框架与分布式</a>。</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>L6 微调不是“把 JSON 交给 Trainer 后等 loss 下降”</li><li>3. 理解为什么能微调而不是重训：预训练已经提供通用表示；LoRA 冻结主干，只学习选定线性层的低秩增量，减少可训练参数与优化器状态</li><li>4. 把故障定位到层：注意力 mask 错、归一化维度错、激活尺度失控和过拟合是不同问题，不能用“再训练几轮”统一处理</li></ul></div>2
+<p>L6 微调不是“把 JSON 交给 Trainer 后等 loss 下降”。数据要先经 Tokenizer 变成 <code>input_ids</code>，再经 Embedding 变成连续向量；每个 Transformer block 通过注意力与前馈网络更新这些向量；监督微调再用目标 token 的交叉熵产生梯度，更新全部参数或少量适配参数。任何一个环节错位，都可能表现为 loss 不降、输出乱码、显存溢出或训练集全对而验证集无效。</p>
+<p>基础理论在这里承担四个实际任务：</p>
+<ol>
+<li><strong>对齐数据与模型</strong>：理解 token、序列长度、隐藏维数和 batch 维，才能发现 padding、标签平移和词表不一致。</li>
+<li><strong>判断模型是否真的在学习</strong>：前向只说明能算出结果，反向梯度非零、有限且到达目标参数，才说明训练链路接通。</li>
+<li><strong>理解为什么能微调而不是重训</strong>：预训练已经提供通用表示；LoRA 冻结主干，只学习选定线性层的低秩增量，减少可训练参数与优化器状态。</li>
+<li><strong>把故障定位到层</strong>：注意力 mask 错、归一化维度错、激活尺度失控和过拟合是不同问题，不能用“再训练几轮”统一处理。</li>
+</ol>
+<p>CNN 不是 Decoder-only LLM 的必备组成，但它提供了理解“归纳偏置”的对照：局部连接和权值共享把图像先验写入结构；标准自注意力则用内容相关的全局交互换取灵活性。多模态系统中，视觉编码器与语言模型也可能采用不同归纳偏置，因此不能把某套视觉经验直接套到文本微调上。</p>
+<h2 id="what">WHAT</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 从标量到计算图：微调在更新什么</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>张量是带 shape 和 dtype 的多维数组</li><li>注意力权重：单头时为 「[B, T, T]」，多头时常写为 「[B, H, T, T]」</li><li>计算图也解释显存消耗：不仅权重占显存，注意力分数、激活、梯度和优化器状态都可能占显存</li></ul></div>3
+<p><strong>张量</strong>是带 shape 和 dtype 的多维数组。标量没有轴，向量是一维，矩阵是二维；Transformer 中常见的隐藏状态是三维张量：</p>
+<ul>
+<li><code>input_ids</code>: <code>[B, T]</code>，B 为 batch 大小，T 为序列长度，元素是词表中的整数 ID。</li>
+<li>token 隐藏状态 <code>X</code>: <code>[B, T, D]</code>，D 为隐藏维数。</li>
+<li>注意力权重：单头时为 <code>[B, T, T]</code>，多头时常写为 <code>[B, H, T, T]</code>。</li>
+<li>输出 logits: <code>[B, T, V]</code>，V 为词表大小。</li>
+</ul>
+<p>这些名称只是约定，实际框架可能合并 batch 与序列轴，或把多头维放在不同位置。可靠做法不是死记布局，而是阅读模型实现并打印一次 shape。尤其不要把 <code>[B, T, D]</code> 误当成 <code>[T, B, D]</code> 后仍继续训练：有些矩阵乘法恰好能执行，却会静默地算错对象。</p>
+<p><strong>计算图</strong>把前向运算记录为有向无环图。节点是矩阵乘法、激活、归一化、掩码、求和等算子，边是张量。前向时保存反向所需中间值，反向时按逆拓扑顺序应用链式法则。若标量损失为 <code>L</code>，则对任意参数 <code>θ</code> 求 <code>∂L/∂θ</code>，优化器再按学习率和自身状态更新参数。</p>
+<p>一个最小训练步是：</p>
+<ol>
+<li>清上一步梯度；</li>
+<li>前向得到 logits；</li>
+<li>只对允许计算损失的位置求标量 loss；</li>
+<li><code>backward()</code> 沿图求梯度；</li>
+<li>可选地做梯度裁剪；</li>
+<li><code>optimizer.step()</code> 更新参数，<code>scheduler.step()</code> 调整学习率。</li>
+</ol>
+<p>计算图也解释显存消耗：不仅权重占显存，注意力分数、激活、梯度和优化器状态都可能占显存。冻结参数可减少其梯度与优化器状态，但若前向仍经过主干，中间激活并不会自动全部消失。</p>
+<h3 id="2-前向反向与损失先确认优化对象">2. 前向、反向与损失：先确认优化对象</h3>3
+<p>对一层线性映射 <code>Z = XW + b</code>，若 <code>X</code> 为 <code>[N, D]</code>、<code>W</code> 为 <code>[D, H]</code>，则 <code>Z</code> 为 <code>[N, H]</code>。非线性激活使多层网络不再等价于单个线性变换。反向传播仍遵循链式法则，例如 ReLU 的负区梯度为零，正区梯度为一。</p>
+<p>语言模型通常学习下一 token 条件分布。对位置 <code>t</code> 的 logits，softmax 为：</p>
+<p>[<br />
+p_{t,v}=\frac{\exp(z_{t,v})}{\sum_{u=1}^{V}\exp(z_{t,u})}<br />
+]</p>
+<p>训练使用交叉熵，而不是 accuracy，因为 accuracy 不可提供有用的连续梯度。数值实现要采用框架的稳定交叉熵或 log-sum-exp，不要手写 <code>log(softmax(z))</code> 后随意加一个很大截断常数。</p>
+<p>因果语言模型的输入与标签通常错开一个位置：根据截至 <code>t</code> 的上下文预测 <code>t+1</code>。很多因果模型内部已经处理 logits 与 labels 的平移，重复手动 shift 会再错一位；也有底层实现要求调用者自己 shift。必须查所用模型接口，并用一个人工短序列验证，不能凭框架名猜。</p>
+<p><strong>损失掩码</strong>决定哪些位置参与训练。padding 一般不应计损；指令微调还可能只训练回答部分，把 prompt 对应标签设为忽略值。忽略值取什么由损失接口规定，例如 PyTorch 常见接口默认 <code>-100</code>，但使用前应查当前版本文档。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 激活、初始化与归一化：让深层网络可训练</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Sigmoid：输出在 0 与 1 之间，适合门控或二分类概率；两端饱和时梯度很小，不宜不加判断地堆在深层隐藏层</li><li>Tanh：输出零中心，也会在大绝对值区域饱和</li><li>ReLU：正区梯度不饱和，但负区为零，部分单元可能长期失活</li></ul></div>3
+<p>常见激活的职责不同：</p>
+<ul>
+<li><strong>Sigmoid</strong>：输出在 0 与 1 之间，适合门控或二分类概率；两端饱和时梯度很小，不宜不加判断地堆在深层隐藏层。</li>
+<li><strong>Tanh</strong>：输出零中心，也会在大绝对值区域饱和。</li>
+<li><strong>ReLU</strong>：正区梯度不饱和，但负区为零，部分单元可能长期失活。</li>
+<li><strong>GELU</strong>：平滑门控式激活，许多 Transformer 使用前馈网络采用它或其变体。具体模型也可能使用 SwiGLU 等门控结构，不能把所有模型都写成同一种 FFN。</li>
+</ul>
+<p><strong>初始化</strong>的目标是打破对称并控制前向激活、反向梯度的尺度。全零初始化会让同类隐藏单元获得相同梯度，无法分工。Xavier/Glorot 与 He 初始化分别从不同激活与方差假设出发，但预训练微调通常继承已有初始化；真正需要谨慎的是新加的 LoRA 分支和任务头。LoRA 常让一条低秩分支从零附近开始，使初始增量接近零，避免一开始破坏预训练表示。</p>
+<p><strong>归一化</strong>要与维度对齐。BatchNorm 使用 batch 统计量，训练与推理行为不同；LayerNorm 通常在单个 token 的隐藏特征维上归一化，不依赖同 batch 其他样本，适合变长序列和 Transformer。其形式可写为：</p>
+<p>[<br />
+\operatorname{LN}(x)=\gamma\odot\frac{x-\mu}{\sqrt{\sigma^2+\epsilon}}+\beta<br />
+]</p>
+<p>其中均值和方差沿约定的特征轴计算，<code>γ</code>、<code>β</code> 可学习。若误沿 batch 或序列轴归一化，样本之间会相互影响，训练和推理也可能不一致。</p>
+<p>Transformer 有 Pre-LN 与 Post-LN 等结构差异。Pre-LN 在子层前归一化，残差主路较直接；Post-LN 在残差相加后归一化。排查模型时必须按实际实现画 block，不要把一张通用图当成所有 LLM 的真实结构。</p>
+<h3 id="4-cnn局部性权值共享与归纳偏置">4. CNN：局部性、权值共享与归纳偏置</h3>3
+<p>二维卷积在深度学习框架中通常实现为互相关：一个小卷积核在局部窗口滑动并做加权求和。输入高宽为 <code>H、W</code>，核大小为 <code>k</code>，步长为 <code>s</code>，单边填充为 <code>p</code> 时，一个空间维的输出大小为：</p>
+<p>[<br />
+\left\lfloor\frac{H+2p-k}{s}\right\rfloor+1<br />
+]</p>
+<p>多通道卷积的参数量约为 <code>k_h × k_w × C_in × C_out</code>，另加偏置。关键不在公式记忆，而在两种结构先验：</p>
+<ul>
+<li><strong>局部性</strong>：一个输出单元先只看附近区域，深层再逐步扩大感受野。</li>
+<li><strong>权值共享</strong>：同一个核在所有位置复用，参数量不随空间位置数线性增长，并带来平移等变性质。</li>
+</ul>
+<p>这与标准全注意力形成对照。卷积默认“邻近位置更相关、同一模式可在不同位置复用”；自注意力不预先限定邻域，而是由 Q、K 内容计算每对位置的权重。由此不能直接推出“CNN 一定适合小数据、Transformer 一定更好”：结果还取决于预训练、数据规模、增强、算力、分辨率和任务结构。归纳偏置的正确用法是提出待验证假设，不是替代同数据对照实验。</p>
+<p>对微调的启发是：结构先验影响优化与泛化，参数高效微调则是在已有结构上加约束。冻结 CNN 主干只训练任务头，与冻结 LLM 主干只训练 LoRA，都利用预训练表示，但挂接位置、训练目标和评估方式并不相同。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5. 文本入口：Tokenizer、Embedding 与位置表示</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Tokenizer 把字符串映射为 token ID</li><li>没有位置机制时，纯自注意力对输入排列本身不提供类似 RNN 的先后归纳偏置</li><li>它们的数学和外推行为不同，本文只要求统一原则：微调时沿用基座位置机制与上下文配置，不把一种模型的位置公式强套到另一种模型</li></ul></div>3
+<p><strong>Tokenizer</strong> 把字符串映射为 token ID。词、子词或字节级单元都是可能选择，BPE 类方法能用子词组合处理未登录词。微调时应遵守基座模型的 tokenizer、特殊 token、对话模板和最大长度，不要另训一个 tokenizer 后仍直接复用原 Embedding 与输出词表。</p>
+<p>数据侧至少检查：</p>
+<ol>
+<li><code>input_ids</code> 全在词表范围内；</li>
+<li>padding 与真实 token 不混淆；</li>
+<li><code>attention_mask</code> 中 1/0 的语义与模型接口一致；</li>
+<li>BOS、EOS、角色分隔符与训练时模板一致；</li>
+<li>截断是否切掉回答或 EOS；</li>
+<li>训练、验证和推理使用同一模板版本。</li>
+</ol>
+<p><strong>Embedding</strong> 把离散 ID 查表为连续向量。若 ID 矩阵是 <code>[B, T]</code>，Embedding 输出就是 <code>[B, T, D]</code>。它不是把字符串直接做数值编码，也不是固定不变的“词义数据库”；预训练和微调都可改变向量及其后续使用方式。</p>
+<p><strong>位置表示</strong>补足顺序信息。没有位置机制时，纯自注意力对输入排列本身不提供类似 RNN 的先后归纳偏置。原始 Transformer 使用正弦位置编码，也讨论可学习位置嵌入；后续模型可采用 learned absolute position、RoPE、ALiBi 或其他相对位置方案。它们的数学和外推行为不同，本文只要求统一原则：微调时沿用基座位置机制与上下文配置，不把一种模型的位置公式强套到另一种模型。</p>
+<h3 id="6-自注意力公式shape-与复杂度">6. 自注意力：公式、shape 与复杂度</h3>3
+<p>对隐藏状态 <code>X</code>，通过可学习线性映射得到：</p>
+<p>[<br />
+Q=XW_Q,\qquad K=XW_K,\qquad V=XW_V<br />
+]</p>
+<p>缩放点积注意力为：</p>
+<p>[<br />
+\operatorname{Attention}(Q,K,V)=<br />
+\operatorname{softmax}\left(\frac{QK^T}{\sqrt{d_k}}+M\right)V<br />
+]</p>
+<p>其中 <code>d_k</code> 是每个注意力头的键维数，<code>M</code> 是可选掩码。除以 <code>√d_k</code> 是为避免维数增大时点积尺度过大，使 softmax 过度饱和。softmax 沿被关注的 key 轴归一化，每个 query 对应一行的权重和为 1。</p>
+<p>标准稠密注意力要形成 query-key 配对，序列维上的时间和注意力分数存储随 <code>T²</code> 增长；对 <code>V</code> 加权求和也涉及序列二次项。说“Transformer 是 <code>O(T²)</code>”时必须限定是标准全注意力的序列维复杂度，不是整个模型所有计算的完整复杂度。线性投影和 FFN 仍与 <code>T</code> 及隐藏维相关，实际实现还可能用 FlashAttention 等方式减少中间矩阵物化与显存访问，但不等于任意长度都无成本。</p>
+<p><strong>多头注意力</strong>把表示分到 H 个头，分别学习注意力，再拼接并做输出投影：</p>
+<p>[<br />
+\operatorname{MultiHead}(Q,K,V)=<br />
+\operatorname{Concat}(head_1,\ldots,head_H)W_O<br />
+]</p>
+<p>多头的意义是让不同子空间学习不同关系，不是简单把同一个头复制 H 次。常见设置为 <code>D = H × d_k</code>，但应以具体模型配置为准。</p>
+<p><strong>因果 mask</strong> 在 Decoder-only 自回归训练中禁止位置 <code>t</code> 关注未来位置 <code>j&gt;t</code>。常在 softmax 前把禁止位置加为负无穷或足够小的掩码值。因果 mask 与 padding mask 不是一回事：前者防未来信息，后者忽略补齐位置；二者常需同时正确处理。 Encoder 双向表示、Decoder-only 因果表示和 Encoder-Decoder 交叉注意力的可见范围也不同。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7. Decoder-only block：残差、LayerNorm 与 FFN</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>最后经归一化和输出投影得到词表 logits</li><li>实际模型可能使用 RMSNorm、旋转位置编码、分组查询注意力或门控 FFN；上图用于说明数据流，不冒充所有模型的逐行实现</li><li>FFN在每个 token 位置独立做非线性变换，注意力负责跨位置混合，FFN 负责位置内的特征变换</li></ul></div>3
+<p>一个概念化的 Pre-LN block 可写成：</p>
+<p>[<br />
+H'=H+\operatorname{MHA}(\operatorname{LN}(H))<br />
+]</p>
+<p>[<br />
+Y=H'+\operatorname{FFN}(\operatorname{LN}(H'))<br />
+]</p>
+<p>最后经归一化和输出投影得到词表 logits。实际模型可能使用 RMSNorm、旋转位置编码、分组查询注意力或门控 FFN；上图用于说明数据流，不冒充所有模型的逐行实现。</p>
+<p><strong>残差连接</strong>保留直接信息通路，也提供较直接的梯度通路，缓解深层堆叠的优化困难。<strong>LayerNorm</strong>控制子层输入尺度。<strong>FFN</strong>在每个 token 位置独立做非线性变换，注意力负责跨位置混合，FFN 负责位置内的特征变换。二者不能互相替代。</p>
+<p>Decoder-only 训练可并行计算整段序列各位置的下一 token 损失，因为因果 mask 阻止未来泄漏；自回归推理则通常逐 token 生成，并可用 KV cache 复用历史键值。不要把“训练可并行”误写成“生成也一次全部并行完成”。</p>
+<h3 id="8-lora-挂接位置与训练稳定性">8. LoRA 挂接位置与训练稳定性</h3>3
+<p>对预训练线性映射 <code>Y = XW</code>，LoRA 冻结 <code>W</code>，学习低秩增量：</p>
+<p>[<br />
+Y=XW+sXBA<br />
+]</p>
+<p>若 <code>W ∈ R^{D_out×D_in}</code>，则 <code>A ∈ R^{r×D_in}</code>、<code>B ∈ R^{D_out×r}</code>，<code>r</code> 远小于相关维度，<code>s</code> 是由实现与配置决定的缩放。具体矩阵方向可能因框架而异，验收应看实际参数 shape，而不是背 A、B 谁在前。</p>
+<p>常见挂接对象是注意力的 <code>q/k/v/o</code> 投影，也可覆盖 FFN 的上、下投影或门控投影。没有跨模型通用的“最佳 target_modules”：模块名、结构和任务不同。选完后必须打印命中模块和可训练参数，确认没有因名称不匹配而零挂接，也没有误把 Embedding、LayerNorm 或输出头纳入计划。</p>
+<p>训练稳定性至少看四组信号：</p>
+<ul>
+<li><strong>shape</strong>：batch、序列、头数、隐藏维、词表维是否逐层一致；</li>
+<li><strong>数值</strong>：loss 和梯度是否出现 NaN/Inf，softmax 行是否有效，混合精度是否需调整；</li>
+<li><strong>优化</strong>：目标参数是否收到非零梯度，冻结参数是否保持 <code>requires_grad=False</code>，学习率调度是否生效；</li>
+<li><strong>泛化</strong>：训练 loss 下降时验证 loss、任务样例和通用能力是否同步改善。</li>
+</ul>
+<p>小样本过拟合检查应在正式训练前做：取极少且标签明确的样本，看模型能否拟合。如果连小集合都无法拟合，优先查数据、mask、标签平移、冻结范围和优化器；如果能迅速记住训练集但验证无改善，再查数据覆盖、正则、训练轮数与评估切分。这个测试只证明训练链路能记忆，不证明模型有泛化能力。</p>
+</div></details><h3 id="9-交叉熵adamw-与更新尺度四组职责不要混用">9. 交叉熵、AdamW 与更新尺度：四组职责不要混用</h3>3
+<p>训练不稳定时，直接换优化器或把学习率除以十，往往只把故障推迟。先把职责拆开：<strong>损失函数</strong>决定优化什么；<strong>优化器</strong>决定如何利用梯度；<strong>学习率调度、weight decay、梯度裁剪</strong>分别控制步长曲线、参数正则和异常梯度；<strong>结构与数值精度</strong>决定梯度传播和溢出风险。</p>
+<p>对目标 token 的交叉熵为 <code>L_t=-log p_theta(y_t|x_&lt;t)</code>。模型输出 logits，不应先手动 softmax 再交给已包含稳定数值处理的交叉熵。因果语言模型存在一位位移，但高层模型通常内部完成；自写 collator 时必须明确由谁 shift，避免重复位移。真正常见的微調错误是监督范围：prompt、padding 和工具返回可设为 <code>-100</code>，目标回答及需要学习的 EOS 保留。若整个 batch 都是 <code>-100</code>，不是“收敛慢”，而是没有有效训练目标。</p>
+<p>Adam 为每个参数维护一阶矩和二阶矩估计；AdamW 将 weight decay 从梯度中的 L2 项解耦。它是 Transformer 微调的常见起点，不会修复错误标签。几个超参不能互相替代：</p>
+<ul>
+<li><strong>学习率</strong>控制步长；LoRA 与全参不能直接共用所谓标准值。</li>
+<li><strong>warmup</strong>按优化器更新步逐步放开学习率，不是按梯度累积的微批次计数。</li>
+<li><strong>调度器</strong>决定 warmup 后的衰减曲线；总更新步数改变后要重算。</li>
+<li><strong>weight decay</strong>约束部分权重增长，不等于梯度裁剪，也不等于简单给 loss 加同一个 L2 项。</li>
+<li><strong>梯度裁剪</strong>处理异常大梯度，不能治疗空标签、过小学习率或深层梯度消失。</li>
+</ul>
+<p>小实验可围绕当前稳定值 <code>lr0</code> 比较 <code>0.3×lr0、lr0、3×lr0</code>，其他条件不变；这些倍数只是诊断起点，不是通用搜索空间。裁剪阈值先看不裁剪基线的 pre-clip grad norm 分布，再选择只约束异常尾部的值；如果几乎每个 step 都强裁剪，可能长期欠拟合。</p>
+<p>类别不平衡也不应一律换 Focal Loss。先修采样、切分和指标，再比较类别加权交叉熵或重采样；容易负例仍主导时才评估 Focal。任何改变目标的损失都要同时看少数类召回、多数类误报和概率校准。普通生成式 SFT 的词表频率不均，不等于要给所有稀有 token 加权。</p>
+<h3 id="10-梯度消失爆炸与混合精度按最早异常分流">10. 梯度消失、爆炸与混合精度：按最早异常分流</h3>3
+<p>深层网络的上游梯度与一系列 Jacobian 连乘有关，尺度持续缩小会使前层几乎不学习，持续放大则可能出现 spike、Inf/NaN。残差连接提供直接梯度通路，LayerNorm/RMSNorm 稳定层内尺度，Xavier/He 初始化控制从头训练的前向与反向方差，ReLU/GELU 等影响饱和特性。它们不是“梯度永远正常”的保证；微调已有预训练主干时，更不能看到 NaN 就重新初始化整个模型。</p>
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>先取证据</th>
+<th>有序处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第一步或前几步 NaN/Inf</td>
+<td>首个坏 batch、有效标签数、logits/loss、精度与 loss scale</td>
+<td>固定坏 batch → FP32 小跑 → 查标签/数据 → 降 lr → 查内核</td>
+</tr>
+<tr>
+<td>训练中偶发 loss spike</td>
+<td>spike 前后样本 ID、pre-clip norm、lr、长度</td>
+<td>回放样本 → 缩小 batch/长度 → 调整裁剪/lr → 从好 checkpoint 恢复</td>
+</tr>
+<tr>
+<td>loss 长期不降</td>
+<td>有效 token、可训练参数、实际 optimizer step、分层梯度</td>
+<td>先证明有标签、有梯度、有更新，再谈模型容量</td>
+</tr>
+<tr>
+<td>前层几乎不动</td>
+<td>各层梯度相对量级、冻结策略、LoRA 命中模块</td>
+<td>先查 <code>requires_grad</code> 和挂接；从头训练再查结构与初始化</td>
+</tr>
+<tr>
+<td>train loss 降、验证指标降</td>
+<td>独立验证、重复样本、通用回归</td>
+<td>回退数据与训练预算，按业务指标早停</td>
+</tr>
+</tbody>
+</table>
+<p>FP16 表示范围较小，梯度可能上溢或下溢。动态 loss scaling 先放大 loss，反向后、裁剪前必须 <code>unscale_</code>，再检查非有限梯度；溢出时框架可能跳过更新并降低 scale。因此“loss 仍在打印”不证明参数每次都更新。BF16 指数范围更接近 FP32，通常不采用 FP16 式 GradScaler，但硬件和算子支持仍需核对。</p>
+<p>FP32 对照是重要分流工具：同配置 FP32 仍 NaN，优先查数据、标签、学习率和模型；FP32 稳定而 FP16 NaN，优先查溢出、scale 和算子精度；单卡稳定而多卡 NaN，查各 rank 数据和最早失败 rank。禁止把 NaN 静默替换成零或无限跳过坏 batch 来制造“恢复”。</p>
+<h3 id="11-本地论文注意力改造与梯度归因的正确用法">11. 本地论文：注意力改造与梯度归因的正确用法</h3>3
+<p><strong>ZHA（arXiv:2610.42112）</strong>在 KV cache 上构建递归压缩 key 摘要树，让 query 自顶向下检索稀疏 key 子集；摘要称包括路由与最终注意力在内达到次二次、但超线性的渐近复杂度，已有预训练模型需经过数十亿 token 的短 KL 蒸馏适配。<strong>我们怎么用</strong>：评估长上下文结构改造时，要把 indexer 成本、适配训练与最终任务回归一起计入，不能只看注意力的 Big-O。<strong>边界</strong>：百万上下文以上的优势主要来自性能模型，“数亿/数十亿 token”是潜力而非已验证能力，方法也不是 training-free。</p>
+<p><strong>CATT（arXiv:2610.40655）</strong>用虚构知识微调构造明确的数据归因真值，发现冗余和词汇干扰会降低归因效果；把交叉熵梯度换成 negative log-odds 梯度并只聚合 top token 分数，在其诊断基准上提高真值召回。<strong>我们怎么用</strong>：做训练数据排错时，不应机械平均整篇文档的 token 归因；可单独评估损失梯度和聚合方式。<strong>边界</strong>：negative log-odds 在这里是<strong>数据归因信号</strong>，不是建议替换 SFT 的交叉熵训练损失；合成事实上的增益不能无条件外推真实语料。</p>
+<h2 id="how">HOW</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 最小多头因果注意力实验</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>目标：不加载大模型，用 NumPy 验证 Q/K/V、多头 reshape、因果 mask、padding mask 和输出 shape</li><li>产物：注意力权重、输出和一组断言</li><li>return x.reshape(B, T, H, dk).transpose(0, 2, 1, 3)</li></ul></div>3
+<p><strong>目标</strong>：不加载大模型，用 NumPy 验证 Q/K/V、多头 reshape、因果 mask、padding mask 和输出 shape。<br />
+<strong>输入</strong>：随机 <code>X[B,T,D]</code>，其中 <code>B=2、T=4、D=8、H=2</code>。<br />
+<strong>产物</strong>：注意力权重、输出和一组断言。<br />
+<strong>代码状态</strong>：示例，未实跑。</p>
+<pre><code class="language-python">import numpy as np
+
+rng = np.random.default_rng(7)
+B, T, D, H = 2, 4, 8, 2
+dk = D // H
+X = rng.normal(size=(B, T, D))
+Wq = rng.normal(scale=0.1, size=(D, D))
+Wk = rng.normal(scale=0.1, size=(D, D))
+Wv = rng.normal(scale=0.1, size=(D, D))
+Wo = rng.normal(scale=0.1, size=(D, D))
+
+def split_heads(x):
+    # [B,T,D] -&gt; [B,H,T,dk]
+    return x.reshape(B, T, H, dk).transpose(0, 2, 1, 3)
+
+Q = split_heads(X @ Wq)
+K = split_heads(X @ Wk)
+V = split_heads(X @ Wv)
+assert Q.shape == K.shape == V.shape == (B, H, T, dk)
+
+scores = Q @ K.transpose(0, 1, 3, 2) / np.sqrt(dk)
+assert scores.shape == (B, H, T, T)
+
+# 因果 mask：上三角的未来位置不可见
+causal = np.triu(np.ones((T, T), dtype=bool), k=1)
+scores = np.where(causal[None, None, :, :], -np.inf, scores)
+
+# 示例 padding mask：第 0 个样本最后两个 key 是 padding
+valid = np.array([[1, 1, 0, 0], [1, 1, 1, 1]], dtype=bool)
+scores = np.where(valid[:, None, None, :], scores, -np.inf)
+
+weights = np.exp(scores - scores.max(axis=-1, keepdims=True))
+weights /= weights.sum(axis=-1, keepdims=True)
+context = weights @ V                         # [B,H,T,dk]
+merged = context.transpose(0, 2, 1, 3).reshape(B, T, D)
+out = merged @ Wo
+
+assert np.isfinite(out).all()
+assert out.shape == (B, T, D)
+assert np.allclose(weights.sum(axis=-1), 1.0)
+assert np.allclose(weights[:, :, causal], 0.0)
+assert np.allclose(weights[0, :, :, 2:], 0.0)
+print(&quot;shape 与 mask 断言通过&quot;)
+</code></pre>
+<p><strong>验证顺序</strong>：先断言 shape，再看有限值，再看权重和，最后看被 mask 的位置。若被 mask 行可能全部无效，需要单独处理，避免全为 <code>-inf</code> 后产生 NaN。真实框架的 padding 方向可能不同，应用前读接口说明。</p>
+<h3 id="2-pytorch-梯度与小样本验证清单">2. PyTorch 梯度与小样本验证清单</h3>3
+<p><strong>目标</strong>：验证目标参数确实进入计算图并收到梯度，而非只观察 loss 数值。<br />
+<strong>输入</strong>：一个小模型或受控玩具模型、少量固定样本、明确指定应训练与应冻结的参数。<br />
+<strong>产物</strong>：参数审计表、梯度审计表、训练前后参数快照和过拟合曲线。<br />
+<strong>代码状态</strong>：示例，未实跑。</p>
+<pre><code class="language-python">import torch
+
+# model、batch、optimizer 由实际项目提供；这里展示检查骨架
+model.train()
+trainable = [p for p in model.parameters() if p.requires_grad]
+assert len(trainable) &gt; 0, &quot;没有可训练参数，检查 LoRA 是否零挂接&quot;
+
+named_trainable = [(n, p) for n, p in model.named_parameters()
+                   if p.requires_grad]
+print(&quot;可训练参数：&quot;)
+for name, p in named_trainable:
+    print(name, tuple(p.shape))
+
+optimizer.zero_grad(set_to_none=True)
+outputs = model(**batch)
+loss = outputs.loss if hasattr(outputs, &quot;loss&quot;) else outputs[0]
+assert loss.ndim == 0
+assert torch.isfinite(loss)
+loss.backward()
+
+checked = 0
+for name, p in named_trainable:
+    assert p.grad is not None, f&quot;{name} 没有梯度&quot;
+    assert torch.isfinite(p.grad).all(), f&quot;{name} 梯度含 NaN/Inf&quot;
+    checked += 1
+assert checked == len(named_trainable)
+
+# 正式项目中还应另存训练前快照，step 后确认目标参数变化
+optimizer.step()
+</code></pre>
+<p><strong>小样本实验步骤</strong>：</p>
+<ol>
+<li>固定一组很短、格式正确的指令—回答样本，保留独立验证样例。</li>
+<li>打印 tokenizer 解码结果、attention mask、labels 和忽略位置，人工核对一位 shift 与回答范围。</li>
+<li>只跑少量 step，每步记录 loss、学习率、目标梯度范数和显存。</li>
+<li>检查是否能拟合小样本；再对未参与训练的同类样例生成，区分“记住模板”和“学会任务”。</li>
+<li>恢复到一个已知良好配置，逐项改变数据、mask、学习率或 LoRA 范围，避免同时改多个变量。</li>
+</ol>
+<p><strong>判读</strong>：小样本也拟合不了，先回退到单 batch、关闭混合精度和复杂调度，检查标签与可训练参数；小样本可拟合但验证差，停止用更多训练轮数掩盖问题，回到数据质量、切分和任务评估。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 面向 LoRA 的端到端实验清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>输入：基座模型、匹配的 tokenizer、训练/验证数据、对话模板、LoRA 配置</li><li>5. 正式对照：至少比较基座与微调后模型在同一验证集、同一生成配置下的结果；不能拿不同 prompt 或不同截断长度做结论</li><li>1. 配置快照：保存基座版本、代码版本、tokenizer/模板版本、数据版本、最大长度、精度、随机种子和 LoRA target/rank/scale</li></ul></div>3
+<p><strong>输入</strong>：基座模型、匹配的 tokenizer、训练/验证数据、对话模板、LoRA 配置。<br />
+<strong>步骤与产物</strong>：</p>
+<ol>
+<li><strong>配置快照</strong>：保存基座版本、代码版本、tokenizer/模板版本、数据版本、最大长度、精度、随机种子和 LoRA target/rank/scale。</li>
+<li><strong>模块审计</strong>：输出实际命中的模块名、LoRA 矩阵 shape、可训练参数清单；保存为训练日志的一部分。</li>
+<li><strong>单 batch 冒烟</strong>：检查前向 logits <code>[B,T,V]</code>、loss 为标量且有限、目标梯度有限，再执行一次更新。</li>
+<li><strong>小样本拟合</strong>：验证链路可学习；保存 checkpoint 与对应样例输出。</li>
+<li><strong>正式对照</strong>：至少比较基座与微调后模型在同一验证集、同一生成配置下的结果；不能拿不同 prompt 或不同截断长度做结论。</li>
+<li><strong>加载回测</strong>：重新加载 adapter，确认模块、tokenizer 和模板一致；比较保存前后固定样例输出或 logits。</li>
+<li><strong>回退</strong>：保留基座和上一可用 adapter；若新配置出现 NaN、零梯度、模块零命中或验证退化，回到最后良好配置并只改一个变量。</li>
+</ol>
+<p><strong>常见坑与回退</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>优先检查</th>
+<th>回退动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>loss 为 NaN/Inf</td>
+<td>logits 数值、mask 全屏蔽行、混合精度、学习率</td>
+<td>关混合精度、退回稳定学习率，先跑单 batch</td>
+</tr>
+<tr>
+<td>loss 不降且所有目标梯度为零</td>
+<td>target 模块未命中、标签全忽略、图被断开</td>
+<td>打印可训练参数与 labels，恢复已知挂接配置</td>
+</tr>
+<tr>
+<td>训练能跑但输出重复乱码</td>
+<td>shift、模板、特殊 token、生成配置</td>
+<td>用基座与相同模板对照，回退数据格式化版本</td>
+</tr>
+<tr>
+<td>显存随长度快速上升</td>
+<td><code>T×T</code> 注意力、激活保存、batch 与长度</td>
+<td>减 batch/长度或梯度累积，使用实现支持的注意力优化</td>
+</tr>
+<tr>
+<td>训练集记住、验证集变差</td>
+<td>泄漏、重复样本、数据覆盖、训练过度</td>
+<td>回到较早 checkpoint，重做切分与数据审计</td>
+</tr>
+<tr>
+<td>adapter 保存后行为变化</td>
+<td>未保存完整配置、基座或 tokenizer 不一致</td>
+<td>使用同版本产物重新加载，固定配置逐项对拍</td>
+</tr>
+</tbody>
+</table>
+<h3 id="4-标签掩码与-amp-的最小诊断代码">4. 标签掩码与 AMP 的最小诊断代码</h3>3
+<p>先验标签，再谈优化器。下面省略真实聊天模板，只展示“提示屏蔽、答案保留、EOS 按位置决定”的关系；真实项目应使用基座 tokenizer 和模板。</p>
+<pre><code class="language-python">prompt_ids = [11, 12, 13]
+answer_ids = [21, 22]
+eos_id = 2
+input_ids = prompt_ids + answer_ids + [eos_id]
+labels = [-100] * len(prompt_ids) + answer_ids + [eos_id]
+
+valid_positions = [i for i, label in enumerate(labels) if label != -100]
+assert len(input_ids) == len(labels)
+assert valid_positions, &quot;当前样本没有任何有效监督位置&quot;
+assert all(labels[i] == input_ids[i] for i in valid_positions)
+# 若高层模型内部做下一位位移，此处不再手工右移。
+</code></pre>
+<p>FP16 手工训练步的正确顺序如下。<code>model/input_ids/labels/lr0/wd0/clip_threshold</code> 由实际项目提供；若 Trainer 已管理 AMP、累积与裁剪，不要再写第二套更新逻辑。</p>
+<pre><code class="language-python">import torch
+
+trainable = [p for p in model.parameters() if p.requires_grad]
+optimizer = torch.optim.AdamW(trainable, lr=lr0, weight_decay=wd0)
+scaler = torch.cuda.amp.GradScaler()
+
+optimizer.zero_grad(set_to_none=True)
+with torch.autocast(device_type=&quot;cuda&quot;, dtype=torch.float16):
+    outputs = model(input_ids=input_ids, labels=labels)
+    loss = outputs.loss
+
+assert torch.isfinite(loss), &quot;先检查当前batch、有效标签和logits&quot;
+scaler.scale(loss).backward()
+scaler.unscale_(optimizer)  # 裁剪前恢复真实梯度尺度
+pre_clip_norm = torch.nn.utils.clip_grad_norm_(trainable, max_norm=clip_threshold)
+assert torch.isfinite(pre_clip_norm), &quot;先定位非有限梯度，不静默跳过&quot;
+scaler.step(optimizer)
+scaler.update()
+</code></pre>
+<p>每轮诊断保存：配置差异、模型/依赖版本、首个异常 batch 的样本 ID、有效监督 token、pre-clip norm、实际 optimizer step、FP16 scale 与跳过计数、当前和回退 checkpoint、独立验证结果。小样本可拟合只证明链路能记忆；最终仍须与基座同条件比较任务和通用回归。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库对表示方法最接近的真实落点：纯 Python 的文本指纹（<code>rag/ingest.py</code> L649 <code>chunk_fingerprint()</code>，grep 可验）</strong>：<br />
+<code>python
+  def chunk_fingerprint(text: str) -&gt; str:
+      """正文指纹: 去代码围栏 + 去所有空白/标点, 只留实义字符。
+    [2026-10-14 体检修复] 与 rag/_audit4.py 的口径一致, 用于 chunk 级内容去重。
+      if not text:
+          return ""
+      t = re.sub(r"</code>.<em>?<code>", " ", text, flags=re.S)
+      return re.sub(r"[\s\W_]+", "", t)</code><br />
+  这是</em><em>零参数表示</em>*（词袋的极端版：只保留字符集合），和 Transformer 的稠密上下文表示是光谱两端——同一现象（重复内容）用最低成本的表示就能抓到，不必上模型。</li>
+<li><strong>稠密表示的真实调用面（<code>rag/ingest.py</code> L254 <code>encode_with_sparse()</code>，grep 可验）</strong>：<br />
+<code>python
+  bge-m3同时输出dense(1024维) + sparse(lexical_weights),
+  query侧用同模型encode得到query sparse向量, 与metadata.sparse_vec做BM25-like打分。</code><br />
+<code>batch_size=RAG_EMBED_BATCH</code>（默认 4）+ 按长度升序编码（<code>order = sorted(range(len(texts)), key=lambda i: len(texts[i]))</code>）以减少 padding——这是"变长序列 padding 浪费算力"在工程侧的直接对策。</li>
+<li><strong>和课件讲法的差异</strong>：课件用 NumPy 手写多头自注意力验证 <code>Q/K/V/residual/LayerNorm</code> 形状；本库不实现注意力，只是<strong>调用</strong>已训练好的 bge-m3（FlagEmbedding）拿 dense/sparse 输出。本库暂无任何 Transformer 内部实现或训练代码。</li>
+</ul>
+</div></details></div></details><h2 id="三源引用与证据边界">三源引用与证据边界</h2>2
+<table>
+<thead>
+<tr>
+<th>来源类别</th>
+<th>具体路径或固定入口</th>
+<th>正文落点</th>
+<th>未声称什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>课件</td>
+<td><code>raw/courseware/微调篇/day01微调101__课件__大模型微调-1-101-250815.md</code></td>
+<td>WHY 的数据—模型—训练链路、SFT 与评估定位</td>
+<td>不声称该课件详讲 CNN、优化器或所有 Transformer 细节</td>
+</tr>
+<tr>
+<td>课件</td>
+<td><code>raw/courseware/微调篇/day02微调之PEFT__课件__大模型微调-2-PEFT.md</code></td>
+<td>张量/Embedding/LoRA 秩与挂接位置的学习入口</td>
+<td>未复现课件代码演示</td>
+</tr>
+<tr>
+<td>课件</td>
+<td><code>raw/courseware/微调篇/day04微调之多模态模型_上___课件__大模型微调-4-多模态_上_.md</code>；<code>day05微调之多模态模型_下___课件__大模型微调-5-多模态_下_ .md</code></td>
+<td>CNN 与 Transformer 在多模态模型中的归纳偏置对照</td>
+<td>不据此声称已跑视觉微调</td>
+</tr>
+<tr>
+<td>书籍·目录/公开划线</td>
+<td><code>raw/weread/深度学习入门：基于Python的理论与实现.md</code>；<code>raw/weread/3300108590/chapters.md</code></td>
+<td>激活、损失、链式法则、反向传播、初始化、CNN</td>
+<td>不是书籍全文，不引用未收划线数字</td>
+</tr>
+<tr>
+<td>书籍·目录/公开划线</td>
+<td><code>raw/weread/深度学习详解.md</code>；<code>raw/weread/3300115136/chapters.md</code></td>
+<td>CNN、自注意力、Transformer、Adam/调度、梯度问题</td>
+<td>不用目录补造公式推导</td>
+</tr>
+<tr>
+<td>书籍·目录/公开划线</td>
+<td><code>raw/weread/神经网络与深度学习.md</code>；<code>raw/weread/3300128966/chapters.md</code></td>
+<td>激活、归一化、正则、梯度消失与网络优化</td>
+<td>仅作知识框架证据</td>
+</tr>
+<tr>
+<td>书籍·目录/公开划线</td>
+<td><code>raw/weread/从零构建大模型.md</code>；<code>raw/weread/Transformer模型开发从0到1——原理深入与项目实践.md</code></td>
+<td>BPE、因果/多头注意力、位置、残差、LayerNorm、Q/K/V</td>
+<td>不声称读取完整原书</td>
+</tr>
+<tr>
+<td>业内·经典论文/官方文档</td>
+<td><a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need, arXiv:1706.03762</a>；<a href="https://arxiv.org/abs/1711.05101">AdamW, arXiv:1711.05101</a>；<a href="https://pytorch.org/docs/stable/amp.html">PyTorch AMP</a>；<a href="https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html">CrossEntropyLoss</a></td>
+<td>注意力公式、AdamW、<code>-100</code>、混合精度与 unscale 顺序</td>
+<td>本轮未联网复核；代码未实跑，以安装版本为准</td>
+</tr>
+<tr>
+<td>业内·本地论文摘要</td>
+<td><code>raw/sources/arxiv-daily/2026-10-30-2610.42112.md</code>，<a href="https://arxiv.org/abs/2610.42112">arXiv:2610.42112</a></td>
+<td>WHAT 第11节：树索引稀疏注意力、蒸馏适配与评估边界</td>
+<td>本地仅标题/摘要；性能模型和潜力不写成已验证能力</td>
+</tr>
+<tr>
+<td>业内·本地论文摘要</td>
+<td><code>raw/sources/arxiv-daily/2026-10-29-2610.40655.md</code>，<a href="https://arxiv.org/abs/2610.40655">arXiv:2610.40655</a></td>
+<td>WHAT 第11节：归因梯度与 top-token 聚合</td>
+<td>不把归因损失当 SFT 训练损失，不冒充论文全文</td>
+</tr>
+</tbody>
+</table>
+<p>旧《L6-深度学习-CNN》《L6-深度学习-神经网络基础与激活函数》《Transformer为什么有效》《梯度消失怎么解决》《L6-损失函数与优化器》已融入本篇；历史文件与原始 SHA-256 见 <code>00-融合清单与验收.md</code>，旧 wiki 不作为独立事实来源。</p></div></body></html>

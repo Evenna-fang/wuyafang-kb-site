@@ -1,0 +1,162 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>魔鬼代言人机制</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 魔鬼代言人机制</span></div><div class="wrap"><h1 id="魔鬼代言人机制openclaw-强制质疑角色">魔鬼代言人机制（OpenClaw 强制质疑角色）</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="%E5%85%AD%E5%91%98%E9%85%8D%E7%BD%AE%E7%BB%88%E5%B1%80.html">六员配置终局</a> · <a href="Debate%E8%84%91%E6%9A%B4%E4%B8%8E%E6%98%BE%E5%BC%8F%E5%BD%92%E5%B9%B6%E8%A7%84%E5%88%99.html">Debate脑暴与显式归并规则</a> · <a href="OC%E5%AE%A1%E6%9F%A5Gap%E9%97%A8%E7%A6%81.html">OC审查Gap门禁</a> · <a href="%E5%9B%A2%E9%98%9F%E8%A7%84%E8%8C%83%E4%B8%8E%E5%85%B1%E4%BA%AB%E8%AE%B0%E5%BF%86.html">团队规范与共享记忆</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心结论</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>OpenClaw 在六员体系里被显式赋予魔鬼代言人（Devil's Advocate）角色：不主要决策、专司质疑挑刺，以防多智能体"集体盲点"（所有 Agent 都同意某方案却没人发现风险）</li><li>设计原则一句话——质疑是为了更好的方案，不是为了反对而反对；三个硬约束把它与"抬杠"区分开：对事不对人（质疑方案不质疑能力）、建设性优先（每个质疑必须附改进建议）、尊重决策权（质疑后由 Hermes/用户拍板）</li></ul></div>2
+<p>OpenClaw 在六员体系里被显式赋予<strong>魔鬼代言人（Devil's Advocate）</strong>角色：不主要决策、专司质疑挑刺，以防多智能体"集体盲点"（所有 Agent 都同意某方案却没人发现风险）。设计原则一句话——<strong>质疑是为了更好的方案，不是为了反对而反对</strong>；三个硬约束把它与"抬杠"区分开：<strong>对事不对人</strong>（质疑方案不质疑能力）、<strong>建设性优先</strong>（每个质疑必须附改进建议）、<strong>尊重决策权</strong>（质疑后由 Hermes/用户拍板）。质疑用<strong>五维框架</strong>系统扫描、按场景<strong>分四档强度</strong>、以<strong>四步法</strong>出结构化报告，报告统一落 <code>~/shared-skills/devil-reports/</code>，并定期复盘命中率/采纳率/改进率。</p>
+<h2 id="关键细节">关键细节</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">一、五维质疑框架 + 必问问题</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>质疑焦点</th>
+<th>必问问题</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>技术可行性</strong></td>
+<td>方案能实现吗？有没有技术债？</td>
+<td>最小可行版本是什么？为什么不用更简单的方案？</td>
+</tr>
+<tr>
+<td><strong>风险盲点</strong></td>
+<td>有哪些没考虑到的风险？</td>
+<td>核心依赖挂了怎么办？并发场景呢？</td>
+</tr>
+<tr>
+<td><strong>成本效益</strong></td>
+<td>投入产出比合理吗？</td>
+<td>有没有更简单的方案？</td>
+</tr>
+<tr>
+<td><strong>边界条件</strong></td>
+<td>极端情况会怎样？</td>
+<td>空值、超大值、并发访问怎么处理？</td>
+</tr>
+<tr>
+<td><strong>长期影响</strong></td>
+<td>3 个月后会成为技术债吗？</td>
+<td>维护成本如何？</td>
+</tr>
+</tbody>
+</table>
+<h3 id="二触发场景三档">二、触发场景（三档）</h3>3
+<ul>
+<li><strong>🔴 强制质疑</strong>：架构设计决策、生产环境变更（部署/迁移/配置修改）、重大代码重构（<strong>影响范围 &gt; 10 个文件</strong>）、安全相关决策（认证/授权/数据加密）、多人协作方案。</li>
+<li><strong>🟡 建议触发</strong>：同一类问题出现 <strong>3 次以上</strong>；方案过于复杂（<strong>&gt; 5 步或 &gt; 3 个工具</strong>）；断言过于绝对（出现"肯定"/"一定"）；时间估算过于乐观（<strong>预估 &lt; 历史同类任务平均时间的 50%</strong>）。</li>
+<li><strong>🟢 不触发</strong>：用户明确表示"就这样做"；紧急修复（先修后复盘）；简单查询和轻量任务。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">三、质疑强度控制（四档）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>强度</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>架构设计</td>
+<td>🔴 强质疑</td>
+<td>必须找出 <strong>≥ 3 个风险点</strong></td>
+</tr>
+<tr>
+<td>代码审查</td>
+<td>🟡 中质疑</td>
+<td>找出 <strong>≥ 1 个改进建议</strong></td>
+</tr>
+<tr>
+<td>日常任务</td>
+<td>🟢 轻质疑</td>
+<td>仅在明显问题时提醒</td>
+</tr>
+<tr>
+<td>紧急修复</td>
+<td>⚪ 暂停质疑</td>
+<td>先修后复盘</td>
+</tr>
+</tbody>
+</table>
+<h3 id="四质疑流程四步法">四、质疑流程（四步法）</h3>3
+<pre><code>Step 1: 接收方案 → 理解意图（不急着反驳）
+Step 2: 五维扫描 → 识别风险点（至少覆盖 3 个维度）
+Step 3: 生成质疑报告 → 结构化输出
+Step 4: 提供替代方案 → 建设性改进
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">五、输出格式与协作协议</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>快速质疑（轻量任务）：方案（一句话）→ 风险（主要风险点）→ 建议（改进建议）→ 等级（🟢/🟡/🔴）</li></ul></div>3
+<p><strong>完整质疑报告（重大决策）</strong>：被质疑方案（名称/提出者/时间）→ 质疑摘要（一句话）→ 五维扫描结果（每维标 ✅/⚠️/❌ + 风险点/影响程度/改进建议）→ 替代方案（方案 A/B 各列优势劣势）→ 风险评估矩阵（风险项/概率/影响/风险等级 🔴🟡🟢/缓解措施）→ 结论（建议：[采纳/修改后采纳/不建议采纳] / 必须解决的问题 / 可选优化）。</p>
+<p><strong>快速质疑（轻量任务）</strong>：方案（一句话）→ 风险（主要风险点）→ 建议（改进建议）→ 等级（🟢/🟡/🔴）。</p>
+<p><strong>协作协议</strong>：Hermes 发 <code>@OpenClaw 质疑：[方案描述]</code>；Claude Code 发 <code>@OpenClaw 审查：[代码路径]</code>；Codex 发 <code>@OpenClaw 架构审查：[设计文档]</code>。报告存储 <code>~/shared-skills/devil-reports/</code>，文件名 <code>YYYY-MM-DD_HHMM_[方案简称].md</code>。</p>
+<p><strong>配套模板库</strong>：技术方案质疑（5 必问 + 过度设计/单点故障/隐式依赖/数据风险四类反模式）、代码审查质疑（错误处理/边界条件/安全漏洞/性能隐患/可维护性 5 必查；<strong>同类问题 ≥ 3 次 → 升级为架构问题</strong>，复杂度 &gt; 10 → 建议重构，覆盖率 &lt; 60% → 要求补测试）、架构设计质疑（扩展性/一致性/可演进性/可观测性/成本预估 5 必问 + 反模式检查表）。</p>
+<h3 id="六质疑伦理与自我约束">六、质疑伦理与自我约束</h3>3
+<ul>
+<li><strong>应该做</strong>：对事不对人；建设性优先；尊重决策权；控制轮次（<strong>同一问题最多质疑 2 轮</strong>，不纠缠）。</li>
+<li><strong>不应该做</strong>：为了反对而反对；质疑用户明确偏好（"我就喜欢用 XX"）；质疑已确认的历史决策（除非有新证据）；质疑紧急修复；质疑轻量任务。</li>
+<li><strong>自我约束（防拖慢节奏）</strong>：质疑报告长度 <strong>≤ 500 字</strong>；每次质疑最多 <strong>5 个风险点</strong>；质疑时间 <strong>≤ 原方案设计时间的 30%</strong>。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">七、记录与复盘指标</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<p>每次质疑记录到 <code>~/shared-skills/devil-reports/</code>，定期复盘三项：<strong>命中率</strong>（质疑的风险是否真的发生）、<strong>采纳率</strong>（质疑建议是否被采纳）、<strong>改进率</strong>（采纳后是否真的改进了）。</p>
+<h3 id="八多智能体版角色定位设计文档背景">八、多智能体版角色定位（设计文档背景）</h3>3
+<p>设计文档记录的多智能体定位（早于六员终局，供理解角色来源）：Hermes=调度指挥官、Claude Code=技术架构师、Codex=编码执行工程师、OpenClaw=🎭 魔鬼代言人。选择 OpenClaw 的三个理由：<strong>独立性</strong>（非主要决策者可自由质疑）、<strong>执行视角</strong>（能发现方案在实际执行中的问题）、<strong>现有职责兼容</strong>（已有同步/执行职责，加质疑不冲突）。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">来源</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<ul>
+<li><code>WSL:~/.openclaw/devils-advocate-config.md</code>（角色定义 + 模板库，最后更新 2026-09-11）</li>
+<li><code>WSL:~/.openclaw/devils-advocate-design-doc.md</code>（设计文档）</li>
+<li><code>WSL:~/.openclaw/devils-advocate-implementation-summary.md</code>（实施总结）</li>
+<li><code>WSL:~/.openclaw/devils-advocate-quickref.md</code>（快速参考）</li>
+<li><code>WSL:~/.openclaw/CLAUDE.md</code>（OpenClaw 主配置中的魔鬼代言人角色节）</li>
+</ul>
+<h2 id="相关术语">相关术语</h2>2
+<ul>
+<li>Orchestrator-Walker 模式（评审层独立）：ontology/术语表-Agent框架.md</li>
+<li>System-1 / System-2（慢思考升级，与 Debate 联用）：ontology/Agent记忆术语表.md</li>
+</ul></div></details></div></body></html>

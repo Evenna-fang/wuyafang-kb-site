@@ -1,0 +1,228 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>团队规范与共享记忆</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 团队规范与共享记忆</span></div><div class="wrap"><h1 id="团队规范与共享记忆完成凭据-记忆分层-保鲜反覆盖">团队规范与共享记忆（完成凭据 · 记忆分层 · 保鲜反覆盖）</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/practice/SOUL%E5%9B%A2%E9%98%9F%E8%A7%84%E8%8C%83-20260929.md">SOUL团队规范-20260929</a> · <a href="../../raw/practice/%E5%9B%A2%E9%98%9F%E5%85%B1%E4%BA%AB%E8%AE%B0%E5%BF%86-20260929.md">团队共享记忆-20260929</a></p>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="AGENTS%E8%A7%84%E8%8C%83%E5%AE%9E%E6%88%98.html">AGENTS规范实战</a> · <a href="%E6%B4%BE%E5%8D%95%E7%BA%AA%E5%BE%8B%E4%B8%89%E6%9D%A1.html">派单纪律三条</a> · <a href="%E9%94%99%E8%AF%AF%E5%8F%B0%E8%B4%A6%E6%9C%BA%E5%88%B6.html">错误台账机制</a> · <a href="%E5%85%AD%E5%91%98%E9%85%8D%E7%BD%AE%E7%BB%88%E5%B1%80.html">六员配置终局</a> · <a href="../L5-Agent%E5%B7%A5%E7%A8%8B/06-Agent%E7%94%9F%E4%BA%A7%E7%BA%A7%E9%83%A8%E7%BD%B2.html">Agent 生产级部署：记忆保鲜与冲突治理</a> · <a href="../L5-Agent%E5%B7%A5%E7%A8%8B/02-Multi-Agent%E5%8D%8F%E4%BD%9C.html">Multi-Agent 协作</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心结论</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>多智能体共享同一套行为准则与技能库，可复用内核只有两件事："完成"必须带机器产出的凭据（不采信自报）；"记忆"与"技能"按内容是"我是谁"还是"怎么做"分家存放</li><li>前者治"自报即作数"的失真，后者治"记忆腐烂、互相覆盖"</li><li>配套两条硬规则：共享文件由 Hermes 单一管理者写入，冲突时不写、先标记；环境事实与技能价值各有一套可计算的留存/淘汰标准，而不是凭手感</li></ul></div>2
+<p>多智能体共享同一套行为准则与技能库，可复用内核只有两件事：<strong>"完成"必须带机器产出的凭据（不采信自报）；"记忆"与"技能"按内容是"我是谁"还是"怎么做"分家存放。</strong> 前者治"自报即作数"的失真，后者治"记忆腐烂、互相覆盖"。配套两条硬规则：共享文件由 <strong>Hermes 单一管理者</strong>写入，冲突时<strong>不写、先标记</strong>；环境事实与技能价值各有一套<strong>可计算的留存/淘汰标准</strong>，而不是凭手感。</p>
+<h2 id="关键细节">关键细节</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">一、完成凭据铁律：下游未归档 → 上游无法标记完成</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>这是本套规范的最高优先级</li><li>为什么非要这样：只要验证者还是执行者自己，写多少规则都防不住"过早胜利"</li><li>声称"完成／修好／通过"之前，必须用可执行命令产出凭据——"我测过了"这类自证一律不采信</li></ul></div>3
+<p>这是本套规范的最高优先级。声称"完成／修好／通过"之前，必须用可执行命令产出凭据——<strong>"我测过了"这类自证一律不采信</strong>。</p>
+<ul>
+<li>命令链：<code>python3 ~/.hermes/scripts/receipt.py declare --task "..." --check "&lt;命令&gt;"</code>，再 <code>receipt.py verify</code>，<strong>全绿才允许说完成</strong>。</li>
+<li><code>verify</code> 内置<strong>台账门禁</strong>：若错误日志比台账新（&gt;5 分钟）则判失败，强制先写回台账。这就是<strong>"真反压"</strong>——下游没归档，上游就没法标记完成，无法绕过。</li>
+<li>为什么非要这样：<strong>只要验证者还是执行者自己，写多少规则都防不住"过早胜利"。</strong> 历史教训：曾宣称"6 场景全通"，实际只测了正例，被独立审查查出 4 条 fallback 悬空。</li>
+</ul>
+<p>三条配套纪律互为加固：</p>
+<table>
+<thead>
+<tr>
+<th>纪律</th>
+<th>要求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>PDCA 闭环</strong></td>
+<td>执行类任务（修/改/部署/同步/配置）必须走 Plan→Do→Check→Act；<strong>修了≠完成，验证了=完成</strong>，"全部完成"必须附 Check 输出</td>
+</tr>
+<tr>
+<td><strong>功能清单对抗早宣布胜利</strong></td>
+<td>任务开始用 todo 建完整功能清单，结尾逐项 Check；未完成标 <code>pending</code> <strong>不删除</strong>，全部 completed 才算完成</td>
+</tr>
+<tr>
+<td><strong>禁止无 E2E 验证标记完成</strong></td>
+<td><code>curl</code>／单元测试通过 ≠ 真正能用；关键功能必须跑通完整用户流程（端到端）才算 done</td>
+</tr>
+</tbody>
+</table>
+<h3 id="二记忆-vs-技能按我是谁怎么做分家防覆盖的根本手段">二、记忆 vs 技能：按"我是谁／怎么做"分家（防覆盖的根本手段）</h3>3
+<p>互相覆盖的根因是"什么都往一个文件堆"。规范用<strong>内容类型</strong>决定归宿：</p>
+<ul>
+<li><strong>记忆只放"我是谁"</strong>：行为准则、环境事实、触发提醒，<strong>≤15 条</strong>（硬上限）。</li>
+<li><strong>技能放"怎么做"</strong>：操作流程、模板、数据、规范，<strong>必须有 triggers</strong>（触发词）才能被召回。</li>
+</ul>
+<p>判断标准很直白：一条新内容如果回答的是"当前这条规则/环境是什么"，进记忆层；如果回答的是"遇到某场景该按什么步骤做"，进技能层。归属一确定，覆盖问题就消掉大半——因为不同 Agent 写的是<strong>不同层</strong>，不争同一个位置。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">三、技能价值四维评估：决定"留谁、删谁"</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>权重 3/2/2/1 是刻意的不对称：不可替代性最贵（省不掉的那部分），折旧率取补——越易过时，该项扣得越狠</li><li>用法：定期对技能库打分排序，尾部的合并或下线，避免"只增不减"撑爆召回</li></ul></div>3
+<p>记忆与技能不能只进不出。团队用一条可计算的公式给技能打分，低分自然淘汰：</p>
+<blockquote>
+<p><strong>价值 = 不可替代性 × 3 + 组合价值 × 2 + 触发可达性 × 2 + (1 − 折旧率) × 1</strong></p>
+</blockquote>
+<ul>
+<li>权重 3/2/2/1 是刻意的不对称：<strong>不可替代性</strong>最贵（省不掉的那部分），<strong>折旧率</strong>取补——越易过时，该项扣得越狠。</li>
+<li>用法：定期对技能库打分排序，尾部的合并或下线，避免"只增不减"撑爆召回。</li>
+</ul>
+<h3 id="四风险分级门禁风险词触发-四级响应">四、风险分级门禁：风险词触发 + 四级响应</h3>3
+<ul>
+<li>检测到风险词（<strong>删除／修改／上线／生产／重启／报错／故障</strong>）→ <strong>自动触发检查门禁</strong>，不靠人记得。</li>
+<li>四级响应按影响面升级：<strong>一级=自检 | 二级=决策树 + 多 Agent | 三级=双 Agent 复核 | 四级=PDCA 复盘</strong>。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">五、方案三阶评审与卡点回流（强制）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 先权威搜索：拿到需求先查权威网站／官方文档（禁止凭直觉直接动手），再整合出初步方案</li><li>2. 与 OpenClaw 对齐：无差异 → 直接按路径分派执行（每步写明执行者）；有差异或不确定 → 引入 Claude 讨论定论，再派发</li><li>3. 卡点回流：执行中遇到卡点（≥2 次重试失败／方案分歧／新未知），必须退回多 Agent 讨论再继续，禁止单 Agent 硬闯或静默绕过</li></ul></div>3
+<ol>
+<li><strong>先权威搜索</strong>：拿到需求先查权威网站／官方文档（<strong>禁止凭直觉直接动手</strong>），再整合出初步方案。</li>
+<li><strong>与 OpenClaw 对齐</strong>：无差异 → 直接按路径分派执行（每步写明执行者）；有差异或不确定 → 引入 Claude 讨论定论，再派发。</li>
+<li><strong>卡点回流</strong>：执行中遇到卡点（≥2 次重试失败／方案分歧／新未知），<strong>必须退回多 Agent 讨论再继续，禁止单 Agent 硬闯或静默绕过</strong>。</li>
+</ol>
+<p>总纲：全面的信息 + 正确的逻辑 + 场景下的专家验证。两条配套要求：<strong>审查要交完整思路</strong>（把怎么想、怎么规划、怎么实施全给审查者，不是只给代码，且讨论后再改而非改完才审）；<strong>发现任一智能体的配置/能力/可用性问题必须当场实测确认并明确告知用户</strong>，不得静默修复或跳过。</p>
+<h3 id="六谁在什么时候写写到哪一层怎么保鲜">六、谁在什么时候写、写到哪一层、怎么保鲜</h3>3
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>谁写</strong></td>
+<td>Hermes 是共享文件（<code>shared-memory.md</code> / <code>AGENT-HANDBOOK.md</code>）的<strong>唯一管理者</strong>；各 Agent 共享同一套，不各自建副本</td>
+</tr>
+<tr>
+<td><strong>何时写</strong></td>
+<td>任务收尾前跑<strong>沉淀三问</strong>（有新来源？踩过坑？流程可优化？）；另有两类定时任务：<strong>每日 09:00</strong> 共享技能库更新检测，<strong>每周日 13:00</strong> 大扫除（记忆瘦身 + 技能库整理）</td>
+</tr>
+<tr>
+<td><strong>写到哪层</strong></td>
+<td>记忆层（我是谁，≤15 条）／技能层（怎么做，带 triggers）／环境避坑区（环境事实）</td>
+</tr>
+<tr>
+<td><strong>防覆盖</strong></td>
+<td>单一管理者 + 内容类型分家 + 技能四维评估淘汰；三把锁叠加</td>
+</tr>
+<tr>
+<td><strong>保鲜</strong></td>
+<td>每周大扫除做<strong>记忆瘦身</strong>（超 15 条先删再进）；技能用四维公式按折旧率淘汰</td>
+</tr>
+<tr>
+<td><strong>冲突处理</strong></td>
+<td>与现有规则冲突时<strong>不写</strong>，在原位置追加 <code>⚠️冲突: &lt;现有规则#&gt;</code>，下次周复盘一并提案（落地门细则见 <a href="AGENTS%E8%A7%84%E8%8C%83%E5%AE%9E%E6%88%98.html">AGENTS规范实战</a> 第五节）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>环境事实沉淀范例</strong>（属记忆层，示范"具体、可验证"的写法）：<code>检测 Docker 状态用 docker version（显示 Client+Server），不要用 which docker</code>；<code>Python 3.14 装包用 --break-system-packages</code>；<code>不自建 apt 源，避免 sudo，装到 ~/.local/bin</code>。用户偏好固定两条：<strong>最小化安装 + 密码不存储 + 先查后装</strong>。这类"环境事实"越具体越有用，且随环境变化需要保鲜——原始共享记忆里同一兜底链出现过 <code>MiMo V2.6 Pro</code> 与 <code>V2.5 Pro</code> 两个版本，正是<strong>旧版本信息漂移</strong>的实例，说明模型版本类内容应定期重验而非长期外推。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">七、层级定位与协作原则</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>六条核心执行原则：① 隐私优先（敏感数据强制本地模型，禁云端）② 能力匹配（简单用本地，复杂切强模型）③ 先计划后执行 ④ 安全红线（删除/覆盖/推主分支/生产环境必须暂停确认）⑤ 异常闭环（失败给 2+ 修复方案，不反复追问）⑥ 自动补全依赖</li><li>行为边界：隐私绝不外泄；拿不准的外部动作（发邮件/发帖/群聊）先问再做；动手前先自己查（读文件/查上下文/搜索），带着答案回来；思考过程必须用中文</li></ul></div>3
+<ul>
+<li><strong>Hermes = 本地工具链总调度指挥官</strong>：理解需求 → 匹配工具 → 通过 OpenClaw 执行 → 验收结果。</li>
+<li>六条核心执行原则：① 隐私优先（敏感数据强制本地模型，禁云端）② 能力匹配（简单用本地，复杂切强模型）③ 先计划后执行 ④ 安全红线（删除/覆盖/推主分支/生产环境必须暂停确认）⑤ 异常闭环（失败给 2+ 修复方案，不反复追问）⑥ 自动补全依赖。</li>
+<li>行为边界：隐私绝不外泄；拿不准的外部动作（发邮件/发帖/群聊）<strong>先问再做</strong>；动手前先自己查（读文件/查上下文/搜索），带着答案回来；思考过程必须用中文。</li>
+<li>行为纠偏的暗语约定：<strong>"在干啥"= 走了无用功，立即停下</strong>；<strong>"进度如何"= 太慢了，提速</strong>。</li>
+</ul>
+<h3 id="八思维方法路由按场景选推理方法不靠默认一把梭">八、思维方法路由：按场景选推理方法（不靠默认一把梭）</h3>3
+<p>收到任务先判场景，自动匹配推理方法，而不是所有问题都用同一种思路：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>场景</th>
+<th>触发信号</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CoT</strong> 链式思考</td>
+<td>逻辑推理、因果分析</td>
+<td>为什么、推理、分析</td>
+</tr>
+<tr>
+<td><strong>ToT</strong> 树式思考</td>
+<td>多方案决策、对比评估</td>
+<td>哪个方案、对比、选择</td>
+</tr>
+<tr>
+<td><strong>GoT</strong> 图式思考</td>
+<td>系统性分析、根因分析</td>
+<td>关系、依赖、根因</td>
+</tr>
+<tr>
+<td><strong>PDCA</strong> 执行闭环</td>
+<td>修/改/部署/同步/配置</td>
+<td>任何执行类任务</td>
+</tr>
+<tr>
+<td><strong>ReAct</strong> 推理+行动</td>
+<td>需反复"想一步做一步"（默认模式）</td>
+<td>探索型任务</td>
+</tr>
+<tr>
+<td><strong>Reflexion</strong> 失败反思</td>
+<td>失败后反思重试</td>
+<td>报错、重试</td>
+</tr>
+<tr>
+<td><strong>PoT</strong> 程序化思考</td>
+<td>数值 / 计算密集</td>
+<td>算数、统计</td>
+</tr>
+<tr>
+<td><strong>SoT</strong> 骨架化思考</td>
+<td>大型规划</td>
+<td>先搭骨架再并行展开</td>
+</tr>
+<tr>
+<td><strong>Multi-Agent Debate</strong></td>
+<td>关键决策交叉验证</td>
+<td>高风险选型/架构</td>
+</tr>
+</tbody>
+</table>
+<p>选型逻辑：能一步推出答案的用 CoT；多岔路选 ToT；纠缠成网用 GoT；要动手就叠 PDCA；<strong>关键且不可逆的决策才上 Debate</strong>——它是成本最高的一档，别日常滥用。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">来源</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>raw/practice/SOUL团队规范-20260929.md</li><li>raw/practice/团队共享记忆-20260929.md</li></ul></div>2
+<ul>
+<li>raw/practice/SOUL团队规范-20260929.md</li>
+<li>raw/practice/团队共享记忆-20260929.md</li>
+</ul>
+<h2 id="相关术语">相关术语</h2>2
+<ul>
+<li>三层上下文体系、Insight Graph、Quality Gating：ontology/Agent记忆术语表.md</li>
+<li>Step-level Model Routing（模型切换与兜底链）：ontology/术语表-模型部署.md</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">相关条目</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>知识库保鲜与技能治理（TTL · 三层上下文 · 技能审计）</li></ul></div>2
+<ul>
+<li><a href="%E7%9F%A5%E8%AF%86%E5%BA%93%E4%BF%9D%E9%B2%9C%E4%B8%8E%E6%8A%80%E8%83%BD%E6%B2%BB%E7%90%86.html">知识库保鲜与技能治理（TTL · 三层上下文 · 技能审计）</a></li>
+</ul></div></details></div></body></html>

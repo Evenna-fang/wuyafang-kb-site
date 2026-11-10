@@ -1,0 +1,241 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>深度学习详解</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 深度学习详解</span></div><div class="wrap"><h1 id="书章节重点-深度学习详解">书章节重点 · 深度学习详解</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书脱胎于李宏毅“机器学习”公开课，系统覆盖从CNN、Transformer到扩散模型、自监督学习等主流深度学习算法，并深入对抗攻击、强化学习、元学习、网络压缩等进阶议题，兼顾理论严谨性与生活化讲解</li><li>全书的组织方式是先建立“损失—参数—优化”的共同语言，再逐章解释不同网络架构为什么出现、解决什么问题、有哪些限制</li><li>它不把模型当作孤立名词，而是把架构设计、训练目标、数据划分、计算成本和泛化风险放在一起理解：线性模型提供基线，深度网络提高表达能力，卷积利用空间局部性，循环网络保留序列状态，自注意力建立全局依赖，Transformer把编码与解码组织成可扩展的模块</li></ul></div>2
+<p>本书脱胎于李宏毅“机器学习”公开课，系统覆盖从CNN、Transformer到扩散模型、自监督学习等主流深度学习算法，并深入对抗攻击、强化学习、元学习、网络压缩等进阶议题，兼顾理论严谨性与生活化讲解。全书的组织方式是先建立“损失—参数—优化”的共同语言，再逐章解释不同网络架构为什么出现、解决什么问题、有哪些限制。它不把模型当作孤立名词，而是把架构设计、训练目标、数据划分、计算成本和泛化风险放在一起理解：线性模型提供基线，深度网络提高表达能力，卷积利用空间局部性，循环网络保留序列状态，自注意力建立全局依赖，Transformer把编码与解码组织成可扩展的模块。后半部分则进一步讨论生成、迁移、持续学习、压缩和解释，使读者不仅知道模型“怎么工作”，也能判断模型“何时适用、哪里会失效、如何评估”。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 机器学习基础</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：机器学习的核心框架是“定义损失函数—优化参数”，损失函数以参数为输入、以参数好坏为输出</li><li>核心观点2：模型训练的本质是在参数空间中寻找使损失最小的那组参数</li><li>核心观点3：案例学习的价值在于把抽象公式落到预测任务</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：机器学习的核心框架是“定义损失函数—优化参数”，损失函数以参数为输入、以参数好坏为输出。模型不是凭空产生答案，而是在给定数据和目标下寻找更合适的参数。</li>
+<li><strong>核心观点2</strong>：模型训练的本质是在参数空间中寻找使损失最小的那组参数。参数空间可能很大，实际训练依赖梯度下降等数值优化方法逐步接近较优解。</li>
+<li><strong>核心观点3</strong>：案例学习的价值在于把抽象公式落到预测任务。输入特征、模型函数、目标值和损失共同决定学习问题，换一个任务时仍可沿用同一框架。</li>
+<li><strong>核心观点4</strong>：线性模型表达能力有限，但结构清楚、容易解释，适合做基线。分段线性曲线和模型变形说明，增加参数或改变函数形状可以提高灵活性，但也会提高过拟合风险。</li>
+<li><strong>核心观点5</strong>：判断模型不能只看训练误差。需要同时关注验证表现、数据分布和模型复杂度，否则模型可能只是记住训练样本而没有学到可迁移规律。<blockquote>
+<p>定义损失，损失是一个函数，其输入就是一组参数，旨在判断这组参数的好坏。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第2章-实践方法论">第2章 实践方法论</h3>3
+<ul>
+<li><strong>核心观点1</strong>：合理选择模型的关键是将数据划分为训练集与验证集，如90%/10%，用验证集评估模型泛化效果。训练集用于学习参数，验证集用于比较模型和超参数，不能把验证结果当成训练目标反复过度使用。</li>
+<li><strong>核心观点2</strong>：训练损失大不一定归咎于模型偏差，也可能是优化不充分。应先检查学习率、训练轮数、初始化和数据处理，再决定是否增加输入特征或加深网络。</li>
+<li><strong>核心观点3</strong>：模型灵活性可以通过增加输入特征、改变函数形式或使用深度学习提升，但灵活性越高越需要验证集和正则化约束。</li>
+<li><strong>核心观点4</strong>：实践中要区分偏差、优化不良和过拟合。训练集与验证集的表现组合，能帮助判断是模型太简单、没有训练好，还是模型记住了训练数据。</li>
+<li><strong>核心观点5</strong>：数据划分必须避免泄漏。若同一对象的高度相似样本同时出现在训练集和验证集，验证分数会虚高，不能代表真实部署效果。<blockquote>
+<p>一种能够比较合理地选择模型的方法是把训练数据分成两部分：训练集(training set)和验证集(validation set).</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 深度学习基础</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：动量优化器不是沿当前梯度方向更新，而是将历史梯度方向做加权总和作为更新方向</li><li>核心观点2：Adam及其各种变形本质上只是计算动量与自适应学习率的方式不同，整体优化框架一致</li><li>核心观点3：学习率调度通过随训练进程调整步伐大小来提升优化效果</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：动量优化器不是沿当前梯度方向更新，而是将历史梯度方向做加权总和作为更新方向。它能在一致方向上加速，也能减轻梯度方向频繁变化造成的震荡。</li>
+<li><strong>核心观点2</strong>：Adam及其各种变形本质上只是计算动量与自适应学习率的方式不同，整体优化框架一致。选择优化器时仍要结合任务、学习率和验证结果，不能把优化器名称当成效果保证。</li>
+<li><strong>核心观点3</strong>：学习率调度通过随训练进程调整步伐大小来提升优化效果。前期可以快速移动，后期逐渐减小步幅以稳定收敛。</li>
+<li><strong>核心观点4</strong>：批量大小影响梯度估计的噪声、显存占用和更新频率。批量并非越大越好，应在稳定性、速度和泛化之间取平衡。</li>
+<li><strong>核心观点5</strong>：分类任务通常需要把输出分数转成概率并定义分类损失；批量归一化则帮助深层网络稳定中间激活，训练时与测试时的统计方式需要区分。<blockquote>
+<p>这个版本里有动量，它不是顺着某个时刻算出的梯度方向来更新参数，而是把过去所有算出梯度的方向做加权总和并当作更新的方向.</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第4章-卷积神经网络">第4章 卷积神经网络</h3>3
+<ul>
+<li><strong>核心观点1</strong>：CNN是典型的网络架构设计范例，常用于图像分类等任务。它不是简单把全连接层堆得更大，而是利用图像中局部区域和空间排列的先验。</li>
+<li><strong>核心观点2</strong>：感受野让网络只在局部区域检测模式，降低参数量；随着层数增加，局部特征逐渐组合成更大范围的结构。</li>
+<li><strong>核心观点3</strong>：共享参数意味着同一个滤波器可以在图像不同位置寻找相同模式，因而减少参数并提高对平移的适应能力。</li>
+<li><strong>核心观点4</strong>：汇聚或下采样缩小特征图，在保留主要模式的同时减少计算；但过度下采样可能损失细节，需要结合识别任务选择尺度。</li>
+<li><strong>核心观点5</strong>：合理的网络架构设计能够显著优化神经网络的表现，理解架构设计逻辑是本章重点。架构设计要同时考虑输入尺寸、通道数、层数、计算量、特征保留和最终任务输出。<blockquote>
+<p>通过卷积神经网络，我们可以知道网络架构如何设计，以及为什么合理的网络架构可以优化神经网络的表现.</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 循环神经网络</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：RNN面向序列数据建模，是处理时序信息的经典架构（本章为序列建模基础章节）</li><li>核心观点2：序列任务可分为多对一、多对多和序列到序列，不同输入输出数量决定网络读写方式</li><li>核心观点3：双向循环网络同时利用过去和未来上下文，适合离线分析；但需要完整序列，不能直接用于严格的实时预测场景</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：RNN面向序列数据建模，是处理时序信息的经典架构（本章为序列建模基础章节）。它在每个时间点接收当前输入和前一时刻状态，把历史信息压缩进状态向量。</li>
+<li><strong>核心观点2</strong>：序列任务可分为多对一、多对多和序列到序列，不同输入输出数量决定网络读写方式。分类、标注、翻译等任务需要不同的输出安排。</li>
+<li><strong>核心观点3</strong>：双向循环网络同时利用过去和未来上下文，适合离线分析；但需要完整序列，不能直接用于严格的实时预测场景。</li>
+<li><strong>核心观点4</strong>：LSTM通过门控机制控制信息保留、写入和输出，缓解普通RNN在长序列上的梯度消失问题。它增加了结构和计算成本，仍需根据任务选择。</li>
+<li><strong>核心观点5</strong>：RNN训练通常使用时间反向传播，序列很长时容易出现梯度消失或爆炸，因此要关注截断、门控和梯度处理。</li>
+</ul>
+<h3 id="第6章-自注意力机制">第6章 自注意力机制</h3>3
+<ul>
+<li><strong>核心观点1</strong>：自注意力机制让模型在处理每个位置时动态关注序列中其他位置的信息，是Transformer的核心组件。注意力权重随输入内容变化，不是固定窗口。</li>
+<li><strong>核心观点2</strong>：输入和输出数量相同、序列到标签、序列到序列都可以用自注意力组织。机制本身负责建立依赖，任务头负责输出具体结果。</li>
+<li><strong>核心观点3</strong>：多头自注意力让模型在不同子空间学习不同关系，有的头关注局部搭配，有的头关注远距离依赖。</li>
+<li><strong>核心观点4</strong>：位置编码补充顺序信息。自注意力天然不理解先后位置，必须注入位置表示，否则相同词集合的排列可能难以区分。</li>
+<li><strong>核心观点5</strong>：截断自注意力通过限制关注范围降低计算量；与卷积相比它更灵活地建模依赖，与循环网络相比更适合并行处理。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 Transformer</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：编码器由多个块堆叠而成，每个块输入一组向量、输出另一组向量，逐层传递至最终向量序列</li><li>块内通常组合自注意力、前馈变换和残差路径</li><li>核心观点2：解码器可采用自回归或非自回归方式</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：编码器由多个块堆叠而成，每个块输入一组向量、输出另一组向量，逐层传递至最终向量序列。块内通常组合自注意力、前馈变换和残差路径。</li>
+<li><strong>核心观点2</strong>：解码器可采用自回归或非自回归方式。自回归逐步生成，依赖前面已生成结果；非自回归解码可用分类器预测解码器应输出的长度，从而并行生成结果，速度更快但长度和质量控制更困难。</li>
+<li><strong>核心观点3</strong>：编码器—解码器注意力让解码端读取编码端表示，是翻译、问答和多种序列到序列任务连接输入与输出的关键。</li>
+<li><strong>核心观点4</strong>：Transformer训练常用教师引导、束搜索、加入噪声和计划采样等技巧，以缓解训练阶段与推理阶段输入分布不同的问题。</li>
+<li><strong>核心观点5</strong>：Transformer的强项是并行计算和全局依赖，但注意力计算成本会随序列长度增长，因此长文本场景需要稀疏、截断或其他高效机制。<blockquote>
+<p>编码器内部有很多的块(block)，每一个块都能输入一组向量，输出另一组向量.</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第8章-生成模型">第8章 生成模型</h3>3
+<ul>
+<li><strong>核心观点1</strong>：GAN由生成器和判别器构成，生成器尝试制造逼真样本，判别器区分真实与生成样本，二者交替训练形成对抗过程。</li>
+<li><strong>核心观点2</strong>：条件型GAN训练判别器时，除正负样本对外，还需加入“好图片但文字不匹配”的错配数据，否则判别器训练不充分。</li>
+<li><strong>核心观点3</strong>：故意打乱图文匹配构造错配样本，迫使判别器学会识别语义不匹配，是条件型GAN成功的关键；训练数据设计与网络结构同样重要。</li>
+<li><strong>核心观点4</strong>：GAN训练可能出现不稳定、模式崩溃和生成质量难以衡量等问题。WGAN等方法尝试改善距离度量和训练信号，但不能消除所有工程难点。</li>
+<li><strong>核心观点5</strong>：CycleGAN通过循环一致性处理缺少成对样本的跨域转换，说明生成模型可以借助结构约束学习“从一种风格到另一种风格”的映射。<blockquote>
+<p>还需要加上一种不好的状况：已经产生了好的图片，但是和文字叙述匹配不上……告诉判别器看到这种状况也要输出“不匹配”.</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第9章 扩散模型</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：扩散模型通过逐步加噪与去噪的过程实现生成建模</li><li>核心观点2：去噪模块是生成质量的关键，它根据当前带噪样本和条件信息估计应被移除的噪声，反复迭代后得到清晰样本</li><li>核心观点3：训练噪声预测器时，可从不同噪声程度采样训练实例，使模型学习多个时间步的去噪能力</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：扩散模型通过逐步加噪与去噪的过程实现生成建模。前向过程把数据逐渐变成噪声，反向过程训练网络预测并去除噪声。</li>
+<li><strong>核心观点2</strong>：去噪模块是生成质量的关键，它根据当前带噪样本和条件信息估计应被移除的噪声，反复迭代后得到清晰样本。</li>
+<li><strong>核心观点3</strong>：训练噪声预测器时，可从不同噪声程度采样训练实例，使模型学习多个时间步的去噪能力。生成时则从噪声出发沿反向过程逐步采样。</li>
+<li><strong>核心观点4</strong>：扩散模型的优势在于训练目标相对稳定、生成质量高；代价是采样通常需要多步计算，因此速度和资源是部署时的重要约束。</li>
+</ul>
+<h3 id="第10章-自监督学习">第10章 自监督学习</h3>3
+<ul>
+<li><strong>核心观点1</strong>：BERT能将不同语言中含义相同的符号映射到相近的向量空间，同时仍保留语言身份信息，以便在各自语言中完成填空任务。</li>
+<li><strong>核心观点2</strong>：多语言BERT训练时语言内部填空不混合，说明模型必须区分语言才能完成任务，揭示了语言身份信息在嵌入中的保留。</li>
+<li><strong>核心观点3</strong>：自监督学习通过数据本身构造监督信号，例如遮盖、预测或对比，不必为每个样本人工标注答案，因此能利用大规模未标注数据。</li>
+<li><strong>核心观点4</strong>：BERT偏向双向理解和表示学习，GPT式模型偏向按序预测；预训练目标会影响模型擅长的能力，不能只看模型规模比较。<blockquote>
+<p>如果不同语言之间没有区别，那它又怎么可能只用英文标记来填充英文句子呢？</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第11章 自编码器</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：自编码器通过编码—解码结构学习数据的压缩表示，编码器将输入变成隐向量，解码器再尝试重建输入</li><li>核心观点3：去噪自编码器使用受扰动的输入重建干净数据，使隐表示更关注稳定结构而非偶然噪声</li><li>核心观点4：自编码器可用于特征解耦、异常检测和离散隐表征</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：自编码器通过编码—解码结构学习数据的压缩表示，编码器将输入变成隐向量，解码器再尝试重建输入。</li>
+<li><strong>核心观点2</strong>：瓶颈迫使模型保留重要信息。若隐空间过大或缺少约束，模型可能只是复制输入，难以获得有用的抽象表示。</li>
+<li><strong>核心观点3</strong>：去噪自编码器使用受扰动的输入重建干净数据，使隐表示更关注稳定结构而非偶然噪声。</li>
+<li><strong>核心观点4</strong>：自编码器可用于特征解耦、异常检测和离散隐表征。应用时应明确重建误差、隐空间质量和下游任务之间的关系。</li>
+</ul>
+<h3 id="第12章-对抗攻击">第12章 对抗攻击</h3>3
+<ul>
+<li><strong>核心观点1</strong>：对抗样本通过细微输入扰动诱导模型作出错误判断，说明高准确率不等于对所有输入变化都鲁棒。</li>
+<li><strong>核心观点2</strong>：对抗训练难以防御未见过的攻击算法。用算法1至4训练出的鲁棒性可能被算法5攻破，因此评估必须覆盖不同攻击方式。</li>
+<li><strong>核心观点3</strong>：对抗训练计算代价极高，每张原始图片都要额外搜索对抗样本；当数据规模达到百万级时，样本生成和训练时间都会显著增加。</li>
+<li><strong>核心观点4</strong>：白箱攻击利用模型内部梯度，黑箱攻击只观察输入输出；两者对攻击者信息要求不同，防御评估不能只做单一设置。</li>
+<li><strong>核心观点5</strong>：被动防御和主动防御各有侧重。实际系统应同时关注输入处理、模型训练、检测告警和部署后的持续测试。<blockquote>
+<p>对抗训练有一个非常大的缺点，就是不见得能挡住新的攻击算法.</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第13章 迁移学习</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：迁移学习将源领域知识迁移到目标领域，缓解目标任务数据不足的问题</li><li>核心观点2：领域偏移意味着训练数据和目标数据分布不同</li><li>核心观点3：领域自适应通过调整表示或训练目标，缩小源域与目标域差异；领域泛化则希望模型在未见目标域上也能工作</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：迁移学习将源领域知识迁移到目标领域，缓解目标任务数据不足的问题。已有表示可以减少从零训练所需的数据和时间。</li>
+<li><strong>核心观点2</strong>：领域偏移意味着训练数据和目标数据分布不同。迁移时必须检查特征、标签和任务目标是否真的相关，否则迁移可能带来负作用。</li>
+<li><strong>核心观点3</strong>：领域自适应通过调整表示或训练目标，缩小源域与目标域差异；领域泛化则希望模型在未见目标域上也能工作。</li>
+<li><strong>核心观点4</strong>：实际选择冻结、微调或重新训练，应结合目标数据量、源目标相似度、计算预算和过拟合风险。</li>
+</ul>
+<h3 id="第14章-强化学习">第14章 强化学习</h3>3
+<ul>
+<li><strong>核心观点1</strong>：强化学习通过环境、状态、动作、奖励和策略构成闭环，模型不是直接获得每一步正确标签，而是根据反馈学习行动方式。</li>
+<li><strong>核心观点2</strong>：累积奖励引入折扣因子，如0.9或0.99，对远期奖励打折，平衡即时与长期回报。折扣越小越重视眼前结果，越大越重视长期收益。</li>
+<li><strong>核心观点3</strong>：强化学习框架可拆成定义函数、定义损失和优化三个步骤，但训练还要关注探索与利用、奖励稀疏和样本效率。</li>
+<li><strong>核心观点4</strong>：Actor负责选择动作，Critic评价动作或状态价值；Actor-Critic把策略改进与价值估计结合起来，优势估计可降低更新噪声。</li>
+<li><strong>核心观点5</strong>：电子游戏和下围棋展示了序列决策的典型应用，但真实环境还存在安全约束、交互成本和奖励设计困难。<blockquote>
+<p>我们在的前面乘以了一个折扣因子.折扣因子是一个小于1的值，比如0.9或0.99.</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第15章 元学习</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：元学习追求“学会学习”，使模型能从少量样本中快速适应新任务，而不是只在一个固定任务上取得高分</li><li>核心观点2：元学习通常把训练组织成任务集合，在多个任务上学习一个具有良好初始化或快速适应能力的模型</li><li>核心观点3：少样本适应的关键不只是样本少，还在于任务之间共享结构</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：元学习追求“学会学习”，使模型能从少量样本中快速适应新任务，而不是只在一个固定任务上取得高分。</li>
+<li><strong>核心观点2</strong>：元学习通常把训练组织成任务集合，在多个任务上学习一个具有良好初始化或快速适应能力的模型。</li>
+<li><strong>核心观点3</strong>：少样本适应的关键不只是样本少，还在于任务之间共享结构。若新任务与元训练任务差异过大，快速适应能力会下降。</li>
+<li><strong>核心观点4</strong>：元学习适用于个性化、少样本分类和跨任务迁移，但训练流程、任务采样和评估方式比普通监督学习更复杂。</li>
+</ul>
+<h3 id="第16章-终身学习">第16章 终身学习</h3>3
+<ul>
+<li><strong>核心观点1</strong>：终身学习又称持续学习、无止境学习、增量学习，要求模型依次学习多个任务而不遗忘旧知识。</li>
+<li><strong>核心观点2</strong>：灾难性遗忘指模型学新任务时旧任务能力严重流失，如同池子上下水龙头同时开——新进旧出。问题根源在于参数更新会破坏旧任务所依赖的表示。</li>
+<li><strong>核心观点3</strong>：终身学习评估采用准确率矩阵：每学完一个任务后在所有任务上测试，记录完整表格，以衡量学习、迁移和遗忘程度。</li>
+<li><strong>核心观点4</strong>：主要解法可以从保持旧知识、限制参数变化和回放旧样本等方向理解。不同方法在存储成本、适应速度和隐私约束之间取舍。<blockquote>
+<p>终身学习也称为持续学习(continous learning)、无止境学习(never-ending learning)、增量学习(incremental learning).<br />
+它就像一个上下两端都接有水龙头的池子，新的任务从上面的水龙头流进来，旧的任务就从下面的水龙头流出去.</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第17章 网络压缩</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：网络压缩的目标是在尽量少损失效果的前提下降低参数量、计算量、存储和延迟，便于模型在资源有限的设备上运行</li><li>核心观点2：知识蒸馏中学生网络不以真实标签为目标，而是逼近教师网络的软输出分布，如0.7、0.2、0.1</li><li>核心观点3：剪枝删除不重要的连接或结构，量化降低参数表示精度，架构设计则从源头选择更高效的网络；压缩后必须重新评估准确率和速度</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：网络压缩的目标是在尽量少损失效果的前提下降低参数量、计算量、存储和延迟，便于模型在资源有限的设备上运行。</li>
+<li><strong>核心观点2</strong>：知识蒸馏中学生网络不以真实标签为目标，而是逼近教师网络的软输出分布，如0.7、0.2、0.1。软分布包含类别之间的相似性信息。</li>
+<li><strong>核心观点3</strong>：剪枝删除不重要的连接或结构，量化降低参数表示精度，架构设计则从源头选择更高效的网络；压缩后必须重新评估准确率和速度。</li>
+<li><strong>核心观点4</strong>：深度可分离卷积将标准卷积拆为深度卷积与逐点卷积，深度卷积中滤波器数量等于通道数，每个滤波器只负责一个通道，可明显减少计算。</li>
+<li><strong>核心观点5</strong>：动态计算让模型根据输入难度决定使用多少计算资源，简单样本走短路径，困难样本使用更深结构，但部署需要可靠的路由和延迟控制。<blockquote>
+<p>学生网络不是通过看这张图片的正确答案来学习，而是把教师网络的输出当作正确答案来学习.</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第18章-可解释性机器学习">第18章 可解释性机器学习</h3>3
+<ul>
+<li><strong>核心观点1</strong>：局部解释针对单个样本找最相关特征，解释这个样本的分类结果；全局解释针对整个模型找最相关特征，解释模型整体行为。</li>
+<li><strong>核心观点2</strong>：遮挡法通过在不同位置放置灰色方块观察输出变化，判断图像各区域对决策的重要性。若遮挡某区域后输出显著改变，该区域可能是关键依据，但也要排除背景相关性。</li>
+<li><strong>核心观点3</strong>：探针技术将分类器插入网络中间层，例如把BERT词嵌入接POS分类器，以准确率判断该层编码了多少特定信息。探针结果反映“信息是否可读”，不等于模型实际决策一定使用了它。</li>
+<li><strong>核心观点4</strong>：可解释性关乎模型公正性，法律判案等场景需要确认模型不存在种族歧视，并能追溯特征与结果之间的关系。</li>
+<li><strong>核心观点5</strong>：解释方法也有局限，局部解释不一定代表全局规律，相关特征不等于因果因素。高风险应用要结合多种解释、反事实测试和人工审查。<blockquote>
+<p>如果在改造或删除某个部分以后，网络的输出有了巨大的变化，就说明这一部分很重要.<br />
+还有人想把机器学习用在法律上，比如帮助法官判案，但是我们怎么才能知道机器学习模型是公正的，而不会有种族歧视呢？</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第19章 ChatGPT</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：ChatGPT是前述Transformer、自监督预训练、强化学习等技术路线的综合落地实例</li><li>核心观点2：预训练让模型从大量文本中学习语言规律，后续训练和反馈机制使输出更符合人类任务需求；模型生成的是概率意义上的后续文本，不是数据库式逐句检索</li><li>核心观点3：ChatGPT带来的研究问题包括事实可靠性、偏见、安全、评估和人机协作</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：ChatGPT是前述Transformer、自监督预训练、强化学习等技术路线的综合落地实例。理解它不能只记住产品名称，而要拆解预训练、序列生成和对齐等组成部分。</li>
+<li><strong>核心观点2</strong>：预训练让模型从大量文本中学习语言规律，后续训练和反馈机制使输出更符合人类任务需求；模型生成的是概率意义上的后续文本，不是数据库式逐句检索。</li>
+<li><strong>核心观点3</strong>：ChatGPT带来的研究问题包括事实可靠性、偏见、安全、评估和人机协作。实际使用时需要核验关键结论，不能因为语言流畅就默认正确。</li>
+<li><strong>核心观点4</strong>：模型能力评估应结合任务成功率、错误类型、成本、延迟和安全边界，而不是只用一个综合分数代表所有场景。</li>
+</ul>
+<h2 id="适用场景标签">适用场景标签</h2>2
+<ul>
+<li>深度学习系统入门与知识体系搭建</li>
+<li>高校课程配套阅读（机器学习/深度学习）</li>
+<li>算法工程师进阶专题查阅（对抗攻击、网络压缩、终身学习）</li>
+<li>面试复习与核心概念速查</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">一句话推荐</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>李宏毅课系深度学习的系统化精炼读本</li></ul></div>2
+<p>李宏毅课系深度学习的系统化精炼读本。</p></div></details></div></body></html>

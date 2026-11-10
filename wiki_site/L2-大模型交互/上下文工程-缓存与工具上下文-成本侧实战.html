@@ -1,0 +1,409 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>上下文工程-缓存与工具上下文-成本侧实战</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 上下文工程-缓存与工具上下文-成本侧实战</span></div><div class="wrap"><h1 id="上下文工程成本侧实战kv-cacheprompt-caching-与工具上下文">上下文工程·成本侧实战：KV-Cache、Prompt Caching 与工具上下文</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B-Context-Engineering.html">上下文工程-Context-Engineering</a>（定义、失效模式、四类策略）· <a href="L2-%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L2 上下文工程深挖整合</a>（含 vLLM prefix caching）· 姊妹篇 <a href="%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B-%E9%95%BF%E7%A8%8BAgent%E7%9A%84%E4%B8%8A%E4%B8%8B%E6%96%87%E6%8C%81%E4%B9%85%E5%8C%96%E4%B8%8E%E5%A4%9AAgent%E4%B9%8B%E4%BA%89.html">长程Agent的上下文持久化与多Agent之争</a></p>
+</blockquote>
+<h1 id="why上下文重复计费与成本侧问题">WHY：上下文重复计费与成本侧问题</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心结论</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本库已有两篇上下文工程文档讲清了“装什么”：窗口里该放哪些信息，位置偏置和 context rot 为什么存在，write / select / compress / isolate 四类动作怎么用</li><li>这一篇补的是另一半：装进去的东西怎么装得便宜、装得稳</li><li>1. 生产环境 Agent 最该盯的指标是 KV-cache 命中率</li></ul></div>2
+<p>本库已有两篇上下文工程文档讲清了“装什么”：窗口里该放哪些信息，位置偏置和 context rot 为什么存在，write / select / compress / isolate 四类动作怎么用。这一篇补的是另一半：<strong>装进去的东西怎么装得便宜、装得稳</strong>。结论有四条。</p>
+<ol>
+<li><strong>生产环境 Agent 最该盯的指标是 KV-cache 命中率。</strong> Manus 披露其输入与输出 token 比约为 100:1，缓存输入与未缓存输入相差 10 倍（以 Claude Sonnet 计，0.30 对 3 USD/MTok）。Agent 每走一步都要把整段历史重新发给模型，成本主要花在重复的前缀上。</li>
+<li><strong>缓存按前缀逐字节匹配，而且分层失效。</strong> Anthropic 文档规定缓存前缀顺序是 tools → system → messages，改动某一层，这一层和它之后所有层的缓存一起作废。所以“稳定的放前面、变化的放后面、历史只追加”是硬约束，不是风格偏好。</li>
+<li><strong>工具定义是最大的常驻成本，也是最容易被忽略的一块。</strong> Anthropic 的实测里，5 个 MCP 服务器共 58 个工具，仅定义就约占 55K token。Tool Search（按需加载工具定义）把这一块压到 8.7K 量级，同时选工具的准确率还上升了。</li>
+<li><strong>写工具就是写上下文。</strong> 工具返回什么、返回多少、出错时怎么说，都直接决定下一轮窗口里有什么。Anthropic 给出的做法包括 <code>response_format</code> 枚举（同一接口详细版 206 token、简洁版 72 token）、分页和截断的合理默认值（Claude Code 默认把工具响应限制在 25,000 token）。</li>
+</ol>
+<p>本文所有数字都标注一手来源，来源见文末。凡是我自己换算的数字，会明确写“换算”。</p>
+<h2 id="一为什么要单独谈成本侧">一、为什么要单独谈“成本侧”</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1.1 “装什么”解决正确性，“怎么装”解决账单和延迟</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>上下文工程的前半段是质量问题：多余的 token 会稀释注意力，所以要精简</li><li>后半段是工程经济问题：就算每一个 token 都有用，Agent 循环的结构也会让同一批 token 被反复发送、反复计费、反复预填充（prefill）</li><li>单次问答里，这个问题不明显：输入发一次，输出生成一次</li></ul></div>3
+<p>上下文工程的前半段是质量问题：多余的 token 会稀释注意力，所以要精简。后半段是工程经济问题：就算每一个 token 都有用，Agent 循环的结构也会让同一批 token 被反复发送、反复计费、反复预填充（prefill）。</p>
+<p>单次问答里，这个问题不明显：输入发一次，输出生成一次。Agent 不同。Manus 的描述是，一个典型任务平均要约 50 次工具调用；每次调用后，模型都要拿到“全部历史加上最新观察结果”，再产出一个很短的结构化函数调用。于是输入远大于输出，Manus 实测约 100:1。这时候真正花钱、真正拖慢首 token 延迟的，是那一大段几乎没变过的历史前缀。</p>
+<h3 id="12-一个换算示例">1.2 一个换算示例</h3>3
+<p>下面这个例子是本文换算，不是原文数据。假设一个 Agent 任务跑 50 步，每步都要带 50K token 的稳定前缀（系统指令、工具定义、已有历史）：</p>
+<table>
+<thead>
+<tr>
+<th>情形</th>
+<th>50 步累计输入</th>
+<th>按 Manus 披露价格（缓存 0.30、未缓存 3 USD/MTok）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>前缀每步都未命中缓存</td>
+<td>2.5M token</td>
+<td>约 7.5 USD</td>
+</tr>
+<tr>
+<td>前缀每步都命中缓存</td>
+<td>2.5M token</td>
+<td>约 0.75 USD</td>
+</tr>
+</tbody>
+</table>
+<p>差距正好是 10 倍。实际场景里命中率介于两者之间，所以“提高命中率”可以直接换算成钱和延迟。这也解释了为什么 Manus 把命中率称为生产环境 Agent 最重要的单一指标。</p>
+<h1 id="whytkv-cache-与-prompt-caching-的工作机制">WHYT：KV-Cache 与 Prompt Caching 的工作机制</h1>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">二、KV-Cache 的工作方式与 Manus 的三条实践</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="21-前缀匹配是怎么回事">2.1 前缀匹配是怎么回事</h3>3
+<p>语言模型是自回归的：每个 token 的表示依赖它之前的全部 token。推理引擎把已经算过的前缀对应的 key/value 张量缓存起来（KV cache），下一次请求如果以完全相同的前缀开头，就可以跳过这一段的预填充。Manus 的原话大意是：只要有一个 token 不同，从这个位置开始往后的缓存全部失效。</p>
+<p>这给上下文设计提了一个很具体的要求：前缀里不能有“每次都不一样”的东西。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.2 实践一：保持前缀稳定</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Manus 举的反例是把精确到秒的时间戳放在系统提示词开头</li><li>这样做看起来无害，实际上让每一次请求的第一个 token 之后就开始分叉，整段缓存永远命不中</li><li>如果确实需要给模型时间信息，应放在靠后的位置，或精度降到不影响前缀的程度</li></ul></div>3
+<p>Manus 举的反例是把精确到秒的时间戳放在系统提示词开头。这样做看起来无害，实际上让每一次请求的第一个 token 之后就开始分叉，整段缓存永远命不中。如果确实需要给模型时间信息，应放在靠后的位置，或精度降到不影响前缀的程度。</p>
+<h3 id="23-实践二上下文只追加序列化要确定">2.3 实践二：上下文只追加，序列化要确定</h3>3
+<p>两条规则：</p>
+<ul>
+<li>不回头修改之前的动作和观察结果。任何对历史的原地修改，都会让修改点之后的缓存全部作废。</li>
+<li>序列化要确定。Manus 专门提醒，很多编程语言和库在序列化 JSON 时不保证键的顺序稳定。Anthropic 的缓存文档里也有同样的提示：Swift、Go 等语言序列化工具定义时可能随机化键顺序，导致缓存失效。表面上看工具定义没变，字节序列却变了。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.4 实践三：必要时显式设置缓存断点</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>有些服务商不自动识别缓存边界，需要在请求里标出断点</li><li>路由是关键：缓存在某个 worker 的显存里，请求被分到另一个 worker 就等于没有缓存</li><li>Manus 的建议是断点至少包含系统提示词末尾，并考虑缓存过期</li></ul></div>3
+<p>有些服务商不自动识别缓存边界，需要在请求里标出断点。Manus 的建议是断点至少包含系统提示词末尾，并考虑缓存过期。自托管模型时，可以在 vLLM 里开启前缀缓存，并用 session ID 把同一会话的请求稳定路由到同一个 worker。路由是关键：缓存在某个 worker 的显存里，请求被分到另一个 worker 就等于没有缓存。本库《L2 上下文工程深挖整合》第八章已讲过 vLLM 的 <code>max-model-len</code>、<code>gpu-memory-utilization</code> 和 prefix caching 参数，这里不重复。</p>
+<h2 id="三anthropic-prompt-caching官方机制逐项拆解">三、Anthropic Prompt Caching：官方机制逐项拆解</h2>2
+<p>以下内容来自 Anthropic 平台文档（本次抓取日期 2026-11-02）。文档会随模型更新，具体模型名单和价格请以官方页面为准。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.1 启用方式与前缀结构</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Messages API 需要显式开启</li><li>系统把断点放在最后一个可缓存块上，并随对话增长自动后移</li><li>显式断点：把 「cache_control」 放到具体内容块上，精细控制缓存范围</li></ul></div>3
+<p>Messages API 需要显式开启。有两种写法：</p>
+<ul>
+<li><strong>自动缓存</strong>：请求顶层加一个 <code>cache_control: {"type": "ephemeral"}</code>。系统把断点放在最后一个可缓存块上，并随对话增长自动后移。多轮对话优先用这种方式。</li>
+<li><strong>显式断点</strong>：把 <code>cache_control</code> 放到具体内容块上，精细控制缓存范围。目前唯一支持的类型是 <code>ephemeral</code>。</li>
+</ul>
+<p>缓存前缀的拼接顺序固定为 <strong>tools → system → messages</strong>。<code>cache_control</code> 所在块及它之前的全部内容构成缓存前缀。</p>
+<h3 id="32-断点数量最小长度与-ttl">3.2 断点数量、最小长度与 TTL</h3>3
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>每个请求的显式断点上限</td>
+<td>4 个；自动缓存占 1 个槽位，已有 4 个显式断点再开自动缓存会返回 400</td>
+</tr>
+<tr>
+<td>最小可缓存长度</td>
+<td>因模型而异，文档列出 512、1,024、2,048、4,096 token 四档；不足最小长度不缓存，也不报错</td>
+</tr>
+<tr>
+<td>默认 TTL</td>
+<td>5 分钟；每次命中免费刷新</td>
+</tr>
+<tr>
+<td>可选 TTL</td>
+<td>1 小时，<code>"ttl": "1h"</code>，写入价为基础输入价的 2 倍</td>
+</tr>
+<tr>
+<td>计时起点</td>
+<td>从发起写入或读取的请求开始算，不是从响应结束算</td>
+</tr>
+</tbody>
+</table>
+<p>计时起点这一条容易踩坑。文档举的例子：如果一次响应流式输出用了 4 分钟，那么下一次请求必须在这次响应结束后约 1 分钟内发出，才能复用同一前缀。</p>
+<p>选 TTL 的建议是：调用间隔短于 5 分钟的循环，用默认 5 分钟即可，因为每次命中都会免费续期；间隔在 5 分钟到 1 小时之间的任务（比如人在回路里审阅后继续），用 1 小时。同一请求混用两种 TTL 时，长 TTL 的条目必须排在短 TTL 之前。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.3 计费倍率</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>断点本身不收费，只为实际写入和读取的 token 付费</li><li>把这张表和第一章的 10 倍差价对照：只要一段前缀被读取两次以上，5 分钟写入的 1.25 倍溢价就已经回本</li></ul></div>3
+<p>以基础输入价为 1 倍：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>倍率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5 分钟缓存写入</td>
+<td>1.25x</td>
+</tr>
+<tr>
+<td>1 小时缓存写入</td>
+<td>2x</td>
+</tr>
+<tr>
+<td>缓存读取与刷新（多数模型）</td>
+<td>0.1x</td>
+</tr>
+<tr>
+<td>缓存读取（部分最新模型）</td>
+<td>0.05x 或 0.025x</td>
+</tr>
+</tbody>
+</table>
+<p>断点本身不收费，只为实际写入和读取的 token 付费。把这张表和第一章的 10 倍差价对照：只要一段前缀被读取两次以上，5 分钟写入的 1.25 倍溢价就已经回本。</p>
+<h3 id="34-回看窗口最容易写错的地方">3.4 回看窗口：最容易写错的地方</h3>3
+<p>读取时系统怎么找缓存：先在当前断点处计算前缀哈希，查有没有条目；没有就逐块向前回退，检查更早位置的哈希；每个断点最多检查 20 个位置，断点本身算第 1 个；20 个位置内找不到就停。</p>
+<p>由此引出三条规则，官方文档都明确写了：</p>
+<ol>
+<li><strong>写入只发生在断点处。</strong> 断点之前的位置不会自动写入。</li>
+<li><strong>回看只能找到之前请求已经写入的条目</strong>，它不会去“发现”稳定内容并缓存它。</li>
+<li><strong>每轮新增少于 20 个块时，在最后一个块上设断点即可</strong>；如果会话增长使断点距上次写入超过 20 个块，要在更靠近的位置提前加第二个断点。</li>
+</ol>
+<p>文档还给了一个典型错误：块 1 到 5 是静态系统上下文，块 6 含时间戳和用户消息，却把断点设在块 6 上。每次时间戳不同，哈希永远不匹配，结果是每次都写入、从不读取，白付 1.25 倍。正确做法是把断点移到块 5。官方最佳实践里的说法与 Manus 完全一致：断点设在前缀中<strong>最后一个跨请求保持不变的块</strong>上。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.5 哪些改动会让缓存失效</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>实战含义：不要在会话中途切换这些开关</li></ul></div>3
+<p>文档用一张表列出了各类改动对三层缓存的影响，归纳如下：</p>
+<table>
+<thead>
+<tr>
+<th>改动</th>
+<th>影响范围</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>工具定义（名称、描述、参数）</td>
+<td>tools 层及其后全部失效</td>
+</tr>
+<tr>
+<td>联网搜索开关、引用（citations）开关</td>
+<td>tools 层缓存保留，其后各层失效</td>
+</tr>
+<tr>
+<td><code>tool_choice</code></td>
+<td>只使 messages 层失效</td>
+</tr>
+<tr>
+<td>图片增删（提示中任何位置）</td>
+<td>tools 层缓存保留，其后各层失效（逐层细节以官方表格为准）</td>
+</tr>
+<tr>
+<td>思考参数（thinking，含 <code>budget_tokens</code>）、<code>effort</code></td>
+<td>messages 层失效；部分模型连带更早的层</td>
+</tr>
+</tbody>
+</table>
+<p>实战含义：<strong>不要在会话中途切换这些开关。</strong> 如果需求确实是中途增加指令或工具，官方给了不破坏缓存的通道：较新的模型支持用 <code>{"role": "system"}</code> 消息在对话中追加指令；一个 beta 头支持通过 <code>tool_addition</code> 块增加工具而不改动 <code>tools</code> 数组。具体能力以官方文档当前版本为准。</p>
+<h3 id="36-用-usage-字段验证">3.6 用 usage 字段验证</h3>3
+<p>响应的 <code>usage</code> 里有四个字段：<code>cache_creation_input_tokens</code>（本次写入）、<code>cache_read_input_tokens</code>（本次读取）、<code>input_tokens</code>（最后一个断点之后、未参与缓存的部分）、以及按 TTL 拆分的 <code>cache_creation</code>。总输入的算法是：</p>
+<p><code>total_input_tokens = cache_read_input_tokens + cache_creation_input_tokens + input_tokens</code></p>
+<p>文档的例子：10 万缓存 token 被读取、0 个新写入、用户消息 50 token，则三个字段分别为 100000、0、50，总计 100,050。如果前两项都是 0，说明这次请求没有被缓存（要么不足最小长度，要么断点位置不对）。<strong>命中率不是猜出来的，应该从这几个字段统计。</strong> 文档还提供了 cache diagnostics 功能，可以让 API 对比连续请求，指出前缀在哪里分叉。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.7 预热</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>把 「max_tokens」 设为 0，API 会读取提示并写入缓存，但不生成输出</li><li>适合在用户真正发问之前预先写好大前缀（比如一份长文档加一套工具）</li><li>5 分钟缓存需要每 5 分钟至少预热一次，间隔更长就改用 1 小时 TTL</li></ul></div>3
+<p>把 <code>max_tokens</code> 设为 0，API 会读取提示并写入缓存，但不生成输出。适合在用户真正发问之前预先写好大前缀（比如一份长文档加一套工具）。限制是：预热请求不能同时用流式、扩展思考、结构化输出或强制 <code>tool_choice</code>；它的 thinking 与 effort 配置需要和后续请求一致，否则 messages 层缓存对不上。5 分钟缓存需要每 5 分钟至少预热一次，间隔更长就改用 1 小时 TTL。</p>
+<h1 id="how工具上下文治理设计与落地检查">HOW：工具上下文治理、设计与落地检查</h1>
+<h2 id="四mask不要-remove工具集与缓存的冲突">四、“Mask，不要 Remove”：工具集与缓存的冲突</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.1 问题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>工具越多，模型越容易选错，效率也会下降，Manus 的说法是“重装备的 Agent 反而变笨”</li><li>直觉的解法是按阶段动态增删工具，只给当前用得上的</li><li>1. 工具定义位于上下文前部，改动它会让其后所有缓存失效（第三章已讲）</li></ul></div>3
+<p>工具越多，模型越容易选错，效率也会下降，Manus 的说法是“重装备的 Agent 反而变笨”。直觉的解法是按阶段动态增删工具，只给当前用得上的。Manus 的经验是除非必要，<strong>不要在迭代中途动态增删工具</strong>，原因有两个：</p>
+<ol>
+<li>工具定义位于上下文前部，改动它会让其后所有缓存失效（第三章已讲）。</li>
+<li>历史里的动作和观察如果引用了已不在当前工具集中的工具，模型会困惑，可能产生 schema 错误或幻觉动作。</li>
+</ol>
+<h3 id="42-manus-的做法约束解码">4.2 Manus 的做法：约束解码</h3>3
+<p>Manus 保持工具定义不变，用一个上下文感知的状态机管理“当前允许调用什么”，在解码阶段对 token 的 logits 做掩码，禁止或强制某些动作。文中区分了三种函数调用模式：</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Auto</td>
+<td>模型自己选择调用还是直接回复</td>
+</tr>
+<tr>
+<td>Required</td>
+<td>必须调用工具，但选哪个不受限</td>
+</tr>
+<tr>
+<td>Specified</td>
+<td>必须从指定子集中选一个调用</td>
+</tr>
+</tbody>
+</table>
+<p>为了让“指定子集”好实现，Manus 要求工具名使用统一前缀，如 <code>browser_</code>、<code>shell_</code>。这样只要限定 token 前缀，就能把可选范围收窄到一组工具，不需要写有状态的 logits 处理器。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.3 对没有解码控制权的开发者</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>多数人调用的是托管 API，没有 logits 控制权</li><li>这时可行的等价做法有三种：在系统提示或后续消息里明确说明当前阶段该用哪类工具；利用 API 的 「tool_choice」（注意它会使 messages 层缓存失效，见 3.5）；或者换一个思路，不是增删工具，而是用下一章的 Tool Search 把工具定义放到“按需展开”的通道里，而且这个通道本身不破坏缓存</li></ul></div>3
+<p>多数人调用的是托管 API，没有 logits 控制权。这时可行的等价做法有三种：在系统提示或后续消息里明确说明当前阶段该用哪类工具；利用 API 的 <code>tool_choice</code>（注意它会使 messages 层缓存失效，见 3.5）；或者换一个思路，不是增删工具，而是用下一章的 Tool Search 把工具定义放到“按需展开”的通道里，而且这个通道本身不破坏缓存。</p>
+<h2 id="五工具定义的上下文成本tool-search程序化调用与示例">五、工具定义的上下文成本：Tool Search、程序化调用与示例</h2>2
+<p>Anthropic 工程博客《Advanced tool use》（2025-11-24）把工具侧的上下文问题拆成三个，各给一个机制。三个功能在写作时都处于 beta，需要特定请求头。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.1 Tool Search：不要一开局就背整本手册</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>问题：文中的例子是接入 5 个 MCP 服务器，共 58 个工具，定义约 55K token；再接一个 Jira 就接近 100K 以上</li><li>原文对节省幅度有多处表述（85%、191,300 对 122,800 token 等）口径并不一致</li><li>按文中 77K 对 8.7K 计算，降幅约 89%</li></ul></div>3
+<p><strong>问题</strong>：文中的例子是接入 5 个 MCP 服务器，共 58 个工具，定义约 55K token；再接一个 Jira 就接近 100K 以上。任务还没开始，窗口就已经被工具说明书占满。</p>
+<p><strong>机制</strong>：把工具标记 <code>defer_loading: true</code>，它们不进入初始上下文。Claude 只看到一个搜索工具和少量常用工具；需要某个能力时先搜索，搜索结果返回工具引用，再展开为完整定义。平台自带正则和 BM25 两种搜索，也可以自定义（比如用 embedding）。</p>
+<p><strong>数字</strong>（以原文为准，口径需核对）：</p>
+<ul>
+<li>传统方式任务开始前约占 77K token，使用后约 8.7K，原文称保留了 95% 的上下文窗口；</li>
+<li>内部 MCP 评测中，Opus 4 的工具选择准确率从 49% 升到 74%，Opus 4.5 从 79.5% 升到 88.1%；</li>
+<li>原文对节省幅度有多处表述（85%、191,300 对 122,800 token 等）口径并不一致。按文中 77K 对 8.7K 计算，降幅约 89%。引用时请标明具体口径，不要混用。</li>
+</ul>
+<p><strong>适用条件</strong>：工具定义总量超过 10K token、工具数 10 个以上、出现选错工具的情况、同时用多个 MCP 服务器。代价是多一次搜索步骤，带来额外延迟。文中称延迟加载不会破坏 prompt caching，因为这些工具本来就不在初始提示里。</p>
+<p>这和上一篇文档里的“渐进披露”是同一思路：常驻的只有索引，正文按需取。Tool Search 把这条思路用到了工具定义上。</p>
+<h3 id="52-programmatic-tool-calling中间结果不进窗口">5.2 Programmatic Tool Calling：中间结果不进窗口</h3>3
+<p><strong>问题</strong>：每次工具调用的结果都会进入上下文，每次调用还要一轮模型推理。读 200KB 的原始数据只为得出一个汇总数字，窗口被白白撑满。</p>
+<p><strong>机制</strong>：让 Claude 写一段 Python 编排代码，在代码执行环境里调用工具，对结果做过滤、聚合，只把最终输出返回上下文。工具需要通过 <code>allowed_callers</code> 选择开启。原文的预算核对例子里，原始数据约 200KB，最终只返回约 1KB。</p>
+<p><strong>数字</strong>：复杂研究任务平均 token 用量从 43,588 降到 27,297（降 37%）；20 多次工具调用合并进一段代码，省去 19 次以上的推理往返；内部知识检索准确率从 25.6% 升到 28.5%，GIA 基准从 46.5% 升到 51.2%。</p>
+<p><strong>不适用</strong>：单次简单调用，或者模型确实需要看到全部中间结果才能决策的任务。</p>
+<p>它是 LangChain Deep Agents“大结果落盘、只留预览”那条策略的另一种实现：一个把结果放到文件系统，一个把结果留在代码沙箱里，目的一样，都是让中间产物不占窗口。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.3 Tool Use Examples：用示例补 schema 说不清的部分</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>JSON Schema 只能描述结构，说不清“什么时候该填这个可选参数”“两个字段怎么搭配”“日期用什么格式”</li><li>内部测试中，复杂参数处理的准确率从 72% 提升到 90%</li><li>在工具定义里加 「input_examples」 可以补上</li></ul></div>3
+<p>JSON Schema 只能描述结构，说不清“什么时候该填这个可选参数”“两个字段怎么搭配”“日期用什么格式”。在工具定义里加 <code>input_examples</code> 可以补上。内部测试中，复杂参数处理的准确率从 72% 提升到 90%。官方建议每个工具 1 到 5 个示例，用真实数据，只为 schema 无法说明的歧义添加。代价是示例本身也占 token，所以要克制。</p>
+<h2 id="六写工具就是写上下文anthropic-的工具设计原则">六、写工具就是写上下文：Anthropic 的工具设计原则</h2>2
+<p>Anthropic 工程博客《Writing tools for agents》（2025-09-11）把工具定义为“确定性系统与非确定性 Agent 之间的契约”。其中与上下文直接相关的原则如下。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.1 选对工具，而不是多给工具</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>不要把 API 端点逐个包装成工具</li><li>Agent 的上下文有限，所以应该提供 「search_contacts」 而不是 「list_contacts」（后者把整个通讯录倒进窗口）</li><li>把常连用的多步操作合并成一个工具，比如 「schedule_event」、「search_logs」（只返回相关日志及上下文）、「get_customer_context」</li></ul></div>3
+<p>不要把 API 端点逐个包装成工具。Agent 的上下文有限，所以应该提供 <code>search_contacts</code> 而不是 <code>list_contacts</code>（后者把整个通讯录倒进窗口）。把常连用的多步操作合并成一个工具，比如 <code>schedule_event</code>、<code>search_logs</code>（只返回相关日志及上下文）、<code>get_customer_context</code>。</p>
+<h3 id="62-命名空间">6.2 命名空间</h3>3
+<p>按服务和资源加前缀，如 <code>asana_search</code>、<code>asana_projects_search</code>。原文说前缀或后缀两种风格对效果有“不可忽略的影响”，要靠自己的评测来选。这与 Manus 的 <code>browser_</code> / <code>shell_</code> 前缀是同一个做法，只是一个服务于模型选择，一个还服务于解码约束。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.3 只返回高信号字段</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>返回 「name」、「file_type」 这类语义化字段，少返回 「uuid」、「mime_type」 这类底层标识</li><li>把 UUID 解析成语义化名称或从 0 开始的简单 ID，能显著提高检索精度、减少幻觉</li></ul></div>3
+<p>返回 <code>name</code>、<code>file_type</code> 这类语义化字段，少返回 <code>uuid</code>、<code>mime_type</code> 这类底层标识。把 UUID 解析成语义化名称或从 0 开始的简单 ID，能显著提高检索精度、减少幻觉。</p>
+<h3 id="64-response_format让-agent-自己选粒度">6.4 <code>response_format</code>：让 Agent 自己选粒度</h3>3
+<p>给工具加一个 <code>DETAILED</code> / <code>CONCISE</code> 枚举参数。原文数字：同一个响应，详细版 206 token，简洁版 72 token；Slack 的例子里，简洁模式约用了详细模式三分之一的 token。需要后续调用的 ID（如 <code>thread_ts</code>）放在详细模式里返回，这样 Agent 先用简洁模式扫一遍，真要深入时再拉详细版。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.5 token 效率：分页、截断、可操作的错误</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>对可能很大的响应，组合使用分页、范围选择、过滤和截断，并设置合理的默认值</li><li>Claude Code 默认把工具响应限制在 25,000 token</li><li>截断时要给出引导，告诉 Agent 如何改用更小、更有针对性的查询</li></ul></div>3
+<p>对可能很大的响应，组合使用分页、范围选择、过滤和截断，并设置合理的默认值。Claude Code 默认把工具响应限制在 25,000 token。截断时要给出引导，告诉 Agent 如何改用更小、更有针对性的查询。错误信息要具体可操作，而不是晦涩的错误码或堆栈。</p>
+<h3 id="66-工具描述也是-prompt">6.6 工具描述也是 prompt</h3>3
+<p>像给新员工介绍工具那样写：隐含背景、专用查询格式、资源之间的关系都写清楚；参数名要明确，用 <code>user_id</code> 而不是 <code>user</code>。原文称，对工具描述的精细修改使 Claude Sonnet 3.5 在 SWE-bench Verified 上达到当时的最优水平。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.7 用评测迭代，别凭感觉</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>官方流程是：快速做原型 → 用真实多步任务做评测（任务要强，通常需要多次、乃至数十次工具调用；每个任务配可验证的结果）→ 读转录，留意 Agent 没说出口的内容 → 让 Claude Code 批量改工具 → 用保留测试集防过拟合</li><li>要采集的指标包括准确率、耗时、工具调用次数、token 消耗和工具错误</li><li>大量冗余调用提示分页或截断参数需要调整，大量参数错误提示描述或示例需要改进</li></ul></div>3
+<p>官方流程是：快速做原型 → 用真实多步任务做评测（任务要强，通常需要多次、乃至数十次工具调用；每个任务配可验证的结果）→ 读转录，留意 Agent 没说出口的内容 → 让 Claude Code 批量改工具 → 用保留测试集防过拟合。要采集的指标包括准确率、耗时、工具调用次数、token 消耗和工具错误。大量冗余调用提示分页或截断参数需要调整，大量参数错误提示描述或示例需要改进。原文还举了一例：Claude 总在 web search 的查询里多加“2025”，改工具描述后纠正。</p>
+<h2 id="七落地检查清单">七、落地检查清单</h2>2
+<p>把前面的内容压成一张可执行的清单，用于审查一个现有 Agent 的上下文成本：</p>
+<table>
+<thead>
+<tr>
+<th>检查项</th>
+<th>判断标准</th>
+<th>对应章节</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>前缀里有没有每次都变的字符</td>
+<td>时间戳、请求 ID、随机序列不应出现在 system 开头和工具定义里</td>
+<td>2.2</td>
+</tr>
+<tr>
+<td>历史是否只追加</td>
+<td>不存在对旧消息的原地改写或重排</td>
+<td>2.3</td>
+</tr>
+<tr>
+<td>JSON 序列化键顺序是否固定</td>
+<td>对同一对象两次序列化字节相同</td>
+<td>2.3、3.5</td>
+</tr>
+<tr>
+<td>断点位置</td>
+<td>在最后一个跨请求不变的块，不在含时间戳的块上</td>
+<td>3.4</td>
+</tr>
+<tr>
+<td>命中率有没有被统计</td>
+<td>从 <code>usage</code> 的三个字段算，且按会话监控</td>
+<td>3.6</td>
+</tr>
+<tr>
+<td>会话中途有没有切换 thinking、tool_choice、图片、搜索开关</td>
+<td>有就会使缓存分层失效</td>
+<td>3.5</td>
+</tr>
+<tr>
+<td>工具定义总 token</td>
+<td>超过 10K 或工具数超过 10 个，评估 Tool Search</td>
+<td>5.1</td>
+</tr>
+<tr>
+<td>工具集是否在迭代中途增删</td>
+<td>改成 mask 或按需展开，不改前缀</td>
+<td>四</td>
+</tr>
+<tr>
+<td>大响应是否有分页、截断、<code>response_format</code></td>
+<td>有默认上限，截断带引导</td>
+<td>6.4、6.5</td>
+</tr>
+<tr>
+<td>工具是否经过评测迭代</td>
+<td>有保留测试集和指标</td>
+<td>6.7</td>
+</tr>
+</tbody>
+</table>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">八、常见误区</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 把缓存当成自动优化</li><li>同一篇文章里出现 85%、89%、95% 三个数，使用时要写清分母</li><li>缓存按字节匹配，一个时间戳就能让命中率归零，而且不会报错，只会悄悄变贵</li></ul></div>2
+<ol>
+<li><strong>把缓存当成自动优化。</strong> 缓存按字节匹配，一个时间戳就能让命中率归零，而且不会报错，只会悄悄变贵。</li>
+<li><strong>断点设在最新一条用户消息上。</strong> 用户消息每轮都变，应设在它之前最后一个稳定块。</li>
+<li><strong>会话中途改 thinking 参数或 tool_choice 却不知道要付重写的钱。</strong> 见 3.5。</li>
+<li><strong>以为工具越多越灵活。</strong> 55K token 的定义换来的是选择困难，Tool Search 实测准确率还更高。</li>
+<li><strong>工具把一切都返回。</strong> 窗口里的每个 UUID 都是成本。</li>
+<li><strong>只看单次调用价格。</strong> Agent 的成本是步数乘以前缀长度，命中率才是杠杆。</li>
+<li><strong>引用节省比例不标口径。</strong> 同一篇文章里出现 85%、89%、95% 三个数，使用时要写清分母。</li>
+</ol>
+<h2 id="九与本库其他文档的关系">九、与本库其他文档的关系</h2>2
+<ul>
+<li>《上下文工程-Context-Engineering》讲定义和四类策略，其中的“offload”对应本文 5.2 和 6.5，“分层披露”对应 5.1。</li>
+<li>《L2 上下文工程深挖整合》第八章的 vLLM prefix caching，是本文第二、三章在自托管侧的对应物：同样的“稳定放前、变化放后”，不同的是 vLLM 是引擎自己做，Anthropic 要靠 <code>cache_control</code> 显式声明。</li>
+<li>姊妹篇《长程Agent的上下文持久化与多Agent之争》接着讲：当任务长到无论怎么省都装不下，怎么把状态放到窗口之外。</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库的成本控制不靠提示词压缩，靠「缓存 + 配额 + 降级」三件套（本次读源码）</strong>：<br />
+  | 手段 | 位置 | 机制 |<br />
+  |---|---|---|<br />
+  | rerank 缓存 | <code>rag/query.py</code> L893-903 | 键 = <code>md5(query\|"\|".join(d[:50] for d in docs))</code>，命中直接读 <code>data/rerank_cache/&lt;key&gt;.json</code> |<br />
+  | 改写日配额 | <code>rag/query.py</code> L1018 <code>inc_rewrite_counter()</code> + <code>data/rewrite_counter.json</code> | <code>rewrite_daily_limit: 100</code>（配置 L166），超了直接跳过改写 |<br />
+  | Contextual 前缀缓存 | <code>rag/contextual_llm.py</code> L19 <code>_CONTEXTUAL_CACHE_PATH</code> | 按 chunk 的 sha256 命中缓存，避免重复调 LLM |<br />
+  | 实体向量缓存 | <code>rag/config.yaml</code> L86 注释 | <code>graph/entity_emb_m3.npz</code>，图谱扩展不重复编码 |</li>
+<li><strong>缓存设计的关键取舍</strong>：rerank 缓存键的输入是「query 加 docs 各段前 50 字」，整体 md5 后落盘 （<code>rag/query.py</code> L893，原文见该行 <code>cache_key = hashlib.md5(...)</code>）——<strong>docs 只取每段前 50 字</strong>，用碰撞风险换「小改动也能命中」。这是刻意的：<strong>缓存键越精确，命中率越低、省的钱越少</strong>。</li>
+<li><strong>成本核算也有代码</strong>：<code>rag/contextual_llm.py</code> L170 <code>estimate_cost()</code> 按「Anthropic 官方公式 + DeepSeek-V3 单价」算 no-cache 与 with-cache 两档，返回 <code>savings_percent</code>——<strong>上线前先算，再决定要不要为缓存付 LLM 调用费</strong>。</li>
+<li><strong>和课件讲法的差异</strong>：课件讲 KV cache/前缀缓存（推理侧）；本库的缓存全是<strong>应用侧</strong>（结果落盘），因为生成走的是云端 API，「前缀缓存省的是你自己的钱」在本库体现为「少调用一次」。</li>
+<li><strong>本库暂无</strong>：生成调用本身没有缓存（同问题问两次就是两次付费），也没有 token 计量台账。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库真实缓存在四处：rerank 结果按 <code>md5(query|docs前缀)</code> 落盘（<code>rag/query.py</code> L893-903，本次实跑 cache 未命中直接走模型）、entity embedding 缓存 <code>graph/entity_emb_m3.npz</code>（配置 L86 注释）、rewrite 日配额计数器 <code>data/rewrite_counter.json</code>、Contextual 前缀缓存 <code>data/contextual_cache.jsonl</code>（<code>rag/contextual_llm.py</code> L19）。</li>
+<li><strong>读源码</strong>：缓存在成本里的位置；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">来源</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>第一章“10 倍价差”“100:1”来自 Manus 原文；2.5M token / 7.5 USD / 0.75 USD 为本文按其价格的换算示例</li><li>Anthropic 缓存文档的模型名单、最小长度分档与倍率会随模型更新变化，本文只引用规则，具体数值请核对官方页面</li><li>Tool Search 的节省比例在原文里口径不一，已在 5.1 注明</li></ul></div>2
+<p>一手来源（均为官方博客或文档，抓取日期 2026-11-02）：</p>
+<ul>
+<li>Manus 官方博客：Context Engineering for AI Agents: Lessons from Building Manus（Yichao "Peak" Ji）— https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus</li>
+<li>Anthropic 平台文档：Prompt caching — https://platform.claude.com/docs/en/build-with-claude/prompt-caching（旧地址 docs.claude.com 会重定向到此）</li>
+<li>Anthropic Engineering：Writing effective tools for agents（2025-09-11）— https://www.anthropic.com/engineering/writing-tools-for-agents</li>
+<li>Anthropic Engineering：Introducing advanced tool use（2025-11-24）— https://www.anthropic.com/engineering/advanced-tool-use</li>
+</ul>
+<p>本文使用的数字与限定：</p>
+<ul>
+<li>第一章“10 倍价差”“100:1”来自 Manus 原文；2.5M token / 7.5 USD / 0.75 USD 为本文按其价格的换算示例。</li>
+<li>Anthropic 缓存文档的模型名单、最小长度分档与倍率会随模型更新变化，本文只引用规则，具体数值请核对官方页面。</li>
+<li>Tool Search 的节省比例在原文里口径不一，已在 5.1 注明。</li>
+</ul>
+<blockquote>
+<p>来源：Manus《Context Engineering for AI Agents: Lessons from Building Manus》；Anthropic《Prompt caching》《Writing effective tools for agents》《Introducing advanced tool use》；出处与数字限定保留于文末“来源”。</p>
+</blockquote></div></details></div></body></html>

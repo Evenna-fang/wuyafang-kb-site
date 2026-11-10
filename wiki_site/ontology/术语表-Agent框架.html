@@ -1,0 +1,131 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>术语表-Agent框架</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 术语表-Agent框架</span></div><div class="wrap"><h1 id="agent-框架术语表-ontology">Agent 框架术语表 (ontology)</h1>
+<blockquote>
+<p>入库: 2026-09-29 | 项目: wuyafang-l<br />
+每个术语 = 定义 + 适用场景 + <strong>conflict_status</strong><br />
+conflict_status 取值含义见 ontology/Agent记忆术语表.md（active / superseded / complementary / conflict）</p>
+</blockquote>
+<hr />
+<h2 id="langgraph">LangGraph</h2>2
+<ul>
+<li><strong>定义</strong>: 基于有向图（节点=函数/Agent，边=条件路由）的 Agent 编排框架，由 LangChain 团队推出。显式状态对象（StateGraph）在节点间流转，支持循环、分支、human-in-the-loop、持久化 checkpoint。</li>
+<li><strong>适用场景</strong>: 需要可控多步推理流程、状态机式工作流、可回溯的 Agent 链（如 RAG 问答、工具调用循环、审批流）。不适合一次性单步任务。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 OpenAI Agents SDK — <strong>complementary</strong>: LangGraph 偏"图/状态机"显式编排，OpenAI Agents SDK 偏"轻量式 + handoff"高层抽象，可按流程复杂度二选一。</li>
+</ul>
+<hr />
+<h2 id="crewai">CrewAI</h2>2
+<ul>
+<li><strong>定义</strong>: 以"角色（Role）+ 任务（Task）+ 团队（Crew）"为核心的多 Agent 协作框架。Agent 带 system prompt 式角色定义，按顺序或层级（hierarchical）执行任务，内置工具/记忆/输出解析。</li>
+<li><strong>适用场景</strong>: 角色扮演式多 Agent（研究员→写手→审校）、流程固定的 pipeline、快速原型。不适合需要精细状态机或动态条件路由的场景。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 LangGraph — <strong>complementary</strong>: CrewAI 更"开箱即用、角色驱动"，LangGraph 更"底层、图驱动"；同一个多 Agent 流程两种都能实现，CrewAI 起步快，LangGraph 控制力强。</li>
+</ul>
+<hr />
+<h2 id="autogen-microsoft">AutoGen (Microsoft)</h2>2
+<ul>
+<li><strong>定义</strong>: 微软的多 Agent 对话框架，核心是可对话的 Agent（UserProxyAgent / AssistantAgent）互相对话直至任务完成；新版 AutoGen v0.4+ 引入事件驱动的 Actor 架构和团队模式。支持人类介入、代码执行容器。</li>
+<li><strong>适用场景</strong>: 对话式协作、代码生成-执行-反馈闭环（写代码→跑代码→看报错→改）、研究实验。生产级强状态编排不如 LangGraph。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+</ul>
+<hr />
+<h2 id="openai-agents-sdk">OpenAI Agents SDK</h2>2
+<ul>
+<li><strong>定义</strong>: OpenAI 官方轻量 Agent 框架，核心抽象 = Agent（带 instructions + tools）+ Runner（执行循环）+ handoff（Agent 间交接）+ guardrails（输入/输出校验）。内置 tracing，与 OpenAI 模型生态深度绑定。</li>
+<li><strong>适用场景</strong>: 用 OpenAI 系模型、需要快速搭工具调用型 Agent、需要内建 handoff 与 guardrails 的产品。非 OpenAI 模型需自行适配。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 LangGraph — <strong>complementary</strong>（见上）。</li>
+</ul>
+<hr />
+<h2 id="claude-agent-sdk">Claude Agent SDK</h2>2
+<ul>
+<li><strong>定义</strong>: Anthropic 官方 Agent 开发套件（前身 Claude Code 的 SDK 化），围绕 Claude 模型构建工具使用型 Agent，支持 MCP（Model Context Protocol）接外部工具/数据源，沙箱化执行。</li>
+<li><strong>适用场景</strong>: 以 Claude 为主模型、需要 MCP 生态工具接入、长程代码/文件操作型 Agent。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 OpenAI Agents SDK — <strong>complementary</strong>: 两家各自绑定自家模型与工具生态，跨模型统一编排时用六员路由层而非 SDK 本身。</li>
+</ul>
+<hr />
+<h2 id="mcp-model-context-protocol">MCP (Model Context Protocol)</h2>2
+<ul>
+<li><strong>定义</strong>: Anthropic 提出的开放协议，标准化"Agent ↔ 外部工具/数据源"的接入方式（server/client 模型，JSON-RPC 风格）。一个 MCP server 暴露一组工具/资源，任意兼容客户端（Claude Desktop / Cursor / 各家 Agent）即插即用。</li>
+<li><strong>适用场景</strong>: 想让同一套工具（DB、API、文件、浏览器）被多个 Agent/客户端复用，避免每个 Agent 手写一遍集成。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 A2A — <strong>complementary</strong>: MCP 解决"Agent→工具"，A2A（Agent2Agent）解决"Agent→Agent"，两者不互斥。</li>
+</ul>
+<hr />
+<h2 id="a2a-agent2agent-protocol">A2A (Agent2Agent Protocol)</h2>2
+<ul>
+<li><strong>定义</strong>: Google 2025-04 提出的 Agent 间互操作协议：JSON-RPC over HTTP + SSE，用 Agent Card 声明能力做发现。解决"不同厂商/组织的 Agent 互相调用"。</li>
+<li><strong>适用场景</strong>: 跨组织 Agent 互操作。对单一六员体系，当前不引入真协议，只借其"能力显式声明（agent_card）+ 任务结构化交接（task envelope）"两个设计习惯（见 notes/config/六员配置优化建议）。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 MCP — <strong>complementary</strong>（见上）。</li>
+</ul>
+<hr />
+<h2 id="orchestrator-walker-模式编排者-执行者">Orchestrator-Walker 模式（编排者-执行者）</h2>2
+<ul>
+<li><strong>定义</strong>: 业界主流多 Agent 骨架：一个编排者（orchestrator）拆任务/派单/汇总，多个执行者（worker）并行或串行干活，步骤间自动校验，外加独立 LLM 评审层和确定性终门，人工只在规划边界与冲突升级处出现。</li>
+<li><strong>适用场景</strong>: 绝大多数六员协作任务。Hermes=编排者，DSH/Claude/Codex=执行者，OpenClaw=评审层。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 Kanban Swarm（并行工作者→验证者→合成者）— <strong>complementary</strong>: Swarm 是编排者-执行者的一种具体并行落地形态。</li>
+</ul>
+<hr />
+<h2 id="agent-card能力声明">Agent Card（能力声明）</h2>2
+<ul>
+<li><strong>定义</strong>: 借鉴 A2A 协议的静态能力声明文件（对应协议里的 <code>/.well-known/agent.json</code>）：给每个 agent 一个 markdown/JSON 文件，显式声明能力边界、输入契约、输出契约、典型任务类型。让编排者（Hermes）不用人脑记"谁擅长什么"，而是读 card 路由派单。</li>
+<li><strong>适用场景</strong>: 六员（Hermes/DSH/Claude Code/Codex/OpenClaw/QwenCode）各自写一份 <code>agent_card.md</code>。短期不实现 A2A JSON-RPC server（本机 CLI 够用），但先落这个产物。</li>
+<li><strong>我们的口径</strong>: 待建。来源: <code>raw/multi-agent/A2A协议调研-20260928.md</code> 第 3.3 节。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+</ul>
+<hr />
+<h2 id="task-envelope结构化任务交接">Task Envelope（结构化任务交接）</h2>2
+<ul>
+<li><strong>定义</strong>: 借鉴 A2A Task Lifecycle 的交接信封：一个 JSON 文件含 task_id / status(submitted→working→input-required→completed/failed) / input / artifacts，落在固定目录（如 <code>~/.hermes/tasks/</code>），替代散在 prompt 里的派单信息。让任务交接可观测、可异步、不暴露内部 memory。</li>
+<li><strong>适用场景</strong>: 六员派单时用 task envelope 落盘，Hermes 能看到"DSH 正在 working / 需补充输入 / 已完成"，失败不靠人盯。</li>
+<li><strong>我们的口径</strong>: 当前是硬编码 delegate_task + prompt 模板，待引入 envelope 文件。来源: <code>raw/multi-agent/A2A协议调研-20260928.md</code>。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 Agent Card — <strong>complementary</strong>: Card 解决"派给谁"，Envelope 解决"派出去后怎么追踪状态"。</li>
+</ul></div></body></html>

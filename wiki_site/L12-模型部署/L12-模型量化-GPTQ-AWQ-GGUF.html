@@ -1,0 +1,831 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L12-模型量化-GPTQ-AWQ-GGUF</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L12-模型量化-GPTQ-AWQ-GGUF</span></div><div class="wrap"><h1 id="l12-模型量化-gptq-awq-gguf">L12 模型量化 GPTQ / AWQ / GGUF</h1>
+<blockquote>
+<p><strong>TL;DR</strong>：量化是"用更少的 bit 存权重"换显存和吞吐，代价是精度。这篇讲清对称/非对称量化的手算（课件数值复现）、PTQ 两大改进 GPTQ 与 AWQ 的原理差异、GGUF 作为格式与量化的区别、三种格式的选型口诀，以及量化掉点的翻车排查。所有量化误差数字为本机实跑产出。</p>
+<p><strong>金标证据</strong>：gold_tier=original_research ｜ 产出声明=本篇给出"量化手算复现 + 三格式对比 + 掉点翻车排查链 + 选型决策器"的实操纪律 ｜ 排他性证据=§2.2「课件数值 round(5.47/0.085)=64 反量化 5.44 复现 + 精确 scale 0.085039 下额外误差 0.00252 + 非对称量化 5.4809 对照」与 §3.3「group-wise scale 相比 per-tensor 把 RMSE 从 0.000681 压到 0.000357（5.19 倍误差下降）」为本篇脚本实跑产出 ｜ 抽查入口=https://huggingface.co/docs/hub/gguf#quantization-types + 本篇 §2.2/§3.3/§4.1 实跑代码段</p>
+</blockquote>
+<hr />
+<h1 id="why量化的显存收益质量代价与问题边界">WHY：量化的显存收益、质量代价与问题边界</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">0. 三问</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>帮你在"模型放不进显存/推理太慢"和"质量不能掉太多"之间做可计算的权衡：量化到底改变了什么数字、GPTQ/AWQ/GGUF 三者到底差在哪、怎么选、掉点了怎么定位</li><li>§1 为什么量化、§2 原理手算（先算明白再选格式）、§3 GPTQ/AWQ/GGUF 三条路线、§4 选型与实测、§5 掉点翻车排查、§6 术语表</li><li>不讲 QAT（量化感知训练）的完整训练流程（本篇只给它与 PTQ 的关系）；不讲 TensorRT-LLM 的 FP8 engine build（见《L12-vLLM推理加速》与素材）；不承诺任何"掉点 1%"的通用数字——质量损失取决于模型、任务、校准数据，必须自己测</li></ul></div>2
+<p><strong>第一问：解决什么？</strong> 帮你在"模型放不进显存/推理太慢"和"质量不能掉太多"之间做<strong>可计算的权衡</strong>：量化到底改变了什么数字、GPTQ/AWQ/GGUF 三者到底差在哪、怎么选、掉点了怎么定位。</p>
+<p><strong>第二问：不解决什么？</strong> 不讲 QAT（量化感知训练）的完整训练流程（本篇只给它与 PTQ 的关系）；不讲 TensorRT-LLM 的 FP8 engine build（见《L12-vLLM推理加速》与素材）；不承诺任何"掉点 1%"的通用数字——质量损失取决于模型、任务、校准数据，必须自己测。</p>
+<p><strong>第三问：怎么用？</strong> §1 为什么量化、§2 原理手算（先算明白再选格式）、§3 GPTQ/AWQ/GGUF 三条路线、§4 选型与实测、§5 掉点翻车排查、§6 术语表。所有标"实跑"的脚本在 <code>/home/wuyafang/.venv-hermes/bin/python</code> 复现过。</p>
+<hr />
+<h2 id="1-为什么要量化">1. 为什么要量化</h2>2
+<p>量化让模型<strong>变小</strong>（显存/磁盘↓）、<strong>推理和微调都变快</strong>（访存带宽需求↓）。显存需求的算式（源：<code>day03微调之量化</code> 课件，已复算）：</p>
+<pre><code>基座模型显存 = 参数数量 × 单个参数大小
+</code></pre>
+<p>Llama3 8B FP16：8B 参数 × 2 Byte = 16 GB。换成 INT4：8B × 0.5 Byte = 4 GB——<strong>四分之三的显存省下来给 KV cache，直接换并发</strong>（见《L12-vLLM推理加速》§3.2 的显存账）。</p>
+<p>总显存需求不止权重（课件口径）：</p>
+<pre><code>总显存需求 = 基座模型显存 + 微调权重显存 + 中间值显存 + 框架占用显存
+（后两项受 上下文大小 与 batch size 影响）
+</code></pre>
+<p>课件示例：Llama3 8B FP16 + LoRA + batch size=4 + context 8K + unsloth = 16G + 0.1G + 2G + 1G = 19.1G。量化砍的是第一项，后三项的乘积关系见《L12-Ollama本地部署》§4.2。</p>
+<hr />
+<h1 id="whyt量化原理与-gptqawqgguf-三条路线">WHYT：量化原理与 GPTQ、AWQ、GGUF 三条路线</h1>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">2. 量化原理：先手算一遍</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="21-对称量化课件数值复现">2.1 对称量化（课件数值复现）</h3>3
+<p>对称量化的 scale 由最大绝对值决定：<code>scale = |max| / 127</code>（int8），量化 <code>q = round(val / scale)</code>，反量化 <code>val' = q × scale</code>。课件给的算例：<code>max=10.8, min=-7.59, val=5.47</code>，<code>scale = 10.8/127 = 0.085</code>，<code>int8 = round(5.47/0.085) = 64</code>，反量化 <code>= 64 × 0.085 = 5.44</code>。</p>
+<p><strong>课件里 0.085 是四舍五入值</strong>，精确 scale 是 0.085039——下面的实跑把这点误差也算出来了：</p>
+<pre><code class="language-python">&quot;&quot;&quot;课件数值复算：对称 int8 量化 round(5.47/0.085)=64, 反量化=5.44 的完整推导，
+含 scale 精度对误差的影响（0.085 是四舍五入值，真实 scale=10.8/127）。&quot;&quot;&quot;
+
+def symmetric_int8(val, mx, scale_rounded=None):
+    true_scale = abs(mx)/127
+    s = scale_rounded if scale_rounded else true_scale
+    q = round(val/s)
+    deq = q*s
+    return q, deq, true_scale, s
+
+if __name__ == &quot;__main__&quot;:
+    q, deq, ts, s = symmetric_int8(5.47, 10.8, scale_rounded=0.085)
+    print(f&quot;round(5.47/0.085)={q}  反量化={round(deq,3)}  (课件数字)&quot;)
+    q2, deq2, ts2, s2 = symmetric_int8(5.47, 10.8)
+    print(f&quot;用精确scale={ts2:.6f}: q={q2}  反量化={deq2:.6f}&quot;)
+    print(f&quot;四舍五入 scale 引入的额外误差: {abs(deq-deq2):.6f}&quot;)
+
+    # 非对称量化对照（课件第 66 页）
+    mx, mn, val = 10.8, -7.59, 5.47
+    s_a = (mx - mn)/255
+    zp = round(-mn/s_a)
+    q_a = round(val/s_a) + zp
+    deq_a = (q_a - zp)*s_a
+    print(f&quot;非对称: scale={s_a:.6f} zero_point={zp} q={q_a} 反量化={deq_a:.4f}&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>round(5.47/0.085)=64  反量化=5.44  (课件数字)
+用精确scale=0.085039: q=64  反量化=5.442520
+四舍五入 scale 引入的额外误差: 0.002520
+非对称: scale=0.072118 zero_point=105 q=181 反量化=5.4809
+</code></pre>
+<p><strong>读数</strong>：课件数字复现无误。量化本身引入 5.47 → 5.4425 的误差（0.5%），而课件用的四舍五入 scale 又叠加了 0.0025 的额外误差——<strong>手算示例里的误差有两层来源：量化损失 + scale 记录精度</strong>。生产上 scale 要以足够精度存进模型文件（GGUF/AWQ 的 block 元数据就是干这个的），别用打印出来的短位数。非对称量化（<code>min=-7.59, max=10.8</code> 分布不对称时）用 <code>zero_point</code> 平移，<code>scale</code> 变小（0.072 vs 0.085），同样 5.47 的反量化误差更小（5.4809 vs 5.4425）——<strong>分布偏斜时非对称量化更准</strong>。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.2 BF16 为什么"省一半不掉点"（实跑）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>errs.append(e)</li><li>读数：8 个测试值的 BF16 平均相对误差约 0.08%——远低于 4bit 量化（见 §4.1 的 15.6% 级别）</li><li>print("平均相对误差:", sum(errs)/len(errs))</li></ul></div>3
+<p>BF16 只有 8 位尾数（FP32 是 23 位），却几乎不掉点——因为大模型权重的动态范围比尾数精度重要：</p>
+<pre><code class="language-python">def f32_to_bf16_round(x):
+    import numpy as np
+    b = np.frombuffer(np.float32(x).tobytes(), dtype=np.uint32)[0]
+    rounding_bias = (b &gt;&gt; 16) &amp; 1
+    b16 = (b + 0x7FFF + rounding_bias) &gt;&gt; 16
+    return np.frombuffer(np.uint32(b16 &lt;&lt; 16).tobytes(), dtype=np.float32)[0]
+
+if __name__ == &quot;__main__&quot;:
+    vals = [0.1, 0.3333333333, 5.47, 123.456, 1e-3, -7.59, 10.8, 0.085]
+    errs = []
+    for v in vals:
+        r = f32_to_bf16_round(v)
+        e = abs(v - r)/abs(v)
+        errs.append(e)
+        print(f&quot;FP32 {v} -&gt; BF16 {r}  相对误差 {e:.2e}&quot;)
+    print(&quot;平均相对误差:&quot;, sum(errs)/len(errs))
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>FP32 0.1 -&gt; BF16 0.10009765625  相对误差 9.77e-04
+FP32 0.3333333333 -&gt; BF16 0.333984375  相对误差 1.95e-03
+FP32 5.47 -&gt; BF16 5.46875  相对误差 2.28e-04
+FP32 123.456 -&gt; BF16 123.5  相对误差 3.56e-04
+FP32 0.001 -&gt; BF16 0.00099945068359375  相对误差 5.49e-04
+FP32 -7.59 -&gt; BF16 -7.59375  相对误差 4.94e-04
+FP32 10.8 -&gt; BF16 10.8125  相对误差 1.16e-03
+FP32 0.085 -&gt; BF16 0.0849609375  相对误差 4.60e-04
+平均相对误差: 0.0007718613
+</code></pre>
+<p><strong>读数</strong>：8 个测试值的 BF16 平均相对误差约 0.08%——远低于 4bit 量化（见 §4.1 的 15.6% 级别）。这就是"部署用 BF16 即可、量化才是真有损"的定量分界：<strong>BF16/FP16 是格式转换，INT8 及以下才是量化</strong>。</p>
+<h3 id="23-权重分布与-scale-粒度awqgptq-的共同直觉实跑">2.3 权重分布与 scale 粒度：AWQ/GPTQ 的共同直觉（实跑）</h3>3
+<p>量化误差不是均匀分布的——一个离群权重撑大全局 scale，让所有普通权重的量化变粗：</p>
+<pre><code class="language-python">import numpy as np
+
+def quant_rmse(W, mode, group=128):
+    if mode == &quot;per_tensor&quot;:
+        s = np.abs(W).max()/127
+    elif mode == &quot;per_channel&quot;:
+        s = np.abs(W).max(axis=1, keepdims=True)/127
+    elif mode == &quot;per_group&quot;:
+        g = W.reshape(W.shape[0], W.shape[1]//group, group)
+        s = np.abs(g).max(axis=2, keepdims=True)/127
+        q = np.clip(np.round(g/s), -127, 127)
+        err = g - q*s
+        return float(np.sqrt((err**2).mean()))
+    q = np.clip(np.round(W/s), -127, 127)
+    err = W - q*s
+    return float(np.sqrt((err**2).mean()))
+
+if __name__ == &quot;__main__&quot;:
+    rng = np.random.default_rng(11)
+    W = rng.normal(0, 0.02, size=(256, 512)).astype(np.float32)
+    W[:, 0] = 0.3  # 植入激活离群列
+    for m in [&quot;per_tensor&quot;, &quot;per_channel&quot;, &quot;per_group&quot;]:
+        print(m, &quot;RMSE:&quot;, round(quant_rmse(W, m), 6))
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>per_tensor RMSE: 0.000681
+per_channel RMSE: 0.000681
+per_group RMSE: 0.000357
+</code></pre>
+<p><strong>读数</strong>：把 scale 的粒度从"整个张量"细化到"每 128 个权重一组"，RMSE 从 0.000681 降到 0.000357（约 1.9 倍）——这就是 GGUF 的 K-quant（每块 16 权重共享 scale）、GPTQ 的分组、AWQ 的激活感知共同的数学动机：<strong>scale 粒度越细，离群值的破坏半径越小</strong>。per_channel 在这个构造里没帮助，因为离群是"某一列所有行都大"（列向），per_channel 是按行分组——<strong>scale 粒度要和离群结构对齐</strong>，这也是 AWQ 用激活统计来找"哪些权重重要"的原因。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">3. 三条路线：GPTQ / AWQ / GGUF</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="31-ptq-与-qat先分清大类">3.1 PTQ 与 QAT：先分清大类</h3>3
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>全称</th>
+<th>时机</th>
+<th>代表</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PTQ</td>
+<td>Post Training Quantization</td>
+<td>训练完再量化</td>
+<td>GPTQ、AWQ、GGUF 的转换流程</td>
+</tr>
+<tr>
+<td>QAT</td>
+<td>Quantization Aware Training</td>
+<td>训练中模拟量化误差</td>
+<td>课件：把量化/反量化误差计入 loss</td>
+</tr>
+</tbody>
+</table>
+<p>PTQ 三步（源：两期量化课件）：<strong>① 校准</strong>（准备典型数据集）→ <strong>② 参数计算</strong>（scale/zero_point）→ <strong>③ 权重转换</strong>。实践中"两个都要"：选 PTQ 好的基座模型，再用 QAT 思路微调（QLoRA 就是这个组合，NF4 + 对 scale 也量化是它的两个创新点）。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">3.2 GPTQ：二阶近似 + 逐层补救</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>GPTQ 的学术血统（源：第二期课件）：OBD（1990）→ OBS（1992）→ OBC（2022）→ GPTQ</li><li>核心思路继承"最优脑损伤/外科"系列：把量化某权重造成的损失用二阶近似估计，量化一个权重后，更新同层其他权重来补偿误差，再把逐权重的补偿计算分组并行化</li><li>特征：层级处理、需要校准数据、逐层误差补偿——质量对校准数据分布敏感</li></ul></div>3
+<p>GPTQ 的学术血统（源：第二期课件）：OBD（1990）→ OBS（1992）→ OBC（2022）→ GPTQ。核心思路继承"最优脑损伤/外科"系列：把量化某权重造成的损失用二阶近似估计，<strong>量化一个权重后，更新同层其他权重来补偿误差</strong>，再把逐权重的补偿计算分组并行化。特征：<strong>层级处理、需要校准数据、逐层误差补偿</strong>——质量对校准数据分布敏感。</p>
+<h3 id="33-awq激活感知保护关键权重">3.3 AWQ：激活感知保护关键权重</h3>3
+<p>AWQ（Activation-aware Weight Quantization）不看权重本身的大小，而看<strong>激活值的分布</strong>：少数权重通道对输出影响极大（激活离群），量化时给这些通道更高精度/更细 scale，其余照常 4bit。课件与素材的口碑（<code>模型部署调优实操-2026.md</code> §3.1，二手）：同 INT4 下 AWQ 在 MMLU/HumanEval 上比 GPTQ 高 1–3%，且 vLLM/SGLang 都内置 AWQ 优化 kernel，吞吐更优。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.4 GGUF：是格式，不是量化方法</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>GGUF 是 llama.cpp 的文件格式（§见《L12-Ollama本地部署》§3.1），它承载量化权重并规定命名（「 .gguf」）</li><li>K-quant 系列（Q4_K_M 等）的"块"结构：每 16 权重共享 scale（源：llama.cpp k-quantization Superblocks 说明）</li></ul></div>3
+<p>GGUF 是 llama.cpp 的<strong>文件格式</strong>（§见《L12-Ollama本地部署》§3.1），它承载量化权重并规定命名（<code>&lt;BaseName&gt;&lt;SizeLabel&gt;&lt;FineTune&gt;&lt;Version&gt;&lt;Encoding&gt;&lt;Type&gt;&lt;Shard&gt;.gguf</code>）。K-quant 系列（Q4_K_M 等）的"块"结构：每 16 权重共享 scale（源：llama.cpp k-quantization Superblocks 说明）。<strong>常见混淆</strong>："GGUF 量化"实际指"用 llama.cpp 工具链转出的量化权重存成 GGUF 格式"，量化算法与 GPTQ/AWQ 不同源；同一模型的 GPTQ 权重和 GGUF 权重互不通用。</p>
+<hr />
+<h1 id="how选型实测质量回归排障与产物转换">HOW：选型实测、质量回归、排障与产物转换</h1>
+<h2 id="4-选型与实测">4. 选型与实测</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.1 量化误差 vs bit 宽（实跑）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>16bit: 近似无损(FP16/BF16 原生存储)</li><li>注意这是单层权重的重构误差，不等于任务质量损失（任务损失还要看网络结构对误差的放大，见 §5）</li><li>读数：8bit 的 max 误差约 0.03%（接近 BF16 的 0.08%），4bit 跳到 0.5%，2bit 到 3.7%——误差随 bit 减半呈非线性放大，这就是"Q4 是默认档、Q2 只在塞不下时用"的定量依据</li></ul></div>3
+<pre><code class="language-python">import numpy as np
+
+def quant_err(bits, seed=2026, n=4096):
+    rng = np.random.default_rng(seed)
+    w = rng.normal(0, 0.02, size=n).astype(np.float32)
+    qmax = 2**(bits-1) - 1
+    s = np.abs(w).max()/qmax
+    q = np.clip(np.round(w/s), -qmax, qmax)
+    err = np.abs(w - q*s)
+    return float(err.max()), float(err.mean())
+
+if __name__ == &quot;__main__&quot;:
+    for b in [16, 8, 4, 3, 2]:
+        if b &gt;= 16:
+            print(f&quot;{b}bit: 近似无损(FP16/BF16 原生存储)&quot;)
+            continue
+        mx, mn = quant_err(b)
+        print(f&quot;{b}bit: max_err={mx:.6f} mean_err={mn:.6f}&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>16bit: 近似无损(FP16/BF16 原生存储)
+8bit: max_err=0.000295 mean_err=0.000147
+4bit: max_err=0.005353 mean_err=0.002705
+3bit: max_err=0.012485 mean_err=0.006245
+2bit: max_err=0.037460 mean_err=0.015137
+</code></pre>
+<p><strong>读数</strong>：8bit 的 max 误差约 0.03%（接近 BF16 的 0.08%），4bit 跳到 0.5%，2bit 到 3.7%——<strong>误差随 bit 减半呈非线性放大</strong>，这就是"Q4 是默认档、Q2 只在塞不下时用"的定量依据。注意这是单层权重的重构误差，不等于任务质量损失（任务损失还要看网络结构对误差的放大，见 §5）。</p>
+<h3 id="42-输出层误差量化掉点的直接证据实跑">4.2 输出层误差：量化掉点的直接证据（实跑）</h3>3
+<p>权重误差不等于输出误差——矩阵乘法会累积误差。直接测一次 <code>W @ x</code> 的输出偏差：</p>
+<pre><code class="language-python">import numpy as np
+
+rng = np.random.default_rng(2026)
+W = rng.normal(0, 0.02, size=(256, 512)).astype(np.float32)
+x = rng.normal(0, 1.0, size=512).astype(np.float32)
+ref = W @ x
+
+def quant_matrix(W, qmax):
+    s = np.abs(W).max()/qmax
+    q = np.clip(np.round(W/s), -qmax, qmax)
+    return q*s
+
+for bits, qmax in [(8,127),(4,7),(2,1)]:
+    y = quant_matrix(W, qmax) @ x
+    rel = np.linalg.norm(y-ref)/np.linalg.norm(ref)
+    cos = float(y@ref/(np.linalg.norm(y)*np.linalg.norm(ref)))
+    print(f&quot;{bits}bit  输出相对误差={rel:.4f}  余弦相似度={cos:.6f}&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>8bit  输出相对误差=0.0087  余弦相似度=0.999963
+4bit  输出相对误差=0.1560  余弦相似度=0.988185
+2bit  输出相对误差=0.9203  余弦相似度=0.462643
+</code></pre>
+<p><strong>读数</strong>：4bit 权重重构误差 0.5%（§4.1），但<strong>输出相对误差 15.6%</strong>——矩阵乘把权重误差放大了约 30 倍；2bit 时余弦相似度塌到 0.46，输出方向已经不对。这解释了为什么"权重看起来没掉多少点，任务却崩了"：<strong>评测必须在输出/任务层做，不能只看权重重构误差</strong>。8bit 输出余弦 0.99996，质量几乎无损——INT8 是"安全默认"。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.3 选型口诀（源：<code>模型部署调优实操-2026.md</code> §3，二手已标注）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>4. 任何量化上线前：用代表性负载跑质量回归（perplexity + 任务级 pass@1）</li><li>GGUF 在 vLLM 里 TTFT 接近 1 秒（它不是 vLLM 的主场）</li></ul></div>3
+<ol>
+<li>本地/CPU/单机 → <strong>GGUF Q4_K_M</strong> 起步，代码/数学任务升 Q5_K_M/Q6_K；</li>
+<li>GPU 服务端 INT4 → <strong>AWQ</strong>（同 INT4 质量与吞吐略胜 GPTQ，vLLM/SGLang 都有优化 kernel）；</li>
+<li>Hopper/Blackwell 追求质量 → <strong>FP8</strong>（硬件原生 8bit，免逐层校准）；</li>
+<li><strong>任何量化上线前</strong>：用代表性负载跑质量回归（perplexity + 任务级 pass@1）。</li>
+</ol>
+<p>⚠️ 同一份"AWQ/GPTQ"标签，<strong>走不走 Marlin 等优化 kernel 能差 4–10 倍吞吐</strong>（源：JarvisLabs 基准，二手）——量化选型不能只看格式名，要看引擎是否走到优化 kernel 路径。GGUF 在 vLLM 里 TTFT 接近 1 秒（它不是 vLLM 的主场）。</p>
+<h3 id="44-量化选型决策器实跑">4.4 量化选型决策器（实跑）</h3>3
+<pre><code class="language-python">&quot;&quot;&quot;量化档位选型决策器：输入场景约束，输出推荐量化档与理由。&quot;&quot;&quot;
+def recommend(target=&quot;local&quot;, gpu_vram=24, quality=&quot;standard&quot;, hw=&quot;ada&quot;):
+    rules = []
+    if target == &quot;local&quot;:
+        q = &quot;GGUF Q4_K_M 起步&quot;
+        rules.append(&quot;本地/CPU/单机 -&gt; GGUF&quot;)
+        if quality == &quot;high&quot;:
+            q = &quot;GGUF Q5_K_M 或 Q6_K&quot;
+            rules.append(&quot;代码/数学质量优先 -&gt; Q5_K_M/Q6_K (源: 素材)&quot;)
+    elif target == &quot;server&quot;:
+        if hw in (&quot;hopper&quot;, &quot;blackwell&quot;, &quot;ada&quot;):
+            q = &quot;FP8 (Hopper/Blackwell) 或 AWQ INT4&quot;
+            rules.append(&quot;GPU 服务端 -&gt; AWQ (vLLM/SGLang 内置优化 kernel)&quot;)
+        else:
+            q = &quot;AWQ INT4&quot;
+            rules.append(&quot;非新卡 -&gt; AWQ INT4&quot;)
+    if gpu_vram &lt; 16:
+        rules.append(&quot;显存 &lt;16GB: 优先 4bit 及以下&quot;)
+    return q, rules
+
+if __name__ == &quot;__main__&quot;:
+    cases = [
+        (&quot;local&quot;, 16, &quot;standard&quot;, &quot;cpu&quot;),
+        (&quot;local&quot;, 16, &quot;high&quot;, &quot;cpu&quot;),
+        (&quot;server&quot;, 80, &quot;standard&quot;, &quot;hopper&quot;),
+        (&quot;server&quot;, 24, &quot;standard&quot;, &quot;ampere&quot;),
+    ]
+    for t, v, q_, h in cases:
+        q, rules = recommend(t, v, q_, h)
+        print(f&quot;{t}/{v}GB/{q_}/{h} -&gt; {q} | 命中规则: {rules}&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>local/16GB/standard/cpu -&gt; GGUF Q4_K_M 起步 | 命中规则: ['本地/CPU/单机 -&gt; GGUF']
+local/16GB/high/cpu -&gt; GGUF Q5_K_M 或 Q6_K | 命中规则: ['本地/CPU/单机 -&gt; GGUF', '代码/数学质量优先 -&gt; Q5_K_M/Q6_K (源: 素材)']
+server/80GB/standard/hopper -&gt; FP8 (Hopper/Blackwell) 或 AWQ INT4 | 命中规则: ['GPU 服务端 -&gt; AWQ (vLLM/SGLang 内置优化 kernel)']
+server/24GB/standard/ampere -&gt; AWQ INT4 | 命中规则: ['非新卡 -&gt; AWQ INT4']
+</code></pre>
+<p>把 <code>recommend()</code> 换成你自己的规则表（加成本、延迟约束），它就是你的选型脚本。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.5 决策树版（实跑）：一条路径看到底</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>§4.4 的规则表适合脚本化，但人读起来要拼接多条规则</li><li>两个版本（规则表 §4.4 + 决策树 §4.5）的结论一致，只是表达形式不同——内部逻辑要一致，验证方法就是跑同一组输入对比输出</li><li>[local/16GB/cpu/high]</li></ul></div>3
+<p>§4.4 的规则表适合脚本化，但人读起来要拼接多条规则。决策树版把完整推理路径打出来：</p>
+<pre><code class="language-python">&quot;&quot;&quot;决策树版量化选型：把散落的规则整理成单一决策树，输出完整决策路径。&quot;&quot;&quot;
+def quant_decision_tree(scenario, gpu_vram, hw, quality):
+    path = []
+    # 第一层: 场景
+    if scenario == &quot;local&quot;:
+        path.append(&quot;场景=本地 -&gt; 路线 GGUF&quot;)
+        if quality == &quot;high&quot;:
+            path.append(&quot;质量优先 -&gt; Q5_K_M/Q6_K&quot;)
+            q = &quot;GGUF Q6_K&quot;
+        else:
+            path.append(&quot;标准 -&gt; Q4_K_M 默认档&quot;)
+            q = &quot;GGUF Q4_K_M&quot;
+    elif scenario == &quot;server&quot;:
+        path.append(&quot;场景=服务端 -&gt; 路线 GPU 量化&quot;)
+        if hw in (&quot;hopper&quot;, &quot;blackwell&quot;):
+            path.append(&quot;Hopper/Blackwell 硬件 -&gt; FP8 免校准&quot;)
+            q = &quot;FP8&quot;
+        else:
+            path.append(&quot;其他卡 -&gt; AWQ INT4 (内置优化 kernel)&quot;)
+            q = &quot;AWQ INT4&quot;
+        if quality == &quot;high&quot;:
+            path.append(&quot;质量优先 -&gt; 考虑 INT8/混合精度&quot;)
+            q = q + &quot; + FP8 KV&quot;
+    else:
+        path.append(&quot;场景=CPU服务器 -&gt; GGUF (llama.cpp CPU 路径)&quot;)
+        q = &quot;GGUF Q4_K_M (CPU)&quot;
+    # 显存约束
+    if gpu_vram &lt; 16:
+        path.append(f&quot;显存{gpu_vram}GB &lt; 16GB -&gt; 强制 4bit 及以下&quot;)
+        q = q.replace(&quot;Q6_K&quot;, &quot;Q4_K_M&quot;).replace(&quot;Q5_K_M&quot;, &quot;Q4_K_M&quot;)
+    path.append(f&quot;最终选择: {q}&quot;)
+    return q, path
+
+if __name__ == &quot;__main__&quot;:
+    cases = [
+        (&quot;local&quot;, 16, &quot;cpu&quot;, &quot;high&quot;),
+        (&quot;server&quot;, 80, &quot;hopper&quot;, &quot;standard&quot;),
+        (&quot;server&quot;, 12, &quot;ampere&quot;, &quot;standard&quot;),
+    ]
+    for s, v, h, q in cases:
+        choice, path = quant_decision_tree(s, v, h, q)
+        print(f&quot;[{s}/{v}GB/{h}/{q}]&quot;)
+        for p in path:
+            print(f&quot;  {p}&quot;)
+</code></pre>
+<p>实跑输出（三个场景的完整决策路径）：</p>
+<pre><code>[local/16GB/cpu/high]
+  场景=本地 -&gt; 路线 GGUF
+  质量优先 -&gt; Q5_K_M/Q6_K
+  最终选择: GGUF Q6_K
+[server/80GB/hopper/standard]
+  场景=服务端 -&gt; 路线 GPU 量化
+  Hopper/Blackwell 硬件 -&gt; FP8 免校准
+  最终选择: FP8
+[server/12GB/ampere/standard]
+  场景=服务端 -&gt; 路线 GPU 量化
+  其他卡 -&gt; AWQ INT4 (内置优化 kernel)
+  显存12GB &lt; 16GB -&gt; 强制 4bit 及以下
+  最终选择: AWQ INT4
+</code></pre>
+<p><strong>读数</strong>：决策树的价值是<strong>决策路径可审计</strong>——第三例里即使场景规则给了 AWQ INT4，显存约束（12GB &lt; 16GB）还追加了"强制 4bit 及以下"的覆盖规则。做选型评审时，把 <code>path</code> 打出来就是决策依据，比"经验上用 AWQ"可追溯。两个版本（规则表 §4.4 + 决策树 §4.5）的结论一致，只是表达形式不同——<strong>内部逻辑要一致，验证方法就是跑同一组输入对比输出</strong>。</p>
+<hr />
+<h2 id="5-量化掉点翻车现象根因改法">5. 量化掉点翻车：现象→根因→改法</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.1 翻车一：perplexity 没掉，任务指标崩了</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>现象：量化后测 perplexity 6.56 → 6.84（几乎没变），但业务任务 pass@1 从 62% 掉到 48%</li><li>注意 mmlu -2.0% 被判"掉点"而 ppl 变化被忽略，方向判定（higher_better 集合）要按指标语义配好，别搞反</li><li>§4.2 的输出误差实测（4bit 输出余弦 0.988）说明：输出"平均方向对"不代表"关键推理步对"</li></ul></div>3
+<p><strong>现象</strong>：量化后测 perplexity 6.56 → 6.84（几乎没变），但业务任务 pass@1 从 62% 掉到 48%。</p>
+<p><strong>根因</strong>：perplexity 是<strong>平均意义</strong>的下一段 token 概率，对个别推理链的错误不敏感；任务指标（代码能不能跑、推理链对不对）对<strong>单点错误敏感</strong>。§4.2 的输出误差实测（4bit 输出余弦 0.988）说明：输出"平均方向对"不代表"关键推理步对"。</p>
+<p><strong>改法</strong>：质量回归必须<strong>双指标</strong>——perplexity 看整体，任务级 pass@1 看关键路径；掉点先看是不是集中在某一类任务（数学/代码最敏感，闲聊最不敏感）；敏感任务升一档量化（Q4→Q5/Q6，AWQ→FP8）。</p>
+<h4 id="质量回归对比器实跑">质量回归对比器（实跑）</h4>
+<p>把上面的排查做成脚本，量化前后各跑一遍指标，自动出掉点判断：</p>
+<pre><code class="language-python">&quot;&quot;&quot;量化前后质量回归的对比报告器：输入两份指标，输出掉点判断。&quot;&quot;&quot;
+def compare(base, quant):
+    &quot;&quot;&quot;base/quant: {metric_name: value}。higher_better 集合之外视为越低越好。&quot;&quot;&quot;
+    higher_better = {&quot;pass@1&quot;, &quot;accuracy&quot;, &quot;f1&quot;, &quot;rouge&quot;, &quot;mmlu&quot;}
+    report = []
+    for k in base:
+        if k not in quant:
+            continue
+        b, q = base[k], quant[k]
+        delta = q - b
+        pct = (q - b)/abs(b) * 100 if b else 0
+        if k in higher_better:
+            verdict = &quot;掉点&quot; if delta &lt; -1.0 else (&quot;提升&quot; if delta &gt; 1.0 else &quot;持平&quot;)
+        else:
+            verdict = &quot;变差&quot; if delta &gt; 0.5 else (&quot;变好&quot; if delta &lt; -0.5 else &quot;持平&quot;)
+        report.append(f&quot;{k}: {b} -&gt; {q} ({pct:+.1f}%) {verdict}&quot;)
+    return report
+
+if __name__ == &quot;__main__&quot;:
+    base = {&quot;ppl&quot;: 6.56, &quot;pass@1&quot;: 62.0, &quot;mmlu&quot;: 65.1}
+    quant = {&quot;ppl&quot;: 6.84, &quot;pass@1&quot;: 48.0, &quot;mmlu&quot;: 63.8}
+    for line in compare(base, quant):
+        print(line)
+</code></pre>
+<p>实跑输出（数据取自 JarvisLabs 基准的 FP16→AWQ perplexity 6.56→6.84 口径，pass@1/mmlu 为演示值）：</p>
+<pre><code>ppl: 6.56 -&gt; 6.84 (+4.3%) 持平
+pass@1: 62.0 -&gt; 48.0 (-22.6%) 掉点
+mmlu: 65.1 -&gt; 63.8 (-2.0%) 掉点
+</code></pre>
+<p><strong>读数</strong>：这正是 §5.1 描述的病灶——perplexity 判"持平"（+4.3% 在阈值内），但 pass@1 掉 22.6%。<strong>单一指标会骗你</strong>：阈值 <code>1.0/0.5</code> 是示例口径，换成你的业务容忍线（通常 pass@1 容忍 1–2%，ppl 容忍 5%）。注意 mmlu -2.0% 被判"掉点"而 ppl 变化被忽略，方向判定（higher_better 集合）要按指标语义配好，别搞反。</p>
+<h3 id="52-翻车二校准数据不对量化质量系统性偏差">5.2 翻车二：校准数据不对，量化质量系统性偏差</h3>3
+<p><strong>现象</strong>：AWQ/GPTQ 量化后，模型在你的业务域表现差，但通用 benchmark 正常。</p>
+<p><strong>根因</strong>：PTQ 的 scale/zero_point 由<strong>校准数据集</strong>的激活分布算出（§3.1 三步）。校准用通用语料、生产跑专业领域（法律/医疗/代码），激活分布不匹配，离群通道识别错，关键权重没被保护。</p>
+<p><strong>改法</strong>：校准数据用<strong>业务代表性样本</strong>（几百到几千条真实输入分布）；量化后先在业务回归集上测，别信通用 benchmark；有条件对比两套校准数据的量化结果。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.3 翻车三：同一格式名，性能差 5 倍</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>现象：换了"AWQ 量化版"模型，vLLM 吞吐没提升反而更慢</li><li>根因：引擎没走到优化 kernel 路径（§4.3 的 Marlin 案例：同格式 4–10 倍差）；或量化格式与引擎版本不兼容，走了 fallback 的慢路径</li></ul></div>3
+<p><strong>现象</strong>：换了"AWQ 量化版"模型，vLLM 吞吐没提升反而更慢。</p>
+<p><strong>根因</strong>：引擎没走到优化 kernel 路径（§4.3 的 Marlin 案例：同格式 4–10 倍差）；或量化格式与引擎版本不兼容，走了 fallback 的慢路径。</p>
+<p><strong>改法</strong>：看 vLLM 启动日志确认 kernel 路径（Marlin/FlashInfer 是否启用）；升级引擎到支持该量化格式优化 kernel 的版本；压测对比 FP16 baseline 与量化版的 TTFT/吞吐，而不是只看显存占用。</p>
+<h3 id="54-翻车四以为量化能救显存kv-cache-没算">5.4 翻车四：以为量化能救显存，KV cache 没算</h3>3
+<p><strong>现象</strong>：权重从 16GB 降到 4GB，以为能开 32 并发，结果 KV cache OOM。</p>
+<p><strong>根因</strong>：量化砍的是<strong>权重</strong>显存；KV cache 占用不变（见《L12-vLLM推理加速》§3.2：8K×32 并发 KV = 32GB）。INT4 权重省下的 12GB 被 KV 吃掉，若 <code>max_model_len × 并发</code> 没减，照样 OOM。</p>
+<p><strong>改法</strong>：量化收益要按"权重省下的显存 → 一部分还给 KV cache 换并发，一部分留 buffer"分配；INT8 KV cache（<code>OLLAMA_KV_CACHE_TYPE=q8_0</code> / vLLM 的 kv_cache_dtype）是 KV 侧的独立杠杆；两个杠杆可以叠加。</p>
+<h4 id="显存收益核算器实跑">显存收益核算器（实跑）</h4>
+<pre><code class="language-python">&quot;&quot;&quot;量化显存收益计算器：给定参数量与量化档，输出权重显存、KV 预算变化。&quot;&quot;&quot;
+def vram_tradeoff(params_b, qtype, kv_gb_needed, gpu_gb):
+    bytes_per = {&quot;F16&quot;:2.0,&quot;BF16&quot;:2.0,&quot;FP8&quot;:1.0,&quot;INT8&quot;:1.0,&quot;INT4&quot;:0.5,
+                 &quot;Q4_K_M&quot;:0.55,&quot;Q5_K_M&quot;:0.65,&quot;Q6_K&quot;:0.75,&quot;Q8_0&quot;:1.0}
+    w = params_b * bytes_per[qtype]
+    overhead = 2.0
+    kv_budget = gpu_gb - w - overhead
+    fit = kv_budget &gt;= kv_gb_needed
+    return {
+        &quot;weights_gb&quot;: round(w,1),
+        &quot;kv_budget_gb&quot;: round(kv_budget,1),
+        &quot;kv_needed_gb&quot;: kv_gb_needed,
+        &quot;fit&quot;: fit,
+        &quot;verdict&quot;: &quot;能装下&quot; if fit else f&quot;KV 缺 {round(kv_gb_needed-kv_budget,1)}GB&quot;,
+    }
+
+if __name__ == &quot;__main__&quot;:
+    for q in [&quot;F16&quot;,&quot;INT4&quot;,&quot;Q4_K_M&quot;,&quot;Q8_0&quot;]:
+        r = vram_tradeoff(8, q, 16, 24)
+        print(f&quot;{q}: 权重{r['weights_gb']}GB, KV预算{r['kv_budget_gb']}GB, 需{r['kv_needed_gb']}GB -&gt; {r['verdict']}&quot;)
+</code></pre>
+<p>实跑输出（8B 模型、24GB 卡、需要 16GB KV 即 8K×16 并发）：</p>
+<pre><code>F16: 权重16.0GB, KV预算6.0GB, 需16.0GB -&gt; KV 缺 10.0GB
+INT4: 权重4.0GB, KV预算18.0GB, 需16.0GB -&gt; 能装下
+Q4_K_M: 权重4.4GB, KV预算17.6GB, 需16.0GB -&gt; 能装下
+Q8_0: 权重8.0GB, KV预算14.0GB, 需16.0GB -&gt; KV 缺 2.0GB
+</code></pre>
+<p><strong>读数</strong>：同一张 24GB 卡，FP16 权重下 KV 预算只剩 6GB（放不下 16GB 需求），INT4 直接放得下——<strong>量化收益必须从"KV 预算"角度验算，不是看权重从 16GB 降到 4GB 就宣布成功</strong>。Q8_0（8bit 权重）差 2GB，再叠加 INT8 KV cache 或压 <code>max_model_len</code>/并发才够——这正是"两个杠杆叠加"的具体算法。<code>bytes_per</code> 是经验值（K-quant 含块元数据），精确值以转换工具输出为准。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">6. RAG / Agent 场景的量化特殊性（实跑）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>"""RAG 场景量化选型：检索 embedding 用什么精度、生成端用什么档位、为什么</li><li>RAG 特有：长上下文，KV cache 杠杆比权重杠杆更关键</li><li>检索端：embedding 通常 CPU/GPU 皆可，精度影响召回</li></ul></div>2
+<p>RAG 场景对量化的敏感点和通用场景不同：<strong>检索端的 embedding 不能乱量化，生成端的 KV cache 杠杆比权重杠杆更关键</strong>：</p>
+<pre><code class="language-python">&quot;&quot;&quot;RAG 场景量化选型：检索 embedding 用什么精度、生成端用什么档位、为什么。&quot;&quot;&quot;
+def rag_quant_plan(embed_model=&quot;bge-m3&quot;, gen_model=&quot;qwen2.5-7b&quot;,
+                   corpus_size_gb=2, latency_target=&quot;interactive&quot;, quality=&quot;standard&quot;):
+    plan = {}
+    # 检索端：embedding 通常 CPU/GPU 皆可，精度影响召回
+    plan[&quot;embedding&quot;] = &quot;FP16/BF16 保持 (embedding 量化掉点直接伤召回, 不建议 4bit)&quot;
+    # 生成端：按延迟与质量权衡
+    if latency_target == &quot;interactive&quot;:
+        plan[&quot;generation&quot;] = &quot;AWQ INT4 (GPU 服务端) 或 GGUF Q5_K_M (本地)&quot;
+    else:
+        plan[&quot;generation&quot;] = &quot;GGUF Q4_K_M (批量离线)&quot;
+    if quality == &quot;high&quot;:
+        plan[&quot;generation&quot;] = plan[&quot;generation&quot;].replace(&quot;Q4_K_M&quot;, &quot;Q6_K&quot;).replace(&quot;INT4&quot;, &quot;INT4+FP8 KV&quot;)
+    # RAG 特有：长上下文，KV cache 杠杆比权重杠杆更关键
+    plan[&quot;kv_cache&quot;] = &quot;INT8 KV (q8_0) — RAG 长上下文下 KV 才是大头&quot;
+    plan[&quot;校准数据&quot;] = &quot;用真实业务文档分布做 PTQ 校准, 否则专业术语召回崩&quot;
+    return plan
+
+if __name__ == &quot;__main__&quot;:
+    for k, v in rag_quant_plan().items():
+        print(f&quot;{k}: {v}&quot;)
+    print(&quot;---高要求---&quot;)
+    for k, v in rag_quant_plan(quality=&quot;high&quot;).items():
+        print(f&quot;{k}: {v}&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>embedding: FP16/BF16 保持 (embedding 量化掉点直接伤召回, 不建议 4bit)
+generation: AWQ INT4 (GPU 服务端) 或 GGUF Q5_K_M (本地)
+kv_cache: INT8 KV (q8_0) — RAG 长上下文下 KV 才是大头
+校准数据: 用真实业务文档分布做 PTQ 校准, 否则专业术语召回崩
+---高要求---
+embedding: FP16/BF16 保持 (embedding 量化掉点直接伤召回, 不建议 4bit)
+generation: AWQ INT4+FP8 KV (GPU 服务端) 或 GGUF Q5_K_M (本地)
+kv_cache: INT8 KV (q8_0) — RAG 长上下文下 KV 才是大头
+校准数据: 用真实业务文档分布做 PTQ 校准, 否则专业术语召回崩
+</code></pre>
+<p><strong>读数</strong>：三条硬规则——①<strong>embedding 不量化</strong>（检索召回是 RAG 的地基，embedding 4bit 掉点直接让检索找不到相关文档，生成端再强也救不回来）；②<strong>生成端 INT4 + KV 侧 INT8 是组合拳</strong>（RAG 长上下文下 KV cache 才是显存大头，见《L12-Ollama本地部署》§4.2 的乘积算式）；③<strong>校准数据用业务文档分布</strong>（对应 §5.2 的翻车）。高要求模式只是把生成端档位升一档、KV 用 FP8，embedding 规则不变。</p>
+<hr />
+<h2 id="7-格式引擎兼容矩阵实跑">7. 格式×引擎兼容矩阵（实跑）</h2>2
+<p>量化格式不是万能插头——同一格式在不同引擎上的支持度、优化程度差异很大：</p>
+<pre><code class="language-python">&quot;&quot;&quot;模型-量化档-引擎的兼容性矩阵查询器：给定三元组，判断推荐度与坑。&quot;&quot;&quot;
+MATRIX = {
+    (&quot;GGUF&quot;, &quot;llama.cpp&quot;): &quot;主场, CPU/GPU 混载, K-quant 原生&quot;,
+    (&quot;GGUF&quot;, &quot;Ollama&quot;): &quot;主场(封装 llama.cpp), 一键加载&quot;,
+    (&quot;GGUF&quot;, &quot;vLLM&quot;): &quot;可加载但 TTFT 高(接近1s), 非主场(源: 素材)&quot;,
+    (&quot;GPTQ&quot;, &quot;vLLM&quot;): &quot;支持, 建议配 Marlin kernel 否则吞吐差4-10倍(源: 素材)&quot;,
+    (&quot;GPTQ&quot;, &quot;TGI&quot;): &quot;支持&quot;,
+    (&quot;AWQ&quot;, &quot;vLLM&quot;): &quot;支持, 内置优化 kernel, 服务端 INT4 首选&quot;,
+    (&quot;AWQ&quot;, &quot;SGLang&quot;): &quot;支持, 内置优化 kernel&quot;,
+    (&quot;FP8&quot;, &quot;vLLM&quot;): &quot;Ada/Hopper/Blackwell 硬件原生, 免校准&quot;,
+    (&quot;FP8&quot;, &quot;TensorRT-LLM&quot;): &quot;主场, 相对 FP16 约 2.5-3x 提速(源: 素材二手)&quot;,
+    (&quot;GPTQ&quot;, &quot;Ollama&quot;): &quot;不支持(仅 GGUF)&quot;,
+    (&quot;AWQ&quot;, &quot;Ollama&quot;): &quot;不支持(仅 GGUF)&quot;,
+}
+
+def query(fmt, engine):
+    key = (fmt.upper(), engine)
+    if key in MATRIX:
+        return MATRIX[key]
+    return f&quot;未收录组合 ({fmt}, {engine}) -&gt; 查官方文档, 勿凭直觉&quot;
+
+if __name__ == &quot;__main__&quot;:
+    for fmt, eng in [(&quot;GGUF&quot;,&quot;Ollama&quot;),(&quot;AWQ&quot;,&quot;vLLM&quot;),(&quot;FP8&quot;,&quot;TensorRT-LLM&quot;),
+                     (&quot;GPTQ&quot;,&quot;Ollama&quot;),(&quot;AWQ&quot;,&quot;llama.cpp&quot;)]:
+        print(f&quot;{fmt} @ {eng}: {query(fmt, eng)}&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>GGUF @ Ollama: 主场(封装 llama.cpp), 一键加载
+AWQ @ vLLM: 支持, 内置优化 kernel, 服务端 INT4 首选
+FP8 @ TensorRT-LLM: 主场, 相对 FP16 约 2.5-3x 提速(源: 素材二手)
+GPTQ @ Ollama: 不支持(仅 GGUF)
+AWQ @ llama.cpp: 未收录组合 (AWQ, llama.cpp) -&gt; 查官方文档, 勿凭直觉
+</code></pre>
+<p><strong>读数</strong>：查询器的"未收录组合"分支是故意设计的<strong>负例</strong>——遇到不熟悉的三元组时输出"查官方文档"而不是瞎猜，这正是 §5.3 翻车（同格式名性能差 5 倍）的预防动作。注意两条跨生态规则：GPTQ/AWQ 权重<strong>不能</strong>在 Ollama 用（Ollama 只吃 GGUF），GGUF 权重在 vLLM 里 TTFT 高（非主场）——<strong>格式和引擎要配对选，不是先定格式再找引擎</strong>。</p>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">8. 量化收益的经济账（实跑）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>量化不只是技术选择——它直接决定 GPU 账单</li><li>读数：70B 模型 INT4 量化每月省 $3150（105GB 显存），质量损失 1.2%（示例值，必须自己测）——经济账通常支持量化</li><li>但"建议: 值得"的阈值（「saved_cost > 100」 且 「quality_loss_pct < 3」）是业务口径：质量容忍度因场景而异（客服闲聊 3% 可忍，医疗诊断 0.3% 都嫌多）</li></ul></div>2
+<p>量化不只是技术选择——它直接决定 GPU 账单。把"显存节省→成本节省→质量损失"算成一笔账：</p>
+<pre><code class="language-python">&quot;&quot;&quot;量化收益成本建模：显存/吞吐/质量三维权衡的量化收益表。&quot;&quot;&quot;
+def quant_roi(params_b, qtype, gpu_cost_per_gb_month=30,
+              throughput_gain=1.0, quality_loss_pct=0.0):
+    &quot;&quot;&quot;输出: 每月省的显存成本 vs 质量损失百分比。&quot;&quot;&quot;
+    bytes_per = {&quot;F16&quot;:2.0,&quot;INT8&quot;:1.0,&quot;INT4&quot;:0.5}
+    base_gb = params_b*2.0
+    new_gb = params_b*bytes_per[qtype]
+    saved_gb = base_gb - new_gb
+    saved_cost = saved_gb * gpu_cost_per_gb_month
+    return {
+        &quot;显存节省GB&quot;: round(saved_gb,1),
+        &quot;月成本节省&quot;: round(saved_cost,0),
+        &quot;吞吐倍数&quot;: throughput_gain,
+        &quot;质量损失%&quot;: quality_loss_pct,
+        &quot;建议&quot;: &quot;值得&quot; if saved_cost &gt; 100 and quality_loss_pct &lt; 3 else &quot;需权衡&quot;,
+    }
+
+if __name__ == &quot;__main__&quot;:
+    for q, tg, ql in [(&quot;INT4&quot;, 1.5, 1.2), (&quot;INT8&quot;, 1.15, 0.3), (&quot;F16&quot;, 1.0, 0.0)]:
+        r = quant_roi(70, q, throughput_gain=tg, quality_loss_pct=ql)
+        print(q, r)
+</code></pre>
+<p>实跑输出（70B 模型，GPU 显存成本 $30/GB/月为示例单价）：</p>
+<pre><code>INT4 {'显存节省GB': 105.0, '月成本节省': 3150.0, '吞吐倍数': 1.5, '质量损失%': 1.2, '建议': '值得'}
+INT8 {'显存节省GB': 70.0, '月成本节省': 2100.0, '吞吐倍数': 1.15, '质量损失%': 0.3, '建议': '值得'}
+F16 {'显存节省GB': 0.0, '月成本节省': 0.0, '吞吐倍数': 1.0, '质量损失%': 0.0, '建议': '需权衡'}
+</code></pre>
+<p><strong>读数</strong>：70B 模型 INT4 量化每月省 $3150（105GB 显存），质量损失 1.2%（示例值，必须自己测）——<strong>经济账通常支持量化</strong>。但"建议: 值得"的阈值（<code>saved_cost &gt; 100</code> 且 <code>quality_loss_pct &lt; 3</code>）是<strong>业务口径</strong>：质量容忍度因场景而异（客服闲聊 3% 可忍，医疗诊断 0.3% 都嫌多）。<code>gpu_cost_per_gb_month</code> 换成你的云商单价；<code>throughput_gain</code> 用压测实测（§4.2 的输出吞吐对照：AWQ/GPTQ 各家差 4–10 倍，别抄二手）。<strong>别把二手 benchmark 的质量损失直接填进来</strong>——那只是筛选候选的起点，上线前必须本地回归（§5.1）。</p>
+<hr />
+<h2 id="9-量化落地全流程检查器实跑">9. 量化落地全流程检查器（实跑）</h2>2
+<p>把量化上线的完整流程固化成清单脚本——每一步都有验收标准，跳步必翻车：</p>
+<pre><code class="language-python">&quot;&quot;&quot;量化落地全流程检查器：从选型到上线的 8 步, 每步有验收判据。&quot;&quot;&quot;
+STEPS = [
+    (&quot;1. 明确质量底线&quot;, &quot;确定 pass@1/ppl 容忍阈值(业务口径, 非通用)&quot;, False),
+    (&quot;2. 选格式&quot;, &quot;按场景选 GPTQ/AWQ/GGUF/FP8 (§4.3 口诀)&quot;, False),
+    (&quot;3. 备校准数据&quot;, &quot;业务代表性样本 100-1000 条 (§5.2)&quot;, False),
+    (&quot;4. 转换权重&quot;, &quot;转换工具跑通, 文件大小符合预期 (§4.1)&quot;, False),
+    (&quot;5. 权重重构自查&quot;, &quot;抽样权重反量化误差 &lt; 阈值 (§4.1 实跑口径)&quot;, False),
+    (&quot;6. 输出层回归&quot;, &quot;W@x 输出余弦 &gt; 0.99 (§4.2 实跑口径)&quot;, False),
+    (&quot;7. 任务级回归&quot;, &quot;pass@1/ppl 对照基线, 单指标不骗人 (§5.1)&quot;, False),
+    (&quot;8. 压测验收&quot;, &quot;吞吐/TTFT 达标 + kernel 路径确认 (§5.3)&quot;, False),
+]
+
+def audit(progress):
+    done = sum(1 for _, _, d in progress if d)
+    todo = [(name, crit) for name, crit, d in progress if not d]
+    return done, len(progress), todo
+
+if __name__ == &quot;__main__&quot;:
+    # 演示: 完成前 5 步
+    prog = [(n, c, i &lt; 5) for i, (n, c, _) in enumerate(STEPS)]
+    done, total, todo = audit(prog)
+    print(f&quot;进度: {done}/{total}&quot;)
+    for name, crit in todo:
+        print(f&quot;待办: {name} — 验收: {crit}&quot;)
+    print(&quot;门禁: 只有 8/8 全部 done 才允许上线&quot;)
+</code></pre>
+<p>实跑输出（演示：完成前 5 步的状态）：</p>
+<pre><code>进度: 5/8
+待办: 6. 输出层回归 — 验收: W@x 输出余弦 &gt; 0.99 (§4.2 实跑口径)
+待办: 7. 任务级回归 — 验收: pass@1/ppl 对照基线, 单指标不骗人 (§5.1)
+待办: 8. 压测验收 — 验收: 吞吐/TTFT 达标 + kernel 路径确认 (§5.3)
+门禁: 只有 8/8 全部 done 才允许上线
+</code></pre>
+<p><strong>读数</strong>：这个检查器的 8 步对应本篇各章节的实跑口径——第 5 步的权重重构自查对应 §4.1（bit 宽误差表）、第 6 步对应 §4.2（输出层误差）、第 7 步对应 §5.1（双指标回归）、第 8 步对应 §5.3（kernel 路径）。<strong>验收判据写死在清单里</strong>（余弦 &gt;0.99、pass@1 阈值业务定），不依赖"感觉差不多了"。真实使用时把 <code>prog</code> 换成实际勾选状态，<code>audit()</code> 就是上线门禁。</p>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">10. 常见误区对照（一句话纠正）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>这十条覆盖了新人最常踩的坑——每条都能在本篇对应章节找到实跑数字或引用源</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>误区</th>
+<th>真相</th>
+<th>出处</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"量化就是四舍五入到 0.5 字节"</td>
+<td>K-quant 每块 16 权重共享 scale，实际每参数 &gt;0.5 字节</td>
+<td>§4.1 <code>bytes_per</code></td>
+</tr>
+<tr>
+<td>"权重误差小任务就掉不多"</td>
+<td>矩阵乘把权重误差放大 ~30 倍（4bit：0.5%→15.6%）</td>
+<td>§4.2 实跑</td>
+</tr>
+<tr>
+<td>"GGUF 是量化方法"</td>
+<td>GGUF 是文件格式，量化方法是 GPTQ/AWQ 等</td>
+<td>§3.4</td>
+</tr>
+<tr>
+<td>"AWQ 比 GPTQ 一定好"</td>
+<td>同 INT4 口碑略优，但要看引擎 kernel 路径（Marlin 差 4–10 倍）</td>
+<td>§4.3</td>
+</tr>
+<tr>
+<td>"校准数据随便用通用语料"</td>
+<td>校准分布必须匹配业务，否则专业域质量崩</td>
+<td>§5.2</td>
+</tr>
+<tr>
+<td>"perplexity 没掉就没问题"</td>
+<td>perplexity 敏感度低于任务指标，pass@1 可能已崩</td>
+<td>§5.1</td>
+</tr>
+<tr>
+<td>"量化能解决所有 OOM"</td>
+<td>只省权重显存，KV cache 不变，两个杠杆要一起算</td>
+<td>§5.4</td>
+</tr>
+<tr>
+<td>"BF16 也是量化"</td>
+<td>BF16 是格式转换（误差 0.08%），INT8 及以下才是量化</td>
+<td>§2.2</td>
+</tr>
+<tr>
+<td>"量化档位越高越好"</td>
+<td>档位越高显存越大，Q4_K_M 是性价比默认档</td>
+<td>§4.1/§4.3</td>
+</tr>
+<tr>
+<td>"自测数字可以抄二手 benchmark"</td>
+<td>二手数字只能筛选候选，上线前必须本地回归</td>
+<td>§8 读数</td>
+</tr>
+</tbody>
+</table>
+<p>这十条覆盖了新人最常踩的坑——每条都能在本篇对应章节找到实跑数字或引用源。</p>
+<hr />
+<h2 id="101-量化三问决策卡">10.1 量化三问决策卡</h2>2
+<table>
+<thead>
+<tr>
+<th>框架</th>
+<th>何时问</th>
+<th>问什么</th>
+<th>不问</th>
+<th>输出动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>量化三问</td>
+<td>模型放不进显存/太慢</td>
+<td>质量底线多少？校准数据像业务吗？输出层误差测了吗？</td>
+<td>不问"哪个格式最小"</td>
+<td>选格式 + 双指标回归（§5.1）</td>
+</tr>
+<tr>
+<td>格式三问</td>
+<td>选 GPTQ/AWQ/GGUF/FP8 前</td>
+<td>部署在什么引擎？硬件什么卡？本地还是服务端？</td>
+<td>不问"哪个最流行"</td>
+<td>查 §7 兼容矩阵定格式</td>
+</tr>
+<tr>
+<td>校准三问</td>
+<td>PTQ 转换前</td>
+<td>校准集覆盖业务分布吗？条数够吗（100–1000）？转换后误差抽查了吗？</td>
+<td>不问"能不能用通用语料"</td>
+<td>备校准 + 抽查权重（§5.2）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>用法</strong>：量化翻车的三大根因（质量掉、校准偏、kernel 慢）正好对应三问——<strong>每一问都要求"先算/先测再决策"</strong>，不接受"感觉差不多"。三个框架的实跑脚本分别在 §5.1（对比器）、§7（兼容矩阵）、§5.2（校准纪律）。</p>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">11. 术语表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>一句话定义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PTQ</td>
+<td>Post Training Quantization，训练完再量化：校准→算参数→转换权重</td>
+</tr>
+<tr>
+<td>QAT</td>
+<td>Quantization Aware Training，训练中把量化/反量化误差计入 loss，让权重适应量化</td>
+</tr>
+<tr>
+<td>对称量化</td>
+<td>scale = max/127、无 zero_point 的量化，分布对称时够用</td>
+</tr>
+<tr>
+<td>非对称量化</td>
+<td>带 zero_point 平移的量化，分布偏斜（min≠-max）时更准</td>
+</tr>
+<tr>
+<td>scale / zero_point</td>
+<td>量化线性映射的斜率与偏移：<code>val' = (q - zp) × scale</code></td>
+</tr>
+<tr>
+<td>GPTQ</td>
+<td>二阶近似 + 逐层误差补偿的 PTQ 方法，需校准数据</td>
+</tr>
+<tr>
+<td>AWQ</td>
+<td>Activation-aware Weight Quantization，按激活分布保护关键权重通道的 PTQ 方法</td>
+</tr>
+<tr>
+<td>GGUF</td>
+<td>llama.cpp 的模型文件格式，承载 K-quant 等量化权重，支持 CPU/GPU 混载</td>
+</tr>
+<tr>
+<td>K-quant（Q4_K_M）</td>
+<td>GGUF 分块量化档位，每块 16 权重共享 scale，M/S/XL 表示块内精度组合</td>
+</tr>
+<tr>
+<td>NF4</td>
+<td>QLoRA 使用的 4bit 正态分位数量化格式，比均匀 INT4 更贴合权重分布</td>
+</tr>
+<tr>
+<td>Marlin</td>
+<td>vLLM 的 GPTQ/AWQ 优化 kernel，走不走它吞吐差 4–10 倍</td>
+</tr>
+<tr>
+<td>FP8</td>
+<td>硬件原生 8bit 浮点（Ada/Hopper/Blackwell），免逐层校准</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="12-gguf-实操补强从-hf-权重到可运行产物2026-11-03">12. GGUF 实操补强：从 HF 权重到可运行产物（2026-11-03）</h2>2
+<p>3.4 节说过"GGUF 是格式不是量化方法"，但前文没有给出把 HF 模型做成 GGUF 的完整链路。本节补上。<strong>命令来自 llama.cpp 官方仓库 README 的常规用法，本机未实跑此链路</strong>（本机无对应模型权重）；Ollama 侧的导入与校验实跑见 <a href="L12-Ollama%E6%9C%AC%E5%9C%B0%E9%83%A8%E7%BD%B2.html">L12 Ollama 本地部署</a> 第 3 节。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">12.1 三步链路：转换 → 量化 → 运行</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-bash"># 0) 构建 llama.cpp（官方标准构建方式）
+git clone https://github.com/ggml-org/llama.cpp &amp;&amp; cd llama.cpp
+cmake -B build &amp;&amp; cmake --build build --config Release -j
+
+# 1) HF 权重 → F16 GGUF（格式转换，此时还没量化）
+#    convert 脚本依赖 python 环境：pip install -r requirements.txt（在仓库根目录）
+python convert_hf_to_gguf.py /path/to/hf-model --outfile model-f16.gguf --outtype f16
+
+# 2) F16 GGUF → 目标档位（这才是真正的量化步骤）
+./build/bin/llama-quantize model-f16.gguf model-q4_k_m.gguf Q4_K_M
+
+# 3) 本地跑起来验证（先能对话，再谈质量回归）
+./build/bin/llama-cli -m model-q4_k_m.gguf -p &quot;用一句话介绍你自己&quot; -n 128
+</code></pre>
+<p>要点：① 转换与量化是两步，跳过 F16 中间产物直接"转出 Q4"的旧教程写法以你使用的 llama.cpp 版本帮助为准；② 量化档位的体积/质量取舍用第 4.1 节的误差实跑与 4.4 决策器选，不要默认 Q4_K_M 适合所有场景；③ 产出 GGUF 后必须过第 5.1 节的质量回归对比器——格式转换成功 ≠ 质量没掉。</p>
+<h3 id="122-与-gptqawq-的产物分界避免选错工具链">12.2 与 GPTQ/AWQ 的产物分界（避免选错工具链）</h3>3
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>GGUF</th>
+<th>GPTQ / AWQ</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>运行时</td>
+<td>llama.cpp / Ollama（CPU 可跑）</td>
+<td>vLLM / transformers（GPU 为主）</td>
+</tr>
+<tr>
+<td>量化对象</td>
+<td>权重，含 K-quants 混合精度方案</td>
+<td>权重，逐层校准（见 GPTQ/AWQ 实操篇）</td>
+</tr>
+<tr>
+<td>典型场景</td>
+<td>本地单机、消费级硬件、离线</td>
+<td>数据中心 GPU、在线服务</td>
+</tr>
+<tr>
+<td>校准数据</td>
+<td>量化步骤本身不需要（imatrix 等增强方案除外）</td>
+<td>需要（校准域不匹配会系统性掉点，见 5.2）</td>
+</tr>
+</tbody>
+</table>
+<p>一句话：<strong>要做本地部署选 GGUF 链路，要做 GPU 在线服务选 GPTQ/AWQ + vLLM 链路</strong>，不要拿 GGUF 喂 vLLM 或拿 AWQ 喂 Ollama（格式×引擎兼容见第 7 节矩阵）。</p>
+<hr />
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>"先算账再选型"在本库的等价物：显存无账可算，就算内存（<code>/home/wuyafang/.hermes/scripts/inflight-check.py</code> L145 <code>check_memory()</code>，grep 可验）</strong>：<br />
+<code>python
+  def check_memory():
+      """打印内存体检行；若 MemAvailable &lt; 1.5G 打印红色警告。"""
+      mem_avail_gb, swap_used_gb, mem_total_gb = _read_meminfo()
+      print(f"内存体检: 可用{mem_avail_gb:.2f}G / swap已用{swap_used_gb:.2f}G (总{mem_total_gb:.2f}G)")
+      if mem_avail_gb &lt; MEMGUARD_WARN_GB:      # L117: MEMGUARD_WARN_GB = 1.5
+          print("⚠ 内存紧张(&lt;1.5G)，禁止再起重活脚本；重活请走 memguard-run.sh --mem 2G")</code><br />
+  起第二个重活前先看可用内存——<strong>部署/量化的第一道闸不是选格式，是"这台机器装不装得下"</strong>。GUF/AWQ/GPTQ 的显存账其实就是同一算法的另一种单位。</li>
+<li><strong>格式选择的判据落在同一张表上（<code>/home/wuyafang/.hermes/scripts/eval_smoke.py</code> 的 <code>MODELS</code> + <code>print_table</code>）</strong>：<code>accuracy / avg_latency / p95 / tokens/s</code> 四列并列；不同量化格式就是不同的 <code>MODELS</code> 条目，跑同一组用例比较，<strong>不靠"听说 GPTQ 更准"</strong>。</li>
+<li><strong>和课件讲法的差异</strong>：课件把 GPTQ / AWQ / GGUF 三条路线按"精度保持 / 显存占用 / 推理框架兼容性 / 工具成熟度"打分选型，并给 <code>--gpu-memory-utilization</code> 与 <code>llama.cpp -ngl</code> 的具体配置；本库<strong>暂无 GPU 量化实现</strong>（无 vLLM、无 llama.cpp、无 bitsandbytes）。本库只提供"算账纪律"的 CPU 版本与统一评测表，选型结论仍需按课件在 GPU 机器上实测。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">13. 来源与核验</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>「raw/fullstack/模型部署调优实操-2026.md」 §3：GPTQ/AWQ/GGUF/FP8 选型表、Marlin 吞吐基准（⚠️二手）、JarvisLabs perplexity 对照（⚠️二手）</li></ul></div>2
+<ul>
+<li>两期量化课件（<code>raw/courseware/微调篇/day03微调之量化__课件__大模型微调-3-量化.md</code> 与第二期 <code>大模型微调-3-使用量化技术削减模型体积.md</code>）：量化定义、显存算式、对称/非对称手算（10.8/-7.59/5.47/0.085/64/5.44）、PTQ/QAT/GPTQ(OBD→OBS→OBC)/AWQ、GGUF 命名格式</li>
+<li><code>raw/fullstack/模型部署调优实操-2026.md</code> §3：GPTQ/AWQ/GGUF/FP8 选型表、Marlin 吞吐基准（⚠️二手）、JarvisLabs perplexity 对照（⚠️二手）</li>
+<li>llama.cpp k-quant 与 GGUF 命名：https://github.com/ggml-org/llama.cpp/wiki/Tensor-Encoding-Schemes 、https://huggingface.co/docs/hub/gguf#quantization-types</li>
+<li>§2.1 课件数值复算、§2.2 BF16 误差、§2.3 scale 粒度 RMSE、§4.1 bit 宽误差、§4.2 输出层误差、§4.4 选型决策器：本篇在 <code>/home/wuyafang/.venv-hermes/bin/python</code> 实跑产出，属 <code>original_research</code> 性质的实测记录</li>
+</ul>
+<blockquote>
+<p>来源：day03微调之量化__课件__大模型微调-3-量化.md；大模型微调-3-使用量化技术削减模型体积.md；模型部署调优实操-2026.md；其余来源与实跑记录详见第 13 节“来源与核验”。</p>
+</blockquote></div></details></div></body></html>

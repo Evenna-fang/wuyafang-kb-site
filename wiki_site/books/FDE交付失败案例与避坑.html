@@ -1,0 +1,137 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>FDE交付失败案例与避坑</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ FDE交付失败案例与避坑</span></div><div class="wrap"><h1 id="书章节重点-fde交付失败案例与避坑2026">书章节重点 · FDE交付失败案例与避坑（2026）</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>文档核心定位是"交付翻车复盘/踩坑对照"，建议打印"症状→根因→纠正"表挂在周报旁随时对照</li><li>文档最值得注意的诚实声明是：公开可查的、指名道姓的FDE客户交付翻车复盘极少——真实项目受NDA保护，公开渠道只有三类材料：①合成教学案例（VanGong1999/FDE明确标注"合成"）；②行业调研数据（Gartner/S&P/RAND，口径各异）；③自媒体/厂商复盘文</li><li>文档核心判断：AI项目失败不随机，高度集中在少数模式；排名第一的根因不是模型能力，而是业务领导层对问题理解/传达错误（RAND 2024年对65名资深数据科学家/工程师的根因访谈结论）</li></ul></div>2
+<p>这份文档是FDE交付翻车复盘的系统性汇编，入库于2026年9月30日，来源涵盖VanGong1999/FDE开源项目的《反模式与踩坑》《POC到生产》、腾讯云FDE复盘文、thinkingai.cn汇编的十大失败模式（含Gartner/S&amp;P Global/RAND/McKinsey/IBM等一手报告引用）、以及OpenFDE Agent v0.1博客。文档核心定位是"交付翻车复盘/踩坑对照"，建议打印"症状→根因→纠正"表挂在周报旁随时对照。</p>
+<p>文档最值得注意的诚实声明是：公开可查的、指名道姓的FDE客户交付翻车复盘极少——真实项目受NDA保护，公开渠道只有三类材料：①合成教学案例（VanGong1999/FDE明确标注"合成"）；②行业调研数据（Gartner/S&amp;P/RAND，口径各异）；③自媒体/厂商复盘文。文档明确"不编造真实客户故事"，每条标注来源与性质，避免虚构案例误导。这种诚实标注本身就是FDE专业素养的体现——不夸大、不编造、有溯源。</p>
+<p>文档核心判断：AI项目失败不随机，高度集中在少数模式；排名第一的根因不是模型能力，而是业务领导层对问题理解/传达错误（RAND 2024年对65名资深数据科学家/工程师的根因访谈结论）。行业数据共同指向：超过40%的agentic AI项目将在2027年底前被取消（Gartner 2025），42%企业放弃大部分AI项目（S&amp;P Global 2025），但只有39%企业报告AI对利润有可测影响（McKinsey 2025），仅25% CEO表示AI项目达成预期ROI（IBM 2025）。这些数据说明AI落地的"最后一公里"才是真正的战场——FDE的价值就在于帮客户从"88%在用AI但仅39%有可测利润影响"的鸿沟中跨过去。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">行业失败率数据（口径各异，勿混用）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Gartner (2025) 预测：超过40%的agentic AI项目将在2027年底前被取消，三大原因为成本攀升、业务价值不清、风控不足</li><li>这是预测值而非实测值，且专门针对agentic AI（而非所有AI项目），使用时需注意口径差异——不能把"agentic AI项目40%取消"等同于"所有AI项目40%失败"</li><li>这组数据的含义是：大量企业在"用AI"但没有"用出价值"——88%到39%之间的差距就是FDE要填的坑</li></ul></div>3
+<ul>
+<li>
+<p><strong>Gartner (2025) 预测</strong>：超过40%的agentic AI项目将在2027年底前被取消，三大原因为成本攀升、业务价值不清、风控不足。这是预测值而非实测值，且专门针对agentic AI（而非所有AI项目），使用时需注意口径差异——不能把"agentic AI项目40%取消"等同于"所有AI项目40%失败"。</p>
+</li>
+<li>
+<p><strong>S&amp;P Global (2025) 实测</strong>：对1,006名北美/欧洲IT+业务负责人调研发现，42%企业放弃大部分AI项目；企业平均46%的AI PoC在进生产前被砍掉。这是实测数据而非预测，比Gartner的预测值更保守、更接近真实。46%的PoC砍除率意味着——近一半的POC根本走不到生产阶段，这是FDE最大的时间浪费来源。</p>
+</li>
+<li>
+<p><strong>RAND (2024) 根因访谈</strong>：对65名资深数据科学家/工程师访谈得出，超过80%的AI项目失败率（IT项目失败率的两倍），排名第一的根因不是模型，而是业务领导层对问题的理解/传达错误。这个结论颠覆了"AI不行所以失败"的常见认知——大多数失败不是技术问题，而是需求问题。</p>
+</li>
+<li>
+<p><strong>McKinsey (2025) 企业实测</strong>：对1,993家组织调研发现，88%企业在用AI，但仅39%报告AI对利润有可测影响；IBM (2025) 对33国2,000名CEO调研仅25%表示AI项目达成预期ROI。这组数据的含义是：大量企业在"用AI"但没有"用出价值"——88%到39%之间的差距就是FDE要填的坑。</p>
+</li>
+<li>
+<p><strong>MIT NANDA (2025) 极端数据</strong>：约95%的GenAI试点对P&amp;L几乎无可测影响——但方法论有争议，OpenFDE原文注明"宜当信号看，不当定论"。这个数据虽然极端，但它与McKinsey的39%、IBM的25%方向一致：大部分AI试点没有可测的商业回报。</p>
+</li>
+<li>
+<p><strong>做对的一方数据</strong>：Gartner 2024年对822名业务负责人调研，早期采用者中超过40%实现收入提升15.8%、成本节约15.2%、生产力提升22.6%。这组数据说明：失败高度集中，但做对的少数确实拿到了可观回报——FDE的价值就在于帮客户进入"做对"的那一方，而不是在"用AI"但没价值的88%里打转。</p>
+</li>
+</ul>
+<h3 id="反模式症状根因纠正表">反模式「症状→根因→纠正」表</h3>3
+<ul>
+<li>
+<p><strong>问题定义类反模式</strong>：方案先行（一上来选模型/框架）→应先写问题陈述与指标；万能机器人（开放域什么都答）→应收窄任务与知识边界；指标漂移（每周重新定义成功）→应冻结试点指标；只听管理层（一线不用）→应强制一线访谈与旁听；忽视非目标（范围无限）→应书面列出非目标。这五类是项目启动阶段最容易犯的错，根因都是"跳过问题定义直接进入执行"——FDE与普通AI开发者的核心区别就是先花时间把问题想清楚再动手。</p>
+</li>
+<li>
+<p><strong>技术与AI类反模式</strong>：Demo驱动开发（只优化演示路径）→应建Eval集含困难例与安全例；无检索的"知识库"（幻觉当事实）→应RAG+强制引用+拒答；Agent无限工具（越权不可控）→应最小权限+HITL+允许列表；忽略成本（账单爆炸）→应预算+缓存+模型分级；微调崇拜（未试prompt/RAG就训）→应走决策树（先试prompt→再试RAG→最后才考虑微调）；日志裸奔（PII进第三方）→应脱敏+保留策略+私有部署评估；单次提示拼真相（复杂流程靠玄学）→应工作流拆分+校验器。</p>
+</li>
+<li>
+<p><strong>组织与交付类反模式</strong>：永久PoC（特例环境永远是笔记本）→门禁要目标环境；英雄交付（只有你会，你走就停）→应Runbook与配对；绕过安全（"先上再说"）→应早拉齐安全给选项；无客户owner（你走即停）→应RACI指定owner；会议代替进度（很忙无产物）→应时间盒产物；销售过度承诺（工程背锅）→应对外口径审批。</p>
+</li>
+<li>
+<p><strong>个人节奏类反模式</strong>：会议淹没（无深度工作块）→应日历上划护城河；隐藏风险（周报一片绿）→应风险早写早升级；完美主义（不上线）→应影子模式先上；工具迷（换框架不换指标）→应指标不动工具可换。这些个人反模式看似与项目无关，但实际上FDE的个人工作节奏直接影响交付质量——一个被会议淹没的FDE没有时间做深度思考，一个隐藏风险的FDE会让客户在生产环境才发现问题。</p>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">合成案例三则与POC→生产失败模式</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>案例A：全自动客服三周翻车：管理层看了竞品Demo，要求三周全自动，上线后出现错误退款建议</li><li>原文金句："每个黑客方案都会进生产"——最危险的一句话是"这只是临时的"，应按会跑18个月来交付</li><li>案例B：知识库"准确率90%"无法复现：汇报准确率来自10个精选问题</li></ul></div>3
+<ul>
+<li>
+<p><strong>案例A：全自动客服三周翻车</strong>：管理层看了竞品Demo，要求三周全自动，上线后出现错误退款建议。根因：无门禁、无HITL、无eval、范围=全量。纠正：回退到坐席助手、建立黄金集、错误升级人工、重新谈对外口径。这个案例的教训是"范围=全量"是致命的——AI在错误场景下比人工更危险，因为它不会犹豫、不会怀疑，会自信地给出错误答案。</p>
+</li>
+<li>
+<p><strong>案例B：知识库"准确率90%"无法复现</strong>：汇报准确率来自10个精选问题。根因：无固定测试集、训练/测试污染。纠正：冻结100条分层抽样集、分类型报表、展示失败案例。教训：用精选样本做评估等于自欺欺人——10个精选问题不代表真实使用场景，必须用分层抽样的真实query集（至少100条），并定期回归测试。</p>
+</li>
+<li>
+<p><strong>案例C：权限用超级账号</strong>：Pilot很快，但生产卡在安全审计。根因：文档级ACL未设计。纠正：检索层注入用户身份过滤、补审计、延期但可过审。教训：权限是Day 0必选项，不是二期——"先用管理员万能账号撑过Pilot"会让门禁2永远过不去。这个案例在FDE项目中极其常见，几乎每个企业级AI项目都会遇到权限问题。</p>
+</li>
+<li>
+<p><strong>POC→生产五种失败模式</strong>：Demo绑架（管理层要下周全员）→门禁书面化；永久PoC（环境永远是特例）→门禁1卡"目标环境"；无owner（你走了就停）→指定客户owner；指标漂移（不断改"什么叫成功"）→冻结试点指标；阴影IT（绕过安全）→早拉安全给替代方案。原文金句："每个黑客方案都会进生产"——最危险的一句话是"这只是临时的"，应按会跑18个月来交付。交付前自问：6个月后凌晨两点会不会因它被叫起来？这是为整个产品做对，还是只讨好这一家？我离开后交给谁？</p>
+</li>
+</ul>
+<h3 id="规划建设运营期十大失败模式">规划/建设/运营期十大失败模式</h3>3
+<ul>
+<li>
+<p><strong>规划期四模式</strong>：从技术出发而非业务问题（立项文档只有选型没有业务指标）→立项一页纸：业务问题/当前指标/目标值/业务owner；第一个场景贪大（"全公司级智能助手"评审三个月还在扩散）→价值×可行性筛：痛点单一、数据现成、6-8周可衡量；数据基础不足就开工（"看起来都对，一对账全对不上"）→先做数据准备度评估（采集/口径/权限）；缺业务owner（IT发起业务"配合调研"上线没人用）→指定用业务指标背责的owner。</p>
+</li>
+<li>
+<p><strong>建设期四模式</strong>：业务语义缺失（"活跃用户"和经营周报对不上）→统一语义层（指标定义/维度/术语）；只有PoC没生产化设计（没对接权限没算并发与token成本）→PoC立项即写生产准出标准；权限与安全后置（高权限公共账号直连核心库无审计）→身份/审批/审计是平台必选项不是二期；过早上多Agent（调度Agent带六个专职Agent联调时间超开发）→先单Agent单场景跑出结果再协作。</p>
+</li>
+<li>
+<p><strong>运营期两模式</strong>：无法衡量业务结果（汇报只有调用量和截图）→上线前记基线，A/B或前后对照归因；上线即终点（团队解散知识库停在上线那天）→badcase周回收、知识随业务更新、版本定期评估。配套自查：IBM《2025数据泄露成本报告》——63%被攻破组织无AI治理政策，AI安全事件组织中97%缺适当访问控制，20%因"影子AI"失守平均每次泄露多付67万美元。</p>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">本地真实案例教训与组织级陷阱</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>失败归因四层（腾讯云原文）：场景选错/施工问题（产品和工程没做好）/AI能力真不够（要求99%模型只稳85%硬上必翻）/组织没跟着系统变（责任还是他的"可以用AI但不敢信AI"）</li><li>"用户使用意愿不足"是结果不是原因——必须追到这四层之一</li><li>这四层归因框架的价值在于：当客户说"没人愿意用AI"时，不是简单怪用户保守，而是要深挖是场景选错了、施工没做好、AI能力不够、还是组织没变</li></ul></div>3
+<ul>
+<li>
+<p><strong>本地真实案例四条教训</strong>：①幻觉的根因80%在检索——AI错误回答"掉色能7天无理由退"，表面幻觉，根因是检索层没召回"质量问题15天"文档（标题不含"掉色"，dense对口语同义词不敏感），定位顺序应先查召回再怪模型，修复=hybrid检索+rerank；②边界即安全——真正交付的是"只答退货/物流/商品三类，其余转人工"，边界外硬编码转人工；③知识更新频率决定架构——高频变化（政策/库存/物流）选RAG，低频稳定知识才考虑微调；④评测集&gt;模型选型——500条真实query标注集每次改动回归跑一遍。</p>
+</li>
+<li>
+<p><strong>FDE特有的组织级陷阱</strong>：服务收入像毒品（不断卖更大定制咨询公司式FDE做砸）→权力中心在产品/研究，问"经常性价值vs一次性人工"；客户对FDE上瘾（撤人就被炒把你当顾问编制）→卖结果不卖"人在场"，明确轮换窗（有的用6周规则）；一人深度绑死单客户（注意力被需求淹没）→"摊薄"一人数客户制造正确激励；Token maxing（KPI=烧token）→改衡量可验证结果（工程小时、周期压缩、PR质量）。</p>
+</li>
+<li>
+<p><strong>失败归因四层</strong>（腾讯云原文）：场景选错/施工问题（产品和工程没做好）/AI能力真不够（要求99%模型只稳85%硬上必翻）/组织没跟着系统变（责任还是他的"可以用AI但不敢信AI"）。"用户使用意愿不足"是结果不是原因——必须追到这四层之一。这四层归因框架的价值在于：当客户说"没人愿意用AI"时，不是简单怪用户保守，而是要深挖是场景选错了、施工没做好、AI能力不够、还是组织没变。</p>
+</li>
+</ul>
+<h2 id="适用场景标签">适用场景标签</h2>2
+<ul>
+<li>FDE项目启动前避坑检查（十大失败模式对照表）</li>
+<li>反模式对照表（打印挂周报旁）</li>
+<li>POC→生产门禁设计（五种失败模式对应门禁）</li>
+<li>客户ROI论证参考（行业数据口径表）</li>
+<li>组织陷阱识别（服务收入像毒品等四个陷阱）</li>
+<li>失败归因框架（四层归因法）</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">一句话推荐</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>AI项目失败高度集中在少数可识别模式——排名第一的根因不是模型，而是业务领导层对问题理解错误；这是一份应该打印挂在工位旁的避坑对照表</li></ul></div>2
+<p>AI项目失败高度集中在少数可识别模式——排名第一的根因不是模型，而是业务领导层对问题理解错误；这是一份应该打印挂在工位旁的避坑对照表。</p></div></details></div></body></html>

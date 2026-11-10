@@ -1,0 +1,197 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L1-软件工程-最佳答案</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L1-软件工程-最佳答案</span></div><div class="wrap"><h1 id="l1-软件工程-最佳答案">L1 软件工程 · 最佳答案</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>传统软件工程面对的是确定性系统（输入固定则输出固定，质量用"对/错"衡量）；AI 工程面对的是概率性系统（同一输入跑两次可能不同，质量用"好到什么程度"衡量）</li></ul></div>2
+<p>传统软件工程面对的是<strong>确定性系统</strong>（输入固定则输出固定，质量用"对/错"衡量）；AI 工程面对的是<strong>概率性系统</strong>（同一输入跑两次可能不同，质量用"好到什么程度"衡量）。这个根本差异贯穿四个环节：需求从"写清楚要什么"变成"定义什么算好"；开发从"写代码"变成"调提示词+选模型+做评估"；质量从"单测过没过"变成"评测集上的得分分布"；迭代从"改代码上线"变成"改 prompt / 换模型 / 补数据"。当 demo 走到生产，还会撞上五块硬骨头：prompt 版本化、guardrails 分层、streaming 按事件解析、成本按 OTel GenAI 记 span、观测三信号在网关统一打点——共同失败模式是"上线后再补"，出问题时什么都查不到。</p>
+<h2 id="what这个节点的最佳答案">WHAT：这个节点的最佳答案</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">一、AI 工程 vs 传统软件工程：四个环节的差异</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>关键架构原则：规划最好与执行解耦——先让 Agent 生成计划，验证后才执行（对应"先评审再合并"，但在 AI 里是运行时动态验证）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>环节</th>
+<th>传统软件</th>
+<th>AI 工程</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>需求</td>
+<td>规格说明（200 或 401）</td>
+<td><strong>成功标准</strong>：合格阈值 + 必拦的边缘 case；先判断"问题出在内容还是风格格式"</td>
+</tr>
+<tr>
+<td>开发</td>
+<td>编码 → 调试 → 集成</td>
+<td><strong>编排四件事</strong>：模型选择 / 提示工程 / 外部知识（RAG）/ 状态管理（OpenAI 默认无状态，历史要开发者自己管）</td>
+</tr>
+<tr>
+<td>质量</td>
+<td>对/错单测</td>
+<td><strong>分布</strong>：100 个 case 合格比例、温度调高时创造力 vs 准确率的平衡点、幻觉必须核实</td>
+</tr>
+<tr>
+<td>迭代</td>
+<td>改代码 → 跑测试 → 部署</td>
+<td><strong>改配方</strong>：prompt 模板（极低）→ 调温度（极低）→ 加 RAG 数据源（中）→ 换模型（中）→ 微调（高）</td>
+</tr>
+</tbody>
+</table>
+<p>关键架构原则：<strong>规划最好与执行解耦</strong>——先让 Agent 生成计划，验证后才执行（对应"先评审再合并"，但在 AI 里是运行时动态验证）。</p>
+<h3 id="二30-个案例沉淀的-5-个可复用骨架模式">二、30 个案例沉淀的 5 个可复用骨架模式</h3>3
+<p>跨场景反复出现的不是"业务功能"，而是共用骨架：</p>
+<ol>
+<li><strong>RAG 检索增强</strong>：领域文档切块→向量化→用户提问先检索→拼进 prompt 让模型基于证据回答。任何"需要私有/最新/领域知识"的场景都适用。判断口诀："问题出在内容上 → RAG 是下一步"。</li>
+<li><strong>Prompt 模板工程</strong>：把 prompt 从代码字符串抽成模板变量（<code>{user_input}</code>、<code>{context}</code>、<code>{format_instructions}</code>），同一任务备多套对比。实战细节：<strong>ChatGPT 的母语是英文，英文 prompt 更稳</strong>。</li>
+<li><strong>多轮对话状态管理</strong>：模型无状态，每轮把 user/assistant 消息 append 进 <code>messages</code> 列表；<strong>上下文窗口有限，必须设计截断/摘要策略</strong>（不能无限追加）。</li>
+<li><strong>结构化输出解析</strong>：prompt 里要求 JSON/固定格式，代码解析成字典（如 <code>{"sentiment":"positive","confidence":0.8}</code>）。这是"模型说了一大段话，我只想要几个字段"的标准解法。</li>
+<li><strong>外部工具调用</strong>：模型先判断意图，再调用外部 API（图像生成、语音、SQL），最后组织回答。RAG 解决"知识"，工具调用解决"行动"；"规划与执行解耦"本质是工具调用的安全版。</li>
+</ol>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">三、生产化五块硬骨头（demo → 生产）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1) Prompt 管理：集中存储 + 版本化（SemVer 或 commit hash，LangSmith Hub 自动生成）+ 分支实验 + 变更审批 + 每次变更自动跑回归 eval + 按版本追踪生产表现</li><li>最大坑：把流当纯文本拼接——真实 provider 流是事件交错的（tool-call JSON、reasoning、usage、error 混在一条流里），必须按事件类型解析</li><li>工具盘：LangSmith Hub、Portkey（MIT gateway）、Latitude、LaunchDarkly</li></ul></div>3
+<p><strong>1) Prompt 管理</strong>：集中存储 + 版本化（SemVer 或 commit hash，LangSmith Hub 自动生成）+ 分支实验 + 变更审批 + 每次变更自动跑回归 eval + 按版本追踪生产表现。工具盘：LangSmith Hub、Portkey（MIT gateway）、Latitude、LaunchDarkly。</p>
+<p><strong>2) Guardrails 分层防御</strong>（不存在一个总开关）：</p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>工具</th>
+<th>职责</th>
+<th>延迟</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>① 快速输入扫描</td>
+<td>LLM Guard（MIT，15 输入 + 20 输出扫描器）</td>
+<td>模型跑之前拦 prompt injection / 越狱串 / 密钥，fail fast</td>
+<td>低</td>
+</tr>
+<tr>
+<td>② 对话流控制</td>
+<td>NeMo Guardrails（Colang DSL，input/dialog/retrieval/execution/output 五段 rails）</td>
+<td>保在题内、工具策略；单检查 &lt;50ms</td>
+<td>中</td>
+</tr>
+<tr>
+<td>③ 输出校验</td>
+<td>Guardrails AI（Hub 50+ validator）</td>
+<td>结构合规、PII、毒性、JSON schema、SQL 安全</td>
+<td>50–200ms/validator</td>
+</tr>
+</tbody>
+</table>
+<p><strong>FPR 成本意识</strong>：4% 误报率 = 每百万日活拦掉 40,000 条正常请求；15.2% = 152,000 条——选 guardrail 不能只看 F1，要把"每百万请求误伤数"算给产品看。每次 guardrail 决策必须落日志（违规类型/严重度/动作/耗时），否则合规审计拿不到证据链。</p>
+<p><strong>3) Streaming</strong>：SSE 是 token 传输默认（Anthropic/OpenAI/Google 都用）；生产混合 = SSE 数据面 + WebSocket 控制面（取消、用户插入反馈）。<strong>最大坑：把流当纯文本拼接</strong>——真实 provider 流是事件交错的（tool-call JSON、reasoning、usage、error 混在一条流里），必须按事件类型解析。</p>
+<p>生产清单：每一跳禁缓冲（否则 TTFT 报废）；错误二分（首字节前失败走 HTTP 状态码 + JSON body；首字节后失败走 SSE error event，<strong>保留已渲染部分文本并标记不完整，别清屏</strong>）；取消端到端 1 秒内传播；429/5xx 指数退避 1s/2s/4s/8s，<strong>4xx 不重试</strong>；分类/审核/字段抽取这类短且要整体校验的输出直接返回 JSON（别付流式四份成本）；核心监控指标 = TTFT、TPS、错误率。</p>
+<p><strong>4) 成本追踪</strong>：不要围着各家 provider 原始字段建 dashboard，归一化或直接上 <strong>OpenTelemetry GenAI 语义约定</strong>。</p>
+<p>关键属性：<code>gen_ai.provider.name</code> / <code>gen_ai.request.model</code> / <code>gen_ai.response.model</code>（二者可能不同）；<code>gen_ai.usage.input_tokens</code> / <code>output_tokens</code>；<code>gen_ai.usage.cache_read.input_tokens</code> / <code>cache_creation.input_tokens</code>（prompt 缓存折扣核算必需）；<code>gen_ai.usage.reasoning.output_tokens</code>（推理 token 单独计价）；<code>gen_ai.response.finish_reasons</code>（stop / tool_calls / length——<strong>区分正常结束和被截断</strong>）；自定义 <code>llm.request_cost_usd</code> + <code>app.feature</code> / <code>app.environment</code> / <code>user_id</code> 归因。</p>
+<p>成本看板两问：spend 归因（总成本/总输入 token/总输出 token/总调用数 + 按 feature/team/模型下钻）；token 效率（cost per successful task、prompt 长度趋势——prompt bloat 是成本失控常见驱动）。</p>
+<p><strong>5) 观测三信号</strong>：Traces（请求跨 prompt/retrieval/tool/guardrail 完整路径）+ Metrics（聚合性能/成本/质量）+ Events（需人工复核的安全/治理告警）。</p>
+<p>一次请求的标准 span 链：</p>
+<pre><code>User request → Gateway (user_id, prompt_hash, input_tokens)
+  → Input Guardrails (verdict)
+  → Retrieval (latency, docs count)
+  → Model Provider (model call duration)
+  → Tools/MCP (每次调用 = 子 span)
+  → Output Guardrails (moderation verdict + cost)
+  → Client (全链路带 trace_id 返回)
+</code></pre>
+<p><strong>每请求必记字段</strong>：<code>request_id, trace_id, timestamp, model_name + version, provider, full_prompt/full_response(按脱敏策略), latency_ms, ttft_ms, input_tokens, output_tokens, cost_usd, user_id/session_id, feature_flags, A/B variant, retrieval_sources, guardrail_verdicts, finish_reason</code>。</p>
+<p>⚠️ prompt/completion 内容采集<strong>默认关</strong>（OTel 官方警告敏感数据），开启前要有脱敏/访问/留存策略。</p>
+<h2 id="how落地">HOW：落地</h2>2
+<p>对照本库（六员 / RAG 管线）现状：</p>
+<table>
+<thead>
+<tr>
+<th>硬骨头</th>
+<th>本库现状</th>
+<th>落地动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prompt 管理</td>
+<td>六员 prompt 散在 config/skill，无版本门禁</td>
+<td>复用"口径回写"纪律 → 改成 prompt 版本纪律：变更 → 跑 eval → 记录版本</td>
+</tr>
+<tr>
+<td>Guardrails</td>
+<td>知识库侧无生产 guardrail（本地 RAG 风险低）</td>
+<td>给客户交付时按三层起步，先算误伤成本</td>
+</tr>
+<tr>
+<td>Streaming</td>
+<td>非本库场景（检索为主）</td>
+<td>交付聊天类应用时按 §三.3 清单验收</td>
+</tr>
+<tr>
+<td>成本追踪</td>
+<td><a href="../%E6%80%BB%E7%BD%91%E6%B5%81%E7%A8%8B/%E5%85%AD%E5%91%98%E9%85%8D%E7%BD%AE%E7%BB%88%E5%B1%80.html">六员协同终局</a> 管预算分配（模型路由 + token 三档）</td>
+<td>接 <code>gen_ai.usage.*</code> 属性到六员路由日志，做逐 span 实测记账</td>
+</tr>
+<tr>
+<td>观测 schema</td>
+<td>无</td>
+<td>批处理管线只需"每请求必记"精简版（query.py 检索日志）</td>
+</tr>
+<tr>
+<td>评测联动</td>
+<td>run_eval.py 只测检索</td>
+<td>生产化后 guardrail verdict 与评测门禁进同一 trace</td>
+</tr>
+</tbody>
+</table>
+<p>迭代杠杆使用顺序（便宜优先）：prompt 模板 → 温度 → 补 RAG 数据源 → 换模型 → 微调。先判断问题在<strong>内容</strong>（模型不知道 → RAG）还是<strong>风格格式</strong>（模型知道但表达不对 → prompt），再动杠杆。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">缺口清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>[ ] Prompt 版本门禁链路（变更→eval→记录版本）未落地</li><li>[ ] 逐 span 成本记账（OTel GenAI 属性接入六员路由日志）未落地</li><li>[ ] 生产 guardrails 三层（LLM Guard / NeMo / Guardrails AI）无实测</li></ul></div>2
+<ul>
+<li>[ ] Prompt 版本门禁链路（变更→eval→记录版本）未落地</li>
+<li>[ ] 逐 span 成本记账（OTel GenAI 属性接入六员路由日志）未落地</li>
+<li>[ ] 生产 guardrails 三层（LLM Guard / NeMo / Guardrails AI）无实测</li>
+<li>[ ] streaming 事件解析模板未沉淀（聊天类交付时需要）</li>
+<li>[ ] 每请求必记 schema 在 query.py 检索日志上的精简版未实现</li>
+</ul></div></details></div></body></html>

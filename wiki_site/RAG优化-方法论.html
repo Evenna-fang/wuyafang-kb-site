@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RAG优化-方法论</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="index.html">🏠 总入口</a><a href="graph.html">🕸 关联图谱</a><a href="ontology/index.html">📖 术语表</a><span class="cur">/ RAG优化-方法论</span></div><div class="wrap"><h1 id="rag优化-方法论distilljson">RAG优化-方法论.distill.json</h1>
+<ul>
+<li>source_file: raw/distill/RAG优化-方法论.distill.json</li>
+<li>format: json</li>
+</ul>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">内容</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>base: RAG优化-方法论</li><li>level1_excerpts: - [机制] 两阶段流水线是公认最优：BM25 + dense 并行 → RRF 融合 → cross-encoder rerank</li><li>[机制] chunk 推荐 256–512 tokens（递归字符切分），不是 800</li></ul></div>2
+<ul>
+<li><strong>base</strong>: RAG优化-方法论</li>
+<li><strong>source_file</strong>: raw/sources/RAG优化-外部调研-20260929.md</li>
+<li><strong>model</strong>: deepseek-ai/DeepSeek-V3</li>
+<li><strong>generated_at</strong>: 2026-10-26 14:07:25</li>
+<li><strong>level1_excerpts</strong>: - <strong>[机制]</strong> 两阶段流水线是公认最优：BM25 + dense 并行 → RRF 融合 → cross-encoder rerank。arXiv 2604.01733 实测：hybrid+rerank Recall@5 = 0.816，比 dense-only (0.587) 高 +39% ｜依据:方向 1：2025-2026 生产级 RAG 架构最佳实践  </li>
+<li><strong>[机制]</strong> RRF 是默认融合方案，避免 BM25 与 dense 分数校准难题；weighted blending 需要调参 ｜依据:方向 1：2025-2026 生产级 RAG 架构最佳实践  </li>
+<li><strong>[机制]</strong> chunk 推荐 256–512 tokens（递归字符切分），不是 800。denser.ai 指南明确："recursive character splitting at 256–512 tokens is the most reliable default" ｜依据:方向 1：2025-2026 生产级 RAG 架构最佳实践  </li>
+<li><strong>[机制]</strong> FDE 知识的核心不是"文档"，而是"带上下文的决策记录"：retrieve invoice + PO + contract terms + approval history + vendor thread + policy → 输出带引用的答案 → 暴露未解决歧义 → 路由给人 → log the decision ｜依据:方向 2：FDE 知识库范式（实战经验/决策/台账如何可检索）  </li>
+<li><strong>[机制]</strong> 日志即知识：FDE governance 要求 "logging what data a model saw, documenting why a particular output was generated" — 错误台账和决策记录不是副产物，而是知识库的主体 ｜依据:方向 2：FDE 知识库范式（实战经验/决策/台账如何可检索）  </li>
+<li><strong>[数据]</strong> MIT 数据：95% 企业 AI pilot 无可测回报 — 差异不在模型，在"工作流逻辑、guardrails、retrieval architecture、monitoring &amp; audit layer"是否固化进系统 ｜依据:方向 2：FDE 知识库范式（实战经验/决策/台账如何可检索）  </li>
+<li><strong>[机制]</strong> Chroma 定位：local development / prototyping / notebook 环境最佳；"workloads under a few million vectors with simple filtering needs, Chroma works well"。162 chunks 远在舒适区 ｜依据:方向 3：本地 RAG vs 云端取舍（开源向量库选型）  </li>
+<li><strong>[机制]</strong> 分工明确：DeepEval 是 pytest-based CI gate（拦 PR），RAGAS 是 scheduled job 采样生产流量（监控 drift）。"DeepEval catches regressions at PR time, RAGAS monitors drift over time" ｜依据:方向 4：RAG 评测闭环（RAGAS / DeepEval / Langfuse）  </li>
+<li><strong>[机制]</strong> Hierarchical chunking 是 2025–2026 最广泛采用的生产 pattern：小 chunk 用于检索（找），大 chunk 用于生成（读）。解决 precision-context 根本矛盾 ｜依据:方向 6：内容灌入策略（日记/决策/台账 → 高质量 chunk）  </li>
+<li><strong>[机制]</strong> Metadata-enriched chunking：每个 chunk 必须带 heading path / source file / date / chunk_id。这比换 embedding 模型收益更大（StackAI fix-order playbook 第一条） ｜依据:方向 6：内容灌入策略（日记/决策/台账 → 高质量 chunk）  </li>
+<li><strong>[机制]</strong> 纯向量够用于：enterprise document search / 语义 FAQ / 相似内容发现 / 低-中复杂度 Q&amp;A ｜依据:方向 5：Agentic RAG / Graph RAG 趋势  </li>
+<li><strong>[机制]</strong> Graph RAG 有用场景：legal / compliance / biomedical / 需要"追关系"（depends on / causes / references）的问题 ｜依据:方向 5：Agentic RAG / Graph RAG 趋势</li>
+<li><strong>level2_summary</strong>: ```markdown<br />
+<strong>两阶段流水线最优架构</strong><br />
+BM25 + dense 并行检索后经 RRF 融合（避免分数校准难题），再通过 cross-encoder rerank 是最佳方案。arXiv 2604.01733 实测显示 hybrid+rerank Recall@5 达 0.816，比纯向量检索高 39%。</li>
+</ul>
+<p><strong>FDE知识库的核心特征</strong><br />
+以带上下文的决策记录（如发票+采购单+合同条款）为检索单元，输出需附带引用并暴露歧义点。MIT 数据显示 95% 企业 AI 试点失败源于未固化工作流逻辑和监控层。</p>
+<p><strong>生产级内容处理策略</strong><br />
+chunk 推荐 256-512 tokens（递归字符切分），并采用 hierarchical chunking 解决检索-生成矛盾。每个 chunk 必须含 heading path/source file 等元数据（比换 embedding 模型收益更大）。</p>
+<p><strong>工具选型与分工原则</strong><br />
+Chroma 适用于百万级向量内的本地开发场景；DeepEval 用于 PR 拦截测试，RAGAS 负责生产监控。纯向量适用于企业文档搜索，Graph RAG 则在法律/合规领域有优势。</p>
+<pre><code>- **level3_digest**: ```markdown
+1. **混合检索架构**：BM25 + 稠密检索并行后经 RRF 融合，再通过 cross-encoder 重排序是最优检索流水线方案  
+2. **决策知识库设计**：以带上下文的完整决策记录为检索单元，并强制暴露歧义点是企业 AI 落地的关键  
+3. **内容分块策略**：256-512 tokens 的递归分块配合层级元数据，比单纯优化 embedding 模型收益更大  
+4. **工具分工原则**：Chroma 适合本地开发，DeepEval/RAGAS 分治测试与监控，不同场景需匹配专用方案  
+
+**核心问题**：如何构建高召回率、可解释且易维护的企业级 RAG 系统？
+</code></pre></div></details></div></body></html>

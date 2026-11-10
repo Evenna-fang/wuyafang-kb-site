@@ -1,0 +1,631 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L0-Python函数与模块</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L0-Python函数与模块</span></div><div class="wrap"><h1 id="l0-python-函数与模块封装复用装饰器与包结构">L0 Python 函数与模块：封装、复用、装饰器与包结构</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/courseware/python/part3-advanced-features.md">part3-advanced-features</a> · <a href="../../raw/courseware/python/part4-engineering.md">part4-engineering</a></p>
+<p><strong>TL;DR</strong>：函数是"可复用的配方"，参数五形态（位置/默认/关键字/<em>args/</em>*kwargs）有固定顺序，返回值可多值解包；作用域靠 LEGB 查找，闭包是装饰器的基础；装饰器在不改原函数的前提下加功能（计时、重试、权限），<code>@functools.wraps</code> 保留元信息；模块与包用 import 三种写法，包结构按 src-layout 组织配 <code>pyproject.toml</code>。本文覆盖函数设计原则、装饰器四形态、生成器与上下文管理器入门、包结构与工程化布局，以及三问（何时用/何时别用/翻车长什么样），全部配可直接跑的脚本。</p>
+<p><strong>金标证据</strong>：gold_tier=input_digest ｜ 产出声明=消化提炼（内容来自 part3-advanced-features.md 与 part4-engineering.md 两期课件的融合重排，非原创调研）｜ 排他性证据=融合了 part3-advanced-features.md 的装饰器章节（计时器、权限验证、缓存装饰器三个实战案例）与 part4-engineering.md 的项目结构章节（src-layout 对比 flat-layout、pyproject.toml 配置、pip-tools 锁依赖），两份素材的这段组合只在本库 raw/courseware/python/ 下存在 ｜ 抽查入口=raw/courseware/python/part3-advanced-features.md 第 1.3 节"带参数的装饰器"与 part4-engineering.md 第 10.1 节"项目最佳布局"</p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">1. 这篇文档解决什么问题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>语法写的是"一行行指令"，函数与模块解决"把指令组织成可复用、可测试、可协作的单元"</li><li>怎么读：第 2 到 4 节是函数核心；第 5 节装饰器是本篇重点；第 6 节生成器与上下文管理器是"函数的进阶形态"；第 7 到 9 节模块包与工程化；第 10 节三问</li><li>一个 200 行的平铺脚本改一处要全文搜索，拆成 10 个函数后改一处只看一个函数；一个 500 行的单文件没法多人协作，拆成包结构后各写各的模块</li></ul></div>2
+<p>语法写的是"一行行指令"，函数与模块解决"把指令组织成可复用、可测试、可协作的单元"。一个 200 行的平铺脚本改一处要全文搜索，拆成 10 个函数后改一处只看一个函数；一个 500 行的单文件没法多人协作，拆成包结构后各写各的模块。本篇按"函数设计 → 参数与返回值 → 作用域与闭包 → 装饰器 → 生成器与上下文管理器 → 模块与包 → 工程化布局"展开。适合写完基础语法篇、代码开始变长的人。</p>
+<p><strong>适用场景</strong>：代码超过 100 行开始重复；想给多个函数统一加日志/计时/权限校验；要把脚本拆成可导入的模块；要按团队规范组织项目结构。</p>
+<p><strong>前置条件</strong>：掌握基础语法篇（变量、类型、循环、异常、文件读写）；理解数据结构篇的列表/字典/元组；会跑 <code>python xxx.py</code>。</p>
+<p><strong>怎么读</strong>：第 2 到 4 节是函数核心；第 5 节装饰器是本篇重点；第 6 节生成器与上下文管理器是"函数的进阶形态"；第 7 到 9 节模块包与工程化；第 10 节三问。</p>
+<h2 id="2-函数设计为什么拆怎么拆">2. 函数设计：为什么拆、怎么拆</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.1 拆函数的三条判断</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>同一段代码出现两次就该抽函数，出现三次必须抽</li><li>长函数难测试难复用，按"做一件事"原则拆成子函数</li><li>判断二：一句话能说清的职责</li></ul></div>3
+<p><strong>判断一：重复出现的逻辑</strong>。同一段代码出现两次就该抽函数，出现三次必须抽。<strong>判断二：一句话能说清的职责</strong>。函数名加参数能读出它干什么，比如 <code>calculate_total(prices, discount)</code>；说不清就拆小。<strong>判断三：超过 20 行的代码块</strong>。长函数难测试难复用，按"做一件事"原则拆成子函数。反例是 200 行的 <code>main()</code> 全塞输入处理、计算、输出，改一个字段要读全文；正解是拆成 <code>read_input()</code>、<code>process(data)</code>、<code>format_output(result)</code> 三个函数。</p>
+<h3 id="22-函数命名与文档">2.2 函数命名与文档</h3>3
+<p>函数名用动词加名词的蛇形命名：<code>get_user()</code>、<code>parse_csv()</code>、<code>send_email()</code>、<code>is_valid()</code>（判断返回布尔加 is 前缀）。文档字符串写在函数体第一段三引号里，说明"做什么、参数什么含义、返回什么、抛什么异常"，<code>help(func)</code> 和 <code>func.__doc__</code> 能读到。反例是函数叫 <code>do()</code>、<code>handle()</code>、<code>func1()</code>，三个月后自己都看不懂。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">3. 参数与返回值</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="31-参数五形态与顺序">3.1 参数五形态与顺序</h3>3
+<p><strong>位置参数</strong>按顺序传 <code>add(3, 5)</code>；<strong>默认参数</strong>给缺省值 <code>greet(name, greeting="你好")</code>；<strong>关键字参数</strong>用名字传 <code>profile(age=18, name="小明")</code> 可乱序；<strong>可变位置参数 <code>*args</code></strong> 收集成元组 <code>total(1, 2, 3)</code>；<strong>可变关键字参数 <code>**kwargs</code></strong> 收集成字典。混合时顺序固定：位置参数 → 默认参数 → <code>*args</code> → <code>**kwargs</code>，写反 SyntaxError。默认参数陷阱：<code>def f(lst=[])</code> 的默认列表在多次调用间共享（可变默认值只求值一次），改法 <code>def f(lst=None): lst = lst if lst is not None else []</code>。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">3.2 返回值</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>提前返回（guard clause）比嵌套 if 清晰：函数开头 「if not data: return []」 直接挡掉边界情况，主体逻辑保持平铺</li><li>返回值超过 3 个时改返回 dict 或 namedtuple，别让调用方记位置</li></ul></div>3
+<p><code>return x</code> 返回单值；<code>return a, b</code> 语法上返回元组，调用方 <code>lo, hi = min_max(lst)</code> 解包；不写 return 或 <code>return</code> 后无值返回 None。提前返回（guard clause）比嵌套 if 清晰：函数开头 <code>if not data: return []</code> 直接挡掉边界情况，主体逻辑保持平铺。返回值超过 3 个时改返回 dict 或 namedtuple，别让调用方记位置。</p>
+<h2 id="4-作用域闭包与-lambda">4. 作用域、闭包与 lambda</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.1 LEGB 查找规则</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>名字查找顺序是 Local（函数内）→ Enclosing（外层函数）→ Global（模块级）→ Built-in（内置）</li><li>函数内赋值默认建局部变量，要改全局必须 「global count」；嵌套函数要改外层变量用 「nonlocal」</li></ul></div>3
+<p>名字查找顺序是 Local（函数内）→ Enclosing（外层函数）→ Global（模块级）→ Built-in（内置）。函数内赋值默认建局部变量，要改全局必须 <code>global count</code>；嵌套函数要改外层变量用 <code>nonlocal</code>。翻车现场：函数内读全局列表然后 <code>lst.append(x)</code> 没问题（改对象），但 <code>lst = []</code> 就是建了同名局部变量，全局那个没动。判断信号：函数外打印变量发现没变。</p>
+<h3 id="42-闭包">4.2 闭包</h3>3
+<p>闭包是"内层函数引用外层函数的变量并被返回"。<code>make_multiplier(2)</code> 返回的 <code>multiplier</code> 记住了 n=2，调用 <code>double(5)</code> 得 10。闭包的价值是"记住状态"，是装饰器和工厂函数的基础。翻车点：闭包里修改外层变量要用 <code>nonlocal</code>，直接赋值会 UnboundLocalError。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.3 lambda</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>限制是只能写一个表达式（不能写语句、不能有注释），超过一行就该改用 「def」</li></ul></div>3
+<p>lambda 是单表达式匿名函数 <code>lambda x: x ** 2</code>，常用在 <code>sort(key=lambda s: s[1])</code>、<code>map(lambda x: x*2, lst)</code>、<code>filter(lambda x: x &gt; 0, lst)</code>。限制是只能写一个表达式（不能写语句、不能有注释），超过一行就该改用 <code>def</code>。反例是拿 lambda 写三元嵌套，可读性比 def 差。</p>
+<h2 id="5-装饰器不改原函数加功能">5. 装饰器：不改原函数加功能</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.1 最简装饰器</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>print("🎉 函数执行前")</li></ul></div>3
+<p>装饰器是"接收函数、返回新函数"的高阶函数，<code>@my_decorator</code> 是语法糖，等价于 <code>say_hello = my_decorator(say_hello)</code>。</p>
+<pre><code class="language-python">def my_decorator(func):
+    def wrapper():
+        print(&quot;🎉 函数执行前&quot;)
+        func()
+        print(&quot;✅ 函数执行后&quot;)
+    return wrapper
+
+@my_decorator
+def say_hello():
+    print(&quot;你好，世界！&quot;)
+
+say_hello()
+</code></pre>
+<h3 id="52-带参数的函数用-argskwargs">5.2 带参数的函数用 <em>args/</em>*kwargs</h3>3
+<p>被装饰函数有参数时，wrapper 用 <code>*args, **kwargs</code> 原封不动转发：</p>
+<pre><code class="language-python">import time
+def timer(func):
+    &quot;&quot;&quot;计时装饰器&quot;&quot;&quot;
+    def wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        result = func(*args, **kwargs)     # 原样传参
+        print(f&quot;⏱️ {func.__name__} 耗时 {time.perf_counter()-start:.4f}s&quot;)
+        return result                       # 原样返回
+    return wrapper
+
+@timer
+def calculate_sum(n: int) -&gt; int:
+    return sum(range(1, n + 1))
+
+calculate_sum(1_000_000)
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.3 保留原函数信息：functools.wraps</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>直接装饰会让 「func.__name__」 变成 「wrapper」，日志和调试会认错函数</li><li>@wraps(func) 关键一行</li></ul></div>3
+<p>直接装饰会让 <code>func.__name__</code> 变成 <code>wrapper</code>，日志和调试会认错函数。加 <code>@functools.wraps(func)</code> 把原函数的 <code>__name__</code>、<code>__doc__</code>、<code>__module__</code> 复制过来：</p>
+<pre><code class="language-python">from functools import wraps
+def timer(func):
+    @wraps(func)              # 关键一行
+    def wrapper(*args, **kwargs):
+        ...
+    return wrapper
+</code></pre>
+<h3 id="54-带参数的装饰器装饰器工厂">5.4 带参数的装饰器（装饰器工厂）</h3>3
+<p>装饰器本身要参数（比如"重试 3 次"）时，写三层嵌套：最外层收装饰器参数、中层收函数、内层是 wrapper。</p>
+<pre><code class="language-python">from functools import wraps
+import time
+
+def retry(max_attempts=3, delay=0.5):
+    &quot;&quot;&quot;失败重试装饰器工厂&quot;&quot;&quot;
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    if attempt == max_attempts:
+                        raise
+                    print(f&quot;第 {attempt} 次失败: {e}，{delay}s 后重试&quot;)
+                    time.sleep(delay)
+        return wrapper
+    return decorator
+
+@retry(max_attempts=3, delay=0.5)     # 像调用函数一样传参数
+def unreliable_api_call():
+    import random
+    if random.random() &lt; 0.7:
+        raise ConnectionError(&quot;模拟网络抖动&quot;)
+    return &quot;成功&quot;
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.5 多个装饰器叠加</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>判断执行顺序的方法：在每个 wrapper 里 print 标记看输出顺序</li></ul></div>3
+<p>叠加顺序从下往上装饰、从外往里执行：<code>@bold @italic def greet()</code> 等价于 <code>greet = bold(italic(greet))</code>，执行时 bold 的前置代码先跑、italic 的次之。判断执行顺序的方法：在每个 wrapper 里 print 标记看输出顺序。</p>
+<h3 id="56-实战三例权限缓存日志">5.6 实战三例：权限、缓存、日志</h3>3
+<p><strong>权限装饰器</strong>给需要登录的接口统一加校验，未登录抛 <code>PermissionError</code>；<strong>缓存装饰器</strong>用 <code>functools.lru_cache(maxsize=128)</code> 给纯函数加记忆化，重复调用直接返回缓存（参数必须可哈希）；<strong>日志装饰器</strong>统一打印"调用参数、返回值、耗时"。三个都是"横切逻辑"，散在每个函数里写会重复十遍，抽成装饰器写一遍全局生效。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">6. 生成器与上下文管理器</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="61-生成器惰性产出数据">6.1 生成器：惰性产出数据</h3>3
+<p><code>yield</code> 让函数变成生成器，每次 <code>next()</code> 产出一个值、暂停在 yield 处。价值是省内存：处理 10GB 日志文件时逐行产出，不用一次性读进内存。<code>yield from</code> 委托子生成器，<code>send()</code> 双向通信（少用）。生成器表达式 <code>(x**2 for x in range(10))</code> 是列表推导式的惰性版，可直接喂给 <code>sum()</code>、<code>max()</code>。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">6.2 上下文管理器：自动清理资源</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「with open(...) as f:」 保证文件关闭；自定义两种写法：类方式实现 「__enter__」/「__exit__」，或 「@contextmanager」 装饰生成器函数（「yield」 前获取资源、「yield」 后清理）</li><li>异常处理里的上下文管理器可以"抑制特定异常"（「contextlib.suppress(FileNotFoundError)」）</li><li>判断何时用：有"获取资源、用完释放"模式（文件、锁、数据库连接、网络连接）就用 with，别手写 try/finally</li></ul></div>3
+<p><code>with open(...) as f:</code> 保证文件关闭；自定义两种写法：类方式实现 <code>__enter__</code>/<code>__exit__</code>，或 <code>@contextmanager</code> 装饰生成器函数（<code>yield</code> 前获取资源、<code>yield</code> 后清理）。异常处理里的上下文管理器可以"抑制特定异常"（<code>contextlib.suppress(FileNotFoundError)</code>）。判断何时用：有"获取资源、用完释放"模式（文件、锁、数据库连接、网络连接）就用 with，别手写 try/finally。</p>
+<h2 id="7-模块与包">7. 模块与包</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7.1 import 三种写法</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<p><code>import math</code> 导入整个模块（用 <code>math.sqrt</code>）；<code>from math import sqrt</code> 导入特定函数（直接 <code>sqrt</code>）；<code>import datetime as dt</code> 起别名。团队规范：绝对导入优先（<code>from mypkg.utils import helper</code>），避免 <code>from .utils import helper</code> 的相对导入在脚本直跑时失效；不要 <code>from module import *</code>（污染命名空间、不知道名字来自哪）。</p>
+<h3 id="72-包结构与-__init__py">7.2 包结构与 <code>__init__.py</code></h3>3
+<p>包是带 <code>__init__.py</code> 的目录（3.3+ 可省略但建议保留，可放包级初始化代码）。<code>__init__.py</code> 里 <code>from .core import main</code> 可以让 <code>from mypkg import main</code> 直接用。<code>if __name__ == "__main__":</code> 让文件"被导入时不执行、直接运行时执行"，是写可测试脚本的标准开头。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">8. 工程化布局：src-layout 与 pyproject.toml</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="81-src-layout推荐">8.1 src-layout（推荐）</h3>3
+<pre><code>my_project/
+├── src/
+│   └── my_tool/
+│       ├── __init__.py
+│       └── core.py
+├── tests/
+│   └── test_core.py
+├── pyproject.toml
+└── README.md
+</code></pre>
+<p>src-layout 把源码放 <code>src/</code> 下，防止"测试时意外导入工作目录的同名模块"（flat-layout 的常见坑）。<code>pyproject.toml</code> 是现代 Python 项目的配置中心：<code>[project]</code> 段声明名称版本依赖、<code>[build-system]</code> 段声明构建后端（setuptools/hatchling/poetry-core）、<code>[tool.ruff]</code>/<code>[tool.black]</code> 段配工具。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">8.2 依赖锁定与可复现</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>原则：直接依赖给范围、锁文件给精确版本，两者配合让"开发机和生产机装出来一致"</li></ul></div>3
+<p><code>requirements.txt</code> 写直接依赖（<code>requests&gt;=2.28,&lt;3</code>）、<code>pip-tools</code> 的 <code>requirements.in</code> 加 <code>pip-compile</code> 生成完整锁文件、Poetry 的 <code>poetry.lock</code> 自动锁定。原则：直接依赖给范围、锁文件给精确版本，两者配合让"开发机和生产机装出来一致"。</p>
+<h2 id="9-测试与质量工具工程收尾">9. 测试与质量工具（工程收尾）</h2>2
+<p>写函数就该写测试：pytest 用 <code>def test_add(): assert add(1, 2) == 3</code> 一行一个用例，<code>pytest -v</code> 跑全部。代码质量工具四件套：Black（格式化）、isort（import 排序）、flake8 或 Ruff（静态检查）、mypy（类型检查）。本地开发跑 <code>ruff check . &amp;&amp; mypy src/</code>，CI 里跑同样命令保证一致。判断何时上工具：项目超过 3 个文件或有第二个协作者时就上，越早成本越低。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">10. 三问：什么情况用 / 什么情况别用 / 翻车长什么样</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="101-什么情况下用适用场景加前置条件">10.1 什么情况下用（适用场景加前置条件）</h3>3
+<ul>
+<li><strong>函数</strong>：逻辑重复 2 次以上、职责一句话说清、代码块超过 20 行。</li>
+<li><strong>装饰器</strong>：给多个函数加同一种横切逻辑（计时/重试/权限/缓存/日志）。</li>
+<li><strong>生成器</strong>：数据量大于内存、只需顺序遍历一次。</li>
+<li><strong>上下文管理器</strong>：有获取-释放配对的资源（文件、锁、连接）。</li>
+<li><strong>模块与包</strong>：代码超过 3 个文件、要被多个脚本复用。</li>
+<li><strong>src-layout 与 pyproject.toml</strong>：要发布包、团队协作、上 CI。</li>
+</ul>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">10.2 什么情况下别用（反例加替代方案）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>别写超过 50 行的函数：难测试难读</li><li>别用装饰器改函数返回值类型：装饰器应保持接口签名</li><li>别拿生成器存中间结果：生成器产出即丢，要复用得转 list</li></ul></div>3
+<ul>
+<li><strong>别写超过 50 行的函数</strong>：难测试难读。替代：拆子函数。</li>
+<li><strong>别用装饰器改函数返回值类型</strong>：装饰器应保持接口签名。替代：改原函数或写适配函数。</li>
+<li><strong>别拿生成器存中间结果</strong>：生成器产出即丢，要复用得转 list。替代：需要多次遍历就用 list。</li>
+<li><strong>别用 <code>from module import *</code></strong>：命名空间污染。替代：显式导入。</li>
+<li><strong>别用可变默认参数</strong>：<code>def f(lst=[])</code> 跨调用污染。替代：默认值写 None。</li>
+<li><strong>别把所有代码塞进 <code>__init__.py</code></strong>：包初始化应轻量。替代：业务逻辑放 <code>core.py</code> 等模块。</li>
+<li><strong>别在深层函数里 <code>print</code> 调试</strong>：替代 <code>logging.debug</code> 或装饰器统一日志。</li>
+</ul>
+<h3 id="103-翻车长什么样真实失败形态加排查信号加怎么改">10.3 翻车长什么样（真实失败形态加排查信号加怎么改）</h3>3
+<ol>
+<li><strong>装饰后 <code>func.__name__</code> 变成 wrapper</strong>：忘加 <code>@functools.wraps(func)</code>。排查：打印 <code>func.__name__</code>。改：加 wraps。</li>
+<li><strong>可变默认参数跨调用污染</strong>：<code>def f(lst=[]); lst.append(1)</code> 第二次调用看到上次的值。排查：打印 <code>lst</code> 的 <code>id</code>。改：默认值写 None。</li>
+<li><strong>闭包里改外层变量 UnboundLocalError</strong>：忘了 <code>nonlocal</code>。改：加 <code>nonlocal 变量名</code>。</li>
+<li><strong>装饰器叠加顺序反了</strong>：<code>@a @b def f()</code> 实际是 <code>a(b(f))</code>，执行顺序从外到里。排查：wrapper 里 print 标记。改：调整装饰器顺序。</li>
+<li><strong>import 找不到自己的模块</strong>：脚本直跑时 sys.path 不含项目根。排查：<code>print(sys.path)</code>。改：用 <code>python -m mypkg.main</code> 以模块方式跑，或加 <code>sys.path</code> 临时补（不推荐）。</li>
+<li><strong><code>ModuleNotFoundError: No module named 'mypkg'</code></strong>：没装成包。改：<code>pip install -e .</code> 以开发模式安装，或确认 <code>pyproject.toml</code> 的 packages 配置。</li>
+<li><strong>生成器只能遍历一次</strong>：第二次 <code>for x in gen:</code> 得到空。排查：第二次循环无输出。改：需要复用就 <code>gen = list(gen)</code> 存住。</li>
+<li><strong>上下文管理器的异常被吞</strong>：<code>__exit__</code> 里 return True 抑制了异常。改：不拦截就 <code>return False</code> 或不写 return。</li>
+<li><strong>mypy 报类型不匹配</strong>：函数返回值注解写 int 实际返回 str。改：改注解或改返回值，类型注解是合同。</li>
+</ol>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">11. 术语表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>全称</th>
+<th>一句话解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>function</td>
+<td>—</td>
+<td>函数，可复用的代码块</td>
+</tr>
+<tr>
+<td>parameter</td>
+<td>—</td>
+<td>形参，函数定义时的占位符</td>
+</tr>
+<tr>
+<td>argument</td>
+<td>—</td>
+<td>实参，调用时传入的具体值</td>
+</tr>
+<tr>
+<td>decorator</td>
+<td>—</td>
+<td>装饰器，接收函数返回函数的高阶函数</td>
+</tr>
+<tr>
+<td>closure</td>
+<td>—</td>
+<td>闭包，内层函数记住外层变量</td>
+</tr>
+<tr>
+<td>generator</td>
+<td>—</td>
+<td>生成器，用 yield 的惰性迭代器</td>
+</tr>
+<tr>
+<td>iterator</td>
+<td>—</td>
+<td>迭代器，实现 <code>__next__</code> 的对象</td>
+</tr>
+<tr>
+<td>iterable</td>
+<td>—</td>
+<td>可迭代对象，能被 for 遍历</td>
+</tr>
+<tr>
+<td>context manager</td>
+<td>上下文管理器</td>
+<td>管理资源获取释放的对象（with 语句）</td>
+</tr>
+<tr>
+<td>module</td>
+<td>—</td>
+<td>模块，一个 .py 文件</td>
+</tr>
+<tr>
+<td>package</td>
+<td>—</td>
+<td>包，带 <code>__init__.py</code> 的目录</td>
+</tr>
+<tr>
+<td>import</td>
+<td>—</td>
+<td>导入，把别的模块引入当前命名空间</td>
+</tr>
+<tr>
+<td>namespace</td>
+<td>—</td>
+<td>命名空间，名字到对象的映射</td>
+</tr>
+<tr>
+<td>scope</td>
+<td>—</td>
+<td>作用域，名字可见的范围</td>
+</tr>
+<tr>
+<td>LEGB</td>
+<td>Local/Enclosing/Global/Built-in</td>
+<td>名字查找的四层顺序</td>
+</tr>
+<tr>
+<td>higher-order function</td>
+<td>高阶函数</td>
+<td>接收或返回函数的函数</td>
+</tr>
+<tr>
+<td>signature</td>
+<td>—</td>
+<td>签名，函数的参数与返回值形态</td>
+</tr>
+<tr>
+<td>docstring</td>
+<td>文档字符串</td>
+<td>函数内三引号说明文字</td>
+</tr>
+<tr>
+<td>src-layout</td>
+<td>—</td>
+<td>源码放 src/ 下的项目布局</td>
+</tr>
+<tr>
+<td>pyproject.toml</td>
+<td>—</td>
+<td>现代 Python 项目配置文件</td>
+</tr>
+<tr>
+<td>pytest</td>
+<td>—</td>
+<td>Python 测试框架</td>
+</tr>
+<tr>
+<td>lru_cache</td>
+<td>Least Recently Used Cache</td>
+<td>functools 的记忆化缓存装饰器</td>
+</tr>
+<tr>
+<td>functools.wraps</td>
+<td>—</td>
+<td>保留被装饰函数元信息的装饰器</td>
+</tr>
+<tr>
+<td>nonlocal</td>
+<td>—</td>
+<td>声明修改外层函数变量的关键字</td>
+</tr>
+<tr>
+<td>global</td>
+<td>—</td>
+<td>声明修改全局变量的关键字</td>
+</tr>
+</tbody>
+</table>
+<h2 id="12-三段可直接跑的脚本跟读版">12. 三段可直接跑的脚本（跟读版）</h2>2
+<p><strong>脚本 A：decorator_lab.py（Python 3.12）——计时、缓存、重试三装饰器</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# decorator_lab.py —— Python 3.12
+# 运行: python decorator_lab.py
+import time, random
+from functools import wraps, lru_cache
+
+def timer(func):                      # 计时装饰器
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        result = func(*args, **kwargs)
+        print(f&quot;⏱️ {func.__name__} 耗时 {time.perf_counter()-start:.4f}s&quot;)
+        return result
+    return wrapper
+
+@timer
+def slow_sum(n: int) -&gt; int:
+    return sum(range(n))
+
+@lru_cache(maxsize=128)               # 缓存装饰器（参数需可哈希）
+def fib(n: int) -&gt; int:
+    return n if n &lt; 2 else fib(n-1) + fib(n-2)
+
+def retry(max_attempts=3, delay=0.1):  # 重试装饰器工厂
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    if attempt == max_attempts:
+                        raise
+                    print(f&quot;第{attempt}次失败: {e}&quot;)
+                    time.sleep(delay)
+        return wrapper
+    return decorator
+
+@retry(max_attempts=3)
+def flaky():
+    if random.random() &lt; 0.5:
+        raise ConnectionError(&quot;模拟抖动&quot;)
+    return &quot;成功&quot;
+
+if __name__ == &quot;__main__&quot;:
+    print(slow_sum(1_000_000))
+    print(fib(30), &quot;缓存命中秒出&quot;)
+    print(flaky())
+</code></pre>
+<p>验收标准：slow_sum 打印耗时、fib(30) 立即输出 832040（缓存生效）、flaky 可能重试后成功。装饰器三形态一次跑齐。</p>
+<p><strong>脚本 B：package_demo（Python 3.12）——src-layout 包结构与 import</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# 用法: 在 package_demo 目录下 python -m src.my_tool.core
+# 文件: src/my_tool/core.py
+def add(a: int, b: int) -&gt; int:
+    &quot;&quot;&quot;两数相加&quot;&quot;&quot;
+    return a + b
+
+def main():
+    print(&quot;add(1, 2) =&quot;, add(1, 2))
+
+if __name__ == &quot;__main__&quot;:            # 直接运行时执行，被导入时不执行
+    main()
+</code></pre>
+<pre><code class="language-toml"># pyproject.toml —— 包配置
+[project]
+name = &quot;my-tool&quot;
+version = &quot;0.1.0&quot;
+requires-python = &quot;&gt;=3.12&quot;
+dependencies = [&quot;requests&gt;=2.28&quot;]
+
+[build-system]
+requires = [&quot;setuptools&gt;=68&quot;]
+build-backend = &quot;setuptools.build_meta&quot;
+</code></pre>
+<p>验收标准：<code>python -m src.my_tool.core</code> 输出 <code>add(1, 2) = 3</code>；<code>pip install -e .</code> 后 <code>python -c "from my_tool.core import add; print(add(1,2))"</code> 同样输出 3。src-layout 的价值是避免测试时误导入工作目录的同名文件。</p>
+<p><strong>脚本 C：gen_ctx_lab.py（Python 3.12）——生成器与上下文管理器</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# gen_ctx_lab.py —— Python 3.12
+from contextlib import contextmanager
+import time
+
+def countdown(n: int):                # 生成器：惰性产出
+    for i in range(n, 0, -1):
+        yield i
+
+print(list(countdown(5)))             # [5, 4, 3, 2, 1]
+
+@contextmanager
+def timed(label: str):                # 上下文管理器（生成器版）
+    start = time.perf_counter()
+    try:
+        yield                          # with 块执行处
+    finally:
+        print(f&quot;[{label}] 耗时 {time.perf_counter()-start:.4f}s&quot;)
+
+with timed(&quot;排序&quot;):
+    sorted(range(100000), reverse=True)
+</code></pre>
+<p>验收标准：countdown 打印 [5,4,3,2,1]（生成器转 list 一次性看全）、with 块退出时打印耗时。生成器惰性和 with 自动清理各演示一次。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">14. 两个装饰器实战案例（权限与带过期的缓存）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>【part3 补充】权限验证装饰器 「require_role(role)」是三层工厂结构的典型应用：最外层收权限角色、中层收函数、内层检查 「current_user["role"]」 是否匹配，不匹配抛 「PermissionError」，匹配则放行</li><li>价值是把"哪些接口需要什么角色"用一行装饰器声明，不用在每个函数体里手写 if 判断</li><li>翻车点：装饰器只在函数调用时检查，直接引用函数对象调用可以绕过，敏感操作还要在更外层（Web 框架中间件）做二次校验</li></ul></div>2
+<p><strong>【part3 补充】权限验证装饰器 <code>require_role(role)</code></strong>是三层工厂结构的典型应用：最外层收权限角色、中层收函数、内层检查 <code>current_user["role"]</code> 是否匹配，不匹配抛 <code>PermissionError</code>，匹配则放行。用法是 <code>@require_role("admin") def delete_user(user_id)</code>，调用时自动校验。价值是把"哪些接口需要什么角色"用一行装饰器声明，不用在每个函数体里手写 if 判断。翻车点：装饰器只在函数调用时检查，直接引用函数对象调用可以绕过，敏感操作还要在更外层（Web 框架中间件）做二次校验。</p>
+<p><strong>【part3 补充】带过期时间的缓存装饰器 <code>cache_with_timeout(seconds=10)</code></strong> 比 <code>lru_cache</code> 多一个"过期"维度：cache 字典存 <code>(结果, 时间戳)</code>，命中时先看 <code>now - timestamp &lt; seconds</code> 是否还在有效期，过期就重算。它还给 wrapper 挂了 <code>cache_clear</code> 方法（<code>wrapper.cache_clear = lambda: cache.clear()</code>），调用方可手动清缓存。对比 <code>lru_cache</code>：<code>lru_cache</code> 按最近使用淘汰、无过期概念、参数必须可哈希；<code>cache_with_timeout</code> 支持过期、可手动清、但只支持位置参数（<code>args</code> 作键）。选型：纯计算且参数可哈希用 <code>lru_cache</code>，带时效的数据（配置、令牌、汇率）用 <code>cache_with_timeout</code>。</p>
+<p>两个案例的共同点是"把横切逻辑封装进装饰器，业务函数保持干净"，这是装饰器存在的全部理由。写自己的装饰器时永远记住三件事：<code>*args/**kwargs</code> 转发参数、<code>return result</code> 转发返回值、<code>@functools.wraps</code> 保留元信息。</p>
+<h2 id="16-迭代器与生成器的完整关系part3-补充">16. 迭代器与生成器的完整关系（part3 补充）</h2>2
+<p><strong>【part3 补充】可迭代对象与迭代器的协议区别</strong>：可迭代对象（Iterable）实现 <code>__iter__()</code>，能被 for 遍历（列表、字符串、字典都是）；迭代器（Iterator）同时实现 <code>__iter__()</code> 和 <code>__next__()</code>，能用 <code>next()</code> 手动取下一个值。手动转换用 <code>iter(my_list)</code> 得到迭代器，连续 <code>next()</code> 取元素，取完抛 <code>StopIteration</code> 结束。for 循环的底层就是"取迭代器、循环 next、捕获 StopIteration"，理解这一点就明白为什么"生成器只能遍历一次"（迭代器耗尽即止）。</p>
+<p><strong>自定义迭代器的两种写法</strong>：类方式实现 <code>__iter__</code> 返回 self、<code>__next__</code> 里维护状态并抛 StopIteration（<code>Countdown</code> 案例倒计时 5 4 3 2 1）；生成器方式用 <code>yield</code> 一行搞定（<code>countdown(n)</code> 函数）。yield 的三条魔力：执行到 yield 暂停并返回值、下次调用从暂停处继续、函数结束自动抛 StopIteration。优先用生成器写迭代器，类方式只在需要复杂状态管理时用。</p>
+<p><strong>生成器表达式与列表推导式的内存对比</strong>：<code>[x**2 for x in range(1_000_000)]</code> 立即创建百万个元素的列表占几十 MB；<code>(x**2 for x in range(1_000_000))</code> 只是一个生成器对象占几十字节，按需产出。<code>sum(x**2 for x in range(1, 101))</code> 直接把生成器喂给 sum，不需要中间列表。判断何时用生成器表达式：数据量大、只需遍历一次、配合聚合函数（sum/max/min/any/all），三者同时满足就用生成器表达式。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">18. 上下文管理器两种写法的细节（part3 补充）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>这个返回值语义是最容易翻车的地方：写 「return True」 会让调用方完全看不到异常，调试时"代码没报错但结果不对"多半是这里吞了</li><li>正确做法是默认 「return False」，只有明确要"抑制特定异常"时才返回 True</li><li>判断原则：抑制异常前先问"调用方需要知道这个异常吗"，需要就别吞，不需要就 suppress 明确写出来</li></ul></div>2
+<p><strong>【part3 补充】类方式实现 <code>__enter__</code> 和 <code>__exit__</code></strong>：<code>__enter__</code> 的返回值赋给 <code>as</code> 后面的变量（<code>with Timer() as t:</code> 里 t 就是 <code>__enter__</code> 返回的 self）；<code>__exit__</code> 接收三个异常参数 <code>exc_type/exc_val/exc_tb</code>（无异常时全为 None），<strong>返回 True 会吞掉异常、返回 False 或 None 会继续抛出</strong>。这个返回值语义是最容易翻车的地方：写 <code>return True</code> 会让调用方完全看不到异常，调试时"代码没报错但结果不对"多半是这里吞了。正确做法是默认 <code>return False</code>，只有明确要"抑制特定异常"时才返回 True。</p>
+<p><strong><code>@contextmanager</code> 生成器版</strong>更简洁：yield 之前等价于 <code>__enter__</code>（获取资源），yield 之后等价于 <code>__exit__</code>（释放资源），yield 的值赋给 as 变量。异常处理模式是 <code>try: yield resource except Exception: raise finally: 清理</code>，finally 保证清理总执行、except 可以加日志后重新抛出。对比两种写法：类方式适合复杂状态（多个方法、需要复用）、生成器版适合简单获取释放（几行搞定）。</p>
+<p><strong>异常抑制的正确场景</strong>：<code>contextlib.suppress(FileNotFoundError)</code> 用于"文件不存在就算了"这类可预期的缺失；<code>Timer</code> 的 <code>__exit__</code> 返回 True 吞异常则几乎总是错的。判断原则：抑制异常前先问"调用方需要知道这个异常吗"，需要就别吞，不需要就 suppress 明确写出来。</p>
+<h2 id="20-类型注解给函数上合同part3-补充">20. 类型注解：给函数上合同（part3 补充）</h2>2
+<p><strong>【part3 补充】类型注解的价值三条</strong>：提高可读性（一看就知道参数返回什么类型）、提前发现 Bug（mypy 静态检查，不跑代码就能查出类型不匹配）、增强 IDE 补全与重构。关键认知：<strong>Python 运行时不强制执行类型注解</strong>，它只是"建议"，写错注解不会抛异常，只会在 mypy 检查时报。基础写法：变量 <code>name: str = "小明"</code>、函数 <code>def add(a: int, b: int) -&gt; int</code>、返回多类型用 <code>str | int</code>（3.10+，之前要 <code>Union[str, int]</code>）、可选用 <code>dict | None</code>。</p>
+<p><strong>容器与高阶类型注解</strong>：<code>Sequence[float]</code> 接受 list 和 tuple（比写 <code>list[float]</code> 更通用，Sequence 是抽象基类）、<code>Callable[[int, int], int]</code> 表示"接收两个 int 返回 int 的函数"（装饰器、回调参数常用）、<code>TypeAlias</code> 给复杂嵌套类型起别名 <code>UserDict = dict[str, dict[str, str | int]]</code>。泛型 <code>TypeVar</code> 加 <code>Generic[T]</code> 写"类型无关"的容器类（栈、队列、结果包装类），3.12+ 简化为 <code>class Stack[T]:</code> 新语法。</p>
+<p><strong>翻车点</strong>：注解写 <code>list[float]</code> 但传了 <code>[1, 2]</code>（int 列表），运行不报错但 mypy 报错；<code>Optional[int]</code> 是 3.10 之前的可选写法，3.10+ 统一用 <code>int | None</code>；注解只是字符串注释，<code>from __future__ import annotations</code> 会让所有注解延迟求值（前向引用友好）。判断何时上类型注解：函数超过 3 个参数、被多处调用、要写库给别人用，三者任一就该写注解。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">22. 项目布局完全体与 src-layout 取舍（part4 补充）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>src/ 下按职责分模块：core.py 核心业务、models.py 数据模型、utils.py 工具函数、cli.py 命令行入口</li><li>结论：新项目一律 src-layout，老项目不急迁移</li><li>tests/ 下 conftest.py 放 pytest fixtures（共享测试数据）、test_*.py 按模块对应</li></ul></div>2
+<p><strong>【part4 补充】经典项目布局的完整清单</strong>比第 8 节的简版多几项：根目录有 README.md（项目说明）、LICENSE（开源许可证）、CHANGELOG.md（变更日志）、pyproject.toml（元数据与构建配置）、setup.cfg 与 setup.py（兼容旧构建）、Makefile（常用命令快捷入口，<code>make test</code>/<code>make lint</code>）、.gitignore（忽略 .venv 与 <strong>pycache</strong>）、.github/workflows/ci.yml（CI 流水线）。src/ 下按职责分模块：core.py 核心业务、models.py 数据模型、utils.py 工具函数、cli.py 命令行入口。tests/ 下 conftest.py 放 pytest fixtures（共享测试数据）、test_*.py 按模块对应。docs/ 放 Sphinx 文档、scripts/ 放部署脚本、data/ 放数据文件（不进版本控制）。</p>
+<p><strong>src-layout 与 flat-layout 的对比表</strong>（part4 原文）：flat-layout 的包目录与项目根同级，风险是"测试时可能导入源码目录而非安装版本"（因为 Python 会把当前目录加进 sys.path）；src-layout 把包放 src/ 下，必须 <code>pip install -e .</code> 后才能导入，测试的是真实安装的包，天然隔离。工具支持上 setuptools 默认 flat、现代工具（hatchling、poetry）都支持 src。结论：新项目一律 src-layout，老项目不急迁移。</p>
+<p><strong>pyproject.toml 是配置中心</strong>（PEP 518/517/621）：<code>[project]</code> 段声明 name、version、requires-python、dependencies（替代 setup.py 的元数据）；<code>[build-system]</code> 段声明构建后端（setuptools/hatchling/poetry-core）；<code>[tool.ruff]</code>、<code>[tool.black]</code>、<code>[tool.mypy]</code> 段收编各工具配置，一个文件管全部。翻车点：<code>requires-python = "&gt;=3.12"</code> 写错会让 pip 在低版本上拒绝安装；dependencies 不写版本范围会装到不兼容的新版。</p>
+<h2 id="24-打包与发布setuptools-与-poetry-两条路线part4-补充">24. 打包与发布：setuptools 与 Poetry 两条路线（part4 补充）</h2>2
+<p><strong>【part4 补充】setuptools 路线</strong>（成熟稳定）：<code>pip install build twine</code> 装构建工具 → <code>python -m build</code> 构建分发包（产物两个：<code>my_project-0.1.0.tar.gz</code> 源码包、<code>my_project-0.1.0-py3-none-any.whl</code> 轮子包）→ <code>twine check dist/*</code> 验证包内容 → 先传 TestPyPI 测试（<code>twine upload --repository testpypi dist/*</code>）→ 确认无误再传正式 PyPI（<code>twine upload dist/*</code>）。wheel 包名里的 <code>py3-none-any</code> 表示纯 Python 通用包，带 C 扩展会变成 <code>cp312-cp312-linux_x86_64</code> 这类平台标签。</p>
+<p><strong>Poetry 路线</strong>（一体化）：<code>poetry new my-project</code> 建项目、<code>poetry add requests</code> 加运行时依赖、<code>poetry add --group dev pytest</code> 加开发依赖、<code>poetry install</code> 按 poetry.lock 精确安装、<code>poetry run pytest</code> 在托管环境里跑命令、<code>poetry build</code> 加 <code>poetry publish</code> 构建发布。Poetry 的 <code>pyproject.toml</code> 用 <code>[tool.poetry]</code> 段声明元数据、<code>[tool.poetry.dependencies]</code> 写依赖（<code>^2.28</code> 表示 <code>&gt;=2.28,&lt;3.0</code>）、<code>[tool.poetry.scripts]</code> 声明命令行入口 <code>my-cli = "my_project.cli:main"</code>（安装后终端直接多一个 my-cli 命令）。</p>
+<p><strong>选型</strong>：开源库发布到 PyPI 用 Poetry（依赖锁定加发布一条龙）；企业内部包或已有 setuptools 基建用 setuptools 加 build；两者都别忘了先传 TestPyPI 试水（<code>pip install --index-url https://test.pypi.org/simple/ my-project</code>），正式 PyPI 的包名发布后不可删除（只能 yank），发布前务必确认名字未被占用。翻车点一：包名在 PyPI 已存在会 403 拒绝。翻车点二：忘记改 version 号会拒绝重复上传同一版本。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">26. 代码质量工具链与配置（part4 补充）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>现代组合推荐：Ruff（lint 加格式化）加 Mypy（类型检查）两个工具覆盖全部需求，替代 Black 加 isort 加 Flake8 三件套</li><li>日常命令三个：「ruff check .」 检查、「ruff check --fix .」 自动修复、「ruff format .」 格式化</li><li>Mypy 的用法：「mypy src/」 静态检查类型，配合类型注解才能发挥作用</li></ul></div>2
+<p><strong>【part4 补充】工具链六件套对比</strong>：Black（格式化，"不妥协的风格"，一个正确方式）、isort（import 自动分组排序）、Ruff（Lint 加格式化，Rust 编写比 Flake8 快 10 到 100 倍，集成 isort 和 flake8 多数插件，新一代首选）、Flake8（经典 linter，插件丰富）、Mypy（静态类型检查，配合类型注解找类型错误）、Pylint（最严格的 linter，规则多到需要配置裁剪）。现代组合推荐：<strong>Ruff（lint 加格式化）加 Mypy（类型检查）两个工具覆盖全部需求</strong>，替代 Black 加 isort 加 Flake8 三件套。</p>
+<p><strong>Ruff 配置示例</strong>（写进 <code>pyproject.toml</code>）：<code>line-length = 88</code> 与 Black 对齐、<code>[tool.ruff.lint] select</code> 开规则组（E pycodestyle 错误、W 警告、F pyflakes、I isort、N pep8-naming、UP pyupgrade、B flake8-bugbear、SIM 简化建议、TCH 类型检查）、<code>ignore = ["E501"]</code> 忽略行长度（交给格式化器管）、<code>known-first-party = ["my_project"]</code> 告诉 isort 哪些是自家包。日常命令三个：<code>ruff check .</code> 检查、<code>ruff check --fix .</code> 自动修复、<code>ruff format .</code> 格式化。</p>
+<p><strong>Mypy 的用法</strong>：<code>mypy src/</code> 静态检查类型，配合类型注解才能发挥作用。渐进式接入方法：先 <code>mypy --ignore-missing-imports src/</code> 宽松跑，逐步加 <code>--strict</code>；第三方库没类型注解会报错，用 <code># type: ignore</code> 或配置 <code>[[tool.mypy.overrides]]</code> 豁免。CI 里工具链命令统一为 <code>ruff check . &amp;&amp; ruff format --check . &amp;&amp; mypy src/</code>，本地跑同样三条保证一致。判断何时上工具链：项目超过 3 个文件、有第二个协作者、要上 CI，任一满足就上，越早越省事。</p>
+<h2 id="28-cicd-集成github-actions-两条流水线part4-补充">28. CI/CD 集成：GitHub Actions 两条流水线（part4 补充）</h2>2
+<p><strong>【part4 补充】CI 与 CD 的分工</strong>：CI（持续集成）是每次推送自动跑测试和检查，保证代码质量；CD（持续部署/交付）是测试通过后自动构建、发布、部署。GitHub Actions 的配置文件用 YAML 写在 <code>.github/workflows/</code> 目录下，<code>on.push.branches</code> 触发分支、<code>jobs.test.steps</code> 定义步骤。基础 CI 流水线五步：checkout 拉代码、<code>actions/setup-python@v5</code> 配 Python（用 <code>strategy.matrix</code> 跑 3.10/3.11/3.12 三个版本矩阵）、<code>pip install -e ".[dev]"</code> 装依赖、<code>ruff check</code> 加 <code>mypy src/</code> 静态检查、<code>pytest --cov=my_project --cov-report=xml</code> 跑测试并出覆盖率，最后 <code>codecov/codecov-action@v4</code> 上传覆盖率报告。</p>
+<p><strong>发布流水线</strong>用 tag 触发：<code>on.push.tags: ["v*"]</code> 表示打 v 开头的 tag 就发布。关键配置 <code>permissions: id-token: write</code> 启用 PyPI 可信发布（Trusted Publishing，不需要手配 API token，GitHub 与 PyPI 建立信任关系后自动认证）。发布步骤：checkout、setup-python 3.12、装 build 工具、<code>python -m build</code> 构建、<code>pypa/gh-action-pypi-publish@release/v1</code> 上传。这套流程的价值是"打 tag 即发布"，人工只负责写版本号和 tag，其余全自动且可审计。</p>
+<p><strong>翻车点</strong>：YAML 缩进错了整个工作流不触发（Actions 页面看不到记录）；<code>pip install -e ".[dev]"</code> 要求 <code>pyproject.toml</code> 有 <code>[project.optional-dependencies] dev</code> 段，漏写会装不上开发依赖；矩阵跑三个 Python 版本时某个版本的依赖装不上会让整个 job 失败，用 <code>continue-on-error: true</code> 或裁剪矩阵处理。判断何时上 CI：项目有第二个协作者、要发布包、或测试跑起来超过 1 分钟（本地容易忘记跑），任一满足就配 CI。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">30. pre-commit 与 mypy 配置细节（part4 补充）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>「pre-commit install」 装 git hooks 后，每次 「git commit」 自动跑检查，不过不让提交</li><li>价值是"问题在提交前暴露"，比 CI 里红灯再修便宜得多</li><li>pre-commit 与 CI 的关系：pre-commit 是本地快速反馈（秒级），CI 是权威验证（分钟级），两者跑同一批检查保持一致</li></ul></div>2
+<p><strong>【part4 补充】mypy 配置</strong>（<code>pyproject.toml</code>）：<code>python_version = "3.10"</code> 声明目标版本、<code>disallow_untyped_defs = true</code> 强制所有函数写类型注解（不写就报错）、<code>check_untyped_defs = true</code> 连没注解的函数也做内部检查、<code>warn_return_any = true</code> 警告返回 Any 类型（Any 会绕过所有检查）。第三方库没类型注解用 <code>[[tool.mypy.overrides]] module = "requests.*" ignore_missing_imports = true</code> 豁免。标注示例：<code>def find_user(user_id: int) -&gt; Optional[dict[str, str]]</code> 返回可能为 None 的字典，<code>def process_items(items: list[int]) -&gt; dict[str, float]</code> 输入整数列表输出浮点统计。</p>
+<p><strong>pre-commit 让检查提前到提交时</strong>：<code>.pre-commit-config.yaml</code> 配两个 hook——ruff-pre-commit（<code>args: [--fix]</code> 自动修复加 ruff-format 格式化）和 mirrors-mypy（<code>additional_dependencies: [types-requests]</code> 补第三方类型存根）。<code>pre-commit install</code> 装 git hooks 后，每次 <code>git commit</code> 自动跑检查，不过不让提交。价值是"问题在提交前暴露"，比 CI 里红灯再修便宜得多。pre-commit 与 CI 的关系：pre-commit 是本地快速反馈（秒级），CI 是权威验证（分钟级），两者跑同一批检查保持一致。</p>
+<p>完整工具链落地四步（part4 实战案例）：<code>pip install ruff mypy pre-commit</code> 装工具 → <code>pyproject.toml</code> 配置三工具（Ruff/Mypy/Black 配置段）→ <code>.pre-commit-config.yaml</code> 配 hooks → <code>pre-commit install</code> 装 git hooks。翻车点：pre-commit 的 hook 版本 <code>rev: v0.6.0</code> 要和本地 ruff 版本大致匹配，版本差太多会行为不一致；mypy 对 <code>types-requests</code> 这类存根包有依赖，缺了会误报 requests 相关错误。</p>
+<h2 id="32-工程实践速查表与学习路线part4-附录补充">32. 工程实践速查表与学习路线（part4 附录补充）</h2>2
+<p><strong>【part4 补充】常用命令速查三组</strong>：环境管理（<code>python -m venv .venv</code> 建环境、<code>source .venv/bin/activate</code> 激活、<code>pip install -e ".[dev]"</code> 开发模式安装）、代码质量（<code>ruff check .</code> 检查、<code>ruff format .</code> 格式化、<code>mypy src/</code> 类型检查、<code>pytest -v --cov</code> 跑测试加覆盖率）、打包发布（<code>python -m build</code> 构建、<code>twine upload dist/*</code> 上传、<code>poetry install/add/build/publish</code> 四连）。这三组命令覆盖从写代码到发包的全流程，建议做成 Makefile 或 shell alias 一键执行。</p>
+<p><strong>项目结构速查</strong>：pyproject.toml 配置中心、src/ 源码、tests/ 测试、.github/workflows/ CI、Makefile 命令入口、README 说明。学习路线四段（part4 附录）：初学者掌握基础语法和标准库（对应本系列前几篇）→ 进阶者学会项目工程化（本篇）→ 实践者完成 1 到 2 个实战项目 → 专业者深入框架源码、参与开源。本篇是"能写代码"到"能写好工程"的分水岭，工程化的本质是让代码可维护、可协作、可复现。</p>
+<p><strong>判断工程化是否达标的三个问题</strong>：新人 clone 仓库后能否在 30 分钟内跑通测试？改一个函数能否只看一个文件就完成？CI 红灯时能否在 10 分钟内定位问题？三个都是"能"才算工程化过关，任何一个"不能"就回到第 8 到 10 节补布局和工具链。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">34. 元类入门：类也是对象（part3 补充，OOP 篇预告）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>【part3 补充】元类是"创建类的类"</li><li>理解"类是对象"就明白为什么类能赋值给变量、能当参数传、能加属性——它就是一个可调用的对象</li><li>但现代 Python 更推荐 「__init_subclass__」（3.6+）做注册和检查，比元类简单；元类只在写 ORM、插件系统、序列化框架时才必要</li></ul></div>2
+<p><strong>【part3 补充】元类是"创建类的类"</strong>。层级关系：实例由类创建、类由元类创建（默认元类是 <code>type</code>）。验证方法：<code>type(42)</code> 是 int、<code>type(int)</code> 是 type、<code>type(MyClass)</code> 也是 type。<code>type()</code> 有双重身份：单参数查类型、三参数 <code>type(name, bases, namespace)</code> 动态建类（<code>Person = type("Person", (object,), {"__init__": init, "greet": greet})</code> 等价于 class 语句）。理解"类是对象"就明白为什么类能赋值给变量、能当参数传、能加属性——它就是一个可调用的对象。</p>
+<p><strong>自定义元类</strong>继承 type 并重写 <code>__new__</code>（在类创建时拦截）：<code>ValidatedMeta</code> 案例自动检查子类是否有 <code>__repr__</code>、属性是否有类型注解，缺了打印警告。这是"给所有子类统一加检查逻辑"的框架级手段。但现代 Python 更推荐 <code>__init_subclass__</code>（3.6+）做注册和检查，比元类简单；元类只在写 ORM、插件系统、序列化框架时才必要。</p>
+<p><strong>判断何时用元类</strong>的三问：这个逻辑需要在"类创建时"运行吗？（只有元类和 <code>__init_subclass__</code> 能做到）<code>__init_subclass__</code> 能否覆盖需求？（能就别用元类）是否在写框架代码？（不是就别用元类）。日常代码里元类的正确出现频率是接近零，见到它说明代码在框架层。完整的元类实战（插件注册、ORM 字段描述符）放到《L0-Python OOP 与爬虫》展开，本篇先建立"类是对象、元类建类"的心智模型。</p>
+<h2 id="36-从零搭项目的六步实操part4-实战案例补充">36. 从零搭项目的六步实操（part4 实战案例补充）</h2>2
+<p><strong>【part4 补充】实战案例一的六步流程</strong>是"新建 Python 项目"的标准动作，照抄即可。第一步建目录：<code>mkdir -p my-tool/src/my_tool</code>、<code>mkdir -p my-tool/tests</code>、<code>mkdir -p my-tool/.github/workflows</code>。第二步 <code>git init</code> 初始化版本控制（越早越好，每次改动都可回溯）。第三步创建核心文件三个：<code>src/my_tool/__init__.py</code> 放包版本号 <code>__version__ = "0.1.0"</code>；<code>src/my_tool/core.py</code> 放业务函数（greet、add，都带类型注解和文档字符串）；<code>src/my_tool/cli.py</code> 放命令行入口（argparse 解析 <code>--name</code> 参数，<code>if __name__ == "__main__": main()</code> 保护）。第四步写 <code>pyproject.toml</code>（声明 name、version、dependencies、<code>[project.scripts] my-cli = "my_tool.cli:main"</code>）。第五步 <code>pip install -e ".[dev]"</code> 开发模式安装后 <code>pytest</code> 跑测试。第六步 <code>my-cli --name "World"</code> 验证命令行入口生效。</p>
+<p><strong>测试文件的写法</strong>（<code>tests/test_core.py</code>）：<code>from my_tool.core import greet, add</code> 导入被测函数，每个测试一个 <code>def test_xxx():</code> 加 assert 断言（<code>assert greet("Alice") == "Hello, Alice! Welcome to my-tool."</code>、<code>assert add(2, 3) == 5</code>、<code>assert isinstance(add(1, 2), int)</code> 检查返回类型）。测试三原则：一个断言一个关注点、覆盖正常路径加边界（负数、零、空）、测试名说明场景。</p>
+<p><strong><code>[project.scripts]</code> 的魔法</strong>：在 <code>pyproject.toml</code> 里声明 <code>my-cli = "my_tool.cli:main"</code>，<code>pip install -e .</code> 后终端就多出 <code>my-cli</code> 命令，等于给包装了个命令行入口。翻车点：scripts 指向的函数名写错（比如写成 <code>my_tool.cli:run</code> 而实际函数叫 <code>main</code>）会在调用时报 <code>AttributeError</code>，排查用 <code>pip show my-tool</code> 看安装位置再核对函数名。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">38. 生成器链实战：大文件处理与数据管道（part3 补充）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>【part3 补充】大文件逐行处理是生成器的经典用例：「read_large_file(filepath)」 用 「for line in f: yield line.rstrip("\n")」 逐行产出，不管文件多大内存恒定；「filter_lines(lines, keyword)」 再套一层生成器过滤含关键词的行</li><li>对照反模式：「f.readlines()」 把整个文件读进内存，10GB 文件直接打挂进程；「list(filter(...))」 把过滤结果全存下来，同样吃内存</li><li>这种"生成器链"的写法让每一步都惰性执行，处理百万条记录时内存占用和处理 10 条一样</li></ul></div>2
+<p><strong>【part3 补充】大文件逐行处理</strong>是生成器的经典用例：<code>read_large_file(filepath)</code> 用 <code>for line in f: yield line.rstrip("\n")</code> 逐行产出，不管文件多大内存恒定；<code>filter_lines(lines, keyword)</code> 再套一层生成器过滤含关键词的行。两个生成器串起来 <code>errors = filter_lines(read_large_file(path), "ERROR")</code> 就是"读取 → 过滤"管道，每行只在被消费时才存在。对照反模式：<code>f.readlines()</code> 把整个文件读进内存，10GB 文件直接打挂进程；<code>list(filter(...))</code> 把过滤结果全存下来，同样吃内存。</p>
+<p><strong>数据管道的三段式</strong>：数据源（<code>data_source()</code> 产出记录）→ 过滤（<code>filter_passing</code> 按阈值筛）→ 转换（<code>transform</code> 加字段，<code>{**record, "grade": grade}</code> 合并字典）。组合方式是函数嵌套 <code>pipeline = transform(filter_passing(data_source(), 100))</code>，取前 5 条用 <code>itertools.islice(pipeline, 5)</code>（生成器没有切片，islice 是惰性切片）。这种"生成器链"的写法让每一步都惰性执行，处理百万条记录时内存占用和处理 10 条一样。</p>
+<p><strong>三个生成器练习</strong>（part3 原文）可以自查掌握程度：写 <code>primes()</code> 无限生成素数（配 <code>islice(primes(), 10)</code> 取前 10 个）、<code>chunked(iterable, size)</code> 分块（<code>chunked(range(10), 3)</code> 得 <code>[[0,1,2],[3,4,5],[6,7,8],[9]]</code>）、<code>sliding_window(iterable, size)</code> 滑动窗口（<code>sliding_window([1,2,3,4,5], 3)</code> 得 <code>[(1,2,3),(2,3,4),(3,4,5)]</code>）。写不出来说明 yield 的暂停恢复机制还没吃透，回到第 6.1 节重看再练。</p>
+<h2 id="40-无限生成器yield-from-与-sendpart3-补充">40. 无限生成器、yield from 与 send()（part3 补充）</h2>2
+<p><strong>【part3 补充】无限生成器</strong>用 <code>while True: yield</code> 实现，典型是斐波那契数列 <code>fibonacci()</code>（<code>a, b = b, a + b</code> 每次推进一位）。无限生成器不能用 for 直接遍历（永不结束），要用 <code>next(fib)</code> 手动取或 <code>itertools.islice(fib, 9, 15)</code> 做惰性切片（取第 10 到 15 个）。内存对比的证据：<code>list(range(1_000_000))</code> 占约 8MB，<code>range(1_000_000)</code> 本身只占 48 字节（range 就是惰性的），这就是"惰性求值省内存"的直接证明，用 <code>sys.getsizeof()</code> 可以自己跑出来。</p>
+<p><strong><code>yield from</code> 委托子生成器</strong>：递归展平嵌套列表 <code>flatten([1, [2, 3], [4, [5, 6]]])</code> 时，遇到子列表就 <code>yield from flatten(item)</code> 把产出委托给递归调用，省掉手写内层循环。它还自动转发 <code>send()</code>、<code>throw()</code>、<code>close()</code> 调用，是生成器组合的标准语法。什么时候用：生成器内部要遍历另一个可迭代对象并逐个产出时，<code>yield from iterable</code> 比 <code>for x in iterable: yield x</code> 更简洁。</p>
+<p><strong><code>send()</code> 双向通信</strong>：生成器不仅能产出值还能接收值，<code>value = yield average</code> 处暂停时外部 <code>avg.send(10)</code> 把 10 送进 value 继续执行。运行平均值案例：<code>send(10)</code> 得 10.0、<code>send(20)</code> 得 15.0、<code>send(30)</code> 得 20.0。注意启动规则：第一次必须 <code>next(avg)</code> 或 <code>send(None)</code> 启动（此时没有值可接收），之后才能 <code>send(数据)</code>。send 的实际用途不多（协程控制、状态机），日常写生成器用 yield 产出即可，遇到"生成器要接收外部输入"的场景再回来查这节。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">42. 泛型与 TypedDict：类型系统的进阶（part3 补充）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>价值是写一次容器逻辑、到处复用且类型安全</li><li>它本质还是 dict（运行时无额外开销），只是给静态检查用</li><li>选型总结：写通用容器/工具函数用泛型（T）；JSON 形状固定用 TypedDict；轻量数据记录用 dataclass；接口约定用 Protocol</li></ul></div>2
+<p><strong>【part3 补充】泛型让容器类"类型无关"</strong>：<code>T = TypeVar("T")</code> 声明类型变量，<code>class Stack(Generic[T])</code> 定义泛型栈，<code>push(item: T)</code>、<code>pop() -&gt; T</code> 用 T 表示"存什么类型就取什么类型"。使用时 <code>int_stack: Stack[int] = Stack()</code> 特化成整数栈、<code>str_stack: Stack[str]</code> 特化成字符串栈，mypy 能检查出"往 int 栈里塞字符串"的错误。价值是写一次容器逻辑、到处复用且类型安全。Python 3.12 的 PEP 695 新语法更简洁：<code>class Queue[T]:</code> 直接在类名后声明类型参数，<code>type Point = tuple[float, float]</code> 定义类型别名（<code>type</code> 语句是 3.12+ 专属）。</p>
+<p><strong>TypedDict 给字典加字段类型</strong>：<code>class UserProfile(TypedDict): name: str; age: int</code> 后，<code>user: UserProfile = {"name": "小明", "age": 20}</code> 有字段名和类型提示，mypy 能查出"少写字段、类型不对"。它本质还是 dict（运行时无额外开销），只是给静态检查用。对比 dataclass：TypedDict 保持 dict 接口（<code>user["name"]</code> 取值），dataclass 是类（<code>user.name</code> 取值）；要 JSON 互转频繁用 TypedDict，要方法和校验用 dataclass。Protocol 是"结构化子类型"（鸭子类型的类型化版）：定义 <code>class Drawable(Protocol): def draw(self) -&gt; None</code>，任何有 <code>draw()</code> 方法的类都算 Drawable，不用显式继承。</p>
+<p><strong>选型总结</strong>：写通用容器/工具函数用泛型（T）；JSON 形状固定用 TypedDict；轻量数据记录用 dataclass；接口约定用 Protocol。这四者是类型注解的"进阶四件套"，掌握顺序按此排列，每样都比前一样更接近框架代码。</p>
+<h2 id="44-装饰器三细节wraps工厂叠加part3-补充">44. 装饰器三细节：wraps、工厂、叠加（part3 补充）</h2>2
+<p><strong>【part3 补充】<code>functools.wraps</code> 的具体效果</strong>：装饰后 <code>greet.__name__</code> 保持 "greet"（不是 "wrapper"）、<code>greet.__doc__</code> 保持原文档字符串、<code>greet.__module__</code> 保持原模块。没加 wraps 的后果是日志里全打 "wrapper"、<code>help()</code> 看不到原文档、调试栈指错函数。wraps 的实现是把原函数的 <code>__name__</code>、<code>__doc__</code>、<code>__dict__</code> 等元属性复制到 wrapper，一行装饰器解决所有元信息丢失问题。<strong>写装饰器的检查清单</strong>：wrapper 用 <code>*args, **kwargs</code> 转发、<code>return result</code> 转发返回值、加 <code>@functools.wraps(func)</code>，三条全对才算合格。</p>
+<p><strong>重试装饰器工厂 <code>retry(max_attempts=3, delay=1.0)</code></strong> 的完整逻辑：for 循环尝试至多 max_attempts 次，每次 try 调用原函数，成功直接 return；失败打印"第 N 次尝试失败"，若还有机会就 <code>time.sleep(delay)</code> 等待后重试，最后一次失败就 <code>raise</code> 重新抛出（不吞异常）。参数选择的经验值：网络请求 max_attempts=3、delay=0.5 到 1 秒（指数退避更专业，<code>delay * 2**attempt</code>）；文件写入 max_attempts=2、delay=0.1。判断何时用重试：操作有瞬时失败可能（网络、锁、临时文件占用），永久性错误（参数不对、权限不足）重试无意义。</p>
+<p><strong>装饰器叠加顺序</strong>：<code>@bold @italic def greet()</code> 是"先 italic 后 bold"，因为 Python 从下往上逐个包装、执行时从外往里进。输出验证：<code>greet("小明")</code> 得 <code>&lt;b&gt;&lt;i&gt;你好，小明！&lt;/i&gt;&lt;/b&gt;</code>，外层是 bold 的标签。排序规律：离函数最近的装饰器最先执行内层逻辑。多个装饰器叠加时注意顺序影响语义（比如"先鉴权后计时"还是"先计时后鉴权"会得到不同的耗时统计），有依赖关系时把基础装饰器放下面。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">46. 三段收尾脚本：装饰器组合、包脚手架、生成器管道（跟读版补全）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>脚本 D：decorator_stack.py（Python 3.12）——装饰器叠加与 wraps 对照</li><li>/usr/bin/env python3</li></ul></div>2
+<p><strong>脚本 D：decorator_stack.py（Python 3.12）——装饰器叠加与 wraps 对照</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# decorator_stack.py —— Python 3.12
+# 运行: python decorator_stack.py
+from functools import wraps
+
+def bold(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return f&quot;&lt;b&gt;{func(*args, **kwargs)}&lt;/b&gt;&quot;
+    return wrapper
+
+def italic(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return f&quot;&lt;i&gt;{func(*args, **kwargs)}&lt;/i&gt;&quot;
+    return wrapper
+
+@bold
+@italic                         # 先 italic 后 bold
+def greet(name: str) -&gt; str:
+    &quot;&quot;&quot;向某人打招呼&quot;&quot;&quot;
+    return f&quot;你好，{name}！&quot;
+
+print(greet(&quot;小明&quot;))             # &lt;b&gt;&lt;i&gt;你好，小明！&lt;/i&gt;&lt;/b&gt;
+print(greet.__name__)           # greet（不是 wrapper，wraps 生效）
+print(greet.__doc__)            # 向某人打招呼
+
+def bad_decorator(func):        # 反例：忘加 wraps
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
+
+@bad_decorator
+def farewell(name: str) -&gt; str:
+    &quot;&quot;&quot;告别语&quot;&quot;&quot;
+    return f&quot;再见，{name}&quot;
+
+print(farewell.__name__)        # wrapper（元信息丢失）
+</code></pre>
+<p>验收标准：greet 输出 <code>&lt;b&gt;&lt;i&gt;...&lt;/i&gt;&lt;/b&gt;</code> 证明叠加顺序、<code>greet.__name__</code> 是 greet 证明 wraps 生效、<code>farewell.__name__</code> 是 wrapper 展示不加 wraps 的后果。对照第 5.3 节和第 44 节。</p>
+<p><strong>脚本 E：scaffold.sh（Python 3.12 项目，bash 一键骨架）</strong></p>
+<pre><code class="language-bash">#!/usr/bin/env bash
+# scaffold.sh —— 用法: bash scaffold.sh my_tool
+# 真实路径: 存到 ~/bin/scaffold.sh
+set -euo pipefail
+NAME=&quot;${1:?用法: bash scaffold.sh 包名}&quot;
+ROOT=&quot;$HOME/projects/$NAME&quot;
+mkdir -p &quot;$ROOT/src/$NAME&quot; &quot;$ROOT/tests&quot;
+cd &quot;$ROOT&quot;
+cat &gt; &quot;src/$NAME/__init__.py&quot; &lt;&lt; EOF
+&quot;&quot;&quot;$NAME 包&quot;&quot;&quot;
+__version__ = &quot;0.1.0&quot;
+EOF
+cat &gt; &quot;src/$NAME/core.py&quot; &lt;&lt; 'EOF'
+def add(a: int, b: int) -&gt; int:
+    &quot;&quot;&quot;两数相加&quot;&quot;&quot;
+    return a + b
+EOF
+cat &gt; &quot;tests/test_core.py&quot; &lt;&lt; 'EOF'
+from my_tool.core import add
+def test_add(): assert add(1, 2) == 3
+EOF
+cat &gt; pyproject.toml &lt;&lt; EOF
+[project]
+name = &quot;$NAME&quot;
+version = &quot;0.1.0&quot;
+requires-python = &quot;&gt;=3.12&quot;
+[build-system]
+requires = [&quot;setuptools&gt;=68&quot;]
+build-backend = &quot;setuptools.build_meta&quot;
+EOF
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install -e &quot;.[dev]&quot; -q 2&gt;/dev/null || pip install -e . -q
+python -m pytest -q 2&gt;/dev/null || echo &quot;pytest 未装，跳过&quot;
+echo &quot;骨架就绪: $ROOT&quot;
+</code></pre>
+<p>验收标准：最后一行"骨架就绪"，src-layout 加 pyproject.toml 加 tests 齐备。对照第 8 节和第 36 节。</p>
+<p><strong>脚本 F：pipeline_lab.py（Python 3.12）——生成器链处理日志</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# pipeline_lab.py —— Python 3.12
+# 运行: python pipeline_lab.py
+import tempfile, os
+
+def read_lines(path: str):                # 生成器：逐行读
+    with open(path, encoding=&quot;utf-8&quot;) as f:
+        for line in f:
+            yield line.rstrip(&quot;\n&quot;)
+
+def filter_errors(lines):                 # 生成器：过滤 ERROR
+    for line in lines:
+        if &quot;ERROR&quot; in line:
+            yield line
+
+def parse_level(lines):                   # 生成器：提取级别
+    for line in lines:
+        yield {&quot;level&quot;: line.split()[1] if len(line.split()) &gt; 1 else &quot;?&quot;,
+               &quot;raw&quot;: line}
+
+with tempfile.NamedTemporaryFile(&quot;w&quot;, suffix=&quot;.log&quot;, delete=False, encoding=&quot;utf-8&quot;) as t:
+    t.write(&quot;2026-10-23 INFO 启动成功\n2026-10-23 ERROR 数据库连接失败\n2026-10-23 ERROR 网络超时\n&quot;)
+    tmp = t.name
+
+pipeline = parse_level(filter_errors(read_lines(tmp)))   # 三层生成器链
+for rec in pipeline:
+    print(&quot;🔴&quot;, rec[&quot;level&quot;], rec[&quot;raw&quot;])
+os.unlink(tmp)
+</code></pre>
+<p>验收标准：打印两条 ERROR 记录、内存占用恒定（生成器链惰性）、临时文件被清理。对照第 38 节。</p>
+<h2 id="47-速查清单">47. 速查清单</h2>2
+<ol>
+<li>函数拆分三判断：重复 2 次、一句话说清、超过 20 行。</li>
+<li>参数顺序固定：位置 → 默认 → <code>*args</code> → <code>**kwargs</code>；默认值别用可变对象。</li>
+<li>装饰器三层结构（工厂/装饰器/wrapper）+ <code>@functools.wraps</code> 保留元信息。</li>
+<li>生成器 <code>yield</code> 省内存，但产出即丢；需复用转 list。</li>
+<li>资源获取释放用 <code>with</code> 或 <code>@contextmanager</code>，别手写 try/finally。</li>
+<li>import 用绝对导入，包结构用 src-layout，配置用 pyproject.toml。</li>
+<li>写函数就写 pytest 用例，工具链 Ruff 加 mypy 本地跑、CI 同款。</li>
+</ol></div></details></div></body></html>

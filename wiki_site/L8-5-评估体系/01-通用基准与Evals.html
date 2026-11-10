@@ -1,0 +1,232 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>01-通用基准与Evals</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 01-通用基准与Evals</span></div><div class="wrap"><h1 id="通用基准与-evals从排行榜分数到可执行产品评估">通用基准与 Evals：从排行榜分数到可执行产品评估</h1>
+<blockquote>
+<p>本篇是本层“通用基准与 Evals”的唯一正文。公共基准用于横向参照，自有 Evals 用于回答具体产品问题；两者不能互相替代。文中模型评测命令均未实跑，确定性评分代码的验证记录见本层融合清单。</p>
+</blockquote>
+<h2 id="why为什么不能只看一个排行榜分数">WHY：为什么不能只看一个排行榜分数</h2>2
+<p>通用模型上线前，团队很容易问：“MMLU 多少分，能不能直接换？”这个问题把三种不同决策混在了一起：</p>
+<ol>
+<li><strong>能力参照</strong>：模型在一组标准化题上的相对表现如何。</li>
+<li><strong>产品适配</strong>：它能否遵守本产品的提示词、输出格式、领域约束和安全边界。</li>
+<li><strong>发布决策</strong>：新版本相对当前版本是否在自己的流量分布上更好，代价是否可接受。</li>
+</ol>
+<p>公共基准主要回答第一问。它不自动包含企业私有任务、真实上下文长度、工具调用链、拒答策略和用户偏好的分布。即使两个模型的总分相同，也可能一个擅长知识选择题、另一个更擅长按约束生成；把它们视为可互换，会把回归推迟到上线后才发现。</p>
+<p>不做可执行 Evals，还会出现四类反复发生的问题：</p>
+<ul>
+<li><strong>换提示词就换结论</strong>：shot 数、选项排列、答案提取规则变了，分数差异却全归因于模型。</li>
+<li><strong>平均分掩盖关键人群</strong>：总体上涨，低资源语言或高风险场景却大幅退化。</li>
+<li><strong>参考答案过窄</strong>：把字符串不完全一致的正确答案判错，或把流畅但错误的答案判对。</li>
+<li><strong>测试行为代替线上行为</strong>：模型识别出“这是测试”后更谨慎，离线分数无法代表日常请求。</li>
+</ul>
+<p>Hamel Hussain 的评估分级把确定性检查、人工/模型评估、线上 A/B 放在不同层级，价值就在于先便宜地排除明确错误，再把昂贵评估用于真正需要判断的地方，最后回到真实用户结果，而不是期待某一个分数包办所有决策。</p>
+<h2 id="what-whyt基准evals-与最佳答案的边界">WHAT / WHYT：基准、Evals 与“最佳答案”的边界</h2>2
+<h3 id="1-mmlucmmluc-eval-分别是什么">1. MMLU、CMMLU、C-Eval 分别是什么</h3>3
+<table>
+<thead>
+<tr>
+<th>基准</th>
+<th>核心形态</th>
+<th>主要用途</th>
+<th>不能直接推出</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MMLU（arXiv:2009.03300）</td>
+<td>57 个学科的多项选择题</td>
+<td>比较英文世界知识与推理的广覆盖表现</td>
+<td>中文业务、开放式生成、工具调用能力</td>
+</tr>
+<tr>
+<td>CMMLU（arXiv:2306.09213）</td>
+<td>67 个中文学科主题的多项选择题</td>
+<td>检查中文知识与本土语境覆盖</td>
+<td>企业私有知识检索是否正确</td>
+</tr>
+<tr>
+<td>C-Eval（arXiv:2305.08322）</td>
+<td>面向中文模型的分学科选择题套件</td>
+<td>中文知识与推理的分层比较</td>
+<td>任意中文产品任务上的用户满意度</td>
+</tr>
+</tbody>
+</table>
+<p>比较时必须同时固定：模型与解码参数、提示模板、few-shot 数量、选项顺序、答案提取方式、题目子集、学科聚合方式及实现版本。只写“跑了 MMLU”不足以复现。macro 是先算各学科再平均，micro 是把题目放到同一分母；学科题量不均时，两者回答的问题不同。</p>
+<p>公共基准还可能被训练数据污染，且选择题上的相对排序不保证开放生成上的排序。因此它适合作为<strong>候选模型的初筛和回归哨兵</strong>，不适合作为唯一发布门禁。</p>
+<h3 id="2-自有-evals-是什么">2. 自有 Evals 是什么</h3>3
+<p>一个可执行的 Eval 至少包含六件东西：</p>
+<pre><code class="language-text">任务卡 + 版本化数据 + 固定运行协议 + 明确评分器 + 失败状态 + 分桶报告
+</code></pre>
+<ul>
+<li><strong>任务卡</strong>：用户是谁、输入是什么、什么结果算好、允许什么拒答。</li>
+<li><strong>数据</strong>：覆盖高频、长尾、对抗、边界与历史 badcase，保留来源和隐私级别。</li>
+<li><strong>运行协议</strong>：模型、提示词、上下文、工具、温度、随机种子、并发和超时。</li>
+<li><strong>评分器</strong>：确定性断言、人工 rubric 或模型裁判；不能把解析异常当普通低分。</li>
+<li><strong>失败状态</strong>：<code>scored / invalid_output / timeout / judge_error / not_applicable</code> 分开记录。</li>
+<li><strong>报告</strong>：除均值外，按业务、语言、难度、输入长度和风险级别分桶。</li>
+</ul>
+<p>“最佳答案”也不等于唯一字符串。封闭题可以有唯一正确选项；开放题的 reference 应包含必须命中事实、可接受变体、禁止事实和需要保留的不确定性。字符串完全匹配适合选项 ID，不适合评价自然语言答案的全部质量。</p>
+<h3 id="3-论文怎么说我们怎么用">3. 论文怎么说，我们怎么用</h3>3
+<p><strong>评分尺度敏感性（arXiv:2610.22187）</strong>。本地摘要报告：改变评分尺度设计会使归一化分平均移动约 0.10，约 20% 的文本类别发生变化，使用 rubric 并没有消除这种敏感性。这里的证据边界是本地摘要，不是全文复现实验。</p>
+<p>我们的用法：</p>
+<ul>
+<li>在 manifest 中固定裁判模型、提示、rubric、尺度端点和归一化公式，禁止候选版与基线各用一把尺子。</li>
+<li>裁判上线前用同一批评分样本做跨尺度稳健性检查；结论翻转的样本送人工，不把“多了 rubric”当成偏差已经消失。</li>
+<li>报告保留原始类别和尺度，不只保存归一化后的一个小数。</li>
+</ul>
+<p><strong>评估意识（arXiv:2610.22333）</strong>。本地摘要报告：测试提示会提高有害请求拒答，Indic 语言平均增加 14.4 个百分点，良性请求拒答也从 6.9% 增至 11.3%。这说明“更安全”可能伴随“更爱误拒”，而且测试场景行为未必等于线上行为。</p>
+<p>我们的用法：安全 Evals 必须同时含有害与良性对照，并按语言分桶；发布结论再结合脱敏后的生产采样，不能只用带明显测试标记的请求推断日常表现。</p>
+<h2 id="how建立同尺子可复跑的通用评估">HOW：建立同尺子、可复跑的通用评估</h2>2
+<h3 id="第一步先写任务卡再选指标">第一步：先写任务卡，再选指标</h3>3
+<p>每张任务卡至少回答：</p>
+<pre><code class="language-yaml">task_id: product_grounded_qa
+user_goal: 根据给定材料回答并保留不确定性
+input_schema: [question, context]
+required_behavior: [结论正确, 不添加材料外事实, 格式可解析]
+acceptable_refusal: 材料不足时明确说明缺少什么
+blocking_failures: [编造关键事实, 泄漏受限内容]
+slice_keys: [language, domain, difficulty, context_length]
+reference_policy: 必需事实 + 可接受变体 + 禁止事实
+</code></pre>
+<p>选择题优先用确定性答案提取；开放题把格式、事实完整性和偏好评价拆开。不要把所有维度塞进一个不可解释的总分。</p>
+<h3 id="第二步保存逐题输入输出和评分状态">第二步：保存逐题输入、输出和评分状态</h3>3
+<p>建议一行一个 JSON 对象：</p>
+<pre><code class="language-json">{&quot;id&quot;:&quot;zh-law-001&quot;,&quot;slice&quot;:&quot;zh/legal&quot;,&quot;input&quot;:{&quot;question&quot;:&quot;……&quot;},&quot;reference&quot;:{&quot;required&quot;:[&quot;要件A&quot;],&quot;forbidden&quot;:[&quot;虚构条款B&quot;]},&quot;candidate_output&quot;:&quot;……&quot;,&quot;status&quot;:&quot;scored&quot;,&quot;score&quot;:1.0,&quot;protocol_id&quot;:&quot;mcq-v3&quot;}
+</code></pre>
+<p><code>status != scored</code> 的样本不能悄悄从分母删除，也不能默认记 0 分或满分。报告同时给出覆盖率、失败率和分数；裁判故障时整批结论应是“评估无效”，而非“候选更差”。</p>
+<h3 id="第三步用确定性代码处理封闭答案与有限分数">第三步：用确定性代码处理封闭答案与有限分数</h3>3
+<pre><code class="language-python">import math
+import re
+
+
+def extract_choice(text):
+    &quot;&quot;&quot;只接受唯一的 A-D 选项；歧义与空输出都返回 None。&quot;&quot;&quot;
+    matches = re.findall(r&quot;(?&lt;![A-Z])([A-D])(?![A-Z])&quot;, text.strip().upper())
+    return matches[0] if len(set(matches)) == 1 else None
+
+
+def score_mcq(records):
+    rows = []
+    for row in records:
+        predicted = extract_choice(row[&quot;output&quot;])
+        valid = predicted is not None
+        rows.append({
+            &quot;id&quot;: row[&quot;id&quot;],
+            &quot;status&quot;: &quot;scored&quot; if valid else &quot;invalid_output&quot;,
+            &quot;score&quot;: float(predicted == row[&quot;gold&quot;]) if valid else math.nan,
+        })
+    scored = [r[&quot;score&quot;] for r in rows if r[&quot;status&quot;] == &quot;scored&quot;]
+    return {
+        &quot;rows&quot;: rows,
+        &quot;accuracy&quot;: sum(scored) / len(scored) if scored else math.nan,
+        &quot;coverage&quot;: len(scored) / len(rows) if rows else 0.0,
+    }
+</code></pre>
+<p>这里的 <code>coverage</code> 用全部输入作分母，准确率只覆盖可评分样本，两者必须一起报告。真实数据还要按 <code>slice</code> 分组，不能只用总覆盖率。</p>
+<h3 id="第四步实跑公共基准时锁定协议">第四步：实跑公共基准时锁定协议</h3>3
+<p>先确认当前 harness 是否包含目标任务名：</p>
+<pre><code class="language-bash"># 未实跑：需要本地模型与已安装的 lm-evaluation-harness；不下载或上传私有数据。
+python -m lm_eval --tasks list | grep -E '^(mmlu|cmmlu|ceval)'
+</code></pre>
+<p>MMLU 示例：</p>
+<pre><code class="language-bash"># 未实跑：路径、设备和任务版本必须替换为实际环境值。
+python -m lm_eval \
+  --model hf \
+  --model_args pretrained=/path/to/local/model \
+  --tasks mmlu \
+  --device cuda:0 \
+  --batch_size auto \
+  --output_path ./eval-artifacts/mmlu-candidate
+</code></pre>
+<p>CMMLU/C-Eval 不应凭印象套用旧任务名或旧命令；先用当前版本的任务清单与说明确认，再运行。每次保存命令、代码提交、模型修订、提示模板、shot 数和完整输出。上述命令没有在本次文档融合中执行，不产生任何新模型分数。</p>
+<h3 id="第五步裁判校准与发布解释">第五步：裁判校准与发布解释</h3>3
+<ol>
+<li>用人工双标的一批正例、负例和边界例校准裁判，记录一致率与分歧类型。</li>
+<li>固定主评分尺度，另选一种合理尺度做敏感性分析；若发布结论翻转，标记为不确定并人工复核。</li>
+<li>对有害/良性、语言、领域、难度分别给出 delta；总体均分不能覆盖关键桶退化。</li>
+<li>报告“公共基准变化 + 自有任务变化 + 线上待验证项”，不要合并成没有口径的总排名。</li>
+</ol>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>通用基准在本库的真实替代：小样本冒烟矩阵（<code>/home/wuyafang/.hermes/scripts/eval_smoke.py</code> L97 <code>TEST_CASES</code>，grep 可验）</strong>：<br />
+<code>python
+  TEST_CASES = [
+      {
+          "name": "chinese_qa",
+          "category": "中文问答",
+          "prompt": "用一句话解释什么是RAG（检索增强生成），并说明它解决了什么问题。",
+          "expected_keywords": ["检索", "生成", "知识"],
+      },
+      {
+          "name": "code_gen",
+          "category": "代码生成",
+          "prompt": "用Python写一个函数：输入一个列表，返回其中所有偶数的和。只给代码，不要解释。",
+          "expected_keywords": ["def", "return", "for"],
+      },</code><br />
+  判分规则写在上方注释里：<code>每个用例：name / category / prompt / expected_keywords（全部命中才算通过）</code>——<strong>便宜、确定、可天天跑</strong>；代价是测不出"表述不同但正确"。MMLU/C-Eval 类基准本库暂无。</li>
+<li><strong>"跑基准先钉环境"的纪律（<code>/home/wuyafang/.hermes/scripts/config-drift-check.py</code> 的 <code>--pairs</code>）</strong>：<code>exit 0=无漂移, 1=有漂移, 2=用法错误</code>——基准分数变化前先排除"模型/配置被换了"，否则分数不可比。</li>
+<li><strong>和课件讲法的差异</strong>：课件用 <code>lm-evaluation-harness</code>/<code>lighteval</code> 跑 MMLU/CMMLU/C-Eval，带 <code>--num_fewshot</code>、<code>apply_chat_template</code>、<code>trust_remote_code</code> 等参数；本库<strong>无本地大模型、无 harness、无 few-shot 模板</strong>。两者用途不同：基准管"模型能力水位"，冒烟管"今天这条链路还通不通"。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<h3 id="课件用于建立基准分数之外还要看产品任务的问题框架">课件：用于建立“基准分数之外还要看产品任务”的问题框架</h3>3
+<ul>
+<li>[课1] <a href="../../raw/courseware/RAG%E7%AF%87/_merged/06-RAG%E8%AF%84%E4%BC%B0%E4%B8%8E%E5%BA%94%E7%94%A8%E5%B9%B3%E5%8F%B0-%E5%90%88%E5%B9%B6%E7%89%88.md">RAG 评估与应用平台合并课件</a>：课件把检索与响应质量分开讨论，本篇据此把“标准化能力分”和“具体任务是否满足要求”分开，不沿用其中历史 API 作为已验证代码。</li>
+<li>[课2] <a href="../../raw/courseware/RAG%E7%AF%87/day10__%E8%AF%BE%E4%BB%B6__05-RAG%E8%AF%84%E4%BC%B0%E4%B8%8E%E5%BA%94%E7%94%A8%E6%A1%86%E6%9E%B6.md">RAG 评估与应用框架</a>：用于说明评估输入、指标和工具只是评估系统的一部分，还需数据集与运行协议。</li>
+</ul>
+<h3 id="书籍只使用目录简介和热门划线不声称读过全文">书籍：只使用目录、简介和热门划线，不声称读过全文</h3>3
+<ul>
+<li>[书1] <a href="../../raw/weread/AI%E5%B7%A5%E7%A8%8B%EF%BC%9A%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%E5%AE%9E%E6%88%98.md">《AI工程：大模型应用开发实战》本地目录与热门划线</a>：第 3 章“评估方法论”、第 4 章“评估 AI 系统”的目录支撑本篇任务卡—评分器—反馈闭环结构；热门划线“评估是AI工程中最困难的挑战之一（甚至没有‘之一’）”用于提醒不要用单一榜单代替产品评估。</li>
+<li>[书2] <a href="../../raw/weread/%E6%8C%81%E7%BB%AD%E4%BA%A4%E4%BB%982.0%EF%BC%9A%E4%B8%9A%E5%8A%A1%E5%BC%95%E9%A2%86%E7%9A%84DevOps%E7%B2%BE%E8%A6%81%EF%BC%88%E5%A2%9E%E8%AE%A2%E6%9C%AC%EF%BC%89.md">《持续交付2.0》本地目录与热门划线</a>：目录中的质量内建与快速反馈主题用于把 Evals 做成持续执行的工程资产；“指标变成目标后不再是好指标”的划线用于警示唯分数优化。</li>
+</ul>
+<h3 id="业内与论文用于标准协议分级方法和裁判校准">业内与论文：用于标准协议、分级方法和裁判校准</h3>3
+<ul>
+<li>[业1] MMLU：arXiv:2009.03300；CMMLU：arXiv:2306.09213；C-Eval：arXiv:2305.08322。论文用于界定基准任务与适用范围，不提供本产品的新实测分。</li>
+<li>[业2] <a href="https://github.com/EleutherAI/lm-evaluation-harness">EleutherAI lm-evaluation-harness</a>（GET 200，2026-11-04）：用于可复跑命令入口；具体任务名仍以本地安装版本为准。</li>
+<li>[业3] <a href="https://github.com/openai/evals">OpenAI Evals</a>（GET 200，2026-11-04）：用于“数据、运行与评分应成为可版本化资产”的框架参照；本篇未运行该框架。</li>
+<li>[业4] <a href="https://hamel.dev/blog/posts/evals/index.html">Hamel Hussain：Your AI Product Needs Evals</a>（GET 200，2026-11-04）：用于确定性检查、人工/模型评估和线上实验的分层闭环。</li>
+<li>[业5] 评分尺度敏感性：arXiv:2610.22187；评估意识：arXiv:2610.22333。只阅读本地摘要，已分别落入尺度固定、敏感性检查、良性对照和生产采样步骤。</li>
+</ul></div></body></html>

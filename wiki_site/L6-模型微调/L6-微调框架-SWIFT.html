@@ -1,0 +1,867 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L6-微调框架-SWIFT</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L6-微调框架-SWIFT</span></div><div class="wrap"><h1 id="modelscope-swift-微调框架实操">ModelScope SWIFT 微调框架实操</h1>
+<p>本文以 <strong>ms-swift 3.5.3</strong> 为固定基线，使用该版本官方文档、依赖声明和训练脚本核对参数；这不是对当前最新版接口的承诺。示例面向 Linux、Python 3.10 和 NVIDIA CUDA 环境，默认从 ModelScope 下载公开模型。先用小模型打通数据、保存和推理，再扩大模型及数据规模。本文命令是供读者在训练机执行的操作说明，编写本文时没有实际启动 GPU 训练，也没有据此宣称训练效果。</p>
+<p><strong>版本纪律</strong>：正文主要使用三代接口。用户经常搜索的 <code>--sft_type lora/qlora</code>、<code>--quantization_bit 4</code> 属于需要辨析的旧教程用语：二代可以使用 <code>--sft_type lora</code>，但核对的二代和三代接口都没有 <code>qlora</code> 这个训练类型枚举；QLoRA 通过 LoRA 加低位量化实现。不要直接复制混合版本的参数。涉及安装、数据生成和训练的命令应按所在小节顺序执行；不同训练方案互为替代，不需要全部运行。</p>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">1. SWIFT 是什么，适合什么任务</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>它与苹果的 Swift 编程语言无关，安装前应确认命令来自当前虚拟环境</li><li>在本文固定的 v3.5.3 README 中，官方声明支持 500 多个文本大模型和 200 多个多模态大模型</li><li>这属于该版本的模型适配统计，不能解读为每个模型都支持每一种训练、量化和推理后端</li></ul></div>2
+<p>SWIFT 全称为 <strong>Scalable lightWeight Infrastructure for Fine-Tuning</strong>，是 ModelScope 社区的模型训练与应用框架；<code>modelscope/ms-swift</code> 是官方代码仓库，<code>ms-swift</code> 是安装时使用的 Python 发行包名，<code>swift</code> 是安装后出现的命令行入口，也是 Python 导入名称。它与苹果的 Swift 编程语言无关，安装前应确认命令来自当前虚拟环境。</p>
+<p>在本文固定的 <strong>v3.5.3 README</strong> 中，官方声明支持 <strong>500 多个文本大模型和 200 多个多模态大模型</strong>。这属于该版本的模型适配统计，不能解读为每个模型都支持每一种训练、量化和推理后端。多模态覆盖图像、视频、音频，以及视觉问答、图像描述、OCR 和定位任务。选模型时，需要同时确认训练模板、模型专属依赖、视觉模块冻结策略和部署引擎支持。</p>
+<table>
+<thead>
+<tr>
+<th>比较维度</th>
+<th>ModelScope SWIFT</th>
+<th>LLaMA-Factory</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>典型入口</td>
+<td><code>swift sft/rlhf/infer/deploy/eval</code>，同一套工具衔接训练到部署</td>
+<td><code>llamafactory-cli train</code> 和 WebUI，配置驱动的训练流程成熟</td>
+</tr>
+<tr>
+<td>国内模型获取</td>
+<td>默认接入 ModelScope，也可切换 Hugging Face</td>
+<td>支持多种模型来源，需要按其版本配置下载渠道</td>
+</tr>
+<tr>
+<td>数据组织</td>
+<td>本地路径直传、自动预处理、外部注册文件</td>
+<td>常见方式为数据文件配合 <code>dataset_info.json</code> 注册</td>
+</tr>
+<tr>
+<td>多模态实操</td>
+<td>统一 messages 与 images/videos/audios，模型专属模板负责编码</td>
+<td>同样支持多模态，格式和模型能力按其文档核对</td>
+</tr>
+<tr>
+<td>适合团队</td>
+<td>希望用 CLI 串联训练、评测、推理服务，并扩展预处理逻辑</td>
+<td>已有配置模板、偏好可视化训练和统一实验管理</td>
+</tr>
+</tbody>
+</table>
+<p>两者都能做全参、LoRA 和偏好对齐。真正影响选择的是团队已有脚本、目标模型适配程度、数据预处理成本和部署路径，不应仅用支持模型总数作决定。下面通过包元数据确认装到的是哪个发行包及导入路径。</p>
+<pre><code class="language-bash"># 安装后运行：确认发行包版本和 Python 实际加载位置。
+python - &lt;&lt;'PY'
+from importlib.metadata import version
+import swift
+print('ms-swift:', version('ms-swift'))
+print('swift module:', swift.__file__)
+PY
+</code></pre>
+<h2 id="2-安装与魔搭模型下载">2. 安装与魔搭模型下载</h2>2
+<p>建议为本文单独建立环境。PyTorch 的 CUDA wheel 必须与显卡驱动支持范围相容，系统安装的 CUDA Toolkit、驱动报告的 CUDA 版本和 PyTorch 编译时 CUDA 版本不是同一个概念。下面采用 CUDA 12.1 的 PyTorch wheel，适用于驱动支持该运行时的机器；如使用其他驱动环境，应先按 PyTorch 官方安装选择器调整这一行。</p>
+<pre><code class="language-bash"># 基线环境：不要在承载其他训练项目的环境中直接覆盖依赖。
+python3.10 -m venv .venv-swift353
+export SWIFT_TRAIN_ENV=&quot;$(pwd)/.venv-swift353&quot;
+source &quot;$SWIFT_TRAIN_ENV/bin/activate&quot;
+python -m pip install --upgrade pip
+python -m pip install torch==2.5.1 torchvision==0.20.1 \
+  --index-url https://download.pytorch.org/whl/cu121
+# pip install ms-swift 是官方安装入口，这里固定版本及关键依赖。
+python -m pip install 'ms-swift==3.5.3' 'transformers==4.51.3' \
+  'peft==0.15.2' 'trl==0.18.2'
+python -m pip check
+</code></pre>
+<p>源码安装是另一种选择，适合研究数据注册、模板和模型适配。下面只下载公开发行源码压缩包，不涉及 Git 命令。源码环境和上面的包安装环境二选一；开发者改动源码后，需要保留版本标记及依赖清单，否则后续很难复现实验。</p>
+<pre><code class="language-bash"># 从公开发行 tag 获取源码，并以可编辑方式安装。
+curl -fL https://github.com/modelscope/ms-swift/archive/refs/tags/v3.5.3.tar.gz \
+  -o ms-swift-v3.5.3.tar.gz
+tar -xzf ms-swift-v3.5.3.tar.gz
+cd ms-swift-3.5.3
+python -m pip install -e .
+python -m pip check
+# 后续示例均以自己的实验根目录作为工作目录。
+cd ..
+mkdir -p swift-lab/data swift-lab/models swift-lab/output
+cd swift-lab
+</code></pre>
+<p>如果采用包安装方式，执行下面两行进入实验根目录；源码安装用户已经进入该目录，无需重复执行。后文所有相对路径均以此为基准，并在同一 Shell 会话中保留环境变量。</p>
+<pre><code class="language-bash"># 仅包安装用户执行一次；源码安装用户跳过。
+mkdir -p swift-lab
+cd swift-lab
+</code></pre>
+<p>下面用 ModelScope 的真实 Python API 下载 Qwen2.5 小模型；<code>local_dir</code> 是模型文件落地位置，命令行随后也能直接使用该路径。训练数据、视觉文件和模型权重宜放在空间充足的本地盘，避免下载完成后训练阶段才遇到磁盘不足。</p>
+<pre><code class="language-python"># 在 swift-lab 目录执行本段；包安装用户也可由本段创建工作子目录。
+from pathlib import Path
+from modelscope import snapshot_download
+
+for directory in ('data', 'models', 'output'):
+    Path(directory).mkdir(exist_ok=True)
+model_path = snapshot_download(
+    'Qwen/Qwen2.5-0.5B-Instruct',
+    local_dir='models/Qwen2.5-0.5B-Instruct',
+)
+print(model_path)
+</code></pre>
+<p>默认 ModelScope 下载无需加 Hugging Face 参数；明确写 <code>--use_hf false</code> 有利于检查脚本来源。若必须复现特定权重，应同时锁定模型仓库的 revision，并在实验记录中保存版本，不能只固定训练框架版本。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">3. 环境自检与参数入口</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>先检查命令路径，再检查包版本</li><li>v3.5.3 顶层 CLI 没有可靠的 「swift --version」 路由，可能报 「KeyError」；这不等价于安装损坏</li><li>下面保留常见版本检查命令，并使用包元数据作兼容回退</li></ul></div>2
+<p>先检查命令路径，再检查包版本。<strong>v3.5.3 顶层 CLI 没有可靠的 <code>swift --version</code> 路由</strong>，可能报 <code>KeyError</code>；这不等价于安装损坏。下面保留常见版本检查命令，并使用包元数据作兼容回退。<code>swift sft --help</code> 才是核对训练参数的主要入口，建议把它与对应 tag 文档一起阅读。</p>
+<pre><code class="language-bash"># type 可发现系统中其他同名 swift；失败时使用包元数据确认版本。
+type -a swift
+if swift --version; then
+  :
+else
+  python -c &quot;from importlib.metadata import version; print(version('ms-swift'))&quot;
+fi
+nvidia-smi
+python -m pip check
+# 全量帮助及常见参数速览。
+swift sft --help
+swift sft --help | rg -- '--model|--model_type|--dataset|--train_type|--max_length|--deepspeed'
+</code></pre>
+<p>CUDA 自检除了检查是否可见，还应执行一次小张量运算。只有设备枚举成功但首次矩阵乘法失败，仍然说明环境没有准备好。BF16 要求硬件支持；以下主训练示例采用 BF16，在不支持的卡上需要重新选择精度和框架支持的训练策略，不应只把所有参数盲改为 FP16，尤其是全参训练。</p>
+<pre><code class="language-python">import torch
+print('torch:', torch.__version__)
+print('wheel CUDA:', torch.version.cuda)
+print('CUDA available:', torch.cuda.is_available())
+assert torch.cuda.is_available(), '本示例需要可用 NVIDIA CUDA 设备'
+print('GPU:', torch.cuda.get_device_name(0))
+print('BF16 supported:', torch.cuda.is_bf16_supported())
+x = torch.randn(256, 256, device='cuda')
+print('matmul mean:', (x @ x).mean().item())
+</code></pre>
+<p>常用参数的关系是：<code>--model</code> 指向权重，<code>--model_type</code> 指向框架适配类型，<code>--dataset</code> 指向数据，<code>--train_type</code> 决定更新哪些参数。<code>--max_length</code> 约束编码后序列长度，不能用它代替图像分辨率限制。有效批量约等于单卡微批量乘梯度累积步数再乘数据并行进程数；扩大卡数时，需要重新核对学习率和有效批量。</p>
+<h2 id="4-数据格式路径直传与自定义注册">4. 数据格式、路径直传与自定义注册</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">4.1 messages 多轮与 query/response</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>推荐把业务数据统一转换为 messages</li><li>早期 3.0 发行说明曾写过不再支持该格式，但本文核对的 3.5.3 自定义数据文档与 ResponsePreprocessor 已明确支持，因此应按具体版本确认，不能仅根据迁移公告下结论</li><li>每条记录是一段完整对话，角色按照 system、user、assistant 表示，不要提前手工拼接模型的聊天模板特殊标记</li></ul></div>3
+<p>推荐把业务数据统一转换为 messages。每条记录是一段完整对话，角色按照 system、user、assistant 表示，不要提前手工拼接模型的聊天模板特殊标记。训练样本通常应以 assistant 回复结束；样本中已经包含 system 时，它优先于训练命令中的默认系统提示。JSONL 每行必须是一条完整 JSON，不能把漂亮打印后的多行对象当作一行样本。</p>
+<pre><code class="language-jsonl">{&quot;messages&quot;:[{&quot;role&quot;:&quot;system&quot;,&quot;content&quot;:&quot;你是运维知识助手，回答应简洁且可操作。&quot;},{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;训练前要检查什么？&quot;},{&quot;role&quot;:&quot;assistant&quot;,&quot;content&quot;:&quot;先检查显卡驱动、PyTorch CUDA 可用性、模型路径和数据格式。&quot;},{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;数据检查重点是什么？&quot;},{&quot;role&quot;:&quot;assistant&quot;,&quot;content&quot;:&quot;检查角色顺序、空回复、样本长度和验证集是否与训练集重复。&quot;}]}
+</code></pre>
+<p>query/response 是另一种输入格式，history 保存前序轮次，框架预处理后转为 messages。早期 3.0 发行说明曾写过不再支持该格式，但本文核对的 <strong>3.5.3 自定义数据文档与 ResponsePreprocessor 已明确支持</strong>，因此应按具体版本确认，不能仅根据迁移公告下结论。</p>
+<pre><code class="language-jsonl">{&quot;system&quot;:&quot;你是运维知识助手。&quot;,&quot;history&quot;:[[&quot;什么是 LoRA？&quot;,&quot;LoRA 通过训练低秩增量矩阵适配基础模型。&quot;]],&quot;query&quot;:&quot;它会修改全部基础权重吗？&quot;,&quot;response&quot;:&quot;通常不会，基础权重保持冻结，主要更新适配器参数。&quot;}
+</code></pre>
+<p>下面生成一个真正可加载的小数据集，后续命令直接引用。它只用于管线冒烟，重复扩充的样本不能证明模型学到知识，也不适合用于正式效果评估。正式项目应准备独立来源的验证集，按文档、用户或时间切分，避免同一问题的近似改写跨越训练与验证两侧。</p>
+<pre><code class="language-bash"># 创建后续命令使用的数据文件；共 40 条，用于验证加载和保存链路。
+mkdir -p data output models
+python - &lt;&lt;'PY'
+import json
+from pathlib import Path
+pairs = [
+    ('什么是梯度累积？', '梯度累积在多次微批次反向传播后执行一次优化器更新。'),
+    ('验证集有什么作用？', '验证集用于监控未参与训练样本上的表现和过拟合。'),
+    ('LoRA 的 rank 是什么？', 'rank 是低秩矩阵的秩，决定适配器容量并影响可训练参数量。'),
+    ('全参微调保存什么？', '全参微调通常保存完整模型权重、配置及分词器相关文件。'),
+]
+with Path('data/train.jsonl').open('w', encoding='utf-8') as f:
+    for _ in range(10):
+        for question, answer in pairs:
+            row = {'messages': [{'role': 'user', 'content': question},
+                                {'role': 'assistant', 'content': answer}]}
+            f.write(json.dumps(row, ensure_ascii=False) + '\n')
+PY
+</code></pre>
+<h3 id="42-datasetjson-注册与本地文件直传">4.2 dataset.json 注册与本地文件直传</h3>3
+<p>本地文件可以直接通过 <code>--dataset data/train.jsonl</code> 加载，并不要求注册。需要复用别名或转换列名时，可以使用外部元数据文件。下面内容保存为实验目录的 <code>dataset.json</code>；这个名字是人为选择的文件名，真正让它生效的是 <code>--custom_dataset_info</code> 参数，SWIFT 不会自动扫描任意一个叫 dataset.json 的文件。</p>
+<pre><code class="language-json">[
+  {
+    &quot;dataset_name&quot;: &quot;local_ops&quot;,
+    &quot;dataset_path&quot;: &quot;data/train.jsonl&quot;
+  }
+]
+</code></pre>
+<p><code>dataset_name</code> 定义本地别名，<code>dataset_path</code> 指向实际数据文件，相对路径以启动命令时的工作目录为准。跨机器运行建议改用绝对路径。以下是实际可训练的别名加载命令；若不需要注册，删掉 <code>--custom_dataset_info dataset.json</code> 并把 <code>--dataset</code> 改成文件路径即可。</p>
+<pre><code class="language-bash"># 需要先按上面的 JSON 内容创建 dataset.json；本段执行一次最小训练。
+CUDA_VISIBLE_DEVICES=0 swift sft \
+  --model models/Qwen2.5-0.5B-Instruct \
+  --custom_dataset_info dataset.json \
+  --dataset local_ops \
+  --train_type lora --torch_dtype bfloat16 \
+  --max_steps 2 --max_length 512 \
+  --per_device_train_batch_size 1 \
+  --split_dataset_ratio 0 --eval_strategy no \
+  --output_dir output/data-smoke
+</code></pre>
+<p>更复杂的字段变换可调用真实注册 API。把下面代码保存为实验目录的 <code>register_ops.py</code>，再用 <code>--custom_register_path register_ops.py --dataset registered_ops</code> 加到完整训练命令中。注册代码只描述数据集，不应在导入时启动训练或下载大型模型，否则每个分布式进程都可能重复执行副作用。这里使用自动预处理器，兼容本文的 messages 与 query/response；需要自定义字段转换时，再选择对应专用预处理器。</p>
+<pre><code class="language-python"># register_ops.py 的推荐完整内容：适用于本文生成的 messages 数据。
+from pathlib import Path
+from swift.llm import AutoPreprocessor, DatasetMeta, register_dataset
+
+register_dataset(DatasetMeta(
+    dataset_name='registered_ops',
+    dataset_path=str(Path('data/train.jsonl').resolve()),
+    preprocess_func=AutoPreprocessor(),
+))
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.3 图像对话数据</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>多模态数据在 messages 外增加 images 列表，文本中的 「 」 标记与图像顺序对应</li><li>下面的路径由第八节的数据生成代码真正创建；不要只保存 JSON 而忘记分发图像文件</li><li>训练机上的路径必须能被所有训练进程读取，远程图像 URL 则会引入下载失败和资源变化风险，本地文件通常更易复现</li></ul></div>3
+<p>多模态数据在 messages 外增加 images 列表，文本中的 <code>&lt;image&gt;</code> 标记与图像顺序对应。下面的路径由第八节的数据生成代码真正创建；不要只保存 JSON 而忘记分发图像文件。训练机上的路径必须能被所有训练进程读取，远程图像 URL 则会引入下载失败和资源变化风险，本地文件通常更易复现。</p>
+<pre><code class="language-jsonl">{&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;&lt;image&gt;画面中的色块是什么颜色？&quot;},{&quot;role&quot;:&quot;assistant&quot;,&quot;content&quot;:&quot;画面中有一个红色色块。&quot;}],&quot;images&quot;:[&quot;data/images/red.png&quot;]}
+</code></pre>
+<h2 id="5-sft-全参微调与-deepspeed-zero-3">5. SFT 全参微调与 DeepSpeed ZeRO-3</h2>2
+<p>全参微调会更新模型的全部可训练权重，适合数据较充足、领域分布变化明显且算力预算允许的任务。下面选择小模型，方便先检查端到端流程。<code>--model_type qwen2_5</code> 显式指定模型适配类别；三代通常能从模型配置自动推断，常规模型可省略此参数。不要把二代的具体模型别名复制为三代的 model_type。</p>
+<pre><code class="language-bash"># 小模型单卡全参基线；默认从 ModelScope 获取模型。
+CUDA_VISIBLE_DEVICES=0 swift sft \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --model_type qwen2_5 --use_hf false \
+  --train_type full --dataset data/train.jsonl \
+  --torch_dtype bfloat16 --num_train_epochs 1 \
+  --per_device_train_batch_size 1 \
+  --gradient_accumulation_steps 4 \
+  --learning_rate 1e-5 --max_length 1024 \
+  --gradient_checkpointing true \
+  --split_dataset_ratio 0 --eval_strategy no \
+  --save_strategy epoch --logging_steps 1 \
+  --output_dir output/full --add_version false
+</code></pre>
+<p><code>--num_train_epochs</code> 是遍历训练集的轮数，<code>--learning_rate</code> 是优化器步长，<code>--gradient_checkpointing</code> 通过重算激活降低显存。保存策略使用 epoch，适合本文小样本，避免设置很大的 save_steps 后误以为没有产物。实际业务中应设验证集、验证频率和保存上限；当前明确关闭验证是为了避免把重复的冒烟样本当成效果证据。</p>
+<p>DeepSpeed ZeRO-3 会分片优化器状态、梯度和模型参数。它缓解单卡状态占用，但也增加通信、CPU 内存及保存过程的开销。以下内容保存为实验目录的 <code>zero3.json</code>，是 DeepSpeed 真正读取的 JSON 配置；不要随意把 JSON 改为 YAML 后仍传给 DeepSpeed。</p>
+<pre><code class="language-json">{
+  &quot;bf16&quot;: {&quot;enabled&quot;: &quot;auto&quot;},
+  &quot;train_micro_batch_size_per_gpu&quot;: &quot;auto&quot;,
+  &quot;gradient_accumulation_steps&quot;: &quot;auto&quot;,
+  &quot;train_batch_size&quot;: &quot;auto&quot;,
+  &quot;zero_optimization&quot;: {
+    &quot;stage&quot;: 3,
+    &quot;overlap_comm&quot;: true,
+    &quot;contiguous_gradients&quot;: true,
+    &quot;stage3_gather_16bit_weights_on_model_save&quot;: true
+  }
+}
+</code></pre>
+<p>配置说明：<code>stage</code> 选择第三阶段分片，<code>overlap_comm</code> 尝试重叠通信与计算，<code>contiguous_gradients</code> 减少梯度碎片，<code>stage3_gather_16bit_weights_on_model_save</code> 允许保存时收集可独立加载的权重；三个批量相关的 auto 由训练参数推导。保存时的权重聚合也可能产生额外显存峰值，需要为它预留空间。</p>
+<pre><code class="language-bash"># 两卡全参示例：先安装与当前 torch/CUDA 相容的 DeepSpeed。
+python -m pip install 'deepspeed==0.16.9'
+CUDA_VISIBLE_DEVICES=0,1 NPROC_PER_NODE=2 swift sft \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --train_type full --dataset data/train.jsonl \
+  --torch_dtype bfloat16 --deepspeed zero3.json \
+  --num_train_epochs 1 --learning_rate 1e-5 \
+  --per_device_train_batch_size 1 --gradient_accumulation_steps 4 \
+  --max_length 1024 --gradient_checkpointing true \
+  --split_dataset_ratio 0 --eval_strategy no \
+  --save_strategy epoch --output_dir output/full-zero3
+</code></pre>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">6. LoRA、QLoRA 与导出合并</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="61-lora-命令行和-yaml-配置">6.1 LoRA 命令行和 YAML 配置</h3>3
+<p>LoRA 冻结基础模型，仅训练指定线性层的低秩增量。<code>--lora_rank</code> 决定低秩空间容量，<code>--lora_alpha</code> 控制缩放，<code>--target_modules all-linear</code> 自动选取适合注入的线性层。rank 越大通常意味着更多可训练参数和更大适配器，但不保证业务指标更好，应在相同数据切分下比较。</p>
+<pre><code class="language-bash"># 这是后续导出及推理使用的主训练产物。
+CUDA_VISIBLE_DEVICES=0 swift sft \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --dataset data/train.jsonl --train_type lora \
+  --torch_dtype bfloat16 --lora_rank 8 --lora_alpha 32 \
+  --target_modules all-linear --learning_rate 1e-4 \
+  --num_train_epochs 1 --max_length 1024 \
+  --per_device_train_batch_size 1 --gradient_accumulation_steps 4 \
+  --split_dataset_ratio 0 --eval_strategy no \
+  --save_strategy epoch --logging_steps 1 \
+  --output_dir output/lora --add_version false
+</code></pre>
+<p>也可以把同一批参数保存为 <code>lora.yaml</code>，作为可审阅的实验配置。以下不是虚构字段，均为该版本训练参数；每项行内注释说明其作用。注意 <strong>v3.5.3 的参数解析器仅对 JSON 文件提供直接读取分支</strong>，因此先把 YAML 转成 JSON，再作为位置参数传入，不能直接运行 <code>swift sft lora.yaml</code>，也不能凭其他框架习惯写成不存在的 <code>--config</code>。</p>
+<pre><code class="language-yaml"># 保存为 lora.yaml；与上一段 CLI 二选一运行。
+model: Qwen/Qwen2.5-0.5B-Instruct # 基础模型 ID
+dataset: [data/train.jsonl] # 本地训练数据，JSON 读取时保留列表类型
+train_type: lora # 更新 LoRA 参数
+torch_dtype: bfloat16 # 模型计算精度
+lora_rank: 8 # 低秩矩阵的秩
+lora_alpha: 32 # LoRA 缩放系数
+target_modules: [all-linear] # 自动选择线性层，保留列表类型
+learning_rate: 0.0001 # 优化器学习率
+num_train_epochs: 1 # 训练轮数
+max_length: 1024 # 编码序列长度上限
+per_device_train_batch_size: 1 # 单设备微批量
+gradient_accumulation_steps: 4 # 累积四次再更新
+split_dataset_ratio: 0 # 冒烟数据不划分验证集
+eval_strategy: &quot;no&quot; # 显式关闭验证
+save_strategy: epoch # 每轮保存
+output_dir: output/lora-yaml # 独立实验目录
+add_version: false # 不额外增加时间戳目录
+</code></pre>
+<pre><code class="language-bash"># YAML 是人工维护的真配置，JSON 是 v3.5.3 实际接受的启动格式。
+python -m pip install PyYAML
+python - &lt;&lt;'PY'
+import json
+from pathlib import Path
+import yaml
+config = yaml.safe_load(Path('lora.yaml').read_text(encoding='utf-8'))
+Path('lora.json').write_text(json.dumps(config, ensure_ascii=False), encoding='utf-8')
+PY
+CUDA_VISIBLE_DEVICES=0 swift sft lora.json
+</code></pre>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">6.2 四位 QLoRA 与旧参数迁移</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>QLoRA 的关键组合是冻结的四位基础权重与可训练的 LoRA 增量，计算精度仍可使用 BF16</li><li>四位表示权重存储方式，并不表示所有激活和优化器状态都变成四位</li><li>下例使用官方 BNB 路径的 NF4、双重量化和 BF16 计算配置</li></ul></div>3
+<p>QLoRA 的关键组合是冻结的四位基础权重与可训练的 LoRA 增量，计算精度仍可使用 BF16。四位表示权重存储方式，并不表示所有激活和优化器状态都变成四位。下例使用官方 BNB 路径的 NF4、双重量化和 BF16 计算配置。</p>
+<pre><code class="language-bash"># bitsandbytes 的 wheel 必须支持当前操作系统和 CUDA 环境。
+python -m pip install 'bitsandbytes&gt;=0.43.3,&lt;0.46'
+CUDA_VISIBLE_DEVICES=0 swift sft \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --dataset data/train.jsonl --train_type lora \
+  --quant_method bnb --quant_bits 4 \
+  --bnb_4bit_quant_type nf4 --bnb_4bit_use_double_quant true \
+  --bnb_4bit_compute_dtype bfloat16 --torch_dtype bfloat16 \
+  --lora_rank 8 --lora_alpha 32 --target_modules all-linear \
+  --learning_rate 1e-4 --num_train_epochs 1 --max_length 1024 \
+  --per_device_train_batch_size 1 --gradient_accumulation_steps 4 \
+  --split_dataset_ratio 0 --eval_strategy no \
+  --save_strategy epoch --output_dir output/qlora --add_version false
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>目的</th>
+<th>ms-swift 2.6.1</th>
+<th>本文 ms-swift 3.5.3</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>选择 LoRA</td>
+<td><code>--sft_type lora</code></td>
+<td><code>--train_type lora</code></td>
+</tr>
+<tr>
+<td>选择 QLoRA</td>
+<td><code>--sft_type lora --quant_method bnb --quantization_bit 4</code></td>
+<td><code>--train_type lora --quant_method bnb --quant_bits 4</code></td>
+</tr>
+<tr>
+<td>模型位置</td>
+<td><code>--model_id_or_path</code></td>
+<td><code>--model</code></td>
+</tr>
+<tr>
+<td>精度</td>
+<td><code>--dtype bf16</code></td>
+<td><code>--torch_dtype bfloat16</code></td>
+</tr>
+<tr>
+<td>适配目标</td>
+<td><code>--lora_target_modules ALL</code></td>
+<td><code>--target_modules all-linear</code></td>
+</tr>
+<tr>
+<td>读取适配器</td>
+<td>常用 <code>--ckpt_dir</code></td>
+<td><code>--adapters</code></td>
+</tr>
+</tbody>
+</table>
+<p>下面给出二代的完整命令，<strong>只在另外安装了 ms-swift 2.6.1 的独立环境中运行</strong>。它展示真实的 <code>--sft_type</code> 与 <code>--quantization_bit 4</code> 用法，没有把不存在的 qlora 枚举包装成可运行示例。正文后续推理、导出和评测继续使用三代接口，不能直接接到二代环境中执行。</p>
+<pre><code class="language-bash"># 仅限 ms-swift 2.6.1；不要在本文三代环境执行。
+CUDA_VISIBLE_DEVICES=0 swift sft \
+  --model_id_or_path Qwen/Qwen2.5-0.5B-Instruct \
+  --dataset data/train.jsonl --sft_type lora \
+  --quant_method bnb --quantization_bit 4 \
+  --dtype bf16 --lora_rank 8 --lora_alpha 32 \
+  --lora_target_modules ALL --learning_rate 1e-4 \
+  --num_train_epochs 1 --batch_size 1 \
+  --gradient_accumulation_steps 4 --max_length 1024 \
+  --output_dir output/legacy-qlora
+</code></pre>
+<p>显存只能在相同模型、长度、批量和内核设置下公平比较。以七十亿参数 BF16 模型为量级参考：仅基础权重约十四 GB；全参 AdamW 训练叠加梯度和优化器后，常见混合精度状态预算约每参数十二至十六字节，尚未包含激活；LoRA 仍须加载基础权重，QLoRA 则显著减少这一部分。v3.5.3 官方七十亿参数示例分别标注 LoRA 约二十二 GB、BNB QLoRA 约十 GB，属于特定脚本参考值，不是所有 GPU 的容量保证。</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>基础权重</th>
+<th>额外训练状态</th>
+<th>使用判断</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>全参</td>
+<td>BF16 等浮点权重</td>
+<td>覆盖全部可训练参数</td>
+<td>优先评估多卡分片和完整训练预算</td>
+</tr>
+<tr>
+<td>LoRA</td>
+<td>通常保留浮点基础权重</td>
+<td>主要覆盖适配器</td>
+<td>单卡领域适配的常用起点</td>
+</tr>
+<tr>
+<td>QLoRA</td>
+<td>四位权重加量化元数据</td>
+<td>主要覆盖适配器，另有反量化开销</td>
+<td>显存紧张时优先试验，速度未必更快</td>
+</tr>
+</tbody>
+</table>
+<h3 id="63-swift-export-合并-lora">6.3 swift export 合并 LoRA</h3>3
+<p>LoRA checkpoint 是增量，不是完整基础模型。下面自动选择本文主 LoRA 目录内步数最大的 checkpoint，避免使用并不存在的 <code>checkpoint-xxx</code> 占位。导出前确认目录来自本次实验；已有 merged 目录时应换一个输出目录名，保留不同实验的可追溯性。</p>
+<pre><code class="language-bash"># 在 swift-lab 根目录运行；查找主 LoRA 实验实际保存的 checkpoint。
+export SWIFT_ADAPTER_PATH=&quot;$(python - &lt;&lt;'PY'
+from pathlib import Path
+paths = list(Path('output/lora').glob('checkpoint-*'))
+assert paths, '先执行第六节主 LoRA 训练，确认已保存 checkpoint'
+print(max(paths, key=lambda p: int(p.name.split('-')[-1])).resolve())
+PY
+)&quot;
+test -f &quot;$SWIFT_ADAPTER_PATH/adapter_config.json&quot;
+CUDA_VISIBLE_DEVICES=0 swift export \
+  --adapters &quot;$SWIFT_ADAPTER_PATH&quot; \
+  --merge_lora true --output_dir output/merged
+</code></pre>
+<p>对于 QLoRA，合并时应重新加载与训练完全一致的非量化基础权重，再叠加适配器，不能把四位训练加载选项误当成导出要求。合并所需 CPU/GPU 内存可能高于四位训练时的基础权重占用。v3.5.3 不应在同一条导出命令中同时完成合并与再次量化；如需 AWQ/GPTQ 部署，先合并，确认正确后再单独量化和回归。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">7. RLHF：DPO、ORPO 与 SimPO</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>这里的 RLHF 是 SWIFT 命令组名称；DPO、ORPO、SimPO 都可使用离线偏好对，不需要先搭建人工在线打分系统</li><li>DPO 将策略相对参考模型的偏好差异纳入优化，ORPO 将监督学习与偏好约束结合，SimPO 使用长度归一化的策略概率和偏好间隔</li><li>它们的目标函数不同，不能仅替换算法名后把相同 beta 解释成相同强度</li></ul></div>2
+<p>这里的 RLHF 是 SWIFT 命令组名称；DPO、ORPO、SimPO 都可使用离线偏好对，不需要先搭建人工在线打分系统。DPO 将策略相对参考模型的偏好差异纳入优化，ORPO 将监督学习与偏好约束结合，SimPO 使用长度归一化的策略概率和偏好间隔。它们的目标函数不同，不能仅替换算法名后把相同 beta 解释成相同强度。</p>
+<p>偏好样本的 messages 中最后一个 assistant 是被选中的回答，<code>rejected_response</code> 是同一问题下被拒绝的回答。偏好必须有清晰标准，尤其要避免“更长等于更好”的标签习惯。下面生成可直接读取的数据；同样仅供管线冒烟，不能用二十条重复偏好证明对齐质量。</p>
+<pre><code class="language-bash"># 创建偏好数据：chosen 包含在 messages，rejected 使用独立字段。
+python - &lt;&lt;'PY'
+import json
+from pathlib import Path
+row = {
+    'messages': [
+        {'role': 'user', 'content': '训练出现显存不足时该怎么排查？'},
+        {'role': 'assistant', 'content': '先记录峰值显存，再依次检查微批量、序列长度和图像分辨率，并尝试梯度检查点。'}
+    ],
+    'rejected_response': '不用检查，重复启动训练就会成功。'
+}
+with Path('data/preference.jsonl').open('w', encoding='utf-8') as f:
+    for _ in range(20):
+        f.write(json.dumps(row, ensure_ascii=False) + '\n')
+PY
+</code></pre>
+<pre><code class="language-bash"># DPO：正式项目通常从已有 SFT 完整权重开始，下面用公开指令模型演示。
+CUDA_VISIBLE_DEVICES=0 swift rlhf \
+  --rlhf_type dpo --model Qwen/Qwen2.5-0.5B-Instruct \
+  --dataset data/preference.jsonl --train_type lora \
+  --torch_dtype bfloat16 --beta 0.1 \
+  --lora_rank 8 --target_modules all-linear \
+  --learning_rate 5e-6 --num_train_epochs 1 \
+  --per_device_train_batch_size 1 --gradient_accumulation_steps 4 \
+  --max_length 1024 --split_dataset_ratio 0 --eval_strategy no \
+  --save_strategy epoch --output_dir output/dpo
+</code></pre>
+<p>DPO 的参考分支和成对序列会改变显存需求，不能照搬 SFT 的最大批量。若希望在本文 SFT 结果上继续偏好训练，可把 model 改成 <code>output/merged</code>，同时检查该路径确实是完整合并权重。下面使用相同偏好数据运行 ORPO 和 SimPO，分别设置 beta；SimPO 的 gamma 控制偏好间隔，正式实验应连同长度分布一起调参。</p>
+<pre><code class="language-bash"># ORPO：beta 是该算法下的偏好项权重。
+CUDA_VISIBLE_DEVICES=0 swift rlhf \
+  --rlhf_type orpo --model Qwen/Qwen2.5-0.5B-Instruct \
+  --dataset data/preference.jsonl --train_type lora \
+  --torch_dtype bfloat16 --beta 0.1 --lora_rank 8 \
+  --learning_rate 5e-6 --num_train_epochs 1 \
+  --per_device_train_batch_size 1 --gradient_accumulation_steps 4 \
+  --max_length 1024 --split_dataset_ratio 0 --eval_strategy no \
+  --save_strategy epoch --output_dir output/orpo
+
+# SimPO：beta 与 gamma 的语义按 SimPO 理解，不沿用 DPO 解释。
+CUDA_VISIBLE_DEVICES=0 swift rlhf \
+  --rlhf_type simpo --model Qwen/Qwen2.5-0.5B-Instruct \
+  --dataset data/preference.jsonl --train_type lora \
+  --torch_dtype bfloat16 --beta 2.0 --simpo_gamma 1.0 \
+  --lora_rank 8 --learning_rate 5e-6 --num_train_epochs 1 \
+  --per_device_train_batch_size 1 --gradient_accumulation_steps 4 \
+  --max_length 1024 --split_dataset_ratio 0 --eval_strategy no \
+  --save_strategy epoch --output_dir output/simpo
+</code></pre>
+<h2 id="8-多模态微调qwen2-vl-与-internvl">8. 多模态微调：Qwen2-VL 与 InternVL</h2>2
+<p>先创建一个与标签一致的红色色块图像，并生成带绝对路径的训练记录。这样能够排除文件不存在、相对路径变化和图像标签矛盾等基础问题。合成色块只是检查视觉输入链路的样本，正式 OCR 或票据问答需要真实分布数据，并保持图像、问题和答案之间的标注一致性。</p>
+<pre><code class="language-python">import json
+from pathlib import Path
+from PIL import Image
+
+image_dir = Path('data/images')
+image_dir.mkdir(parents=True, exist_ok=True)
+image_path = (image_dir / 'red.png').resolve()
+Image.new('RGB', (448, 448), color=(255, 0, 0)).save(image_path)
+row = {
+    'messages': [
+        {'role': 'user', 'content': '&lt;image&gt;画面中的色块是什么颜色？'},
+        {'role': 'assistant', 'content': '画面中有一个红色色块。'},
+    ],
+    'images': [str(image_path)],
+}
+with Path('data/vision.jsonl').open('w', encoding='utf-8') as f:
+    for _ in range(16):
+        f.write(json.dumps(row, ensure_ascii=False) + '\n')
+</code></pre>
+<p>Qwen2-VL 的视觉 token 数随输入分辨率变化，应先限制像素和微批量，再讨论增加卡数。下例冻结视觉主干，主要适配语言部分，降低训练开销。<code>--freeze_vit true</code> 不代表完全没有视觉显存消耗，图像仍需编码，也会占用上下文与激活空间。</p>
+<pre><code class="language-bash"># 补齐此模型在 v3.5.3 模型注册中声明的视觉依赖。
+python -m pip install 'qwen-vl-utils&gt;=0.0.6' decord
+CUDA_VISIBLE_DEVICES=0 swift sft \
+  --model Qwen/Qwen2-VL-2B-Instruct --model_type qwen2_vl \
+  --dataset data/vision.jsonl --train_type lora \
+  --torch_dtype bfloat16 --freeze_vit true \
+  --target_modules all-linear --lora_rank 8 \
+  --max_pixels 200704 --max_length 1024 \
+  --per_device_train_batch_size 1 --gradient_accumulation_steps 4 \
+  --gradient_checkpointing true --learning_rate 1e-4 \
+  --num_train_epochs 1 --split_dataset_ratio 0 --eval_strategy no \
+  --save_strategy epoch --output_dir output/qwen2-vl
+</code></pre>
+<p><code>max_pixels=200704</code> 对应四百四十八乘四百四十八的面积上限，不是所有图像都被强制拉伸成正方形。对于票据和长截图，应在保留识别信息与控制 token 数之间权衡。InternVL 常有动态切图逻辑，不能认为同样的输入长宽必然与 Qwen2-VL 产生相同的视觉 token 数，需查看该模型处理器和 SWIFT 模板实际编码结果。</p>
+<pre><code class="language-bash"># InternVL2-1B：使用同一 messages/images 数据，替换真实模型及模板适配。
+python -m pip install timm
+CUDA_VISIBLE_DEVICES=0 swift sft \
+  --model OpenGVLab/InternVL2-1B --model_type internvl2 \
+  --dataset data/vision.jsonl --train_type lora \
+  --torch_dtype bfloat16 --freeze_vit true \
+  --target_modules all-linear --lora_rank 8 \
+  --max_length 1024 --per_device_train_batch_size 1 \
+  --gradient_accumulation_steps 4 --gradient_checkpointing true \
+  --learning_rate 1e-4 --num_train_epochs 1 \
+  --split_dataset_ratio 0 --eval_strategy no \
+  --save_strategy epoch --output_dir output/internvl2
+</code></pre>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">9. 推理与部署</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="91-原生推理和真实-python-api">9.1 原生推理和真实 Python API</h3>3
+<p>适配器推理使用 <code>--adapters</code>，全参或合并权重使用 <code>--model</code>。适配器目录中的训练参数可帮助恢复基础模型和模板，但应检查模型权重是否仍能下载，尤其是迁移到另一台机器之后。先用原生 PyTorch 后端验证一组固定输入，再切换加速引擎，便于定位模板、权重或引擎差异。</p>
+<pre><code class="language-bash"># 接第六节的 SWIFT_ADAPTER_PATH；交互输入问题，比较基础模型与微调输出。
+CUDA_VISIBLE_DEVICES=0 swift infer \
+  --adapters &quot;$SWIFT_ADAPTER_PATH&quot; --infer_backend pt \
+  --stream true --temperature 0 --max_new_tokens 256
+
+# 合并模型的独立推理：不再传 adapters。
+CUDA_VISIBLE_DEVICES=0 swift infer \
+  --model output/merged --infer_backend pt \
+  --temperature 0 --max_new_tokens 256
+</code></pre>
+<p>Python 调用适合接入批量回归或应用代码。下面给出完整 import、真实模型路径和请求结构，不使用省略参数或伪造接口。请求的 messages 不包含训练标签，输出对象采用 OpenAI 风格 choices/message 结构。</p>
+<pre><code class="language-python">from swift.llm import InferRequest, PtEngine, RequestConfig
+
+engine = PtEngine('output/merged')
+requests = [InferRequest(messages=[
+    {'role': 'user', 'content': '请解释梯度累积，并给出有效批量的计算方式。'}
+])]
+config = RequestConfig(max_tokens=256, temperature=0)
+responses = engine.infer(requests, config)
+print(responses[0].choices[0].message.content)
+</code></pre>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">9.2 vLLM 和 OpenAI 兼容服务</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>vLLM 通常更适合并发和批量推理，安装时可能调整 PyTorch 等核心依赖</li><li>下例使用官方 v3.5.3 README 推荐的 vLLM 版本；安装后重新检查依赖及 CUDA，实际可用性还取决于 GPU 和模型支持情况</li><li>建议在单独的服务环境中安装，而非直接改动已经训练成功的环境</li></ul></div>3
+<p>vLLM 通常更适合并发和批量推理，安装时可能调整 PyTorch 等核心依赖。建议在单独的服务环境中安装，而非直接改动已经训练成功的环境。下例使用官方 v3.5.3 README 推荐的 vLLM 版本；安装后重新检查依赖及 CUDA，实际可用性还取决于 GPU 和模型支持情况。</p>
+<pre><code class="language-bash"># 建立服务环境；从原实验根目录执行，output/merged 路径保持有效。
+python3.10 -m venv .venv-serve
+source .venv-serve/bin/activate
+python -m pip install --upgrade pip
+python -m pip install 'ms-swift==3.5.3' 'transformers==4.51.3' \
+  'vllm==0.8.5.post1'
+python -m pip check
+CUDA_VISIBLE_DEVICES=0 swift infer \
+  --model output/merged --infer_backend vllm \
+  --max_model_len 2048 --temperature 0 --max_new_tokens 256
+</code></pre>
+<p>服务中的 <code>max_model_len</code> 要同时容纳输入与输出；不要因为模型宣传支持长上下文，就把它设到最大而耗尽 KV cache。下面服务只绑定本机地址，方便本地 API 验证。启动后保持该终端运行，在另一个终端调用下一段客户端命令。</p>
+<pre><code class="language-bash"># 前台启动 OpenAI 兼容 API；服务名称由客户端 model 字段引用。
+CUDA_VISIBLE_DEVICES=0 swift deploy \
+  --model output/merged --infer_backend vllm \
+  --served_model_name swift-ops \
+  --host 127.0.0.1 --port 8000 --max_model_len 2048
+</code></pre>
+<pre><code class="language-bash"># 先查模型清单，再发起完整聊天请求；仅访问本机服务。
+curl -fsS http://127.0.0.1:8000/v1/models
+curl -fsS http://127.0.0.1:8000/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{&quot;model&quot;:&quot;swift-ops&quot;,&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;什么是 LoRA？&quot;}],&quot;temperature&quot;:0,&quot;max_tokens&quot;:256,&quot;stream&quot;:false}'
+</code></pre>
+<p>若基础模型输出正常而适配器输出异常，先核对训练时基础权重 revision、聊天模板和 tokenizer。若原生 PyTorch 正常而 vLLM 异常，再检查引擎版本、模型支持和上下文设置。不要直接通过重新微调掩盖部署问题。</p>
+<h2 id="10-使用-swift-eval-运行-benchmark">10. 使用 swift eval 运行 benchmark</h2>2
+<p>SWIFT 的评测入口调用 EvalScope。训练中的验证损失不等于业务效果，公开 benchmark 也不等于领域准确率；建议同时保留基础模型、微调模型和业务独立测试集的对比。下面使用 GSM8K，十条样本用于验证评测链路，正式报告应使用完整评测集、固定生成参数，并记录数据版本。</p>
+<pre><code class="language-bash"># 回到训练虚拟环境后安装评测依赖；固定该历史接口对应的 EvalScope 版本。
+source &quot;$SWIFT_TRAIN_ENV/bin/activate&quot;
+python -m pip install 'ms-swift[eval]==3.5.3' 'evalscope==0.16.3'
+python -m pip check
+CUDA_VISIBLE_DEVICES=0 swift eval \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --eval_backend Native --infer_backend pt \
+  --eval_dataset gsm8k --eval_limit 10 \
+  --eval_generation_config '{&quot;max_tokens&quot;:512,&quot;temperature&quot;:0}'
+
+# 对微调合并模型使用完全相同的设置。
+CUDA_VISIBLE_DEVICES=0 swift eval \
+  --model output/merged --eval_backend Native --infer_backend pt \
+  --eval_dataset gsm8k --eval_limit 10 \
+  --eval_generation_config '{&quot;max_tokens&quot;:512,&quot;temperature&quot;:0}'
+</code></pre>
+<p>评测结果异常时应同时看原始生成和评分解析：模型回答对了但解析规则不匹配，与模型实际算错是两类问题。领域任务还应统计格式正确率、拒答率、事实错误和必要的人工复核。样本数很小时，少量样本变化就会导致分数大幅波动，不能据此宣布某个算法全面优于另一个。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">11. 可视化训练：TensorBoard 与 SwanLab</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>TensorBoard 适合本地查看 loss、学习率、训练速度和显存相关指标</li><li>曲线下降只说明训练目标被优化，不能自动证明泛化能力变强</li><li>关注训练损失与独立验证表现是否同步改善，以及吞吐骤降、梯度异常和保存耗时是否出现在特定输入长度附近</li></ul></div>2
+<p>TensorBoard 适合本地查看 loss、学习率、训练速度和显存相关指标。曲线下降只说明训练目标被优化，不能自动证明泛化能力变强。关注训练损失与独立验证表现是否同步改善，以及吞吐骤降、梯度异常和保存耗时是否出现在特定输入长度附近。</p>
+<pre><code class="language-bash"># 本地日志实验；如需验证曲线，请换成有独立验证集的真实数据。
+CUDA_VISIBLE_DEVICES=0 swift sft \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --dataset data/train.jsonl --train_type lora \
+  --torch_dtype bfloat16 --num_train_epochs 1 \
+  --max_length 512 --per_device_train_batch_size 1 \
+  --split_dataset_ratio 0 --eval_strategy no \
+  --report_to tensorboard --logging_steps 1 \
+  --logging_dir output/tb-events --output_dir output/tb-run
+# 训练结束后启动查看器，浏览器打开 http://127.0.0.1:6006。
+tensorboard --logdir output/tb-events --host 127.0.0.1 --port 6006
+</code></pre>
+<p>SwanLab 也有官方集成参数。本文使用 local 模式，实验记录保存在本地，无需上传业务数据。<code>swanlab_project</code> 用于项目分组，<code>swanlab_exp_name</code> 用于标识一次实验，<code>swanlab_mode</code> 控制本地或云端记录；团队另行使用云端时，应自行按数据权限配置，不要把凭据写进训练脚本。</p>
+<pre><code class="language-bash"># 使用本地模式，不进行云端实验同步。
+python -m pip install swanlab
+CUDA_VISIBLE_DEVICES=0 swift sft \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --dataset data/train.jsonl --train_type lora \
+  --torch_dtype bfloat16 --num_train_epochs 1 \
+  --max_length 512 --per_device_train_batch_size 1 \
+  --split_dataset_ratio 0 --eval_strategy no \
+  --report_to swanlab --swanlab_mode local \
+  --swanlab_project swift-ops --swanlab_exp_name lora-smoke \
+  --logging_steps 1 --output_dir output/swanlab-run
+# 若安装版本提供本地查看器，按该版本 CLI 帮助指定日志目录。
+swanlab watch --help
+</code></pre>
+<h2 id="12-常见坑与定位顺序">12. 常见坑与定位顺序</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">12.1 版本兼容矩阵</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>下表来自对应 tag 的 「requirements/framework.txt」，是依赖声明范围，不是每个区间内任意组合均测试通过的证明</li><li>模型本身还会提高最低 transformers 版本：例如本文 Qwen2-VL 适配在三代中要求至少四点四五，Qwen2.5-VL 则需要更高版本</li><li>安装时应取框架、模型和推理引擎要求的交集</li></ul></div>3
+<p>下表来自对应 tag 的 <code>requirements/framework.txt</code>，是依赖声明范围，不是每个区间内任意组合均测试通过的证明。模型本身还会提高最低 transformers 版本：例如本文 Qwen2-VL 适配在三代中要求至少四点四五，Qwen2.5-VL 则需要更高版本。安装时应取框架、模型和推理引擎要求的交集。</p>
+<table>
+<thead>
+<tr>
+<th>固定版本</th>
+<th>transformers 声明</th>
+<th>PEFT 声明</th>
+<th>TRL 声明</th>
+<th>实操处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ms-swift 2.6.1</td>
+<td><code>&gt;=4.33,&lt;4.48</code></td>
+<td><code>&gt;=0.11,&lt;0.13</code></td>
+<td><code>&gt;=0.11,&lt;0.12</code></td>
+<td>只执行二代参数，建立单独环境</td>
+</tr>
+<tr>
+<td>ms-swift 3.5.3</td>
+<td><code>&gt;=4.33,&lt;4.53</code></td>
+<td><code>&gt;=0.11,&lt;0.16</code></td>
+<td><code>&gt;=0.15,&lt;0.20</code></td>
+<td>本文固定 transformers 4.51.3、PEFT 0.15.2、TRL 0.18.2</td>
+</tr>
+<tr>
+<td>其他版本或 main</td>
+<td>必须查对应 tag 的真实依赖</td>
+<td>同左</td>
+<td>同左</td>
+<td>不把本文组合直接当作最新版推荐</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash"># 检查真实安装元数据及解释器位置，避免在错误环境中排查。
+python - &lt;&lt;'PY'
+import sys
+from importlib.metadata import version, requires
+print('python:', sys.executable)
+for name in ('ms-swift', 'torch', 'transformers', 'peft', 'trl', 'datasets'):
+    print(name, version(name))
+for requirement in requires('ms-swift') or []:
+    if any(term in requirement.lower() for term in ('transformers', 'peft', 'trl')):
+        print('declared:', requirement)
+PY
+python -m pip check
+</code></pre>
+<h3 id="122-字段名不匹配和样本被丢弃">12.2 字段名不匹配和样本被丢弃</h3>3
+<p>症状包括加载后样本数明显减少、提示找不到回复列，或训练文本只包含问题。先读预处理前后的真实样本，再检查字段转换。<code>columns</code> 的映射方向是原字段到目标字段；业务 JSON 叫 question/answer 时，不能只把命令中的 dataset 名字改成 messages。复杂嵌套结构应写预处理函数，而不是堆叠猜测性的映射。</p>
+<pre><code class="language-bash"># 假设业务文件叫 data/business.jsonl，字段为 question/answer。
+# 先创建一条有效示例，随后用真实 columns 映射训练。
+python - &lt;&lt;'PY'
+import json
+from pathlib import Path
+row = {'question': '什么是验证集？', 'answer': '验证集用于监控模型的泛化表现。'}
+Path('data/business.jsonl').write_text(
+    json.dumps(row, ensure_ascii=False) + '\n', encoding='utf-8')
+PY
+CUDA_VISIBLE_DEVICES=0 swift sft \
+  --model Qwen/Qwen2.5-0.5B-Instruct --dataset data/business.jsonl \
+  --columns '{&quot;question&quot;:&quot;query&quot;,&quot;answer&quot;:&quot;response&quot;}' \
+  --train_type lora --torch_dtype bfloat16 --max_steps 1 \
+  --split_dataset_ratio 0 --eval_strategy no \
+  --output_dir output/columns-smoke
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">12.3 多模态显存爆炸</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>先区分加载权重时不足，还是第一次前向、反向、保存时不足</li><li>前者优先考虑模型规模、精度和量化，后者通常还与视觉 token、回答长度、微批量和模块冻结有关</li><li>多图样本与动态切图会让文本看起来很短的样本成为显存峰值来源</li></ul></div>3
+<p>先区分加载权重时不足，还是第一次前向、反向、保存时不足。前者优先考虑模型规模、精度和量化，后者通常还与视觉 token、回答长度、微批量和模块冻结有关。多图样本与动态切图会让文本看起来很短的样本成为显存峰值来源。下面检查文件和像素，先把输入事实查清楚，再逐项调整第八节命令中的分辨率、长度和梯度检查点。</p>
+<pre><code class="language-python"># 检查图像数量、路径可读性、像素面积和标记数量。
+import json
+from pathlib import Path
+from PIL import Image
+
+for number, line in enumerate(Path('data/vision.jsonl').read_text(encoding='utf-8').splitlines(), 1):
+    row = json.loads(line)
+    markers = sum(m['content'].count('&lt;image&gt;') for m in row['messages'])
+    assert markers == len(row['images']), f'第 {number} 行图像标记不匹配'
+    for filename in row['images']:
+        with Image.open(filename) as image:
+            width, height = image.size
+            print(number, filename, width, height, 'pixels=', width * height)
+</code></pre>
+<h3 id="124-lora-merge-后推理报错">12.4 LoRA merge 后推理报错</h3>3
+<p>优先检查是否把 adapter 目录当成完整模型加载，基础模型 revision 是否相同，以及 tokenizer、config、视觉处理器文件是否齐全。只复制 safetensors 文件不是完整模型交付。训练期间新增 token 或改动 embedding 时，适配器保存范围也必须包含相应改动，否则合并成功仍可能出现维度不匹配或输出异常。</p>
+<pre><code class="language-bash"># 对本文导出目录检查完整模型配置及权重，再用 pt 隔离引擎问题。
+python - &lt;&lt;'PY'
+from pathlib import Path
+root = Path('output/merged')
+assert (root / 'config.json').is_file(), '缺少模型 config.json'
+weights = list(root.glob('*.safetensors')) + list(root.glob('pytorch_model*.bin'))
+assert weights, '没有找到完整模型权重'
+assert (root / 'tokenizer_config.json').is_file(), '缺少 tokenizer_config.json'
+print('weight files:', len(weights))
+PY
+CUDA_VISIBLE_DEVICES=0 swift infer \
+  --model output/merged --infer_backend pt \
+  --temperature 0 --max_new_tokens 128
+</code></pre>
+<p>若合并前后回答差别明显，用相同模板、相同生成参数和同一批输入比较，并检查是否仍在推理时加载训练量化配置。仅通过“服务能启动”不能认定模型正确；至少需要固定输入的输出回归，再检查领域测试集。本文中的文件存在性检查只能排除一部分包装错误，不能替代权重正确性和模型质量验证。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">13. 一图流：训练、导出、推理 pipeline</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>图中实线是主要产物流，验证与评测贯穿整个过程</li><li>LoRA checkpoint 和完整模型的消费方式不同，因此导出环节必须先弄清楚下游接收的是适配器还是合并权重</li><li>失败时回到最早出现差异的节点，避免在部署错误尚未定位时重新训练</li></ul></div>2
+<p>图中实线是主要产物流，验证与评测贯穿整个过程。LoRA checkpoint 和完整模型的消费方式不同，因此导出环节必须先弄清楚下游接收的是适配器还是合并权重。失败时回到最早出现差异的节点，避免在部署错误尚未定位时重新训练。</p>
+<pre><code class="language-mermaid">flowchart TD
+    A[固定框架版本与模型 revision] --&gt; B[环境检查：CUDA、依赖、命令路径]
+    B --&gt; C[整理 messages 与多模态资源]
+    C --&gt; D[检查字段、长度、路径和数据泄漏]
+    D --&gt; E{选择训练方式}
+    E --&gt; F[swift sft：全参与 ZeRO-3]
+    E --&gt; G[swift sft：LoRA 或四位 QLoRA]
+    E --&gt; H[swift rlhf：DPO、ORPO、SimPO]
+    F --&gt; I[完整 checkpoint]
+    G --&gt; J[适配器 checkpoint]
+    H --&gt; K[按 train_type 保存完整权重或适配器]
+    J --&gt; L[swift export：加载同版基础权重并合并]
+    K --&gt; M[确认产物类型并选择加载方式]
+    M --&gt; L
+    M --&gt; N[swift infer：PyTorch 固定输入回归]
+    I --&gt; N
+    L --&gt; N
+    N --&gt; O[swift eval：benchmark 与业务独立测试]
+    O --&gt; P{质量达标}
+    P --&gt;|是| Q[swift deploy：vLLM 与 OpenAI API]
+    P --&gt;|否，分析失败样本| D
+    Q --&gt; R[线上样本复核与下一轮数据改进]
+    R --&gt; C
+</code></pre>
+<h2 id="14-官方依据与版本复核">14. 官方依据与版本复核</h2>2
+<p>本文核对的是历史固定版本，后续升级应先看新版本迁移说明及依赖文件。下列一手源分别支撑能力统计、参数迁移、数据格式、量化和评测示例。特别注意 README 的推荐依赖与 requirements 的声明边界可能不同：前者提供推荐方向，后者决定安装约束，最终还需在目标机器完成运行检查。</p>
+<ul>
+<li><a href="https://github.com/modelscope/ms-swift/blob/v3.5.3/README.md">v3.5.3 README：能力统计与环境建议</a></li>
+<li><a href="https://github.com/modelscope/ms-swift/blob/v3.5.3/requirements/framework.txt">v3.5.3 依赖声明</a></li>
+<li><a href="https://github.com/modelscope/ms-swift/blob/v3.5.3/docs/source_en/Instruction/ReleaseNote3.0.md">三代迁移说明</a></li>
+<li><a href="https://github.com/modelscope/ms-swift/blob/v3.5.3/docs/source_en/Customization/Custom-dataset.md">自定义数据与注册</a></li>
+<li><a href="https://github.com/modelscope/ms-swift/blob/v3.5.3/docs/source_en/Instruction/Command-line-parameters.md">CLI 参数文档</a></li>
+<li><a href="https://github.com/modelscope/ms-swift/blob/v3.5.3/examples/train/qlora/bnb.sh">BNB QLoRA 官方脚本</a></li>
+<li><a href="https://github.com/modelscope/ms-swift/blob/v3.5.3/examples/train/rlhf/dpo/lora.sh">DPO 官方脚本</a></li>
+<li><a href="https://github.com/modelscope/ms-swift/blob/v3.5.3/examples/train/rlhf/orpo.sh">ORPO 官方脚本</a></li>
+<li><a href="https://github.com/modelscope/ms-swift/blob/v3.5.3/examples/train/rlhf/simpo.sh">SimPO 官方脚本</a></li>
+<li><a href="https://github.com/modelscope/ms-swift/blob/v3.5.3/docs/source_en/Instruction/Evaluation.md">评测文档</a></li>
+<li><a href="https://github.com/modelscope/ms-swift/blob/v2.6.1/requirements/framework.txt">v2.6.1 依赖声明</a></li>
+<li><a href="https://github.com/modelscope/ms-swift/blob/v2.6.1/swift/llm/utils/argument.py">v2.6.1 参数源码：QLoRA 真实配置方式</a></li>
+</ul>
+<pre><code class="language-bash"># 升级前只读查看目标 tag 的声明；本例仍取本文固定版本。
+curl -fsSL \
+  https://raw.githubusercontent.com/modelscope/ms-swift/v3.5.3/requirements/framework.txt
+</code></pre>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">15. 速查表</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>下面是一屏最小训练命令，使用第四节已经生成的数据；更多参数按前文选取，不要把表格中的省略号和候选值斜线原样作为命令执行</li><li>收口时应保存框架版本、模型版本、配置、数据切分、checkpoint 和评测结果，这些材料共同构成下一轮复现实验的起点</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>三代常用命令或参数</th>
+<th>一行说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>环境检查</td>
+<td><code>swift sft --help</code>、<code>python -m pip check</code></td>
+<td>核对本机接口和依赖</td>
+</tr>
+<tr>
+<td>模型与数据</td>
+<td><code>--model</code>、<code>--dataset</code>、<code>--use_hf false</code></td>
+<td>权重位置、数据源及魔搭渠道</td>
+</tr>
+<tr>
+<td>全参 SFT</td>
+<td><code>swift sft --train_type full</code></td>
+<td>更新全部可训练权重</td>
+</tr>
+<tr>
+<td>LoRA SFT</td>
+<td><code>swift sft --train_type lora --lora_rank 8</code></td>
+<td>训练低秩适配器</td>
+</tr>
+<tr>
+<td>四位 QLoRA</td>
+<td><code>--train_type lora --quant_method bnb --quant_bits 4</code></td>
+<td>不使用 qlora 类型枚举</td>
+</tr>
+<tr>
+<td>批量与长度</td>
+<td><code>--per_device_train_batch_size</code>、<code>--gradient_accumulation_steps</code>、<code>--max_length</code></td>
+<td>控制显存和有效批量</td>
+</tr>
+<tr>
+<td>多卡全参</td>
+<td><code>NPROC_PER_NODE=2</code>、<code>--deepspeed zero3</code></td>
+<td>启动进程并启用内置第三阶段分片</td>
+</tr>
+<tr>
+<td>偏好训练</td>
+<td><code>swift rlhf --rlhf_type dpo/orpo/simpo</code></td>
+<td>实际运行时从三个值中选一个</td>
+</tr>
+<tr>
+<td>LoRA 合并</td>
+<td><code>swift export --adapters ... --merge_lora true</code></td>
+<td>适配器转完整模型</td>
+</tr>
+<tr>
+<td>本地推理</td>
+<td><code>swift infer --model ... --infer_backend pt</code></td>
+<td>先检查模型输出</td>
+</tr>
+<tr>
+<td>加速部署</td>
+<td><code>swift deploy --model ... --infer_backend vllm</code></td>
+<td>提供兼容聊天 API</td>
+</tr>
+<tr>
+<td>评测与日志</td>
+<td><code>swift eval</code>、<code>--report_to tensorboard/swanlab</code></td>
+<td>评测效果并跟踪训练曲线</td>
+</tr>
+</tbody>
+</table>
+<p>下面是一屏最小训练命令，使用第四节已经生成的数据；更多参数按前文选取，不要把表格中的省略号和候选值斜线原样作为命令执行。收口时应保存框架版本、模型版本、配置、数据切分、checkpoint 和评测结果，这些材料共同构成下一轮复现实验的起点。</p>
+<pre><code class="language-bash"># 已有 data/train.jsonl 时，一条命令启动三代 LoRA 冒烟训练。
+CUDA_VISIBLE_DEVICES=0 swift sft \
+  --model Qwen/Qwen2.5-0.5B-Instruct --dataset data/train.jsonl \
+  --train_type lora --lora_rank 8 --torch_dtype bfloat16 \
+  --num_train_epochs 1 --learning_rate 1e-4 \
+  --per_device_train_batch_size 1 --gradient_accumulation_steps 4 \
+  --max_length 1024 --split_dataset_ratio 0 --eval_strategy no \
+  --save_strategy epoch --output_dir output/quickstart
+</code></pre></div></details></div></body></html>

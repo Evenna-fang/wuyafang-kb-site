@@ -1,0 +1,127 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>FastMCP-FastAPI集成两条路径-202610</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/FastMCP-FastAPI集成两条路径-202610</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="fastmcp-fastapi-2026-10">FastMCP + FastAPI 集成两条路径（2026-10）</h1>
+<h2 id="why">WHY</h2>
+<p>如果要把 RAG 检索 / 知识库查询做成 MCP server 给六员调用，FastMCP 是官方首选框架。但"自动从 FastAPI 转 MCP"和"把 MCP 挂进 FastAPI"两条路径的适用场景完全不同——用错了会导致 LLM 调用工具效果差、session 不初始化、CORS 冲突等坑。本页从 FastMCP 官方文档提炼两条路径的正确用法 + 关键坑 + 本项目落地方案。</p>
+<h2 id="what">WHAT</h2>
+<h3 id="a-fastapi-mcp-server-api-mcp">路径 A：从 FastAPI 生成 MCP server（把现有 API 转成 MCP 工具）</h3>
+<pre><code class="language-python">from fastmcp import FastMCP
+mcp = FastMCP.from_fastapi(app=app)  # 一行转换
+mcp.run()
+</code></pre>
+<ul>
+<li>基于 <strong>OpenAPIProvider</strong>（v3.0.0+），从 FastAPI 的 OpenAPI spec 抽工具。</li>
+<li><strong>工具命名 = FastAPI 的 <code>operation_id</code></strong> —— 必须显式指定，否则生成 <code>list_products_products_get</code> 这种难看名字。</li>
+<li>可加新工具/资源：转换后的 mcp 是完整 FastMCP 实例，<code>@mcp.tool</code> 直接加。</li>
+<li>支持 RouteMap 自定义端点 → MCP 组件映射（GET→Resource，POST/PUT/DELETE→Tool）。</li>
+<li>支持 httpx_client_kwargs 传认证头。</li>
+</ul>
+<p>⚠️ <strong>官方警告（重要）</strong>：LLM 对<strong>手工设计的 MCP server 效果显著优于自动转换的</strong>（尤其复杂 API 多端点多参数）。只建议用于 <strong>bootstrap / 原型</strong>，不建议照搬 REST API 到 LLM 客户端。</p>
+<h3 id="b-mcp-server-fastapi-web-mcp">路径 B：把 MCP server 挂进 FastAPI 应用（给 web 应用加 MCP 功能）</h3>
+<pre><code class="language-python">from fastmcp import FastMCP
+from fastapi import FastAPI
+
+mcp = FastMCP(&quot;Analytics Tools&quot;)
+mcp_app = mcp.http_app(path='/mcp')
+
+# 必须传 lifespan（否则 session manager 不初始化）
+app = FastAPI(title=&quot;E-commerce API&quot;, lifespan=mcp_app.lifespan)
+app.mount(&quot;/analytics&quot;, mcp_app)
+# 现在：REST API 在 /products/*，MCP 在 /analytics/mcp/
+</code></pre>
+<ul>
+<li>两个 app 有各自 lifespan 时用 <code>combine_lifespans</code> 合并（顺序进入、逆序退出）。</li>
+<li>可组合成"REST + MCP 双入口"：一条 codebase 同时提供传统 API 和 MCP 端点。</li>
+</ul>
+<h3 id="_1">关键坑（四个）</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>说明</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>operation_id 决定 MCP 工具名</strong></td>
+<td>不显式指定会生成 <code>list_products_products_get</code></td>
+<td><code>operation_id="get_user_by_id"</code></td>
+</tr>
+<tr>
+<td><strong>lifespan 必须传</strong></td>
+<td><code>app = FastAPI(lifespan=mcp_app.lifespan)</code>，否则 MCP session manager 不初始化</td>
+<td>显式传 lifespan</td>
+</tr>
+<tr>
+<td><strong>CORSMiddleware 别全局加</strong></td>
+<td>跟 OAuth 保护的 MCP server 冲突（.well-known 路由 404、OPTIONS 失败）</td>
+<td>用 sub-app 模式，不全局加 CORS</td>
+</tr>
+<tr>
+<td><strong>FastAPI 依赖</strong></td>
+<td>FastMCP 不含 FastAPI，要单独装</td>
+<td><code>pip install fastmcp fastapi uvicorn</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="how-rag">HOW（本项目 RAG 知识库落地方案）</h2>
+<h3 id="b">结论：路径 B 更合适</h3>
+<p>如果以后要把 RAG 检索/知识库查询做成 MCP server 给六员调用：
+- <strong>REST + MCP 双入口</strong>：其他 agent（DSH/Codex）可用 REST，LLM（Claude/OC）可用 MCP。
+- 现有 rag-kb-mcp 已跑在 8770 端口（FastMCP 构建），如果要加 REST 入口，可以用这条路径重构。
+- <strong>关键</strong>：RAG 检索工具设计要 <strong>purpose-built</strong>（手工设计 MCP 工具，别从 REST API 自动转）——官方明确说 LLM 对手工设计的 MCP 工具效果更好。</p>
+<h3 id="_2">待验证（两个开放问题）</h3>
+<ul>
+<li>[ ] 本地 rag-kb-mcp 是否值得改成 FastAPI + MCP 双入口（收益 vs 重构成本）</li>
+<li>[ ] 路径 A 的"自动转换效果差"在 RAG 检索场景下是否也成立（RAG 工具通常参数少，可能影响不大）</li>
+</ul>
+<h2 id="_3">来源</h2>
+<ul>
+<li>raw/sources/FastMCP-FastAPI集成-20261022.md</li>
+<li>FastMCP 官方文档：https://gofastmcp.com/integrations/fastapi</li>
+<li>关联：[[MCP到底解决什么问题]]（wiki/L5-Agent工程/）</li>
+</ul></div></body></html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RAG管线现状与阈值标定</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ RAG管线现状与阈值标定</span></div><div class="wrap"><h1 id="rag-管线现状与阈值标定18085-chunks">RAG 管线现状与阈值标定（18085 chunks）</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="LLM%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB-Evals-2026.html">LLM评估体系Evals</a> · <a href="RAG%E8%AF%84%E6%B5%8B%E4%B8%89%E5%B1%82%E6%96%B9%E6%B3%95%E8%AE%BA-20261009.html">RAG评测三层</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心论点</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>阈值不是拍出来的，是双端校准出来的：0.45 的 rerank 拒答线之所以维持不动，是因为它落在干净分离窗 (0.0211, 0.4943] 内——抬到 0.87 虽能拦住 Q056 这类 reranker 假阳，却会误拒 3/19 正样本，得不偿失；这类假阳该用域外第二道校验（生成端引用核查）解决，而不是动阈值</li><li>修法已定位待批（after_top1 档 / 判据置顶 / 剔图谱口径考核），属于布局问题而非调参问题</li></ul></div>2
+<p>阈值不是拍出来的，是双端校准出来的：0.45 的 rerank 拒答线之所以维持不动，是因为它落在干净分离窗 (0.0211, 0.4943] 内——抬到 0.87 虽能拦住 Q056 这类 reranker 假阳，却会误拒 3/19 正样本，得不偿失；这类假阳该用域外第二道校验（生成端引用核查）解决，而不是动阈值。每个数字都有实测背书且回退即翻车：top_n=4 时 simple_fact R@5 仅 36%、dense_top_n=200 曾把 dist=0.28 的 wiki 挤出候选池，所以 top_n/dense_top_n 一律不动，timeout 60→180 也只是兜底（compute_score 阻塞跑完才判超时，不省一秒）。当前真正的短板不是阈值而是结构：图谱槽霸占 multi_hop top1（23 题中 20 题），把该路由 R@1 压到 1/23；R@5=R@10 是 top_k=4 下的结构性假象，R@10 不是独立指标。修法已定位待批（after_top1 档 / 判据置顶 / 剔图谱口径考核），属于布局问题而非调参问题。</p>
+<h2 id="为什么阈值要双端校准动机与代价">为什么阈值要"双端校准"（动机与代价）</h2>2
+<ul>
+<li><strong>动机（WHY）</strong>：RAG 管线的阈值（rerank 拒答线、relevance 阈值、gate 分数）不是拍出来的，而是<strong>双端校准出来的</strong>——既要拦住假阳（reranker 假相关的域外内容），又不能误拒正样本（真答案被拒答）。0.45 的 rerank 拒答线维持不动，是因为它落在干净分离窗 (0.0211, 0.4943] 内：抬到 0.87 虽能拦住 Q056 这类 reranker 假阳，却会误拒 3/19 正样本，得不偿失。单端调阈值（只看拒答率或只看通过率）必然偏科——阈值的本质是"假阳 vs 假阴"的取舍点，必须两端实测数据同时看。</li>
+<li><strong>代价与权衡</strong>：双端校准要积累两端样本（正样本 + 域外负样本）、跑 51+ 条 e2e 评测（约 31 分钟），成本不低。但反面代价更贵：阈值拍脑袋要么"该拒的没拒"（假阳泄漏进答案），要么"不该拒的拒了"（正样本误拒，用户体验直线下降）。校准的产出是"干净分离窗"——一个阈值区间，落在里面两端都安全；找不到干净窗时才考虑加第二道校验（域外第二道校验是处理假阳的正确姿势，不是无脑抬阈值）。</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">是什么（定义与边界）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本篇是本库阈值的现状台账（18085 chunks 版本）：阈值表、e2e 基准（51 条正样本）、rerank 双端校准记录</li><li>✅ 管：阈值的校准方法（双端）、现行阈值台账、基线基准数字、待批事项</li><li>❌ 不管：三层评测指标机制（RAG评测三层方法论）、评测集建设（RAG评估怎么跑）、检索排查（RAG检索不准怎么排查）</li></ul></div>2
+<p><strong>定义</strong>：阈值标定 = 用真实正/负样本两端实测，确定 RAG 管线各阈值（rerank 拒答线、relevance_threshold、gate.min_top1_score/max_top1_dist 等）的取值，并给出"干净分离窗"（两端都安全的阈值区间）与超窗时的处置方案。本篇是本库阈值的现状台账（18085 chunks 版本）：阈值表、e2e 基准（51 条正样本）、rerank 双端校准记录。</p>
+<p><strong>边界</strong>：<br />
+- ✅ 管：阈值的校准方法（双端）、现行阈值台账、基线基准数字、待批事项。<br />
+- ❌ 不管：三层评测指标机制（<a href="RAG%E8%AF%84%E6%B5%8B%E4%B8%89%E5%B1%82%E6%96%B9%E6%B3%95%E8%AE%BA-20261009.html">RAG评测三层方法论</a>）、评测集建设（<a href="../L4-RAG%E5%B7%A5%E7%A8%8B/RAG%E8%AF%84%E4%BC%B0%E6%80%8E%E4%B9%88%E8%B7%91.html">RAG评估怎么跑</a>）、检索排查（<a href="../L4-RAG%E5%B7%A5%E7%A8%8B/RAG%E6%A3%80%E7%B4%A2%E4%B8%8D%E5%87%86%E6%80%8E%E4%B9%88%E6%8E%92%E6%9F%A5.html">RAG检索不准怎么排查</a>）。<br />
+- ⚠️ 阈值是动态值（随语料规模/模型版本变化），本篇台账是 2026-10-19 快照——语料大改后须重跑双端校准，不能把这里的数字当永久真理。</p>
+<h2 id="核心结论">核心结论</h2>2
+<p>本地 RAG 已上线：Chroma 持久化（集合 <code>wuyafang_kb</code>，<strong>18085 chunks</strong>，2026-10-19 实测），bge-m3 本地 embedding（dense 1024 维 + sparse，BGEM3FlagModel 统一加载），bge-reranker-v2-m3 本地精排，生成走小米 MiMo（mimo-v2.6-flash，TokenPlan 端点）。管线为 <strong>Adaptive RAG 路由（simple_fact / multi_hop / complex_reasoning）+ 混合检索（dense top-1000 + sparse top-100 → RRF）+ CRAG 纠错环 + 全路由 rerank 门禁 + 图谱槽（graph_slot_mode）</strong>。阈值必须用下表新口径（旧 README 的 0.465 / 0.75 均已过时）。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">关键细节</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="阈值表2026-10-19-现行">阈值表（2026-10-19 现行）</h3>3
+<table>
+<thead>
+<tr>
+<th>阈值</th>
+<th>位置</th>
+<th>值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>retrieval.dist_threshold</td>
+<td>config.yaml</td>
+<td><strong>0.60</strong></td>
+<td>dense 余弦距离门禁（2026-10-14 由 0.75 放宽）</td>
+</tr>
+<tr>
+<td>gate.dense_threshold</td>
+<td>config.yaml</td>
+<td><strong>0.50</strong></td>
+<td>rerank 熔断/禁用时的兜底门禁（域外真实 dist≈0.37~0.43 才拦得住）</td>
+</tr>
+<tr>
+<td>rerank.threshold</td>
+<td>config.yaml</td>
+<td><strong>0.45</strong></td>
+<td>rerank 归一化得分拒答线（<strong>2026-10-19 双端重校验通过，维持不动</strong>）</td>
+</tr>
+<tr>
+<td>rerank.timeout</td>
+<td>config.yaml</td>
+<td><strong>180s</strong>（2026-10-19，原 60s）</td>
+<td>只是兜底：compute_score 一次性阻塞，跑完才判超时再丢弃，<strong>不省时间</strong></td>
+</tr>
+<tr>
+<td>rerank.top_n / simple_fact_top_n</td>
+<td>config.yaml</td>
+<td>均为 <strong>10</strong></td>
+<td>2026-10-15 实验：top_n=4 时 simple_fact R@5 仅 36%，勿回退</td>
+</tr>
+<tr>
+<td>retrieval.dense_top_n</td>
+<td>config.yaml</td>
+<td><strong>1000</strong></td>
+<td>曾为 200 时 chroma 把 dist=0.28 的 wiki 挤出候选池，勿下调</td>
+</tr>
+<tr>
+<td>retrieval.top_k</td>
+<td>config.yaml</td>
+<td><strong>4</strong></td>
+<td>最终上下文条数（+图谱槽 1 条）</td>
+</tr>
+</tbody>
+</table>
+<p>门禁执行顺序：混合检索 → CRAG 相关性评分（不足触发查询重写，最多 2 次）→ rerank 全路由打分（图谱 hit 豁免）→ gate（rerank 启用时看 best_rerank_score≥0.45；熔断/禁用时看 best_dist≤0.50）→ 生成（上下文用 parent_text 父块）。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">基线基准（e2e，2026-10-19 11:07，51 条正样本，生产保真 retrieve_node→rerank_node）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>这组数字和上面 51 条 e2e 的 47.1% 口径不同（样本 10 vs 51，无 rerank/CRAG vs 生产全链路，语料规模也不同），两者不能直接比较或相减，报告里并列时必须写明各自口径</li><li>这些是"阈值之外影响 R@5 的数据面因素"，改阈值前后若同时做过清噪或去重，要先分清 R@5 变化来自哪一边</li></ul></div>3
+<ul>
+<li><strong>总口径：R@1 = 6/51 = 11.8%；R@5 = 24/51 = 47.1%；R@10 = 24/51 = 47.1%</strong>；剔图谱槽 R@1 = 12/51 = 23.5%、R@5 = 47.1%。单条平均 86s。</li>
+<li>分路由：simple_fact R@1=5/25、R@5=11/25；multi_hop R@1=1/23、R@5=13/23（graph 占 top1 达 20/23）；complex_reasoning 0/3。</li>
+<li><strong>R@5 与 R@10 完全相等是结构性假象</strong>：最终列表长度 = top_k(4) + 图谱槽(≤1) ≤ 5，<code>ranked[:10]</code> 恒等于 <code>ranked[:5]</code>，R@10 不是独立指标（根因见 eval/_e2e_eval.py 与 rerank_node 截断，详见收口报告）。</li>
+<li>产物：<code>~/.hermes/cache/scratch/e2e_after_graphslot.json</code>；评测脚本 <code>rag/eval/_e2e_eval.py</code>。</li>
+<li>据[一手源]：raw/rag-arch/RAG基线评测-20261013.md（2026-10-14，DSH，10 条 golden，纯净检索 <code>eval_recall.py --no-gen --no-rerank --no-crag</code>，当时 chunks.jsonl=14190、Chroma=34164）：R@1=3/10=30%、R@5=7/10=70%、R@10=70%，旧基线 R@5=32%。这组数字和上面 51 条 e2e 的 47.1% <strong>口径不同</strong>（样本 10 vs 51，无 rerank/CRAG vs 生产全链路，语料规模也不同），两者不能直接比较或相减，报告里并列时必须写明各自口径。同一份基线的 3 个 miss 说明阈值与数据质量会直接决定 R@5：B002 在当日 <code>RAG_DIST_THRESHOLD=0.75</code> 下仅 1 个 chunk 过门禁（score=0.507），且 top-3 是代码课件 dump 的 embedding 向量数组脏 chunk；B005（中文论文名 G-Memory）召回全是 LangChain Memory 课件，bge-m3 对中文短 query 匹配弱；B010 的 top1 score 0.7572 最高却判 miss，原因是 golden 标注指向的术语表根本没有 FastAPI 章节。该源给出的改进建议是清洗向量数组 chunk、试验把 0.75 放宽到 0.85、修正 B010 的 golden、B005 做专题测试或加论文名 metadata boost；本表现行 <code>dist_threshold</code> 为 0.60，引用基线数字时以当日配置为准。</li>
+<li>据[一手源]：raw/rag-arch/RAG现状盘点-20261009.md（2026-10-09 快照，<strong>chunks=5236</strong>，与本文 18085 不是同一时点）：当时 raw 4913（93.8%）/ wiki 260（5.0%）/ ontology 63（1.2%）；199 条任务书/派单提示词对问答是纯噪音，55 条 chunk ≤20 字，420 条（8%）heading_path 为空；6 组文件重复入库影响 566 chunk（10.8%），跨文件内容重复 373 组，<code>(source, heading_path)</code> 重复组 1024 个；chunk 硬截 384 字（p90=370，中位 294），golden-q 仅约 40 条。这些是"阈值之外影响 R@5 的数据面因素"，改阈值前后若同时做过清噪或去重，要先分清 R@5 变化来自哪一边。</li>
+</ul>
+<h3 id="rerank-输入修订与双端校准2026-10-19含审查发现的坑">rerank 输入修订与双端校准（2026-10-19，含审查发现的坑）</h3>3
+<p>本轮按独立审查意见（<code>~/.hermes/cache/scratch/claude_rerank_review.log</code>）修订 rerank 实现：</p>
+<ol>
+<li><strong><code>_rerank_text</code> 改为「子块 + heading_path 拼接」只送 rerank</strong>；<strong>generate / explain 两处作答上下文改用 parent_text</strong>——若只改 rerank 侧，生成上下文会同步退化成 ~384 字子块，检索修好、作答变差（审查致命点 A5）。</li>
+<li><strong>单变量实测（同 query 各 3 次）：父块均 42.43s vs 子块均 28.25s，真实倍率仅 1.50x</strong>（剔除首次调用波动后约 1.1x）。「子块提速 4 倍」不成立——本库父块普遍仅 ~670 字，削短空间有限。验收线按实测定，不拍脑袋。</li>
+<li><strong>timeout 60→180 只是兜底</strong>：<code>compute_score</code> 是一次性阻塞调用，超时判在跑完之后，改 timeout 不省一秒，只保证慢结果不再被白算后丢弃。</li>
+<li><strong>threshold 0.45 双端重校（19 正 + 5 域外负，新输入下）</strong>：正端 16/19 ≥ 0.9165，低位 Q030=0.8371 / Q016=0.4943 / Q001=0.0697；负端 Q052-Q055 = 0.0026~0.0211，<strong>Q056=0.8641 是 reranker 假阳</strong>（Snowflake 问题命中 FDE交付方法论，文中并无 Snowflake 内容，语义近邻误打 0.86）。干净分离窗 (0.0211, 0.4943]，0.45 落在窗内 → 维持；抬到 0.87 虽能拦 Q056 但会误拒 3/19 正样本，得不偿失。校准数据 <code>~/.hermes/cache/scratch/threshold_calib_20261019.json</code>。</li>
+<li><strong>top_n / simple_fact_top_n / dense_top_n 一律不动</strong>（分别有 2026-10-15 召回实验、2026-10-14 挤出实验背书）——这是方案作者没读 config 修复史注释最容易踩的回退坑。</li>
+<li>冷测验证（--no-gen）：正例 simple_fact rerank 47.1s / best=0.9878 放行；正例 multi_hop rerank 52.7s / best=0.9914、图谱槽按 multi_hop_only 置 #1；域外"咖啡机除垢剂" best=0.0004 被 gate 拒答。三条均 exit 0。</li>
+</ol>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">待批事项（已定位、未实施）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>修法候选：新增 「after_top1」 档（图谱放 2）/ 按"显式对比两实体 + 强边命中"判据决定是否置顶 / e2e 指标同时以剔图谱口径考核</li><li>Q056 假阳专项：需要域外第二道校验（如生成端引用核查）而非抬 rerank 阈值</li><li>含义：任何动库或动阈值的方案，先留三层基线再做</li></ul></div>3
+<ul>
+<li><strong>图谱槽霸占 multi_hop top1</strong>：<code>graph_slot_mode=multi_hop_only</code> 设计上就把图谱置 #1，实测 multi_hop 23 题中 20 题 top1=graph/wiki-ontology（任务书引述"12/22"与实测不符，以实测为准），直接压死该路由 R@1（1/23）。修法候选：新增 <code>after_top1</code> 档（图谱放 #2）/ 按"显式对比两实体 + 强边命中"判据决定是否置顶 / e2e 指标同时以剔图谱口径考核。待批后实施。</li>
+<li><strong>e2e 脚本 R@10 列失效</strong>：top_k=4 下 R@10 恒等于 R@5，建议 eval 脚本要么去掉 R@10 列，要么把 top_k 提到 ≥10 再谈 R@10。</li>
+<li><strong>Q001（hybrid search R@5 提升）真相关文档未进候选</strong>（best=0.0697），属既有召回短板，非阈值问题。</li>
+<li><strong>Q056 假阳专项</strong>：需要域外第二道校验（如生成端引用核查）而非抬 rerank 阈值。</li>
+<li>据[一手源]：raw/rag-arch/RAG标准落位方案-20261009.md（修订1/修订2）：对标 Anthropic Contextual Retrieval 时，官方 35%/49%/67% 是 top-20 检索失败率（基线 5.7%）的<strong>相对降幅</strong>（Contextual Embeddings 3.7%、+BM25 3.5%、+Hybrid 2.9%、+Cohere rerank 1.9%），不是 Recall 目标，验收要写成"本库同一 golden set 前后失败率的相对降幅"；评测补三层是标准-0b 硬前置，排在全库 Contextual（成本 $1.02/M document tokens）之前。含义：任何动库或动阈值的方案，先留三层基线再做。</li>
+<li>据[一手源]：raw/sources/RAG优化-外部调研-20260929.md（方向 4，arXiv 2604.01733，23,088 queries / 7,318 docs / 10 种策略）：召回不足时的修复顺序是 chunking+metadata → hybrid → candidate size → 最后才换 embedding，其中 hybrid+rerank Recall@5=0.816，dense-only 0.587，hybrid-only 0.695。本库 <code>dense_top_n=1000</code> 不下调（见阈值表）属于 candidate size 这一档，已有实测背书。</li>
+</ul>
+<h2 id="怎么用">怎么用</h2>2
+<ul>
+<li><strong>改任何阈值前先跑双端校准，别拍数字</strong>：现行值全在 <code>rag/config.yaml</code>——<code>retrieval.dist_threshold: 0.60</code>、<code>gate.dense_threshold: 0.50</code>、<code>rerank.threshold: 0.45</code>（干净分离窗 (0.0211, 0.4943]）、<code>rerank.top_n: 30</code>、<code>rerank.timeout: 180.0</code>、<code>rrf_k: 60</code>、<code>source_max_per_query: 3</code>；改后同命令重跑 <code>cd rag/eval &amp;&amp; python3 -u _e2e_eval.py --json-out /tmp/e2e_new.json</code> 与基线 <code>eval/e2e_final.json</code> 逐项对比。</li>
+<li><strong>图谱槽布局问题的验证/回退</strong>（本条目“修法已定位”部分的落地）：<br />
+<code>bash
+  python3 rag/eval/eval_recall_fast.py --mode multi_hop            # 看 multi_hop R@1
+  python3 rag/eval/eval_recall_fast.py --mode multi_hop --no-graph # 剔图谱口径</code><br />
+  回退开关全在 config 一行：<code>graph_slot_mode: multi_hop_only</code>（恢复旧置顶）/ <code>linked_chunk.enabled: false</code> / <code>high_key.enabled: false</code>，不用回滚代码。</li>
+<li><strong>阈值校准数据留档</strong>：rerank 双端采分存 <code>~/.hermes/cache/scratch/threshold_calib_20261019.json</code>（正端 19 样本/负端 Q052–Q056）；新校准照此格式存 scratch 并在 config 注释里记日期与回滚值。</li>
+<li><strong>rerank 假阳（Q056 型）不动阈值</strong>：0.87 能拦住但误拒 3/19 正样本，正确做法是生成端引用核查（<code>query.py</code> 生成后 <code>[P43输出防护]</code> 段已做 tier/敏感词/零来源检查），域外题记 <code>rag/eval/badcase.jsonl</code> 待专项。</li>
+<li><strong>改阈值/布局的回归底线</strong>：<code>python3 rag/eval/eval_recall.py</code>（Recall@1/@5）+ <code>_e2e_eval.py</code>（rerank 后最终召回）双跑不降才放行；R@10 在 top_k=4 下恒等于 R@5，看指标时先认清这一结构性假象。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">来源</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>rag/config.yaml（阈值与修复史注释）</li><li>rag/query.py（retrieve/grade/rerank/gate/generate 节点）</li><li>rag/eval/_e2e_eval.py、golden-q.jsonl（51 正 + 5 域外负）</li></ul></div>2
+<ul>
+<li>rag/config.yaml（阈值与修复史注释）</li>
+<li>rag/query.py（retrieve/grade/rerank/gate/generate 节点）</li>
+<li>rag/eval/_e2e_eval.py、golden-q.jsonl（51 正 + 5 域外负）</li>
+<li>~/.hermes/cache/scratch/{e2e_after_graphslot.json, threshold_calib_20261019.json, rerank_bench_20261019.log, claude_rerank_review.log}</li>
+<li>收口报告：~/.hermes/cache/scratch/rag_optimize_report_20261019.md</li>
+</ul>
+<h2 id="相关术语">相关术语</h2>2
+<ul>
+<li>Hybrid Retrieval / RRF / Reranker / HyDE / Source Tier：ontology/术语表-RAG架构.md</li>
+<li>vLLM / Ollama / 量化：ontology/术语表-模型部署.md</li>
+<li>Quality Gating：ontology/术语表-RAG架构.md</li>
+</ul></div></details></div></body></html>

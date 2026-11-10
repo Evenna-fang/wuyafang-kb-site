@@ -1,0 +1,93 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>自进化Agent-快慢双速与live-steering-2026Q3</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/自进化Agent-快慢双速与live-steering-2026Q3</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="agentlive-steering2026-q3">自进化Agent：快慢双速与live-steering（2026 Q3）</h1>
+<h2 id="why">WHY</h2>
+<p>2026 Q2-Q3 自进化 Agent 从"概念演示"进入"工程可用"阶段。六员体系若想持续进化、不被旧技能拖后腿，必须吸收三个核心方向：快慢双速固化、实时纠偏（live steering）、过程级评测（防退化）。本页汇总最对口的一手论文结论 + 我们能直接落地的改造点。</p>
+<h2 id="what">WHAT</h2>
+<h3 id="experience-funnel">一、快慢双速自进化框架（Experience Funnel）</h3>
+<ul>
+<li><strong>核心思路</strong>：交互轨迹先蒸馏成显式文本状态（技能/harness，快速可改可验证），再把跨状态修订仍有效的行为"transition-aware 蒸馏"进模型策略（慢速固化），两层交替循环。</li>
+<li><strong>论文</strong>：arXiv 2609.08919（2026-09-08）</li>
+<li><strong>为什么重要</strong>：纯文本技能改起来快但不可携带、纯参数微调更新太慢——快慢双速是工程上唯一可落地的折中。</li>
+<li><strong>我们能直接用</strong>：显式文本状态层 = 我们已有的技能库 / AGENTS.md；只需实现"慢速层"的定期固化（把反复验证有效的技能沉淀为更强的流程规则），不需要微调。与 task_state 状态机天然衔接。</li>
+</ul>
+<h3 id="pilot-supervisor-worker">二、实时纠偏与当场蒸馏（PILOT supervisor-worker）</h3>
+<ul>
+<li><strong>核心思路</strong>：独立 supervisor 在执行中<strong>实时</strong>重定向/中止 worker（live steering），同时把执行中暴露的失败模式<strong>当场</strong>蒸馏成可复用技能与记忆（live self-evolution），而非等任务结束再复盘。</li>
+<li><strong>论文</strong>：arXiv 2608.26530（2026-08-27）</li>
+<li><strong>实测效果</strong>：Terminal-Bench 2.0 上最高 +9.8pp；自改进设定下 GLM-5.1 +14.6pp、Kimi-K2.6 +12.4pp；<strong>输出 token 降 42.9%/47.4%，每百万 token 成功评测数 +110%/+134%</strong>。</li>
+<li><strong>我们能直接用</strong>：六员分工里"流程硬执行"角色天然就是 supervisor——审查员在第 1 轮发现问题时不是打回等下一轮，而是<strong>当场</strong>给执行者发 steering（改方向/中止），同时把该失败写进错误台账/技能草案。纯 prompt+流程改动，零新依赖。</li>
+</ul>
+<h3 id="evopathbench">三、过程级评测与技能回归门禁（EvoPathBench）</h3>
+<ul>
+<li><strong>核心思路</strong>：固定基座模型+工具，在演化检查点冻结记忆/技能工件，用留出任务评测三项能力：泛化、保持（retention）、规则适应。结论：被选中落地的演化更新普遍低于候选更新的潜力；<strong>"候选评估与选择"是关键瓶颈</strong>。</li>
+<li><strong>论文</strong>：arXiv 2609.24663（2026-09-21）</li>
+<li><strong>我们能直接用</strong>：给技能库加"技能变更回归检查"——每次 Workshop 技能 update 后，用固定样例集跑一次 verify，防止技能演化悄悄退化。这正是 receipt 门禁的自然延伸。</li>
+</ul>
+<h3 id="_1">四、其他高价值方向（可选择性吸收）</h3>
+<ol>
+<li><strong>跨任务模式自动提炼</strong>（AlgoEvo，arXiv 2609.15820）：把搜索轨迹组织成任务级树，跨任务共性模式固化为可复用技能。落地路径：每周让一个 agent 扫描本周 receipt/台账，重复≥2次的成功模式起草成技能提案，走 Workshop pending → 人审 apply。</li>
+<li><strong>免训练技能进化</strong>（Reflect, Revise, Reuse，arXiv 2609.17653）：不微调，通过"反思→修订→复用"三步自动迭代技能文档本身。映射到 skill_workshop 的 revise/patch 流：给技能加"失败即触发 revise 提案"的机制。</li>
+<li><strong>双轨事实记忆</strong>（MemSIF，arXiv 2608.01742）：CoreFact 写入时固化稳定事实；ActiveFact 按需成形，被多来源历史与反复查询需求支持后才"晋升"为长期事实。落地：给 MEMORY.md 加晋升规则——会话记忆先落草稿区，被第 2 次独立任务复用后才晋升进主记忆。</li>
+</ol>
+<h3 id="_2">五、安全护栏（自进化的前置阀门，必看）</h3>
+<ol>
+<li><strong>Authority 坍缩问题</strong>（AuthMem-Bench，arXiv 2608.01679）：固化记忆时丢掉"这条信息允许被怎么用"的来源约束，记忆被赋予超过来源的权威。49个配置中48个存在该问题。<strong>自动标注并持久化 authority 标签后，未授权行动率 16.9% → 0.0%</strong>。</li>
+<li>落地：每条记忆/技能必须带来源标签（人下令 / 已验证 receipt / 仅观察），低权威条目禁止被当指令执行。一行 frontmatter 约定即可。</li>
+<li><strong>自投毒攻击</strong>（EvoMal，arXiv 2608.25776）：自写工具的 coding agent 会把检索到的恶意技能当模板模仿，生成携带载荷的新技能并回写技能库，形成自传播蠕虫。153个 SWE-bench 任务上自投毒率 20.3%–41.8%。</li>
+<li>落地：保持"自动起草、人审发布"不放松；从外部引入的技能（shared-skills 拉取）加静态扫描步骤。</li>
+</ol>
+<h2 id="how">HOW（落地三步）</h2>
+<ol>
+<li><strong>第一步（本周）</strong>：技能变更回归门禁——workshop 发布技能前，跑固定 5 条样例集 verify，防退化。</li>
+<li><strong>第二步（下月）</strong>：supervisor 当场 steering——审查员发现问题当场发方向修正，不等下一轮；同时写错误台账。</li>
+<li><strong>第三步（长期）</strong>：记忆晋升机制——草稿区被第2次独立任务复用才晋升主记忆；技能带来源标签。</li>
+</ol>
+<h2 id="_3">来源</h2>
+<ul>
+<li>raw/sources/Agent技术动态调研-202609.md（完整调研含14篇论文）</li>
+<li>arXiv 2609.08919 / 2608.26530 / 2609.24663 / 2608.01679 / 2608.25776</li>
+</ul></div></body></html>

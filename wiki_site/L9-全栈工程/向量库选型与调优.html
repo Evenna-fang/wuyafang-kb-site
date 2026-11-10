@@ -1,0 +1,231 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>向量库选型与调优</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 向量库选型与调优</span></div><div class="wrap"><h1 id="rag-向量检索选型过滤混合检索与可复现调优">RAG 向量检索：选型、过滤、混合检索与可复现调优</h1>
+<blockquote>
+<p>本篇保留并改写原《向量库选型与调优》。课件的摄取管道说明“文档→向量→索引”的基本链路，书籍提供数据清洗、建库、检索与延迟调优框架，pgvector 官方 README 校正索引和过滤语义。示例需在装有 PostgreSQL + pgvector 的环境执行，本轮未启动数据库。</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY：为什么“换个更快的向量库”经常无效</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>RAG 答不上来时，向量库只是候选原因</li><li>数据清洗失败、chunk 切断语义、embedding 与业务语言不匹配、过滤把候选筛空、生成端拿到太多噪声，都能表现为“检索不行”</li><li>书籍把数据准备、向量库创建、检索与生成协同调优放在连续章节，课件也把向量存储放在摄取管道中，而不是孤立 benchmark，这说明优化对象应是整条检索链</li></ul></div>2
+<p>RAG 答不上来时，向量库只是候选原因。数据清洗失败、chunk 切断语义、embedding 与业务语言不匹配、过滤把候选筛空、生成端拿到太多噪声，都能表现为“检索不行”。书籍把数据准备、向量库创建、检索与生成协同调优放在连续章节，课件也把向量存储放在摄取管道中，而不是孤立 benchmark，这说明优化对象应是<strong>整条检索链</strong>。</p>
+<p>旧文里的固定规模上限、统一 p95 延迟和“100k 行就必须建某索引”不能作为通用事实：结果随维度、数据分布、过滤选择性、硬件、并发和参数改变。正确问题是：</p>
+<ol>
+<li>在自家 golden set 上，Recall@k、nDCG/MRR 与答案忠实度是否提高？</li>
+<li>在业务过滤条件和并发下，p95/p99 是否仍满足 SLO？</li>
+<li>新增一套数据库的备份、权限、升级、监控成本是否值得？</li>
+<li>是否必须近似索引？pgvector 默认精确检索提供完全召回，近似索引是用部分召回换速度。</li>
+</ol>
+<h2 id="what-whyt按约束选系统按机制调参数">WHAT / WHYT：按约束选系统，按机制调参数</h2>2
+<table>
+<thead>
+<tr>
+<th>需求</th>
+<th>优先候选</th>
+<th>选择理由与代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>已有 PostgreSQL；要事务、JOIN、租户权限与向量同事务</td>
+<td>pgvector</td>
+<td>少一套存储与同步链；极致规模/延迟需实测，不能套固定上限</td>
+</tr>
+<tr>
+<td>专用向量服务、自建、需要丰富过滤与量化能力</td>
+<td>Qdrant</td>
+<td>专用功能多；新增运维与数据一致性边界</td>
+</tr>
+<tr>
+<td>内建关键词 + 向量混合能力</td>
+<td>Weaviate 或 PostgreSQL FTS + pgvector</td>
+<td>减少自写融合；仍需评估中文分词与排序质量</td>
+</tr>
+<tr>
+<td>超大规模分布式且有专职平台团队</td>
+<td>Milvus</td>
+<td>分布式能力换取部署、升级和故障域复杂度</td>
+</tr>
+<tr>
+<td>本地原型、单机实验</td>
+<td>Chroma/FAISS</td>
+<td>上手快；多租户、事务和生产 HA 需另补</td>
+</tr>
+<tr>
+<td>不想运维且接受云服务与数据出域</td>
+<td>托管向量服务</td>
+<td>用费用和主权约束换运维便利</td>
+</tr>
+</tbody>
+</table>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">HNSW、IVFFlat 与过滤的真实语义</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>HNSW：图索引；官方口径是相对 IVFFlat 有更好的速度—召回权衡，但构建更慢、内存更多，可在空表上创建</li><li>IVFFlat：倒聚类索引；构建更快、内存更少，但查询性能/召回权衡通常较弱</li><li>应在表已有数据后建索引，并用代表性数据选择 lists、查询时调 probes</li></ul></div>3
+<ul>
+<li><strong>HNSW</strong>：图索引；官方口径是相对 IVFFlat 有更好的速度—召回权衡，但构建更慢、内存更多，可在空表上创建。</li>
+<li><strong>IVFFlat</strong>：倒聚类索引；构建更快、内存更少，但查询性能/召回权衡通常较弱。应在表已有数据后建索引，并用代表性数据选择 lists、查询时调 probes。</li>
+<li><strong>过滤发生在近似索引扫描之后</strong>：若只扫描少量候选再按 tenant/category 过滤，返回数可能少于 <code>LIMIT</code>。pgvector 0.8.0 起可用 iterative index scans 继续扫描。</li>
+<li><code>strict_order</code> 保证距离顺序；<code>relaxed_order</code> 允许轻微乱序以提高召回，需要严格顺序时可按官方建议用 materialized CTE 再排序。iterative scan 会访问更多 tuple，必须同时测延迟和召回，不能只开参数就宣布修好。</li>
+<li>过滤值种类少时考虑部分索引；租户种类多时考虑分区。先给普通过滤列建 B-tree/GIN 等索引，也可能让 PostgreSQL 选择精确检索路径。</li>
+</ul>
+<h3 id="混合检索与重排不是同一步">混合检索与重排不是同一步</h3>3
+<ul>
+<li>语义检索适合同义表达；全文检索保留专有名词、编号和精确词项。</li>
+<li>RRF 只使用各路排名，不直接比较余弦距离与 BM25/FTS 原始分数：单篇得分可写为 <code>Σ weight_i / (k + rank_i)</code>。<code>k</code> 是平滑参数，不是召回文档数。</li>
+<li>“大候选 → RRF → rerank → 少量上下文”把<strong>召回率</strong>与<strong>最终上下文预算</strong>分开。rerank 后的 top-n 应通过 golden set 和成本共同决定，不预设 3、4 或 8 永远最好。</li>
+</ul>
+</div></details><h3 id="论文证据怎样改变评估口径">论文证据怎样改变评估口径</h3>3
+<p>《How Ground Truth Shapes Retrieval Scores》（<a href="https://arxiv.org/abs/2610.31606">arXiv:2610.31606</a>）在一个小型临床 RAG 开发集上，将证据 span 映射到所有包含该证据的 chunk；扩充标注后，被接受的相关 chunk 目标从 36 增至 51，而检索排名并未改变。作者同时明确样本小、标注受检索结果影响，需要独立验证。<strong>论文不是证明“384 token + 20% overlap 普遍最佳”</strong>，而是证明 Recall、MRR、nDCG 会被 ground-truth 覆盖方式改变。</p>
+<p>我们的落地规则因此改成：先标证据 span，再生成所有等价相关 chunk；保留标注版本与检索快照；由未参与调参的人复核证据充分性；调 chunk、混合检索和 rerank 时固定同一标注版本。报告指标必须附 golden set 规模和覆盖方式，不能把标注扩充造成的分数变化误报为算法提升。</p>
+<h2 id="how建库融合评估压测与项目交付">HOW：建库、融合、评估、压测与项目交付</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 建一个带租户过滤的 pgvector 基线</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>CREATE TABLE documents (</li><li>id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,</li><li>tenant_id bigint NOT NULL,</li></ul></div>3
+<p>以下示例以 1024 维 embedding 为例；实际维度必须和模型输出一致：</p>
+<pre><code class="language-sql">CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE TABLE documents (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  tenant_id bigint NOT NULL,
+  content text NOT NULL,
+  embedding vector(1024) NOT NULL,
+  fts tsvector GENERATED ALWAYS AS (to_tsvector('simple', content)) STORED
+);
+
+CREATE INDEX documents_embedding_hnsw
+  ON documents USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX documents_fts_gin ON documents USING gin (fts);
+CREATE INDEX documents_tenant_idx ON documents (tenant_id);
+</code></pre>
+<p>先灌入代表性数据、建索引并刷新统计信息。语义查询示例（<code>$1</code> 为 query embedding，<code>$2</code> 为 tenant）：</p>
+<pre><code class="language-sql">SET hnsw.iterative_scan = relaxed_order;
+SET hnsw.max_scan_tuples = 20000;  -- 官方默认值示例，不是调优目标
+
+WITH nearest AS MATERIALIZED (
+  SELECT id, content, embedding &lt;=&gt; $1 AS distance
+  FROM documents
+  WHERE tenant_id = $2
+  ORDER BY embedding &lt;=&gt; $1
+  LIMIT 20
+)
+SELECT id, content, distance
+FROM nearest
+ORDER BY distance;
+</code></pre>
+<p>权限过滤不能只藏在应用代码里：多租户场景同时考虑 PostgreSQL RLS，并用“ tenant A 的凭证查询 tenant B 专属文档”做负例，确保引用与 chunk 都不会泄露。</p>
+<h3 id="2-用-rrf-合并两路排名">2. 用 RRF 合并两路排名</h3>3
+<pre><code class="language-python">def reciprocal_rank_fusion(rankings, k=60):
+    &quot;&quot;&quot;rankings: [[doc_id, ...], ...]；只融合排名，不混合异构原始分。&quot;&quot;&quot;
+    scores = {}
+    for ranking in rankings:
+        for rank, doc_id in enumerate(ranking, start=1):
+            scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank)
+    return sorted(scores, key=scores.get, reverse=True)
+</code></pre>
+<p>执行顺序：关键词取 20～50 个候选、语义取 20～50 个候选 → RRF → 可选 cross-encoder rerank → 只把最终 top-n 送进生成器。候选数和 <code>k</code> 都是待网格搜索变量；每次实验记录 embedding 版本、chunk 版本、索引参数和数据快照。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 建 golden set，检索与生成分开验收</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>至少覆盖：同义改写、精确编号、多跳、无答案、跨租户负例、最长文档</li><li>无答案样本用于检查系统是否会硬答，不能计入“必召回某文档”的分母</li><li>"""golden: [(ranked_doc_ids, relevant_doc_id_set), ...]"""</li></ul></div>3
+<p>至少覆盖：同义改写、精确编号、多跳、无答案、跨租户负例、最长文档。无答案样本用于检查系统是否会硬答，不能计入“必召回某文档”的分母。</p>
+<pre><code class="language-python">def recall_at_k(golden):
+    &quot;&quot;&quot;golden: [(ranked_doc_ids, relevant_doc_id_set), ...]&quot;&quot;&quot;
+    hits = [bool(set(ids) &amp; relevant) for ids, relevant in golden]
+    return sum(hits) / len(hits) if hits else 0.0
+</code></pre>
+<p>同一批数据依次比较：精确检索基线、HNSW 默认参数、调参后的 HNSW、混合检索、混合 + rerank。报告 Recall@k、MRR/nDCG、p50/p95/p99、最终上下文 token；生成侧另测 faithfulness，避免“召回提高所以答案一定更好”的假推断。</p>
+<h3 id="4-用业务负载做迁移决策">4. 用业务负载做迁移决策</h3>3
+<pre><code class="language-text">固定数据快照与查询集
+  → 单并发测正确性/召回
+  → 逐步提升到生产峰值并发
+  → 加入真实 tenant/category 过滤与最长向量维度
+  → 记录 p95/p99、CPU、内存、索引构建时间
+  → 加备份恢复与节点故障演练
+  → 只有质量或 SLO 明显收益覆盖迁移成本时才换库
+</code></pre>
+<p>不引用厂商“快 N 倍”作为验收值；不同 benchmark 的维度、距离、过滤和并发不可比。上线后保留失败 query，经人工确认 relevant 文档再回流 golden set。</p>
+</div></details><h3 id="5-把检索链做成可交付的文档问答项目">5. 把检索链做成可交付的文档问答项目</h3>3
+<p>原《项目实战—RAG 问答》的价值在于给出上传、父子分块、会话、引用和删除的完整业务闭环；其中固定 P95、固定 Top-K、模型切换收益和“代码已验证”的表述不作为本机实测结论保留。最终项目只采用下面的可验收路线，示例均未在本轮启动数据库或模型实跑。</p>
+<p><strong>功能与数据契约</strong>：文档表保存 <code>document_id/tenant_id/source_uri/version/status</code>；chunk 表保存 <code>chunk_id/document_id/parent_id/content/embedding/metadata</code>。子块负责召回，父块负责提供完整上下文；所有父子行都带租户与文档版本。删除文档时同事务删除元数据和向量行，对象存储原文另按生命周期删除，避免“列表已删但向量仍可检索”。</p>
+<pre><code class="language-text">rag-doc-assistant/
+├── app/api.py                 # 上传、问答、删除；鉴权与输入上限
+├── app/ingest.py              # 解析、父子分块、embedding、批量写入
+├── app/retrieve.py            # 租户过滤、混合召回、RRF、可选 rerank
+├── app/generate.py            # 仅依据上下文生成，返回引用 ID
+├── sql/schema.sql             # pgvector 表、索引、RLS
+├── tests/golden.jsonl         # 证据 span 与 relevant chunk 标注
+└── tests/test_permissions.py  # 跨租户与删除后检索负例
+</code></pre>
+<p>按以下顺序实施，不跳步：</p>
+<pre><code class="language-bash">python -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install fastapi uvicorn psycopg[binary] pgvector pydantic pypdf python-multipart
+createdb rag_delivery
+psql &quot;$DATABASE_URL&quot; -v ON_ERROR_STOP=1 -f sql/schema.sql
+uvicorn app.api:app --host 127.0.0.1 --port 8000
+</code></pre>
+<ol>
+<li>** ingestion 先落证据关系**：解析 PDF/DOCX/TXT 后按标题、段落和条款边界切父块，再切子块；每个子块保存 <code>parent_id</code> 与原文页码/偏移。embedding 模型和维度写入数据版本，入库与查询必须使用同一模型 revision。</li>
+<li><strong>问答先检索、后生成</strong>：两路各取候选，RRF 后可选 rerank；按最终 <code>parent_id</code> 去重回捞父块。上下文只包含当前租户、当前文档版本；模型输出引用 <code>chunk_id</code>，API 再校验这些 ID 确实属于本次已授权候选。</li>
+<li><strong>无答案与删除是主流程</strong>：检索低于经校准的阈值时返回“不确定/需要补充材料”，不硬答。删除后用被删文档的独有编号再查一次，候选、答案和引用都不得出现该编号。</li>
+<li><strong>验收用同一套证据链</strong>：先跑 schema 和权限负例，再跑 Recall@k/MRR/nDCG，最后跑 faithfulness 与端到端引用正确性；记录 p95、最终上下文 token 和每成功任务成本。任何“Top-K 降低成本”的结论必须同时给出质量变化。</li>
+</ol>
+<p>最小端到端检查不是 <code>curl</code> 返回 200，而是：上传一份含独有编号的文档 → 提问能返回正确编号与引用 → 用另一租户身份查不到 → 删除后原租户也查不到。上述四步本轮未实跑，是交付时的功能验收脚本口径。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库是「本地 Chroma + 云端 Zilliz」双后端，且云端是可选开关（本次读源码）</strong>：<br />
+  | 后端 | 位置 | 特点 |<br />
+  |---|---|---|<br />
+  | Chroma（本地） | <code>rag/query.py</code> L2593 <code>chromadb.PersistentClient(path=index_dir)</code> | 索引 1.3G 落盘，离线可用 |<br />
+  | Zilliz（云端 Milvus） | <code>rag/cloud_backend.py</code> L32 <code>class ZillizBackend</code> | dense + 服务端 BM25 <code>hybrid_search</code>，中文 analyzer 用 jieba |<br />
+  配置 <code>rag/config.yaml</code> 的 <code>cloud.enabled: true</code>，凭证走环境变量名（<code>ZILLIZ_URI</code>/<code>ZILLIZ_TOKEN</code>），<strong>代码里不落 key</strong>。</li>
+<li><strong>选型的最实际判据是「能不能不连网就检索」</strong>：<code>cloud_backend.py</code> 的模块 docstring 写的是「替代本地 Chroma+bge-m3, 把检索算力搬到云端, 省本地约2GB内存」——<strong>换向量库的第一驱动力是内存，不是性能</strong>。</li>
+<li><strong>本地调优在本库集中在四行配置（<code>rag/config.yaml</code> 检索段）</strong>：<code>dense_top_n: 1000</code>、<code>sparse_top_n: 100</code>、<code>top_k: 4</code>、<code>source_max_per_query: 3</code>。dense 召回放到 1000 是拿事故换的（注释：「之前 dense_top_n=200 时 chroma 内部返回 top-200 dist 下限=0.496，把真实 dist=0.28 的 wiki 挤出」）。<br />
+<strong>向量库的「候选池」参数会改变「最终看到的距离分布」</strong>，调它必须重看门禁阈值。</li>
+<li><strong>和课件讲法的差异</strong>：课件对比 Milvus/pgvector/Chroma 多讲 HNSW 参数与 QPS；本库的调优笔记全是「召回池大小 + 层权重 + 门禁阈值」这三者的联动。</li>
+<li><strong>本库暂无</strong>：没有 Zilliz 与本地 Chroma 的 A/B 结果落盘（<code>verify_cloud_ingest.py</code> 存在，但没有结果文件进库），也没有 HNSW 参数调优记录。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库向量库是双后端：本地 Chroma（<code>rag/query.py</code> main() 里 L2593 <code>client = chromadb.PersistentClient(path=index_dir)</code>，索引 1.3G）与云端 Zilliz（<code>rag/cloud_backend.py</code> L32 <code>class ZillizBackend</code>，dense + BM25 hybrid_search），<code>rag/config.yaml</code> L228-235 的 <code>cloud.enabled: true</code>。</li>
+<li><strong>读源码</strong>：选型维度；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] <strong>课件</strong>：<a href="../../raw/courseware/2603%E6%9C%9FAI%E5%A4%A7%E6%A8%A1%E5%9E%8BAgent%E7%AF%87__2603%E6%9C%9FAI%E5%A4%A7%E6%A8%A1%E5%9E%8BAgent%E7%AF%87__5-llamaindex3-2026-3-30-%E5%88%9D%E8%A7%81__day05/day05/02-%E6%91%84%E5%8F%96%E7%AE%A1%E9%81%93-%E5%90%91%E9%87%8F%E6%95%B0%E6%8D%AE%E5%BA%93.py">LlamaIndex 摄取管道与向量数据库</a>，落在“文档→向量→索引”链路；<a href="../../raw/courseware/RAG%E7%AF%87/13-%E5%AE%9E%E6%88%98%E9%A1%B9%E7%9B%AE%EF%BC%9A%E6%99%BA%E8%83%BD%E6%96%87%E6%A1%A3%E6%A3%80%E7%B4%A2%E5%8A%A9%E6%89%8B-2026-3-16-%E6%9F%8F%E6%B1%8C__day13__07-RAG%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98.md">智能文档检索助手</a>，落在父子分块、引用和项目结构。课件原型不等于本机复跑。</li>
+<li>[书1] <strong>书籍摘录</strong>：<a href="../../raw/weread/%E5%A4%A7%E6%A8%A1%E5%9E%8BRAG%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%EF%BC%9A%E6%9E%84%E5%BB%BA%E6%99%BA%E8%83%BD%E7%94%9F%E6%88%90%E7%B3%BB%E7%BB%9F.md">大模型 RAG 应用开发</a>，目录与公开划线用于建库、向量化、协同调优、缓存和系统测试框架；不声称获得或阅读书籍全文。</li>
+<li>[业1] <strong>业内官方</strong>：<a href="https://raw.githubusercontent.com/pgvector/pgvector/master/README.md">pgvector README</a>（GET 200：2026-11-04），校正 HNSW/IVFFlat、过滤与 iterative scan；<a href="https://supabase.com/docs/guides/ai/hybrid-search">Supabase Hybrid Search</a>（GET 200：2026-11-04），落在 FTS + 语义 + RRF 实现。GitHub 页面本轮 DNS 解析超时，故使用官方仓库 raw README，不改写为页面 GET 成功。</li>
+<li>[业2] <strong>论文</strong>：<a href="https://arxiv.org/abs/2610.31606">How Ground Truth Shapes Retrieval Scores，arXiv:2610.31606</a>（GET 200：2026-11-04；<a href="../../raw/sources/arxiv-daily/2026-10-22-2610.31606.md">本地摘要</a>），落在证据 span 标注、标注版本和独立复核，不把其小样本参数当通用最优。</li>
+</ul></div></details></div></body></html>

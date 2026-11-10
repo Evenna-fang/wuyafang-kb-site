@@ -1,0 +1,198 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>03-交付方法论与门禁</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 03-交付方法论与门禁</span></div><div class="wrap"><h1 id="交付方法论与门禁用可复核证据决定什么时候上线扩大或停止">交付方法论与门禁：用可复核证据决定什么时候上线、扩大或停止</h1>
+<blockquote>
+<p>阅读定位：承接<a href="02-%E9%9C%80%E6%B1%82%E8%AE%BF%E8%B0%88%E4%B8%8E%E9%97%AE%E9%A2%98%E5%AE%9A%E4%B9%89.html">问题定义</a>的验收契约，将<a href="01-FDE%E6%96%B9%E6%B3%95%E8%AE%BA%E5%85%A8%E6%99%AF.html">全景</a>中的验证、试点、交接落成具体机制。本文门禁编号、阈值示例与交付包为综合设计，不是 NIST、Palantir 或课程的官方模板；不将风险框架视为法律意见。</p>
+</blockquote>
+<h2 id="why为什么演示通过不是生产验收">WHY：为什么演示通过不是生产验收</h2>2
+<p>演示回答的是在挑选输入、受控环境和开发者陪同下，系统能否完成一次任务。交付回答的是在约定范围、真实权限、变化数据和不完美环境中，接收方能否持续使用并处理失败。两者所需证据不同：一个成功截图不能证明恢复能力，一个健康接口不能证明业务正确，一个满意评分也不能证明没有越权。把这些问题合并成“功能已经完成”，会在上线后把未知成本转嫁给用户。</p>
+<p>《Dify本地部署》课件展示了安装基础工具、获取项目、准备配置、启动服务、初始化账户和配置模型的路径。[C1] 它很好地说明了部署的最小操作链，但不自动覆盖数据备份、恢复演练、访问控制、异常响应与业务验收。《持续交付2.0》的划线强调质量应内建到生产过程，而不是依靠最后大批检验补救。[B1，第3章划线] 两者融合后，课程中的“服务起来了”应被视为技术准备证据，后面仍有明确的发布条件。</p>
+<p>AI 系统还多一层概率性。相同任务可能因检索材料、模型版本、工具返回和上下文变化而表现不同；固定测试全过，不等于未来所有输出正确。但这并不意味着可以放弃确定性边界。请求格式、租户隔离、工具授权和幂等约束应由程序明确执行；自然语言质量和复杂任务成功率则需要样本评估、量规和观察窗口。门禁的职责是选择正确证据，而不是把所有问题强行压成一个真假值。</p>
+<h2 id="what门禁是一份带责任的决策协议">WHAT：门禁是一份带责任的决策协议</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.1 五个字段构成最小门禁</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>每个门禁至少记录适用范围、通过条件、证据、裁决人和失败去向</li><li>应记录实际检查对象数、样本数、关键版本和运行错误；没有取得证据时标记“未知或阻断”，不能将“未发现错误”解释成“已经验证”</li><li>范围明确它检查哪个版本、数据集、角色或动作；通过条件明确哪些不可妥协、哪些允许权衡；证据必须可复核；裁决人有权承担该类决策；失败去向明确是补材料、降级、延期还是停止</li></ul></div>3
+<p>每个门禁至少记录适用范围、通过条件、证据、裁决人和失败去向。范围明确它检查哪个版本、数据集、角色或动作；通过条件明确哪些不可妥协、哪些允许权衡；证据必须可复核；裁决人有权承担该类决策；失败去向明确是补材料、降级、延期还是停止。只有一个绿色勾选而无法回答这些问题，不是门禁，只是状态标签。</p>
+<p>门禁也要检查自己。脚本扫描零个文件、测试集为空、数据源连接失败却返回默认值、评审没有读到真实产物，都可能形成假通过。应记录实际检查对象数、样本数、关键版本和运行错误；没有取得证据时标记“未知或阻断”，不能将“未发现错误”解释成“已经验证”。门禁异常与被检系统异常是不同问题，却都不应自动放行高风险变更。</p>
+<h3 id="22-四类证据承担不同职责">2.2 四类证据承担不同职责</h3>3
+<table>
+<thead>
+<tr>
+<th>证据类型</th>
+<th>适合回答的问题</th>
+<th>不能代替的内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>确定性测试</td>
+<td>格式、权限、路径、状态转移是否符合规则</td>
+<td>开放任务整体质量</td>
+</tr>
+<tr>
+<td>统计评测</td>
+<td>给定分布上成功率与错误结构如何</td>
+<td>法律裁决、未来零风险</td>
+</tr>
+<tr>
+<td>专业审查</td>
+<td>设计、风险与责任是否可接受</td>
+<td>本地实现真跑结果</td>
+</tr>
+<tr>
+<td>运行观察</td>
+<td>用户如何实际使用、如何失败</td>
+<td>预先阻止不可接受伤害</td>
+</tr>
+</tbody>
+</table>
+<p>统计评测应说明样本来源、分层、预期答案、评分者和不确定性。专家审查应看到原始证据而非仅有执行者摘要。运行观察不能成为高风险功能“先上再说”的理由。四类证据相互补充，而不是可以互相抵扣：权限泄露不能由更快响应抵消，业务无价值也不能由测试数量很多弥补。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.3 治理框架如何转成工程动作</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>NIST AI RMF 面向 AI 全生命周期风险管理，官网说明其属于自愿使用框架，并提供生成式 AI Profile</li><li>[P1] 本文将它作为风险识别、责任分配和持续测量的参考，不将其写成所有项目必须获得的认证</li><li>工程团队应列出可能伤害谁、何种失败不可接受、如何检测和处理，再将对应控制嵌入需求、设计、发布与运营</li></ul></div>3
+<p>NIST AI RMF 面向 AI 全生命周期风险管理，官网说明其属于自愿使用框架，并提供生成式 AI Profile。[P1] 本文将它作为风险识别、责任分配和持续测量的参考，不将其写成所有项目必须获得的认证。工程团队应列出可能伤害谁、何种失败不可接受、如何检测和处理，再将对应控制嵌入需求、设计、发布与运营。风险文档不应与实际调用链分离。</p>
+<p>Palantir 的 Actions 文档将动作表达为一组对对象、属性、链接及相关行为的受控变更。[P2] 本文借鉴的是让写操作具有清晰契约，而非让模型直接输出任意数据库命令。动作的参数、条件、授权和副作用需要显式设计；读权限也不自动授予写权限。厂商动作机制的存在不证明本项目已正确配置，这一点仍需本地正负测试。</p>
+<h2 id="how把交付拆成七道有回边的门">HOW：把交付拆成七道有回边的门</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">G0 问题与范围门：确认正在交付正确问题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>输入是已确认的问题契约、业务基线和非目标</li><li>若数据或授权仍未知，可以批准有限的合成验证，但必须明确它不能作为真实生产效果的结论</li><li>检查对象包括目标用户、任务切片、数据与动作范围、成功口径以及责任人</li></ul></div>3
+<p>输入是已确认的问题契约、业务基线和非目标。检查对象包括目标用户、任务切片、数据与动作范围、成功口径以及责任人。通过不是“客户说喜欢”，而是双方能指出主要收益、质量护栏和何时停止。若数据或授权仍未知，可以批准有限的合成验证，但必须明确它不能作为真实生产效果的结论。</p>
+<p>失败时回到需求发现，不急着修改技术方案。常见失败是目标被悄悄扩大、原来的基线已经失效、赞助人和接收方不是同一群体。处理方式是修订契约并通知受影响负责人，重新评估验证成本。把 G0 放在流程前面，可以阻止后续门禁用高质量证据证明一个已经不重要的问题。</p>
+<h3 id="g1-数据与权限门确认输入合法可用可解释">G1 数据与权限门：确认输入合法、可用、可解释</h3>3
+<p>输入包括样本清单、数据契约、更新责任和访问矩阵。对知识系统，检查来源、版本、有效期、撤销和可见范围；对结构化数据，检查字段口径、租户边界、历史补录和更新延迟；对工具系统，检查最小权限、参数限制和调用者身份。样本应覆盖正常、缺失、冲突、过期、无权限等情形，不能只挑干净数据。</p>
+<p>本库原有的凭据隔离纪律在这里保留为本地工程规则：密钥、令牌、密码不进入任务文本、日志、评测样本与报告，按既有秘密管理机制注入；本机私有代码和用户数据不得外传给未经批准的端点。检查资料只记录引用方式，不读取或回显真实秘密。若测试需要跨越现有权限，应先取得相应授权，不能拿测试目的当豁免。</p>
+<p>G1 不通过时，应暂停相关真实数据接入，可以继续不接触敏感内容的设计与合成测试。不能用“后面会补权限”批准实际读取，也不能因为数据在本地就认为无泄露风险。索引、缓存、日志和备份都是数据副本，应纳入同一张数据流图；删除原文却保留未受控索引，不构成完整撤销。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">G2 设计与风险门：确认失败路径已经存在</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>设计评审不仅看主流程，还看依赖故障、超时、拒答、重复事件、部分执行和恢复</li><li>每条关键路径都要说明谁检测、谁接管、怎样避免重复副作用</li><li>建议将回答生成与业务执行分开：模型可以提出结构化建议，可信服务验证授权与参数后再调用受控动作</li></ul></div>3
+<p>设计评审不仅看主流程，还看依赖故障、超时、拒答、重复事件、部分执行和恢复。每条关键路径都要说明谁检测、谁接管、怎样避免重复副作用。建议将回答生成与业务执行分开：模型可以提出结构化建议，可信服务验证授权与参数后再调用受控动作。审批必须绑定明确对象与参数，不能批准一段宽泛目标后任由模型扩大动作范围。</p>
+<p>风险清单应有最坏后果与可接受残余风险，不能只写“有提示词注入风险，已加系统提示词”。检索内容、网页和工具返回都可能包含不可信指令；来源可信度与执行授权要分离。即使模型受到误导，系统也应通过工具白名单、账户隔离、服务端鉴权和外发限制缩小后果。控制有效性要靠测试，而不是提示词长度。</p>
+<p>离线部署也在 G2 审查。旧稿“断网消除整类控制”的绝对表述需要纠正：断开外网可以减少部分远程路径，但无法消除恶意文件、移动介质、内部越权、供应链制品与日志泄露。模型、依赖、文档资源、许可证校验与遥测是否仍尝试联网，需要在批准环境实测；环境变量只是配置意图，不是隔离证明。具体法规义务仍由专业责任人判断。</p>
+<h3 id="g3-实现与评测门确认系统在约定分布上可工作">G3 实现与评测门：确认系统在约定分布上可工作</h3>3
+<p>首先验证确定性契约。格式输出错误必须被拒绝，未授权检索必须不返回内容，重复提交不能重复执行，空数据不能被解释成有效答案。然后评估统计质量，按任务类型、难度和风险分层看成功与失败。聚合总分只是摘要，不能遮蔽关键子群体退化。测试集必须有来源与版本，不得将最终验收样本直接用于逐题调提示词后再宣称独立通过。</p>
+<p>对于检索增强生成，要分开检查资料是否被找到、证据是否支持回答、业务任务是否完成。检索命中不等于答案正确，答案形式正确也不等于业务有效。对于代理，要记录工具选择、参数、任务停止与副作用；不能只用最终一句回复评分。书摘将检索的召回、相关性和排序分开，本文进一步把它们接到业务任务验收。[B2，第15章划线；综合扩展]</p>
+<p>评分规则要给正例、边界例和负例。人工标注存在争议时，先澄清量规，不为提高分数删除难题。使用模型评审时，应说明评审模型、提示、样本与人工校准；自动评审不是事实裁判。任何评测依赖如果会把本地敏感内容发送到外部，都必须先解决授权，本篇不提供绕过数据边界的默认调用方案。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">G4 发布与恢复门：确认出错时能收住</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>一次构建形成具名制品，记录代码、提示词、模型、索引或数据快照、配置与依赖版本</li><li>检测不到关键错误、人工接管能力不足、证据链断裂时，应保持原范围或降级，而不是因上线日期已到就自动通过</li><li>不同环境使用经过验证的同一制品，而不是在生产临时重装一套</li></ul></div>3
+<p>一次构建形成具名制品，记录代码、提示词、模型、索引或数据快照、配置与依赖版本。不同环境使用经过验证的同一制品，而不是在生产临时重装一套。发布前测试健康检查、业务主路径、权限负例、告警触发和恢复；只回滚应用而未考虑数据结构或索引兼容性，可能造成新旧组合失配，必须提前说明恢复边界。</p>
+<p>回滚对象要完整。若新版本写入不可逆业务状态，恢复旧程序并不能撤销副作用；需要幂等键、补偿动作、人工核对或明确不可回滚边界。备份必须验证可读、可还原且与配套组件匹配，不能只看压缩包存在。恢复演练应由接收方执行一个受控场景，并记录实际耗时与数据影响，而非在手册里写“必要时回滚”。</p>
+<p>发布策略可从影子到建议再到受限自动，范围每次扩大都有独立条件。流量比例、观察窗口和阻断线按风险与业务节奏设定，本文不使用一个通用百分比冒充最佳实践。检测不到关键错误、人工接管能力不足、证据链断裂时，应保持原范围或降级，而不是因上线日期已到就自动通过。</p>
+<h3 id="g5-业务采用与运营门确认收益没有转移为隐性负担">G5 业务采用与运营门：确认收益没有转移为隐性负担</h3>3
+<p>上线观察需要同时覆盖业务指标、用户采用、质量失败、人工接管、成本与尾部延迟。采用率的分母应是有机会使用且在范围内的人或任务，不是所有员工。记录拒用和弃用原因，区分入口难找、信任不足、任务不适配与系统故障。只有统计登录次数，可能把试用热情误读为稳定业务能力。</p>
+<p>尤其要检查工作转移。例如客服处理变快，但专家审核量翻倍；单次回答成本降低，但重复重试增加；用户满意，却无法追溯关键结论。这些都要求重新看端到端结果。《持续交付2.0》的整体优化和价值流观点在这里成为运营约束，而不是只优化研发吞吐量。[B1，前言与第1章划线]</p>
+<p>G5 的裁决可以是扩大、维持、缩小、改变方向或停止。每种决定都应有证据与接续责任。停止后需要撤销访问、说明数据保留与销毁、维护历史记录，并确保原业务流程可用。不要把停止试点称为失败后藏起来；如果它避免了更大错误投资，正是验证环产生的价值。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">G6 交接与学习门：确认没有留下英雄依赖</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>接收方需要反向演示日常操作、内容更新、异常定位、权限变更和恢复</li><li>培训签到、文档链接和录屏可作为辅助证据，但最终要看到对方在自己的账户和环境里完成操作</li><li>记录交接中的卡点与修正，不能由开发者远程代点后宣称已会用</li></ul></div>3
+<p>接收方需要反向演示日常操作、内容更新、异常定位、权限变更和恢复。培训签到、文档链接和录屏可作为辅助证据，但最终要看到对方在自己的账户和环境里完成操作。记录交接中的卡点与修正，不能由开发者远程代点后宣称已会用。客户侧没有明确维护人时，不能靠口头“有问题找我们”假装责任已分配。</p>
+<p>复盘将失败分为需求、数据、模型、检索、工具、权限、集成与组织等候选原因，再通过证据定位，不预设“都是模型幻觉”。行动项写负责人、期限、产物和验收方法，必要时形成新的测试。一次事故未查清的部分保留为未知，不把猜测立刻固化为全局门禁。学习的目标是改进下一次决策，而非增加规则数量。</p>
+<h2 id="四把验收契约写成机器可查与人可裁决两部分">四、把验收契约写成机器可查与人可裁决两部分</h2>2
+<p>下面是无真实凭据的教学模板，不是某个脚本已支持的配置格式，也不是可直接运行的产品文件。它展示字段关系：同一份契约关联版本、样本、硬边界、质量目标、责任与回退。真实项目可以用现有测试与工单工具实现，不必为了模板另建平台。</p>
+<pre><code class="language-yaml">delivery_contract:
+  scope: approved_support_questions
+  release_id: example_release_01
+  dataset_id: example_eval_v1
+  hard_checks:
+    unauthorized_document_access: must_block
+    duplicate_write: must_be_idempotent
+    missing_evidence: must_abstain_or_escalate
+  quality_targets:
+    task_success: agreed_after_baseline
+    latency: measured_under_declared_load
+    reviewer_burden: compare_with_current_process
+  evidence:
+    test_report: required
+    failure_samples: required
+    restore_drill: required
+  decisions:
+    technical_owner: named_before_release
+    business_owner: named_before_release
+    risk_owner: named_before_release
+  failure_action: hold_or_downgrade
+</code></pre>
+<p>机器侧检查文件存在、测试确实执行、版本一致、权限边界与结果字段；人侧判断风险是否可接受、样本是否代表真实任务、未达线是否允许维持小范围。任何豁免都写明范围、理由、批准人、到期条件与补救，不允许永久性的“先过再说”。高风险硬边界不能通过平均分或单方面口头解释抵消。</p>
+<p>审查上下文也应隔离：审查者直接看产物和原始测试结果，不只读执行者“全部完成”的总结。自验可以发现机械错误，独立审查可以发现默认假设，但两者都不能声称绝对正确。若独立审查未执行，应如实标记未执行；把“计划安排”写成“已经审过”，会直接破坏门禁的可信度。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">五、三源融合的两个具体落点</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>课程提供安装到初始化的操作链，[C1] 书籍提供质量内建、配置管理与低风险交付的阅读入口及相关划线，[B1] NIST 提供生命周期风险管理的方向</li><li>仅扫描是否出现 DELETE 关键字不是完整安全边界，服务端权限和资源限制仍然必要</li><li>[P1] 综合后，应在部署清单之外加上风险负责人、数据副本管理、失败证据与恢复演练</li></ul></div>2
+<p>第一个落点是部署验收。课程提供安装到初始化的操作链，[C1] 书籍提供质量内建、配置管理与低风险交付的阅读入口及相关划线，[B1] NIST 提供生命周期风险管理的方向。[P1] 综合后，应在部署清单之外加上风险负责人、数据副本管理、失败证据与恢复演练。这些新增项是本文工程化设计，不伪装为课程原有内容，也不把书籍目录当作具体操作原文。</p>
+<p>第二个落点是 SQL 助手。课程展示如何生成联合查询，[C2] 书摘提示数据与接口责任必须明确，[B2] Palantir 的动作契约提供受控状态变更的对照思路。[P2] 综合后，本篇要求把“给出查询建议”与“获权执行查询”分开，限制账户、范围与返回数据，并对结果语义核对。仅扫描是否出现 DELETE 关键字不是完整安全边界，服务端权限和资源限制仍然必要。</p>
+<p>旧碎片中的安全与合规知识在这里被重新放进流程：凭据隔离进入数据门，动作边界进入设计门，攻击与越权负例进入实现门，离线依赖进入发布门，保鲜与撤销进入运营门。这样安全不再是附在最后的几条提醒。未经核验的攻击数字、法规周期和供应商版本则留在历史归档，不进入现行发布标准。</p>
+<h2 id="六教学案例资料助手从试点到交接的证据包">六、教学案例：资料助手从试点到交接的证据包</h2>2
+<p>以下为构造案例。设备售后助手的目标是帮助人员找到有效处理依据，不自动改设备配置。G0 将范围限定到一种产品和批准资料；G1 验证文档版本与角色隔离；G2 为资料不足设计升级路径，并禁止工具修改设备；G3 对常见问题、过期手册、无权限资料和诱导指令分别测试，保留失败样本而不只汇总总分。</p>
+<p>G4 将提示词、模型标识和索引快照一起登记，并模拟检索服务不可用，验证系统明确失败而不是编造依据。G5 观察售后人员是否少做无效查找、是否把更多难题推给专家、引用是否足够复核。G6 由客户操作员演示撤销旧手册和排查权限拒绝。若客户不能自己维护资料，即使问答分数很好，也只维持试点而不宣布交接完成。</p>
+<p>一次提示词修改使普通问题更流畅，却让资料不足时的拒答下降。正确处理不是说“总体体验提高所以可上线”，而是回到对应护栏，分析哪些任务被错误覆盖，修复后使用未污染样本重测。若业务方坚持承担某项非硬边界风险，需要具名、限时和限定范围的裁决，而不能由工程师把测试失败改成警告掩盖。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">七、交付包、负例与停止条件</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>最小交付包包含问题契约、架构与数据流、版本清单、测试及评测报告、失败样本、权限矩阵、发布与恢复记录、运行手册、培训与反向演示、已知限制和支持责任</li><li>不是每个项目都需要一份厚报告，但每类关键证据都应有真实入口</li><li>停止条件应在投入扩大前写清：关键数据无法获权取得、主要收益无法测量、不可接受风险无法隔离、客户无人维护、成本无法在业务价值内收敛</li></ul></div>2
+<p>最小交付包包含问题契约、架构与数据流、版本清单、测试及评测报告、失败样本、权限矩阵、发布与恢复记录、运行手册、培训与反向演示、已知限制和支持责任。不是每个项目都需要一份厚报告，但每类关键证据都应有真实入口。引用不存在的文件、过期截图或不可复跑命令，只会让证据包看起来齐全。</p>
+<p>负例至少检查不该读取的数据、不该执行的动作、不足依据时的处理、重复事件、依赖中断和恢复后的兼容。检查时不回显真实秘密，不为了验证越权而越权。输入包含恶意指令的测试应在授权隔离环境中进行，只验证本项目边界，不向外部系统发起攻击。通过有限负例不能证明永远安全，但缺少这些负例意味着连已知边界都没有被认真验证。</p>
+<p>停止条件应在投入扩大前写清：关键数据无法获权取得、主要收益无法测量、不可接受风险无法隔离、客户无人维护、成本无法在业务价值内收敛。停止前记录已经得到的证据、可保留产物与数据处置。交付质量不等于永远把项目推进到上线，而是使上线、延期和停止都成为有证据、有责任、可解释的决定。</p>
+<h2 id="八校准门禁的统计口径与失败处置">八、校准门禁的统计口径与失败处置</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">8.1 看懂分母和观察边界</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>构造例子：一批评测共一百个任务，七十个成功、二十个拒答、十个错误</li><li>样本规模、攻击构造与监测方式限制结论外推</li><li>如果拒答本来属于应该回答的范围，就不能只在八十个有答案任务里计算成功比例；如果部分任务本来就应拒答，则需要单独判断拒答是否正确</li></ul></div>3
+<p>构造例子：一批评测共一百个任务，七十个成功、二十个拒答、十个错误。如果拒答本来属于应该回答的范围，就不能只在八十个有答案任务里计算成功比例；如果部分任务本来就应拒答，则需要单独判断拒答是否正确。先按问题契约定义任务类型与预期，再计算总体和分层指标，才能避免用改变分母掩盖能力缺口。</p>
+<p>对于安全负例，“测试中零次越权”应完整写成“在本版本、给定角色与样本、指定测试环境下未检测到越权”。样本规模、攻击构造与监测方式限制结论外推。风险越高，越需要增加边界测试与独立验证，而不是因为出现一个零就宣布安全。本文不提供通用置信界限，因为项目应按风险和统计设计决定所需样本，而不是机械套数字。</p>
+<h3 id="82-区分测试失败证据缺失与门禁故障">8.2 区分测试失败、证据缺失与门禁故障</h3>3
+<p>测试失败意味着规则被违反，应定位实现或契约问题；证据缺失意味着尚未进行足够检查，应补材料；门禁故障意味着检查机制本身无法可靠工作，应修复检查并重跑。三者都可能阻止扩大范围，但责任人与修复动作不同。若简单标成“有一个警告”，团队很容易为了按时发布而忽略本质差异。</p>
+<p>处置记录可以采用“发现项—影响范围—临时控制—负责人—重验条件”。临时控制例如关闭某类写入、仅对已核验文档开放、降低流量或回到人工建议。临时控制也有代价，应检查是否把工作量转移给无资源承担的人员。只有替代流程能够真实运行，降级开关才是有效控制，不是图纸上的退路。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">8.3 用正反例验证门禁本身</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>至少给关键门禁准备一个应通过案例和一个应失败案例，再确认检查输出与预期一致</li><li>门禁的错误同样会伤害交付，需要纳入维护责任</li><li>审查发现异常后，不应为让状态回绿而直接修改检查阈值</li></ul></div>3
+<p>至少给关键门禁准备一个应通过案例和一个应失败案例，再确认检查输出与预期一致。权限检查不仅要证明合法用户能读，还要证明越权角色无法得到内容；发布检查不仅要证明制品存在，还要证明版本不匹配会阻断；字数和文档检查不仅要证明有文件，还要证明空壳、重复段落和缺来源不能混过。门禁的错误同样会伤害交付，需要纳入维护责任。</p>
+<p>审查发现异常后，不应为让状态回绿而直接修改检查阈值。先明确检查是否测错对象、契约是否不合理或产物确实不达标，再由有权人员作出变更。若标准改变，应保留旧口径和理由，必要时重新跑基线。一个可以随结果修改标准的门禁，没有提供真正的决策约束。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>「门禁要检查自己」在本库有直接实现：扫不到东西不许报绿（<code>rag/check_ttl.py</code> L207-210，本次读源码 + 实跑）</strong>：<br />
+<code>python
+  if counters["scanned"] == 0:
+      print("[FATAL] 扫描到 0 个 .md 文件（根: %s）— 不冒充绿" % ", ".join(roots),
+            file=sys.stderr)
+      return 2</code><br />
+  本次实跑正名：<code>scanned=268 checked=158 ok=158 warn=0 error=0 skipped=110</code> → <code>RESULT: PASS (error=0)</code>；退出码三态 <code>0 绿 / 1 红 / 2 环境错</code>。<strong>环境错要有独立退出码</strong>，否则「没扫到」就会被当成「通过」。</li>
+<li><strong>双阈值设计对应「门禁分级」</strong>：<code>age &gt; ttl_days → WARN</code>、<code>age &gt; 2*ttl_days → ERROR</code>（门禁红），并用 <code>skipped</code> 单独统计未判定的 110 篇（其中 <code>missing_ttl_days=34</code>、<code>eternal=76</code>）——<strong>未知不等于通过，要单独计数</strong>。</li>
+<li><strong>交付证据要可复跑</strong>：本库要求贴「命令 + 原始输出行」，不接受「我测过了」；<code>receipt.py</code> 的 verify 有 G0-G9 十道闸，其中 G5 是「证据必须点名被改文件」。</li>
+<li><strong>和课件讲法的差异</strong>：课件 G0-G6 多为流程描述；本库把它们实现成<strong>脚本退出码 + 数据库约束 + 文件锁</strong>，人能跳过的环节全部换成机械判定。</li>
+<li><strong>本库暂无</strong>：没有「灰度发布 / 回滚演练」类门禁（<code>rag/</code> 无版本化发布），门禁覆盖到「数据与文档」为止，没覆盖到「流量」。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库「门禁检查自己」的真实样本是 <code>rag/check_ttl.py</code>：扫到 0 个文件时返回 2 而不是 0（L208 <code>[FATAL] 扫描到 0 个 .md 文件</code>），本次实跑 <code>scanned=268 checked=158 ok=158 error=0</code> 才给 <code>RESULT: PASS</code>。</li>
+<li><strong>读源码</strong>：G0-G6 门的判据；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<p>编号约定：[课N]=课件（本文沿用 C 编号）、[书N]=书籍划线（沿用 B 编号）、[业N]=业内一手文档（沿用 P 编号），与正文交叉引用一致。本篇未引用 arXiv 论文，业内源均为官方框架与厂商文档。</p>
+<ul>
+<li>[C1] 课件：<a href="../../raw/courseware/%E9%A3%9E%E4%B9%A6%E6%96%B0%E7%A9%BA%E9%97%B4/Dify%E6%9C%AC%E5%9C%B0%E9%83%A8%E7%BD%B2.md">《Dify本地部署》</a>，安装、获取项目、配置、启动和初始化流程；历史命令仅作为教学材料，不据此断言当前部署兼容性。</li>
+<li>[C2] 课件：<a href="../../raw/courseware/%E9%A3%9E%E4%B9%A6%E6%96%B0%E7%A9%BA%E9%97%B4/Prompt%20Engineering%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98.md">《Prompt Engineering项目实战》</a>，SQL生成与界面例子；权限、资源限制与发布门为本文扩展。</li>
+<li>[B1] 书籍划线：<a href="../../raw/weread/%E6%8C%81%E7%BB%AD%E4%BA%A4%E4%BB%982.0%EF%BC%9A%E4%B8%9A%E5%8A%A1%E5%BC%95%E9%A2%86%E7%9A%84DevOps%E7%B2%BE%E8%A6%81%EF%BC%88%E5%A2%9E%E8%AE%A2%E6%9C%AC%EF%BC%89.md">乔梁《持续交付2.0：业务引领的DevOps精要（增订本）》</a>，质量内建、整体优化、验收共识与一次构建相关划线；流水线、配置管理、低风险发布仅取得章节目录，未转述未读操作细节。</li>
+<li>[B2] 书籍划线：<a href="../../raw/weread/FDE%EF%BC%9AAI%E8%90%BD%E5%9C%B0%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97.md">樊中恺《FDE：AI落地实战指南》</a>，第8章接口责任、第9章工作流、第15章检索分层；第18、20章仅取得目录，不冒称完整摘要。</li>
+<li>[P1] 一手框架入口：NIST，AI Risk Management Framework，2026-11-03公开正文核读。官网说明 AI RMF 自愿使用，并指向2024-07-26发布的生成式 AI Profile；框架正在修订。本文不宣称取得认证或逐条映射完整 Profile。<code>https://www.nist.gov/itl/ai-risk-management-framework</code></li>
+<li>[P2] 一手文档：Palantir，Action types overview，2026-11-03公开正文核读；支持受控对象变更与动作概念，不证明本地已配置授权或事务保证。<code>https://www.palantir.com/docs/foundry/action-types/overview/</code></li>
+</ul>
+<p>Google SRE 的 Canarying Releases 本次读取遇到连接故障，未取得正文，不把它列为本篇已核验依据。所有硬边界、阈值和豁免方式仍需按项目风险批准；具体合规义务应回溯正式法规与合同。替换过程见<a href="../../notes/processes/L10-%E6%96%B9%E6%B3%95%E8%AE%BA%E5%B1%82%E8%A1%A5%E5%BC%BA-20261103.md">实施记录</a>。</p></div></details></div></details></div></body></html>

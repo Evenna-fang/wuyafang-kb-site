@@ -1,0 +1,905 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L6-微调框架-DeepSpeed与分布式</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L6-微调框架-DeepSpeed与分布式</span></div><div class="wrap"><h1 id="deepspeed-分布式训练与大模型微调实操">DeepSpeed 分布式训练与大模型微调实操</h1>
+<p>本文围绕单机多卡到多节点的实际操作组织。主线使用 Hugging Face Trainer 完成因果语言模型训练，再切换 ZeRO 阶段、卸载方式和启动器。示例默认 Linux、NVIDIA GPU、已匹配的 CUDA 版 PyTorch；模型采用公开的 <code>Qwen/Qwen2.5-0.5B</code>，先用小模型验证链路，再替换成目标大模型。文中的下载命令需要网络；内部数据训练应改为本地路径，并保持 <code>report_to="none"</code>。本文不执行训练或下载。</p>
+<p>JSON 块均为严格合法的 JSON，不添加双斜线注释。每个字段的单行说明紧随配置；同名字段在后续配置中沿用其解释。不要把正文说明复制进 JSON。示例路径和设备数量对应明确的实验环境，迁移时先核对磁盘、GPU 数量、网络及模型访问权限。</p>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">1. DeepSpeed 的位置与核心能力</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>DeepSpeed 是训练与推理运行时：接管分布式通信、优化器执行、混合精度和状态切分，而数据清洗、指令模板与数据集切分通常由上层框架负责</li><li>ZeRO 沿数据并行组切分训练状态；流水线并行沿网络层切分；张量并行把层内部的大矩阵拆开</li><li>三者可以在支持的模型实现中形成三维并行，但不是往普通 Trainer 配置里填三个数字就自动生效</li></ul></div>2
+<p>DeepSpeed 是训练与推理运行时：接管分布式通信、优化器执行、混合精度和状态切分，而数据清洗、指令模板与数据集切分通常由上层框架负责。ZeRO 沿数据并行组切分训练状态；流水线并行沿网络层切分；张量并行把层内部的大矩阵拆开。三者可以在支持的模型实现中形成三维并行，但不是往普通 Trainer 配置里填三个数字就自动生效。</p>
+<p>混合精度用较少字节保存部分张量并加速矩阵计算；梯度检查点通过反向时重算前向降低激活占用。两者与 ZeRO 解决不同的内存来源。先确定瓶颈究竟是参数、优化器状态还是长序列激活，再选择开关，避免显存下降却因通信和重算使训练时间失控。</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>主要职责</th>
+<th>典型入口</th>
+<th>适合的实际情况</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DeepSpeed ZeRO</td>
+<td>切分优化器、梯度、参数，支持 CPU/NVMe 卸载</td>
+<td>Trainer 的 deepspeed 参数</td>
+<td>单机多卡微调到跨节点扩展，需要显存与卸载选项</td>
+</tr>
+<tr>
+<td>PyTorch FSDP</td>
+<td>原生参数、梯度和优化器状态分片</td>
+<td>PyTorch FSDP 或框架适配</td>
+<td>已有 PyTorch 分布式工程，希望减少外部运行时依赖</td>
+</tr>
+<tr>
+<td>Megatron-Core</td>
+<td>面向 Transformer 的张量、流水线及上下文并行</td>
+<td>Megatron 训练工程</td>
+<td>超大模型预训练，愿意适配模型结构和并行检查点</td>
+</tr>
+</tbody>
+</table>
+<p>三者并非只按速度排名。网络拓扑、算子实现、模型结构和保存格式会决定真实结果。下面先读取 GPU 能力，确认是否适合后文的 BF16 路径。</p>
+<pre><code class="language-bash"># 检查 GPU、CUDA 与 BF16 能力；这不是训练命令。
+nvidia-smi
+python - &lt;&lt;'PY'
+import torch
+print(&quot;torch:&quot;, torch.__version__, &quot;cuda:&quot;, torch.version.cuda)
+print(&quot;gpus:&quot;, torch.cuda.device_count())
+print(&quot;bf16:&quot;, torch.cuda.is_available() and torch.cuda.is_bf16_supported())
+PY
+</code></pre>
+<h2 id="2-安装版本与异步输入输出依赖">2. 安装、版本与异步输入输出依赖</h2>2
+<p>先安装与驱动匹配的 PyTorch，再安装 DeepSpeed。不要把系统 CUDA、驱动支持上限和 PyTorch 编译所用 CUDA 当成同一个版本。自定义算子可能在首次训练时即时编译，因此安装成功并不代表 CPU Adam、Fused Adam 或异步读写算子可用。集群各节点必须使用一致的 Python 环境、DeepSpeed 版本和训练代码。</p>
+<pre><code class="language-bash"># 在已有 CUDA PyTorch 的独立虚拟环境内执行。
+python -m pip install deepspeed transformers datasets accelerate
+# 某些发行包不支持此启动器选项；报 unrecognized arguments 时改用下面的 Python 查询。
+deepspeed --version
+python -c 'import deepspeed; print(deepspeed.__version__)'
+# 报告已安装、可编译和不兼容的算子。
+ds_report
+</code></pre>
+<p>NVMe 卸载依赖 Linux 原生异步输入输出库。Ubuntu 可安装开发头文件后，在同一虚拟环境构建算子；构建时必须已有编译器和匹配的 CUDA 工具链。以下为需要管理员权限的环境准备命令，不应在生产训练中途变更依赖。</p>
+<pre><code class="language-bash"># 安装 libaio 及编译工具，然后重建带 AIO 的 DeepSpeed。
+sudo apt-get update
+sudo apt-get install -y libaio-dev build-essential ninja-build
+DS_BUILD_AIO=1 python -m pip install --no-build-isolation --force-reinstall --no-deps deepspeed
+# 实际加载扩展，区别于只看到 pip 包名。
+python - &lt;&lt;'PY'
+from deepspeed.ops.op_builder import AsyncIOBuilder
+builder = AsyncIOBuilder()
+assert builder.is_compatible(verbose=True), &quot;当前环境不支持 async_io&quot;
+print(builder.load())
+PY
+</code></pre>
+<p>完成验证后保存环境清单，方便复现。切换框架版本应另建环境并重新验证，不建议让 LLaMA-Factory、SWIFT 和手写 Trainer 项目在同一环境里互相升级依赖。</p>
+<pre><code class="language-bash"># 输出到终端，按项目规范另行保存版本清单。
+python -m pip freeze
+python -m torch.utils.collect_env
+</code></pre>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">3. ZeRO 阶段、切分原理与显存估算</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>设参数数量为 P，数据并行卡数为 D</li><li>尤其 70B 的 stage 3 静态状态已约 130 GiB/卡，不能据此声称八张 80GB 卡可直接全参数训练</li><li>采用经典混合精度 Adam 模型状态口径：低精度参数每参数 2 字节，低精度梯度 2 字节，FP32 主参数与两个动量共 12 字节</li></ul></div>2
+<p>设参数数量为 P，数据并行卡数为 D。采用经典混合精度 Adam 模型状态口径：低精度参数每参数 2 字节，低精度梯度 2 字节，FP32 主参数与两个动量共 12 字节。于是每卡静态状态约为：stage 0：16P；stage 1：4P+12P/D；stage 2：2P+14P/D；stage 3：16P/D。这里的 stage 0 是未开启 ZeRO 的基准，不属于“三个切分阶段”。实际 BF16 梯度累积精度、优化器实现和量化方案可能改变字节数。</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>优化器状态</th>
+<th>梯度</th>
+<th>参数</th>
+<th>主要新增通信</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>每卡完整</td>
+<td>每卡完整</td>
+<td>每卡完整</td>
+<td>数据并行梯度归约</td>
+</tr>
+<tr>
+<td>1</td>
+<td>按 D 切分</td>
+<td>每卡完整</td>
+<td>每卡完整</td>
+<td>更新后的参数同步</td>
+</tr>
+<tr>
+<td>2</td>
+<td>按 D 切分</td>
+<td>按 D 切分</td>
+<td>每卡完整</td>
+<td>梯度 reduce-scatter</td>
+</tr>
+<tr>
+<td>3</td>
+<td>按 D 切分</td>
+<td>按 D 切分</td>
+<td>按 D 切分</td>
+<td>层执行前参数 all-gather</td>
+</tr>
+</tbody>
+</table>
+<p>以下统一按 <strong>D=8、十进制参数量、GiB=2^30 字节、全参数训练、不卸载</strong> 计算。此表不是可运行最低显存：没有计入激活、通信桶、CUDA 工作区、碎片和参数聚合峰值。尤其 70B 的 stage 3 静态状态已约 130 GiB/卡，不能据此声称八张 80GB 卡可直接全参数训练。</p>
+<table>
+<thead>
+<tr>
+<th>模型规模</th>
+<th style="text-align: right;">stage 0 每卡 GiB</th>
+<th style="text-align: right;">stage 1 每卡 GiB</th>
+<th style="text-align: right;">stage 2 每卡 GiB</th>
+<th style="text-align: right;">stage 3 每卡 GiB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>7B</td>
+<td style="text-align: right;">104.3</td>
+<td style="text-align: right;">35.9</td>
+<td style="text-align: right;">24.4</td>
+<td style="text-align: right;">13.0</td>
+</tr>
+<tr>
+<td>13B</td>
+<td style="text-align: right;">193.7</td>
+<td style="text-align: right;">66.6</td>
+<td style="text-align: right;">45.4</td>
+<td style="text-align: right;">24.2</td>
+</tr>
+<tr>
+<td>70B</td>
+<td style="text-align: right;">1043.1</td>
+<td style="text-align: right;">358.6</td>
+<td style="text-align: right;">244.5</td>
+<td style="text-align: right;">130.4</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-python"># 可直接运行，修改 D 即可估算不同数据并行规模。
+D = 8
+for billions in (7, 13, 70):
+    P = billions * 10**9
+    sizes = (16 * P, (4 + 12 / D) * P,
+             (2 + 14 / D) * P, 16 * P / D)
+    print(f&quot;{billions}B:&quot;, [round(x / 2**30, 1) for x in sizes])
+</code></pre>
+<p>LoRA 只训练少量适配器参数，不能把全模型参数量直接代入上面的全部优化器项。估算时要分别计算冻结基座、可训练参数及其梯度和优化器状态。QLoRA 还要计入量化元数据与反量化临时张量；是否支持某种量化加载与 ZeRO-3 组合，应以当前上层框架的兼容矩阵为准。</p>
+<h2 id="4-zero-1zero-2zero-3-完整配置">4. ZeRO-1、ZeRO-2、ZeRO-3 完整配置</h2>2
+<p>下面三个文件供第 5 节 Trainer 使用。<code>"auto"</code> 是 Hugging Face 集成层负责替换的约定，原生 <code>deepspeed.initialize</code> 不会替你从 TrainingArguments 推导这些值。先把 ZeRO-2 保存为 <code>ds_config.json</code>，另外两份保存为 <code>ds_zero1.json</code> 和 <code>ds_zero3.json</code>，以后通过启动参数切换。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">4.1 ZeRO-1：先切优化器状态</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>"train_batch_size": "auto",</li><li>"train_micro_batch_size_per_gpu": "auto",</li><li>"gradient_accumulation_steps": "auto",</li></ul></div>3
+<pre><code class="language-json">{
+  &quot;train_batch_size&quot;: &quot;auto&quot;,
+  &quot;train_micro_batch_size_per_gpu&quot;: &quot;auto&quot;,
+  &quot;gradient_accumulation_steps&quot;: &quot;auto&quot;,
+  &quot;gradient_clipping&quot;: &quot;auto&quot;,
+  &quot;bf16&quot;: {&quot;enabled&quot;: &quot;auto&quot;},
+  &quot;zero_optimization&quot;: {&quot;stage&quot;: 1, &quot;contiguous_gradients&quot;: true},
+  &quot;optimizer&quot;: {
+    &quot;type&quot;: &quot;AdamW&quot;,
+    &quot;params&quot;: {&quot;lr&quot;: &quot;auto&quot;, &quot;betas&quot;: &quot;auto&quot;, &quot;eps&quot;: &quot;auto&quot;, &quot;weight_decay&quot;: &quot;auto&quot;}
+  },
+  &quot;scheduler&quot;: {
+    &quot;type&quot;: &quot;WarmupDecayLR&quot;,
+    &quot;params&quot;: {&quot;total_num_steps&quot;: &quot;auto&quot;, &quot;warmup_min_lr&quot;: 0, &quot;warmup_max_lr&quot;: &quot;auto&quot;, &quot;warmup_num_steps&quot;: &quot;auto&quot;}
+  },
+  &quot;steps_per_print&quot;: 20,
+  &quot;wall_clock_breakdown&quot;: false
+}
+</code></pre>
+<ul>
+<li><code>train_batch_size</code>：全局一次优化器更新对应的样本数，由 Trainer 补齐。</li>
+<li><code>train_micro_batch_size_per_gpu</code>：每卡一次前向的样本数。</li>
+<li><code>gradient_accumulation_steps</code>：累积多少次微批后更新一次。</li>
+<li><code>gradient_clipping</code>：梯度范数裁剪阈值，对应 <code>max_grad_norm</code>。</li>
+<li><code>bf16</code>：混合精度配置容器。</li>
+<li><code>bf16.enabled</code>：读取 TrainingArguments 的 BF16 开关。</li>
+<li><code>zero_optimization</code>：ZeRO 配置容器。</li>
+<li><code>stage</code>：选择状态切分阶段。</li>
+<li><code>contiguous_gradients</code>：用连续缓冲区管理梯度，缓解碎片。</li>
+<li><code>optimizer</code>：由 DeepSpeed 构建优化器的配置容器。</li>
+<li><code>optimizer.type</code>：此例选 AdamW。</li>
+<li><code>optimizer.params</code>：优化器参数容器。</li>
+<li><code>lr</code>：学习率，与 Trainer 的 <code>learning_rate</code> 对齐。</li>
+<li><code>betas</code>：两个动量衰减系数，与 Adam 参数对齐。</li>
+<li><code>eps</code>：数值稳定常数，与 <code>adam_epsilon</code> 对齐。</li>
+<li><code>weight_decay</code>：权重衰减，与同名训练参数对齐。</li>
+<li><code>scheduler</code>：学习率调度器配置容器。</li>
+<li><code>scheduler.type</code>：此例先预热再线性衰减。</li>
+<li><code>scheduler.params</code>：调度器参数容器。</li>
+<li><code>total_num_steps</code>：总更新步数，由 Trainer 计算。</li>
+<li><code>warmup_min_lr</code>：预热起始学习率，此处为零。</li>
+<li><code>warmup_max_lr</code>：预热结束学习率，与初始学习率一致。</li>
+<li><code>warmup_num_steps</code>：预热更新步数，由 <code>warmup_steps</code> 或比例推导。</li>
+<li><code>steps_per_print</code>：DeepSpeed 状态日志间隔。</li>
+<li><code>wall_clock_breakdown</code>：是否打开细分计时，基线先关闭。</li>
+</ul>
+<h3 id="42-zero-2继续切分梯度">4.2 ZeRO-2：继续切分梯度</h3>3
+<pre><code class="language-json">{
+  &quot;train_batch_size&quot;: &quot;auto&quot;,
+  &quot;train_micro_batch_size_per_gpu&quot;: &quot;auto&quot;,
+  &quot;gradient_accumulation_steps&quot;: &quot;auto&quot;,
+  &quot;gradient_clipping&quot;: &quot;auto&quot;,
+  &quot;bf16&quot;: {&quot;enabled&quot;: &quot;auto&quot;},
+  &quot;zero_optimization&quot;: {
+    &quot;stage&quot;: 2,
+    &quot;contiguous_gradients&quot;: true,
+    &quot;overlap_comm&quot;: true,
+    &quot;reduce_scatter&quot;: true,
+    &quot;reduce_bucket_size&quot;: 50000000,
+    &quot;allgather_bucket_size&quot;: 50000000
+  },
+  &quot;optimizer&quot;: {
+    &quot;type&quot;: &quot;AdamW&quot;,
+    &quot;params&quot;: {&quot;lr&quot;: &quot;auto&quot;, &quot;betas&quot;: &quot;auto&quot;, &quot;eps&quot;: &quot;auto&quot;, &quot;weight_decay&quot;: &quot;auto&quot;}
+  },
+  &quot;scheduler&quot;: {
+    &quot;type&quot;: &quot;WarmupDecayLR&quot;,
+    &quot;params&quot;: {&quot;total_num_steps&quot;: &quot;auto&quot;, &quot;warmup_min_lr&quot;: 0, &quot;warmup_max_lr&quot;: &quot;auto&quot;, &quot;warmup_num_steps&quot;: &quot;auto&quot;}
+  },
+  &quot;steps_per_print&quot;: 20,
+  &quot;wall_clock_breakdown&quot;: false
+}
+</code></pre>
+<ul>
+<li><code>overlap_comm</code>：尝试用反向计算掩盖通信耗时，也可能提高峰值显存。</li>
+<li><code>reduce_scatter</code>：使用归约并切分梯度的通信方式。</li>
+<li><code>reduce_bucket_size</code>：梯度归约桶的元素数量，不是字节数。</li>
+<li><code>allgather_bucket_size</code>：参数聚合桶的元素数量，不是字节数。</li>
+<li>其余字段：含义与 4.1 相同，<code>stage=2</code> 使梯度也分片。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.3 ZeRO-3：进一步切分参数</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>"train_batch_size": "auto",</li><li>"train_micro_batch_size_per_gpu": "auto",</li><li>"gradient_accumulation_steps": "auto",</li></ul></div>3
+<pre><code class="language-json">{
+  &quot;train_batch_size&quot;: &quot;auto&quot;,
+  &quot;train_micro_batch_size_per_gpu&quot;: &quot;auto&quot;,
+  &quot;gradient_accumulation_steps&quot;: &quot;auto&quot;,
+  &quot;gradient_clipping&quot;: &quot;auto&quot;,
+  &quot;bf16&quot;: {&quot;enabled&quot;: &quot;auto&quot;},
+  &quot;zero_optimization&quot;: {
+    &quot;stage&quot;: 3,
+    &quot;contiguous_gradients&quot;: true,
+    &quot;overlap_comm&quot;: true,
+    &quot;reduce_bucket_size&quot;: 50000000,
+    &quot;stage3_prefetch_bucket_size&quot;: 50000000,
+    &quot;stage3_param_persistence_threshold&quot;: 100000,
+    &quot;stage3_gather_16bit_weights_on_model_save&quot;: true
+  },
+  &quot;optimizer&quot;: {
+    &quot;type&quot;: &quot;AdamW&quot;,
+    &quot;params&quot;: {&quot;lr&quot;: &quot;auto&quot;, &quot;betas&quot;: &quot;auto&quot;, &quot;eps&quot;: &quot;auto&quot;, &quot;weight_decay&quot;: &quot;auto&quot;}
+  },
+  &quot;scheduler&quot;: {
+    &quot;type&quot;: &quot;WarmupDecayLR&quot;,
+    &quot;params&quot;: {&quot;total_num_steps&quot;: &quot;auto&quot;, &quot;warmup_min_lr&quot;: 0, &quot;warmup_max_lr&quot;: &quot;auto&quot;, &quot;warmup_num_steps&quot;: &quot;auto&quot;}
+  },
+  &quot;steps_per_print&quot;: 20,
+  &quot;wall_clock_breakdown&quot;: false
+}
+</code></pre>
+<ul>
+<li><code>stage3_prefetch_bucket_size</code>：提前取回参数的元素数量，降低可节约显存但增加等待。</li>
+<li><code>stage3_param_persistence_threshold</code>：小于阈值的参数可常驻，减少小张量通信。</li>
+<li><code>stage3_gather_16bit_weights_on_model_save</code>：保存时聚合低精度权重，便于导出普通模型。</li>
+<li>其余字段：含义与前两份相同，<code>stage=3</code> 开启参数分片。</li>
+</ul>
+<p>保存聚合会产生额外通信与峰值内存；它并非免费的文件格式转换。首次排错可以先关闭该字段，只保存可恢复训练的分片检查点，再离线合并。</p>
+<h2 id="5-接入-hugging-face-trainer-的完整训练脚本">5. 接入 Hugging Face Trainer 的完整训练脚本</h2>2
+<p>将以下代码保存为实验目录的 <code>train.py</code>。默认训练内置中文样本，便于先排除数据读取因素；正式训练通过 <code>--data_path train.jsonl</code> 指向包含 <code>text</code> 字段的本地 JSONL。这里采用普通续写目标，助手回复监督训练应由数据模板和标签掩码实现，不能把所有指令文本都当作仅回复损失。</p>
+<p>关键顺序是先创建 <code>TrainingArguments</code>，再加载模型，使 Transformers 有机会在加载时识别 ZeRO-3。不要使用 <code>device_map="auto"</code>；那是模型分发/推理常见入口，不能代替这里的一进程一卡训练。脚本不提前执行 <code>model.cuda()</code>，设备分配交给 Trainer 与 DeepSpeed。</p>
+<pre><code class="language-python">import argparse
+import os
+import torch
+from datasets import Dataset, load_dataset
+from transformers import (
+    AutoModelForCausalLM, AutoTokenizer, DataCollatorForLanguageModeling,
+    Trainer, TrainingArguments, set_seed,
+)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(&quot;--model_name_or_path&quot;, default=&quot;Qwen/Qwen2.5-0.5B&quot;)
+    parser.add_argument(&quot;--data_path&quot;, default=None)
+    parser.add_argument(&quot;--deepspeed&quot;, default=&quot;ds_config.json&quot;)
+    parser.add_argument(&quot;--output_dir&quot;, default=&quot;./outputs/qwen-ds&quot;)
+    parser.add_argument(&quot;--max_steps&quot;, type=int, default=40)
+    parser.add_argument(&quot;--resume_from_checkpoint&quot;, default=None)
+    parser.add_argument(&quot;--local_rank&quot;, &quot;--local-rank&quot;, type=int, default=-1)
+    cli = parser.parse_args()
+    set_seed(42)
+    if not torch.cuda.is_available():
+        raise RuntimeError(&quot;此示例需要 CUDA GPU&quot;)
+    local_rank = int(os.environ.get(&quot;LOCAL_RANK&quot;, max(cli.local_rank, 0)))
+    torch.cuda.set_device(local_rank)
+    if not torch.cuda.is_bf16_supported():
+        raise RuntimeError(&quot;GPU 不支持 BF16，请按第 9 节同步改用 FP16&quot;)
+
+    args = TrainingArguments(
+        output_dir=cli.output_dir,
+        deepspeed=cli.deepspeed,
+        per_device_train_batch_size=1,
+        gradient_accumulation_steps=8,
+        learning_rate=2e-5,
+        weight_decay=0.01,
+        adam_beta1=0.9,
+        adam_beta2=0.999,
+        adam_epsilon=1e-8,
+        warmup_steps=5,
+        max_steps=cli.max_steps,
+        max_grad_norm=1.0,
+        bf16=True,
+        fp16=False,
+        gradient_checkpointing=True,
+        logging_steps=5,
+        save_strategy=&quot;steps&quot;,
+        save_steps=20,
+        save_total_limit=2,
+        report_to=&quot;none&quot;,
+        ddp_timeout=1800,
+        dataloader_num_workers=0,
+        seed=42,
+    )
+    tokenizer = AutoTokenizer.from_pretrained(cli.model_name_or_path)
+    if tokenizer.pad_token_id is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.padding_side = &quot;right&quot;
+    model = AutoModelForCausalLM.from_pretrained(
+        cli.model_name_or_path, torch_dtype=torch.bfloat16
+    )
+    model.config.use_cache = False
+    if cli.data_path:
+        raw = load_dataset(&quot;json&quot;, data_files=cli.data_path, split=&quot;train&quot;)
+    else:
+        raw = Dataset.from_dict({&quot;text&quot;: [
+            &quot;分布式训练需要让各个进程以相同顺序参加集合通信。&quot;,
+            &quot;梯度累积可以在不增加单次前向显存的情况下增大全局批量。&quot;,
+            &quot;保存检查点应同时考虑优化器状态、随机数状态和恢复位置。&quot;,
+            &quot;显存估算需要包含参数、梯度、优化器和中间激活。&quot;,
+        ] * 64})
+    if &quot;text&quot; not in raw.column_names:
+        raise ValueError(&quot;JSONL 每条记录必须包含 text 字段&quot;)
+
+    def tokenize(batch):
+        return tokenizer(batch[&quot;text&quot;], truncation=True, max_length=512)
+
+    data = raw.map(tokenize, batched=True, remove_columns=raw.column_names)
+    collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+    trainer = Trainer(model=model, args=args, train_dataset=data,
+                      data_collator=collator)
+    result = trainer.train(resume_from_checkpoint=cli.resume_from_checkpoint)
+    trainer.log_metrics(&quot;train&quot;, result.metrics)
+    trainer.save_metrics(&quot;train&quot;, result.metrics)
+    trainer.save_model(cli.output_dir)
+    if trainer.is_world_process_zero():
+        tokenizer.save_pretrained(cli.output_dir)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+<p>示例通过动态补齐构造批次，损失标签由数据整理器生成；填充位置被忽略。正式数据应预先检查空文本、超长截断比例和有效标签数。若把 EOS 同时用作 PAD，默认整理器也会屏蔽同标识位置，精细控制结束符监督时应写专用整理器。先用固定长度、固定数据量比较配置，再引入 packing，否则很难分辨吞吐变化来自运行时还是数据组织。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">6. 单机与多节点启动</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>以下两个命令是同一训练脚本的两种启动入口，二选一执行，不能把 「deepspeed」 包在 「torchrun」 外面</li><li>「--num_gpus」 是启动器参数，脚本后的 「--deepspeed」 是脚本接收的配置路径</li><li>此处假定单机可见四张 GPU，配置中的全局批量由 Trainer 根据实际 world size 补齐</li></ul></div>2
+<p>以下两个命令是同一训练脚本的两种启动入口，二选一执行，不能把 <code>deepspeed</code> 包在 <code>torchrun</code> 外面。<code>--num_gpus</code> 是启动器参数，脚本后的 <code>--deepspeed</code> 是脚本接收的配置路径。此处假定单机可见四张 GPU，配置中的全局批量由 Trainer 根据实际 world size 补齐。</p>
+<pre><code class="language-bash"># 单机四卡，使用 DeepSpeed 启动器。
+deepspeed --num_gpus 4 train.py --deepspeed ds_config.json
+# 等价的一进程一卡入口；不需要再次调用 DeepSpeed 启动器。
+torchrun --standalone --nproc_per_node=4 train.py --deepspeed ds_config.json
+</code></pre>
+<p>多节点 hostfile 需要写真实主机名及每节点槽位。下面假设 <code>gpu-a</code> 和 <code>gpu-b</code> 已经能解析、免交互 SSH 可达，每机四卡，训练目录和环境在两机相同。hostfile 本身没有凭据，不能把密码或私钥写在里面。</p>
+<pre><code class="language-text"> gpu-a slots=4
+ gpu-b slots=4
+</code></pre>
+<pre><code class="language-bash"># 在主节点执行一次；hostfile 保存为 hosts，去掉行首空格也可。
+deepspeed --hostfile hosts --master_addr gpu-a --master_port 29500 \
+  train.py --deepspeed ds_config.json
+# 不使用 SSH 启动器时，在 gpu-a 执行下面这一条。
+torchrun --nnodes=2 --nproc_per_node=4 --node_rank=0 \
+  --master_addr=gpu-a --master_port=29500 train.py --deepspeed ds_config.json
+# 同时在 gpu-b 执行下面这一条。
+torchrun --nnodes=2 --nproc_per_node=4 --node_rank=1 \
+  --master_addr=gpu-a --master_port=29500 train.py --deepspeed ds_config.json
+</code></pre>
+<p>主节点地址必须能被全部训练节点访问，不能填回环地址。端口占用、SSH 路径、网卡选择和节点间 Python 环境不一致，都会表现为“启动卡住”。先用单机两卡跑通几十步，再扩大到双节点；这样错误范围更容易定位。</p>
+<h2 id="7-zero-infinity-与-nvme-卸载">7. ZeRO-Infinity 与 NVMe 卸载</h2>2
+<p>CPU 卸载把优化器状态或参数移到主内存，NVMe 卸载进一步用本地固态盘承载状态。ZeRO-Infinity 主要面向 ZeRO-3 的分层内存管理；<code>offload_optimizer</code> 可用于 ZeRO-1/2/3，<code>offload_param</code> 只适用于 ZeRO-3。它适合显存不足、主存也吃紧、且能接受磁盘吞吐代价的任务，不适合把低速网络盘冒充本地 NVMe。</p>
+<p>将以下完整配置保存为 <code>ds_nvme.json</code>，在每个节点提前准备 <code>/local_nvme/ds</code>。同机不同任务应使用不同目录，以免临时交换文件混在一起。需要额外核对容量、挂载点及各进程读写权限；空目录存在不代表底层是 NVMe。</p>
+<pre><code class="language-json">{
+  &quot;train_batch_size&quot;: &quot;auto&quot;,
+  &quot;train_micro_batch_size_per_gpu&quot;: &quot;auto&quot;,
+  &quot;gradient_accumulation_steps&quot;: &quot;auto&quot;,
+  &quot;gradient_clipping&quot;: &quot;auto&quot;,
+  &quot;bf16&quot;: {&quot;enabled&quot;: &quot;auto&quot;},
+  &quot;zero_optimization&quot;: {
+    &quot;stage&quot;: 3,
+    &quot;offload_optimizer&quot;: {
+      &quot;device&quot;: &quot;nvme&quot;,
+      &quot;nvme_path&quot;: &quot;/local_nvme/ds&quot;,
+      &quot;pin_memory&quot;: true,
+      &quot;buffer_count&quot;: 4,
+      &quot;pipeline_read&quot;: true,
+      &quot;pipeline_write&quot;: true
+    },
+    &quot;offload_param&quot;: {
+      &quot;device&quot;: &quot;nvme&quot;,
+      &quot;nvme_path&quot;: &quot;/local_nvme/ds&quot;,
+      &quot;pin_memory&quot;: true,
+      &quot;buffer_count&quot;: 5,
+      &quot;buffer_size&quot;: 100000000,
+      &quot;max_in_cpu&quot;: 1000000000
+    },
+    &quot;sub_group_size&quot;: 100000000,
+    &quot;stage3_gather_16bit_weights_on_model_save&quot;: true
+  },
+  &quot;aio&quot;: {
+    &quot;block_size&quot;: 1048576,
+    &quot;queue_depth&quot;: 8,
+    &quot;thread_count&quot;: 1,
+    &quot;single_submit&quot;: false,
+    &quot;overlap_events&quot;: true
+  },
+  &quot;optimizer&quot;: {
+    &quot;type&quot;: &quot;AdamW&quot;,
+    &quot;params&quot;: {&quot;lr&quot;: &quot;auto&quot;, &quot;betas&quot;: &quot;auto&quot;, &quot;eps&quot;: &quot;auto&quot;, &quot;weight_decay&quot;: &quot;auto&quot;}
+  },
+  &quot;scheduler&quot;: {
+    &quot;type&quot;: &quot;WarmupDecayLR&quot;,
+    &quot;params&quot;: {&quot;total_num_steps&quot;: &quot;auto&quot;, &quot;warmup_min_lr&quot;: 0, &quot;warmup_max_lr&quot;: &quot;auto&quot;, &quot;warmup_num_steps&quot;: &quot;auto&quot;}
+  }
+}
+</code></pre>
+<ul>
+<li><code>offload_optimizer</code>：优化器状态卸载配置容器。</li>
+<li><code>offload_param</code>：参数卸载配置容器。</li>
+<li><code>device</code>：此处为 NVMe，改为 <code>cpu</code> 时不再依赖磁盘交换路径。</li>
+<li><code>nvme_path</code>：每台机器上的本地卸载路径。</li>
+<li><code>pin_memory</code>：使用锁页主存，可能提高传输速度，但会增加不可换出的内存。</li>
+<li><code>offload_optimizer.buffer_count</code>：优化器交换缓冲区个数，Adam 通常至少需要四个状态缓冲区。</li>
+<li><code>pipeline_read</code>：尝试把下一块状态读取与当前计算重叠。</li>
+<li><code>pipeline_write</code>：尝试把上一块状态写回与当前计算重叠。</li>
+<li><code>offload_param.buffer_count</code>：参数交换缓冲区个数。</li>
+<li><code>buffer_size</code>：单个参数缓冲区的元素数量。</li>
+<li><code>max_in_cpu</code>：使用 NVMe 时允许在 CPU 保留的参数元素数量。</li>
+<li><code>sub_group_size</code>：优化器处理参数分组粒度，可影响临时内存与交换行为。</li>
+<li><code>aio</code>：顶层异步输入输出配置容器，不能放进 <code>offload_param</code>。</li>
+<li><code>block_size</code>：一次输入输出块的字节大小。</li>
+<li><code>queue_depth</code>：异步请求队列深度。</li>
+<li><code>thread_count</code>：单请求内部读写并行线程数。</li>
+<li><code>single_submit</code>：是否逐个提交请求，此例批量提交。</li>
+<li><code>overlap_events</code>：是否重叠处理异步事件。</li>
+</ul>
+<pre><code class="language-bash"># 先确认路径确实落在预期块设备，再启动训练。
+findmnt -T /local_nvme/ds
+lsblk -o NAME,TYPE,SIZE,ROTA,MOUNTPOINTS
+ds_report
+deepspeed --num_gpus 4 train.py --deepspeed ds_nvme.json
+</code></pre>
+<p>性能排查时同时观察 GPU 利用率、CPU 利用率、主存与磁盘等待。GPU 周期性空闲可能是等磁盘或等 CPU Adam，并非 GPU 算力不足。优先先测试 CPU 卸载；只有容量确实需要时再引入 NVMe，避免过早增加一层瓶颈。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">8. 三维并行：数据、流水线、张量并行</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>示例采用小型全连接网络以完整展示 API，不能据此认为任意 Hugging Face 模型无需改造就支持流水线</li><li>原生 「PipelineModule」 当前不兼容 ZeRO-2/3；这里使用 stage 0，避免把互不兼容的配置拼在一起</li><li>需要完整的 TP×PP×DP 大模型训练时，应采用提供模型张量切分实现及并行组管理的训练工程，例如 Megatron-DeepSpeed，并按其版本支持选择 ZeRO 阶段</li></ul></div>2
+<p>并行规模满足总进程数 <code>W=DP×PP×TP</code>，但 ZeRO 的 D 是对应数据并行组大小，而不是无条件等于全部 GPU 数量。下面给出可运行的原生 DeepSpeed 流水线示例：八卡分成两段流水线，每段四个数据并行副本，因此 PP=2、DP=4、TP=1。示例采用小型全连接网络以完整展示 API，不能据此认为任意 Hugging Face 模型无需改造就支持流水线。</p>
+<p>原生 <code>PipelineModule</code> 当前不兼容 ZeRO-2/3；这里使用 stage 0，避免把互不兼容的配置拼在一起。需要完整的 TP×PP×DP 大模型训练时，应采用提供模型张量切分实现及并行组管理的训练工程，例如 Megatron-DeepSpeed，并按其版本支持选择 ZeRO 阶段。</p>
+<pre><code class="language-python"># 保存为 train_pipe.py，随后用八卡命令启动。
+import torch
+import deepspeed
+from torch import nn
+from torch.utils.data import TensorDataset
+from deepspeed.pipe import PipelineModule, LayerSpec
+
+
+def main():
+    deepspeed.init_distributed()
+    torch.manual_seed(42)
+    model = PipelineModule(
+        layers=[LayerSpec(nn.Linear, 32, 64), LayerSpec(nn.ReLU),
+                LayerSpec(nn.Linear, 64, 2)],
+        loss_fn=nn.CrossEntropyLoss(),
+        num_stages=2,
+        partition_method=&quot;uniform&quot;,
+        activation_checkpoint_interval=1,
+    )
+    data = TensorDataset(torch.randn(1024, 32), torch.randint(0, 2, (1024,)))
+    config = {
+        &quot;train_batch_size&quot;: 32,
+        &quot;train_micro_batch_size_per_gpu&quot;: 2,
+        &quot;gradient_accumulation_steps&quot;: 4,
+        &quot;zero_optimization&quot;: {&quot;stage&quot;: 0},
+        &quot;optimizer&quot;: {&quot;type&quot;: &quot;Adam&quot;, &quot;params&quot;: {&quot;lr&quot;: 0.001}},
+    }
+    engine, _, _, _ = deepspeed.initialize(
+        model=model, model_parameters=model.parameters(),
+        training_data=data, config=config,
+    )
+    for _ in range(10):
+        engine.train_batch()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+<pre><code class="language-bash"># 八张 GPU：2 段流水线 × 4 个数据副本，批量为 2×4×4=32。
+deepspeed --num_gpus 8 train_pipe.py
+</code></pre>
+<p><code>inference</code>、<code>kernel_inject</code> 常出现在张量并行介绍中，但 <code>deepspeed.init_inference</code> 创建的是推理引擎。它不能替代上面的训练配置。以下 GPT-2 示例使用两卡推理张量并行；<code>replace_with_kernel_inject</code> 是 Python 接口名，配置模型中也可见 <code>kernel_inject</code> 别名。模型必须受当前版本的注入策略支持。</p>
+<pre><code class="language-python"># 保存为 infer_tp.py，使用下一条命令启动。
+import os
+import torch
+import deepspeed
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+deepspeed.init_distributed()
+local_rank = int(os.environ[&quot;LOCAL_RANK&quot;])
+torch.cuda.set_device(local_rank)
+tokenizer = AutoTokenizer.from_pretrained(&quot;openai-community/gpt2&quot;)
+model = AutoModelForCausalLM.from_pretrained(
+    &quot;openai-community/gpt2&quot;, torch_dtype=torch.float16
+)
+engine = deepspeed.init_inference(
+    model=model,
+    dtype=torch.float16,
+    tensor_parallel={&quot;tp_size&quot;: 2},
+    replace_with_kernel_inject=True,
+)
+inputs = tokenizer(&quot;Distributed training&quot;, return_tensors=&quot;pt&quot;).to(local_rank)
+with torch.no_grad():
+    logits = engine(**inputs).logits
+if int(os.environ[&quot;RANK&quot;]) == 0:
+    print(tuple(logits.shape))
+</code></pre>
+<pre><code class="language-bash"># 这是两卡推理，不是 Trainer 的训练张量并行开关。
+deepspeed --num_gpus 2 infer_tp.py
+</code></pre>
+<h2 id="9-混合精度激活检查点与-adam-实现">9. 混合精度、激活检查点与 Adam 实现</h2>2
+<p>支持 BF16 的 GPU 通常优先 BF16，因为其指数范围更接近 FP32。FP16 需要动态损失缩放，若发生溢出应检查数据、学习率和缩放日志，而不是只把跳过更新误判为通信卡住。下面片段替换完整配置的精度块，不能同时启用 BF16 和 FP16；第 5 节脚本也需同步改为 <code>bf16=False</code>、<code>fp16=True</code>、模型加载类型改为 <code>torch.float16</code>，并移除 BF16 能力检查。</p>
+<pre><code class="language-json">{
+  &quot;bf16&quot;: {&quot;enabled&quot;: false},
+  &quot;fp16&quot;: {
+    &quot;enabled&quot;: true,
+    &quot;loss_scale&quot;: 0,
+    &quot;initial_scale_power&quot;: 16,
+    &quot;loss_scale_window&quot;: 1000,
+    &quot;hysteresis&quot;: 2,
+    &quot;min_loss_scale&quot;: 1
+  }
+}
+</code></pre>
+<ul>
+<li><code>fp16</code>：半精度与损失缩放配置容器。</li>
+<li><code>fp16.enabled</code>：启用 FP16；必须与训练参数保持一致。</li>
+<li><code>loss_scale</code>：零表示动态损失缩放。</li>
+<li><code>initial_scale_power</code>：初始缩放取二的该次幂。</li>
+<li><code>loss_scale_window</code>：连续稳定更新达到该窗口后尝试提高缩放。</li>
+<li><code>hysteresis</code>：降低缩放前的溢出容忍计数。</li>
+<li><code>min_loss_scale</code>：损失缩放下限。</li>
+</ul>
+<p>Trainer 的 <code>gradient_checkpointing=True</code> 会调用模型自身的激活重算实现。DeepSpeed 的 <code>activation_checkpointing</code> 属于另一套 API；仅添加配置并不会自动改写任意模型前向。下面展示原生重算的完整最小例子，保存为 <code>checkpoint_demo.py</code> 后可单卡运行。普通单卡示例不启用激活分片，多维模型并行工程还需传入正确的并行组管理对象。</p>
+<pre><code class="language-python">import torch
+import deepspeed
+from deepspeed import checkpointing
+
+torch.cuda.set_device(0)
+checkpointing.configure(mpu_=None, deepspeed_config={
+    &quot;activation_checkpointing&quot;: {
+        &quot;partition_activations&quot;: False,
+        &quot;contiguous_memory_optimization&quot;: False,
+        &quot;cpu_checkpointing&quot;: False,
+        &quot;synchronize_checkpoint_boundary&quot;: False,
+        &quot;profile&quot;: False
+    }
+})
+layer = torch.nn.Sequential(torch.nn.Linear(128, 512), torch.nn.GELU(),
+                            torch.nn.Linear(512, 128)).cuda()
+x = torch.randn(4, 128, device=&quot;cuda&quot;, requires_grad=True)
+checkpointing.checkpoint(layer, x).square().mean().backward()
+print(&quot;gradient norm:&quot;, layer[0].weight.grad.norm().item())
+</code></pre>
+<ul>
+<li><code>activation_checkpointing</code>：DeepSpeed 激活重算配置容器。</li>
+<li><code>partition_activations</code>：是否沿模型并行组切分保存的激活。</li>
+<li><code>contiguous_memory_optimization</code>：是否使用连续激活缓冲区，启用时还需满足缓冲区数量等约束。</li>
+<li><code>cpu_checkpointing</code>：是否将检查点激活转存 CPU，需按并行配置验证支持条件。</li>
+<li><code>synchronize_checkpoint_boundary</code>：是否在检查点边界同步，用于调试或计时。</li>
+<li><code>profile</code>：是否记录检查点前后向耗时。</li>
+</ul>
+<p>CPU Adam 在 CPU 上更新卸载的优化器状态，Fused Adam 面向 GPU 融合更新。不要因为看到 AdamW 名称就认定实现相同；应查看实际优化器类及算子加载日志。下面直接检验两种类的构建路径，不建议在 Trainer 之外重复创建另一份优化器交给同一模型。</p>
+<pre><code class="language-python">import torch
+from deepspeed.ops.adam import DeepSpeedCPUAdam, FusedAdam
+
+cpu_parameter = torch.nn.Parameter(torch.randn(8))
+cpu_opt = DeepSpeedCPUAdam([cpu_parameter], lr=2e-5, adamw_mode=True)
+cpu_parameter.square().sum().backward()
+cpu_opt.step()
+print(type(cpu_opt).__name__)
+gpu_parameter = torch.nn.Parameter(torch.randn(8, device=&quot;cuda&quot;))
+gpu_opt = FusedAdam([gpu_parameter], lr=2e-5, adam_w_mode=True)
+gpu_parameter.square().sum().backward()
+gpu_opt.step()
+print(type(gpu_opt).__name__)
+</code></pre>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">10. 批量、通信和吞吐调优</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>全局批量等于每卡微批量乘梯度累积次数乘数据并行副本数</li><li>纯 ZeRO 数据并行下，四卡、每卡一条、累积八次，对应每次更新三十二条样本</li><li>固定全局批量时，提高微批、减少累积可能增加计算效率，但会增加激活峰值</li></ul></div>2
+<p>全局批量等于每卡微批量乘梯度累积次数乘数据并行副本数。纯 ZeRO 数据并行下，四卡、每卡一条、累积八次，对应每次更新三十二条样本。固定全局批量时，提高微批、减少累积可能增加计算效率，但会增加激活峰值。存在流水线或张量并行时，要用 DP 副本数，不能把总卡数都乘进去。</p>
+<pre><code class="language-python"># 同时给出样本吞吐与有效 token 吞吐计算，计时需覆盖完整更新区间。
+micro_batch, accumulation, dp = 1, 8, 4
+global_batch = micro_batch * accumulation * dp
+measured_updates, elapsed_seconds = 100, 240.0
+processed_nonpadding_tokens = 1500000
+print(&quot;global_batch:&quot;, global_batch)
+print(&quot;samples/sec:&quot;, global_batch * measured_updates / elapsed_seconds)
+print(&quot;nonpadding tokens/sec:&quot;, processed_nonpadding_tokens / elapsed_seconds)
+</code></pre>
+<p>统计应跳过首次算子编译和预热，不在比较区间插入保存或评估；固定序列长度和 packing 策略。多进程计时必须取最慢进程耗时，不能将各 rank 的每秒样本数随意重复相加。Trainer 的 <code>train_samples_per_second</code> 是一次训练整体指标，通常包含启动和保存开销，适合任务级比较；稳定区间的更新吞吐需另取连续日志或 profiling。</p>
+<p>用户有时把开关写成 <code>zero_optimization_overlap_comm</code>，这不是 DeepSpeed JSON 中的合法顶层字段；正确位置是 <code>zero_optimization.overlap_comm</code>。通信桶越大，调用次数可能越少，但缓冲区占用越高。先保持其他变量不变，分别比较重叠开关，再试桶大小；显存接近上限时先降低桶，不要盲目打开更多预取。</p>
+<pre><code class="language-bash"># 从现有 ZeRO-2 配置生成一个关闭重叠、减小通信桶的对照文件。
+python - &lt;&lt;'PY'
+import json
+with open(&quot;ds_config.json&quot;, encoding=&quot;utf-8&quot;) as f:
+    cfg = json.load(f)
+zero = cfg[&quot;zero_optimization&quot;]
+zero[&quot;overlap_comm&quot;] = False
+zero[&quot;contiguous_gradients&quot;] = True
+zero[&quot;reduce_bucket_size&quot;] = 20000000
+zero[&quot;allgather_bucket_size&quot;] = 20000000
+with open(&quot;ds_zero2_small_bucket.json&quot;, &quot;w&quot;, encoding=&quot;utf-8&quot;) as f:
+    json.dump(cfg, f, indent=2)
+PY
+# 分开运行两组实验，避免输出目录相互覆盖。
+torchrun --standalone --nproc_per_node=4 train.py \
+  --deepspeed ds_zero2_small_bucket.json --output_dir outputs/small-bucket
+</code></pre>
+<p>训练时可以运行 <code>nvidia-smi dmon</code> 观察 GPU 利用率与显存，在独立监控终端运行 <code>iostat -x 1</code> 查看卸载磁盘等待。若输入数据加载慢，优先改数据预处理和 DataLoader，而不是把通信参数改一遍。不同阶段应记录相同的样本数、有效 token 数、更新步数和峰值显存，才能解释速度变化。</p>
+<h2 id="11-接入-llama-factory">11. 接入 LLaMA-Factory</h2>2
+<p>LLaMA-Factory 负责模板、数据组织和训练策略，DeepSpeed 仍负责底层状态管理。先在独立环境按其官方安装指南安装；下面 YAML 在 LLaMA-Factory 仓库根目录运行，使用仓库内置数据注册项 <code>alpaca_en_demo</code>，模板选择 <code>qwen</code>。演示采用全参数微调，使 ZeRO 的显存收益更容易观察；切换 LoRA 时同时检查该版本对 ZeRO-3 的支持。</p>
+<p>保存为 <code>qwen_full_ds.yaml</code>，并把第 4 节 ZeRO-3 配置保存到同一实验目录的 <code>ds_zero3.json</code>。本例学习率、批量与精度由 YAML 提供，JSON 中对应 <code>auto</code> 由集成层填充。</p>
+<pre><code class="language-yaml"># 模型路径与模板必须配套。
+model_name_or_path: Qwen/Qwen2.5-0.5B
+trust_remote_code: false
+# 训练阶段与可训练范围。
+stage: sft
+do_train: true
+finetuning_type: full
+# DeepSpeed 配置相对当前工作目录解析。
+deepspeed: ds_zero3.json
+# 使用仓库已注册的示例数据。
+dataset: alpaca_en_demo
+template: qwen
+cutoff_len: 512
+max_samples: 128
+preprocessing_num_workers: 1
+# 输出、日志与检查点间隔。
+output_dir: outputs/qwen-factory-ds3
+logging_steps: 5
+save_steps: 20
+save_total_limit: 2
+# 全局批量 = 此处微批 × 累积 × 数据并行卡数。
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+learning_rate: 0.00002
+max_steps: 40
+warmup_steps: 5
+bf16: true
+gradient_checkpointing: true
+# 关闭实验平台上报。
+report_to: none
+</code></pre>
+<pre><code class="language-bash"># 在已安装的 LLaMA-Factory 项目环境和仓库根目录执行，示例使用四卡。
+FORCE_TORCHRUN=1 CUDA_VISIBLE_DEVICES=0,1,2,3 \
+  llamafactory-cli train qwen_full_ds.yaml
+</code></pre>
+<p>若框架提示某些字段不存在，先查询当前安装版本及命令帮助，再对照该版本示例。不要同时添加一个独立 DeepSpeed 启动器和框架自动的 torchrun，否则可能生成重复进程。自定义数据还需按框架的数据注册规范准备，不能仅把一个任意路径写进 <code>dataset</code> 就认为模板已生效。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">12. 接入 SWIFT</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>这里的 SWIFT 指 ModelScope 的 「ms-swift」 包，命令入口是 「swift sft」</li><li>「--deepspeed zero3」 选择框架提供的 ZeRO-3 预设，也可以传实际 JSON 路径</li><li>预设的具体字段随版本调整，排查时应查看解析后的训练参数和最终配置，不把名称当成所有版本相同的配置保证</li></ul></div>2
+<p>这里的 SWIFT 指 ModelScope 的 <code>ms-swift</code> 包，命令入口是 <code>swift sft</code>。<code>--deepspeed zero3</code> 选择框架提供的 ZeRO-3 预设，也可以传实际 JSON 路径。预设的具体字段随版本调整，排查时应查看解析后的训练参数和最终配置，不把名称当成所有版本相同的配置保证。</p>
+<p>当前官方主线使用 <code>--tuner_type full</code>；旧版文档中的 <code>--train_type full</code> 不应直接套用到新版，执行前用 <code>swift sft --help</code> 核对。下面使用公开的 Alpaca 数据集标识；首次运行会下载模型和数据。若执行离线训练，请将二者换为已准备好的本地模型目录与符合 SWIFT 数据规范的本地数据文件。</p>
+<pre><code class="language-bash"># 在单独安装 ms-swift 的环境执行；NPROC_PER_NODE 控制单机训练进程数。
+CUDA_VISIBLE_DEVICES=0,1,2,3 NPROC_PER_NODE=4 swift sft \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --tuner_type full \
+  --dataset 'AI-ModelScope/alpaca-gpt4-data-en#128' \
+  --torch_dtype bfloat16 \
+  --per_device_train_batch_size 1 \
+  --gradient_accumulation_steps 8 \
+  --learning_rate 2e-5 \
+  --max_length 512 \
+  --max_steps 40 \
+  --save_steps 20 \
+  --deepspeed zero3 \
+  --output_dir outputs/qwen-swift-ds3 \
+  --report_to none
+</code></pre>
+<p>调试卸载策略时可把最后的预设替换成 <code>--deepspeed ds_nvme.json</code>，前提是该版本支持文件路径且训练参数与 JSON 一致。LLaMA-Factory、SWIFT 的检查点目录布局、模板处理和续训参数存在差异，不应直接互换运行目录。跨框架迁移通常先导出普通模型，再按新框架重建优化器。</p>
+<h2 id="13-常见问题的定位顺序">13. 常见问题的定位顺序</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">13.1 NCCL 超时与进程组不一致</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>先找最早出错的 rank</li><li>一个进程先 OOM 或数据加载异常，其他进程往往最后才报 NCCL watchdog 超时；延长等待不能解决最初的问题</li><li>「NCCL_IB_TIMEOUT」 是 InfiniBand 传输参数，不等于训练集合通信超时</li></ul></div>3
+<p>先找最早出错的 rank。一个进程先 OOM 或数据加载异常，其他进程往往最后才报 NCCL watchdog 超时；延长等待不能解决最初的问题。<code>NCCL_TIMEOUT</code> 常见于第三方启动脚本，但不是通用有效的 NCCL 官方进程组超时开关；Trainer 应设置 <code>ddp_timeout</code>，原生 PyTorch 应给 <code>init_process_group</code> 的 <code>timeout</code> 传 <code>timedelta</code>。<code>NCCL_IB_TIMEOUT</code> 是 InfiniBand 传输参数，不等于训练集合通信超时。</p>
+<pre><code class="language-bash"># 先打开日志；eth0 只是示例，实际网卡先用 ip -br addr 确认。
+ip -br addr
+NCCL_DEBUG=INFO TORCH_DISTRIBUTED_DEBUG=DETAIL \
+  torchrun --standalone --nproc_per_node=2 train.py --deepspeed ds_config.json
+# 仅用于已经确认 eth0 是训练互通网卡的多节点环境。
+export NCCL_SOCKET_IFNAME=eth0
+</code></pre>
+<p>第 5 节已用 <code>ddp_timeout=1800</code> 设置进程组等待时间。原生脚本可使用下面的独立初始化入口，不能在 Trainer 已初始化分布式之后再次调用。</p>
+<pre><code class="language-python"># 以 torchrun 启动此脚本，明确设置原生进程组超时。
+import os
+from datetime import timedelta
+import torch
+import torch.distributed as dist
+
+torch.cuda.set_device(int(os.environ[&quot;LOCAL_RANK&quot;]))
+dist.init_process_group(&quot;nccl&quot;, timeout=timedelta(minutes=30))
+dist.barrier()
+print(&quot;rank:&quot;, dist.get_rank())
+dist.destroy_process_group()
+</code></pre>
+<h3 id="132-各阶段-oom-与设备不一致">13.2 各阶段 OOM 与设备不一致</h3>3
+<p>stage 1 的参数和梯度仍完整保留，stage 2 的参数仍完整保留；若模型加载就 OOM，提高梯度累积次数无济于事。stage 3 的初始化也要正确进入分片加载路径，普通加载后才开启 ZeRO 可能已来不及。反向时 OOM 更可能与激活、序列长度或通信缓冲区有关；保存时 OOM 则重点检查权重聚合。</p>
+<p><code>Expected all tensors to be on the same device</code> 应检查输入、标签、模型缓冲区以及临时张量。原生代码必须按 <code>LOCAL_RANK</code> 选设备；不要在所有 rank 上固定 <code>cuda:0</code>。Trainer 路径让框架移动 batch，模型内部新建张量则应跟随已有输入的设备。</p>
+<pre><code class="language-python"># 在模型前向内部使用此模式，张量跟随当前输入设备。
+import torch
+
+def causal_positions(input_ids):
+    return torch.arange(input_ids.shape[-1], device=input_ids.device)
+
+x = torch.ones((2, 8), dtype=torch.long, device=&quot;cuda&quot;)
+positions = causal_positions(x)
+assert positions.device == x.device
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">13.3 ZeRO-3 gather、梯度检查点与 KV cache</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>不能把它概括成“所有 ZeRO-3 推理必须关闭 cache”：正常独立推理可使用 KV cache；在训练引擎中临时生成、参数仍受 ZeRO hook 管理或遇到当前版本兼容问题时，关闭 cache 是先验证的路径</li><li>多 rank 生成还要保证参与通信的进程都调用生成逻辑，不能只有 rank 0 进入仍需集合通信的模型</li></ul></div>3
+<p>训练时通常设 <code>model.config.use_cache=False</code>，尤其使用梯度检查点时，缓存机制与重算流程容易冲突。不能把它概括成“所有 ZeRO-3 推理必须关闭 cache”：正常独立推理可使用 KV cache；在训练引擎中临时生成、参数仍受 ZeRO hook 管理或遇到当前版本兼容问题时，关闭 cache 是先验证的路径。多 rank 生成还要保证参与通信的进程都调用生成逻辑，不能只有 rank 0 进入仍需集合通信的模型。</p>
+<pre><code class="language-python"># 对受 ZeRO 管理的简单线性层，所有 rank 都参与上下文，rank 0 负责打印。
+import deepspeed
+import torch.distributed as dist
+
+def print_full_weight_shape(layer):
+    with deepspeed.zero.GatheredParameters([layer.weight], modifier_rank=None):
+        if dist.get_rank() == 0:
+            print(tuple(layer.weight.shape))
+</code></pre>
+<p>上述上下文只聚合明确指定的参数。不要把整个七百亿参数模型随意聚合到每张卡，也不要把聚合后的张量引用长期缓存在模块外；退出上下文后参数可能再次变为分片。训练中评估和最终推理最好分别验证，避免将训练引擎的临时状态带到独立推理流程。</p>
+<h3 id="134-检查点体积合并与恢复">13.4 检查点体积、合并与恢复</h3>3
+<p>可续训检查点通常包含优化器状态、学习率调度、随机数状态及各 rank 分片，体积远大于只有低精度权重的导出目录。ZeRO-3 下保存不一定意味着得到一个可直接 <code>from_pretrained</code> 加载的完整权重文件。保留整个 <code>checkpoint-20</code> 目录及其中子目录，不能只复制某个 rank 的文件；恢复前还要确认模型、优化器、数据顺序和并行规模的兼容性。</p>
+<pre><code class="language-bash"># 第 5 节脚本中明确保存过第 20 步后，再执行这一恢复命令。
+torchrun --standalone --nproc_per_node=4 train.py \
+  --deepspeed ds_config.json \
+  --resume_from_checkpoint outputs/qwen-ds/checkpoint-20
+# 若该检查点根目录包含 DeepSpeed 生成的 zero_to_fp32.py，可离线合并。
+python outputs/qwen-ds/checkpoint-20/zero_to_fp32.py \
+  outputs/qwen-ds/checkpoint-20 outputs/qwen-fp32.bin
+</code></pre>
+<p>FP32 合并要准备充足主存和磁盘，可能需要接近完整权重多倍的工作内存。合并得到权重不等于得到完整 Transformers 模型目录，还应保留 config、tokenizer 等必要文件。第 5 节的 <code>trainer.save_model</code> 与 ZeRO-3 保存聚合开关配合，更适合导出可独立加载的模型；续训仍使用训练检查点。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">14. 一图流：状态切分与启动链路</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>下面第一张图只画静态状态归属，不表示每个时刻都不会临时聚合</li><li>参数按层 all-gather、反向梯度归约和保存聚合，正是理论静态显存与实测峰值之间的主要差距之一</li></ul></div>2
+<p>下面第一张图只画静态状态归属，不表示每个时刻都不会临时聚合。参数按层 all-gather、反向梯度归约和保存聚合，正是理论静态显存与实测峰值之间的主要差距之一。</p>
+<pre><code class="language-mermaid">flowchart TB
+  S0[&quot;stage 0：每卡完整状态&quot;] --&gt; P0[&quot;参数 2P + 梯度 2P + 优化器 12P&quot;]
+  S1[&quot;stage 1：切优化器&quot;] --&gt; P1[&quot;参数 2P + 梯度 2P + 优化器 12P/D&quot;]
+  S2[&quot;stage 2：再切梯度&quot;] --&gt; P2[&quot;参数 2P + 梯度 2P/D + 优化器 12P/D&quot;]
+  S3[&quot;stage 3：再切参数&quot;] --&gt; P3[&quot;参数 2P/D + 梯度 2P/D + 优化器 12P/D&quot;]
+  P3 --&gt; G[&quot;层计算前聚合参数，额外计入峰值&quot;]
+</code></pre>
+<pre><code class="language-mermaid">flowchart LR
+  C[&quot;模型、数据、JSON/YAML&quot;] --&gt; L[&quot;deepspeed 或 torchrun 或框架启动器&quot;]
+  L --&gt; R[&quot;各 rank 设置 LOCAL_RANK 与进程组&quot;]
+  R --&gt; T[&quot;Trainer / LLaMA-Factory / SWIFT&quot;]
+  T --&gt; E[&quot;DeepSpeed Engine：精度、ZeRO、优化器&quot;]
+  E --&gt; B[&quot;前向、激活重算、反向与通信&quot;]
+  B --&gt; A[&quot;梯度累积达到更新边界&quot;]
+  A --&gt; U[&quot;优化器更新与学习率调度&quot;]
+  U --&gt; B
+  U --&gt; S[&quot;分片检查点 / 聚合模型导出&quot;]
+</code></pre>
+<h3 id="官方参考与版本边界">官方参考与版本边界</h3>3
+<p>本文核对日期为 2026-10-30，以下为持续更新的官方入口。复现时应记录实际安装版本及其对应文档，特别是优化器后端、自动张量并行和上层框架参数变化。</p>
+<ul>
+<li><a href="https://www.deepspeed.ai/docs/config-json/">DeepSpeed JSON 配置</a>：ZeRO、精度、优化器、调度器与 AIO 字段。</li>
+<li><a href="https://www.deepspeed.ai/tutorials/zero/">ZeRO 实践教程</a>：阶段切换、参数聚合与卸载。</li>
+<li><a href="https://www.deepspeed.ai/tutorials/advanced-install/">DeepSpeed 安装与算子检查</a>：构建选项及算子依赖。</li>
+<li><a href="https://www.deepspeed.ai/tutorials/pipeline/">DeepSpeed 流水线并行</a>：PipelineModule 及训练循环。</li>
+<li><a href="https://deepspeed.readthedocs.io/en/latest/inference-init.html">DeepSpeed 推理接口</a>：张量并行与 kernel injection 的推理边界。</li>
+<li><a href="https://huggingface.co/docs/transformers/deepspeed">Transformers DeepSpeed 集成</a>：自动配置、ZeRO 初始化和模型保存。</li>
+<li><a href="https://github.com/hiyouga/LLaMA-Factory/tree/main/examples">LLaMA-Factory 官方示例</a>：对应版本的 YAML 与启动方式。</li>
+<li><a href="https://github.com/modelscope/ms-swift">ms-swift 官方项目</a>：SFT 命令、DeepSpeed 预设和数据格式。</li>
+<li><a href="https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html">NCCL 环境变量</a>：网卡与传输超时参数的准确语义。</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">15. 速查表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>目标</th>
+<th>常用命令或参数</th>
+<th>核对点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>检查安装</td>
+<td><code>ds_report</code>、<code>python -c 'import deepspeed; print(deepspeed.__version__)'</code></td>
+<td>包版本与算子可加载性分别核验</td>
+</tr>
+<tr>
+<td>单机训练</td>
+<td><code>deepspeed --num_gpus 4 train.py --deepspeed ds_config.json</code></td>
+<td>四卡可见，脚本不使用自动设备映射</td>
+</tr>
+<tr>
+<td>torchrun 入口</td>
+<td><code>torchrun --standalone --nproc_per_node=4 train.py</code></td>
+<td>脚本默认读取 ds_config.json</td>
+</tr>
+<tr>
+<td>多节点</td>
+<td><code>deepspeed --hostfile hosts --master_addr gpu-a train.py</code></td>
+<td>主机名、SSH、环境、目录和端口一致</td>
+</tr>
+<tr>
+<td>降激活显存</td>
+<td>减小微批或序列长度，<code>gradient_checkpointing=True</code></td>
+<td>累积增大只间接允许微批变小</td>
+</tr>
+<tr>
+<td>降状态显存</td>
+<td>stage 1 → 2 → 3，再考虑 CPU/NVMe 卸载</td>
+<td>参数、梯度、优化器分别看待</td>
+</tr>
+<tr>
+<td>通信参数</td>
+<td><code>zero_optimization.overlap_comm</code>、<code>reduce_bucket_size</code></td>
+<td>桶以元素计，重叠可能增加显存</td>
+</tr>
+<tr>
+<td>有效全局批量</td>
+<td><code>micro_batch × accumulation × DP</code></td>
+<td>DP 不是无条件等于总 GPU 数</td>
+</tr>
+<tr>
+<td>状态显存速算</td>
+<td>stage 0/1/2/3：<code>16P</code>、<code>4P+12P/D</code>、<code>2P+14P/D</code>、<code>16P/D</code> 字节</td>
+<td>经典 Adam 混合精度口径，不含激活与临时峰值</td>
+</tr>
+<tr>
+<td>续训</td>
+<td><code>--resume_from_checkpoint outputs/qwen-ds/checkpoint-20</code></td>
+<td>使用完整检查点，保留优化器与随机数状态</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash"># 开始长跑前的最小检查：JSON 合法、单机链路可走完、输出独立。
+python -m json.tool ds_config.json &gt; /dev/null
+torchrun --standalone --nproc_per_node=2 train.py \
+  --deepspeed ds_config.json --max_steps 2 --output_dir outputs/smoke
+</code></pre>
+<p>两步冒烟只能验证初始化、前后向和一次最终模型保存，不能代替完整续训验收。正式长跑前至少运行到第 20 步保存边界，再从该检查点恢复到后续更新，并检查损失、更新步数和样本推进是否合理。</p></div></details></div></body></html>

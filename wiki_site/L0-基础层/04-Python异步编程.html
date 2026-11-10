@@ -1,0 +1,277 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>04-Python异步编程</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 04-Python异步编程</span></div><div class="wrap"><h1 id="python-异步编程协程取消超时与有界并发">Python 异步编程：协程、取消、超时与有界并发</h1>
+<p>本文合并两篇 asyncio 原稿，只保留一条主线：先理解事件循环协作式切换，再写可取消、可限时、有并发上限的 I/O 任务。咖啡店类比只用于建立直觉，工程验收以任务状态和异常行为为准。</p>
+<blockquote>
+<p>验证边界：离线 <code>asyncio.sleep</code> 示例已在 Python 3.14.4 实跑，包括失败传播与取消；真实 HTTP、数据库和 FastAPI 部署<strong>未实跑</strong>。示例使用 <code>TaskGroup</code>，要求 Python 3.11+。</p>
+</blockquote>
+<h2 id="why">WHY</h2>2
+<h3 id="1-为什么-io-等待值得异步">1. 为什么 I/O 等待值得异步</h3>3
+<p>一个请求花 100 ms 等待远端 API，如果大部分时间是网络等待，同步串行处理 20 个请求会累积等待；协程能在一个线程中，于任务等待时切换到其他任务。常见 AI 应用中，模型调用、检索请求和数据库访问都有 I/O 等待，异步可提高单进程在途请求容量。</p>
+<p>但 <code>async def</code> 只是定义协程函数，不会自动并发；直接 <code>await slow()</code> 仍等待它结束。若在事件循环里调用 <code>time.sleep</code>、同步 <code>requests</code>、重 CPU 数值计算，其他协程仍无法运行。误用异步的后果包括延迟尾部长、任务泄漏、连接池耗尽、未消费异常和进程退出时后台任务被 abruptly 取消。</p>
+<h3 id="2-为什么全部-create_task不是完整方案">2. 为什么「全部 create_task」不是完整方案</h3>3
+<p>创建一万个 Task 只需很少代码，却会同时持有一万个输入、响应和连接状态。信号量可以限制临界区内正在请求的数量，却不能限制已创建 Task 的总内存；没有上限的队列同样可能把延迟和内存推向失控。因此，生产主线必须包括：<strong>并发上限、排队边界、超时、取消传播、结果消费和关闭顺序</strong>。</p>
+<h2 id="what-whyt">WHAT / WHYT</h2>2
+<h3 id="3-核心对象与相似概念">3. 核心对象与相似概念</h3>3
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>含义</th>
+<th>与相邻概念的区别</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>协程</td>
+<td>可在 <code>await</code> 处让出执行权的计算</td>
+<td>调用协程函数只得到协程对象，尚未执行</td>
+</tr>
+<tr>
+<td>Task</td>
+<td>事件循环上调度的协程执行单元</td>
+<td>多个 Task 可交错推进，不代表多核并行</td>
+</tr>
+<tr>
+<td>事件循环</td>
+<td>调度就绪任务、处理 I/O 回调</td>
+<td>不会抢先在普通同步代码中间切走任务</td>
+</tr>
+<tr>
+<td><code>gather</code></td>
+<td>并发等待多个 awaitable，并可分别收集异常</td>
+<td><code>return_exceptions=True</code> 会把异常作为结果返回，调用方必须检查</td>
+</tr>
+<tr>
+<td><code>TaskGroup</code></td>
+<td>结构化管理子任务，失败时取消同组任务并汇总异常</td>
+<td>不是无异常包装器，需处理 <code>ExceptionGroup</code></td>
+</tr>
+<tr>
+<td><code>wait_for</code></td>
+<td>等待操作并在超时后取消它</td>
+<td>超时不是远程操作一定停止，仍需服务端幂等/取消支持</td>
+</tr>
+<tr>
+<td>信号量</td>
+<td>限制同时进入临界区的任务数</td>
+<td>不限制任务总数、队列长度和总内存</td>
+</tr>
+</tbody>
+</table>
+<p><strong>并发 vs 并行</strong>：并发是多个任务在时间上重叠推进；并行是多个计算真正同时执行。asyncio 主要解决 I/O 并发，一个事件循环中的普通 Python 字节码不会因协程自动使用多核。CPU 密集任务应评估进程池、本地优化或专用计算服务；阻塞型第三方 I/O 可谨慎用 <code>asyncio.to_thread</code>，但线程数和下游容量仍要有界。</p>
+<h3 id="4-生命周期与失败语义">4. 生命周期与失败语义</h3>3
+<p>推荐「创建—等待—处理异常—关闭」在同一作用域完成，优先 <code>asyncio.run</code> 和 <code>asyncio.TaskGroup</code>，不要把未引用的 Task 随意丢到后台。Python 官方文档特别提示要保存 Task 引用，避免任务在执行中被垃圾回收；更根本的是调用方需要知道任务是否完成和失败。</p>
+<p>取消是协作式的：任务收到 <code>CancelledError</code> 后应清理资源并通常继续传播，不要把它当普通失败吞掉。使用 <code>async with</code> 管理异步资源，保证退出时释放；在 FastAPI 等框架中把客户端、连接池等放到 lifespan 启停，而不是每个请求重复建池。</p>
+<h3 id="5-论文怎么说我们怎么用">5. 论文怎么说，我们怎么用</h3>3
+<p>EnvSched（<strong>arXiv:2610.37609</strong>）研究的是 Agent 强化学习中的环境交互调度：固定时间步会让慢样本造成 bubble，且采样覆盖与任务配比影响训练。它<strong>不是 asyncio 调度算法的实验证据</strong>。</p>
+<p>跨领域可借鉴的只有问题意识：调度不能只看平均吞吐，还要看等待气泡、慢任务、配额与覆盖；落到 asyncio，就是记录队列等待、执行时长、超时与取消，并用背压避免快生产端淹没慢消费端。不能把论文训练收益写成 FastAPI 或 asyncio 的性能结论。</p>
+<h2 id="how">HOW</h2>2
+<h3 id="6-可离线实跑并发上限失败传播和取消">6. 可离线实跑：并发、上限、失败传播和取消</h3>3
+<p>保存为 <code>async_demo.py</code>（<strong>已实跑</strong>）：</p>
+<pre><code class="language-python">import asyncio
+import time
+
+
+async def job(name: str, delay: float, semaphore: asyncio.Semaphore) -&gt; str:
+    async with semaphore:
+        print(f&quot;start {name}&quot;)
+        await asyncio.sleep(delay)  # 模拟非阻塞 I/O，真实项目替换为异步客户端
+        if name == &quot;bad&quot;:
+            raise RuntimeError(&quot;注入失败&quot;)
+        print(f&quot;done {name}&quot;)
+        return name.upper()
+
+
+async def gather_demo() -&gt; None:
+    semaphore = asyncio.Semaphore(2)
+    started = time.perf_counter()
+    results = await asyncio.gather(
+        *(job(name, delay, semaphore) for name, delay in
+          [(&quot;a&quot;, 0.04), (&quot;b&quot;, 0.04), (&quot;c&quot;, 0.04), (&quot;d&quot;, 0.04)]),
+        return_exceptions=True,
+    )
+    elapsed = time.perf_counter() - started
+    assert all(isinstance(item, str) for item in results), results
+    assert elapsed &lt; 0.12, f&quot;并发未按预期重叠：{elapsed:.3f}s&quot;
+    print(&quot;gather:&quot;, results, f&quot;elapsed={elapsed:.3f}s&quot;)
+
+
+async def task_group_failure_demo() -&gt; None:
+    semaphore = asyncio.Semaphore(2)
+    try:
+        async with asyncio.TaskGroup() as group:
+            group.create_task(job(&quot;ok&quot;, 0.02, semaphore))
+            group.create_task(job(&quot;bad&quot;, 0.01, semaphore))
+    except* RuntimeError as errors:
+        print(&quot;TaskGroup 捕获注入失败:&quot;, len(errors.exceptions))
+    else:
+        raise AssertionError(&quot;注入失败没有传播&quot;)
+
+
+async def timeout_demo() -&gt; None:
+    semaphore = asyncio.Semaphore(1)
+    cancelled = asyncio.Event()
+
+    async def slow() -&gt; None:
+        try:
+            await asyncio.sleep(10)
+        except asyncio.CancelledError:
+            cancelled.set()
+            raise
+
+    try:
+        async with asyncio.timeout(0.02):
+            await slow()
+    except TimeoutError:
+        pass
+    assert cancelled.is_set(), &quot;超时没有传播取消&quot;
+    print(&quot;timeout: 已观察取消传播&quot;)
+
+
+async def main() -&gt; None:
+    await gather_demo()
+    await task_group_failure_demo()
+    await timeout_demo()
+
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+<p>运行（<strong>已实跑</strong>）：</p>
+<pre><code class="language-bash">python -I async_demo.py
+</code></pre>
+<p>验收点不是打印顺序固定，而是：四个 40 ms 任务在信号量 2 下约两批完成；<code>bad</code> 的 RuntimeError 被 <code>except*</code> 明确处理；超时任务观察到 <code>CancelledError</code> 并重新抛出。墙上时间断言只适用于本地教学示例，CI 高负载下应放宽或改成调度行为断言，不能当作性能基准。</p>
+<h3 id="7-从固定任务列表升级为有界生产消费">7. 从固定任务列表升级为有界生产—消费</h3>3
+<p>真实批量任务不要先创建全部 Task。按下面步骤改造：</p>
+<ol>
+<li>用固定数量 worker，例如 8 个，从 <code>asyncio.Queue(maxsize=32)</code> 取任务。</li>
+<li>生产端 <code>await queue.put(item)</code>；队列满时自然等待，这就是背压。</li>
+<li>为每个 I/O 调用设置总超时、连接超时与重试上限；写操作先定义幂等键。</li>
+<li>worker 用 <code>try/finally</code> 调用 <code>queue.task_done()</code>，异常是否继续必须有策略。</li>
+<li>停止时先停止生产，再 <code>await queue.join()</code>，随后取消并等待 worker；或在 <code>TaskGroup</code> 中用明确关闭协议。</li>
+<li>监控 <code>queue.qsize()</code>、在途数、各阶段耗时、取消/异常数，不只看 RPS。</li>
+</ol>
+<p>信号量适合限制共享资源临界区，worker 池适合限制整个处理管线；两者可组合，但数字应从下游配额、响应大小与内存测量得出。</p>
+<h3 id="8-真实-io-替换原则">8. 真实 I/O 替换原则</h3>3
+<p><strong>未实跑</strong>的替换清单：</p>
+<ul>
+<li>HTTP：选支持异步的客户端，复用 <code>AsyncClient</code>/session，设置连接池和超时；不要在协程里直接调用同步 <code>requests.get</code>。</li>
+<li>数据库：使用匹配的异步驱动与连接池；连接池上限通常应小于或等于数据库可承受配额。</li>
+<li>阻塞文件或遗留客户端：小范围使用 <code>await asyncio.to_thread(blocking_call, ...)</code>，同时限制线程池；这不是把 CPU 密集任务变异步。</li>
+<li>子进程：用 asyncio 子进程 API，消费 stdout/stderr，设置超时并等待退出，避免管道缓冲堵塞。</li>
+<li>Web 服务：应用启动创建共享客户端，关闭时先停止接收，再完成或取消在途任务，最后关闭连接池。</li>
+</ul>
+<p>真实压测至少比较同步基线与异步版本，记录并发、P50/P95/P99、错误率、内存和下游限流。不能只凭总耗时一次下降就推广。</p>
+<h3 id="9-翻车清单">9. 翻车清单</h3>3
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>根因候选</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>coroutine was never awaited</code></td>
+<td>只调用协程函数，未 await/调度</td>
+<td>明确 await 或交给 TaskGroup</td>
+</tr>
+<tr>
+<td>并发后仍与串行一样慢</td>
+<td>逐个 await、同步阻塞调用</td>
+<td>同时调度任务，替换阻塞客户端</td>
+</tr>
+<tr>
+<td>内存随批量线性暴涨</td>
+<td>预先创建全部 Task/结果</td>
+<td>有界队列 + 固定 worker</td>
+</tr>
+<tr>
+<td>超时后仍产生重复写入</td>
+<td>远端未取消，重试不幂等</td>
+<td>幂等键、状态查询、限制重试</td>
+</tr>
+<tr>
+<td>程序退出才看到异常</td>
+<td>后台 Task 未等待、异常未消费</td>
+<td>结构化并发，保存并等待任务</td>
+</tr>
+<tr>
+<td>CPU 批处理没有提速</td>
+<td>单事件循环仍执行同一 CPU 工作</td>
+<td>进程池/原生向量化/独立服务</td>
+</tr>
+</tbody>
+</table>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库两条链路对异步的态度完全相反，这是学 <code>async</code> 最好的对照样本（本次读源码）</strong>：<br />
+  | 链路 | 写法 | 证据 |<br />
+  |---|---|---|<br />
+  | <code>rag/serve.py</code>（知识库服务） | 同步 <code>def</code>，靠 uvicorn 线程池 | L323 <code>def chat_completions(req: ChatCompletionRequest):</code>、L366 <code>def completions(req: CompletionRequest):</code> |<br />
+  | <code>projects/agent-service-toolkit</code>（Agent 服务模板） | <code>async def</code> + <code>AsyncGenerator</code> 流式 | <code>src/service/service.py</code> 顶部 <code>from collections.abc import AsyncGenerator</code>、<code>from fastapi.responses import StreamingResponse</code> |</li>
+<li><strong>为什么 <code>rag/serve.py</code> 敢用同步</strong>：它的瓶颈是「一次 embedding + 一次 rerank + 一次云端生成」（本次实跑单问题约 3 分钟；另据 <code>rag/config.yaml</code> 注释，主生成端实测约 2.2 秒/次），<strong>单机单用户场景</strong>下线程池（uvicorn 默认 worker 线程）足够；写成 <code>async def</code> 但内部全是阻塞调用，反而会卡住事件循环。<br />
+  对照课件「把 I/O 写成 async」的一般建议：<strong>async 的价值在「大量并发等待」，不在「单次调用更快」</strong>，请求量上不去时同步 + 线程池是更简单的正确解。</li>
+<li><strong>真实并发等待点在哪</strong>：<code>rag/agentic_query.py</code> 的一轮检索里要先 <code>query.retrieve_hybrid</code>（dense 走云端 embedding HTTP）再 <code>query.rerank_node</code>（本地重排模型），两段都是阻塞的；这正是「想提速就必须串行改并行」的地方，也是本库目前<strong>没做</strong>的优化。</li>
+<li><strong>和课件讲法的差异</strong>：课件用 <code>asyncio.gather</code> 并发请求做示例；本库没有 <code>async</code> 代码进入主检索链，异步只出现在 fork 的服务模板里（<code>StreamingResponse</code> 推送 token）。</li>
+<li><strong>本库暂无</strong>：<code>rag/</code> 侧没有异步化改造，也没有并发请求压测数据；「并发会不会把内存打满」在本库未实测（内存护栏 <code>RAG_MEM_LIMIT_GB</code> 是可选环境变量，见 <code>rag/query.py</code> 文末）。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库的异步边界很窄：<code>rag/serve.py</code> 是 FastAPI + 同步 <code>def</code> 处理函数（L323 <code>def chat_completions(...)</code>、L366 <code>def completions(...)</code>，都不是 <code>async def</code>），真正并发靠 uvicorn 线程池；而 <code>projects/agent-service-toolkit</code> 是 <code>async def</code> + <code>AsyncGenerator</code> 流式。</li>
+<li><strong>读源码</strong>：异步在两条链路上的分工；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li><strong>[课1] 课件</strong>：<a href="../../raw/courseware/python/python_student_handbook_part5-10.md">Python 学生手册（含 asyncio）</a>：提供协程、事件循环、Task 与并发的入门骨架；本文补充背压和取消验收。</li>
+<li><strong>[课2] 课件</strong>：<a href="../../raw/courseware/python/part3-advanced-features.md">Python 高级特性</a>：用于生成器、装饰器与高级语法的衔接，不把同步写法误当异步。</li>
+<li><strong>[书1] 书籍摘录</strong>：<a href="../../raw/weread/3300233154/best_bookmarks.json">《Python大语言模型应用开发入门实战》划线 JSON</a>、<a href="../../raw/weread/3300233154/chapters.json">目录 JSON</a>：用于 API 应用开发背景；只使用目录与划线，不声称书籍全文。</li>
+<li><strong>[书2] 书籍摘录</strong>：<a href="../../raw/weread/43208843/best_bookmarks.md">《持续交付2.0》目录与划线</a>：用于快速反馈与质量内建的异步测试原则；不声称书籍全文。</li>
+<li><strong>[业1] 业内官方文档</strong>：<a href="https://docs.python.org/3/library/asyncio-task.html">Python asyncio Tasks</a>（GET 200，2026-11-04）：核对 Task、TaskGroup、gather、超时与取消语义。</li>
+<li><strong>[业2] 论文</strong>：<a href="../../raw/sources/arxiv-daily/2026-10-14-2610.37609.md">EnvSched 本地摘要</a>，<strong>arXiv:2610.37609</strong>：仅转化为调度观测与配额的跨域启发，不作为 asyncio 性能证据。</li>
+</ul></div></body></html>

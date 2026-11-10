@@ -1,0 +1,153 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent怎么选工具</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/Agent怎么选工具</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="agent-function-calling-vs-mcp-vs">Agent 怎么选工具：Function Calling vs MCP vs 自定义工具</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<h2 id="_1">这个问题的答案是什么</h2>
+<p><strong>一句话</strong>：Function Calling 是"模型会用工具"的能力，MCP 是"工具怎么被标准化提供"的协议，自定义工具是"你自己写函数"的实现——三者不在同一层，不是三选一，而是叠加关系。</p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>解决的问题</th>
+<th>谁定义</th>
+<th>典型形态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Function Calling（FC）</strong></td>
+<td>模型怎么决定"现在该调哪个函数、传什么参数"</td>
+<td>模型厂商（OpenAI/Anthropic/GLM）</td>
+<td>在 prompt 里塞 JSON schema，模型输出 <code>{"name":"...","arguments":{...}}</code></td>
+</tr>
+<tr>
+<td><strong>MCP（Model Context Protocol）</strong></td>
+<td>工具怎么被标准化发现、授权、复用</td>
+<td>Anthropic 主导的开放协议</td>
+<td>工具服务器暴露 <code>tools/list</code>、<code>tools/call</code>，客户端（Claude Desktop/Cursor）统一接入</td>
+</tr>
+<tr>
+<td><strong>自定义工具</strong></td>
+<td>我自己业务里那个"查库存/开发票"函数怎么写</td>
+<td>你</td>
+<td>Python 函数 + docstring + 装饰器，被 FC 或 MCP 注册</td>
+</tr>
+</tbody>
+</table>
+<p><strong>判断口诀</strong>：
+- 单次 demo、自己一个人用 → <strong>直接写 FC</strong>（一个 @tool 装饰器就够）。
+- 工具要给多个 Agent / 多个客户端复用 → <strong>包成 MCP server</strong>。
+- 工具会改外部状态（删库/发邮件/转账）→ <strong>必须 MCP 的授权弹窗</strong>，别裸奔 FC。</p>
+<h2 id="_2">详细内容</h2>
+<h3 id="function-calling">一、Function Calling：让模型"知道怎么用"</h3>
+<p>《动手做 AI Agent》（黄佳）第 5 章把 FC 讲得最直白：开发人员写好函数描述和实现代码，模型"智能地选择输出包含参数的 JSON 对象"，应用层拿到这个 JSON 后去真正调用函数。这是目前把 LLM 接到外部 API 最可靠的方式——不是让模型自己拼 curl，而是让它<strong>只负责选函数和填参数</strong>，执行权在你的代码手里。</p>
+<p>《大模型项目实战》（高强文）基于 GLM-4 的 FC 开发也印证了这一点：FC 的价值是"更可靠地把 GPT 与外部工具、API 连接起来"，关键在 schema 的描述质量——docstring 写得越清楚，模型选错的概率越低。</p>
+<h3 id="mcp">二、MCP：把工具从"一次性接入"变成"即插即用"</h3>
+<p>《MCP 原理与实战》开篇就点出了 MCP 要解决的核心痛点：<strong>当 5 种 AI 应用要接 5 种数据源时，传统做法要写 25 套定制接入</strong>。MCP 把这个 N×M 变成 N+M——客户端和服务器通过同一套协议对话。</p>
+<p>MCP 把工具分成三类组件（同书 2.2 节）：
+- <strong>资源（Resources）</strong>：只读，"万物皆资源"——文档、数据库行、API 返回、截图、日志，都是资源。
+- <strong>工具（Tools）</strong>：会改外部状态，动态操作。<strong>高风险工具必须在描述里标注影响</strong>（只读 vs 写操作），主机端才能弹确认框。
+- <strong>提示模板（Prompts）</strong>：标准化 prompt，团队复用、保证输出一致。</p>
+<p>安全机制（2.4 节）是 MCP 相对裸 FC 的最大增量：OAuth 授权、令牌传递、高风险操作弹确认对话框——"大模型想执行删除操作，是否允许？"。这是 FC 原生不带的，你得自己写。</p>
+<h3 id="_3">三、自定义工具：业务函数才是真资产</h3>
+<p>《零基础搭建》（徐洋）把"插件"比作"智能体的工具箱"，并强调模块化解耦——"想用就装，不用就卸，不影响核心系统"。这本质就是自定义工具的设计哲学：<strong>工具是可插拔的，Agent 主脑是稳定的</strong>。</p>
+<p>实操层的建议（来自 7 本书的共识）：
+1. 工具粒度要小——一个工具只做一件事，模型选错的概率才低。
+2. 工具描述里写清"什么时候用/什么时候不用"——这比函数实现本身更影响准确率。
+3. 只读工具和写工具要分开——写工具必须有人审、有日志、有回滚。</p>
+<h2 id="_4">来自哪些书的哪些观点</h2>
+<ul>
+<li><strong>《MCP 原理与实战》（李艮基）</strong>：MCP vs FC vs API vs A2A 的系统对比；工具要标注影响等级；OAuth + 确认弹窗是高风险操作的标配。</li>
+<li><strong>《一本书讲透 MCP》（占冰强）</strong>：MCP 把 N×M 集成变成 N+M；MCP 是"AI Agent 互联网"的基座协议；FC 和 RAG 是 MCP 的前身概念。</li>
+<li><strong>《动手做 AI Agent》（黄佳）</strong>：FC 是 OpenAI Assistants/Tool Calls 的核心；ReAct 框架本质是"推理-行动"循环里不断调工具。</li>
+<li><strong>《大模型项目实战》（高强文）</strong>：基于 GLM-4 的 FC 开发；AgentScope 的 ReAct Agent；CrewAI 多角色 Agent 里工具是角色的能力底座。</li>
+<li><strong>《零基础搭建 Coze+Dify+LangChain》（徐洋）</strong>：插件 = 工具箱；知识库 = 专业词典；低代码平台把"自定义工具"封装成可视化卡片。</li>
+</ul>
+<h2 id="_5">我们库当前的落地点（对照六员体系）</h2>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>工具层现状</th>
+<th>对应概念</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Hermes</strong></td>
+<td>主对话直接调 <code>terminal</code>/<code>web_search</code>/<code>read_file</code>/<code>patch</code></td>
+<td>自定义工具（@tool 风格），FC 由模型自己判断</td>
+</tr>
+<tr>
+<td><strong>Claude Code</strong></td>
+<td>内置 Bash/Edit/Read/Grep，支持 MCP server</td>
+<td><strong>MCP 原生客户端</strong>，已接入多个 MCP</td>
+</tr>
+<tr>
+<td><strong>Codex</strong></td>
+<td>OpenAI 官方沙箱，FC 驱动</td>
+<td>纯 FC 路线</td>
+</tr>
+<tr>
+<td><strong>OpenClaw</strong></td>
+<td>OpenClaw 高级功能：图像生成/视频生成/浏览器自动化</td>
+<td>自定义工具集，未来应包成 MCP server 复用</td>
+</tr>
+<tr>
+<td><strong>DSH</strong></td>
+<td>通过 Hermes 派发任务</td>
+<td>不直接持工具，是任务路由层</td>
+</tr>
+<tr>
+<td><strong>QwenCode</strong></td>
+<td>通义系，FC 驱动</td>
+<td>自定义工具</td>
+</tr>
+</tbody>
+</table>
+<p><strong>下一步动作</strong>：把 OpenClaw 的浏览器自动化、Hermes 的 <code>browser_exec</code> 这类高频工具，<strong>包成统一 MCP server</strong>，这样 Claude Desktop / Cursor / 其他客户端都能复用，而不是每个 Agent 各写一遍。</p></div></body></html>

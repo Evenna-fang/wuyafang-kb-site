@@ -1,0 +1,106 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Debate脑暴与显式归并规则</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ Debate脑暴与显式归并规则</span></div><div class="wrap"><h1 id="debate-脑暴编排与显式归并规则">Debate 脑暴编排与显式归并规则</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="%E8%B0%83%E7%A0%94%E6%B5%81%E7%A8%8BSOP%E4%B8%8E%E4%BF%A1%E6%81%AF%E6%BA%90.html">调研SOP</a> · <a href="%E6%B4%BE%E5%8D%95%E7%BA%AA%E5%BE%8B%E4%B8%89%E6%9D%A1.html">派单纪律</a> · <a href="OC%E5%AE%A1%E6%9F%A5Gap%E9%97%A8%E7%A6%81.html">Gap门禁</a> · <a href="%E9%94%99%E8%AF%AF%E5%8F%B0%E8%B4%A6%E6%9C%BA%E5%88%B6.html">错误台账</a> · <a href="Trace-Tampering%E9%98%B2%E5%BE%A1.html">Trace-Tampering</a> · <a href="%E5%85%AD%E5%91%98%E9%85%8D%E7%BD%AE%E7%BB%88%E5%B1%80.html">六员配置</a> · <a href="AI%E8%A1%8C%E4%B8%9A%E5%8A%A8%E6%80%81%E8%A7%82%E5%AF%9F-2026-09.html">AI行业动态</a> · <a href="Playwright%E5%8F%8D%E7%88%AC%E7%88%AC%E5%8F%96%E5%AE%9E%E6%88%98-2026.html">Playwright反爬</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心结论</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>复杂决策（选型/架构/排障方向）不让单个 Agent 拍板，而是 Claude + Codex 独立作答（互不可见）→ OpenClaw 对比归并</li><li>归并必须按预定义规则表执行，不允许"凭感觉综合"，并带硬终止条件，防无限轮次</li></ul></div>2
+<p>复杂决策（选型/架构/排障方向）不让单个 Agent 拍板，而是 <strong>Claude + Codex 独立作答（互不可见）→ OpenClaw 对比归并</strong>。归并必须按预定义规则表执行，<strong>不允许"凭感觉综合"</strong>，并带硬终止条件，防无限轮次。</p>
+<h2 id="关键细节">关键细节</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">五步流程</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 派单：同一复杂决策题同时发 Claude Code 和 Codex，互不可见对方产出</li><li>3. OpenClaw 对比归并：OC 只做对照，不做新推理</li><li>5. 硬终止：任一条件触发即停，不进第 2 轮</li></ul></div>3
+<ol>
+<li><strong>派单</strong>：同一复杂决策题同时发 Claude Code 和 Codex，互不可见对方产出。</li>
+<li><strong>独立作答</strong>：各自输出 = 结论 + 证据 + 置信度(0–1) + 反对意见（自己方案的最大弱点）。</li>
+<li><strong>OpenClaw 对比归并</strong>：OC 只做对照，不做新推理。</li>
+<li><strong>显式归并规则</strong>（下表）。</li>
+<li><strong>硬终止</strong>：任一条件触发即停，不进第 2 轮。</li>
+</ol>
+<h3 id="归并规则预定义不临场发挥">归并规则（预定义，不临场发挥）</h3>3
+<table>
+<thead>
+<tr>
+<th>情形</th>
+<th>归并动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>两结论一致 + 置信度都 ≥0.7</td>
+<td>直接采用，合证据，不进 OC 审</td>
+</tr>
+<tr>
+<td>两结论一致但置信度 &lt;0.7</td>
+<td>采用但标 ⚠️低置信，派单时告知用户</td>
+</tr>
+<tr>
+<td>两结论相反，置信度差 ≥0.2</td>
+<td>高置信者优先，低置信者的反对意见作为"风险提示"写进结论</td>
+</tr>
+<tr>
+<td>两结论相反，置信度差 &lt;0.2（势均力敌）</td>
+<td><strong>升人审</strong>，不替用户选</td>
+</tr>
+<tr>
+<td>任一方输出"我不确定"</td>
+<td>自动唤起 OpenClaw 慢思考（System-2 升级）</td>
+</tr>
+</tbody>
+</table>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">来源</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>notes/processes/脑暴编排与归并规则-20260928.md</li><li>notes/processes/编排模式实测-20260928.md（Debate 模式实测）</li></ul></div>2
+<ul>
+<li>notes/processes/脑暴编排与归并规则-20260928.md</li>
+<li>notes/processes/编排模式实测-20260928.md（Debate 模式实测）</li>
+</ul>
+<h2 id="相关术语">相关术语</h2>2
+<ul>
+<li>System-1 / System-2（慢思考升级）：ontology/Agent记忆术语表.md</li>
+<li>Orchestrator-Walker 模式：ontology/术语表-Agent框架.md</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">相关条目</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>魔鬼代言人机制（OpenClaw 强制质疑角色）</li></ul></div>2
+<ul>
+<li><a href="%E9%AD%94%E9%AC%BC%E4%BB%A3%E8%A8%80%E4%BA%BA%E6%9C%BA%E5%88%B6.html">魔鬼代言人机制（OpenClaw 强制质疑角色）</a></li>
+</ul></div></details></div></body></html>

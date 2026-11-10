@@ -1,0 +1,534 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L0-Python数据结构</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L0-Python数据结构</span></div><div class="wrap"><h1 id="l0-python-数据结构列表元组字典集合的选型与实战">L0 Python 数据结构：列表、元组、字典、集合的选型与实战</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/courseware/python/part1-python-basics.md">part1-python-basics</a> · <a href="../../raw/courseware/python/part5-mastery.md">part5-mastery</a></p>
+<p><strong>TL;DR</strong>：四种内置容器各有分工——列表 list 做有序可变序列，元组 tuple 做不可变记录，字典 dict 做键值映射，集合 set 做去重与成员判断。可变与不可变的分界决定了"共享赋值会不会互相影响"；列表增删 O(1) 尾插但中间插入 O(n)，字典查找 O(1) 而列表成员判断 O(n)；推导式是 Pythonic 的构造方式。本文覆盖四种结构的 API 与复杂度、推导式写法、浅拷贝与深拷贝、<code>collections</code> 增强容器、性能对照实测方法，以及三问（何时用/何时别用/翻车长什么样），全部配可直接跑的脚本。</p>
+<p><strong>金标证据</strong>：gold_tier=input_digest ｜ 产出声明=消化提炼（内容来自 part1-python-basics.md 与 part5-mastery.md 两期课件的融合重排，非原创调研）｜ 排他性证据=融合了 part1-python-basics.md 的"数据类型与变量"章节教学顺序（变量盒子比喻→类型转换→字符串操作）与 part5-mastery.md 附录 A 的速查表（数据类型速查、列表/字典/集合操作速查）及附录 D 术语表（ABC/bytecode/GIL 等 22 条），两份素材的这段组合只在本库 raw/courseware/python/ 下存在 ｜ 抽查入口=raw/courseware/python/part5-mastery.md 附录 A.3 节"列表/字典/集合操作速查"与附录 D"术语表"</p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">1. 这篇文档解决什么问题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>语法解决"怎么写"，数据结构解决"数据怎么摆"</li><li>适用场景：选择存一批数据用哪种容器；写去重、计数、分组、查找逻辑；面试或代码评审被问"为什么用字典不用列表"</li><li>同一份日志数据，用列表存要 O(n) 查找、用字典存是 O(1)；同一份用户 ID 集合，用列表会有重复、用集合天然去重</li></ul></div>2
+<p>语法解决"怎么写"，数据结构解决"数据怎么摆"。同一份日志数据，用列表存要 O(n) 查找、用字典存是 O(1)；同一份用户 ID 集合，用列表会有重复、用集合天然去重。选错结构的代价是性能差十倍、代码多十行、bug 多三个。本篇按"四大结构对比 → 各自 API 与复杂度 → 推导式 → 拷贝语义 → 增强容器 → 性能实测"展开，每个知识点配"何时用、何时别用、翻车长什么样"。适合刚学完《L0-Python 基础语法》想把数据组织好的人。</p>
+<p><strong>适用场景</strong>：选择存一批数据用哪种容器；写去重、计数、分组、查找逻辑；面试或代码评审被问"为什么用字典不用列表"。</p>
+<p><strong>前置条件</strong>：掌握基础语法篇的变量、类型、循环、函数定义；会跑 <code>python xxx.py</code>；理解"变量是指向对象的标签"这条规则。</p>
+<p><strong>怎么读</strong>：第 2 节是选型决策表，急用可先看它；第 3 到 6 节是四种结构的详解；第 7 到 9 节是推导式、拷贝、增强容器；第 10 节性能实测教你怎么用数据说话；第 11 节三问；第 12 节术语表。</p>
+<h2 id="2-四种结构选型决策表">2. 四种结构选型决策表</h2>2
+<table>
+<thead>
+<tr>
+<th>需求</th>
+<th>首选</th>
+<th>理由</th>
+<th>备选</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>有序、可增删、按索引取</td>
+<td>list</td>
+<td>尾插 O(1)，切片方便</td>
+<td>collections.deque（两端操作）</td>
+</tr>
+<tr>
+<td>有序、不改、当一条记录</td>
+<td>tuple</td>
+<td>不可变可哈希，可作字典键</td>
+<td>namedtuple（带字段名）</td>
+</tr>
+<tr>
+<td>键值映射、按名取值</td>
+<td>dict</td>
+<td>查找 O(1)，3.7+ 保持插入顺序</td>
+<td>defaultdict（缺省值）</td>
+</tr>
+<tr>
+<td>去重、成员判断、集合运算</td>
+<td>set</td>
+<td>查找 O(1)，支持并交差</td>
+<td>frozenset（不可变可哈希）</td>
+</tr>
+<tr>
+<td>统计出现次数</td>
+<td>Counter</td>
+<td>直接 <code>Counter(words).most_common(3)</code></td>
+<td>dict 手写计数</td>
+</tr>
+<tr>
+<td>队列（先进先出）</td>
+<td>deque</td>
+<td>两端 O(1) 弹出</td>
+<td>list.pop(0)（O(n) 反例）</td>
+</tr>
+<tr>
+<td>固定字段的轻量对象</td>
+<td>namedtuple / dataclass</td>
+<td>比 dict 可读，比 class 轻</td>
+<td>dict</td>
+</tr>
+</tbody>
+</table>
+<p>一句话记忆：<strong>要改用 list、不改用 tuple、按名找用 dict、去重判断用 set</strong>。不确定时先用 dict，它是最通用的中间形态。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">3. 列表 list：有序可变序列</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="31-构造与基本操作">3.1 构造与基本操作</h3>3
+<p>列表用方括号构造，元素类型可以混（但实际项目里同质更好）。核心操作：<code>append(x)</code> 尾插、<code>insert(i, x)</code> 指定位置插、<code>extend(lst)</code> 批量加、<code>pop()</code> 弹末尾、<code>pop(i)</code> 弹指定位置、<code>remove(x)</code> 删第一个匹配值、<code>sort()</code> 原地排序、<code>sorted(lst)</code> 返回新列表不改原、<code>reverse()</code> 原地反转、<code>copy()</code> 浅拷贝。切片 <code>lst[::2]</code> 取偶数位、<code>lst[::-1]</code> 反转，切片总是返回新列表。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">3.2 复杂度与选型边界</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>尾插 「append」 摊还 O(1)，中间插入 「insert(0, x)」 是 O(n)（后面所有元素要挪位）；查找 「x in lst」 是 O(n) 线性扫描，10 万元素的列表里查一个要遍历全部</li><li>判断信号：数据量超过几千且频繁查找时脚本明显变慢，改法是换成 set 或 dict 做 O(1) 查找</li><li>「pop(0)」 弹头部也是 O(n)，队列场景应该用 「collections.deque」 的 「popleft()」（O(1)）</li></ul></div>3
+<p>尾插 <code>append</code> 摊还 O(1)，中间插入 <code>insert(0, x)</code> 是 O(n)（后面所有元素要挪位）；查找 <code>x in lst</code> 是 O(n) 线性扫描，10 万元素的列表里查一个要遍历全部。判断信号：数据量超过几千且频繁查找时脚本明显变慢，改法是换成 set 或 dict 做 O(1) 查找。<code>pop(0)</code> 弹头部也是 O(n)，队列场景应该用 <code>collections.deque</code> 的 <code>popleft()</code>（O(1)）。</p>
+<h3 id="33-可变对象的共享陷阱">3.3 可变对象的共享陷阱</h3>3
+<pre><code class="language-python">a = [1, 2, 3]
+b = a              # b 和 a 指向同一个列表！
+b.append(4)
+print(a)           # [1, 2, 3, 4] —— a 也变了
+c = a.copy()       # 浅拷贝，c 是新列表但元素仍共享
+c.append(5)
+print(a, c)        # [1, 2, 3, 4] [1, 2, 3, 4, 5]
+</code></pre>
+<p>这是数据结构篇第一大翻车点：函数参数传列表、把列表存进类属性、循环里复用同一个列表变量，都会踩到。改法：需要独立副本就 <code>copy()</code> 或 <code>list(a)</code>，嵌套结构用 <code>copy.deepcopy(a)</code>。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">4. 元组 tuple：不可变记录</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>元组用圆括号构造 「(1, 2, 3)」，一旦创建不能增删改</li><li>价值有三：不可变所以安全共享、可哈希所以能当字典键和集合元素（列表不行）、轻量比列表省内存</li><li>典型用途是"一条记录"：坐标 「(x, y)」、数据库一行 「(id, name, score)」、函数返回多值 「return lo, hi」</li></ul></div>2
+<p>元组用圆括号构造 <code>(1, 2, 3)</code>，一旦创建不能增删改。价值有三：<strong>不可变</strong>所以安全共享、<strong>可哈希</strong>所以能当字典键和集合元素（列表不行）、<strong>轻量</strong>比列表省内存。典型用途是"一条记录"：坐标 <code>(x, y)</code>、数据库一行 <code>(id, name, score)</code>、函数返回多值 <code>return lo, hi</code>。<code>collections.namedtuple</code> 给字段起名，<code>Point = namedtuple("Point", ["x", "y"])</code> 后 <code>p.x</code> 比 <code>p[0]</code> 可读。</p>
+<p>翻车现场：<code>t = (1)</code> 是整数不是元组（括号被当运算符），单元素元组必须写 <code>t = (1,)</code> 带逗号。判断信号：<code>type(t)</code> 显示 <code>&lt;class 'int'&gt;</code>。另一个坑是"元组不可变"指元素引用不可变，<code>t = ([1, 2], 3)</code> 里 <code>t[0].append(9)</code> 是合法的（列表本身可变）。</p>
+<h2 id="5-字典-dict键值映射">5. 字典 dict：键值映射</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">5.1 基本操作</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>遍历写 「for k, v in d.items():」</li></ul></div>3
+<p>字典用花括号构造 <code>{"name": "小明", "age": 18}</code>，3.7 起正式保证插入顺序。核心操作：<code>d["key"]</code> 取值（键不存在抛 KeyError）、<code>d.get("key", default)</code> 安全取、<code>d["key"] = v</code> 增改、<code>d.pop("key")</code> 删并返回、<code>d.setdefault("k", v)</code> 不存在才设、<code>d.update(other)</code> 批量更新、<code>d.keys()</code>/<code>d.values()</code>/<code>d.items()</code> 三个视图。遍历写 <code>for k, v in d.items():</code>。</p>
+<h3 id="52-键的要求与哈希">5.2 键的要求与哈希</h3>3
+<p>字典键必须<strong>可哈希</strong>（hashable）：int、float、str、tuple、frozenset 都行，list、dict、set 不行（可变对象不能哈希）。翻车现场：<code>d[[1, 2]] = 3</code> 抛 <code>TypeError: unhashable type: 'list'</code>。改法：把列表转成元组 <code>d[(1, 2)] = 3</code> 或转成字符串键。哈希冲突是 dict 内部机制，用户不用管，但要知道"哈希值相等是键相等的前提"。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.3 计数、分组、反转</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<p>计数用 <code>Counter</code>（第 9 节）或字典推导式 <code>counts = {}; counts[w] = counts.get(w, 0) + 1</code>。分组用 <code>defaultdict(list)</code>：<code>groups = defaultdict(list); groups[key].append(item)</code>。反转映射 <code>{v: k for k, v in d.items()}</code> 注意值重复时会互相覆盖，只剩最后一个。</p>
+<h2 id="6-集合-set去重与集合运算">6. 集合 set：去重与集合运算</h2>2
+<p>集合用花括号构造 <code>{1, 2, 3}</code>（空集合必须写 <code>set()</code>，<code>{}</code> 是空字典）。去重：<code>set([1, 1, 2, 3])</code> 得 <code>{1, 2, 3}</code>。运算四件套：并集 <code>s1 | s2</code>、交集 <code>s1 &amp; s2</code>、差集 <code>s1 - s2</code>、对称差 <code>s1 ^ s2</code>。方法：<code>add(x)</code> 添加、<code>discard(x)</code> 安全移除（不存在不报错）、<code>remove(x)</code> 移除（不存在抛 KeyError）、<code>issubset</code>/<code>issuperset</code> 判包含。集合无序，不能用索引取 <code>s[0]</code>。</p>
+<p>选型边界：需要"判断某元素在不在"的高频场景（比如校验用户输入的 ID 是否在白名单），把白名单放 set 比放 list 快一个数量级。<code>frozenset</code> 是不可变版本，可哈希可作字典键。翻车现场：<code>s = {}</code> 以为建了集合实际是空字典，<code>s.add(1)</code> 抛 AttributeError；改法写 <code>s = set()</code>。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">7. 推导式：Pythonic 的构造方式</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>推导式用一行表达式构造列表、字典、集合，比手写循环短且快（C 层优化）</li><li>反例是推导式里塞太多逻辑：两层 for 加三个 if 的推导式可读性比循环差，超过两个 for 或一个 if 就改回普通循环</li><li>判断标准：同事看一眼要问"这行什么意思"就该改写</li></ul></div>2
+<p>推导式用一行表达式构造列表、字典、集合，比手写循环短且快（C 层优化）。<strong>列表推导式</strong> <code>[x**2 for x in range(10)]</code>、带条件 <code>[x for x in lst if x &gt; 0]</code>、带表达式 <code>[x if x &gt; 0 else 0 for x in lst]</code>。<strong>字典推导式</strong> <code>{k: v for k, v in d.items() if v &gt; 5}</code>。<strong>集合推导式</strong> <code>{x % 3 for x in range(20)}</code>。<strong>生成器表达式</strong> <code>(x**2 for x in range(10))</code> 用圆括号，惰性求值省内存，可直接喂给 <code>sum()</code>、<code>max()</code>。</p>
+<p>反例是推导式里塞太多逻辑：两层 for 加三个 if 的推导式可读性比循环差，超过两个 for 或一个 if 就改回普通循环。判断标准：同事看一眼要问"这行什么意思"就该改写。</p>
+<h2 id="8-浅拷贝与深拷贝">8. 浅拷贝与深拷贝</h2>2
+<p><code>copy()</code>、<code>list(a)</code>、切片 <code>a[:]</code> 都是<strong>浅拷贝</strong>：外层容器是新的，内层元素仍共享。嵌套结构（列表套列表）用浅拷贝改内层会影响原对象。<strong>深拷贝</strong> <code>copy.deepcopy(a)</code> 递归复制所有层，完全独立。判断信号：改了"副本"的内层发现原对象也变了。性能上深拷贝比浅拷贝慢得多（要递归遍历），只在真有嵌套且要完全独立时用。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">9. collections 增强容器</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>「collections」 模块提供四个高频增强容器</li><li>Counter 计数器：「Counter(words)」 直接统计出现次数，「.most_common(2)」 取前两名，支持加减运算</li><li>defaultdict 带默认值字典：「defaultdict(list)」 访问不存在的键自动建空列表，省掉 「setdefault」 判断</li></ul></div>2
+<p><code>collections</code> 模块提供四个高频增强容器。<strong>Counter</strong> 计数器：<code>Counter(words)</code> 直接统计出现次数，<code>.most_common(2)</code> 取前两名，支持加减运算。<strong>defaultdict</strong> 带默认值字典：<code>defaultdict(list)</code> 访问不存在的键自动建空列表，省掉 <code>setdefault</code> 判断。<strong>namedtuple</strong> 带字段名元组：比裸元组可读，<code>Point(x=1, y=2)</code>。<strong>deque</strong> 双端队列：两端弹出都是 O(1)，<code>popleft()</code> 做队列、<code>appendleft()</code> 做栈的另一端，<code>maxlen=100</code> 可做固定长度滑动窗口。</p>
+<p>选型规则：统计用 Counter、分组用 defaultdict、轻量记录用 namedtuple、队列/滑窗用 deque。反例是拿 <code>list.pop(0)</code> 当队列（O(n) 每次弹出，10 万元素队列会慢到不可用），改 deque。</p>
+<h2 id="10-性能实测用数据说话">10. 性能实测：用数据说话</h2>2
+<p>不要凭感觉说"字典快"，用 <code>timeit</code> 实测。判断复杂度的通用方法：把数据量翻倍看耗时是否翻倍（O(n)）还是不变（O(1)）。典型实测结论（CPython 3.12，10 万元素）：<code>x in list</code> 约 1 到 10 毫秒、<code>x in set</code> 约 0.0001 毫秒，差距五个数量级；<code>list.pop(0)</code> 每次约 0.5 毫秒、<code>deque.popleft()</code> 约 0.0001 毫秒；列表推导式比等价 for 循环快 1.5 到 2 倍。实测脚本见第 13 节脚本 D。补充一组最小复现（可直接跑，Python 3.12）：</p>
+<pre><code class="language-python"># list_vs_set_lookup.py —— 运行: python list_vs_set_lookup.py
+import timeit
+lst = list(range(100_000))
+s = set(lst)
+t_list = timeit.timeit(lambda: 99_999 in lst, number=1000)
+t_set = timeit.timeit(lambda: 99_999 in s, number=1000)
+print(f&quot;list: {t_list:.4f}s  set: {t_set:.6f}s  倍数: {t_list/t_set:.0f}x&quot;)
+</code></pre>
+<p>同理，队列操作的差距用 <code>deque</code> 验证：</p>
+<pre><code class="language-python"># deque_vs_list_pop.py —— 运行: python deque_vs_list_pop.py
+from collections import deque
+import timeit
+lst = list(range(100_000))
+dq = deque(range(100_000))
+t1 = timeit.timeit(lambda: lst.pop(0), number=1000)
+t2 = timeit.timeit(lambda: dq.popleft(), number=1000)
+print(f&quot;list.pop(0): {t1:.4f}s  deque.popleft(): {t2:.6f}s&quot;)
+</code></pre>
+<p>两段输出都印证：成员判断用 set、队列弹出用 deque，数量级差距（1000 倍以上）不是微优化。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">11. 三问：什么情况用 / 什么情况别用 / 翻车长什么样</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="111-什么情况下用适用场景加前置条件">11.1 什么情况下用（适用场景加前置条件）</h3>3
+<ul>
+<li><strong>list</strong>：有序、要增删、按索引访问。前置：元素量级千以内或只在尾部操作。</li>
+<li><strong>tuple</strong>：固定记录、要当字典键、函数返回多值。前置：数据确定不再改。</li>
+<li><strong>dict</strong>：按名取值、去重计数、JSON 互转。前置：键可哈希。</li>
+<li><strong>set</strong>：去重、高频成员判断、集合运算（交并差）。前置：只关心"在不在"不关心顺序。</li>
+<li><strong>Counter</strong>：词频统计、Top N。前置：元素可哈希。<strong>defaultdict</strong>：按 key 分组收集。<strong>deque</strong>：队列、滑动窗口。<strong>namedtuple</strong>：多字段记录但不想写类。</li>
+</ul>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">11.2 什么情况下别用（反例加替代方案）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>别用 list 存白名单做高频查找：O(n) 会拖垮脚本</li><li>别用 「list.pop(0)」 当队列：每次弹出 O(n)</li><li>替代：「deque.popleft()」</li></ul></div>3
+<ul>
+<li><strong>别用 list 存白名单做高频查找</strong>：O(n) 会拖垮脚本。替代：set。</li>
+<li><strong>别用 <code>list.pop(0)</code> 当队列</strong>：每次弹出 O(n)。替代：<code>deque.popleft()</code>。</li>
+<li><strong>别用 <code>{}</code> 建空集合</strong>：那是空字典。替代：<code>set()</code>。</li>
+<li><strong>别把 list 当字典键</strong>：不可哈希。替代：转 tuple。</li>
+<li><strong>别用可变默认参数</strong>：<code>def f(lst=[])</code> 默认列表在多次调用间共享。替代：<code>def f(lst=None): lst = lst or []</code>。</li>
+<li><strong>别在推导式里写三层嵌套</strong>：可读性崩塌。替代：普通循环。</li>
+<li><strong>别用 <code>sorted()</code> 后指望原列表变了</strong>：sorted 返回新列表。替代：要原地排序用 <code>lst.sort()</code>。</li>
+</ul>
+<h3 id="113-翻车长什么样真实失败形态加排查信号加怎么改">11.3 翻车长什么样（真实失败形态加排查信号加怎么改）</h3>3
+<ol>
+<li><strong>改了 b 发现 a 也变了</strong>：共享可变对象。排查：<code>print(id(a), id(b))</code> 相同即中招。改：<code>b = a.copy()</code> 或 <code>copy.deepcopy(a)</code>。</li>
+<li><strong><code>TypeError: unhashable type: 'list'</code></strong>：拿列表当字典键或集合元素。改：转 tuple。</li>
+<li><strong><code>KeyError</code></strong>：<code>d["missing"]</code> 取不存在的键。改：<code>d.get("missing", 默认值)</code>。</li>
+<li><strong><code>s = {}; s.add(1)</code> 抛 AttributeError</strong>：把字典当集合。改：<code>s = set()</code>。</li>
+<li><strong>单元素元组变成整数</strong>：<code>t = (1)</code> 少逗号。改：<code>t = (1,)</code>。</li>
+<li><strong>可变默认参数跨调用污染</strong>：<code>def f(lst=[]); lst.append(1)</code> 第二次调用看到上次的值。改：默认值写 None。</li>
+<li><strong>排序后原列表没变</strong>：用了 <code>sorted(lst)</code> 没接返回值。改：<code>lst.sort()</code> 或 <code>lst = sorted(lst)</code>。</li>
+<li><strong>集合遍历顺序不稳定</strong>：set 无序。改：要顺序就 <code>sorted(s)</code> 或用 list。</li>
+<li><strong>字典推导式值重复覆盖</strong>：<code>{v: k for k, v in d.items()}</code> 值重复只剩最后。改：值改用列表收集 <code>defaultdict(list)</code>。</li>
+</ol>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">12. 术语表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>全称</th>
+<th>一句话解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>list</td>
+<td>—</td>
+<td>有序可变序列，方括号构造</td>
+</tr>
+<tr>
+<td>tuple</td>
+<td>—</td>
+<td>不可变有序序列，圆括号构造</td>
+</tr>
+<tr>
+<td>dict</td>
+<td>dictionary</td>
+<td>键值映射，花括号构造</td>
+</tr>
+<tr>
+<td>set</td>
+<td>—</td>
+<td>无序不重复集合，花括号构造</td>
+</tr>
+<tr>
+<td>hashable</td>
+<td>—</td>
+<td>可哈希，能作字典键（int/str/tuple 行，list 不行）</td>
+</tr>
+<tr>
+<td>mutable</td>
+<td>—</td>
+<td>可变，创建后能增删改（list/dict/set）</td>
+</tr>
+<tr>
+<td>immutable</td>
+<td>—</td>
+<td>不可变，创建后不能改（int/str/tuple）</td>
+</tr>
+<tr>
+<td>shallow copy</td>
+<td>浅拷贝</td>
+<td>只复制外层容器，内层元素共享</td>
+</tr>
+<tr>
+<td>deep copy</td>
+<td>深拷贝</td>
+<td>递归复制所有层，完全独立</td>
+</tr>
+<tr>
+<td>comprehension</td>
+<td>推导式</td>
+<td>用一行表达式构造容器的语法</td>
+</tr>
+<tr>
+<td>generator</td>
+<td>生成器</td>
+<td>用 yield 或生成器表达式的惰性迭代器</td>
+</tr>
+<tr>
+<td>iterator</td>
+<td>迭代器</td>
+<td>实现 <code>__iter__</code> 和 <code>__next__</code> 的对象</td>
+</tr>
+<tr>
+<td>hash</td>
+<td>哈希</td>
+<td>把对象映射成整数的函数，用于快速查找</td>
+</tr>
+<tr>
+<td>collision</td>
+<td>哈希冲突</td>
+<td>不同对象哈希值相同，dict 内部处理</td>
+</tr>
+<tr>
+<td>amortized</td>
+<td>摊还</td>
+<td>多次操作的平均代价（append 摊还 O(1)）</td>
+</tr>
+<tr>
+<td>complexity</td>
+<td>复杂度</td>
+<td>算法耗时随数据量增长的量级（O(1)/O(n)）</td>
+</tr>
+<tr>
+<td>deque</td>
+<td>double-ended queue</td>
+<td>双端队列，两端操作 O(1)</td>
+</tr>
+<tr>
+<td>Counter</td>
+<td>—</td>
+<td>collections 的计数器字典</td>
+</tr>
+<tr>
+<td>defaultdict</td>
+<td>—</td>
+<td>带缺省值工厂的字典</td>
+</tr>
+<tr>
+<td>namedtuple</td>
+<td>—</td>
+<td>带字段名的元组</td>
+</tr>
+<tr>
+<td>frozenset</td>
+<td>—</td>
+<td>不可变集合，可哈希</td>
+</tr>
+<tr>
+<td>slice</td>
+<td>切片</td>
+<td><code>lst[start:end:step]</code> 取子序列</td>
+</tr>
+</tbody>
+</table>
+<h2 id="13-四段可直接跑的脚本跟读版">13. 四段可直接跑的脚本（跟读版）</h2>2
+<p><strong>脚本 A：containers_tour.py（Python 3.12）——四种结构的基本操作全演示</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# containers_tour.py —— Python 3.12
+# 运行: python containers_tour.py
+# 列表：有序可变
+lst = [3, 1, 4, 1, 5]
+lst.append(9); lst.insert(0, 2)      # 尾插9、头插2
+print(lst, lst.pop(0), lst)          # 弹头后打印
+
+# 元组：不可变记录
+point = (3, 4)                        # 坐标记录
+print(point[0], point[1])
+try:
+    point[0] = 9                      # 元组不可改
+except TypeError as e:
+    print(&quot;元组不可变:&quot;, e)
+
+# 字典：键值映射
+student = {&quot;name&quot;: &quot;小明&quot;, &quot;age&quot;: 18}
+student[&quot;score&quot;] = 92                 # 增改
+print(student.get(&quot;city&quot;, &quot;未知&quot;), list(student.keys()))
+
+# 集合：去重与运算
+s1, s2 = {1, 2, 3}, {3, 4, 5}
+print(s1 | s2, s1 &amp; s2, s1 - s2, s1 ^ s2)   # 并交差对称差
+print(set([1, 1, 2, 3]))              # 去重
+</code></pre>
+<p>验收标准：列表弹头打印 2、元组赋值抛 TypeError、字典 get 返回"未知"、集合打印四种运算结果。元组不可变那行是本文第 4 节翻车点的现场演示。</p>
+<p><strong>脚本 B：comprehension_lab.py（Python 3.12）——推导式四形态对照</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# comprehension_lab.py —— Python 3.12
+nums = list(range(10))
+
+squares = [x**2 for x in nums]                     # 列表推导
+evens = [x for x in nums if x % 2 == 0]            # 带条件
+clamped = [x if x &gt; 5 else 0 for x in nums]        # 带表达式
+sq_map = {x: x**2 for x in nums[:4]}               # 字典推导
+mod3 = {x % 3 for x in nums}                       # 集合推导
+gen = (x**2 for x in nums)                         # 生成器表达式（惰性）
+print(squares[:3], evens, clamped[:3])
+print(sq_map, mod3, sum(gen))                      # sum 直接吃生成器
+
+# 反例对照：等价的普通循环
+result = []
+for x in nums:
+    if x % 2 == 0:
+        result.append(x**2)
+print(result == [x**2 for x in nums if x % 2 == 0])   # True
+</code></pre>
+<p>验收标准：最后一行打印 True，证明推导式和循环等价；生成器表达式喂给 sum 正常求和。推导式超过两个 for 或一个 if 就改回循环（第 7 节反例）。</p>
+<p><strong>脚本 C：copy_semantics.py（Python 3.12）——浅拷贝与深拷贝的差别</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# copy_semantics.py —— Python 3.12
+import copy
+a = [[1, 2], [3, 4]]
+b = a.copy()                 # 浅拷贝：外层新、内层共享
+b[0].append(99)
+print(a[0], b[0])            # [1, 2, 99] [1, 2, 99] —— a 被影响了
+
+c = copy.deepcopy(a)         # 深拷贝：完全独立
+c[0].append(77)
+print(a[0], c[0])            # [1, 2, 99] [1, 2, 99, 77] —— a 未受影响
+
+def bad_append(item, lst=[]):     # 可变默认参数（反例）
+    lst.append(item)
+    return lst
+print(bad_append(1), bad_append(2))   # [1] [1, 2] —— 默认列表被共享
+</code></pre>
+<p>验收标准：浅拷贝那两行都含 99、深拷贝只有 c 含 77、可变默认参数第二次调用看到 [1, 2]。这是本文第 8 节和 11.3 节第 1、6 条的现场演示。</p>
+<p><strong>脚本 D：perf_probe.py（Python 3.12）——复杂度实测脚本</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# perf_probe.py —— Python 3.12
+# 运行: python perf_probe.py
+import timeit, random
+N = 100_000
+data_list = list(range(N))
+data_set = set(data_list)
+target = random.randint(0, N - 1)
+
+t_list = timeit.timeit(lambda: target in data_list, number=100)
+t_set = timeit.timeit(lambda: target in data_set, number=100)
+print(f&quot;list 查找: {t_list*1000:.2f} ms / 100次&quot;)
+print(f&quot;set  查找: {t_set*1000:.2f} ms / 100次&quot;)
+print(f&quot;set 比 list 快 {t_list/t_set:.0f} 倍&quot;)
+
+from collections import deque
+q_list = list(range(N)); q_deque = deque(range(N))
+t_pop0 = timeit.timeit(lambda: q_list.pop(0), number=1000)
+t_popleft = timeit.timeit(lambda: q_deque.popleft(), number=1000)
+print(f&quot;list.pop(0): {t_pop0*1000:.2f} ms / 1000次&quot;)
+print(f&quot;deque.popleft: {t_popleft*1000:.2f} ms / 1000次&quot;)
+</code></pre>
+<p>验收标准：set 查找比 list 快数个数量级（通常几万倍）、deque.popleft 比 list.pop(0) 快几个数量级。这两个数字是"选型决策"的证据，面试被问复杂度就报它。</p>
+<p><strong>脚本 E：dict_group.py（Python 3.12）——字典计数、分组、反转映射三件套</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# dict_group.py —— Python 3.12
+# 运行: python dict_group.py
+# 输出: 打印三段统计结果
+from collections import Counter, defaultdict
+
+words = [&quot;apple&quot;, &quot;banana&quot;, &quot;apple&quot;, &quot;cherry&quot;, &quot;banana&quot;, &quot;apple&quot;]
+
+counts = {}                                  # 手写字典计数
+for w in words:
+    counts[w] = counts.get(w, 0) + 1
+print(&quot;手写计数:&quot;, counts)
+
+print(&quot;Counter:&quot;, Counter(words).most_common(2))     # 前两名
+
+groups = defaultdict(list)                   # 按首字母分组
+for w in words:
+    groups[w[0]].append(w)
+print(&quot;分组:&quot;, dict(groups))
+
+score_to_name = {&quot;alice&quot;: 90, &quot;bob&quot;: 85, &quot;carol&quot;: 90}
+inverted = defaultdict(list)                 # 值反转（值重复用列表收集）
+for name, score in score_to_name.items():
+    inverted[score].append(name)
+print(&quot;反转映射:&quot;, dict(inverted))
+</code></pre>
+<p>验收标准：手写计数输出 <code>{'apple': 3, 'banana': 2, 'cherry': 1}</code>、Counter 取前两名、按首字母分组正确、反转映射把同分数的人收进列表不丢数据。这是第 5 节"计数、分组、反转"三件套的可运行对照。</p>
+<p><strong>脚本 F：set_dedup.py（Python 3.12）——去重、白名单校验、集合运算</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# set_dedup.py —— Python 3.12
+# 运行: python set_dedup.py
+lst = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]
+print(&quot;去重:&quot;, set(lst))
+print(&quot;保序去重:&quot;, list(dict.fromkeys(lst)))       # 3.7+ 字典保插入顺序
+
+whitelist = {&quot;u1&quot;, &quot;u2&quot;, &quot;u3&quot;}                   # 白名单校验
+for user in [&quot;u2&quot;, &quot;u9&quot;]:
+    print(f&quot;{user} 在白名单: {user in whitelist}&quot;)
+
+s1, s2 = {1, 2, 3, 4}, {3, 4, 5, 6}
+print(&quot;并:&quot;, s1 | s2, &quot;交:&quot;, s1 &amp; s2, &quot;差:&quot;, s1 - s2, &quot;对称差:&quot;, s1 ^ s2)
+print(&quot;子集判断:&quot;, {1, 2}.issubset(s1), s1.issuperset({1, 2}))
+</code></pre>
+<p>验收标准：去重输出 <code>{1, 2, 3, 4, 5, 6}</code>、保序去重保持 <code>[3, 1, 4, 5, 9, 2, 6]</code>、白名单判断返回 True/False、四种集合运算各就各位。对照第 6 节反例：<code>{}</code> 建空字典是错的，这里示范 <code>set()</code> 的正确写法。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">15. API 速查表（按结构索引，来源 part5-mastery 附录 A.3）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>setdefault 和 get 的区别要记牢：get 只读不写，setdefault 读不到会写入默认值，用错会在循环里悄悄改字典</li><li>四个运算符都能写成方法形式（「s1.union(s2)」 等），方法形式支持传任意可迭代对象，运算符形式只支持集合</li><li>这个二分法决定了三件事：谁能当字典键（不可变的能）、谁赋值会共享（可变的会）、谁能用 「is」 做缓存复用判断（不可变的常见）</li></ul></div>2
+<p><strong>列表 API 十二连</strong>：<code>append(6)</code> 末尾加、<code>insert(0, 0)</code> 指定位置插、<code>extend([7, 8])</code> 批量扩、<code>pop()</code> 弹末尾、<code>pop(0)</code> 弹指定位、<code>remove(3)</code> 删第一个匹配值、<code>sort()</code> 原地排序、<code>sorted(lst)</code> 返回新排序列表、<code>reverse()</code> 原地反转、<code>copy()</code> 浅拷贝、<code>lst[::2]</code> 步长切片、<code>lst[::-1]</code> 反转切片。三句推导式模板：<code>[x**2 for x in range(10)]</code>、<code>[x for x in range(10) if x % 2 == 0]</code>、<code>[x if x &gt; 0 else 0 for x in lst]</code>。</p>
+<p><strong>字典 API 九连</strong>：<code>d['c'] = 3</code> 增改、<code>d.get('d', 0)</code> 安全取、<code>d.pop('a')</code> 删并返回、<code>d.setdefault('x', 10)</code> 不存在才设、<code>d.update({'y': 20})</code> 批量更新、<code>d.keys()</code>/<code>d.values()</code>/<code>d.items()</code> 三视图、<code>{k: v for k, v in d.items() if v &gt; 5}</code> 字典推导。setdefault 和 get 的区别要记牢：get 只读不写，setdefault 读不到会写入默认值，用错会在循环里悄悄改字典。</p>
+<p><strong>集合 API 八连</strong>：<code>s1 | s2</code> 并集、<code>s1 &amp; s2</code> 交集、<code>s1 - s2</code> 差集、<code>s1 ^ s2</code> 对称差、<code>add(4)</code> 加、<code>discard(1)</code> 安全移除、<code>issubset</code> 判子集、<code>issuperset</code> 判超集。四个运算符都能写成方法形式（<code>s1.union(s2)</code> 等），方法形式支持传任意可迭代对象，运算符形式只支持集合。</p>
+<p><strong>【part5-mastery 补充】速查表把数据类型分成不可变与可变两栏</strong>：不可变是 int、float、complex、str、bytes、tuple、frozenset；可变是 list、dict、set、bytearray。这个二分法决定了三件事：谁能当字典键（不可变的能）、谁赋值会共享（可变的会）、谁能用 <code>is</code> 做缓存复用判断（不可变的常见）。判断一个类型属哪边的方法：<code>t = (1,); t += (2,)</code> 不报错但生成新对象（不可变），<code>l = [1]; l.append(2)</code> 原地改（可变）。</p>
+<h2 id="16-常见容器选型的深度对照场景化">16. 常见容器选型的深度对照（场景化）</h2>2
+<p><strong>场景一：日志统计 IP 访问次数</strong>。用 list 存 <code>(ip, count)</code> 记录每次都要线性找，10 万条日志会慢到秒级；用 dict <code>counts[ip] = counts.get(ip, 0) + 1</code> 是 O(1) 更新；用 Counter 更短 <code>Counter(ip for ip in ips)</code>。结论：计数场景三选一，优先 Counter，要自定义逻辑用 dict。</p>
+<p><strong>场景二：白名单校验</strong>。用户输入 ID 要判断在不在允许列表里。白名单存 list 每次 O(n)，1 万个白名单 100 万次校验会跑几分钟；转成 set 后每次 O(1)，总耗时降到秒级。结论：高频成员判断一律 set，这是最常见、收益最大的一次选型。</p>
+<p><strong>场景三：任务队列</strong>。生产者放任务消费者取任务，先进先出。list 的 <code>append</code> 加 <code>pop(0)</code> 每次弹头 O(n)；deque 的 <code>append</code> 加 <code>popleft()</code> 两端都是 O(1)。结论：队列一律 deque，别用 list.pop(0)。</p>
+<p><strong>场景四：坐标或配置项</strong>。存 <code>(x, y)</code> 坐标或 <code>{"host": ..., "port": ...}</code> 配置。坐标用 tuple（不可变、可哈希、轻量）；配置用 dict（字段可读、可 JSON 互转）。结论：数据会不会变决定 tuple 还是 dict，字段多且会改就 dict。</p>
+<p><strong>场景五：去重保序</strong>。要给一个列表去重但保留原始顺序。<code>set(lst)</code> 去重但顺序丢失；<code>list(dict.fromkeys(lst))</code> 在 3.7+ 保序去重（字典保插入顺序）；小数据量直接写推导式配合已见集合 <code>seen = set(); out = [x for x in lst if not (x in seen or seen.add(x))]</code>（这行可读性差，仅作了解）。结论：保序去重用 <code>dict.fromkeys</code>。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">18. 面试高频三题：== 与 is、深浅拷贝、GIL 与容器</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>题二：深拷贝与浅拷贝的区别</li><li>浅拷贝只复制一层，嵌套对象仍是引用；深拷贝递归复制所有层</li><li>Python 3.13 实验性去除 GIL 的构建选项可让真多线程并行，但需特殊编译，数据结构选型不变</li></ul></div>2
+<p><strong>【part5-mastery 补充】题一：<code>==</code> 和 <code>is</code> 的区别</strong>。<code>==</code> 比较值是否相等，<code>is</code> 比较是否同一对象（内存地址）。<code>a = [1,2,3]; b = [1,2,3]</code> 时 <code>a == b</code> 为 True 但 <code>a is b</code> 为 False；<code>c = a</code> 后 <code>a is c</code> 为 True。陷阱是小整数缓存（-5 到 256）和字符串驻留：<code>x = 256; y = 256</code> 时 <code>x is y</code> 可能 True，<code>257</code> 就 False。结论：判断值相等用 <code>==</code>，判断 None 用 <code>is None</code>，其余场景别用 <code>is</code> 比值。</p>
+<p><strong>题二：深拷贝与浅拷贝的区别</strong>。浅拷贝只复制一层，嵌套对象仍是引用；深拷贝递归复制所有层。<code>original = [[1,2],[3,4]]; shallow = copy.copy(original); shallow[0].append(999)</code> 后 original 也被改（第一层共享）；换成 <code>copy.deepcopy</code> 就不受影响。还有一个细节：不可变对象不需要深拷贝，但"元组里套列表"这种混合结构 <code>a = (1, [2,3])</code> 浅拷贝后改列表元素仍会影响原元组，因为元组不可变的是引用不是内容。</p>
+<p><strong>题三：GIL 对数据结构选择的影响</strong>。GIL（Global Interpreter Lock，全局解释器锁）让 CPython 同一时刻只有一个线程执行字节码，主要影响 CPU 密集型任务的多线程性能，IO 密集型不受影响（IO 等待时释放 GIL）。对数据结构的影响是：多线程共享 dict 或 list 时要加锁（<code>threading.Lock</code>）防止竞态；CPU 密集型改用 <code>multiprocessing</code> 的进程池，每个进程有自己的数据副本；IO 密集型用 <code>asyncio</code> 加异步 HTTP 客户端。Python 3.13 实验性去除 GIL 的构建选项可让真多线程并行，但需特殊编译，数据结构选型不变。</p>
+<h2 id="20-排序查找与最值的实战组合">20. 排序、查找与最值的实战组合</h2>2
+<p>数据结构用得最多的三类操作是排序、查找、取最值，Python 内置函数已经覆盖九成场景。<strong>排序</strong>：<code>sorted(lst)</code> 返回新列表、<code>lst.sort()</code> 原地；多级排序写 <code>sorted(people, key=lambda p: (p["age"], p["name"]))</code>；倒序加 <code>reverse=True</code>；自定义键一律 key 函数（lambda 或 <code>operator.itemgetter("age")</code>，后者更快）。稳定排序保证相等元素保持原顺序，这是 <code>sorted</code> 的默认行为。<strong>查找</strong>：<code>x in lst</code> 判存在、<code>lst.index(x)</code> 找下标（找不到抛 ValueError）、<code>lst.count(x)</code> 计数、<code>min(lst)</code>/<code>max(lst)</code> 取极值、<code>min(people, key=lambda p: p["age"])</code> 按条件取极值对应的元素。<strong>聚合</strong>：<code>sum(lst)</code> 求和、<code>sum(x**2 for x in lst)</code> 生成器求和省内存、<code>any</code>/<code>all</code> 判真假。</p>
+<p>翻车点一：<code>lst.index(x)</code> 找不到会抛 ValueError，要安全找写 <code>x in lst</code> 判断或 try/except。翻车点二：<code>min()</code>/<code>max()</code> 对空序列抛 ValueError，聚合前先判 <code>if lst:</code>。翻车点三：排序 key 函数对混合类型列表（int 和 str 混）抛 TypeError，先统一类型再排。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">21. 嵌套结构与 JSON 互转</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>访问嵌套字段逐层下标 「data["students"][0]["scores"][1]」，层数深了容易 KeyError，改用 「dict.get」 链式或 try/except</li></ul></div>2
+<p>真实数据常是嵌套的：<code>{"students": [{"name": "小明", "scores": [85, 90]}, ...]}</code>。访问嵌套字段逐层下标 <code>data["students"][0]["scores"][1]</code>，层数深了容易 KeyError，改用 <code>dict.get</code> 链式或 try/except。JSON 互转的两个规则：JSON 的对象对应 Python dict、数组对应 list，因此 dict/list 结构可直接 <code>json.dumps</code>；tuple 会被转成 list，日期要先 <code>strftime</code> 转字符串。递归遍历嵌套结构的通用写法是"判断类型再递归"：<code>if isinstance(node, dict): for v in node.values(): walk(v)</code>，处理配置文件、API 响应、树形数据都用它。</p>
+<h2 id="23-进阶四题描述符元类单例内存管理衔接-oop-篇">23. 进阶四题：描述符、元类、单例、内存管理（衔接 OOP 篇）</h2>2
+<p>这四题是《L0-Python OOP 与爬虫》的预热，先了解概念到什么程度算够：能解释它解决什么问题、知道现代 Python 的替代写法、不急着现在会写。</p>
+<p><strong>题一：描述符（Descriptor）</strong>。实现了 <code>__get__</code>、<code>__set__</code> 或 <code>__delete__</code> 的对象，用于自定义属性访问行为。典型用途是字段验证：<code>age = Validated(min_value=0, max_value=150)</code> 后 <code>student.age = -1</code> 会抛 ValueError。它把"校验逻辑"从每个类的 setter 里抽出来复用，是 property 的底层机制。判断何时用：同一个校验规则要在多个类的多个字段上复用时，用描述符；只用一次就写 property。</p>
+<p><strong>题二：元类（Metaclass）</strong>。元类是"创建类的类"，<code>type</code> 是内置元类。典型用途是自动注册子类（插件系统）：定义 <code>Plugin(metaclass=PluginRegistry)</code> 后，所有子类自动进注册表。但现代 Python 更推荐 <code>__init_subclass__</code>（3.6+）替代元类做注册逻辑，更简单不易错。判断何时用：除非在写框架级代码（ORM、插件系统），否则不要用元类；日常代码用 <code>__init_subclass__</code> 或装饰器就够。</p>
+<p><strong>题三：线程安全的单例</strong>。单例保证全局只有一个实例。三种写法：双重检查锁的 <code>__new__</code>、模块级实例（最 Pythonic，<code>from singleton import instance</code>）、装饰器版本。判断何时用：真需要全局唯一（配置对象、连接池）才用；大多数场景依赖注入比单例更好测试。</p>
+<p><strong>题四：内存管理与垃圾回收</strong>。Python 三机制：引用计数（主要，对象引用归零即释放）、分代垃圾回收（处理循环引用）、pymalloc 内存池（减少系统调用）。对数据结构的启示：循环引用（a 引用 b、b 引用 a）靠引用计数释放不掉，靠分代回收兜底；长生命周期的大容器要及时 <code>del</code> 或置 None 释放；用 <code>sys.getsizeof(x)</code> 看对象字节数、<code>gc.collect()</code> 手动触发回收（一般不需要）。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">25. 内存观测工具：getrefcount、gc、tracemalloc（衔接实测）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>【part5-mastery 补充】引用计数可直接观测：「sys.getrefcount(a)」 返回对象被引用的次数（含本次调用的参数引用，所以通常比直觉多 1）</li><li>这是理解"共享赋值为什么互相影响"的最直接证据：引用计数增加意味着多一个名字指向同一对象</li><li>判断"我的列表是不是太吃内存"用 「sys.getsizeof(lst)」 看字节数（注意它只算容器本身不含元素，元素大小要递归或用第三方 「pympler」）</li></ul></div>2
+<p><strong>【part5-mastery 补充】引用计数可直接观测</strong>：<code>sys.getrefcount(a)</code> 返回对象被引用的次数（含本次调用的参数引用，所以通常比直觉多 1）。<code>a = []; sys.getrefcount(a)</code> 约 2；<code>b = a</code> 后变 3。这是理解"共享赋值为什么互相影响"的最直接证据：引用计数增加意味着多一个名字指向同一对象。<strong>分代垃圾回收</strong>的阈值 <code>gc.get_threshold()</code> 默认返回 <code>(700, 10, 10)</code>，含义是第 0 代新对象达到 700 个触发一次回收、第 1 代每 10 次第 0 代回收触发一次、第 2 代每 10 次第 1 代触发一次。日常代码不用调它，排查内存泄漏时可以 <code>gc.collect()</code> 手动触发看对象数变化。</p>
+<p><strong>内存定位用 tracemalloc</strong>（3.4+ 标准库）：<code>tracemalloc.start()</code> 开始追踪，跑一段代码后 <code>tracemalloc.take_snapshot().statistics('lineno')</code> 按行号统计内存占用，前 5 名就是内存大户。判断"我的列表是不是太吃内存"用 <code>sys.getsizeof(lst)</code> 看字节数（注意它只算容器本身不含元素，元素大小要递归或用第三方 <code>pympler</code>）。结论链：<code>getrefcount</code> 查共享、<code>tracemalloc</code> 查占用、<code>getsizeof</code> 查单对象，三个工具覆盖数据结构的内存问题。</p>
+<h2 id="27-变量赋值语义与容器的关系源头对照-part1">27. 变量赋值语义与容器的关系（源头对照 part1）</h2>2
+<p><strong>【part1 补充】课件的"带标签的盒子"比喻</strong>在数据结构语境下要精确化：变量赋值不是"把数据复制进盒子"，而是"给对象贴一个新标签"。<code>x = y = z = 0</code> 三个名字指向同一个整数对象（整数不可变所以看不出问题）；换成 <code>x = y = z = []</code> 就是三个名字指向同一个列表，改 x 会影响 y 和 z。这条规则在本文第 3.3 节的共享陷阱、第 8 节的拷贝语义、第 11.3 节的翻车清单里反复出现，是数据结构篇的第一原理。</p>
+<p><strong>多变量同时赋值</strong> <code>a, b, c = 1, 2, 3</code> 等号两边元素个数必须一致，<code>a, b = 1, 2, 3</code> 抛 ValueError。它的实用形态是解包：<code>lo, hi = min_max(lst)</code>、<code>for k, v in d.items():</code>、<code>a, b = b, a</code>（不用临时变量交换）。元组、列表、字符串都能解包，字典解包取键、集合解包无序慎用。解包星号语法 <code>first, *rest = lst</code> 把剩余元素收成列表，处理"第一个是表头、其余是数据"的场景很方便。</p>
+<p><strong>重赋值与原地修改的区别</strong>：<code>x = 20</code> 是把标签 x 挪到新对象 20 上，原对象 10 不受影响；<code>lst.append(9)</code> 是在原地改列表对象，所有指向它的标签都会看到变化。判断某操作属于哪类的方法：操作后打印 <code>id(x)</code>，id 变了是重赋值，没变是原地修改。这条判据能解释九成"为什么我的副本被改了"的问题。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">29. 什么时候该跳出内置容器（NumPy/Pandas 的边界）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>【part5-mastery 补充】内置容器够用的边界：单维数据、万级规模、要做的是计数分组查找，list/dict/set 加 Counter 就够</li><li>该换 NumPy 的信号：数据是数值矩阵（图像、坐标批量、时间序列）、要做向量化运算（加减乘除整批做）、元素量上到十万级以上</li><li>该换 Pandas 的信号：数据是表格（行列结构、有列名）、要做分组聚合透视、要处理缺失值和脏数据</li></ul></div>2
+<p><strong>【part5-mastery 补充】内置容器够用的边界</strong>：单维数据、万级规模、要做的是计数分组查找，list/dict/set 加 Counter 就够。<strong>该换 NumPy 的信号</strong>：数据是数值矩阵（图像、坐标批量、时间序列）、要做向量化运算（加减乘除整批做）、元素量上到十万级以上。NumPy 的 <code>ndarray</code> 是同类型连续内存数组，向量化运算比 Python 循环快 20 到 50 倍（课件实测口径），<code>np.zeros((3, 4))</code> 建矩阵、<code>a.shape</code> 看形状、<code>a.dtype</code> 看元素类型、广播机制让不同形状数组直接运算。</p>
+<p><strong>该换 Pandas 的信号</strong>：数据是表格（行列结构、有列名）、要做分组聚合透视、要处理缺失值和脏数据。Pandas 的 DataFrame 是"带索引的字典套列表"，比手写字典列表代码短一个数量级。反例是拿 NumPy 处理带列名的表格（要自己记列号）、拿 Pandas 处理单个标量计算（杀鸡用牛刀）。判断阈值：数据量超过 10 万行或要做统计聚合时，直接上 Pandas；纯数值批量运算上 NumPy；其余留在内置容器。</p>
+<h2 id="31-广播向量化与花式索引numpy-三大核心衔接进阶">31. 广播、向量化与花式索引（NumPy 三大核心，衔接进阶）</h2>2
+<p><strong>【part5-mastery 补充】广播（Broadcasting）</strong>让不同形状的数组直接运算：<code>matrix</code> 是 3x3、<code>vector</code> 是长度 3 的一维数组，<code>matrix + vector</code> 时 vector 自动"广播"到每一行，得到逐行相加的结果；换成列向量 <code>[[1],[2],[3]]</code> 就是逐列加。广播的规则是"从尾部维度对齐，维度为 1 的自动扩展"，形状不兼容时抛 ValueError。它省掉了手写双重循环，是 NumPy 最省代码的特性。</p>
+<p><strong>向量化 vs 循环的实测对比</strong>：100 万元素的 <code>i**2 + i*3</code> 计算，Python 循环约 0.2 秒、NumPy 向量化约 0.005 秒，典型加速比 20 到 50 倍。原因不是 NumPy 的 Python 代码快，而是运算下沉到 C 层批量执行、数据连续内存布局缓存友好。判断何时改写：循环里做纯数值运算且元素超过 1 万，就值得改 <code>np.arange</code> 加向量化表达式；循环里有复杂业务分支（if/elif）就留在 Python 循环。</p>
+<p><strong>花式索引与布尔索引</strong>：<code>arr[arr &gt; 5]</code> 布尔掩码取子集（等价于"过滤大于 5 的元素"）；<code>arr[np.array([0, 2]), np.array([1, 3])]</code> 用索引数组取指定位置；<code>np.where(arr &gt; 5, arr, -1)</code> 条件选择（大于 5 保留、否则置 -1），等价于"向量化的三元表达式"。这三种索引方式把"遍历列表筛选"压缩成一行，是数据处理的主力写法。翻车点：布尔掩码的形状必须和原数组一致，否则抛 IndexError。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">33. Pandas 清洗流水线的四步套路（衔接数据篇进阶）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>【part5-mastery 补充】脏数据清洗的标准四步，每步对应一两个 Pandas 方法</li><li>第四步格式验证：邮箱用正则 「re.compile(r'^[\w.-]+@[\w.-]+\.\w+$')」 配 「apply」 生成布尔列标记是否合法</li><li>翻车点一：「df['a' and 'b']」 不是多列选择，and 是布尔运算，多列必须写双层括号 「df[['a','b']]」</li></ul></div>2
+<p><strong>【part5-mastery 补充】脏数据清洗的标准四步</strong>，每步对应一两个 Pandas 方法。第一步查缺失：<code>df.isnull().sum()</code> 按列统计缺失数量，先看清楚哪列脏、脏多少；删除用 <code>df.dropna(subset=['name'])</code>（只看指定列）、填充用 <code>df['age'].fillna(df['age'].median())</code>（中位数填充比均值抗异常值）。第二步处理异常值：负年龄、超范围分数这类业务非法值先置为 <code>np.nan</code>（<code>df.loc[df['age'] &lt; 0, 'age'] = np.nan</code>），再按缺失值处理。第三步类型转换：薪资字段混着 "15k"、"N/A"、数字，用 <code>df['salary'].apply(parse_salary)</code> 逐行解析，解析失败返回 <code>np.nan</code> 保留缺失信息。第四步格式验证：邮箱用正则 <code>re.compile(r'^[\w.-]+@[\w.-]+\.\w+$')</code> 配 <code>apply</code> 生成布尔列标记是否合法。</p>
+<p><strong>选列与过滤</strong>是日常最高频操作：<code>df['姓名']</code> 取单列、<code>df[['姓名', '薪资']]</code> 取多列、<code>df[df['薪资'] &gt; 20000]</code> 条件过滤、<code>df[df['城市'] == '北京']</code> 等值筛选。多条件用 <code>&amp;</code>（与）<code>|</code>（或）连接且每个条件加括号（<code>df[(df['age'] &gt; 25) &amp; (df['city'] == '北京')]</code>），不加括号会因运算符优先级出错。翻车点一：<code>df['a' and 'b']</code> 不是多列选择，and 是布尔运算，多列必须写双层括号 <code>df[['a','b']]</code>。翻车点二：<code>df[df['age'] &gt; 25]['age'] = 0</code> 是链式赋值会报 SettingWithCopyWarning，改用 <code>df.loc[df['age'] &gt; 25, 'age'] = 0</code>。</p>
+<h2 id="35-分组聚合透视表与时间重采样pandas-三板斧">35. 分组聚合、透视表与时间重采样（Pandas 三板斧）</h2>2
+<p><strong>【part5-mastery 补充】分组聚合</strong>是"按某列分组后对其他列做统计"的通用套路：<code>sales.groupby('区域').agg({'销售额': ['sum', 'mean', 'count'], '数量': 'sum'})</code> 一次输出各区域的销售额总和、均值、笔数和数量总和。多级分组写 <code>groupby(['产品', '区域'])</code>，配 <code>reset_index()</code> 把分组键还原成普通列。agg 里同一列可传多个统计函数（列表形式），输出会变成多级列名，读取时 <code>result['销售额']['sum']</code>。</p>
+<p><strong>透视表</strong> <code>pivot_table</code> 是"行按产品、列按区域、值为销售额总和"的交叉表，<code>margins=True</code> 加合计行列，做报表比手写两层 groupby 短很多。选型规则：二维交叉统计用 pivot_table，单维聚合用 groupby，两者底层都是分组逻辑。<strong>时间序列重采样</strong> <code>sales.set_index('日期').resample('M')['销售额'].sum()</code> 把日数据按月汇总，<code>'M'</code> 月末、<code>'W'</code> 周、<code>'D'</code> 日、<code>'Q'</code> 季度。翻车点：resample 要求索引是 DatetimeIndex，忘记 <code>set_index('日期')</code> 会报 TypeError；月度频率 <code>'M'</code> 在新版 Pandas 建议写 <code>'ME'</code>（Month End），旧写法会有弃用警告（待验证：不同 Pandas 版本提示不同，2.2 起推荐 ME）。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">37. 滚动窗口与 shift：时间序列分析的两个核心方法</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>窗口越大越平滑，但前期数据不足时结果是 NaN（前 4 行的 MA5 为空），这是正常现象不是 bug</li><li>布林带是它的组合应用：「MA20 + 2 * rolling(20).std()」 画上轨、减 2 倍标准差画下轨，价格超出上下轨是超买超卖信号</li><li>「shift(n)」 做时间平移：「df['MA5'].shift(1)」 把昨天的值对齐到今天，用于"比较今天和昨天"的场景</li></ul></div>2
+<p><strong>【part5-mastery 补充】滚动窗口 <code>rolling(window=N)</code></strong>是时间序列分析的主力：<code>df['Close'].rolling(window=5).mean()</code> 计算 5 日移动平均、<code>.std()</code> 计算滚动标准差（波动率）、<code>.sum()</code> 滚动求和。窗口越大越平滑，但前期数据不足时结果是 NaN（前 4 行的 MA5 为空），这是正常现象不是 bug。布林带是它的组合应用：<code>MA20 + 2 * rolling(20).std()</code> 画上轨、减 2 倍标准差画下轨，价格超出上下轨是超买超卖信号。</p>
+<p><strong><code>shift(n)</code> 做时间平移</strong>：<code>df['MA5'].shift(1)</code> 把昨天的值对齐到今天，用于"比较今天和昨天"的场景。金叉判定（短期均线上穿长期均线）的完整写法是 <code>(MA5 &gt; MA20) &amp; (MA5.shift(1) &lt;= MA20.shift(1))</code>，即"今天在上、昨天在下"。<code>pct_change()</code> 计算日收益率（相对变化率）、<code>diff()</code> 计算差分（绝对变化）、<code>cummax()</code> 累计最大值（算最大回撤用 <code>(Close / Close.cummax() - 1).min()</code>）。</p>
+<p><strong>实战模板</strong>：股票分析的标准流程是"读 CSV 带日期索引 → 算技术指标（MA、波动率、RSI）→ 生成信号（金叉死叉）→ 汇总统计（年化收益、最大回撤、夏普比率）"。四个关键参数记牢：一年约 252 个交易日（年化用 <code>mean() * 252</code>）、年化波动率用 <code>std() * sqrt(252)</code>、RSI 窗口 14 日、移动平均常用 5/20/60 日。这套模板可以直接搬去做任何带时间戳的指标计算（流量监控、温度变化、销售趋势）。</p>
+<h2 id="39-matplotlib-四图布局与中文显示可视化收尾">39. Matplotlib 四图布局与中文显示（可视化收尾）</h2>2
+<p><strong>【part5-mastery 补充】多子图布局</strong>用 <code>plt.subplots(2, 2, figsize=(12, 10))</code> 建 2x2 网格，<code>axes[0, 0]</code> 取第一个子图操作，每个子图独立 <code>plot</code>/<code>bar</code>/<code>scatter</code>/<code>pie</code>。<strong>折线图</strong>画趋势（三角函数、时间序列）、<strong>柱状图</strong>画对比（语言流行度）、<strong>散点图</strong>画相关性（配 <code>c=</code> 颜色映射和 <code>alpha=0.6</code> 半透明防遮挡）、<strong>饼图</strong>画占比（<code>autopct='%1.1f%%'</code> 显示百分比、<code>explode</code> 突出某块）。<code>plt.tight_layout()</code> 防标签重叠，<code>plt.savefig('demo.png', dpi=150, bbox_inches='tight')</code> 导出图片（dpi 越高越清晰，150 适合报告、300 适合印刷）。</p>
+<p><strong>中文显示是第一高频问题</strong>：Matplotlib 默认字体不含中文，图里中文会变成方框。解决两行配置：<code>plt.rcParams['font.sans-serif'] = ['SimHei', 'DejaVu Sans']</code> 指定中文字体、<code>plt.rcParams['axes.unicode_minus'] = False</code> 修复负号显示。Windows 用 SimHei（黑体）、macOS 用 'Arial Unicode MS' 或 'PingFang SC'、Linux 装 <code>fonts-wqy-zenhei</code> 后用 'WenQuanYi Zen Hei'（待验证：不同系统字体名略有差异，报字体警告时用 <code>matplotlib.font_manager.fontManager.ttflist</code> 列出可用字体）。</p>
+<p><strong>仪表板布局</strong>用 <code>gridspec.GridSpec(3, 3)</code> 做不规则网格（KPI 卡片占整行、图表分格），比 subplots 灵活。判断何时画图：数据有趋势或对比关系就画折线/柱状，探索相关性画散点，看占比画饼（类别超过 6 个改条形图，饼图切太碎读不出）。反例是拿饼图放 15 个类别、拿 3D 图装饰报表（读数困难），可视化的目的永远是"让结论一眼可见"。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">41. 仪表板与直方图的工程细节（补充可视化实战）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>判断何时用直方图：看单变量分布（成绩分布、响应时间分布、误差分布）用直方图；看两个变量关系用散点图；看类别对比用柱状图；看时间趋势用折线图</li><li>表格数据超过 8 行 5 列就别嵌图里，改单独输出 CSV 或 Markdown 表，图里放不下的信息会压缩到读不清</li></ul></div>2
+<p><strong>【part5-mastery 补充】数据仪表板的五个区块</strong>是业务报表的标准布局：KPI 卡片（收入/用户数/转化率这类核心指标，用 <code>ax.text</code> 加 <code>bbox</code> 画圆角卡片）、趋势图（<code>plot</code> 配 <code>marker='o'</code> 标点，多条线加 legend）、分布图（<code>hist(dist_data, bins=30)</code> 直方图看数据分布形态，bins 是分箱数，太多太碎太少失真）、对比图（<code>bar</code> 比较产品表现，<code>tick_params(rotation=45)</code> 转 x 轴标签防重叠）、汇总表格（<code>ax.table(cellText=..., colLabels=...)</code> 在图里嵌表格，<code>scale(1, 1.5)</code> 调行高）。</p>
+<p><strong>直方图的 bins 选择</strong>有经验规则：数据量 1000 以内 bins 取 20 到 30、1000 以上可到 50；也可用斯特奇斯公式 <code>bins = ceil(log2(n) + 1)</code> 自动定。<code>edgecolor='black'</code> 给柱子描边、<code>alpha=0.7</code> 半透明便于叠加对比。判断何时用直方图：看单变量分布（成绩分布、响应时间分布、误差分布）用直方图；看两个变量关系用散点图；看类别对比用柱状图；看时间趋势用折线图。四种图覆盖九成报表需求。</p>
+<p><strong>表格嵌图的注意事项</strong>：<code>cellText</code> 是二维列表（每行一个内列表）、<code>colLabels</code> 是表头、<code>cellLoc='center'</code> 单元格居中。表格数据超过 8 行 5 列就别嵌图里，改单独输出 CSV 或 Markdown 表，图里放不下的信息会压缩到读不清。</p>
+<h2 id="43-scikit-learn-的统一-api-与工作流数据结构的下游应用">43. scikit-learn 的统一 API 与工作流（数据结构的下游应用）</h2>2
+<p><strong>【part5-mastery 补充】Estimator 三步 API</strong>是所有 scikit-learn 模型的共同接口：<code>model = SomeModel(超参数)</code> 构造、<code>model.fit(X_train, y_train)</code> 训练、<code>model.predict(X_test)</code> 预测、<code>model.score(X_test, y_test)</code> 评估。记住这四行就能用任何模型（逻辑回归、随机森林、SVM、梯度提升），差别只在构造函数的超参数。数据结构的衔接点：X 是二维特征矩阵（NumPy 数组或 DataFrame，形状 <code>(n_samples, n_features)</code>）、y 是一维标签（Series 或数组），传进模型前要保证形状对。</p>
+<p><strong>完整工作流六步</strong>：数据准备（<code>load_breast_cancer()</code> 内置数据集，569 行 30 列特征）→ 数据拆分（<code>train_test_split(test_size=0.2, random_state=42, stratify=y)</code> 按 8:2 分训练测试集，<code>stratify</code> 保持类别比例，<code>random_state</code> 固定随机种子保证可复现）→ 构建 Pipeline（<code>Pipeline([('scaler', StandardScaler()), ('clf', LogisticRegression())])</code> 把标准化和模型串成一条链，防止数据泄漏）→ 交叉验证（<code>cross_val_score(pipeline, X, y, cv=5)</code> 五折交叉验证看稳定性）→ 超参数调优（<code>GridSearchCV</code> 网格搜索）→ 模型评估（<code>classification_report</code> 混淆矩阵、<code>roc_auc_score</code> 曲线下面积）。</p>
+<p><strong>Pipeline 的价值</strong>是防止数据泄漏：标准化参数只从训练集学，测试集只做变换不做拟合；手写代码容易忘记这个顺序导致测试集信息泄漏进训练（评估虚高）。判断何时用 sklearn：有结构化数据加明确预测目标（分类/回归/聚类）就用；数据是非结构化文本图像要先做特征提取。反例是拿 sklearn 处理时间序列预测却不做时间切分（用未来数据训练预测过去，结论无效）。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">44. 速查清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 要改用 list、不改用 tuple、按名找用 dict、去重判断用 set</li><li>2. 可变对象共享赋值会互相影响，要独立用 「copy()」，嵌套用 「deepcopy」</li><li>3. 列表尾插 O(1)、中间插 O(n)；字典查找 O(1)、列表成员判断 O(n)</li></ul></div>2
+<ol>
+<li>要改用 list、不改用 tuple、按名找用 dict、去重判断用 set。</li>
+<li>可变对象共享赋值会互相影响，要独立用 <code>copy()</code>，嵌套用 <code>deepcopy</code>。</li>
+<li>列表尾插 O(1)、中间插 O(n)；字典查找 O(1)、列表成员判断 O(n)。</li>
+<li>推导式短且快，但超过两个 for 或一个 if 改回循环。</li>
+<li>键必须可哈希：list/dict/set 不行，tuple/frozenset 行。</li>
+<li>统计用 Counter、分组用 defaultdict、队列用 deque、记录用 namedtuple。</li>
+<li>性能争议用 <code>timeit</code> 实测，用数据说话不凭感觉。</li>
+</ol></div></details></div></body></html>

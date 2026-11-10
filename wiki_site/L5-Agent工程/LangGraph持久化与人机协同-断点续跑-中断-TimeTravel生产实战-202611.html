@@ -1,0 +1,475 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LangGraph持久化与人机协同-断点续跑-中断-TimeTravel生产实战-202611</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/LangGraph持久化与人机协同-断点续跑-中断-TimeTravel生产实战-202611</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="langgraph-time-travel">LangGraph 持久化与人机协同：断点续跑、中断恢复、Time Travel 生产实战</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a>
+相关：<a href="LangGraph生产级状态机设计-State-Reducer-路由与错误处理-202611.html">状态机设计篇</a> · <a href="多Agent协作生产级实战-Subagents-Handoffs-CrewAI-AutoGen-202611.html">多Agent协作生产级实战</a> · <a href="多智能体生产化缺口与断点续传.html">多智能体生产化缺口与断点续传</a> · <a href="Agent框架实操选型-2026.html">框架实操选型（含 HITL 对比）</a></p>
+</blockquote>
+<h2 id="0">0. 本篇补什么缺口</h2>
+<p>现有文档回答了"LangGraph 的 checkpointer 比别家强"（<a href="Agent框架实操选型-2026.html">框架实操选型</a> 第 3 节横评），也给过一段 <code>HumanInTheLoopMiddleware</code> 示例。缺的是<strong>出事故时怎么办</strong>的细节：</p>
+<ul>
+<li>进程崩了，从哪一步续？已经成功的副作用会不会重复执行？</li>
+<li><code>interrupt()</code> 恢复后，暂停前的代码为什么又跑了一遍？</li>
+<li>线上某个 thread 跑歪了，怎么回到中间某一步重来，或者改一个值后分叉？</li>
+<li>三种 <code>durability</code> 模式怎么选？checkpoint 越积越多怎么办？</li>
+</ul>
+<p>本篇所有"🧪"标记的结论都是在本机 <code>~/ai-stack</code>（langgraph 1.2.11，<code>InMemorySaver</code>，确定性节点）上跑出来的。📄 表示官方文档原文。官方 durable-execution 页面本次无法从 docs.langchain.com 直接抓到，该页内容取自 GitHub 上的文档镜像仓库（miraland-labs/langchain-ai-docs，<strong>二手镜像</strong>），已在来源中标明；同一结论凡能在本机复现的，以实测为准。</p>
+<hr />
+<h2 id="1-checkpointer-store">1. 两套存储：Checkpointer 与 Store</h2>
+<p>📄 官方 persistence 文档把持久化分成两类，职责不同：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Checkpointer</th>
+<th>Store</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>存什么</td>
+<td>图在每一步的状态快照</td>
+<td>应用自定义的键值数据</td>
+</tr>
+<tr>
+<td>作用域</td>
+<td>单个 thread（线程内）</td>
+<td>跨 thread 共享</td>
+</tr>
+<tr>
+<td>对应记忆</td>
+<td>短期记忆</td>
+<td>长期记忆</td>
+</tr>
+<tr>
+<td>典型用途</td>
+<td>会话连续、HITL、time travel、容错</td>
+<td>用户偏好、事实、共享知识</td>
+</tr>
+</tbody>
+</table>
+<p>多数生产应用两个都要：checkpointer 管"这次任务进行到哪"，store 管"这个用户长期是什么样"。</p>
+<h3 id="11-checkpointer">1.1 Checkpointer 选型</h3>
+<p>📄 官方列出的实现：</p>
+<ul>
+<li><code>InMemorySaver</code>（即 <code>MemorySaver</code>）：存在内存里，<strong>进程重启全部丢失</strong>，只用于开发和测试。</li>
+<li><code>SqliteSaver</code>：本地文件，适合开发和单机小规模。</li>
+<li><code>PostgresSaver</code> / <code>AsyncPostgresSaver</code>：官方建议的生产选择，后者用于异步服务。</li>
+</ul>
+<p>📄 Postgres 初始化：</p>
+<pre><code class="language-python">from langgraph.checkpoint.postgres import PostgresSaver
+
+checkpointer = PostgresSaver.from_conn_string(&quot;postgresql://...&quot;)
+checkpointer.setup()   # 首次部署时建表和索引
+</code></pre>
+<p>本机 <code>~/ai-stack</code> 已装 <code>langgraph_checkpoint_postgres 3.2.0</code>，但本篇没有连库实测 Postgres 路径（本机 5432 上的实例是 Hindsight 记忆库，不能拿来做试验），下面的行为结论都基于内存版 saver。内存版与 Postgres 版遵循同一套接口，语义相同；差别只在持久性和并发，<strong>上线前必须在 Postgres 上把本篇的恢复用例再跑一遍</strong>。</p>
+<h3 id="12">1.2 生产配置的四条硬性要求</h3>
+<ol>
+<li><strong><code>setup()</code> 放进部署流程</strong>，不要放在每个请求里。</li>
+<li><strong><code>thread_id</code> 限制在 255 字符以内</strong>。📄 官方说明 Postgres 里该列长度有限，超长报数据库错误。建议用 UUID 生成，业务含义放到别的字段。</li>
+<li><strong>checkpoint 会无限增长</strong>。📄 官方原话建议：长对话会累积 checkpoint，拖慢响应并增加存储成本，要定期清理或设置保留策略（比如定时任务删除 N 天前的 checkpoint）。官方页面<strong>没有提供清理 API</strong>，所以这个清理任务要自己写 SQL，并且<strong>只删已完成（<code>next</code> 为空）的 thread</strong>，别删还在等待人工审批的。</li>
+<li>使用 LangGraph Agent Server 时，📄 官方说明持久化由服务端自动处理，不用自己配。自托管才需要上面三条。</li>
+</ol>
+<hr />
+<h2 id="2-durable-execution">2. Durable Execution：恢复不是"从停下的那一行继续"</h2>
+<h3 id="21">2.1 官方要求的三件事</h3>
+<p>📄（镜像）durable execution 的前提：</p>
+<ol>
+<li>指定 checkpointer。</li>
+<li>运行时指定 <code>thread_id</code>。</li>
+<li>把非确定性操作（随机数、时间）和有副作用的操作（写文件、调 API）包进 <code>task</code>，或放在独立节点里。</li>
+</ol>
+<h3 id="22">2.2 关键认知：恢复是重放</h3>
+<p>📄 官方明确写了一句容易被忽略的话：恢复时代码<strong>不会</strong>从停止的那一行继续，框架会从"恢复起点"重放，直到走到中断处。恢复起点是：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>恢复起点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>StateGraph</code></td>
+<td>被中断/失败的<strong>节点开头</strong></td>
+</tr>
+<tr>
+<td>节点里调用了子图</td>
+<td>父节点开头；子图内部从它停止的节点继续</td>
+</tr>
+<tr>
+<td>Functional API</td>
+<td><code>entrypoint</code> 函数开头（已完成的 <code>task</code> 从缓存读）</td>
+</tr>
+</tbody>
+</table>
+<p>这意味着<strong>每个节点必须能被安全地重复执行</strong>。下面是实测证据。</p>
+<h3 id="23-invokenone">2.3 🧪 实测一：崩溃后用 <code>invoke(None)</code> 续跑</h3>
+<p>场景：<code>step1 → step2</code>，<code>step2</code> 第一次抛错。</p>
+<pre><code class="language-python">app = g.compile(checkpointer=InMemorySaver())
+cfg = {&quot;configurable&quot;: {&quot;thread_id&quot;: &quot;crash&quot;}}
+try:
+    app.invoke({&quot;out&quot;: []}, cfg, durability=&quot;sync&quot;)
+except RuntimeError:
+    pass                       # step2 失败，进程&quot;崩溃&quot;
+# 修复问题后
+r = app.invoke(None, cfg, durability=&quot;sync&quot;)   # 输入给 None = 从 checkpoint 续跑
+</code></pre>
+<p>实测执行轨迹为 <code>["step1", "step2", "step2"]</code>，最终输出 <code>["s1", "s2"]</code>。三点结论：</p>
+<ul>
+<li><strong><code>step1</code> 没有重跑</strong>，已完成节点的结果直接从 checkpoint 读。</li>
+<li><strong><code>step2</code> 从头重跑</strong>，不是从它失败的那一行继续。</li>
+<li>续跑的写法就是同一个 <code>thread_id</code> 加 <code>None</code> 输入。📄 官方也是这样说的。</li>
+</ul>
+<h3 id="24-task">2.4 🧪 实测二：<code>@task</code> 缓存副作用</h3>
+<p>节点里如果有两个外部调用 A、B，B 失败后节点重跑，A 会被再调一次。用 Functional API 的 <code>@task</code> 包起来可以避免：</p>
+<pre><code class="language-python">from langgraph.func import entrypoint, task
+
+@task
+def call_api_a(x): ...      # 有副作用的调用
+@task
+def call_api_b(x): ...
+
+@entrypoint(checkpointer=InMemorySaver())
+def wf(x: int):
+    ra = call_api_a(x).result()
+    rb = call_api_b(x).result()    # 这里第一次失败
+    return [ra, rb]
+</code></pre>
+<p>B 失败后用同一 <code>thread_id</code> 以 <code>None</code> 续跑，实测 <strong>A 的调用次数仍是 1</strong>，最终结果 <code>['a1', 'b1']</code>。📄 官方对应说法：每个 task 的结果会保存进 checkpoint，同一 thread 恢复时已完成的 task 不会重跑。</p>
+<p>📄 官方同时提醒：<strong>task 启动了但没完成</strong>（比如进程在 API 调用中途死掉），恢复时会重新执行。所以 task 本身仍要<strong>幂等</strong>：用幂等键（订单号、请求 ID）调下游，或者写入前先查是否已有结果。task 缓存只解决"已完成的不重做"，不解决"做到一半死了"。</p>
+<h3 id="25-durability">2.5 <code>durability</code> 三种模式</h3>
+<p>📄（镜像，与 reference.langchain.com 的类型定义 <code>Durability = Literal['sync','async','exit']</code> 一致）：</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>何时写 checkpoint</th>
+<th>优点</th>
+<th>风险</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>exit</code></td>
+<td>图退出时（成功、报错、人工中断）</td>
+<td>性能最好</td>
+<td>进程中途被 kill 时，没有中间 checkpoint 可恢复</td>
+</tr>
+<tr>
+<td><code>async</code></td>
+<td>下一步执行的同时异步写</td>
+<td>性能与持久性折中</td>
+<td>进程在写入完成前崩溃，最新一个 checkpoint 可能丢</td>
+</tr>
+<tr>
+<td><code>sync</code></td>
+<td>下一步开始前同步写</td>
+<td>每步都已落盘，最稳</td>
+<td>每步多一次写延迟</td>
+</tr>
+</tbody>
+</table>
+<p>选型建议（本文判断，非官方）：</p>
+<ul>
+<li>涉及<strong>付款、发信、改外部系统</strong>的流程用 <code>sync</code>，多出的毫秒级写延迟相对一次 LLM 调用可以忽略。</li>
+<li>纯问答、只读检索类用 <code>async</code>。</li>
+<li><code>exit</code> 只在批处理、可整体重跑的离线任务里考虑。</li>
+</ul>
+<p>调用时通过参数指定：<code>app.invoke(inputs, cfg, durability="sync")</code>。🧪 本机 1.2.11 实测该参数可用。</p>
+<h3 id="26">2.6 优雅停机</h3>
+<p>📄（镜像，标注 <code>langgraph&gt;=1.2</code>）：创建 <code>RunControl</code> 传给 <code>invoke</code>/<code>stream</code>，在其他线程调用 <code>request_drain()</code>，图在当前 super-step 结束后停下并留下可恢复 checkpoint，抛 <code>GraphDrained</code>，之后用同一 <code>thread_id</code> <code>invoke(None, config)</code> 继续。注意它<strong>不会取消正在跑的 asyncio 任务</strong>。这是滚动发布时的收尾手段。🧪 本机未实测，上线前自己验证。</p>
+<hr />
+<h2 id="3-interrupt">3. interrupt：人机协同的五条铁律</h2>
+<h3 id="31">3.1 基本流程（🧪 已实测）</h3>
+<pre><code class="language-python">from langgraph.types import interrupt, Command
+
+def approve(state):
+    ok = interrupt({&quot;question&quot;: &quot;批准吗&quot;, &quot;amount&quot;: state[&quot;amount&quot;]})
+    return {&quot;status&quot;: &quot;approved&quot; if ok else &quot;rejected&quot;}
+
+cfg = {&quot;configurable&quot;: {&quot;thread_id&quot;: &quot;t-1&quot;}}
+r = app.invoke({&quot;amount&quot;: 500, &quot;status&quot;: &quot;&quot;, &quot;log&quot;: []}, cfg)
+# r[&quot;__interrupt__&quot;][0].value == {&quot;question&quot;: &quot;批准吗&quot;, &quot;amount&quot;: 500}
+app.get_state(cfg).next            # (&quot;approve&quot;,)  线程停在 approve 节点
+r = app.invoke(Command(resume=True), cfg)   # 同一个 thread_id 恢复
+</code></pre>
+<p>实测：首次 <code>invoke</code> 返回里带 <code>__interrupt__</code>，载荷就是传给 <code>interrupt()</code> 的值；<code>get_state(cfg).next</code> 为 <code>('approve',)</code>；用 <code>Command(resume=True)</code> 恢复后 <code>status</code> 为 <code>approved</code>，后续的扣款节点正常执行一次。</p>
+<p>📄 官方补充：用 <code>stream_events(..., version="v3")</code> 时，通过 <code>stream.interrupted</code> 判断是否暂停、<code>stream.interrupts</code> 读取载荷；<code>Command(resume=...)</code> 是<strong>唯一</strong>能作为输入传给 <code>invoke</code>/<code>stream</code> 的 <code>Command</code> 形式，<code>update</code>、<code>goto</code>、<code>graph</code> 只用于节点返回值。</p>
+<h3 id="32">3.2 铁律一：暂停前的代码恢复时会重跑</h3>
+<p>🧪 实测在 <code>interrupt()</code> 之前放一个计数器，整个流程（暂停加恢复）结束后计数为 <strong>2</strong>。证实 📄 官方的规则：恢复时节点从头执行，<code>interrupt()</code> 之前的代码每次恢复都会重新执行。</p>
+<p>推论：<strong><code>interrupt()</code> 之前不能有非幂等副作用</strong>。写成这样是错的：</p>
+<pre><code class="language-python">def bad(state):
+    send_email(state[&quot;to&quot;])          # 恢复时会再发一次
+    ok = interrupt(&quot;确认发送结果?&quot;)
+</code></pre>
+<p>正确做法有两种：<code>interrupt()</code> 放在节点第一行（官方《Thinking in LangGraph》："interrupt() must come first"），或者把副作用拆到 <code>interrupt()</code> 之后的另一个节点。</p>
+<h3 id="33-tryexcept-interrupt">3.3 铁律二：不要用裸 try/except 包 interrupt</h3>
+<p>📄 <code>interrupt()</code> 内部靠抛一个特殊异常暂停执行。裸 <code>except Exception</code> 会把它吞掉，图就不会暂停。要么只捕获具体异常类型，要么把 <code>interrupt()</code> 放在 <code>try</code> 外面。</p>
+<h3 id="34-interrupt">3.4 铁律三：同节点内多个 interrupt 按顺序匹配</h3>
+<p>📄 同一个节点里有多个 <code>interrupt()</code> 时，恢复值按<strong>调用顺序</strong>一一对应。因此不能条件性地跳过某个 <code>interrupt()</code>，也不能放进次数不定的循环里，否则恢复值会错位。</p>
+<h3 id="35-while-true">3.5 铁律四：输入校验不要写 while True</h3>
+<p>📄 官方明确反对在节点里用 <code>while True</code> 循环反复 <code>interrupt()</code> 校验输入，因为每次恢复都会重放之前的循环。正确做法：把提示语存进 state，节点只 <code>interrupt()</code> 一次；输入无效时把错误写回 state，再用<strong>条件边回到该节点</strong>。这样每一轮校验都是一个独立 super-step，有自己的 checkpoint。</p>
+<h3 id="36">3.6 铁律五：载荷用简单类型</h3>
+<p>📄 <code>interrupt()</code> 的值必须能 JSON 序列化，只传简单类型或由简单值组成的字典，不传函数和类实例。</p>
+<h3 id="37-interrupt">3.7 多个并行 interrupt</h3>
+<p>📄 并行分支同时触发多个 interrupt 时，把每个 interrupt 的 <code>id</code> 映射到各自的恢复值，一次性传入：<code>Command(resume={i.id: value for i in stream.interrupts})</code>。</p>
+<p>📄 另外，<code>interrupt_before</code> / <code>interrupt_after</code> 是静态断点，官方只推荐用于逐节点调试，<strong>人机协同请用 <code>interrupt()</code></strong>。</p>
+<h3 id="38">3.8 带校验的恢复值</h3>
+<p>📄 官方标注 <code>langgraph&gt;=1.2.12</code> 起 <code>interrupt()</code> 支持 <code>response_schema</code>（Pydantic、TypedDict 或 dataclass），用来校验恢复值并让客户端渲染表单；校验失败抛 <code>pydantic.ValidationError</code>，可用同一 <code>thread_id</code> 重新提交。🧪 本机 1.2.11 低于该版本，未实测。</p>
+<hr />
+<h2 id="4-time-travel">4. Time Travel：重放与分叉</h2>
+<p>线上 thread 跑歪了（比如第 3 步 LLM 选错了工具），不用从头重来。📄 官方提供三个 API：</p>
+<table>
+<thead>
+<tr>
+<th>API</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get_state_history(config)</code></td>
+<td>返回该 thread 的 checkpoint 列表，按时间倒序</td>
+</tr>
+<tr>
+<td><code>invoke(None, checkpoint.config)</code></td>
+<td>从指定 checkpoint <strong>重放</strong></td>
+</tr>
+<tr>
+<td><code>update_state(config, values=...)</code></td>
+<td>在指定 checkpoint 上<strong>分叉</strong>，返回新 config</td>
+</tr>
+</tbody>
+</table>
+<h3 id="41">4.1 🧪 实测：重放</h3>
+<p>找到停在 <code>approve</code> 之前的 checkpoint（<code>h.next == ("approve",)</code>），用它的 <code>config</code> 调 <code>invoke(None, ...)</code>：</p>
+<ul>
+<li>该 checkpoint <strong>之前</strong>的节点不重跑。</li>
+<li>该 checkpoint <strong>之后</strong>的节点重新执行，<strong>包括 LLM 调用、API 调用和 interrupt</strong>。实测重放后 <code>approve</code> 再次触发 interrupt，返回 <code>__interrupt__</code>。</li>
+<li>📄 官方提醒：重放的结果可能和原来不同，因为 LLM 输出和外部状态会变；从最终 checkpoint（<code>next</code> 为空）重放没有任何效果。</li>
+</ul>
+<h3 id="42-config">4.2 🧪 实测发现的坑：重放后用哪个 config 恢复</h3>
+<p>这是实测中遇到的、官方页面没写的行为。重放后图停在新的 interrupt，我做了两种恢复：</p>
+<ul>
+<li>用<strong>旧 checkpoint 的 config</strong>（带原来的 <code>checkpoint_id</code>）传 <code>Command(resume=False)</code>：最终 <code>status</code> 是 <code>approved</code>，<strong>不是</strong>我传的 <code>rejected</code>，旧的恢复值被复用了。</li>
+<li>用<strong>线程 config</strong>（只有 <code>thread_id</code>，不带 <code>checkpoint_id</code>）传 <code>Command(resume=False)</code>：<code>status</code> 为 <code>rejected</code>，<code>log</code> 为 <code>['approve:False']</code>，符合预期。</li>
+</ul>
+<p>结论：<strong>重放之后，恢复要用只含 <code>thread_id</code> 的 config</strong>，让框架取最新 checkpoint。不要再拿着旧 <code>checkpoint_id</code> 去 resume。我没有深入定位底层原因，推测与旧 checkpoint 上已存的 pending writes 有关，属推测，需要时读源码确认。</p>
+<h3 id="43">4.3 🧪 实测：分叉</h3>
+<pre><code class="language-python">fork_cfg = app.update_state(before_approve.config, {&quot;amount&quot;: 1})
+app.get_state(fork_cfg).values[&quot;amount&quot;]     # 1
+</code></pre>
+<p>实测分叉成功，原 thread 的历史条数没有减少。📄 官方要点：</p>
+<ul>
+<li><code>update_state</code> <strong>不回滚</strong> thread，它新建一条分支，原历史保留。这对审计很重要：你永远能回答"当时的状态是什么、谁改了什么"。</li>
+<li><code>as_node</code> 参数指定"这次更新算哪个节点产生的"，执行从该节点的后继开始。三种情况必须显式给：同一步有多个并行节点更新状态（否则报 <code>InvalidUpdateError</code>）、新 thread 没有执行历史、想跳过某些节点。</li>
+</ul>
+<h3 id="44-time-travel">4.4 子图与 time travel</h3>
+<p>📄 默认情况下子图继承父图的 checkpointer，整个子图算父图的<strong>一个 super-step</strong>，只能从父图层级回溯，不能停在子图内部节点之间。想在子图内部分叉，要给子图设 <code>checkpointer=True</code> 获得独立历史，再用 <code>get_state(config, subgraphs=True)</code> 取子图 config。</p>
+<p>📄 persistence 文档也提醒：每个子图管理自己的 checkpoint namespace，子图更新后父图不一定立刻看到。跨图边界共享的数据放进 Store，或让子图写入父 checkpoint。</p>
+<h3 id="45">4.5 生产用途</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>客服答错，复现问题</td>
+<td><code>get_state_history</code> 找到出错步，replay，观察是否复现</td>
+</tr>
+<tr>
+<td>人工纠正中间结果后继续</td>
+<td><code>update_state</code> 分叉，修正字段，<code>invoke(None, fork_cfg)</code></td>
+</tr>
+<tr>
+<td>回归测试</td>
+<td>对线上 thread 的某个 checkpoint 重放，换新 prompt 比对输出</td>
+</tr>
+<tr>
+<td>事故审计</td>
+<td>历史不可变，分叉不改原记录</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5">5. 流式输出：把图的进展暴露给前端</h2>
+<p>📄 官方 streaming 文档的 <code>stream_mode</code>：</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>内容</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>values</code></td>
+<td>每步后的完整 state</td>
+<td>调试，数据量大</td>
+</tr>
+<tr>
+<td><code>updates</code></td>
+<td>每步各节点返回的增量，附节点名</td>
+<td>前端进度条、日志</td>
+</tr>
+<tr>
+<td><code>messages</code></td>
+<td>LLM token，<code>(chunk, metadata)</code></td>
+<td>打字机效果，可用 <code>metadata["langgraph_node"]</code> 过滤</td>
+</tr>
+<tr>
+<td><code>custom</code></td>
+<td>节点内 <code>get_stream_writer()</code> 发的任意数据</td>
+<td>长任务的业务进度</td>
+</tr>
+<tr>
+<td><code>checkpoints</code> / <code>tasks</code></td>
+<td>检查点事件 / 任务起止和错误</td>
+<td>需要 checkpointer，监控和排障</td>
+</tr>
+<tr>
+<td><code>debug</code></td>
+<td>前两者合并加元数据</td>
+<td>完整追踪</td>
+</tr>
+</tbody>
+</table>
+<p>可同时订阅多个：<code>stream_mode=["updates", "custom"]</code>。</p>
+<h3 id="51-subgraphstrue">5.1 🧪 子图流式必须加 <code>subgraphs=True</code></h3>
+<p>实测把子图直接当节点加入父图，<code>stream(..., stream_mode="updates", subgraphs=True)</code> 得到的命名空间集合里既有根图 <code>()</code>，也有 <code>('sub:&lt;task_id&gt;',)</code> 这种子图命名空间。📄 官方强调 <code>messages</code> 模式同样要加 <code>subgraphs=True</code>，否则父图拿不到子图内 LLM 的 token。<code>create_agent</code> 生成的编译图作为节点时就属于这种情况，<strong>不加的症状是前端没有打字机效果，但最终结果是对的</strong>，很容易误判成前端 bug。</p>
+<h3 id="52-interrupt">5.2 Interrupt 与流式的配合</h3>
+<p>把审批做成产品时，前端流程是：流式展示进度 → 收到 interrupt 载荷 → 渲染审批卡片 → 用户点击 → 后端 <code>Command(resume=...)</code>。📄 <a href="Agent框架实操选型-2026.html">框架实操选型</a> 里已记录 Agent Server 在 interrupt 时返回 409 加载荷的约定，自建服务可参考同样的状态语义。</p>
+<hr />
+<h2 id="6-functional-api">6. Functional API：什么时候不用画图</h2>
+<p>📄 官方 Functional API 用 <code>@entrypoint</code> 和 <code>@task</code> 把普通 Python 函数变成可持久化的工作流。它与 Graph API <strong>共用同一套运行时</strong>，可以在同一应用里混用。</p>
+<p>核心能力（📄）：</p>
+<ul>
+<li>task 结果进 checkpoint，同 <code>thread_id</code> 恢复时不重跑（上面 2.4 节已实测）。</li>
+<li>并行：先批量调用 task 拿到一组 future，再统一 <code>.result()</code>。适合并发调 LLM 或 API。</li>
+<li><code>RetryPolicy</code>、<code>CachePolicy(ttl=...)</code> 可挂在 task 上；<code>timeout</code> 仅支持 async 的 task 和 entrypoint，超时抛 <code>NodeTimeoutError</code>。</li>
+<li>可在 task 内 <code>interrupt()</code>，恢复后前面 task 结果复用。</li>
+<li><code>entrypoint.final(value=..., save=...)</code> 可把"返回给调用方的值"和"存进 checkpoint 的值"分开。</li>
+</ul>
+<p>选择建议（本文判断）：流程是<strong>线性或简单分支</strong>、团队更习惯写普通函数、主要诉求是"给现有脚本加断点续跑"时用 Functional API；流程有<strong>多个并行分支、复杂回流、需要可视化评审</strong>时用 Graph API。官方页面本身没有给出对比结论，只提到"minimal changes to your existing code"是 Functional API 的卖点。</p>
+<hr />
+<h2 id="7">7. 生产事故预案</h2>
+<table>
+<thead>
+<tr>
+<th>事故</th>
+<th>症状</th>
+<th>处置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>进程崩溃</td>
+<td>thread 停在某节点，无响应</td>
+<td>同 <code>thread_id</code>、<code>invoke(None)</code> 续跑，副作用靠 task 缓存和幂等键兜底</td>
+</tr>
+<tr>
+<td>审批超时</td>
+<td>thread 长期停在 interrupt</td>
+<td>业务侧维护超时表，到期后 <code>Command(resume=&lt;默认拒绝&gt;)</code> 并通知，不要靠 checkpoint 自己过期</td>
+</tr>
+<tr>
+<td>发版后旧 thread 恢复失败</td>
+<td>反序列化或节点名找不到</td>
+<td>见下方"发版兼容"，用新旧版本并存</td>
+</tr>
+<tr>
+<td>checkpoint 表膨胀</td>
+<td>查询变慢、磁盘涨</td>
+<td>定时清理已完成 thread，保留审计需要的天数</td>
+</tr>
+<tr>
+<td>重复副作用</td>
+<td>同一封邮件发了两次</td>
+<td>查该节点是否在 <code>interrupt()</code> 之前做了副作用，或没用幂等键</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_1">发版兼容</h3>
+<p>Anthropic 工程博客（📄 一手）描述了多 Agent 研究系统的做法：Agent 可能处在流程任意阶段，不能同时更新所有实例，所以用<strong>彩虹部署</strong>（逐步切流量，新旧版本并存运行）；另外他们实现了断点续跑，出错时从出错处恢复而不是从头重启，并结合重试逻辑和定期检查点。</p>
+<p>对 LangGraph 的启示是（以下为本文推断）：checkpoint 保存的是旧版本 state 和"下一个节点名"。<strong>挂起中的 thread 恢复时用的是新代码</strong>，所以：</p>
+<ol>
+<li>不要重命名或删除可能有挂起 thread 的节点。</li>
+<li>state 只加字段不改类型，新字段给默认值。</li>
+<li>确需破坏性改动时，让旧 thread 在旧版本上跑完，新 thread 走新版本。</li>
+</ol>
+<hr />
+<h2 id="8">8. 对本库的落地启示</h2>
+<ul>
+<li>本库 <code>shared-tasks.db</code> 以 <code>task_id</code> 为 <code>thread_id</code> 的设计与 LangGraph 的 thread 概念对齐，是对的。若迁移到 <code>PostgresSaver</code>，<code>thread_id</code> 沿用 <code>task_id</code> 并保持在 255 字符内。</li>
+<li>OC 审查、人工验收这类环节是天然的 <code>interrupt()</code> 点。注意第 3.2 节：审查节点里<strong>不要在 <code>interrupt()</code> 之前写回台账或发通知</strong>。</li>
+<li><code>receipt verify</code> 只能跑一次、重跑会误判的血坑（见 CLAUDE.md 附注），本质上就是"副作用节点不幂等"。按本篇做法，把"写基线"拆成独立节点加幂等键，可以从结构上消除。</li>
+<li>以上是对照分析，未改造任何现有脚本。</li>
+</ul>
+<hr />
+<h2 id="_2">来源</h2>
+<p>📄 官方文档（2026-11-02 抓取）；🧪 本机实测（<code>~/ai-stack</code> langgraph 1.2.11，InMemorySaver，测试脚本已清理）。</p>
+<ul>
+<li>📄 <a href="https://docs.langchain.com/oss/python/langgraph/persistence">LangGraph Persistence</a>：checkpointer 与 store、saver 实现、<code>thread_id</code> 限制、checkpoint 增长、子图 namespace</li>
+<li>📄 <a href="https://docs.langchain.com/oss/python/langgraph/interrupts">LangGraph Interrupts</a>：<code>interrupt()</code> 规则、<code>Command(resume)</code>、并行 interrupt、<code>response_schema</code></li>
+<li>📄 <a href="https://docs.langchain.com/oss/python/langgraph/use-time-travel">Use Time Travel</a>：<code>get_state_history</code>、重放、<code>update_state</code> 分叉、<code>as_node</code>、子图</li>
+<li>📄 <a href="https://docs.langchain.com/oss/python/langgraph/use-functional-api">Use the Functional API</a>：<code>entrypoint</code>、<code>task</code>、缓存、并行、<code>RetryPolicy</code></li>
+<li>📄 <a href="https://docs.langchain.com/oss/python/langgraph/streaming">Streaming</a>：<code>stream_mode</code> 各取值、<code>subgraphs=True</code>、<code>get_stream_writer</code></li>
+<li>📄 <a href="https://docs.langchain.com/oss/python/langgraph/thinking-in-langgraph">Thinking in LangGraph</a>："interrupt() must come first"</li>
+<li>📰 <a href="https://github.com/miraland-labs/langchain-ai-docs/blob/main/src/oss/langgraph/durable-execution.mdx">durable-execution.mdx（官方文档的 GitHub 镜像）</a>：<code>durability</code> 三模式、恢复起点、优雅停机。<strong>二手镜像</strong>，与 <a href="https://reference.langchain.com/python/langgraph/types/Durability">Durability 类型参考</a> 的字面量一致</li>
+<li>📄 <a href="https://www.anthropic.com/engineering/multi-agent-research-system">Anthropic: How we built our multi-agent research system</a>：断点续跑、彩虹部署</li>
+</ul>
+<h2 id="_3">未验证与边界</h2>
+<ul>
+<li>Postgres 路径未连库实测。</li>
+<li><code>RunControl</code>、<code>response_schema</code>、<code>error_handler</code> 需要 <code>langgraph&gt;=1.2</code>/<code>1.2.12</code>，本机 1.2.11 未验证。</li>
+<li>第 4.2 节的原因推测未读源码证实。</li>
+<li>第 2.5 节的 durability 选型、第 6 节的 API 选择建议是本文判断，不是官方结论。</li>
+</ul></div></body></html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L8-3-私有化部署-最佳答案</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L8-3-私有化部署-最佳答案</span></div><div class="wrap"><h1 id="l8-3-私有化部署-最佳答案">L8-3 私有化部署 · 最佳答案</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>金融、政务、军工、大型制造业客户的硬要求是整库、整模型、整服务全部离线运行，不允许任何一个请求出客户内网</li><li>云 API 再便宜也不能用——不是钱的问题，是合规红线</li><li>私有化不是"小一点的云"：Embedding、LLM、向量库、ASR/TTS、Docker 镜像、Python 依赖六环任何一环断，项目就交付不了</li></ul></div>2
+<p>金融、政务、军工、大型制造业客户的硬要求是<strong>整库、整模型、整服务全部离线运行，不允许任何一个请求出客户内网</strong>。云 API 再便宜也不能用——不是钱的问题，是合规红线。私有化不是"小一点的云"：Embedding、LLM、向量库、ASR/TTS、Docker 镜像、Python 依赖六环任何一环断，项目就交付不了。FDE 必须把"空气隔离交付"当成一项基本功。</p>
+<h2 id="what这个节点的最佳答案是什么">WHAT：这个节点的最佳答案是什么</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 触发离线部署的四类场景</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>金融/银行：合同、投研、风控任何一跳外网都过不了等保/银保监</li><li>政务/军工：物理隔离网闸，连 HTTPS 出站都没有</li><li>大型制造业：MES/ERP 在工厂内网，出站被防火墙拦</li></ul></div>3
+<ul>
+<li><strong>金融/银行</strong>：合同、投研、风控任何一跳外网都过不了等保/银保监。</li>
+<li><strong>政务/军工</strong>：物理隔离网闸，连 HTTPS 出站都没有。</li>
+<li><strong>大型制造业</strong>：MES/ERP 在工厂内网，出站被防火墙拦。</li>
+<li><strong>医疗</strong>：HIPAA/个保法要求 PHI 不出院。</li>
+</ul>
+<h3 id="2-离线栈六件事必须全部覆盖">2. 离线栈六件事必须全部覆盖</h3>3
+<ol>
+<li>Embedding 模型（不能调 OpenAI text-embedding）</li>
+<li>LLM（不能调 gpt-4o / qwen-max）</li>
+<li>向量库（不能调 Pinecone / 阿里云向量库）</li>
+<li>ASR/TTS（不能调讯飞/阿里语音 API）</li>
+<li>所有 Docker 镜像（不能从 Docker Hub/GHCR 在线拉）</li>
+<li>Python 依赖包（不能 pip install）</li>
+</ol>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 技术选型清单（2026 年甜点）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Embedding：BGE-M3（BAAI，MIT）——单个 checkpoint 同时支持 dense/sparse/ColBERT 三种检索，MTEB 检索开源第一梯队</li><li>LLM 本体：Qwen2.5-7B/14B/32B-Instruct（中文首选）、Qwen3-8B/32B、DeepSeek-V3/R1-Distill（推理需求）、Llama-3.1（英文，注意 Meta 许可）</li><li>通用经验：AWQ 能跑就别用 GPTQ；Ollama 的 「q4_K_M」 是 GGUF 家族"质量/体积"甜点（9B≈5.5GB、14B≈8GB、32B≈20GB）；客户内网最常见 1×4090/A10（24G）跑 Qwen2.5-14B-AWQ / Qwen3-8B 是甜点配置</li></ul></div>3
+<p><strong>Embedding</strong>：BGE-M3（BAAI，MIT）——单个 checkpoint 同时支持 dense/sparse/ColBERT 三种检索，MTEB 检索开源第一梯队。精排配 bge-reranker-v2-m3。</p>
+<p><strong>向量库</strong>：Chroma（&lt;100 万 chunk 单机零依赖）、Qdrant（要混合检索/分片/filter 升级）、LanceDB（多模态列存磁盘友好）。</p>
+<p><strong>LLM 量化按硬件决策</strong>：<br />
+| 硬件 | 推荐格式 | 70B 显存 |<br />
+|------|---------|---------|<br />
+| NVIDIA 数据中心卡（A100/H100/4090） | <strong>AWQ INT4</strong>（vLLM/SGLang 快，质量最好） | ~35 GB |<br />
+| 老 NVIDIA / ExLlamaV2 生态 | GPTQ INT4 | ~35 GB |<br />
+| 消费级/AMD/Apple Silicon/CPU | <strong>GGUF Q4_K_M</strong>（llama.cpp/Ollama） | ~40 GB CPU offload |<br />
+| 质量敏感（微调/评测） | FP16/BF16 | ~140 GB |</p>
+<p>通用经验：<strong>AWQ 能跑就别用 GPTQ</strong>；Ollama 的 <code>q4_K_M</code> 是 GGUF 家族"质量/体积"甜点（9B≈5.5GB、14B≈8GB、32B≈20GB）；客户内网最常见 1×4090/A10（24G）跑 Qwen2.5-14B-AWQ / Qwen3-8B 是甜点配置。</p>
+<p><strong>LLM 本体</strong>：Qwen2.5-7B/14B/32B-Instruct（中文首选）、Qwen3-8B/32B、DeepSeek-V3/R1-Distill（推理需求）、Llama-3.1（英文，注意 Meta 许可）。</p>
+<p><strong>推理引擎</strong>：vLLM（高吞吐生产）、Ollama（单机快速）、llama.cpp llama-server（CPU/边缘）。</p>
+<h3 id="4-三条口诀据一手源fde私有化离线部署-外部调研-20261012技术边界见-技术专项">4. 三条口诀（据[一手源]：FDE私有化离线部署-外部调研-20261012，技术边界见 <a href="L8-%E6%8A%80%E6%9C%AF%E4%B8%93%E9%A1%B9-Ontology%E7%A7%81%E6%9C%89%E5%8C%96%E5%A4%9A%E6%A8%A1%E6%80%81-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">技术专项</a>）</h3>3
+<ul>
+<li><strong>"offline"不等于 air-gapped</strong>：vLLM 文档的 offline 指批量推理，客户要的是 <strong>egress-denied（出口拒绝）</strong>。必设 <code>HF_HUB_OFFLINE=1</code>、<code>VLLM_NO_USAGE_STATS=1</code>、<code>--enable-offline-docs</code>；模型解析链 6 步（config 查找→解析→model_type 分派→RoPE 补丁→AutoTokenizer→权重）本地路径只短路一部分，必须在真实断网环境冷启动验证。</li>
+<li><strong>硬件决定模型档位</strong>：纯 CPU 上 8B≈3 tok/s 不进生产；RTX 3090 24GB 上 8B≈80、24B≈35、32B≈25 tok/s（tier 2 单用户实测）；小团队起步配二手 RTX 3060 12GB；量化默认 Q4_K_M。</li>
+<li><strong>进场先填现场约束清单</strong>：网络（断网/白名单）· 硬件与驱动 · 操作系统权限 · 数据脱敏与审计 · 更新方式（离线包/U 盘）与版本锁定 · 等保级别与驻场 · 既有系统集成。对客话术：air-gap 是"消除一整类控制"，但必须配套书面 AI Governance Framework。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">HOW：完整离线交付 Pipeline</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="步骤-1在联网跳板机上准备所有资产">步骤 1：在"联网跳板机"上准备所有资产</h3>3
+<pre><code class="language-bash">mkdir -p /opt/airgap/{models,images,wheels,charts}
+
+# 1. 拉模型（HuggingFace / ModelScope 离线缓存）
+huggingface-cli download BAAI/bge-m3 --local-dir /opt/airgap/models/bge-m3
+huggingface-cli download BAAI/bge-reranker-v2-m3 --local-dir /opt/airgap/models/bge-reranker-v2-m3
+huggingface-cli download Qwen/Qwen2.5-14B-Instruct-AWQ --local-dir /opt/airgap/models/qwen2.5-14b-awq
+
+# 2. 准备 pip wheelhouse（关键！客户内网 pip install 必炸）
+python -m pip download -r requirements.txt     -d /opt/airgap/wheels     --platform manylinux2014_x86_64     --python-version 310     --only-binary=:all:
+
+# 3. 导出所有 Docker 镜像
+docker pull vllm/vllm-openai:v0.6.0
+docker pull chromadb/chroma:latest
+docker pull ollama/ollama:latest
+docker save -o /opt/airgap/images/runtime.tar     vllm/vllm-openai:v0.6.0 chromadb/chroma:latest ollama/ollama:latest
+
+# 4. 打 checksum，客户侧校验完整性
+cd /opt/airgap
+sha256sum models/*/*.safetensors images/*.tar wheels/*.whl &gt; SHA256SUMS.txt
+tar -czf airgap-bundle-2026-XX.tar.gz .
+</code></pre>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">步骤 2：离线 RAG 代码骨架</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-python"># offline_rag.py —— 全程本地，零外网依赖
+from fastapi import FastAPI
+from pydantic import BaseModel
+import chromadb
+from sentence_transformers import SentenceTransformer, CrossEncoder
+from openai import OpenAI
+
+app = FastAPI()
+embedder = SentenceTransformer(&quot;/models/bge-m3&quot;, device=&quot;cuda&quot;)
+reranker = CrossEncoder(&quot;/models/bge-reranker-v2-m3&quot;, device=&quot;cuda&quot;)
+chroma = chromadb.PersistentClient(path=&quot;/data/chroma&quot;)
+collection = chroma.get_or_create_collection(&quot;kb&quot;)
+llm = OpenAI(base_url=&quot;http://127.0.0.1:8000/v1&quot;, api_key=&quot;EMPTY&quot;)
+
+@app.post(&quot;/ask&quot;)
+def ask(q: Query):
+    emb = embedder.encode(q.question, return_dict=True)
+    docs = collection.query(query_embeddings=emb[&quot;dense&quot;], n_results=q.top_k)[&quot;documents&quot;][0]
+    scores = reranker.predict([(q.question, d) for d in docs])
+    ranked = sorted(zip(docs, scores), key=lambda x: -x[1])[: q.final_k]
+    context = &quot;\n---\n&quot;.join([d for d, _ in ranked])
+    prompt = f&quot;基于以下内部资料回答，不知道就说不知道。资料：{context}\n问题：{q.question}&quot;
+    out = llm.chat.completions.create(model=&quot;qwen2.5-14b-awq&quot;,
+        messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: prompt}], temperature=0.2)
+    return {&quot;answer&quot;: out.choices[0].message.content, &quot;sources&quot;: ranked}
+</code></pre>
+<h3 id="步骤-3vllm-启动-awq-模型">步骤 3：vLLM 启动 AWQ 模型</h3>3
+<pre><code class="language-bash">docker run -d --name vllm --gpus all --ipc=host \
+    -v /opt/airgap/models:/models -p 8000:8000 \
+    vllm/vllm-openai:v0.6.0 \
+    --model /models/qwen2.5-14b-awq --quantization awq --dtype auto \
+    --gpu-memory-utilization 0.90 --max-model-len 8192 \
+    --served-model-name qwen2.5-14b-awq
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">步骤 4：客户内网（空气隔离侧）加载</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>tar -xzf airgap-bundle-2026-XX.tar.gz -C /opt/airgap</li></ul></div>3
+<pre><code class="language-bash">tar -xzf airgap-bundle-2026-XX.tar.gz -C /opt/airgap
+cd /opt/airgap &amp;&amp; sha256sum -c SHA256SUMS.txt   # 校验未被篡改
+docker load -i images/runtime.tar
+pip install --no-index --find-links /opt/airgap/wheels -r requirements.txt
+# 启动向量库 / vLLM / RAG 服务
+</code></pre>
+<h3 id="步骤-5验收清单">步骤 5：验收清单</h3>3
+<ul>
+<li>[ ] 断外网（拔网线 / <code>iptables -A OUTPUT -j DROP</code>）后问答全流程正常</li>
+<li>[ ] <code>tcpdump</code> 确认没有任何出站连接</li>
+<li>[ ] 项目目标（非实测承诺）：单机 4090 跑 14B-AWQ 时，首 token &lt; 1.5s、吞吐 ≥ 30 tok/s；须注明输入长度、并发与测量脚本</li>
+<li>[ ] 项目目标（非实测承诺）：向量库冷启动 &lt; 5s、冷查询 P95 &lt; 800ms；须注明索引规模与冷启动定义</li>
+<li>[ ] 所有模型权重、镜像、wheel 包 SHA256 与跳板机一致</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">常见坑（血泪）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. pip wheel 漏包：只导直接依赖漏了 transitive → 用 「pip download」 而不是拷 site-packages</li><li>3. GGUF vs AWQ 混用：Ollama 只吃 GGUF，vLLM 只吃 AWQ/GPTQ，别想转换 → 一开始就定推理引擎再选量化格式</li><li>4. 向量库索引忘导出：Chroma/Qdrant 索引数据要挂到宿主机目录，镜像重建不丢</li></ul></div>3
+<ol start="0">
+<li><strong>把 vLLM「offline」当成 air-gapped</strong>：本地路径起得来≠断网起得来。漏设 <code>HF_HUB_OFFLINE=1</code> / <code>VLLM_NO_USAGE_STATS=1</code>，新模型的 tokenizer/processor 分支仍会尝试联网，遥测也会外发（据[一手源]：FDE私有化离线部署-外部调研-20261012 §五，particula 2026-04 实测 egress-denied 场景）。</li>
+<li><strong>pip wheel 漏包</strong>：只导直接依赖漏了 transitive → 用 <code>pip download</code> 而不是拷 site-packages。</li>
+<li><strong>PyTorch CUDA 版本错位</strong>：镜像里 torch cu118，客户机器 cu121 驱动 → 从一开始就用官方 vLLM/PyTorch 镜像，别自己 pip install torch。</li>
+<li><strong>GGUF vs AWQ 混用</strong>：Ollama 只吃 GGUF，vLLM 只吃 AWQ/GPTQ，别想转换 → 一开始就定推理引擎再选量化格式。</li>
+<li><strong>向量库索引忘导出</strong>：Chroma/Qdrant 索引数据要挂到宿主机目录，镜像重建不丢。</li>
+<li><strong>大镜像 U 盘拷不过</strong>：FAT32 单文件 4G 上限 → <code>split -b 4000M</code> 分包，客户侧 <code>cat part-* &gt; bundle.tar</code>。</li>
+</ol>
+<h3 id="三源与论文融合落点">三源与论文融合落点</h3>3
+<ul>
+<li><strong>课件</strong>：<code>raw/courseware/AI大模型私有化微调篇__AI大模型私有化微调篇__3-⼤模型微调_量化-2025-8-20-陈钢__day03微调之量化/_代码课件汇总.md</code> 用于理解量化格式与显存权衡；具体推理引擎、模型 revision 和 CUDA 组合仍须锁定后实测，不能从课件外推吞吐。</li>
+<li><strong>书籍/摘录</strong>：<code>raw/weread/持续交付2.0：业务引领的DevOps精要（增订本）.md</code> 的本地目录/摘录用于持续交付与可重复发布视角；落地为同一制品清单、同一校验和、同一回滚入口在跳板机和内网各走一遍，不声称阅读全书或引用未取得的页码。</li>
+<li><strong>业内材料</strong>：<code>raw/sources/FDE私有化离线部署-外部调研-20261012.md</code> 收集官方部署资料与离线排障记录；其中外部实测只作对应版本证据，不能替代本客户环境验收。</li>
+<li><strong>论文落地</strong>：arXiv:2610.20578（<code>raw/sources/arxiv-daily/2026-10-14-2610.20578.md</code>）比较镜像创建工作流，指出大量只读小文件场景可评估 SquashFS 以减少并行文件系统元数据压力。我们只在“大规模只读依赖/数据包且目标机支持挂载”时做小样对照，记录打包时间、镜像大小、挂载、冷启动和回滚；它不是所有私有化项目的默认方案，仍需 SHA256、断网和目标环境实测。</li>
+</ul>
+<p>上述安装与启动命令均为<strong>未在客户硬件实跑的交付模板</strong>；执行前锁定版本并核对路径。离线包入口至少运行以下真实校验命令，任何缺失或校验失败都停止加载：</p>
+<pre><code class="language-bash">set -euo pipefail
+BUNDLE=/opt/airgap
+test -f &quot;$BUNDLE/SHA256SUMS.txt&quot;
+cd &quot;$BUNDLE&quot;
+sha256sum --check SHA256SUMS.txt
+python -I -m pip install --no-index --find-links &quot;$BUNDLE/wheels&quot; -r requirements.txt
+</code></pre>
+<p>性能数字只是项目目标：单机 4090 的首 token、吞吐、向量库冷启动和 P95 均须在固定模型 revision、输入长度、并发与索引规模下实测后填结果；未测前不得写“通过”。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>私有化部署在本库的真实形态：索引目录可迁移 + 本地/云 embedding 双路（<code>rag/ingest.py</code> L46，grep 可验）</strong>：<br />
+<code>python
+  # 用法: RAG_INDEX_DIR=$HOME/kb-index RAG_DATA_DIR=$HOME/kb-data python3 ingest.py
+  #       跑完后把产物复制回 rag/index 与 rag/data 即可 (query.py 无需改动)。
+  INDEX_DIR = os.environ.get("RAG_INDEX_DIR", os.path.join(HERE, "index"))
+  DATA_DIR = os.environ.get("RAG_DATA_DIR", os.path.join(HERE, "data"))</code><br />
+  整套产物（Chroma 索引 + registry）就是一个目录，拷贝即迁移——私有化交付最容易出事的一步（"到客户机房发现索引建不起来"）被前置成"目录搬过去就行"。</li>
+<li><strong>"断网还能不能出答案"的可切换设计（<code>rag/query.py</code> L319-321 / <code>rag/ingest.py</code> L147 <code>_resolve_bge_m3_path()</code>）</strong>：<br />
+<code>python
+  SF_EMBED_URL = os.environ.get("RAG_SF_EMBED_URL", "https://api.siliconflow.cn/v1/embeddings")
+  SF_EMBED_MODEL = os.environ.get("RAG_SF_EMBED_MODEL", "BAAI/bge-m3")
+  SF_EMBED_DIM = 1024</code><br />
+  解析顺序 <code>环境变量 RAG_BGE_M3_PATH &gt; config.yaml embedding.bge_m3_local_path &gt; /home/wuyafang/models/bge-m3</code>；<code>RAG_LOCAL_DENSE=1</code> 时 dense 全走本地同一 FlagEmbedding 实例，与云向量同 1024 维空间可混存。</li>
+<li><strong>和课件讲法的差异</strong>：课件私有化偏"部署清单 + 容器化 + 离线 license 授权"；本库把"可离线运行"做成<strong>代码级回退开关</strong>（环境变量），没有 license 授权与离线安装包制作，也没有 K8s/Helm 交付物——生产托管是裸机 systemd（见 <code>L12-模型部署/L12-vLLM推理加速</code> §9.3）。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">缺口清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>缺一个"跳板机→内网"的标准交付 checklist（含 SSH 隧道、离线同步脚本）</li><li>缺 24G/48G/80G 三档硬件配置的推荐部署矩阵（现在只有 24G 甜点）</li><li>缺 vLLM/Ollama 在离线环境的版本锁定表（升级回退脚本）</li></ul></div>2
+<ul>
+<li>缺一个"跳板机→内网"的标准交付 checklist（含 SSH 隧道、离线同步脚本）</li>
+<li>缺 24G/48G/80G 三档硬件配置的推荐部署矩阵（现在只有 24G 甜点）</li>
+<li>缺 vLLM/Ollama 在离线环境的版本锁定表（升级回退脚本）</li>
+<li>缺私有化交付后 SLA 与远程运维（怎么合法远程看日志）的方案</li>
+</ul></div></details></div></body></html>

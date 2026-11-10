@@ -1,0 +1,327 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>数据库设计与SQL实战</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 数据库设计与SQL实战</span></div><div class="wrap"><h1 id="l1-数据库设计与-sql-实战约束事务索引与演进">L1 数据库设计与 SQL 实战：约束、事务、索引与演进</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+本文以关系数据库为主线。可执行示例使用 Python 标准库自带的 SQLite 内存库，避免依赖外部服务；生产设计同时给出 PostgreSQL 核对入口。SQLite 与 PostgreSQL 在类型、并发和 DDL 事务等方面并不等价，不能把一方测试结果直接当成另一方上线证明。外部数据库、ORM 服务与迁移工具均<strong>未实跑</strong>。</p>
+</blockquote>
+<h2 id="why为什么表能建出来数据仍可能不可信">WHY：为什么表能建出来，数据仍可能不可信</h2>2
+<p>数据库首先管理的是<strong>业务事实及其一致性</strong>，然后才是查询速度。只靠应用代码检查，会在并发请求、后台任务、手工修复和历史版本之间留下缺口：同一个邮箱被两个请求同时注册，订单指向已不存在的用户，金额为负数，库存扣减成功而订单写入失败。此类问题不一定在 demo 中出现，却会破坏报表、计费、权限与恢复。</p>
+<p>不做数据库工程的典型代价是：</p>
+<ol>
+<li><strong>无效数据进入系统后再清理</strong>。清洗脚本只能处理已知坏数据，无法证明新请求不会继续制造同类问题。</li>
+<li><strong>多步写入只完成一半</strong>。应用崩溃或网络中断后，没有事务边界就无法回答“到底扣款没有”。</li>
+<li><strong>靠加索引解决所有慢查询</strong>。索引占空间并增加写放大；不符合查询选择性与排序方式的索引可能根本不被采用。</li>
+<li><strong>改表与回滚脱节</strong>。应用回滚到旧镜像，数据库却已被新代码不可逆改写，旧版本随即无法运行。</li>
+<li><strong>AI 输出替代事实源</strong>。模型可以把结构化记录改写得很流畅，但若没有字段约束和证据映射，简化过程可能改变原意。</li>
+</ol>
+<p>旧散篇中“好设计让性能提升 10 倍”“80% 性能问题源于设计不当”没有本库可核验证据，本篇不再采用。性能要用具体查询、数据分布、执行计划和基准测试说明。</p>
+<p>《持续交付 2.0》的目录把“数据的版本管理”放在软件配置管理中，把“低风险发布”单列一章；公开摘录提出质量应从生产过程内建。对应到数据库，就是约束在写入时生效、迁移进入版本控制、发布与回滚一起设计，而不是上线后靠人工修表。</p>
+<h2 id="what-whyt设计对象相似概念与边界">WHAT / WHYT：设计对象、相似概念与边界</h2>2
+<h3 id="1-表约束事务索引分别解决什么">1. 表、约束、事务、索引分别解决什么</h3>3
+<table>
+<thead>
+<tr>
+<th>对象</th>
+<th>核心作用</th>
+<th>不能替代什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>表与列</td>
+<td>表达实体、属性和数据类型</td>
+<td>不会自动保证业务关系正确</td>
+</tr>
+<tr>
+<td>主键/外键/<code>UNIQUE</code>/<code>CHECK</code>/<code>NOT NULL</code></td>
+<td>在数据库边界拒绝无效状态</td>
+<td>不代替身份认证与业务授权</td>
+</tr>
+<tr>
+<td>事务</td>
+<td>给一组读写定义原子性、一致性与隔离边界</td>
+<td>不自动处理分布式事务，也不等于备份</td>
+</tr>
+<tr>
+<td>索引</td>
+<td>为特定查询减少候选行或支持有序访问</td>
+<td>不等于全表加速，也不免费</td>
+</tr>
+<tr>
+<td>视图</td>
+<td>固化查询接口、简化读取</td>
+<td>默认不是权限系统或物化缓存</td>
+</tr>
+<tr>
+<td>ORM</td>
+<td>用程序对象和 API 操作数据库</td>
+<td>不会自动设计好事务、索引和 SQL</td>
+</tr>
+</tbody>
+</table>
+<p>三大范式可作为异常分析工具：1NF 关注值的原子性，2NF 关注非键属性对整个候选键的依赖，3NF 关注非键属性不应传递依赖于候选键。实际设计应从业务不变量和访问模式出发，不为“满足范式”拆出无意义表，也不为少一次 JOIN 任意复制事实。反规范化是带一致性成本的选择，应说明谁负责同步、冲突以谁为准。</p>
+<h3 id="2-sqlorm迁移和向量检索的边界">2. SQL、ORM、迁移和向量检索的边界</h3>3
+<ul>
+<li><strong>SQL</strong>声明要读写的集合与关系，适合约束、聚合和集合操作；复杂动态查询可由查询构建器生成，但参数必须绑定。</li>
+<li><strong>ORM</strong>减少对象与关系之间的重复映射，不意味着无需看 SQL。N+1 查询、隐式事务和批量写入仍要检查。</li>
+<li><strong>迁移</strong>把模式变化变成可审查版本；<code>CREATE TABLE IF NOT EXISTS</code> 不能表达重命名、拆分列、回填和删除约束。</li>
+<li><strong>向量索引</strong>按嵌入相似性找候选内容，适合语义检索；它不能替代订单、库存等强一致事实。常见架构是关系库保存事实与权限，向量库保存可重建的检索派生物。</li>
+</ul>
+<p>本地 Python 课件提供 FastAPI + SQLAlchemy + SQLite 任务 API，包含 ORM 模型、会话依赖、提交和关闭连接。本篇进一步把约束、事务和索引显式化：ORM 示例便于接 Web，但生产验收仍需查看实际 SQL 和执行计划。</p>
+<h3 id="3-mysql-与-postgresql-不是简单复杂的性格标签">3. MySQL 与 PostgreSQL 不是“简单/复杂”的性格标签</h3>3
+<p>选型应核对具体版本下的事务与隔离、约束、索引类型、JSON、全文检索、运维工具、托管服务和团队经验。两者都能支撑常见 CRUD；不要用“MySQL 一定快、PostgreSQL 只适合复杂查询”代替基准测试。示例选 SQLite 是因为标准库可离线运行，而不是建议多实例生产服务也使用 SQLite。</p>
+<h3 id="4-论文怎么说我们怎么用">4. 论文怎么说，我们怎么用</h3>3
+<p>From Structured Records to Patient Narratives（arXiv:2610.31467）研究把结构化健康记录转成患者可读叙述时的语义漂移。论文在 4,500 份生成摘要上评估，发现显式证据约束在其设置下改善临床对齐，尤其是不确定性保留；同时可读性可能变差，遗漏效果依模型而变。</p>
+<p>这与通用数据库设计的关系不是“所有系统都要做医疗摘要”，而是：<strong>结构化字段是事实源，生成文本是派生视图</strong>。我们在 AI 应用中应保存原始值、单位、时间、来源和不确定性，让生成结果能回指记录 ID；评估同时看忠实度、不确定性与可读性，不能只让文案更顺。本文没有复现医疗实验，也不把论文结论外推为所有领域固定收益。</p>
+<h2 id="how用约束和事务做一个可离线验证的订单模型">HOW：用约束和事务做一个可离线验证的订单模型</h2>2
+<h3 id="第一步先写业务不变量">第一步：先写业务不变量</h3>3
+<p>示例只有用户、商品、订单和订单项，先明确六条规则：</p>
+<ol>
+<li>邮箱不能为空且唯一。</li>
+<li>商品价格非负；订单项数量必须大于零。</li>
+<li>订单必须属于存在的用户，订单项必须引用存在的订单和商品。</li>
+<li>创建订单与写入所有订单项要么一起成功，要么一起回滚。</li>
+<li>常用查询是“某用户按时间倒序看订单”，索引围绕该查询设计。</li>
+<li>金额使用定点整数的最小货币单位，例如分，避免二进制浮点累计误差。</li>
+</ol>
+<h3 id="第二步创建完整-python-sqlite-示例">第二步：创建完整 Python + SQLite 示例</h3>3
+<p>保存为 <code>db_demo.py</code>。它使用内存数据库，每次运行都是新环境；<code>PRAGMA foreign_keys=ON</code> 必须对每个 SQLite 连接设置，不能假定一次设置全局生效。</p>
+<pre><code class="language-python">import sqlite3
+
+SCHEMA = &quot;&quot;&quot;
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY,
+    email TEXT NOT NULL UNIQUE CHECK (length(trim(email)) &gt; 3),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE products (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    price_cents INTEGER NOT NULL CHECK (price_cents &gt;= 0)
+);
+CREATE TABLE orders (
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    status TEXT NOT NULL CHECK (status IN ('pending', 'paid', 'cancelled')),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE order_items (
+    order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+    quantity INTEGER NOT NULL CHECK (quantity &gt; 0),
+    unit_price_cents INTEGER NOT NULL CHECK (unit_price_cents &gt;= 0),
+    PRIMARY KEY (order_id, product_id)
+);
+CREATE INDEX idx_orders_user_created
+    ON orders(user_id, created_at DESC, id DESC);
+&quot;&quot;&quot;
+
+
+def connect():
+    db = sqlite3.connect(&quot;:memory:&quot;)
+    db.execute(&quot;PRAGMA foreign_keys = ON&quot;)
+    db.executescript(SCHEMA)
+    return db
+
+
+def create_order(db, user_id, items):
+    &quot;&quot;&quot;items: [(product_id, quantity, unit_price_cents), ...]&quot;&quot;&quot;
+    if not items:
+        raise ValueError(&quot;订单至少需要一个商品&quot;)
+    try:
+        db.execute(&quot;BEGIN&quot;)
+        cursor = db.execute(
+            &quot;INSERT INTO orders(user_id, status) VALUES (?, 'pending')&quot;,
+            (user_id,),
+        )
+        order_id = cursor.lastrowid
+        db.executemany(
+            &quot;INSERT INTO order_items &quot;
+            &quot;(order_id, product_id, quantity, unit_price_cents) VALUES (?, ?, ?, ?)&quot;,
+            [(order_id, product_id, quantity, price)
+             for product_id, quantity, price in items],
+        )
+        db.commit()
+        return order_id
+    except Exception:
+        db.rollback()
+        raise
+
+
+def main():
+    db = connect()
+    user_id = db.execute(
+        &quot;INSERT INTO users(email) VALUES (?)&quot;, (&quot;demo@example.com&quot;,)
+    ).lastrowid
+    db.execute(
+        &quot;INSERT INTO products(name, price_cents) VALUES (?, ?)&quot;,
+        (&quot;键盘&quot;, 19900),
+    )
+    db.commit()
+
+    # 参数绑定：即使字符串含引号，也只作为值处理。
+    db.execute(
+        &quot;INSERT INTO users(email) VALUES (?)&quot;, (&quot;o'connor@example.com&quot;,)
+    )
+    db.commit()
+
+    order_id = create_order(db, user_id, [(1, 2, 19900)])
+    total = db.execute(
+        &quot;SELECT SUM(quantity * unit_price_cents) FROM order_items WHERE order_id = ?&quot;,
+        (order_id,),
+    ).fetchone()[0]
+    assert total == 39800
+
+    # 无效外键必须使整个事务回滚，不能留下空订单。
+    before = db.execute(&quot;SELECT count(*) FROM orders&quot;).fetchone()[0]
+    try:
+        create_order(db, user_id, [(999, 1, 100)])
+    except sqlite3.IntegrityError:
+        pass
+    else:
+        raise AssertionError(&quot;无效商品没有被外键拒绝&quot;)
+    after = db.execute(&quot;SELECT count(*) FROM orders&quot;).fetchone()[0]
+    assert before == after
+
+    # 唯一约束必须在数据库层生效，而不只是应用预检查。
+    try:
+        db.execute(&quot;INSERT INTO users(email) VALUES (?)&quot;, (&quot;demo@example.com&quot;,))
+    except sqlite3.IntegrityError:
+        db.rollback()
+    else:
+        raise AssertionError(&quot;重复邮箱没有被 UNIQUE 拒绝&quot;)
+
+    plan = db.execute(
+        &quot;EXPLAIN QUERY PLAN SELECT id, status, created_at FROM orders &quot;
+        &quot;WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 20&quot;,
+        (user_id,),
+    ).fetchall()
+    print(&quot;订单总额（分）:&quot;, total)
+    print(&quot;无效订单回滚: OK; 重复邮箱拦截: OK&quot;)
+    print(&quot;查询计划:&quot;, plan)
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+<p>运行：</p>
+<pre><code class="language-bash">python3 -I db_demo.py
+</code></pre>
+<p>成功时应输出总额 <code>39800</code>、两项约束检查 <code>OK</code> 和查询计划。查询计划会依 SQLite 版本与数据情况变化，不能只凭出现索引名就证明生产更快；要用真实规模数据对比延迟和写入成本。若要制造负例，可暂时删除 <code>PRAGMA foreign_keys=ON</code> 再运行，观察无效外键不再按预期被拦截；实验后恢复。</p>
+<h3 id="第三步读懂查询与索引而不是背命令">第三步：读懂查询与索引，而不是背命令</h3>3
+<p>按用户查订单：</p>
+<pre><code class="language-sql">SELECT id, status, created_at
+FROM orders
+WHERE user_id = ?
+ORDER BY created_at DESC, id DESC
+LIMIT 20;
+</code></pre>
+<p><code>idx_orders_user_created(user_id, created_at DESC, id DESC)</code> 先支持等值定位用户，再按后续字段提供有序结果。它不一定适合“只按 created_at 查全部用户”或“只按 status 过滤”的查询，因为最左列没有参与相同方式的定位。复合索引不是把每个单列索引简单拼起来。</p>
+<p>计算订单总额：</p>
+<pre><code class="language-sql">SELECT o.id, SUM(oi.quantity * oi.unit_price_cents) AS total_cents
+FROM orders AS o
+JOIN order_items AS oi ON oi.order_id = o.id
+WHERE o.id = ?
+GROUP BY o.id;
+</code></pre>
+<p>订单项保存成交时单价，是因为商品当前价格以后可能变化。这里没有库存表和支付表，不是完整电商模型；高并发库存扣减还需要原子条件更新、隔离级别与幂等设计。</p>
+<p>更新必须使用参数绑定：</p>
+<pre><code class="language-python"># 推荐：值与 SQL 文本分开。
+db.execute(&quot;UPDATE users SET email = ? WHERE id = ?&quot;, (new_email, user_id))
+
+# 禁止：把用户输入直接拼接为 SQL。
+# db.execute(f&quot;UPDATE users SET email = '{new_email}' WHERE id = {user_id}&quot;)
+</code></pre>
+<p>参数绑定防 SQL 注入，但仍要做授权：<code>user_id</code> 合法存在，不代表当前登录者可以修改它。</p>
+<h3 id="第四步从-sqlite-迁移到-postgresql-时重新验收">第四步：从 SQLite 迁移到 PostgreSQL 时重新验收</h3>3
+<ol>
+<li>核对自增主键、时间类型、布尔类型、DDL 事务和 <code>ON DELETE</code> 行为，不机械替换连接串。</li>
+<li>使用 PostgreSQL 官方约束文档逐项验证 <code>PRIMARY KEY/FOREIGN KEY/UNIQUE/CHECK/NOT NULL</code>；约束命名，便于迁移与排错。</li>
+<li>用 <code>EXPLAIN (ANALYZE, BUFFERS)</code> 在脱敏且接近生产的数据上检查实际计划；该命令会真正执行查询，写查询或生产环境须谨慎。</li>
+<li>为连接设置合适事务隔离与超时，验证并发重复提交、死锁与重试；SQLite 内存测试覆盖不了这些。</li>
+<li>ORM 打开 SQL 日志做开发诊断，生产日志脱敏并限制开销；重点检查 N+1、隐式全表扫描和事务长期不提交。</li>
+</ol>
+<h3 id="第五步模式演进采用可回退顺序">第五步：模式演进采用可回退顺序</h3>3
+<p>以“把 <code>name</code> 拆成 <code>first_name/last_name</code>”为例，不要在同一发布中删旧列并让新旧代码同时依赖不同结构：</p>
+<ol>
+<li><strong>Expand</strong>：添加可空新列与必要约束，迁移进入版本控制。</li>
+<li><strong>双写/回填</strong>：新版本同时写旧列和新列；分批回填历史数据，校验行数与抽样值。</li>
+<li><strong>切读</strong>：确认新旧版本兼容窗口后，把读取迁到新列。</li>
+<li><strong>停止旧写</strong>：所有旧实例退出后再停止写旧列。</li>
+<li><strong>Contract</strong>：经过观察期，在独立变更中删除旧列；删除前保留可恢复备份与回退方案。</li>
+</ol>
+<p>数据库回滚不能只看应用镜像。备份也不等于恢复能力：定期在隔离环境恢复并跑约束、行数和关键业务查询，才算验证。</p>
+<p><strong>验证边界</strong>：上面的脚本只使用 SQLite 内存库，不涉及真实用户数据。PostgreSQL 的并发、执行计划、ORM 和迁移命令未实跑；任何生产性能结论都需要目标环境证据。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库真正在用的业务表是「任务总线」，DDL 全文在 <code>scripts/sql/shared_task_bus_ddl.sql</code>（本次读源码）</strong>：状态机、必填字段、取值范围全部交给数据库约束，而不是交给应用层自觉：<br />
+<code>sql
+  state         TEXT NOT NULL DEFAULT 'pending'
+                CHECK (state IN ('pending','claimed','done','failed')),
+  ttl_seconds   INTEGER NOT NULL DEFAULT 1800
+                CHECK (ttl_seconds BETWEEN 60 AND 86400),           -- 心跳 TTL, 默认 30min</code></li>
+<li><strong>哈希字段的约束写法值得抄（同文件 L34-38）</strong>：<code>artifact_hash TEXT CHECK (artifact_hash IS NULL OR (length(artifact_hash) = 64 AND artifact_hash NOT GLOB '*[^0-9a-f]*'))</code>——<strong>用 CHECK 把「64 位小写 hex」写进 schema</strong>，脏数据进不来就不用在应用层到处校验。</li>
+<li><strong>写入面收口</strong>：所有六员只经 <code>scripts/task_bus.py</code> 写库，docstring 明写「不直连 SQL 写库」，退出码有契约（<code>0 成功 / 2 状态冲突(已被抢/非本人单) / 3 不存在 / 4 参数或约束拒绝</code>）。<strong>把「约束错误」映射成独立退出码</strong>，是 SQL 层与应用层协作的好习惯。</li>
+<li><strong>索引与查询真实用法</strong>：<code>tasks</code> 表建了 <code>ix_tasks_state</code>/<code>ix_tasks_owner</code>/<code>ix_tasks_closer</code>/<code>ix_tasks_heartbeat</code> 四个索引，配合 <code>WHERE owner=? AND state=?</code> 的抢单查询；<code>inbox</code> 表是 append-only（<code>state IN ('unread','read','acked')</code>），结果只追加不改写。</li>
+<li><strong>和课件讲法的差异</strong>：课件的 SQL 实战以 MySQL 语法（<code>AUTO_INCREMENT</code>、<code>ENGINE=InnoDB</code>）为主；本库是 <strong>SQLite</strong>，没有引擎/字符集概念，但用到了课件里常被跳过的东西——<code>CHECK</code> 约束、<code>GLOB</code> 取反模式、<code>FOREIGN KEY</code>（DDL 首行 <code>PRAGMA foreign_keys = ON</code>）。</li>
+<li><strong>本库暂无</strong>：知识库侧的向量数据存 Chroma（<code>rag/index/chroma.sqlite3</code>），没有走业务 SQL；「业务表 + 向量表联查」在本库不存在。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库真实建表脚本是 <code>scripts/sql/shared_task_bus_ddl.sql</code>（SQLite，<code>CHECK</code> 约束约束枚举态，<code>INTEGER ... CHECK (length(...) = 64 ...)</code> 约束 sha256 字段），写入口只有 <code>scripts/task_bus.py</code>，退出码契约写死为 0/2/3/4。</li>
+<li><strong>读源码</strong>：SQL 在库里的落点；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li><strong>[课1]</strong> <a href="../../raw/courseware/python/part4-engineering.md">Python 工程实践：FastAPI + SQLAlchemy + SQLite</a>：第 12.1.3 节的 ORM 模型、会话依赖、提交与关闭连接，落到本篇可执行数据库示例和 ORM 边界。</li>
+<li><strong>[课2]</strong> <a href="../../raw/courseware/2603%E6%9C%9FAI%E5%A4%A7%E6%A8%A1%E5%9E%8BAgent%E7%AF%87__2603%E6%9C%9FAI%E5%A4%A7%E6%A8%A1%E5%9E%8BAgent%E7%AF%87__1-FastAPI-2026-3-20-%E5%88%9D%E8%A7%81__day01/_%E4%BB%A3%E7%A0%81%E8%AF%BE%E4%BB%B6%E6%B1%87%E6%80%BB.md">FastAPI day01 代码课件汇总</a>：输入模型与字段约束，用来区分“API 形状合法”和“数据库业务状态合法”。</li>
+<li><strong>[书1]</strong> <a href="../../raw/weread/%E6%8C%81%E7%BB%AD%E4%BA%A4%E4%BB%982.0%EF%BC%9A%E4%B8%9A%E5%8A%A1%E5%BC%95%E9%A2%86%E7%9A%84DevOps%E7%B2%BE%E8%A6%81%EF%BC%88%E5%A2%9E%E8%AE%A2%E6%9C%AC%EF%BC%89.md">《持续交付 2.0》目录与公开热门划线</a>：软件配置管理中的数据版本管理、低风险发布和质量内建，落到 Expand/Contract 与恢复验收；不是书籍全文。</li>
+<li><strong>[书2]</strong> <a href="../../raw/weread/AI%E5%B7%A5%E7%A8%8B%EF%BC%9A%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%E5%AE%9E%E6%88%98.md">《AI 工程：大模型应用开发实战》目录与公开热门划线</a>：数据集工程、评估与 AI 工程架构，用来划分结构化事实源与生成派生视图；仅为目录与摘录。</li>
+<li><strong>[业1]</strong> <a href="../../raw/sources/arxiv-daily/2026-10-22-2610.31467.md">From Structured Records to Patient Narratives 本地摘要</a>，arXiv:2610.31467：结构化证据、语义漂移、不确定性保留和可读性权衡，转化为原始字段与生成文本分层保存；未复现 4,500 份摘要实验。</li>
+<li><strong>[业2]</strong> <a href="https://www.postgresql.org/docs/current/ddl-constraints.html">PostgreSQL 官方约束文档</a>：主键、外键、唯一、检查与非空约束的核对入口；<strong>GET 200，2026-11-04</strong>。</li>
+<li><strong>[业3]</strong> <a href="https://www.postgresql.org/docs/current/indexes.html">PostgreSQL 官方索引文档</a>：索引类型与适用性的核对入口；<strong>GET 200，2026-11-04</strong>。本文 SQLite 执行计划不冒充 PostgreSQL 计划。</li>
+</ul></div></body></html>

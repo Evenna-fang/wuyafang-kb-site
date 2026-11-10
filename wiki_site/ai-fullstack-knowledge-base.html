@@ -1,0 +1,622 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ai-fullstack-knowledge-base</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="index.html">🏠 总入口</a><a href="graph.html">🕸 关联图谱</a><a href="ontology/index.html">📖 术语表</a><span class="cur">/ ai-fullstack-knowledge-base</span></div><div class="wrap"><h1 id="移植自技能-researchai-fullstack-knowledge-base">移植自技能 research/ai-fullstack-knowledge-base</h1>
+<h1 id="ai全栈技术知识库2025-2026">AI全栈技术知识库（2025-2026）</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">一、RAG最新进展</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="11-学术前沿2025顶会论文">1.1 学术前沿（2025顶会论文）</h3>3
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>会议</th>
+<th>核心创新</th>
+<th>GitHub</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HyperGraphRAG</strong></td>
+<td>NeurIPS 2025</td>
+<td>超图结构知识表示，解决复杂关系检索</td>
+<td>LHRLAB/HyperGraphRAG</td>
+</tr>
+<tr>
+<td><strong>ViDoRAG</strong></td>
+<td>EMNLP 2025</td>
+<td>视觉文档RAG，动态迭代推理Agent</td>
+<td>Alibaba-NLP/ViDoRAG</td>
+</tr>
+<tr>
+<td><strong>KG2RAG</strong></td>
+<td>NAACL 2025</td>
+<td>知识图谱引导检索</td>
+<td>nju-websoft/KG2RAG</td>
+</tr>
+<tr>
+<td><strong>SubgraphRAG</strong></td>
+<td>ICLR 2025</td>
+<td>子图检索，简单有效</td>
+<td>Graph-COM/SubgraphRAG</td>
+</tr>
+<tr>
+<td><strong>MCTS-RAG</strong></td>
+<td>EMNLP 2025</td>
+<td>蒙特卡洛树搜索增强RAG</td>
+<td>yale-nlp/MCTS-RAG</td>
+</tr>
+<tr>
+<td><strong>InstructRAG</strong></td>
+<td>ICLR 2025</td>
+<td>自合成推理链指导RAG</td>
+<td>weizhepei/InstructRAG</td>
+</tr>
+<tr>
+<td><strong>SimGRAG</strong></td>
+<td>ACL 2025</td>
+<td>相似子图驱动KG-RAG</td>
+<td>YZ-Cai/SimGRAG</td>
+</tr>
+</tbody>
+</table>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1.2 工业实践趋势</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Naive RAG → Advanced RAG → Modular RAG → Agentic RAG</li><li>1. 混合检索：BM25 + 向量检索 + 知识图谱</li><li>2. 重排序：Cross-Encoder重排，提升精度</li></ul></div>3
+<p><strong>RAG架构演进</strong>：</p>
+<pre><code>Naive RAG → Advanced RAG → Modular RAG → Agentic RAG
+</code></pre>
+<p><strong>关键技术</strong>：<br />
+1. <strong>混合检索</strong>：BM25 + 向量检索 + 知识图谱<br />
+2. <strong>重排序</strong>：Cross-Encoder重排，提升精度<br />
+3. <strong>查询改写</strong>：HyDE、Multi-Query、Step-Back<br />
+4. <strong>上下文压缩</strong>：LongLLMLingua、Selective Context<br />
+5. <strong>自适应检索</strong>：根据查询复杂度动态选择检索策略</p>
+<p><strong>推荐技术栈</strong>：</p>
+<pre><code>文档加载: Unstructured / LlamaParse / Docling
+文本分割: Semantic Chunking / Late Chunking
+向量化: BGE-M3 / Jina Embeddings v3
+向量库: Milvus / Qdrant / ChromaDB / Weaviate
+重排序: BGE-Reranker / Cohere Rerank
+编排: LangChain / LlamaIndex / Haystack
+</code></pre>
+<h3 id="13-rag评估框架">1.3 RAG评估框架</h3>3
+<table>
+<thead>
+<tr>
+<th>框架</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RAGAS</strong></td>
+<td>自动化评估，无需标注</td>
+</tr>
+<tr>
+<td><strong>DeepEval</strong></td>
+<td>端到端评估，支持多种指标</td>
+</tr>
+<tr>
+<td><strong>TruLens</strong></td>
+<td>可观测性+评估</td>
+</tr>
+<tr>
+<td><strong>Phoenix (Arize)</strong></td>
+<td>追踪+评估+可视化</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">二、Agent框架最新动态</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="21-主流框架对比">2.1 主流框架对比</h3>3
+<table>
+<thead>
+<tr>
+<th>框架</th>
+<th>定位</th>
+<th>核心特点</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>LangGraph</strong></td>
+<td>图编排</td>
+<td>状态机、条件分支、人机协作</td>
+<td>复杂工作流</td>
+</tr>
+<tr>
+<td><strong>CrewAI</strong></td>
+<td>多Agent</td>
+<td>角色定义、任务编排、协作</td>
+<td>团队协作</td>
+</tr>
+<tr>
+<td><strong>AutoGen</strong></td>
+<td>对话式</td>
+<td>多Agent对话、代码执行</td>
+<td>研究探索</td>
+</tr>
+<tr>
+<td><strong>Swarm</strong></td>
+<td>轻量级</td>
+<td>函数调用、交接模式</td>
+<td>简单协作</td>
+</tr>
+<tr>
+<td><strong>MetaGPT</strong></td>
+<td>软件工程</td>
+<td>SOP驱动、文档生成</td>
+<td>项目开发</td>
+</tr>
+<tr>
+<td><strong>Camel</strong></td>
+<td>角色扮演</td>
+<td>双Agent对话</td>
+<td>任务分解</td>
+</tr>
+</tbody>
+</table>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.2 Agent设计模式</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Thought → Action → Observation → Thought → ...</li><li>Plan → Execute(subtask1) → Execute(subtask2) → ... → Synthesize</li><li>Act → Evaluate → Reflect → Act(improved) → ...</li></ul></div>3
+<p><strong>1. ReAct模式</strong>（推理+行动）</p>
+<pre><code>Thought → Action → Observation → Thought → ...
+</code></pre>
+<p><strong>2. Plan-and-Execute模式</strong></p>
+<pre><code>Plan → Execute(subtask1) → Execute(subtask2) → ... → Synthesize
+</code></pre>
+<p><strong>3. Reflexion模式</strong></p>
+<pre><code>Act → Evaluate → Reflect → Act(improved) → ...
+</code></pre>
+<p><strong>4. Multi-Agent Debate模式</strong></p>
+<pre><code>Agent1(提案) ↔ Agent2(质疑) → 共识 → 决策
+</code></pre>
+<p><strong>5. Hierarchical模式</strong></p>
+<pre><code>Manager(分配) → Worker1(执行) + Worker2(执行) → Manager(整合)
+</code></pre>
+<h3 id="23-agent工具生态">2.3 Agent工具生态</h3>3
+<p><strong>工具集成标准</strong>：<br />
+- <strong>MCP (Model Context Protocol)</strong>：Anthropic开放标准<br />
+- <strong>Function Calling</strong>：OpenAI标准<br />
+- <strong>Tool Use</strong>：各厂商自有协议</p>
+<p><strong>常用工具类别</strong>：</p>
+<pre><code>代码执行: Python/Node.js沙箱
+文件操作: 读写、搜索、转换
+网络请求: HTTP客户端、浏览器自动化
+数据库: SQL/NoSQL/向量库
+消息通讯: 邮件、Slack、Discord
+系统操作: Shell、进程管理
+</code></pre>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">三、模型微调最新技术</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="31-微调方法对比">3.1 微调方法对比</h3>3
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>参数量</th>
+<th>显存需求</th>
+<th>效果</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Full Fine-tuning</strong></td>
+<td>100%</td>
+<td>极高</td>
+<td>最好</td>
+<td>大规模数据</td>
+</tr>
+<tr>
+<td><strong>LoRA</strong></td>
+<td>0.1-1%</td>
+<td>低</td>
+<td>好</td>
+<td>通用场景</td>
+</tr>
+<tr>
+<td><strong>QLoRA</strong></td>
+<td>0.1-1%</td>
+<td>极低</td>
+<td>好</td>
+<td>资源受限</td>
+</tr>
+<tr>
+<td><strong>DoRA</strong></td>
+<td>0.1-1%</td>
+<td>低</td>
+<td>更好</td>
+<td>追求效果</td>
+</tr>
+<tr>
+<td><strong>RSLoRA</strong></td>
+<td>0.1-1%</td>
+<td>低</td>
+<td>好</td>
+<td>稳定训练</td>
+</tr>
+<tr>
+<td><strong>GaLore</strong></td>
+<td>100%</td>
+<td>低</td>
+<td>好</td>
+<td>全参数低显存</td>
+</tr>
+</tbody>
+</table>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">3.2 训练框架</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>框架</th>
+<th>特点</th>
+<th>推荐度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>LLaMA-Factory</strong></td>
+<td>一站式，WebUI</td>
+<td>⭐⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Axolotl</strong></td>
+<td>配置驱动，灵活</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>XTuner</strong></td>
+<td>轻量，支持多模态</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>TRL</strong></td>
+<td>HuggingFace官方</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>Swift</strong></td>
+<td>阿里，模型丰富</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+</tbody>
+</table>
+<h3 id="33-数据准备最佳实践">3.3 数据准备最佳实践</h3>3
+<p><strong>数据格式</strong>：</p>
+<pre><code class="language-json">// 对话格式
+{&quot;conversations&quot;: [{&quot;from&quot;: &quot;human&quot;, &quot;value&quot;: &quot;...&quot;}, {&quot;from&quot;: &quot;gpt&quot;, &quot;value&quot;: &quot;...&quot;}]}
+
+// 指令格式
+{&quot;instruction&quot;: &quot;...&quot;, &quot;input&quot;: &quot;...&quot;, &quot;output&quot;: &quot;...&quot;}
+
+// 偏好格式（DPO/RLHF）
+{&quot;prompt&quot;: &quot;...&quot;, &quot;chosen&quot;: &quot;...&quot;, &quot;rejected&quot;: &quot;...&quot;}
+</code></pre>
+<p><strong>数据质量</strong>：<br />
+- 去重：MinHash + LSH<br />
+- 清洗：规则过滤 + 模型打分<br />
+- 多样性：聚类采样<br />
+- 标注一致性：多人标注 + 仲裁</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.4 评估方法</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>基准</th>
+<th>评估内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MMLU</strong></td>
+<td>知识广度</td>
+</tr>
+<tr>
+<td><strong>HumanEval</strong></td>
+<td>代码能力</td>
+</tr>
+<tr>
+<td><strong>MT-Bench</strong></td>
+<td>对话质量</td>
+</tr>
+<tr>
+<td><strong>AlpacaEval</strong></td>
+<td>指令遵循</td>
+</tr>
+<tr>
+<td><strong>C-Eval</strong></td>
+<td>中文能力</td>
+</tr>
+<tr>
+<td><strong>CMMLU</strong></td>
+<td>中文知识</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="四向量数据库最新进展">四、向量数据库最新进展</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.1 主流向量数据库对比</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>数据库</th>
+<th>类型</th>
+<th>特点</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Milvus</strong></td>
+<td>分布式</td>
+<td>高性能、大规模</td>
+<td>生产环境</td>
+</tr>
+<tr>
+<td><strong>Qdrant</strong></td>
+<td>独立服务</td>
+<td>Rust实现、过滤强</td>
+<td>高性能场景</td>
+</tr>
+<tr>
+<td><strong>ChromaDB</strong></td>
+<td>嵌入式</td>
+<td>简单易用</td>
+<td>原型开发</td>
+</tr>
+<tr>
+<td><strong>Weaviate</strong></td>
+<td>独立服务</td>
+<td>混合检索、多模态</td>
+<td>复杂场景</td>
+</tr>
+<tr>
+<td><strong>Pinecone</strong></td>
+<td>云服务</td>
+<td>全托管</td>
+<td>快速上线</td>
+</tr>
+<tr>
+<td><strong>pgvector</strong></td>
+<td>PostgreSQL扩展</td>
+<td>与PG集成</td>
+<td>已有PG</td>
+</tr>
+<tr>
+<td><strong>LanceDB</strong></td>
+<td>嵌入式</td>
+<td>列式存储、高效</td>
+<td>大规模嵌入</td>
+</tr>
+</tbody>
+</table>
+<h3 id="42-索引类型">4.2 索引类型</h3>3
+<table>
+<thead>
+<tr>
+<th>索引</th>
+<th>精度</th>
+<th>速度</th>
+<th>内存</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Flat</strong></td>
+<td>最高</td>
+<td>最慢</td>
+<td>高</td>
+<td>小数据集</td>
+</tr>
+<tr>
+<td><strong>IVF</strong></td>
+<td>高</td>
+<td>快</td>
+<td>中</td>
+<td>通用</td>
+</tr>
+<tr>
+<td><strong>HNSW</strong></td>
+<td>高</td>
+<td>最快</td>
+<td>高</td>
+<td>低延迟</td>
+</tr>
+<tr>
+<td><strong>PQ</strong></td>
+<td>中</td>
+<td>快</td>
+<td>低</td>
+<td>大规模</td>
+</tr>
+<tr>
+<td><strong>SCANN</strong></td>
+<td>高</td>
+<td>快</td>
+<td>中</td>
+<td>Google推荐</td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.3 混合检索方案</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-python"># BM25 + 向量 + 重排序
+def hybrid_search(query, top_k=10):
+    # 1. BM25检索
+    bm25_results = bm25_search(query, top_k * 2)
+
+    # 2. 向量检索
+    vector_results = vector_search(query, top_k * 2)
+
+    # 3. 融合（RRF）
+    merged = reciprocal_rank_fusion(bm25_results, vector_results)
+
+    # 4. 重排序
+    reranked = reranker.rank(query, merged[:top_k * 2])
+
+    return reranked[:top_k]
+</code></pre>
+<hr />
+<h2 id="五llm应用架构最佳实践">五、LLM应用架构最佳实践</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.1 应用架构分层</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>┌─────────────────────────────────────────┐</li><li>│ Web UI / CLI / API / 消息平台 │</li><li>├─────────────────────────────────────────┤</li></ul></div>3
+<pre><code>┌─────────────────────────────────────────┐
+│              用户界面层                    │
+│   Web UI / CLI / API / 消息平台           │
+├─────────────────────────────────────────┤
+│              应用编排层                    │
+│   LangChain / LlamaIndex / 自定义        │
+├─────────────────────────────────────────┤
+│              Agent层                      │
+│   规划 / 执行 / 记忆 / 工具               │
+├─────────────────────────────────────────┤
+│              模型层                       │
+│   LLM / Embedding / Reranker / 多模态    │
+├─────────────────────────────────────────┤
+│              数据层                       │
+│   向量库 / 知识图谱 / 文档库 / 缓存       │
+├─────────────────────────────────────────┤
+│              基础设施层                    │
+│   GPU / 容器 / 编排 / 监控 / 日志         │
+└─────────────────────────────────────────┘
+</code></pre>
+<h3 id="52-关键设计原则">5.2 关键设计原则</h3>3
+<p><strong>1. 模型无关性</strong></p>
+<pre><code class="language-python"># 抽象模型接口
+class LLMProvider:
+    def chat(messages, tools=None) -&gt; Response
+    def embed(texts) -&gt; List[float]
+</code></pre>
+<p><strong>2. 可观测性</strong></p>
+<pre><code class="language-python"># 追踪每次调用
+@trace
+def rag_query(question):
+    docs = retrieve(question)
+    answer = generate(question, docs)
+    return answer
+</code></pre>
+<p><strong>3. 缓存策略</strong></p>
+<pre><code class="language-python"># 语义缓存
+cache = SemanticCache(threshold=0.95)
+if cached := cache.get(query):
+    return cached
+result = llm(query)
+cache.set(query, result)
+</code></pre>
+<p><strong>4. 降级策略</strong></p>
+<pre><code class="language-python"># 主模型失败自动降级
+providers = [primary, secondary, fallback]
+for provider in providers:
+    try:
+        return provider.chat(messages)
+    except:
+        continue
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.3 性能优化</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>vLLM / TGI：高吞吐推理</li><li>量化：GPTQ / AWQ / GGUF</li></ul></div>3
+<p><strong>推理优化</strong>：<br />
+- vLLM / TGI：高吞吐推理<br />
+- 量化：GPTQ / AWQ / GGUF<br />
+- 推测解码：Draft + Verify</p>
+<p><strong>检索优化</strong>：<br />
+- 索引预计算<br />
+- 批量检索<br />
+- 异步并行</p>
+<p><strong>成本优化</strong>：<br />
+- 小模型处理简单任务<br />
+- 语义缓存减少重复调用<br />
+- Prompt压缩减少Token</p>
+<h3 id="54-安全最佳实践">5.4 安全最佳实践</h3>3
+<pre><code>输入过滤 → Prompt注入检测 → 输出过滤 → 内容审核
+</code></pre>
+<p><strong>关键措施</strong>：<br />
+1. 输入Sanitization<br />
+2. System Prompt保护<br />
+3. 输出格式校验<br />
+4. 敏感信息过滤<br />
+5. 速率限制<br />
+6. 审计日志</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">六、学习资源</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="61-推荐课程">6.1 推荐课程</h3>3
+<ul>
+<li><strong>LangChain官方教程</strong>：https://python.langchain.com/docs/tutorials</li>
+<li><strong>LlamaIndex文档</strong>：https://docs.llamaindex.ai</li>
+<li><strong>HuggingFace课程</strong>：https://huggingface.co/learn</li>
+<li><strong>DeepLearning.AI短课程</strong>：https://www.deeplearning.ai/short-courses</li>
+</ul>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">6.2 推荐论文</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>RAG综述：Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks</li><li>Agent综述：A Survey on Large Language Model based Autonomous Agents</li><li>微调综述：A Survey of Large Language Models</li></ul></div>3
+<ul>
+<li>RAG综述：Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks</li>
+<li>Agent综述：A Survey on Large Language Model based Autonomous Agents</li>
+<li>微调综述：A Survey of Large Language Models</li>
+</ul>
+<h3 id="63-推荐社区">6.3 推荐社区</h3>3
+<ul>
+<li><strong>HuggingFace</strong>：模型和数据集</li>
+<li><strong>GitHub Trending</strong>：最新开源项目</li>
+<li><strong>arXiv</strong>：最新论文</li>
+<li><strong>Papers With Code</strong>：论文+代码</li>
+</ul>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">更新记录</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>2026-09-18: 初始版本，覆盖RAG、Agent、微调、向量库、LLM架构</li></ul></div>2
+<ul>
+<li>2026-09-18: 初始版本，覆盖RAG、Agent、微调、向量库、LLM架构</li>
+</ul>
+<hr />
+<h2 id="质量门禁">质量门禁</h2>2
+<ul>
+<li>[ ] 所有步骤已执行完毕，无跳过项</li>
+<li>[ ] 关键输出已产出（文件/命令结果/报告）</li>
+<li>[ ] 无未处理的报错或警告</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">失败回退</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>步骤失败 → 先读报错信息，查 error-ledger 是否有已知解法</li><li>两次重试仍失败 → 停止，整理已知信息报给用户，不硬闯</li><li>输出不符合预期 → 检查输入是否正确，再检查执行环境</li></ul></div>2
+<ul>
+<li>步骤失败 → 先读报错信息，查 error-ledger 是否有已知解法</li>
+<li>两次重试仍失败 → 停止，整理已知信息报给用户，不硬闯</li>
+<li>输出不符合预期 → 检查输入是否正确，再检查执行环境</li>
+</ul>
+<h2 id="自优化">自优化</h2>2
+<p>使用后记录到 <code>~/.hermes/skills/_usage/ai-fullstack-knowledge-base.md</code>：<br />
+- 触发场景：用户实际说了什么触发了它<br />
+- 执行偏差：哪一步走不通/走偏了<br />
+- 改进建议：下次该怎么改</p>
+<p>下次触发本技能时，先读 <code>_usage/ai-fullstack-knowledge-base.md</code>（如果存在），把教训融入执行。<br />
+连续3次无改进的技能 → 标记为「需重构」并提醒用户。</p></div></details></div></body></html>

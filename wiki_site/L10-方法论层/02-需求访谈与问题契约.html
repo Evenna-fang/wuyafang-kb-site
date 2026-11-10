@@ -1,0 +1,280 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>02-需求访谈与问题契约</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 02-需求访谈与问题契约</span></div><div class="wrap"><h1 id="需求访谈与问题契约从想要一个-ai走到可证伪的业务任务">需求访谈与问题契约：从“想要一个 AI”走到可证伪的业务任务</h1>
+<blockquote>
+<p>本篇是 L10 的需求发现唯一正文。向上承接<a href="01-FDE%E4%BB%B7%E5%80%BC%E9%97%AD%E7%8E%AF%E4%B8%8E%E4%BA%A4%E4%BB%98%E9%97%A8%E7%A6%81.html">FDE 价值闭环与交付门禁</a>，向下把问题契约交给<a href="03-%E6%8A%80%E6%9C%AF%E9%80%89%E5%9E%8B%E4%B8%8E%E9%AA%8C%E8%AF%81%E5%86%B3%E7%AD%96.html">技术选型与验证决策</a>。访谈节奏、模板、代码和案例是综合后的可执行建议，不是 GOV.UK、Palantir 或论文的官方模板；书籍材料只使用本地目录与划线，不声称读过书籍全文。示例数据均为合成数据。</p>
+</blockquote>
+<h2 id="why为什么客户说要什么不足以启动开发">WHY：为什么“客户说要什么”不足以启动开发</h2>2
+<p>客户提出的常常是解决方案：“做一个聊天机器人”“让智能体自动审批”“生成经营分析 SQL”。这些请求可能合理，却没有说明原先的任务、失败代价和不可越过的边界。若直接把请求翻译成功能清单，团队会过早锁定技术；即使功能全部实现，也可能只让错误结果产生得更快。</p>
+<p>《持续交付2.0》的本地划线把需求探索与客户真正的问题联系起来；《FDE：AI落地实战指南》的划线指出，访谈若习惯用封闭问题验证自己的假设，就会错过新信息。[书1][书2] 两者在落地时应变成一条纪律：<strong>先问最近一次真实事件，再问解释与愿望；先寻找能推翻假设的材料，再寻找支持材料。</strong>访谈的成果不是让客户赞同演示，而是降低“是否值得做、先做什么、不能做什么”的决策不确定性。</p>
+<p>以报表助手为例，“写 SQL 很慢”可能只是表面。真正耗时的也许是确认收入是否含退款、组织调整后客户归谁、哪个字段代表订单完成。课件展示把表结构和自然语言需求交给模型生成联合查询，再用 Streamlit 呈现的路径；它能作为实现起点，却不能替业务方裁决指标口径。[课1] 若问题契约没有定义语义、权限和预期动作，模型只会更快地产生争议数字。</p>
+<p>不解决这一问题，会出现四类隐性成本：把低价值愿望做成高成本平台；把管理者转述误当一线事实；把满意度误当业务收益；把访谈中的估计数字写成无可追溯的验收承诺。更隐蔽的损失是，团队之后每换一次模型、检索或界面，都没有稳定的问题基准可比较，只能重新追逐演示效果。</p>
+<h2 id="what-whyt问题契约是什么与相似概念有何区别">WHAT / WHYT：问题契约是什么，与相似概念有何区别</h2>2
+<h3 id="1-先分清请求需要事实假设和约束">1. 先分清请求、需要、事实、假设和约束</h3>3
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>含义</th>
+<th>示例</th>
+<th>不能怎样使用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>请求</td>
+<td>受访者想要的方案</td>
+<td>“自动生成周报”</td>
+<td>不能直接当技术规格</td>
+</tr>
+<tr>
+<td>需要</td>
+<td>请求背后的工作目的</td>
+<td>“会前识别可能延期的订单”</td>
+<td>不能脱离任务情境排名</td>
+</tr>
+<tr>
+<td>事实</td>
+<td>有出处、可核对的观察</td>
+<td>“事件 E03 中切换三个系统核对日期”</td>
+<td>不能由个别事件泛化到所有人</td>
+</tr>
+<tr>
+<td>假设</td>
+<td>待验证的因果解释</td>
+<td>“系统切换是主要延迟来源”</td>
+<td>不能写成已证实结论</td>
+</tr>
+<tr>
+<td>约束</td>
+<td>当前不可突破的边界</td>
+<td>“合同数据不得进入未批准服务”</td>
+<td>不能被高平均分抵消</td>
+</tr>
+</tbody>
+</table>
+<p>一句“销售都不看周报，因为内容不准”同时包含全体泛化、原因解释和质量判断。应追问谁、哪份周报、哪次决策、哪些内容不准以及造成什么后果。无法补足的内容可以保留，但须标为观察或假设。这样做不是抠字眼，而是阻止一句评价直接变成昂贵架构。</p>
+<h3 id="2-最小分析单位是业务事件不是抽象-persona">2. 最小分析单位是业务事件，不是抽象 persona</h3>3
+<p>问题定义应写清：某角色在什么触发条件下，对什么业务对象采取什么动作，什么状态算完成。例如“运营人员接到客户催单后，核对订单、库存与物流状态，决定继续承诺或升级异常”。事件有起止，才能讨论时长；对象有标识和状态，才能对齐数据；动作有权限和后果，才能讨论自动化。</p>
+<p>Palantir Ontology 官方文档把对象、属性、关系与动作用于连接数字资产和现实组织。[业2] 本篇借用的是对象意识，而不是要求每个项目购买平台：出现业务名词就追问标识、状态、来源和更新责任；出现动作就追问触发条件、执行权、幂等与补偿。轻量项目用表格和状态机也能表达。</p>
+<h3 id="3-问题契约不同于需求清单prd-和验收分数">3. 问题契约不同于需求清单、PRD 和验收分数</h3>3
+<ul>
+<li><strong>需求清单</strong>列“要做什么”，问题契约还记录为什么做、如何证伪、何时停止。</li>
+<li><strong>PRD</strong>描述产品行为，问题契约先约束值得解决的事件；二者可以互相链接，不可互相冒名。</li>
+<li><strong>验收分数</strong>是某版本的观察结果，问题契约定义分母、窗口、预期与护栏；不能用一次高分替换契约。</li>
+<li><strong>签字确认</strong>只表示相关责任人确认当前问题、约束和验证方式，不等于授权取得全部数据，也不等于承诺未来所有技术选择。</li>
+</ul>
+<p>最小问题陈述为：“某类人员在某情境下，为完成某任务，因已观察到的障碍承受某损失；拟在约束内验证某种改进，使用某口径判断是否有效。”没有基线就写“待测”和补测计划，不能为让文档完整而填推测数字。</p>
+<h3 id="4-论文纠偏标准答案和评分量尺本身就是契约的一部分">4. 论文纠偏：标准答案和评分量尺本身就是契约的一部分</h3>3
+<p><strong>论文怎么说。</strong>《How Ground Truth Shapes Retrieval Scores》（arXiv:2610.31606）在一个仅含 18 篇文档、18 个查询的乳腺病变管理 RAG 开发集上，把接受证据区间从 25 个扩充到 37 个、接受 chunk 目标从 36 个增至 51 个，检索排序没有变化，但 R-Precision、Recall@3、MRR@3、nDCG@3 的识别结果受标注覆盖影响；论文也明确小样本和检索参与标注需要独立验证。[业3]</p>
+<p><strong>我们怎么用。</strong>访谈不能只收“唯一标准答案在哪里”，还要问“哪些资料都可作为依据、哪些组合才足够、什么情况下必须升级”。问题契约应保存证据覆盖版本、允许的等价依据、争议裁决人和未标注风险。离线分数变化时先排除标注覆盖变化，不能立即归因于模型或检索器退化。该论文的数值不能外推为本库预期指标。</p>
+<p><strong>论文怎么说。</strong>《Change the Number, Change the Answer》（arXiv:2610.22187）交叉比较连续/有序格式、不同量尺范围与正负号后发现，仅改变一个量尺设计元素，归一化分数平均约移动 0.10，约 20% 文本的类别发生变化；在其三项社会科学任务和五个模型上，rubric 提示并未消除这种敏感性。[业4]</p>
+<p><strong>我们怎么用。</strong>“用户满意度 1—5 分”不能直接成为无歧义目标。契约要固定量尺、方向、锚点和示例；重要结论用替代量尺做稳健性检查，同时保留“不得越权”“必须能恢复”等确定性门槛。模型评分只用于其适合的质量维度，不能替代业务裁决。论文结果不代表每个项目都会移动同样幅度。</p>
+<h2 id="how从招募访谈到机器可查契约的七步法">HOW：从招募、访谈到机器可查契约的七步法</h2>2
+<h3 id="第一步用待做决定倒推研究问题">第一步：用待做决定倒推研究问题</h3>3
+<p>先列访谈后必须做出的决定：是否值得投入验证、先做哪个流程切片、是否需要真实写入、数据能否合法取得。再为每个决定写最大未知和“什么证据会改变决定”。研究问题不能原样变成抽象考题：团队想知道“自动化风险来自哪里”，用户问题应是“请带我看最近一次退回重做的订单，当时谁发现、后来怎样修正”。</p>
+<p>按差异招募，不只找最支持项目的人。至少考虑日常操作者、流程负责人、数据维护者和权限/风险负责人；若新手与熟手、班次、地区或负荷会改变任务，也应覆盖。这里不规定“访谈五个人就够”，停止依据是新增访谈是否仍改变问题、约束或例外清单。赞助人不能替代一线人员，管理者看到的平均情况也不能掩盖峰值和长尾。</p>
+<p>GOV.UK 深度访谈指南强调围绕研究问题设计提纲、开放中性问法、真实故事、知情同意和研究数据安全保存。[业1] 邀请中应说明目的、参与方式、是否录音、谁能访问记录和保留期限。未获录音授权就用笔记；需要观察屏幕时优先批准的测试或脱敏环境，不因研究方便扩大数据权限。</p>
+<h3 id="第二步沿最近一次真实事件追到例外">第二步：沿最近一次真实事件追到例外</h3>3
+<p>可用这样的开场：“今天主要理解你怎样完成这类任务，不考核个人表现，也不要求你接受工具。请以最近一次实际事件为例，敏感内容可以跳过。”随后按“情境—事件—动作—例外—代价—约束—成功定义”展开。不要先展示 Demo，也不要用“准备帮你省一半时间”制造回答偏差。</p>
+<p>当对方说“通常要查很多资料”，追问：“最近一次你先打开什么，接着依据什么决定下一步？”逐步记录输入、系统、等待、判断、输出和返工。复制粘贴、离开系统找人、重复录入可能暴露接口或口径缺口，但不能把所有手工复核都当浪费；其中一些正是风险控制。</p>
+<p>用反例检查解释。“是不是因为系统慢”把答案塞进问题，应改为“哪一步最难推进，最近一次发生了什么”。“如果加 AI 你会用吗”只能得到态度，应改问“你现在用什么替代”“哪种情况宁愿自己做”“上次引入新工具卡在哪里”。同时观察没有出问题的同类事件，比较顺利与返工案件的资料、权限、人员和任务差异，避免只研究失败而夸大频率。</p>
+<p>业务代价要区分回忆与记录。“每天十几次”是估计，不等于日志计数；“浪费两小时”可能含并行等待，不等于可兑现劳动节约。追问记录入口，再由授权人员核对。优先级综合频率、后果、可干预性、证据可得性和风险，不机械相乘出伪精确排名。</p>
+<h3 id="第三步把流程数据权限和例外画在一起">第三步：把流程、数据、权限和例外画在一起</h3>3
+<table>
+<thead>
+<tr>
+<th>观察维度</th>
+<th>必记字段</th>
+<th>继续追问</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>触发与结束</td>
+<td>事件起点、完成状态、接收者</td>
+<td>是系统结束还是用户得到结果</td>
+</tr>
+<tr>
+<td>对象与口径</td>
+<td>标识、状态、指标定义、版本</td>
+<td>不同部门是否同义</td>
+</tr>
+<tr>
+<td>判断与动作</td>
+<td>依据、决定、执行人、审批</td>
+<td>谁有权做，重复执行会怎样</td>
+</tr>
+<tr>
+<td>时间与等待</td>
+<td>处理、排队、返工、并行步骤</td>
+<td>真正瓶颈在哪里</td>
+</tr>
+<tr>
+<td>数据与来源</td>
+<td>原系统、版本、更新责任</td>
+<td>缺失、冲突、过期由谁解释</td>
+</tr>
+<tr>
+<td>例外与后果</td>
+<td>少见异常、升级、恢复、追责</td>
+<td>如何发现并由谁接管</td>
+</tr>
+</tbody>
+</table>
+<p>对 SQL 场景，可先取得批准的表结构、字段释义、脱敏样本和典型问题。课件中的表结构输入是良好起点，[课1] 生产发现还需主外键、关联关系、时间口径、逻辑删除、租户过滤和更新频率。字段名相似不等于业务等价。</p>
+<p>对知识问答，要核对资料版本、发布、撤回、角色可见范围和答案争议裁决人。对工具代理，要列出可读/可写系统、参数边界、授权链和重复执行后果。首次访谈不索要密码或密钥；记录访问方式和责任人即可。合规问题先问用途、对象、数据、地域和权益影响，再由有权限的专业人员核验法规与合同，不凭“金融”“内部”等标签猜义务。</p>
+<h3 id="第四步形成事实解释决定待验证链">第四步：形成“事实—解释—决定—待验证”链</h3>3
+<p>给每条原始记录分配事件编号。三次查询被退回是事实，“术语不一致”是解释，“先建指标口径表”是决定；若后来发现退回源于数据过期，保留事实并修订解释和决定，不把历史改写成团队一开始就正确。跨角色复核共享脱敏摘要，不把个人抱怨、身份线索和敏感评价广播给所有参与者。</p>
+<p>基线先定义统计单位、起止点、样本窗口、排除项和缺失处理，再写数字。目标同时包含主要收益、质量护栏和运营护栏。例如“缩短资料核对时间”必须同时观察错误升级是否可追踪、权限泄露是否增加、专家复核是否转移。不同口径的前后数字不可直接比较，也不能用平均时长掩盖长尾等待。</p>
+<p>可直接使用下面的契约骨架；空格不知道就标未知和负责人，不编造：</p>
+<pre><code class="language-text">问题编号、版本与状态：
+受影响角色、触发事件与业务对象：
+现状事实：事件编号、证据入口、覆盖限制
+主要损失：频率/耗时/错误/风险；估计与实测分开
+目标结果：分子、分母、窗口、阈值、数据源、裁决人
+质量、权限与运营护栏：
+范围与非目标：用户、数据、动作、环境
+关键假设与推翻条件：
+可接受证据及等价依据；标注版本与争议裁决人
+最小验证方案及现状/非 AI 对照：
+数据、业务、风险与维护责任人：
+未知项、负责人、完成条件：
+确认记录与变更原因：
+</code></pre>
+<h3 id="第五步把契约和负例变成可运行检查">第五步：把契约和负例变成可运行检查</h3>3
+<p>下面是一个只依赖 Python 标准库的<strong>最小契约校验器</strong>。它不会判断业务是否正确，只检查关键字段、指标口径和由事件生成的正反例是否齐全，防止“文档存在但无法验收”。将代码保存为 <code>contract_check.py</code>，示例保存为 <code>contract.json</code>，运行 <code>python3 contract_check.py contract.json</code>。本次已用合成样例实跑；真实访谈数据未运行、也不应未经批准交给外部服务。</p>
+<pre><code class="language-python">import json
+import sys
+
+REQUIRED = (&quot;problem_id&quot;, &quot;version&quot;, &quot;owner&quot;, &quot;events&quot;, &quot;non_goals&quot;, &quot;metrics&quot;)
+EVENT_REQUIRED = (
+    &quot;event_id&quot;, &quot;actor&quot;, &quot;trigger&quot;, &quot;observation&quot;, &quot;evidence_ref&quot;,
+    &quot;expected_behavior&quot;, &quot;forbidden_behavior&quot;,
+)
+METRIC_REQUIRED = (&quot;name&quot;, &quot;numerator&quot;, &quot;denominator&quot;, &quot;window&quot;, &quot;source&quot;, &quot;owner&quot;)
+
+
+def require_fields(item, fields, label):
+    missing = [key for key in fields if key not in item or item[key] in (&quot;&quot;, None, [])]
+    if missing:
+        raise ValueError(f&quot;{label} 缺字段: {', '.join(missing)}&quot;)
+
+
+def validate(contract):
+    require_fields(contract, REQUIRED, &quot;contract&quot;)
+    event_ids = set()
+    cases = []
+    for event in contract[&quot;events&quot;]:
+        require_fields(event, EVENT_REQUIRED, &quot;event&quot;)
+        event_id = event[&quot;event_id&quot;]
+        if event_id in event_ids:
+            raise ValueError(f&quot;重复 event_id: {event_id}&quot;)
+        event_ids.add(event_id)
+        cases.append({
+            &quot;case_id&quot;: f&quot;{event_id}-positive&quot;,
+            &quot;event_id&quot;: event_id,
+            &quot;expected&quot;: event[&quot;expected_behavior&quot;],
+        })
+        cases.append({
+            &quot;case_id&quot;: f&quot;{event_id}-negative&quot;,
+            &quot;event_id&quot;: event_id,
+            &quot;forbidden&quot;: event[&quot;forbidden_behavior&quot;],
+        })
+    for metric in contract[&quot;metrics&quot;]:
+        require_fields(metric, METRIC_REQUIRED, f&quot;metric:{metric.get('name', '?')}&quot;)
+    return cases
+
+
+if __name__ == &quot;__main__&quot;:
+    with open(sys.argv[1], encoding=&quot;utf-8&quot;) as handle:
+        document = json.load(handle)
+    generated = validate(document)
+    print(json.dumps({&quot;status&quot;: &quot;PASS&quot;, &quot;eval_case_count&quot;: len(generated),
+                      &quot;cases&quot;: generated}, ensure_ascii=False, indent=2))
+</code></pre>
+<pre><code class="language-json">{
+  &quot;problem_id&quot;: &quot;SYNTH-REPORT-001&quot;,
+  &quot;version&quot;: &quot;0.1&quot;,
+  &quot;owner&quot;: &quot;合成案例业务负责人&quot;,
+  &quot;events&quot;: [{
+    &quot;event_id&quot;: &quot;E001&quot;,
+    &quot;actor&quot;: &quot;经营分析师&quot;,
+    &quot;trigger&quot;: &quot;月度经营会前核对收入&quot;,
+    &quot;observation&quot;: &quot;收入是否扣退款需要向数据维护者再次确认&quot;,
+    &quot;evidence_ref&quot;: &quot;synthetic://event/E001&quot;,
+    &quot;expected_behavior&quot;: &quot;输出指标口径和依据；口径缺失时升级&quot;,
+    &quot;forbidden_behavior&quot;: &quot;未说明口径就给出确定经营结论&quot;
+  }],
+  &quot;non_goals&quot;: [&quot;不自动执行写库&quot;, &quot;不覆盖未批准指标&quot;],
+  &quot;metrics&quot;: [{
+    &quot;name&quot;: &quot;口径正确任务占比&quot;,
+    &quot;numerator&quot;: &quot;经业务裁决口径正确的任务数&quot;,
+    &quot;denominator&quot;: &quot;验收集内全部应回答任务数&quot;,
+    &quot;window&quot;: &quot;试点两周，按任务类型分层&quot;,
+    &quot;source&quot;: &quot;合成验收记录入口&quot;,
+    &quot;owner&quot;: &quot;合成案例评测负责人&quot;
+  }]
+}
+</code></pre>
+<p>真实项目还应加入可接受证据、量尺版本、样本分层和人工裁决记录。这个脚本故意不输出“业务价值通过”，因为机器字段完整不等于需求成立；它的职责只是挡住缺分母、缺来源、缺负例等机械缺口。</p>
+<h3 id="第六步用最小验证检验最危险的假设">第六步：用最小验证检验最危险的假设</h3>3
+<p>从契约中选最可能改变决定的未知，设计能推翻它的实验。若语义口径是主要风险，就先比较统一口径和现有搜索；若动态规划是主要风险，再比较固定流程与代理。样本覆盖普通、缺失、冲突、过期、无权限和应拒答事件，保留开发现样本与独立验收集。访谈中获得的“旧版手册必须找专家”可直接变成负例：预期是提示冲突并升级，而不是任选一篇回答。</p>
+<p>论文 arXiv:2610.31606 提醒评测要保存证据覆盖，arXiv:2610.22187 提醒保存量尺设计；因此实验报告至少写 <code>dataset_version</code>、<code>evidence_annotation_version</code>、<code>rubric_version</code> 和评分者校准情况。改变其中任一项时，不把它与模型改动混为同一个因果结论。这里的字段设计是本文落地建议，不是论文提供的现成工具。</p>
+<h3 id="第七步三方复述后再进入选型">第七步：三方复述后再进入选型</h3>3
+<p>收口时交出问题契约、带出处的现状流程、关键术语表、证据缺口、风险清单、正负样本和最小验证计划。业务方用自己的话复述问题与非目标；工程方说明还需要什么证据才能选方案；风险责任人确认不可越过的边界。三方对“完成”和“停止”的理解一致，才进入<a href="03-%E6%8A%80%E6%9C%AF%E9%80%89%E5%9E%8B%E4%B8%8E%E9%AA%8C%E8%AF%81%E5%86%B3%E7%AD%96.html">技术选型与验证决策</a>。</p>
+<p>需求不是一次签字后的永久真理。新事件推翻假设时，修订版本、记录原因、通知受影响负责人，并重估成本、样本和发布门禁。只访谈经理、开场展示 Demo、只收愿望、虚构基线、把用户原话当标准答案，都是要返工的信号。制度规定与真实做法不一致时，两者都保留，由相应责任人决定改制度、改系统还是改培训。</p>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] 课件：<a href="../../raw/courseware/%E9%A3%9E%E4%B9%A6%E6%96%B0%E7%A9%BA%E9%97%B4/Prompt%20Engineering%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98.md">《Prompt Engineering项目实战》</a>，实战2“数据库联合查询SQL语句生成”。落点：把“表结构+问题+模型+界面”作为实现入口，同时补上课程未自动证明的指标语义、权限、对账和负例。</li>
+<li>[书1] 书籍划线摘录：<a href="../../raw/weread/FDE%EF%BC%9AAI%E8%90%BD%E5%9C%B0%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97.md">樊中恺《FDE：AI落地实战指南》</a>，第5章封闭问题、第8章数据与接口责任、第9章既有工作流、第15章检索相关划线。落点：开放提问、进入真实流程、分清检索与业务验收；仅使用本地目录与划线，不声称书籍全文。</li>
+<li>[书2] 书籍划线摘录：<a href="../../raw/weread/%E6%8C%81%E7%BB%AD%E4%BA%A4%E4%BB%982.0%EF%BC%9A%E4%B8%9A%E5%8A%A1%E5%BC%95%E9%A2%86%E7%9A%84DevOps%E7%B2%BE%E8%A6%81%EF%BC%88%E5%A2%9E%E8%AE%A2%E6%9C%AC%EF%BC%89.md">乔梁《持续交付2.0：业务引领的DevOps精要（增订本）》</a>，第1、2章及价值探索环相关划线。落点：问题先于方案、端到端价值流和尽早验证；未把目录当正文。</li>
+<li>[业1] 官方方法指南：GOV.UK Service Manual，<em>Using in-depth interviews</em>，2026-11-04 GET 200。落点：研究问题、真实故事、开放中性问法、知情同意与数据保管。<code>https://www.gov.uk/service-manual/user-research/using-in-depth-interviews</code></li>
+<li>[业2] 官方文档：Palantir，<em>Ontology overview</em>，2026-11-04 GET 200。落点：对象、属性、关系和动作意识；不表示访谈模板是厂商流程。<code>https://www.palantir.com/docs/foundry/ontology/overview/</code></li>
+<li>[业3] 论文：Miguel Mochizuki Silva 等，<em>How Ground Truth Shapes Retrieval Scores</em>，arXiv:2610.31606；<a href="../../raw/sources/arxiv-daily/2026-10-22-2610.31606.md">本地摘要</a>。落点：把证据覆盖、等价依据和标注版本写进问题契约；未把 18 查询开发集结果外推。</li>
+<li>[业4] 论文：Wonjeong Jo 等，<em>Change the Number, Change the Answer</em>，arXiv:2610.22187；<a href="../../raw/sources/arxiv-daily/2026-10-15-2610.22187.md">本地摘要</a>。落点：固定量尺与锚点、做替代量尺稳健性检查、分开统计评分和硬边界。</li>
+</ul>
+<p>本次实跑仅限契约校验器的合成样例；真实访谈、数据库、RAG 系统、模型评分和外部平台均未实跑。论文依据为本地保存的标题、作者与摘要，未声称阅读论文全文；公开业内页面仅做只读 GET 核验。</p></div></body></html>

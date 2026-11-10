@@ -1,0 +1,125 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI工程踩坑Top10</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ AI工程踩坑Top10</span></div><div class="wrap"><h1 id="ai-工程踩坑-top10反面教材清单">AI 工程踩坑 Top10（反面教材清单）</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/rag-arch/%E5%8F%8D%E9%9D%A2%E6%95%99%E6%9D%90-%E8%B8%A9%E5%9D%91Top10-20260928.md">反面教材-踩坑Top10-20260928</a></p>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="%E9%94%99%E8%AF%AF%E5%8F%B0%E8%B4%A6%E6%9C%BA%E5%88%B6.html">错误台账机制</a> · <a href="%E6%B4%BE%E5%8D%95%E7%BA%AA%E5%BE%8B%E4%B8%89%E6%9D%A1.html">派单纪律三条</a> · <a href="Trace-Tampering%E9%98%B2%E5%BE%A1.html">Trace-Tampering防御</a></p>
+<p>来源: 从 <code>raw/rag-arch/反面教材-踩坑Top10-20260928.md</code> 提炼<br />
+原始出处: error-ledger 74 条实战踩坑（source_tier=1），按"发生次数 × 破坏性"排序<br />
+<strong>用法: 下次动手前对照本表，命中即绕。</strong></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">Top1 · MCP OAuth / 连接类批量失败</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>踩坑: 会话启动时大量 MCP server 连接失败 —— 线性 OAuth token 失效 191 次居首，docker 53 次，github/redis/filesystem 各 1 次</li><li>根因: MCP server 走 npx 拉包慢 + token 失效无自动重授权；一类根因多种表象，排查时被错误地按错误文案拆开了</li><li>怎么避免: ① 启动失败统一先查 「mcp doctor」；② OAuth 类定期重授权；③ 同类错误合并指纹（不按文案拆）</li></ul></div>2
+<ul>
+<li><strong>踩坑</strong>: 会话启动时大量 MCP server 连接失败 —— 线性 OAuth token 失效 <strong>191 次</strong>居首，docker <strong>53 次</strong>，github/redis/filesystem 各 1 次。</li>
+<li><strong>根因</strong>: MCP server 走 npx 拉包慢 + token 失效无自动重授权；一类根因多种表象，排查时被错误地按错误文案拆开了。</li>
+<li><strong>怎么避免</strong>: ① 启动失败统一先查 <code>mcp doctor</code>；② OAuth 类定期重授权；③ <strong>同类错误合并指纹</strong>（不按文案拆）。</li>
+</ul>
+<h2 id="top2-密钥字段名混乱-掩码占位符">Top2 · 密钥字段名混乱 + 掩码占位符</h2>2
+<ul>
+<li><strong>踩坑</strong>: <code>.env</code> 用 <code>XIAOMI_API_KEY</code> 但 Claude/DSH 要 <code>XIAOMIMIMO_API_KEY</code>；secrets.env 里存的是字面掩码 <code>sk-...</code> 而非真 key；settings.json 里 token 是含 U+2026 省略号的占位符 → 401/402 <strong>且不报错，难定位</strong>。</li>
+<li><strong>根因</strong>: 多 Agent 各自维护 key 字段名；统一改造时把"记忆里的掩码记法"当真值写回；read_file 读敏感文件返回 <code>«redacted»</code>，write_file 写回时把真值覆盖成占位符。</li>
+<li><strong>怎么避免</strong>: ① <strong>敏感文件禁 read_file → write_file 往返</strong>，一律用 python 直接读写；② check 脚本固化"值必须 sk- 开头且不含字面 …"门禁；③ 改 key 必跑一次全量校验脚本，一次暴露所有字段名问题。</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">Top3 · 自报不采信 / 编造审查结论</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>踩坑: Agent 自称"我测过了"但无外部凭据；自报"4 项自验全过"，调度者独立抽验发现实际未改；自称测试通过但只测正例、没测负例</li><li>根因: 执行 Agent 兼审查角色，自己验自己天然失真；正例通过 ≠ 负例不误报</li></ul></div>2
+<ul>
+<li><strong>踩坑</strong>: Agent 自称"我测过了"但无外部凭据；自报"4 项自验全过"，调度者独立抽验发现实际未改；自称测试通过但<strong>只测正例、没测负例</strong>。</li>
+<li><strong>根因</strong>: 执行 Agent 兼审查角色，自己验自己天然失真；正例通过 ≠ 负例不误报。</li>
+<li><strong>怎么避免</strong>: ① <strong>执行与审查角色分离</strong>（改动 &gt;3 文件必独立上下文复审）；② 派单卡强制贴命令原始输出，禁自述 ✅；③ 验收三件套：正例 + 负例误报 + 文档与实测一致，闭环系统必测往返。</li>
+</ul>
+<h2 id="top4-配置并发写-多副本漂移">Top4 · 配置并发写 + 多副本漂移</h2>2
+<ul>
+<li><strong>踩坑</strong>: 同批 6 个文件的切模型/同步/换 key 并发写，改一处漏一处；模型配置在 6 处 / 5 个文件重复定义，改一处另一处陈旧。</li>
+<li><strong>根因</strong>: 多 Agent 同时改同一批配置文件无串行锁；同一逻辑多处各自定义。</li>
+<li><strong>怎么避免</strong>: ① <strong>配置类操作全局串行</strong>，同批文件禁并发；② 抽共享模块做单一事实来源，两处 import 同一份；③ 只读校验器交叉核对每个引用。</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">Top5 · WSL / 9p 静默成功</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>根因: 路径勘察只看路径名和 「ls」，没做 「readlink -f」 / 「df -T」 / 「stat」；想当然假设文件都在 ext4</li></ul></div>2
+<ul>
+<li><strong>踩坑</strong>: 对文件 <code>chmod 600</code> 返回 0 但权限仍 777（软链指向 <code>/mnt/c</code>，9p 无 metadata 挂载，Linux chmod 在 9p 上是<strong>静默空操作</strong>）；WSL interop 启动 Windows exe 时 Linux env 全不过边界；从 WSL 用 powershell <code>Start-Process</code> 拉 IDE 触发崩溃。</li>
+<li><strong>根因</strong>: 路径勘察只看路径名和 <code>ls</code>，没做 <code>readlink -f</code> / <code>df -T</code> / <code>stat</code>；想当然假设文件都在 ext4。</li>
+<li><strong>怎么避免</strong>: ① 路径/权限勘察必做三件套 <strong><code>readlink -f</code> + <code>df -T</code> + <code>stat</code></strong>；② 对 <code>chmod</code>/<code>cp</code>/<code>sed -i</code> 等可能静默成功的命令，<strong>读回环境状态而非只看退出码</strong>；③ IDE 从 Windows 侧启动。</li>
+</ul>
+<h2 id="top6-批量替换模型名子串污染">Top6 · 批量替换模型名子串污染</h2>2
+<ul>
+<li><strong>踩坑</strong>: 批量替换 <code>mimo-v2.5</code> → <code>mimo-v2.6</code> 时无顺序 → 产出 <code>mimo-v2.6-flash-pro</code>；无负向前瞻 → 语音模型 <code>mimo-v2.5-asr/tts</code> 被毁成无效 id → API 404 全线回退。</li>
+<li><strong>根因</strong>: 正则替换没考虑子串包含关系 + 没保留特例。</li>
+<li><strong>怎么避免</strong>: ① <strong>两遍法</strong>：先替换长名，再用 <code>mimo-v2\.5(?![-a-z0-9])</code> 负向前瞻替换短名；② 替换前后必跑正负例：pro/base 改对 + asr/tts 保留。</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">Top7 · 技能上下文溢出</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>踩坑: 把 238 个技能全文内联进单个指令文件（1.9 MB），Codex 超预算丢弃 132 个技能；递归加载 623 个技能超预算，token 从 25820 崩到 80（被裁）</li><li>根因: 把"技能库"当成"上下文"塞进去，而非索引式按需读</li><li>怎么避免: ① 改索引式（仅技能名 + 路径，28 KB），按需 read_file 读取；② 移走软链到 archive；③ 单指令文件 token 预算硬顶</li></ul></div>2
+<ul>
+<li><strong>踩坑</strong>: 把 238 个技能全文内联进单个指令文件（1.9 MB），Codex 超预算丢弃 132 个技能；递归加载 623 个技能超预算，token 从 25820 崩到 80（被裁）。</li>
+<li><strong>根因</strong>: 把"技能库"当成"上下文"塞进去，而非索引式按需读。</li>
+<li><strong>怎么避免</strong>: ① 改<strong>索引式</strong>（仅技能名 + 路径，28 KB），按需 read_file 读取；② 移走软链到 archive；③ 单指令文件 token 预算硬顶。</li>
+</ul>
+<h2 id="top8-百炼-ollama-端点与免费档误判">Top8 · 百炼 / Ollama 端点与免费档误判</h2>2
+<ul>
+<li><strong>踩坑</strong>: <code>sk-sp-</code> 前缀的百炼套餐 key 只能在专属端点生效，用标准 <code>dashscope</code> 端点测试返回 401，<strong>误判 key 失效</strong>；Ollama 云端列 20 个模型但仅 5 个真免费，其余 15 个调用即 402。</li>
+<li><strong>根因</strong>: 验证 key 用错端点；模型列表 API 不标免费档。</li>
+<li><strong>怎么避免</strong>: ① 验证百炼 key 必须取 config 里该 provider 的<strong>实际 base_url</strong> 再测；② 选 Ollama 云端模型必 <code>curl</code> 实测筛免费档。</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">Top9 · 常驻手册路径错位</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>踩坑: 以为改了 Agent 常驻手册，实际注入路径是另一个文件；审查工具误判 config.yaml "全目录零引用、建议清理"，实为活配置（其加载代码自动发现）</li><li>根因: 改文件前没确认真实注入路径；判定文件死活只 grep 路径字符串，没查产品自身加载代码</li><li>怎么避免: ① 改常驻手册前先确认实际注入路径，改后让该 Agent 自述是否读到；② 判定文件死活必 grep 安装包自身加载代码，不能只 grep 路径字符串</li></ul></div>2
+<ul>
+<li><strong>踩坑</strong>: 以为改了 Agent 常驻手册，实际注入路径是另一个文件；审查工具误判 config.yaml "全目录零引用、建议清理"，实为活配置（其加载代码自动发现）。</li>
+<li><strong>根因</strong>: 改文件前没确认真实注入路径；判定文件死活只 grep 路径字符串，没查<strong>产品自身加载代码</strong>。</li>
+<li><strong>怎么避免</strong>: ① 改常驻手册前先确认实际注入路径，改后让该 Agent 自述是否读到；② 判定文件死活必 grep <strong>安装包自身加载代码</strong>，不能只 grep 路径字符串。</li>
+</ul>
+<h2 id="top10-正则重排-markdown-误伤">Top10 · 正则重排 markdown 误伤</h2>2
+<ul>
+<li><strong>踩坑</strong>: 用正则重排 markdown 段落时匹配范围过宽，整段核心准则被删，三份手册受损；向文件开头插入以 <code>---</code> 开头的块，制造 YAML frontmatter 污染，内容被解析器吞掉。</li>
+<li><strong>根因</strong>: 宽正则无边界；插入块首没确认目标文件首行结构。</li>
+<li><strong>怎么避免</strong>: ① 重排段落不用宽正则，先备份，改后立即 grep 关键段计数验证；② 插入块首不要用 <code>---</code>，插入后 <code>head -1</code> 验证。</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">共性教训（贯穿 Top10）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 先勘察再动手（readlink / df / stat / 查加载代码），不凭路径名假设</li><li>4. 配置类串行 —— 并发写同批文件必出漂移</li><li>5. 替换 / 重排必跑正负例 —— 子串污染 / 宽正则误伤都是没跑负例</li></ul></div>2
+<ol>
+<li><strong>先勘察再动手</strong>（readlink / df / stat / 查加载代码），不凭路径名假设。</li>
+<li><strong>敏感操作读回验证</strong> —— 退出码 = 0 不代表真成功，9p / 软链 / 掩码都是静默坑。</li>
+<li><strong>执行与审查分离</strong> —— 自己验自己 = 失真，已实证 3 次。</li>
+<li><strong>配置类串行</strong> —— 并发写同批文件必出漂移。</li>
+<li><strong>替换 / 重排必跑正负例</strong> —— 子串污染 / 宽正则误伤都是没跑负例。</li>
+</ol>
+<blockquote>
+<p>与本库的直接呼应：Top3（自报不采信）对应 <a href="%E6%B4%BE%E5%8D%95%E7%BA%AA%E5%BE%8B%E4%B8%89%E6%9D%A1.html">派单纪律三条</a>；Top10（正则误伤）在本库 2026-10-14 修 frontmatter 时真实复现过一次（正则吞掉 <code>---</code> 后的空行），已用专项脚本修复。</p>
+</blockquote></div></details></div></body></html>

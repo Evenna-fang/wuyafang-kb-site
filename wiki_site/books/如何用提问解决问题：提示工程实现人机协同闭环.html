@@ -1,0 +1,144 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>如何用提问解决问题：提示工程实现人机协同闭环</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 如何用提问解决问题：提示工程实现人机协同闭环</span></div><div class="wrap"><h1 id="书章节重点-如何用提问解决问题提示工程实现人机协同闭环">书章节重点 · 如何用提问解决问题：提示工程实现人机协同闭环</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书将“提问力”作为人机协作的核心杠杆，结合提示工程方法，构建“问题分解→验证迭代”的闭环流程</li><li>通过决策、创新、沟通、管理四类问题清单与50+工具模板，帮助读者把复杂问题拆解为大模型可处理的子问题，让AI成为解决问题的加速引擎</li><li>书中反复强调，提问不是向别人索取现成答案，而是主动界定目标、暴露假设、发现盲区和推动行动的思维方式</li></ul></div>2
+<p>本书将“提问力”作为人机协作的核心杠杆，结合提示工程方法，构建“问题分解→验证迭代”的闭环流程。通过决策、创新、沟通、管理四类问题清单与50+工具模板，帮助读者把复杂问题拆解为大模型可处理的子问题，让AI成为解决问题的加速引擎。书中反复强调，提问不是向别人索取现成答案，而是主动界定目标、暴露假设、发现盲区和推动行动的思维方式。把这一方法迁移到AI协作时，人的责任仍然是选择问题、提供背景、约束边界、核验事实并根据反馈继续追问；模型的作用则是扩展选项、整理信息、模拟不同视角和加快迭代。由此形成“人定方向、机助展开、共同验证”的协同闭环，而不是把判断权完全交给答案生成器。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<h3 id="推荐序-amp-测一测-提问的底层逻辑">推荐序 &amp; 测一测 提问的底层逻辑</h3>3
+<ul>
+<li><strong>核心观点1</strong>：提问驱动思考，答案终止想象——提问是决策、创造、沟通与管理的共同起点。面对复杂问题，先把模糊的不安转化为可讨论的问题，才能知道需要什么信息以及下一步行动是什么。</li>
+<li><strong>核心观点2</strong>：阻碍提问的五大敌人中，恐惧居首，知识紧随其后——知道得越多越觉得没必要问。真正的开放并不是没有知识，而是承认已有知识可能只是局部模型，允许事实修正自己的判断。</li>
+<li><strong>核心观点3</strong>：孩子式的开放提问不受知识与偏见束缚，是思考、探索和成长的理想条件。面对AI输出也应保留这种好奇心，继续追问依据、前提、反例和适用边界，而不是因为答案表达流畅就停止核验。</li>
+<li><strong>核心观点4</strong>：人类是“认知吝啬鬼”，倾向仓促决策以回避不确定性，因此需要刻意培养提问习惯。可以在行动前写下目标、已知事实、未知事项和最大风险，强迫自己把直觉变成可检查的假设。</li>
+<li><strong>核心观点5</strong>：提问能力如肌肉，须通过不断锻炼来加强；在当下信息过载与AI普及的环境中，提问比以往更重要。高质量提问至少包含任务、背景、对象、限制、输出格式和验收标准，越明确越容易获得可用结果。</li>
+<li><strong>核心观点6</strong>：提问的价值不只在得到答案，也在于改变观察角度。一个问题若能引出新的变量、利益相关者或反事实情境，就可能让旧问题重新被定义。</li>
+</ul>
+<blockquote>
+<p>《提问驱动思考，答案终止想象。》<br />
+《我认为“提问的五大天敌”中最大的就是恐惧。》<br />
+《如果说恐惧是提问的第一个敌人，那么紧随其后的就是知识。你知道的越多，就会越觉得没有必要问。》<br />
+《提问的能力就像一块肌肉，你必须通过不断的锻炼来加强它。》<br />
+《一个提问的孩子不会被积累的知识和偏见束缚，也不会受到“世界如何运作”及“事物为何如此”的假设困扰。他的思想开放而广阔，这些恰恰是思考、探索和成长的理想条件。》</p>
+</blockquote>
+<h3 id="01-决策问题清单">01 决策问题清单</h3>3
+<ul>
+<li><strong>核心观点1</strong>：决策前先自检信念——“我为什么相信我所相信的？如果我错了怎么办”，以侦察兵而非士兵的心态审视假设。提问时把事实、解释、价值偏好和情绪反应分开，避免把自己的推测误当成客观事实。</li>
+<li><strong>核心观点2</strong>：区分“是或否”型决定与开放式决定，后者不必追求唯一正确答案，可跟随当下直觉。开放式决定应比较选项的代价、收益、可逆性和学习价值，给出当前阶段足够好的选择。</li>
+<li><strong>核心观点3</strong>：疲倦、紧张或急于“结束这件事”时应避免做决定，此时决策易受情绪与冲动驱动。若无法推迟，就缩小承诺范围，先做可逆的小实验，用结果换取下一轮信息。</li>
+<li><strong>核心观点4</strong>：用“局外人视角”“未来的我”“如果不会失败”等换位提问克服恐惧、拓宽选项。把同一问题分别交给支持者、反对者和未来的自己审视，可以发现被当前身份遮蔽的代价。</li>
+<li><strong>核心观点5</strong>：决策后追问“我以后该怎样向其他人解释这个决定”，以可解释性反向检验决策质量。解释不等于讨好所有人，而是能够清楚说明目标、证据、取舍和后续复盘方式。</li>
+<li><strong>核心观点6</strong>：决策应保留回头路。将大承诺拆成阶段性动作，预先设定停止条件、复盘时间和转向信号，既降低恐惧，也让失败成为信息而非终点。</li>
+</ul>
+<blockquote>
+<p>《在做决定之前暂停，或在采取行动过程中问自己：我到底想达到什么目的？》<br />
+《有证据表明，当我们感到疲倦、紧张或只是急于“结束这件事”时，我们应该避免做决定。》<br />
+《任何努力后的失败都不是绝对的。几乎所有的事情都有回头路。》<br />
+《这些问题通常是没有“正确”答案的。所以没有必要考虑太多，不妨选择当下感觉正确的，也就是“跟着你的直觉走”。》</p>
+</blockquote>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">02 创新问题清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：创新始于主动搜寻问题而非等待灵感——“如果我主动搜寻问题会怎样”“这个世界缺失了什么”</li><li>核心观点2：打破常规、质疑行规是创新的前提，同事观点只是待验证的假设而非事实</li><li>追问“为什么必须这样”“谁从中受益”“如果反过来会怎样”，能把习惯性做法重新放回检验台</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：创新始于主动搜寻问题而非等待灵感——“如果我主动搜寻问题会怎样”“这个世界缺失了什么”。从用户抱怨、流程摩擦、重复劳动和未被服务的人群中寻找问题，比空等一个宏大创意更可靠。</li>
+<li><strong>核心观点2</strong>：打破常规、质疑行规是创新的前提，同事观点只是待验证的假设而非事实。追问“为什么必须这样”“谁从中受益”“如果反过来会怎样”，能把习惯性做法重新放回检验台。</li>
+<li><strong>核心观点3</strong>：识别个人“创新黄金时段”与不受地点限制的启动方式，降低进入创造状态的门槛。将灵感记录、问题清单和最小行动准备好，便能在短时间内开始，而不是把创作依赖于完美环境。</li>
+<li><strong>核心观点4</strong>：区分“完成”与“完善”，在准备好公开时果断发布，避免完美主义卡住进程。先交付可学习的版本，再依据真实反馈修订，能够让创新从个人想象进入现实循环。</li>
+<li><strong>核心观点5</strong>：创新具有激发洞察力、放飞想象力和强化执行力三重作用。问题提出后还要继续问“下一步最小动作是什么”，把新想法转化为可观察、可反馈的实验。</li>
+<li><strong>核心观点6</strong>：卡住时可以改变问题的尺度。把“如何彻底解决”改成“今天能验证什么”，把“我要创造什么”改成“谁正在经历什么困难”，通常能重新打开行动入口。</li>
+</ul>
+<blockquote>
+<p>《创新的3个重要作用：激发洞察力、放飞想象力和强化执行力。》<br />
+《创新，必须敢于打破常规，质疑行规。》<br />
+《工作中同事们的观点只是一个个不成熟的假设，并不一定是事实，所以我们通过问“为什么”去验证假设是否合理。》</p>
+</blockquote>
+<h3 id="03-沟通问题清单">03 沟通问题清单</h3>3
+<ul>
+<li><strong>核心观点1</strong>：用比“你好吗”更进一步的问题开启对话，以好奇心代替判断，拉近人际距离。好的问题关注对方正在经历什么、在乎什么和希望被怎样理解，而不是急于把对方归类。</li>
+<li><strong>核心观点2</strong>：少提建议多提问题，全身心倾听，避免因批评引发内疚与防御。倾听时先复述对方的意思，再询问遗漏的信息，让对话对象拥有澄清和修正的机会。</li>
+<li><strong>核心观点3</strong>：分歧时先问“为什么我会站在这一边”，理解立场来源再寻求共识。把立场背后的经历、利益、风险判断和价值排序说出来，往往比争论结论更容易建立共同语言。</li>
+<li><strong>核心观点4</strong>：掌握“向上提问”的分寸，理解管理者“向下提问”的困难，把销售话术转化为提问话术。提问既要指出风险，也要带着可行选项和愿意承担的行动，避免只把问题抛给别人。</li>
+<li><strong>核心观点5</strong>：关系恶化时以提问而非指责挽救，通过持续好奇维持亲密关系。问题应针对事件和需要，不把一次行为扩大为对人格的判断，也不把沉默误解为同意。</li>
+<li><strong>核心观点6</strong>：在AI协作中，沟通问题同样适用于提示词。应说明受众、语气、背景和禁区，并让模型先复述任务理解，再开始生成，以减少双方对目标的误读。</li>
+</ul>
+<blockquote>
+<p>《如果我用好奇心代替判断会怎么样呢》<br />
+《如果我少提建议多提问题会怎么样呢》</p>
+</blockquote>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">04 管理问题清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：领导者先自问“我为什么选择做领导”“我的原则是什么”，以谦逊和退后为领导力前提</li><li>核心观点2：用“我们怎么做会让公司停摆”做逆向压力测试，识别系统性风险</li><li>核心观点3：确保对话围绕员工的需求和利益展开，以“我能帮什么忙吗”替代指令式管理</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：领导者先自问“我为什么选择做领导”“我的原则是什么”，以谦逊和退后为领导力前提。领导不是替所有人回答，而是创造让团队能够发现问题、作出判断和承担责任的环境。</li>
+<li><strong>核心观点2</strong>：用“我们怎么做会让公司停摆”做逆向压力测试，识别系统性风险。把正常流程倒过来观察瓶颈、单点依赖和错误激励，比只庆祝局部成绩更能提前发现组织脆弱处。</li>
+<li><strong>核心观点3</strong>：确保对话围绕员工的需求和利益展开，以“我能帮什么忙吗”替代指令式管理。帮助可以是移除障碍、补充资源、澄清优先级，也可以是授权员工自己寻找方案。</li>
+<li><strong>核心观点4</strong>：鼓励团队多提问，并设计机制使提问更高效——提问领导力是发现与解决问题的前提。会议可区分澄清问题、假设问题、风险问题和行动问题，避免所有声音混成无结论的讨论。</li>
+<li><strong>核心观点5</strong>：在关键事项上采取大动作，需以清晰原则和充分提问为决策基础。大动作并不等于鲁莽，而是完成目标、边界、责任、反馈周期和退出条件的共同确认。</li>
+<li><strong>核心观点6</strong>：管理者要保护坏消息上行的通道。若提出问题会受到惩罚，团队就会隐藏风险；若提问得到认真回应，组织才可能在小问题阶段修正方向。</li>
+</ul>
+<blockquote>
+<p>《殊不知，产生以上这些“症状”，很大程度是由于我们缺乏提问领导力，而要发现和解决问题，你必须先提出正确的问题。》</p>
+</blockquote>
+<h3 id="结语-提问用问题解决你的问题">结语 提问，用问题解决你的问题</h3>3
+<ul>
+<li><strong>核心观点1</strong>：提问前先热身，并构建“更好的问题”——问题的质量决定答案的质量。热身可以从描述现象开始，再追问对象、时间、影响、原因、目标和可验证结果。</li>
+<li><strong>核心观点2</strong>：测试自己的“内置谬论探测仪”，用全新眼光看待周围世界，打破思维惯性。发现自己错了不应被视为失败，而应当记录导致误判的假设，形成下一次更好的问题。</li>
+<li><strong>核心观点3</strong>：把“下决心做什么”改为反问“要做什么”，以开放提问替代封闭承诺。前者更容易陷入自我施压，后者允许比较路径、听取反馈并持续校准。</li>
+<li><strong>核心观点4</strong>：主动鼓励别人多提问，并持续追问自己的“大问题”，让提问成为长期习惯。可在每次项目复盘中保留“我们忽略了什么问题”“哪个问题改变了方向”两个固定栏目。</li>
+<li><strong>核心观点5</strong>：提示工程的闭环不是一次性写出完美提示词，而是先给出任务与约束，再检查输出、指出偏差、补充证据、要求重写，直到达到验收标准。人负责最终判断，模型负责加速展开。</li>
+<li><strong>核心观点6</strong>：面对复杂主题，先要求AI列出问题树和不确定项，再逐项处理；对关键结论要求来源、反例和适用边界；对行动方案要求步骤、依赖和检查点，这样才能把对话变成可执行流程。</li>
+</ul>
+<blockquote>
+<p>《当我们在工作或生活中遇到困难时，只要花时间和精力提出问题，大都可以帮助我们做出更好的决策。但所提出的问题必须是正确的。》<br />
+《找时间问更多问题的问题归结为这个问题：花时间做这件事真的值得吗？》</p>
+</blockquote>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">适用场景标签</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<ul>
+<li>提示工程与AI协作</li>
+<li>问题分解与迭代验证</li>
+<li>批判性思维与决策</li>
+<li>创新与创意激发</li>
+<li>沟通与倾听技巧</li>
+<li>领导力与管理提问</li>
+<li>个人成长与习惯养成</li>
+</ul>
+<h2 id="一句话推荐">一句话推荐</h2>2
+<p>提问驱动思考，问题拆解驱动AI。</p></div></details></div></body></html>

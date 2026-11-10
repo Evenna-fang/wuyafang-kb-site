@@ -1,0 +1,208 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent记忆保鲜与冲突治理</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/Agent记忆保鲜与冲突治理</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="agent">Agent 记忆保鲜与冲突治理</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="file:///C:/MyData/Documents/wuyafang-l/wiki_site/raw/agent-dev/Agent%E8%AE%B0%E5%BF%86%E7%AE%A1%E7%90%86%E6%A0%87%E5%87%86%E4%B8%8E%E6%80%A7%E4%BB%B7%E6%AF%94%E8%B0%83%E7%A0%94-20261010.html">Agent记忆管理标准与性价比调研-20261010</a> · <a href="file:///C:/MyData/Documents/wuyafang-l/wiki_site/raw/agent-dev/Agent%E8%AE%B0%E5%BF%86%E8%AE%BA%E6%96%87-6%E7%AF%87-20260928.html">Agent记忆论文-6篇-20260928</a></p>
+<p><a href="../index.html">← 返回总入口</a>
+相关：<a href="Agent记忆双进程范式.html">Agent记忆双进程范式</a>（架构：读写分层的 System-1/System-2） · <a href="多智能体共享记忆G-Memory.html">G-Memory 共享记忆</a> · <a href="../L4-RAG工程/知识库保鲜与TTL治理.html">知识库保鲜与TTL治理</a></p>
+<p>来源: 从 <code>raw/agent-dev/Agent记忆管理标准与性价比调研-20261010.md</code> 与 <code>Agent记忆论文-6篇-20260928.md</code>（DCPM 篇）提炼
+定位：本文讲<strong>记忆的"真伪与新鲜度"</strong>（治理面）；<a href="Agent记忆双进程范式.html">双进程范式</a> 讲<strong>读写架构</strong>（结构面），两者互补。</p>
+</blockquote>
+<h2 id="_1">一句话结论</h2>
+<p><strong>persistence ≠ truth —— 存得住不等于还是真的。</strong> 这是全行业通病：Mem0 / Letta / Zep 都只优化"存 + 检索"，<strong>都没有机制发现记忆已经过期</strong>。</p>
+<p>硬数字：
+- TimeQA 上最好模型 <strong>46%</strong> vs 人类 <strong>87%</strong>
+- LongMemEval 上商业助手<strong>跨会话掉 30% 准确率</strong></p>
+<blockquote>
+<p>来源：Kymata Labs 2026 白皮书 <a href="https://kymatalabs.com/research/memory-staleness">https://kymatalabs.com/research/memory-staleness</a></p>
+</blockquote>
+<h2 id="5">记忆半衰期 5 档（可直接照抄的分档）</h2>
+<table>
+<thead>
+<tr>
+<th>档位</th>
+<th>例子</th>
+<th>半衰期</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>永久</strong></td>
+<td>生日、老家</td>
+<td>几十年</td>
+</tr>
+<tr>
+<td><strong>慢</strong></td>
+<td>住址、雇主</td>
+<td>几年</td>
+</tr>
+<tr>
+<td><strong>中</strong></td>
+<td>当前项目、偏好</td>
+<td>几个月</td>
+</tr>
+<tr>
+<td><strong>快</strong></td>
+<td>今天在干嘛</td>
+<td>几小时</td>
+</tr>
+<tr>
+<td><strong>易变</strong></td>
+<td>价格、额度、可用性</td>
+<td>几分钟</td>
+</tr>
+</tbody>
+</table>
+<p>与 <a href="../L4-RAG工程/知识库保鲜与TTL治理.html">知识库保鲜与TTL治理</a> 的三分档同源：<strong>按"内容会多久变一次"定寿命，而不是按"多重要"定。</strong></p>
+<h2 id="llm">冲突判定：别让 LLM 当裁判</h2>
+<p>这是本主题<strong>最反直觉、也最有价值</strong>的一条实证：</p>
+<ul>
+<li>arXiv:2606.01435 实测：让 LLM 判断"哪条记忆更新"，Mem0 只有 <strong>18%</strong>、Zep 只有 <strong>7%</strong> 准确率</li>
+<li>换成代码 <code>max(timestamp / serial)</code>：直接到 <strong>78%</strong>（+60 个百分点）</li>
+</ul>
+<blockquote>
+<p><strong>铁律</strong>：LLM 只负责识别"这两条是同一件事"，<strong>"哪个更新"必须交给代码</strong>（取最新 timestamp）。</p>
+</blockquote>
+<h2 id="2026-benchmark">三家成品实测对比（2026 benchmark）</h2>
+<table>
+<thead>
+<tr>
+<th>产品</th>
+<th>架构</th>
+<th>冲突解决率</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Zep</strong></td>
+<td>时序图谱</td>
+<td><strong>95.8%</strong>（Recall@5 93.6%）</td>
+<td>胜在 bi-temporal 双时间轴（写入时间 + 事实为真时段）</td>
+</tr>
+<tr>
+<td><strong>Letta / MemGPT</strong></td>
+<td>OS 式分层记忆（core / recall / archival）</td>
+<td>89%</td>
+<td>分层清晰，可解释</td>
+</tr>
+<tr>
+<td><strong>Mem0</strong></td>
+<td>向量 + 实体图</td>
+<td>76.5%</td>
+<td>起步快，冲突处理最弱</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>来源：<a href="https://agentic-pulse.dev/blog/2026-10-02-mem0-vs-letta-vs-zep-ai-agent-long-term-memory-benchmark-2026">https://agentic-pulse.dev/blog/2026-10-02-mem0-vs-letta-vs-zep-ai-agent-long-term-memory-benchmark-2026</a>
+<strong>选型启示</strong>：历史事实会被"改写"的场景（人事、价格、政策）优先时序图谱；只做偏好沉淀用向量+实体图即可。</p>
+</blockquote>
+<h2 id="kymata-5">Kymata 5 个控制项（按性价比排序，本周可落地）</h2>
+<ol>
+<li><strong>写入时打 <code>last_verified</code> 时间戳 + <code>fact_class</code> 档位标签</strong> —— 最便宜，<strong>解锁其他所有控制项</strong></li>
+<li>过期记忆"<strong>可见地标红</strong>"，不能静默当新事实端出来（治"自信地撒谎"）</li>
+<li>后台主动重验证"高频被查但久未验证"的记忆</li>
+<li>保留 contradiction-on-write 作为<strong>地板而不是天花板</strong></li>
+<li>每条记忆存 <strong>provenance（来源）</strong>，无源记忆信任度最低</li>
+</ol>
+<h2 id="ebbinghaus">Ebbinghaus 时间衰减模型</h2>
+<p>每条记忆带连续衰减率：</p>
+<ul>
+<li><strong>召回成功 → 曲线后移</strong>（强化）</li>
+<li><strong>长期不召回 → 衰减驱逐</strong></li>
+</ul>
+<p>TTL_TIERS 示例：<code>immutable(0)</code> / <code>long(0.001, 1年)</code> / <code>short(0.01, 30天)</code> / <code>session(0.1, 1天)</code></p>
+<blockquote>
+<p>与 <a href="Agent记忆双进程范式.html">双进程范式</a> 的门控正交：门控决定"要不要慢下来"，衰减决定"这条还值不值得存"。</p>
+</blockquote>
+<h2 id="dcpmarxiv260609483">信念修订追踪（DCPM，arXiv:2606.09483）</h2>
+<ul>
+<li>每条记忆带<strong>时间戳指针</strong>，新事实覆盖旧事实但<strong>保留演化链，不物理删除</strong></li>
+<li>多 Agent 观点漂移：同一问题不同 Agent 的回答按时间轴展开，可看到<strong>共识形成 / 破裂</strong></li>
+<li>适用长程任务：跨周 / 跨月 Agent 任务不会被过时事实误导</li>
+</ul>
+<blockquote>
+<p>与 G-Memory 的 temporal edge 天然兼容 —— DCPM 可视作 temporal edge 的 schema 细节指南。</p>
+</blockquote>
+<h2 id="2026-10-10">本库落地现状（2026-10-10 核账）</h2>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hindsight 记忆打 <code>fact_class</code> 标签</td>
+<td>✅ 8176 条：permanent 1638 / medium 4449 / volatile 2049</td>
+</tr>
+<tr>
+<td>volatile 类标 <code>is_stale</code></td>
+<td>✅ 1086 条</td>
+</tr>
+<tr>
+<td>记忆保鲜每日扫描 cron</td>
+<td>✅ 每天 09:00</td>
+</tr>
+<tr>
+<td>备份</td>
+<td><code>~/.hermes/backups/memory-curation/</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="_2">反例（不要这么做）</h2>
+<ul>
+<li>❌ 只做"存 + 检索"，不做过期发现 → persistence ≠ truth，越用越错</li>
+<li>❌ 让 LLM 判断"哪条更新" → 实测 7–18% 准确率，比抛硬币还差</li>
+<li>❌ 过期记忆静默返回 → 模型会"自信地撒谎"，比"答不知道"危害更大</li>
+<li>❌ 冲突时物理删除旧版本 → 丢失演化链，无法回溯共识怎么形成的</li>
+</ul>
+<h2 id="_3">相关条目</h2>
+<ul>
+<li><a href="DCPM信念修订追踪.html">DCPM 信念修订追踪（双向指针 + 夜间聚类）</a></li>
+</ul></div></body></html>

@@ -1,0 +1,459 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L6-损失函数与优化器</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L6-损失函数与优化器</span></div><div class="wrap"><h1 id="l6-损失函数与优化器从标签到训练稳定性">L6 损失函数与优化器：从标签到训练稳定性</h1>
+<blockquote>
+<p>知识网挂接：总地图“四之一知识层”的 L6 模型微调内容，服务 N2 训练方案设计与 N4/N5 稳定性诊断。</p>
+<p><strong>运行边界：本文所有代码、配置与命令均为“示例，未实跑”。本次没有执行 numpy/PyTorch 实验、GPU 训练或产生实验输出，因此不沿用旧篇中“本次已实测”的数字。文中学习率、warmup、weight decay 与梯度裁剪只能按小实验起点理解，不存在适合所有模型、数据和框架的固定值。</strong></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>训练不稳定时，最容易犯的错误是直接换一个优化器，或把学习率、裁剪阈值照抄成“标准答案”</li><li>实际上，loss 为 NaN 可能来自标签全被忽略、某个批次含异常值、FP16 溢出、学习率过大、分布式某个 rank 先失败，也可能来自自定义算子</li><li>不同根因需要不同处理；一律把学习率除以十，可能只把故障推迟到更晚</li></ul></div>2
+<p>训练不稳定时，最容易犯的错误是直接换一个优化器，或把学习率、裁剪阈值照抄成“标准答案”。实际上，loss 为 NaN 可能来自标签全被忽略、某个批次含异常值、FP16 溢出、学习率过大、分布式某个 rank 先失败，也可能来自自定义算子。不同根因需要不同处理；一律把学习率除以十，可能只把故障推迟到更晚。</p>
+<p>先把四个职责拆开：</p>
+<ol>
+<li><strong>损失函数</strong>决定优化什么。因果语言模型通常用下一 token 的交叉熵；标签掩码决定哪些位置进入损失。</li>
+<li><strong>优化器</strong>决定如何利用梯度更新参数。Transformer 微调常用 AdamW，但它不会修复错误标签或坏数据。</li>
+<li><strong>学习率调度、weight decay、梯度裁剪</strong>分别控制步长随时间的变化、参数正则与异常梯度幅度，三者不能互相替代。</li>
+<li><strong>模型结构与数值精度</strong>决定梯度能否稳定传播、计算是否容易饱和或溢出。残差、归一化、初始化与混合精度属于这一层。</li>
+</ol>
+<p>微调还有一层特殊性：基础模型已经带有可用权重。面对预训练大模型的 NaN，第一件事通常不是重新初始化或改残差结构，而是回到数据、标签、学习率和精度的最小闭环。只有从头训练或明确修改架构时，才把结构与初始化作为主要干预点。</p>
+<p>框架选型、OOM 与 ZeRO 排错见<a href="L6-%E5%BE%AE%E8%B0%83%E6%A1%86%E6%9E%B6%E4%B8%8E%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9E%E6%88%98.html">《L6 微调框架与分布式实战》</a>。本文专注“损失是否算对、更新是否发生、数值是否稳定”。</p>
+<h2 id="what">WHAT</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 交叉熵、位移标签与 <code>-100</code></span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>训练通常对有效位置求平均或按实现约定归约</li><li>模型输出的是 logits，不应先手动对 logits 做 softmax 再交给已经包含相应数值处理的交叉熵实现</li><li>对二分类 sigmoid 情形，交叉熵对 logit 的梯度为 \(p-y\)；相比把均方误差直接套在饱和概率输出上，它在“自信但错误”的位置仍能给出明确纠错信号</li></ul></div>3
+<p>对词表大小为 (V) 的分类问题，某个目标 token 的交叉熵可写为：</p>
+<p>[<br />
+L_t=-\log p_\theta(y_t\mid x_{&lt;t})<br />
+]</p>
+<p>训练通常对有效位置求平均或按实现约定归约。模型输出的是 logits，不应先手动对 logits 做 softmax 再交给已经包含相应数值处理的交叉熵实现。对二分类 sigmoid 情形，交叉熵对 logit 的梯度为 (p-y)；相比把均方误差直接套在饱和概率输出上，它在“自信但错误”的位置仍能给出明确纠错信号。</p>
+<p>因果语言模型预测下一个 token，因此输入与标签存在一位位移。很多高层模型会在内部完成位移，但自写数据整理器或自定义 loss 时必须确认由谁位移，避免重复移位或完全不移位。比公式更容易出错的是监督范围：</p>
+<ul>
+<li>做全序列语言建模时，提示与回答通常都参与目标；</li>
+<li>做“只学回答”的指令微调时，提示位置的标签设为 <code>-100</code>，回答及需要学习的结束符保留真实 token id；</li>
+<li>padding 位置通常设为 <code>-100</code>，不参与损失；</li>
+<li><strong>不要因为 PAD 与 EOS 复用同一个 token id，就把所有等于该 id 的标签都屏蔽。</strong> EOS 是否参与监督应按模板目标决定，PAD 是否忽略应按位置掩码决定。</li>
+</ul>
+<p>PyTorch <code>CrossEntropyLoss</code> 的 <code>ignore_index</code> 默认约定为 <code>-100</code>，主流语言模型训练工具也广泛采用这一约定。真正要验收的是每个 batch 至少存在有效监督位置，以及有效位置确实落在预期答案上。若整个 batch 都是 <code>-100</code>，不同实现的归约可能产生无意义值或 NaN，不能把这种情况当成普通收敛慢。</p>
+<h4 id="类别不平衡不是一律换-focal-loss">类别不平衡不是一律换 Focal Loss</h4>
+<p>分类或 token 级结构化任务中，如果多数类样本淹没少数类，可以按顺序比较：</p>
+<ol>
+<li>先修正采样、数据切分和评价指标，保留真实的验证分布；</li>
+<li>尝试类别加权交叉熵或重采样，观察少数类召回、多数类误报和概率校准；</li>
+<li>当大量“容易负例”仍主导训练时，再评估 Focal Loss。其形式为 (-\alpha_t(1-p_t)^\gamma\log p_t)，通过降低容易样本权重聚焦难例。</li>
+</ol>
+<p>Focal Loss 的 (\alpha) 与 (\gamma) 需要小实验，不能从某篇检测论文直接搬成所有任务的默认值。类别加权与 Focal 都会改变优化目标，可能损害概率校准；评价不能只看总 accuracy，应同时看各类 precision/recall、混淆矩阵和业务成本。对于普通生成式 SFT，词表频率天然不均不等于要给所有稀有 token 加权，先把数据质量、模板和任务指标查清楚。</p>
+<h3 id="2-adamw学习率warmup-与-weight-decay">2. AdamW、学习率、warmup 与 weight decay</h3>3
+<p>Adam 为每个参数维护梯度一阶矩和二阶矩估计，用历史梯度调节更新尺度。AdamW 将 weight decay 从梯度中的 L2 项解耦，使正则不再被 Adam 的二阶矩缩放混在一起。对 Transformer 而言，AdamW 是常见起点，不是“任何任务都无需比较”的定律。</p>
+<p>几个超参的作用要分开：</p>
+<ul>
+<li><strong>学习率 lr</strong>：控制更新步长。过大可能震荡、loss 突跳或 NaN；过小可能在预算内几乎不动。LoRA 与全参的可训练参数、损失面与优化器状态不同，不能直接共用同一个所谓标准 lr。</li>
+<li><strong>warmup</strong>：在训练初期逐步放开学习率，给 Adam 状态、数据流和分布式通信一个稳定过程。调度通常按优化器更新步计，而不是按梯度累积的微批次计；读日志时要确认口径。</li>
+<li><strong>调度器</strong>：控制 warmup 后如何衰减。cosine、linear 等只是曲线形状，不会决定业务效果；总更新步数改变时，应重新检查 warmup 和衰减落在何处。</li>
+<li><strong>weight decay</strong>：抑制部分权重无约束增长。它不是梯度裁剪，也不等同于直接给 loss 加同一个 L2 项。常见做法是对归一化参数和 bias 使用不同分组，具体以框架与模型惯例为准。</li>
+<li><strong>梯度裁剪</strong>：在反向传播后、优化器更新前限制梯度的范数或数值。它主要处理异常大梯度，不能治疗因学习率过小、标签为空或深层梯度消失造成的“不学习”。</li>
+</ul>
+<p>一个可执行的小实验方法是以当前可运行配置的 <code>lr0</code> 为锚，比较 <code>0.3 × lr0</code>、<code>lr0</code>、<code>3 × lr0</code> 三档，其他条件不变，短跑并观察固定区间。这里的倍数只是<strong>小实验起点</strong>，不是普适搜索空间；一旦出现 NaN，应先停止扩大方向并回到最近稳定点。裁剪阈值也可先记录不裁剪基线的 pre-clip grad norm 分布，再选择只约束异常尾部的阈值；若几乎每个 step 都被强裁剪，模型可能长期欠拟合。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 梯度消失与爆炸：症状、定位、处理</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>深层网络中，上游梯度与一系列 Jacobian 连乘有关</li><li>若整体尺度持续缩小，前面层几乎收不到信号；若持续放大，梯度可能突然 spike，继而产生 Inf/NaN</li><li>真实 Transformer 不是简单标量连乘，因此不能用“梯度范数小于某个固定数”跨模型判定消失，应比较同模型不同层、同实验不同时间的相对变化</li></ul></div>3
+<p>深层网络中，上游梯度与一系列 Jacobian 连乘有关。若整体尺度持续缩小，前面层几乎收不到信号；若持续放大，梯度可能突然 spike，继而产生 Inf/NaN。真实 Transformer 不是简单标量连乘，因此不能用“梯度范数小于某个固定数”跨模型判定消失，应比较同模型不同层、同实验不同时间的相对变化。</p>
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>需要立即收集的证据</th>
+<th>更可能的方向</th>
+<th>有序处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第一步或前几步 NaN/Inf</td>
+<td>首个坏 batch、有效标签数、logits/loss 是否有限、精度与 loss scale</td>
+<td>空标签、异常数据、过大更新、FP16 溢出、自定义算子</td>
+<td>固定坏 batch → FP32 小跑 → 检查标签和数据 → 降 lr → 再查内核</td>
+</tr>
+<tr>
+<td>训练中偶发 loss spike</td>
+<td>spike 前后的样本 ID、grad norm、lr、长度分布</td>
+<td>异常长样本、脏标签、梯度爆炸、调度边界</td>
+<td>回放样本 → 缩小 batch/长度 → 调整裁剪与 lr → 从好 checkpoint 恢复</td>
+</tr>
+<tr>
+<td>grad norm 突然增大</td>
+<td>pre-clip norm、各层范数、是否已 unscale</td>
+<td>爆炸或混合精度缩放干扰</td>
+<td>先按正确顺序 unscale，再裁剪；查是否每次都被裁</td>
+</tr>
+<tr>
+<td>训练 loss 长期不降</td>
+<td>有效 token 数、可训练参数、实际 optimizer step、分层梯度</td>
+<td>标签被掩码、lr 过小、LoRA 未命中、梯度消失或更新被跳过</td>
+<td>先证明“有标签、有梯度、有更新”，再谈模型容量</td>
+</tr>
+<tr>
+<td>靠前层几乎不动，靠输出层正常</td>
+<td>各层梯度相对量级、激活范围、结构变更</td>
+<td>深层传播问题，或低层被冻结/未挂 LoRA</td>
+<td>先查冻结策略；从头训练再查残差、归一化和初始化</td>
+</tr>
+<tr>
+<td>训练 loss 降、验证指标降</td>
+<td>独立验证集、数据重复、通用能力回归</td>
+<td>过拟合、数据泄漏、目标与指标不一致</td>
+<td>回退数据与训练预算，用业务指标早停，不靠继续降 loss</td>
+</tr>
+</tbody>
+</table>
+<p><strong>结构层面的四种手段</strong>：</p>
+<ul>
+<li>残差连接 (y=x+F(x)) 提供跨层直接路径，反向时有不经残差分支变换的通路；它不是“梯度永远不会异常”的保证。</li>
+<li>LayerNorm/RMSNorm 等归一化稳定层内激活尺度。Transformer 变长序列与小批量场景常用层内归一化，而不是依赖跨样本统计。</li>
+<li>Xavier、He 等初始化通过匹配输入/输出维度控制前向与反向方差。它们服务于从头训练或新增层，<strong>不应对正在微调的预训练主干随意重新初始化</strong>。</li>
+<li>GELU、ReLU 等激活影响饱和与稀疏性，但激活函数不能单独修复错误的权重尺度、过大的 lr 或坏数据。</li>
+</ul>
+<h3 id="4-混合精度loss-scale-与-nan">4. 混合精度、loss scale 与 NaN</h3>3
+<p>FP16 的表示范围较小，梯度可能上溢为 Inf，也可能下溢为接近零。动态 loss scaling 先把 loss 乘上尺度，使反向梯度落到更适合 FP16 表示的区间；优化器更新前再 unscale，并检查非有限梯度。检测到溢出时，实现可能跳过本次更新并降低 scale，连续稳定后再尝试提高。于是“loss 还在打印”并不证明“参数每次都在更新”。</p>
+<p>BF16 的指数范围更接近 FP32，通常不需要 FP16 式 GradScaler，但精度、硬件和算子支持仍需核对。把 FP16 改成 BF16 可能缓解溢出，却不会修复空标签或非法输入；FP32 小实验则是重要的分流工具：</p>
+<ul>
+<li>FP32 同配置仍 NaN：优先查数据、标签、学习率、模型或自定义计算，不应继续只调 loss scale。</li>
+<li>FP32 稳定而 FP16 NaN：优先查溢出、scale、算子精度与异常样本。</li>
+<li>单卡稳定而多卡 NaN：还要查各 rank 数据、梯度同步和最早失败 rank。</li>
+</ul>
+<p>绝不能通过把 NaN 静默替换成零、无限跳过坏 batch 或只隐藏日志来“恢复训练”。这些做法会破坏可观测性，可能让模型长期不更新。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5. LoRA 训练与全参训练的差异</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>LoRA 减少的是可训练参数及其部分训练状态，不会让所有梯度、激活和基础权重消失</li><li>QLoRA 的量化基座也不等于“训练全在低比特完成”</li><li>二者出现 loss 不降时，除了通用标签与 lr 检查，还必须看日志中的可训练参数、目标模块名称和实际 optimizer step</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>LoRA/QLoRA</th>
+<th>全参微调</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>可训练参数</td>
+<td>主要是注入的适配器</td>
+<td>全部或大部分模型参数</td>
+</tr>
+<tr>
+<td>优化器状态</td>
+<td>主要随适配器参数增长</td>
+<td>随全部可训练参数增长，资源压力大得多</td>
+</tr>
+<tr>
+<td>学习率</td>
+<td>应按适配器、任务和数据单独做小实验</td>
+<td>不能直接沿用 LoRA 的 lr，通常需更谨慎地保护已有能力</td>
+</tr>
+<tr>
+<td>梯度检查</td>
+<td>先查目标模块是否命中、适配器是否 <code>requires_grad</code></td>
+<td>先查冻结策略、各层梯度与大规模状态</td>
+</tr>
+<tr>
+<td>weight decay</td>
+<td>作用于哪些适配器参数要明确</td>
+<td>参数分组影响范围更大，归一化/bias 等需单独核对</td>
+</tr>
+<tr>
+<td>基座权重</td>
+<td>通常冻结；QLoRA 还涉及量化表示</td>
+<td>持续被更新，灾难性遗忘与完整回归更关键</td>
+</tr>
+<tr>
+<td>产物</td>
+<td>适配器不必然包含完整训练状态</td>
+<td>完整权重、优化器状态和检查点体积更大</td>
+</tr>
+</tbody>
+</table>
+<p>LoRA 减少的是可训练参数及其部分训练状态，不会让所有梯度、激活和基础权重消失。QLoRA 的量化基座也不等于“训练全在低比特完成”。二者出现 loss 不降时，除了通用标签与 lr 检查，还必须看日志中的可训练参数、目标模块名称和实际 optimizer step。</p>
+<h2 id="how">HOW</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 输入与环境：建立最小诊断包</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>输入：一个最近稳定配置、一个当前失败配置、固定模型与数据版本、首个异常 step 的完整日志、对应 batch 的样本 ID、训练/验证切分和最近良好 checkpoint</li><li>若是多卡任务，还要保留每个 rank 的日志，不能只看主进程</li><li>loss scale、grad norm 和学习率的口径必须注明是微批次还是优化器更新步</li></ul></div>3
+<p><strong>输入</strong>：一个最近稳定配置、一个当前失败配置、固定模型与数据版本、首个异常 step 的完整日志、对应 batch 的样本 ID、训练/验证切分和最近良好 checkpoint。若是多卡任务，还要保留每个 rank 的日志，不能只看主进程。</p>
+<p><strong>环境记录</strong>：Python、PyTorch、Transformers、PEFT、TRL、Accelerate/DeepSpeed 版本，GPU 与精度能力，模型 revision，模板和 tokenizer，全局批量与梯度累积步数。loss scale、grad norm 和学习率的口径必须注明是微批次还是优化器更新步。</p>
+<p>每次短实验至少记录：</p>
+<ul>
+<li>step、train loss、独立验证指标、learning rate；</li>
+<li>每批有效监督 token 数、空标签 batch 数、异常样本 ID；</li>
+<li>pre-clip grad norm、裁剪是否发生、参数是否实际更新；</li>
+<li>FP16 的 loss scale、溢出/跳过更新计数；</li>
+<li>LoRA 可训练参数数与目标模块，或全参冻结范围；</li>
+<li>输出配置、日志和 checkpoint 路径。</li>
+</ul>
+<h3 id="2-有序操作步骤">2. 有序操作步骤</h3>3
+<h4 id="第一步冻结变量并回到最小闭环">第一步：冻结变量并回到最小闭环</h4>
+<p>保留失败目录，复制配置形成新实验。使用固定小批干净样本和固定随机种子，先做短流程过拟合测试，目的只是验证“数据—loss—反向—更新—保存”链路。少量样本能记住不代表泛化，也不代表业务质量。</p>
+<p>同时准备一个基座模型或最近稳定 checkpoint 作为回退点。每轮只改一个变量：标签、lr、精度、裁剪或 LoRA 目标模块之一。不要同时换框架、模型、数据和优化器。</p>
+<h4 id="第二步先验标签再谈优化器">第二步：先验标签，再谈优化器</h4>
+<p>以下是只构造一条样本的<strong>示例，未实跑</strong>。它省略真实聊天模板，仅展示“提示屏蔽、答案保留、EOS 单独决定”的关系：</p>
+<pre><code class="language-python"># 示例，未实跑：真实项目应使用模型对应 tokenizer 和聊天模板
+prompt_ids = [11, 12, 13]
+answer_ids = [21, 22]
+eos_id = 2
+input_ids = prompt_ids + answer_ids + [eos_id]
+labels = [-100] * len(prompt_ids) + answer_ids + [eos_id]
+
+valid_positions = [i for i, label in enumerate(labels) if label != -100]
+assert len(input_ids) == len(labels)
+assert valid_positions, &quot;当前样本没有任何有效监督位置&quot;
+assert all(labels[i] == input_ids[i] for i in valid_positions)
+# 若高层模型内部做下一位位移，此处不再手工右移；否则按所用实现明确处理。
+</code></pre>
+<p>批次整理后还要断言有效 token 数大于零，并打印或人工检查一条解码后的“输入—标签”对照。若 PAD 与 EOS 同 id，应按位置构造标签，而不是写 <code>labels[labels == pad_id] = -100</code> 这种会误伤 EOS 的简化逻辑。</p>
+<h4 id="第三步用小实验确定更新尺度">第三步：用小实验确定更新尺度</h4>
+<p>以下 YAML 是<strong>配置骨架示例，未实跑</strong>，占位符不是可直接运行值：</p>
+<pre><code class="language-yaml"># 示例，未实跑：字段名按实际框架映射
+optimizer: adamw
+learning_rate: &quot;&lt;lr0；用相对小实验搜索&gt;&quot;
+warmup_ratio: &quot;&lt;较小起点；不能占满短实验&gt;&quot;
+weight_decay: &quot;&lt;wd0；按参数分组核对&gt;&quot;
+max_grad_norm: &quot;&lt;来自稳定基线的 pre-clip 分布&gt;&quot;
+bf16: &quot;&lt;仅在硬件和算子支持时开启&gt;&quot;
+gradient_accumulation_steps: &quot;&lt;先固定，便于比较 lr&gt;&quot;
+</code></pre>
+<p>操作顺序：</p>
+<ol>
+<li>固定数据、有效批量和步数，以 <code>lr0</code> 跑短基线。</li>
+<li>分别测试 <code>0.3 × lr0</code> 与 <code>3 × lr0</code>；若大方向出现 spike/NaN，不再继续放大。</li>
+<li>选择能稳定更新的区间后，再加入较短 warmup，确认它按 optimizer step 生效。</li>
+<li>最后才加入或调整 weight decay，并检查参数分组。不要用 weight decay 代替 lr 修复爆炸。</li>
+<li>记录不裁剪基线的 pre-clip grad norm，再设置只拦截异常尾部的裁剪起点；观察是否过度裁剪。</li>
+</ol>
+<h4 id="第四步按正确顺序处理混合精度与裁剪">第四步：按正确顺序处理混合精度与裁剪</h4>
+<p>下面的训练步是<strong>示例，未实跑</strong>，用于说明 FP16 动态缩放的顺序；实际 API 以所安装 PyTorch 的 AMP 文档为准：</p>
+<pre><code class="language-python"># 示例，未实跑：lr0、wd0、clip_threshold 来自小实验配置
+import torch
+
+optimizer = torch.optim.AdamW(
+    [p for p in model.parameters() if p.requires_grad],
+    lr=lr0,
+    weight_decay=wd0,
+)
+scaler = torch.cuda.amp.GradScaler()
+
+optimizer.zero_grad(set_to_none=True)
+with torch.autocast(device_type=&quot;cuda&quot;, dtype=torch.float16):
+    outputs = model(input_ids=input_ids, labels=labels)
+    loss = outputs.loss
+
+assert torch.isfinite(loss), &quot;先检查当前 batch、有效标签和 logits&quot;
+scaler.scale(loss).backward()
+# 裁剪前必须先还原真实梯度尺度
+scaler.unscale_(optimizer)
+pre_clip_norm = torch.nn.utils.clip_grad_norm_(
+    [p for p in model.parameters() if p.requires_grad],
+    max_norm=clip_threshold,
+)
+# scaler.step 遇到非有限梯度时可能跳过更新；需另记实际更新和 scale
+scaler.step(optimizer)
+scaler.update()
+</code></pre>
+<p>若使用 BF16，不应机械照搬这段 FP16 scaler 流程。若框架已经管理 AMP、梯度累积和裁剪，不要再手写第二套更新逻辑；应改为读取框架日志中的 scale、grad norm 和 step。</p>
+<h4 id="第五步按诊断结果选择处理不全线调参">第五步：按诊断结果选择处理，不全线调参</h4>
+<ul>
+<li><strong>确认梯度爆炸</strong>：先回放异常 batch，排除数据；回到稳定 lr，检查 warmup；按真实梯度尺度裁剪；FP16 再查 scale。严重发散时从最近良好 checkpoint 恢复，而不是从已损坏权重继续。</li>
+<li><strong>确认梯度消失</strong>：先查低层是否被冻结、LoRA 是否未命中、标签是否只覆盖极少位置。从头训练才进一步检查残差、归一化、激活和初始化。不要为了微调 NaN 重初始化整个预训练模型。</li>
+<li><strong>确认类别不平衡</strong>：先固定真实验证分布，再比较采样、class weight 和 Focal；每轮同时看少数类召回、多数类误报和校准。</li>
+<li><strong>确认 LoRA 特有故障</strong>：检查适配器参数是否可训练、target modules 是否存在、保存的是适配器还是 checkpoint；不要把基础模型冻结误解为无需梯度检查。</li>
+<li><strong>确认 NaN 与精度相关</strong>：用同数据同 seed 做 FP32/BF16/FP16 对照，逐个样本定位最早非有限值。不要只截断最终错误日志。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 最小诊断表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>观测项</th>
+<th>怎么取</th>
+<th>能回答什么</th>
+<th>不能单独证明什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>有效监督 token 数</td>
+<td>数据整理后统计 <code>labels != -100</code></td>
+<td>是否真的有训练目标，答案是否被截掉</td>
+<td>标签语义是否正确</td>
+</tr>
+<tr>
+<td>train/validation loss</td>
+<td>固定归约口径与相同样本区间</td>
+<td>优化方向与过拟合趋势</td>
+<td>业务指标一定提升</td>
+</tr>
+<tr>
+<td>pre-clip grad norm</td>
+<td>unscale 后、裁剪前记录</td>
+<td>梯度是否 spike，裁剪是否过强</td>
+<td>梯度消失的唯一根因</td>
+</tr>
+<tr>
+<td>分层 grad norm</td>
+<td>按层或模块记录相对变化</td>
+<td>哪些层不动或爆炸，冻结是否符合预期</td>
+<td>跨模型通用正常阈值</td>
+</tr>
+<tr>
+<td>lr 与 optimizer step</td>
+<td>从调度器和实际更新计数读取</td>
+<td>warmup 是否生效，参数是否真在更新</td>
+<td>loss 为何变化</td>
+</tr>
+<tr>
+<td>loss scale/跳过计数</td>
+<td>AMP 日志或 scaler 状态</td>
+<td>FP16 是否频繁溢出、更新是否被跳过</td>
+<td>数据与模型一定正常</td>
+</tr>
+<tr>
+<td>固定问题输出</td>
+<td>基座、稳定点、当前模型同参数比较</td>
+<td>是否出现格式、重复、空答等回归</td>
+<td>完整泛化能力</td>
+</tr>
+</tbody>
+</table>
+<h3 id="4-产物与验证">4. 产物与验证</h3>3
+<p>每轮诊断应留下：配置差异、软件与模型版本、首个异常 batch 的最小样本、逐 step 指标、当前与回退 checkpoint、基座/微调固定输入对比、独立验证集结果。坏样本若含业务数据，只保留在授权本地目录，不写入公开 issue 或外部跟踪服务。</p>
+<p>验证按以下门槛理解，而不是仅看训练进程退出：</p>
+<ol>
+<li>一条人工样本能解释每个有效标签的位置，且不存在全 <code>-100</code> batch。</li>
+<li>短实验中 loss、grad norm、logits 为有限值，optimizer 确实发生更新。</li>
+<li>调 lr 或裁剪后，改善能在相同数据、步数、有效批量下重复出现。</li>
+<li>FP16 问题时能看到 scale 与跳过更新记录；改 BF16/FP32 的对照结论有证据。</li>
+<li>LoRA 实验能列出实际可训练参数与命中模块；全参实验能说明冻结和 decay 分组。</li>
+<li>最终模型在独立验证集和固定回归问题上比较，不能只用小样本过拟合曲线验收。</li>
+<li>若训练后期失败，能从最近良好 checkpoint 恢复，并跳过或修复已经确认的坏数据/坏配置。</li>
+</ol>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5. 常见坑与回退</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>回退不是失败后的附加动作，而是实验设计的一部分：始终保留最近稳定配置和 checkpoint，新实验使用独立输出目录</li><li>若坏权重已产生，应回退权重；若只是日志与配置问题，可回退配置后从同一检查点重跑</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>常见坑</th>
+<th>为什么误导</th>
+<th>回退动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>把某个 LoRA lr、全参 lr 或 clip 值当普适常数</td>
+<td>模型、批量、数据、目标模块与调度都不同</td>
+<td>回到自己的稳定基线，用相对小实验重新定标</td>
+</tr>
+<tr>
+<td>所有 PAD/EOS 同 id 位置一律设 <code>-100</code></td>
+<td>可能把应学习的结束符一起屏蔽</td>
+<td>按位置掩码重建标签，先验一条样本</td>
+</tr>
+<tr>
+<td>把 warmup 按微批次理解</td>
+<td>梯度累积后实际预热区间与预期不符</td>
+<td>以 optimizer update 重新计算并看 lr 日志</td>
+</tr>
+<tr>
+<td>在未 unscale 的 FP16 梯度上裁剪</td>
+<td>阈值对应的是缩放后的尺度</td>
+<td>恢复正确顺序，记录 pre-clip norm</td>
+</tr>
+<tr>
+<td>反复跳过 NaN batch 却不记录</td>
+<td>可能长时间没有有效更新</td>
+<td>回到首个坏 batch，保存样本 ID，修复根因</td>
+</tr>
+<tr>
+<td>看到深层不动就重初始化预训练模型</td>
+<td>破坏已有权重，且可能根因只是冻结或空标签</td>
+<td>回退预训练权重，先查 requires_grad 和标签</td>
+</tr>
+<tr>
+<td>Focal 解决了少数类却损害整体</td>
+<td>难例权重过强、概率失真或多数类误报</td>
+<td>回到加权 CE/重采样，重新按业务指标比较</td>
+</tr>
+<tr>
+<td>训练 loss 降就宣布微调有效</td>
+<td>可能过拟合或学了数据泄漏</td>
+<td>回到独立测试集与通用能力回归</td>
+</tr>
+<tr>
+<td>多变量一起改后“碰巧稳定”</td>
+<td>无法知道哪项有效，也难以复现</td>
+<td>从最近稳定配置重做单变量短实验</td>
+</tr>
+</tbody>
+</table>
+<p>回退不是失败后的附加动作，而是实验设计的一部分：始终保留最近稳定配置和 checkpoint，新实验使用独立输出目录。若坏权重已产生，应回退权重；若只是日志与配置问题，可回退配置后从同一检查点重跑。不要以删除失败记录代替定位。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库暂无训练侧实现</strong>：全库不存在 <code>Loss</code>/<code>optimizer</code> 相关训练代码，<code>grep -rn "torch.optim"</code> 在 <code>rag/</code> 下无命中。本库只有<strong>推理侧</strong>的模型调用与环境校验，故本小节不硬编训练代码。</li>
+<li><strong>能提供的真实落点：环境/配置体检（<code>/home/wuyafang/.hermes/scripts/check-model-config.py</code>，grep 可验）</strong>：<br />
+<code>python
+  def check_hermes():
+  def check_dsh():
+  def check_codex():
+  def check_openclaw():</code><br />
+  逐员检查配置项是否齐全、模型名是否与现役一致——"换优化器/换精度"前先用它确认环境没漂移，避免把环境问题误判成损失函数问题。</li>
+<li><strong>和课件讲法的差异</strong>：课件讲 AdamW 的 <code>weight_decay</code>/<code>eps</code>、cosine+warmup 调度、梯度裁剪；本库在推理侧遇到的是"温度/采样"而非优化器，两者不可混说。</li>
+<li><strong>本库暂无对应实现，课件做法是</strong>：<code>torch.optim.AdamW(params, lr=2e-4, weight_decay=0.01)</code> + <code>get_cosine_schedule_with_warmup</code> + <code>clip_grad_norm_(params, 1.0)</code>；真要调，先把 seed、数据顺序、梯度累积步数（等效 batch）固定下来，否则不同次的 loss 曲线不可比。</li>
+</ul>
+<h2 id="来源与口径">来源与口径</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">本地材料</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「/mnt/c/MyData/Documents/wuyafang-l/raw/courseware/微调篇/day02微调之PEFT__课件__大模型微调-2-PEFT.md」：用于 LoRA 低秩适配、参数高效微调和指令数据组织的背景；其中 loss 页面未提供足够细节，本文的标签与数值诊断以官方文档和通用定义补充</li><li>旧文件 「梯度消失怎么解决.md」 未修改或删除</li></ul></div>3
+<ul>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/courseware/微调篇/day02微调之PEFT__课件__大模型微调-2-PEFT.md</code>：用于 LoRA 低秩适配、参数高效微调和指令数据组织的背景；其中 loss 页面未提供足够细节，本文的标签与数值诊断以官方文档和通用定义补充。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/courseware/微调篇/day06微调之最佳实践__课件__大模型微调-6-最佳实践.md</code>：用于训练/验证评估、人工与基准评测互补、基座选择需核对模型卡等实践口径。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/weread/大语言模型：原理、应用与优化.md</code>：仅按目录和热门划线书摘，使用第 6 章“训练不稳定现象/内存优化”与第 7 章“全量/低参数量微调”的框架，以及部分归约计算使用 FP32 的书摘提示；未冒充完整原书。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/weread/深度学习详解.md</code>：仅按目录和书摘，使用“损失用于判断参数好坏”“动量累积历史方向”“训练/验证分离”和“训练损失大也可能是优化问题”的观点。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/weread/从零构建大模型.md</code>：仅按目录和热门划线书摘，使用第 4 章 LayerNorm、GELU、快捷连接，第 5 章训练/保存，第 6 至 7 章分类与指令微调的章节框架；未声称读取这些章节的完整正文。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/fullstack/微调实战-2026.md</code>：仅作经验材料，采用数据质量、独立 before/after 评测、通用能力回归和 LoRA/全参需分别调参的提示；其中固定 lr、性能倍数和“事实标准”等说法未作为本文事实。</li>
+<li>合并旧篇 <code>/mnt/c/MyData/Documents/wuyafang-l/wiki/L6-模型微调/L6-损失函数与优化器.md</code> 与 <code>/mnt/c/MyData/Documents/wuyafang-l/wiki/L6-模型微调/梯度消失怎么解决.md</code>：保留损失—优化—结构稳定性的知识与残差/归一化/初始化主线；移除本次未复跑的实测数字、跨场景固定阈值和过度绝对的选型结论。旧文件 <code>梯度消失怎么解决.md</code> 未修改或删除。</li>
+</ul>
+<h3 id="官方文档与论文">官方文档与论文</h3>3
+<ul>
+<li><a href="https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html">PyTorch CrossEntropyLoss</a>：交叉熵输入、<code>ignore_index</code> 与归约接口的核对入口。</li>
+<li><a href="https://pytorch.org/docs/stable/optim.html">PyTorch Optimizer 文档</a>：AdamW、优化器更新、参数组与优化器算法的核对入口。</li>
+<li><a href="https://pytorch.org/docs/stable/amp.html">PyTorch AMP 文档</a>：自动混合精度、梯度缩放、unscale、裁剪与跳过更新的核对入口。</li>
+<li><a href="https://arxiv.org/abs/1711.05101">Decoupled Weight Decay Regularization（AdamW）</a>：AdamW 解耦权重衰减的论文依据。</li>
+<li><a href="https://arxiv.org/abs/1708.02002">Focal Loss for Dense Object Detection</a>：Focal Loss 的原始定义与目标检测应用边界；不外推其超参为所有任务默认值。</li>
+<li><a href="https://huggingface.co/docs/peft/main/en/developer_guides/lora">PEFT LoRA 官方指南</a>：LoRA 适配器、目标模块与训练配置的当前接口入口。</li>
+<li><a href="https://huggingface.co/docs/trl/sft_trainer">TRL SFTTrainer 官方文档</a>：SFT 数据、训练器和参数配置的当前接口入口。</li>
+</ul>
+<p>本地书摘只支撑概念框架，官方文档用于接口口径，经验材料只用于生成实验假设。所有具体数值和配置都需要在固定模型、数据与软件版本上重新做小实验。</p></div></details></div></details></div></body></html>

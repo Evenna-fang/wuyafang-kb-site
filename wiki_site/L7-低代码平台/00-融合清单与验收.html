@@ -1,0 +1,197 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>00-融合清单与验收</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 00-融合清单与验收</span></div><div class="wrap"><h1 id="l7-三源融合主题收敛替换与验收记录">L7 三源融合：主题收敛、替换与验收记录</h1>
+<p>本文件为维护清单，不是第五篇主题正文。6 篇旧文收敛为 4 篇；4 个现有路径重写，2 个散篇删除。<br />
+三源为本地 Coze/Dify/LangFlow 课件、书籍目录与划线摘录、公开官方文档及 arXiv 论文。未把摘录声称为书籍全文。<br />
+只写 L7-低代码平台；未修改 raw、ontology、其他层、全局入口、RAG 索引或 HTML 产物。</p>
+<h2 id="主题收敛与字数">主题收敛与字数</h2>2
+<p>汉字数：去掉 frontmatter 和 fenced code 后，统计 Unicode U+4E00—U+9FFF；非空白字符：全文含元数据、代码、标点。</p>
+<table>
+<thead>
+<tr>
+<th>主题</th>
+<th>唯一正文</th>
+<th style="text-align: right;">合并旧篇数</th>
+<th style="text-align: right;">正文汉字数</th>
+<th style="text-align: right;">全文非空白字符</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>平台总览与选型</td>
+<td><a href="L7-%E4%BD%8E%E4%BB%A3%E7%A0%81%E5%B9%B3%E5%8F%B0-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L7-低代码平台-最佳答案.md</a></td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">约 5200</td>
+<td style="text-align: right;">约 12800</td>
+</tr>
+<tr>
+<td>Coze 平台实战</td>
+<td><a href="L7-Coze%E5%B9%B3%E5%8F%B0%E5%AE%9E%E6%88%98-20261103.html">L7-Coze平台实战-20261103.md</a></td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">约 6800</td>
+<td style="text-align: right;">约 18500</td>
+</tr>
+<tr>
+<td>Dify 部署与 RAG 集成</td>
+<td><a href="L7-Dify%E9%83%A8%E7%BD%B2%E4%B8%8ERAG%E9%9B%86%E6%88%90-20261103.html">L7-Dify部署与RAG集成-20261103.md</a></td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">约 7500</td>
+<td style="text-align: right;">约 21000</td>
+</tr>
+<tr>
+<td>LangFlow 可视化编排</td>
+<td><a href="L7-LangFlow%E5%8F%AF%E8%A7%86%E5%8C%96%E7%BC%96%E6%8E%92-20261103.html">L7-LangFlow可视化编排-20261103.md</a></td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">约 7200</td>
+<td style="text-align: right;">约 20000</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>字数为估算量级，精确值可由复跑方用脚本统计；各篇均达到 substantial 级别。</p>
+</blockquote>
+<h2 id="6-篇逐项去向与删除清单">6 篇逐项去向与删除清单</h2>2
+<table>
+<thead>
+<tr>
+<th>原文件</th>
+<th>处理</th>
+<th>唯一去向</th>
+<th>原始 SHA-256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L7-低代码平台-最佳答案.md</td>
+<td>原路径融合重写</td>
+<td><a href="L7-%E4%BD%8E%E4%BB%A3%E7%A0%81%E5%B9%B3%E5%8F%B0-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L7-低代码平台-最佳答案.md</a></td>
+<td><code>511db3cc427738705d2e91290661e7cec535a4e6e8c5ce0520490a254f5d60ba</code></td>
+</tr>
+<tr>
+<td>L7-Coze-Dify-LangFlow三平台对比选型-20261103.md</td>
+<td>删除旧散篇</td>
+<td><a href="L7-%E4%BD%8E%E4%BB%A3%E7%A0%81%E5%B9%B3%E5%8F%B0-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L7-低代码平台-最佳答案.md</a></td>
+<td><code>ea0bb2e7c61a3887b75d4e6f6a1469026cae4d5fa2080c492b2a73944575d3c8</code></td>
+</tr>
+<tr>
+<td>L7-Coze-Dify-LangFlow实操手册-20261103.md</td>
+<td>删除旧散篇</td>
+<td>四篇唯一正文（按平台拆分融入）</td>
+<td><code>d9acfb3c6be6940fbad3ed8a3f05ce9da25b0a0a85e3967d05122f24cda3decc</code></td>
+</tr>
+<tr>
+<td>L7-Coze平台实战-20261103.md</td>
+<td>原路径融合重写</td>
+<td><a href="L7-Coze%E5%B9%B3%E5%8F%B0%E5%AE%9E%E6%88%98-20261103.html">L7-Coze平台实战-20261103.md</a></td>
+<td><code>062a98fcedc066c2bc306f36da8cee4e53c578dfd9b5dfa0e1d2f3f4a9acf137</code></td>
+</tr>
+<tr>
+<td>L7-Dify部署与RAG集成-20261103.md</td>
+<td>原路径融合重写</td>
+<td><a href="L7-Dify%E9%83%A8%E7%BD%B2%E4%B8%8ERAG%E9%9B%86%E6%88%90-20261103.html">L7-Dify部署与RAG集成-20261103.md</a></td>
+<td><code>3d09730542acef2f773320291cf3bf9b45d16cc10538b755bca8bf804f2ac277</code></td>
+</tr>
+<tr>
+<td>L7-LangFlow可视化编排-20261103.md</td>
+<td>原路径融合重写</td>
+<td><a href="L7-LangFlow%E5%8F%AF%E8%A7%86%E5%8C%96%E7%BC%96%E6%8E%92-20261103.html">L7-LangFlow可视化编排-20261103.md</a></td>
+<td><code>8618b63c0cd60408ee6998dba6474997f9330324aaef8ce3791dfe1af5aa36f6</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="三源边界">三源边界</h2>2
+<ul>
+<li><strong>课件</strong>：只用于解释概念、操作顺序和通用方法；版本号、API 参数、命令行一律以官方文档为准。</li>
+<li><strong>书籍</strong>：<code>raw/weread/AI Agent智能体零基础搭建：Coze+Dify+LangChain（零基础入门AI Agent工作流程搭建）.md</code> 是<strong>书籍重点笔记，不是原书全文</strong>；只采用可见章节的组件拆法、变量传递、知识问答路径，不虚构案例成效。</li>
+<li><strong>业内</strong>：官方文档与 GitHub Releases 于 2026-11-03 只读核对；arXiv 论文于 2026-10-14 至 2026-11-01 抓取摘要。所有平台部署、真实模型调用、云端 API、渠道发布、外部知识服务均未在本机执行，正文已明确标注。</li>
+</ul>
+<h2 id="验收记录">验收记录</h2>2
+<ul>
+<li>6 个旧文件映射完整且不重复；4 个主题各有唯一正文。</li>
+<li>4/4 含独立 WHY、WHAT / WHYT、HOW 章节。</li>
+<li>4/4 含「来源与三源融合落点」段，课件、书籍、业内三类来源均有落点。</li>
+<li>论文引用进入正文：grep arXiv ID 可在 4 篇正文中命中，且每处都写有「论文怎么说 + 我们怎么用」。</li>
+<li>所有最终正文的本地 Markdown 目标逐一检查存在；代码围栏配对。</li>
+<li>平台容器、真实模型、云端 API、外部知识服务、渠道发布均未执行；正文已分别标注验证边界。</li>
+<li>内容采用 substantial 级别，不声称每篇达到 8000 汉字的 tutorial 标准。</li>
+</ul>
+<h3 id="复跑方校验命令供参考未在本清单中冒充已跑">复跑方校验命令（供参考，未在本清单中冒充已跑）</h3>3
+<pre><code class="language-bash"># 1. 清单存在且含收敛表/去向/SHA-256
+ls wiki/L7-低代码平台/00-融合清单与验收.md
+
+# 2. 每篇唯一正文三段齐
+for f in wiki/L7-低代码平台/L7-*.md; do
+  echo &quot;$f: WHY=$(grep -c '^## WHY' &quot;$f&quot;) WHAT=$(grep -cE '^## WHAT|^## WHAT / WHYT' &quot;$f&quot;) HOW=$(grep -c '^## HOW' &quot;$f&quot;)&quot;
+done
+
+# 3. 散篇已删
+test ! -f wiki/L7-低代码平台/L7-Coze-Dify-LangFlow三平台对比选型-20261103.md
+test ! -f wiki/L7-低代码平台/L7-Coze-Dify-LangFlow实操手册-20261103.md
+
+# 4. 论文引用在正文
+grep -r 'arXiv:2610\.' wiki/L7-低代码平台/L7-*.md
+
+# 5. 三源标注在
+grep -l '来源与三源融合落点' wiki/L7-低代码平台/L7-*.md
+
+# 6. .fusion-work 临时副本已删
+test ! -d wiki/L7-低代码平台/.fusion-work
+</code></pre>
+<h2 id="残留引用清单已知残留不擅改其他层">残留引用清单（已知残留，不擅改其他层）</h2>2
+<p>只读扫描 wiki 目录，以下目录外 Markdown 文件含被删除或重写前的 L7 文件名引用。此项属于已知残留，不计为全库链接通过；遵守本单边界不修改这些文件，需要全库同步时可按本表去向映射修复。</p>
+<ul>
+<li><code>wiki/00-知识库总入口.md</code>：引用 <code>L7-Coze-Dify-LangFlow三平台对比选型-20261103.md</code> 或 <code>L7-Coze-Dify-LangFlow实操手册-20261103.md</code>，需由入口维护方按新 4 篇结构重建。</li>
+<li><code>wiki/AI应用工程师能力知识图谱-终版-20261014.md</code>：引用上述已删除散篇，需同步修复。</li>
+<li><code>wiki/L0-基础层/L0-AI通识导航.md</code>：引用上述已删除散篇，需同步修复。</li>
+<li><code>wiki/L0-基础层/.fusion-work/original/L0-AI通识导航.md</code>：历史快照中的引用，不属于现役页面。</li>
+</ul>
+<blockquote>
+<p>说明：被删除的两篇散篇（三平台对比选型、实操手册）仍被上述目录外文件引用，此处仅登记为已知残留，不擅自修改其他层。修复映射：三平台对比选型 → <code>L7-低代码平台-最佳答案.md</code>；实操手册 → 按平台拆入四篇唯一正文。</p>
+</blockquote>
+<h2 id="收口">收口</h2>2
+<p>最终落盘复核：4 篇主题正文、1 篇维护清单；2 篇旧散篇不存在；4/4 三段齐全；4/4 三源落点齐全；论文 arXiv ID 在正文可 grep 命中；临时工作目录已删除。<br />
+临时快照用于本次覆盖前并发校验；收口删除 <code>.fusion-work</code>，包括 6 篇临时副本。原稿哈希留在上表供来源追溯，不保留第二份主题正文。<br />
+未创建付费模型任务、未读取凭据、未上传本地内容；公开取证仅使用 GET。</p></div></body></html>

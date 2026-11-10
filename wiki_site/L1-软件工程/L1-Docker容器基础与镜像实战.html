@@ -1,0 +1,863 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L1-Docker容器基础与镜像实战</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L1-Docker容器基础与镜像实战</span></div><div class="wrap"><h1 id="l1-docker-容器基础与镜像实战">L1 Docker 容器基础与镜像实战</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+<strong>能力域</strong>：L1-软件工程 / 应用交付与运行环境<br />
+<strong>关键词</strong>：Docker Engine、Docker Desktop、OCI、镜像分层、Dockerfile、卷、网络、构建缓存、FastAPI<br />
+<strong>来源说明</strong>：安装、构建和安全语义以 Docker 官方文档为准；本地课件 <a href="../../raw/courseware/%E9%A3%9E%E4%B9%A6%E6%96%B0%E7%A9%BA%E9%97%B4/Dify%E6%9C%AC%E5%9C%B0%E9%83%A8%E7%BD%B2.md">Dify本地部署</a> 提供多服务交付背景，<a href="../../raw/courseware/%E9%A3%9E%E4%B9%A6%E6%96%B0%E7%A9%BA%E9%97%B4/LlamaIndex%E6%A1%86%E6%9E%B6.md">LlamaIndex框架</a> 提供 redis-stack 启动片段。本文补充可复现版本、数据持久化与安全边界，不把课件中的 <code>latest</code>、全网端口暴露或清库指令直接作为生产模板。</p>
+</blockquote>
+<p><strong>学习目标</strong>：从没有安装 Docker 开始，完成引擎自检，运行现成镜像，掌握容器生命周期，最后把一个 Python HTTP 服务构建成自己的镜像。先按顺序完成安装，再练基础命令；第 3.7 节是一段从建目录到 HTTP 验证的独立完整脚本。</p>
+<p><strong>终端约定</strong>：除明确标注 PowerShell 的代码块，其余命令都在 Bash 中执行：Ubuntu 终端、macOS 的 Bash，或 Windows 的 WSL Ubuntu。不要把 Bash 的反斜杠续行和 here-document 粘贴到 PowerShell。文中的安装和启动操作供读者执行；本次编写核验了官方资料及代码结构，没有在本机安装引擎或实跑容器。<code>last_verified</code> 表示资料与文档核对日期，预期输出均不是本机运行记录。</p>
+<h2 id="what-whyt先建立六个概念与适用边界">WHAT / WHYT：先建立六个概念与适用边界</h2>2
+<p><strong>镜像（image）</strong>是只读的应用交付模板，包含程序、依赖、用户空间文件以及默认启动设置。<code>python:3.12.8-slim-bookworm</code> 就是一份带 Python 的基础镜像。镜像名通常是 <code>仓库地址/命名空间/名称:标签</code>；省略地址时通常使用 Docker Hub。标签是可移动引用，摘要 <code>sha256:…</code> 才能标识确定内容。</p>
+<p><strong>容器（container）</strong>是镜像的一次运行实例，由进程、隔离环境、可写层和挂载等组成。同一个镜像可以创建许多容器。停止容器会结束进程，但保留容器可写层；删除容器会删除该可写层。镜像里没有“正在运行的服务”，服务是在创建并启动容器时运行的。</p>
+<p><strong>仓库（repository）</strong>保存同一应用的多个标签；<strong>镜像注册服务（registry）</strong>托管许多仓库，例如 Docker Hub 或企业私有 registry。<code>pull</code> 下载镜像，<code>push</code> 上传镜像。本教程只要求本地构建，不需要登录或上传代码。</p>
+<p><strong>联合文件系统（UnionFS）</strong>把多个只读层与一个可写层呈现成一棵目录树。Linux 容器常见实现是 OverlayFS；实际后端受存储驱动和镜像存储配置影响。写入已有文件通常会触发写时复制；这使多个容器能共享镜像层，也意味着数据库的大量随机写不宜长期放在容器可写层中。删除后续层中的文件，并不能消除早期镜像层中的原始内容，因此“先 COPY 密钥再 RUN 删除”仍会泄密。</p>
+<table>
+<thead>
+<tr>
+<th>比较维度</th>
+<th>Linux 容器</th>
+<th>虚拟机</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>隔离边界</td>
+<td>namespaces、cgroups 等内核机制</td>
+<td>虚拟硬件与独立客户机内核</td>
+</tr>
+<tr>
+<td>内核</td>
+<td>共享运行环境的 Linux 内核</td>
+<td>每台虚拟机有自己的内核</td>
+</tr>
+<tr>
+<td>启动</td>
+<td>通常启动应用进程，常见为秒级</td>
+<td>通常还需启动操作系统，常见为数十秒</td>
+</tr>
+<tr>
+<td>内存与存储</td>
+<td>可共享文件层，无每容器内核开销</td>
+<td>每台有系统镜像和内核开销</td>
+</tr>
+<tr>
+<td>兼容性</td>
+<td>仍受 CPU 架构、内核接口等约束</td>
+<td>可以安装不同客户机操作系统</td>
+</tr>
+<tr>
+<td>适合场景</td>
+<td>高频交付、测试环境、服务扩缩容</td>
+<td>更强隔离、不同内核或完整系统环境</td>
+</tr>
+</tbody>
+</table>
+<p>这里的时间只是常见数量级，不是性能保证；应用初始化和下载镜像可能远比启动容器耗时。macOS、Windows 上的 Linux 容器通常运行于 Docker Desktop 管理的 Linux 虚拟环境，宿主仍承担一份虚拟化开销。</p>
+<p><strong>论文落点：只读镜像不只用于应用。</strong> Creating SquashFS Images to Support HPC and AI Datasets（arXiv:2610.20578）比较了 11 种把大量小文件制成 SquashFS 数据集镜像的工作流，动机是降低并行访问对中心文件系统元数据服务的压力。SquashFS 不是 OCI/Docker 镜像格式，不能直接替换本文的分层镜像；可借鉴的是“只读数据封装成不可变制品，并按真实输入形态、存储位置和线程数做基准”。若容器要挂载大型只读数据集，应单独测试元数据开销与挂载方式，不要把海量小文件盲目 COPY 进应用镜像。</p>
+<p><strong>Docker Engine</strong>主要包括后台守护进程 <code>dockerd</code>、API 和 CLI；Linux 服务器通常直接安装它。<strong>Docker Desktop</strong>包含图形界面、CLI、Compose、虚拟运行环境等，面向 macOS、Windows 以及桌面 Linux。二者不是互不相关的两种容器格式。<strong>OCI</strong>定义容器镜像、运行时与分发等开放规范，帮助不同实现互操作；它并不承诺任意架构和操作系统的镜像都能直接互换运行。</p>
+<h2 id="why为什么要把环境差异变成可管理的交付输入">WHY：为什么要把环境差异变成可管理的交付输入</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.1 “在我机器上能跑”到底差在哪里</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Python 项目能启动，不只取决于 「app.py」：解释器版本、pip 依赖、系统动态库、当前目录、环境变量和启动命令都参与结果</li><li>甲机器有某个系统包，乙机器没有；开发机依赖已升级，测试机还在用旧版本；同事直接启动 Python，服务器却从另一工作目录启动</li><li>这些差异很难靠一份“安装说明”长期保持同步</li></ul></div>3
+<p>Python 项目能启动，不只取决于 <code>app.py</code>：解释器版本、pip 依赖、系统动态库、当前目录、环境变量和启动命令都参与结果。甲机器有某个系统包，乙机器没有；开发机依赖已升级，测试机还在用旧版本；同事直接启动 Python，服务器却从另一工作目录启动。这些差异很难靠一份“安装说明”长期保持同步。</p>
+<p>容器把用户空间依赖和启动契约编码到镜像中。团队在持续集成阶段构建一次，再把同一个镜像摘要推广到测试和生产。测试通过的对象与生产运行的对象因此更接近。Dockerfile 本身并不保证完全可重复：浮动标签、未锁定的间接依赖、在线包源变化仍会改变结果。可靠流程还应保留锁文件、固定镜像摘要，并记录构建参数和架构。</p>
+<p>《持续交付 2.0》的目录把部署流水线、软件配置管理、不可变基础设施和低风险发布串成实践体系，公开摘录中“一次构建，多次使用”与这里完全同向。它的作用不是证明 Docker 自动等于持续交付，而是提醒我们把镜像构建、测试、制品保管、发布和监测放进同一条流水线；只有 <code>docker run</code> 成功，仍没有形成交付闭环。</p>
+<p>容器同样不会把数据库状态、DNS、外部 API 权限或宿主内核一起封进去。因此“多环境一致”应理解为：程序与用户空间依赖一致，环境差异通过显式配置注入，数据和外部服务另外管理。不要为了追求一致而把开发数据库和生产凭据烘焙进镜像。</p>
+<h3 id="22-对交付扩展和回滚有什么帮助">2.2 对交付、扩展和回滚有什么帮助</h3>3
+<table>
+<thead>
+<tr>
+<th>工程诉求</th>
+<th>容器提供的办法</th>
+<th>仍需完成的工作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>交付</td>
+<td>镜像携带运行依赖与启动命令</td>
+<td>自动构建、扫描、版本命名和发布审批</td>
+</tr>
+<tr>
+<td>扩展</td>
+<td>用同一镜像启动多个实例</td>
+<td>负载均衡、容量规划、会话外置</td>
+</tr>
+<tr>
+<td>回滚</td>
+<td>重新启动上一版镜像摘要</td>
+<td>数据库迁移向后兼容、流量切换</td>
+</tr>
+<tr>
+<td>环境一致</td>
+<td>测试与生产使用同一制品</td>
+<td>分离配置、检查架构和宿主支持</td>
+</tr>
+<tr>
+<td>新人入职</td>
+<td>统一启动入口</td>
+<td>准备开发数据和访问权限</td>
+</tr>
+</tbody>
+</table>
+<p>镜像版本化让回滚从“现场修改服务器文件”变成“选择已知制品”。但如果新版已经不可逆地修改数据库，启动旧镜像也无法恢复旧数据。数据库迁移应采用可兼容的阶段式变更，并建立备份恢复流程。</p>
+<p>扩展方面，复制无状态 HTTP 服务很容易；复制数据库却不能自动得到正确的数据复制和一致性。应用若把用户上传文件保存在容器本地，即使新增十个实例，也会因为各实例文件不同而出问题。应把持久状态放到卷、数据库或对象存储，再考虑横向扩展。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.3 为什么通常比虚拟机轻</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>在同一 Linux 宿主上，多个容器共享内核，不必为每个应用启动完整操作系统</li><li>镜像公共层能够复用，部署更新只需传输变化层</li><li>对短任务和频繁启动的服务，这能降低资源浪费与环境准备时间</li></ul></div>3
+<p>在同一 Linux 宿主上，多个容器共享内核，不必为每个应用启动完整操作系统。镜像公共层能够复用，部署更新只需传输变化层。对短任务和频繁启动的服务，这能降低资源浪费与环境准备时间。比较成本时必须包含镜像拉取、解压、应用启动和 Desktop 虚拟机的资源，而不能只比较 <code>docker run</code> 返回的时间。</p>
+<p>容器也不会凭空增加 CPU：<code>--cpus=1</code> 是调度配额，不是独占一个物理核心；<code>--memory=256m</code> 是内存限制，不是已经为应用预留好全部容量。应用吞吐、I/O 和网络仍需测量。把资源限制设得过小，反而会造成限流和内存溢出。</p>
+<h3 id="24-容器不是银弹">2.4 容器不是银弹</h3>3
+<p>隔离方面，共享内核意味着宿主内核漏洞和高权限容器可能扩大攻击面；高风险多租户工作负载可能需要虚拟机或专用沙箱。运维方面，容器停止并不等于数据已备份；卷能跨容器保留，却仍可能因误删、磁盘损坏或应用逻辑错误而丢失数据。安全方面，镜像来源、基础包漏洞、构建脚本、容器权限和开放端口都要管理。</p>
+<p>此外，容器增加了网络、存储、镜像供应链与观测层。单人一次性脚本未必值得容器化；当多人协作、部署频繁、依赖复杂或需要批量复制环境时，收益才更明显。学习时先掌握单容器，再使用 Compose 编排多服务，最后按真实需求引入 Kubernetes。</p>
+</div></details><h2 id="how从安装到自己的服务">HOW：从安装到自己的服务</h2>2
+<h3 id="31-环境准备与明确版本">3.1 环境准备与明确版本</h3>3
+<p>本教程以 <strong>Ubuntu 22.04 LTS / 24.04 LTS、Docker Engine 29.8.2、Python 3.12.8、FastAPI 0.115.6、Uvicorn 0.34.0</strong> 为明确示例版本。Engine 29.8.2 是本次官方 Ubuntu 安装页列出的版本，不表示应长期停留在该补丁版。Buildx、Compose 和 containerd 使用官方 apt 源当前兼容稳定包，并用 <code>dpkg-query</code> 记录具体版本。示例所用功能不依赖 Engine 29 的特有接口。</p>
+<h4 id="ubuntu使用官方-apt-源">Ubuntu：使用官方 apt 源</h4>
+<p>以下适用于全新 Ubuntu。先检查系统与现有包；如果已经运行其他 Docker/containerd 服务，先评估迁移，不能直接卸载正在承载业务的组件。</p>
+<pre><code class="language-bash">cat /etc/os-release
+dpkg --print-architecture
+dpkg -l docker.io docker-compose docker-compose-v2 podman-docker containerd runc 2&gt;/dev/null || true
+</code></pre>
+<p>仅在本次准备的练习机器上，移除与官方包冲突的发行版软件包；这一步不主动删除镜像和卷，但会影响现有容器服务。随后安装证书和下载工具。</p>
+<pre><code class="language-bash">for conflict_pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do
+  if dpkg-query -W -f='${Status}' &quot;$conflict_pkg&quot; 2&gt;/dev/null | grep -q 'install ok installed'; then
+    sudo apt-get remove -y &quot;$conflict_pkg&quot;
+  fi
+done
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl
+</code></pre>
+<p>创建 keyrings 并导入 Docker 官方 GPG 公钥。这里下载的是公开签名验证密钥，不是个人凭据。</p>
+<pre><code class="language-bash">sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+</code></pre>
+<p>写入 <code>/etc/apt/sources.list.d/docker.sources</code>，这是官方当前采用的 deb822 格式。Ubuntu 22.04 使用 <code>jammy</code>，24.04 使用 <code>noble</code>；下面从系统读取，不必手工猜代号。不要同时保留指向相同地址的旧 <code>docker.list</code> 条目。</p>
+<pre><code class="language-bash">. /etc/os-release
+case &quot;$VERSION_ID&quot; in
+  22.04|24.04) ;;
+  *) echo '本教程仅覆盖 Ubuntu 22.04 / 24.04'; exit 1 ;;
+esac
+sudo tee /etc/apt/sources.list.d/docker.sources &gt;/dev/null &lt;&lt;EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: ${UBUNTU_CODENAME:-$VERSION_CODENAME}
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+sudo apt-get update
+</code></pre>
+<p>安装全部五个组件。先列出源中的版本；若指定补丁已经不在源中，选择列表中可用的受维护版本并同时替换 Engine 和 CLI 的版本字符串，不要从非官方站点下载未知包。</p>
+<pre><code class="language-bash">. /etc/os-release
+apt-cache madison docker-ce
+DOCKER_PACKAGE_VERSION=&quot;5:29.8.2-1~ubuntu.${VERSION_ID}~${UBUNTU_CODENAME:-$VERSION_CODENAME}&quot;
+sudo apt-get install -y \
+  docker-ce=&quot;$DOCKER_PACKAGE_VERSION&quot; \
+  docker-ce-cli=&quot;$DOCKER_PACKAGE_VERSION&quot; \
+  containerd.io docker-buildx-plugin docker-compose-plugin
+sudo systemctl enable --now docker
+dpkg-query -W docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+</code></pre>
+<p>默认 Unix socket 需要管理员权限。学习机可把自己的账号加入 <code>docker</code> 组；它近似于授予宿主 root 权限，只能给可信账号。生产或多人机器优先评估 rootless 模式。执行后退出并重新登录；<code>newgrp</code> 也能临时建立新组会话。</p>
+<pre><code class="language-bash">sudo usermod -aG docker &quot;$USER&quot;
+newgrp docker
+</code></pre>
+<h4 id="macosdocker-desktop">macOS：Docker Desktop</h4>
+<p>选择 <strong>Docker Desktop 4.50.0 或更高、仍受官方维护的稳定版</strong>，这是本教程选定的版本基线，不是所有功能的最低历史版本。安装页为 https://docs.docker.com/desktop/setup/install/mac-install/ 。按 Apple Silicon（arm64）或 Intel（amd64）选择 DMG，打开后把 Docker 拖入 Applications，启动 Docker 并完成系统授权，等界面显示引擎正在运行。</p>
+<p>官方支持当前及前两个 macOS 大版本，至少需要 4 GB 内存；本教程建议 8 GB 以上。具体组合以下载版本安装页为准，不能认为“任何 macOS 都能装最新版”。默认使用与本机 CPU 一致的镜像；跨架构仿真可能明显变慢。终端可执行下面命令启动应用，然后等待引擎就绪。</p>
+<pre><code class="language-bash">open -a Docker
+</code></pre>
+<h4 id="windowsdocker-desktop-wsl-2">Windows：Docker Desktop + WSL 2</h4>
+<p>同样选择 <strong>Docker Desktop 4.50.0 或更高的受维护稳定版</strong>。建议使用受 Microsoft 支持的 Windows 11 64 位版本；官方安装页列有 Windows 11 23H2 / build 22631 及以上的硬件基线，但不同版本是否仍受支持取决于系统版本和支持生命周期。Windows 10 22H2 / build 19045 是旧兼容基线，不应当作长期新装建议。需要 WSL <strong>2.1.5 或更新</strong>、至少 <strong>8 GB RAM</strong>，并在 BIOS/UEFI 中开启硬件虚拟化。</p>
+<p>在管理员 PowerShell 中执行；如果尚未安装 WSL，安装后按提示重启电脑。</p>
+<pre><code class="language-powershell">wsl --install -d Ubuntu-24.04
+wsl --update
+wsl --set-default-version 2
+wsl --version
+wsl --list --verbose
+</code></pre>
+<p>从 https://docs.docker.com/desktop/setup/install/windows-install/ 下载并运行对应架构安装器，选择 WSL 2 后端。打开 Docker Desktop，在 Settings → General 启用 WSL 2 engine，在 Resources → WSL Integration 启用 Ubuntu-24.04。进入该发行版终端执行后续 Bash 操作。使用 Desktop 集成时，不要再照前面的 apt 教程在同一个 WSL 发行版安装第二套 Engine，以免 CLI 连接了错误的 socket。Windows Server 不属于 Docker Desktop 的安装目标。</p>
+<h4 id="三条统一自检">三条统一自检</h4>
+<p>以下三条在已完成权限处理的 Ubuntu、macOS、WSL 终端中均适用。</p>
+<pre><code class="language-bash">docker --version
+docker compose version
+docker run hello-world
+</code></pre>
+<p>应看到 <code>Docker version ...</code>、<code>Docker Compose version ...</code> 和 <code>Hello from Docker!</code>。版本号可能比示例新。最后一个容器运行结束后显示 Exited 是正常情况。<code>docker --version</code> 只证明 CLI 存在；<code>hello-world</code> 成功才同时覆盖 daemon 连接、镜像拉取和运行链路。现在统一使用带空格的 <code>docker compose</code>，本地旧课件中的 <code>docker-compose</code> 是历史独立程序写法。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">3.2 镜像管理：pull、inspect、tag、rmi</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>先拉取固定标签的小镜像并查看配置</li><li>「inspect」 返回 JSON；用格式化选项可以单独查看镜像 ID 或摘要</li><li>给同一镜像添加本地名字，再删除这个新标签</li></ul></div>3
+<p>先拉取固定标签的小镜像并查看配置。<code>inspect</code> 返回 JSON；用格式化选项可以单独查看镜像 ID 或摘要。</p>
+<pre><code class="language-bash">docker pull nginx:1.28.0-alpine
+docker image ls
+docker image inspect nginx:1.28.0-alpine
+docker image inspect --format '{{json .RepoDigests}}' nginx:1.28.0-alpine
+</code></pre>
+<p>给同一镜像添加本地名字，再删除这个新标签。<code>tag</code> 不会复制一套完整文件，<code>rmi</code> 删除标签也不一定立即释放底层空间。镜像正被容器引用时，先处理引用关系，不要惯性使用强制删除。</p>
+<pre><code class="language-bash">docker tag nginx:1.28.0-alpine local-nginx:lesson1
+docker image inspect --format '{{.Id}}' local-nginx:lesson1
+docker rmi local-nginx:lesson1
+</code></pre>
+<h3 id="33-容器生命周期端口和资源">3.3 容器生命周期、端口和资源</h3>3
+<p>启动一个有名字的后台容器。宿主仅绑定回环地址，浏览器打开 <code>http://localhost:8080</code>。映射顺序是“宿主 IP : 宿主端口 : 容器端口”；nginx 默认监听容器的 80 端口。</p>
+<pre><code class="language-bash">docker run -d --name lesson-web \
+  -p 127.0.0.1:8080:80 \
+  --memory=128m --cpus=0.5 \
+  nginx:1.28.0-alpine
+docker ps
+curl -fsS http://localhost:8080
+</code></pre>
+<p>预期 <code>run</code> 输出容器 ID，<code>ps</code> 显示 Up，网页包含 <code>Welcome to nginx!</code>。省略 <code>127.0.0.1</code> 的 <code>-p 8080:80</code> 默认会发布到宿主所有地址，可能让局域网甚至公网访问服务。Docker 发布端口与宿主防火墙规则的交互需要单独审查，不能只凭 UFW 表面规则判断安全。</p>
+<p>查看日志并进入容器。<code>-i</code> 保持标准输入，<code>-t</code> 分配终端；自动化脚本通常不应加 <code>-t</code>。Alpine 默认有 <code>sh</code>，未必有 <code>bash</code>。进入后执行 <code>exit</code> 退出，不会停止 nginx。</p>
+<pre><code class="language-bash">docker logs --tail 30 lesson-web
+docker exec -it lesson-web sh
+</code></pre>
+<p>停止、查看、再次启动，最后删除。<code>start</code> 沿用已有端口与挂载设置；要修改这些设置，通常需要重新创建容器。不要把“退出交互 shell”与“停止容器主进程”混为一谈。</p>
+<pre><code class="language-bash">docker stop --time 10 lesson-web
+docker ps -a
+docker start lesson-web
+docker logs --tail 10 lesson-web
+docker stop lesson-web
+docker rm lesson-web
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>用途</th>
+<th>容易误解的地方</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>docker run</code></td>
+<td>创建并启动新容器</td>
+<td>每次都创建，不是重启旧容器</td>
+</tr>
+<tr>
+<td><code>docker ps -a</code></td>
+<td>包括已停止容器的列表</td>
+<td>不带 <code>-a</code> 只显示运行中容器</td>
+</tr>
+<tr>
+<td><code>docker stop</code> / <code>start</code></td>
+<td>停止 / 启动已有容器</td>
+<td>停止不会删数据层</td>
+</tr>
+<tr>
+<td><code>docker logs -f</code></td>
+<td>跟随标准输出日志</td>
+<td>文件日志不会自动出现在这里</td>
+</tr>
+<tr>
+<td><code>docker exec -it</code></td>
+<td>在运行中容器执行命令</td>
+<td>已停止容器不能 exec</td>
+</tr>
+<tr>
+<td><code>docker rm</code> / <code>rmi</code></td>
+<td>删除容器 / 镜像引用</td>
+<td>二者对象不同</td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.4 数据卷与 bind mount</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>命名卷由 Docker 管理，适合数据库数据；bind mount把你指定的宿主路径映射进去，适合本地源码、配置和明确管理的文件</li><li>挂载覆盖容器目标路径的视图，原来镜像中的文件不是被物理删除，而是暂时被遮住</li><li>创建命名卷，写入文字，再创建另一个临时容器读取</li></ul></div>3
+<p><strong>命名卷</strong>由 Docker 管理，适合数据库数据；<strong>bind mount</strong>把你指定的宿主路径映射进去，适合本地源码、配置和明确管理的文件。挂载覆盖容器目标路径的视图，原来镜像中的文件不是被物理删除，而是暂时被遮住。</p>
+<p>创建命名卷，写入文字，再创建另一个临时容器读取。两个容器都通过 <code>--rm</code> 自动删除，但数据仍在卷里，这就是“数据与容器分离”。</p>
+<pre><code class="language-bash">docker volume create lesson-data
+docker run --rm --mount type=volume,src=lesson-data,dst=/data \
+  alpine:3.21.3 sh -c 'printf &quot;volume survives\n&quot; &gt; /data/note.txt'
+docker run --rm --mount type=volume,src=lesson-data,dst=/data \
+  alpine:3.21.3 cat /data/note.txt
+docker volume inspect lesson-data
+</code></pre>
+<p>预期第二个容器输出 <code>volume survives</code>。卷持久化不等于备份；数据库应采用自身支持的一致性备份或正确停机后的备份流程。</p>
+<p>下面将当前目录里的网页只读挂载到 nginx。请在 Bash 执行，Windows 使用 WSL 的 Linux 文件路径；开发项目优先放在 WSL 的 <code>~/</code> 下，避免大量小文件跨 Windows 文件系统造成性能下降。</p>
+<pre><code class="language-bash">mkdir -p &quot;$HOME/docker-lesson-site&quot;
+printf '&lt;h1&gt;Hello bind mount&lt;/h1&gt;\n' &gt; &quot;$HOME/docker-lesson-site/index.html&quot;
+docker run -d --name lesson-bind \
+  -p 127.0.0.1:8081:80 \
+  --mount &quot;type=bind,src=$HOME/docker-lesson-site,dst=/usr/share/nginx/html,readonly&quot; \
+  nginx:1.28.0-alpine
+curl -fsS http://localhost:8081
+docker stop lesson-bind
+docker rm lesson-bind
+</code></pre>
+<p><code>--mount type=bind</code> 的源路径必须已经存在；这有助于及时发现路径拼写错误。Linux 上卷里的文件仍受 UID/GID 权限约束，非 root 应用不能因为“挂了卷”就自动拥有写权限。</p>
+<h3 id="35-自定义网络与服务发现">3.5 自定义网络与服务发现</h3>3
+<p>在自定义 bridge 网络中，容器能通过名称解析彼此。下面后端不用发布宿主端口；客户端通过 <code>lesson-backend:80</code> 访问。容器里的 <code>localhost</code> 只指向该容器自己，不是另一容器，也不是宿主。</p>
+<pre><code class="language-bash">docker network create lesson-net
+docker run -d --name lesson-backend --network lesson-net nginx:1.28.0-alpine
+docker run --rm --network lesson-net alpine:3.21.3 \
+  wget -qO- http://lesson-backend:80
+docker network inspect lesson-net
+docker stop lesson-backend
+docker rm lesson-backend
+docker network rm lesson-net
+</code></pre>
+<p>预期返回 nginx 欢迎页。网络提供连接和名称解析，不自动提供业务鉴权、TLS 或细粒度网络策略。日后把 FastAPI 与 Redis 放进同一网络，应用配置的 Redis 主机名就应填写 Redis 容器名称，而非 <code>127.0.0.1</code>。这也是理解本地 LlamaIndex 课件部署片段的关键。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.6 第一个 Dockerfile：完整文件与构建原理</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>示例返回中文 JSON，并提供 「/health」 健康接口</li><li>使用 Python 标准库做健康检查，避免为了检查 HTTP 而额外安装 curl</li><li>requirements.txt：示例固定直接依赖</li></ul></div>3
+<p>先理解四个文件。示例返回中文 JSON，并提供 <code>/health</code> 健康接口。使用 Python 标准库做健康检查，避免为了检查 HTTP 而额外安装 curl。</p>
+<p><strong>app.py</strong>：</p>
+<pre><code class="language-python">from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get(&quot;/&quot;)
+def root():
+    return {&quot;message&quot;: &quot;你好，Docker&quot;, &quot;service&quot;: &quot;lesson-api&quot;}
+
+
+@app.get(&quot;/health&quot;)
+def health():
+    return {&quot;status&quot;: &quot;ok&quot;}
+</code></pre>
+<p><strong>requirements.txt</strong>：示例固定直接依赖。生产还应锁定间接依赖并校验哈希；这里只固定两行，不能声称整个依赖树完全可复现。</p>
+<pre><code class="language-text">fastapi==0.115.6
+uvicorn==0.34.0
+</code></pre>
+<p><strong>Dockerfile</strong>：</p>
+<pre><code class="language-dockerfile">FROM python:3.12.8-slim-bookworm
+WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    LANG=C.UTF-8 \
+    PYTHONIOENCODING=utf-8
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt \
+    &amp;&amp; useradd --create-home --uid 10001 appuser
+COPY --chown=appuser:appuser app.py ./
+USER appuser
+EXPOSE 8000
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 \
+    CMD [&quot;python&quot;, &quot;-c&quot;, &quot;import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)&quot;]
+CMD [&quot;uvicorn&quot;, &quot;app:app&quot;, &quot;--host&quot;, &quot;0.0.0.0&quot;, &quot;--port&quot;, &quot;8000&quot;]
+</code></pre>
+<p><strong>.dockerignore</strong>：限制发送给构建器的内容，防止把虚拟环境、仓库历史和本地配置带入构建上下文。</p>
+<pre><code class="language-dockerignore">.git/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+.env.*
+secrets/
+*.pem
+*.key
+data/
+dist/
+build/
+*.log
+</code></pre>
+<p>逐条理解指令，尤其分清“构建时执行”和“运行时执行”。</p>
+<table>
+<thead>
+<tr>
+<th>指令</th>
+<th>作用</th>
+<th>常见错误及结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FROM</code></td>
+<td>指定基础镜像，开启构建阶段</td>
+<td>用 <code>latest</code>，重建时基础环境悄然变化</td>
+</tr>
+<tr>
+<td><code>WORKDIR</code></td>
+<td>设置后续构建和启动的工作目录</td>
+<td>拼成 <code>WORKDOR</code> 会报 unknown instruction</td>
+</tr>
+<tr>
+<td><code>COPY</code></td>
+<td>从构建上下文复制文件</td>
+<td>企图复制上下文外的 <code>../secret</code>，通常被拒绝</td>
+</tr>
+<tr>
+<td><code>ENV</code></td>
+<td>设置后续构建与容器默认环境变量</td>
+<td>填入密码，值可通过镜像配置等方式暴露</td>
+</tr>
+<tr>
+<td><code>EXPOSE</code></td>
+<td>声明应用计划监听的端口</td>
+<td>以为它会自动发布端口，实际仍要 <code>-p</code></td>
+</tr>
+<tr>
+<td><code>RUN</code></td>
+<td>构建阶段执行命令并生成文件变化</td>
+<td><code>RUN uvicorn ...</code> 使构建一直占着前台</td>
+</tr>
+<tr>
+<td><code>CMD</code></td>
+<td>容器默认命令或默认参数</td>
+<td>写多条期待全部执行，实际只最后一条生效</td>
+</tr>
+<tr>
+<td><code>ENTRYPOINT</code></td>
+<td>固定默认可执行程序</td>
+<td>shell 形式未正确转发信号，停机拖延</td>
+</tr>
+<tr>
+<td><code>USER</code></td>
+<td>指定后续 RUN 和运行时的用户</td>
+<td>切用户后再往无权限目录安装依赖</td>
+</tr>
+</tbody>
+</table>
+<p>JSON 数组使用双引号，不能写成 Python 风格单引号数组。当前 Dockerfile 用 exec 形式的 CMD，Uvicorn 成为容器主进程并可接收停止信号。如果希望“镜像始终执行 uvicorn，而运行参数可替换”，可以把最后一行改成下面两行；这是替代方案，不要同时保留两套 CMD。</p>
+<pre><code class="language-dockerfile">ENTRYPOINT [&quot;uvicorn&quot;, &quot;app:app&quot;]
+CMD [&quot;--host&quot;, &quot;0.0.0.0&quot;, &quot;--port&quot;, &quot;8000&quot;]
+</code></pre>
+<p>在该方案中，<code>docker run 镜像名 --host 0.0.0.0 --port 9000</code> 会替换 CMD 参数；要换程序则用 <code>--entrypoint</code>。exec 数组不经过 shell，因此 <code>$PORT</code> 不会自动展开；若需要环境变量驱动端口，应让程序读取变量，或编写最后使用 <code>exec</code> 的入口脚本。</p>
+<h4 id="构建缓存为什么这样安排">构建缓存为什么这样安排</h4>
+<p>层缓存依赖指令、父层与相关输入。复制的文件内容变了，这一步及其后续步骤通常需要重新计算。把 <code>COPY . .</code> 放在安装依赖之前，会让一次普通业务代码修改也触发重新安装所有依赖。这里先复制 <code>requirements.txt</code>、安装依赖，再复制 <code>app.py</code>；只有应用文件改变时，昂贵的依赖层有机会复用。“COPY 放后面”具体指频繁变动的源码后置，依赖清单必须先复制。</p>
+<p>构建日志中 <code>CACHED</code> 表示命中缓存；<code>pip --no-cache-dir</code> 只关闭 pip 下载缓存，不等于关闭 Docker 层缓存。<code>docker build --no-cache</code> 则主动绕过层缓存；<code>--pull</code> 只要求检查基础镜像的新版本，不会自动更新被固定的 pip 依赖。</p>
+<table>
+<thead>
+<tr>
+<th>构建参数</th>
+<th>用途</th>
+<th>使用建议</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-t lesson-api:1.0</code></td>
+<td>设置镜像名与标签</td>
+<td>给每个发布版本明确标签</td>
+</tr>
+<tr>
+<td><code>-f Dockerfile.multistage</code></td>
+<td>选择 Dockerfile</td>
+<td>构建上下文仍由最后的路径确定</td>
+</tr>
+<tr>
+<td><code>--progress=plain</code></td>
+<td>展开构建日志</td>
+<td>排查下载与构建错误</td>
+</tr>
+<tr>
+<td><code>--pull</code></td>
+<td>检查更新的基础镜像引用</td>
+<td>有意更新时使用，并重新测试</td>
+</tr>
+<tr>
+<td><code>--no-cache</code></td>
+<td>禁用层缓存</td>
+<td>用于诊断，日常不必总加</td>
+</tr>
+<tr>
+<td><code>--build-arg NAME=value</code></td>
+<td>传递已声明的 ARG</td>
+<td>不传密钥，构建参数不是秘密通道</td>
+</tr>
+<tr>
+<td><code>--platform linux/amd64</code></td>
+<td>指定目标平台</td>
+<td>需基础镜像支持，跨架构可能要仿真</td>
+</tr>
+</tbody>
+</table>
+<p>最后的 <code>.</code> 是构建上下文，不可遗漏。Dockerfile 在哪里与构建上下文在哪里是两件事：<code>-f</code> 改前者，最后的路径改后者。</p>
+<h4 id="多阶段构建只交付运行需要的产物">多阶段构建：只交付运行需要的产物</h4>
+<p>保存下面内容为 <strong>Dockerfile.multistage</strong>。builder 阶段在独立虚拟环境安装依赖，runtime 只接收虚拟环境和应用源码。两个阶段使用相同 Python、Debian 和目标架构，避免复制不兼容的二进制依赖。</p>
+<pre><code class="language-dockerfile">FROM python:3.12.8-slim-bookworm AS builder
+WORKDIR /build
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+RUN python -m venv /opt/venv
+COPY requirements.txt ./
+RUN /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+FROM python:3.12.8-slim-bookworm AS runtime
+WORKDIR /app
+ENV PATH=&quot;/opt/venv/bin:$PATH&quot; \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    LANG=C.UTF-8 \
+    PYTHONIOENCODING=utf-8
+RUN useradd --create-home --uid 10001 appuser
+COPY --from=builder /opt/venv /opt/venv
+COPY --chown=appuser:appuser app.py ./
+USER appuser
+EXPOSE 8000
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 \
+    CMD [&quot;python&quot;, &quot;-c&quot;, &quot;import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)&quot;]
+CMD [&quot;uvicorn&quot;, &quot;app:app&quot;, &quot;--host&quot;, &quot;0.0.0.0&quot;, &quot;--port&quot;, &quot;8000&quot;]
+</code></pre>
+<p>这个小项目没有引入编译器，多阶段版本未必显著小于单阶段版本，因为最终 Python 和依赖仍要保留。多阶段的主要价值是形成产物边界；如果某些依赖必须源码编译，gcc、头文件和开发包仅安装在 builder，运行阶段只安装必要共享库，就能明显减少工具链体积。不要以为多阶段自动删掉被复制目录里不需要的内容。</p>
+<pre><code class="language-bash">docker build --progress=plain -t lesson-api:1.0 .
+docker build --progress=plain -f Dockerfile.multistage -t lesson-api:1.0-multi .
+docker image ls lesson-api
+</code></pre>
+<h3 id="37-端到端完整命令mkdir-build-curl">3.7 端到端完整命令：mkdir → build → curl</h3>3
+<p>下面是独立入口，无需预先手写文件。已安装 Docker 后，在 Bash 中一次性粘贴；Windows 要进入 WSL，macOS 可以先执行 <code>bash</code>。脚本在一个子 shell 中运行，失败时停止。若目录或容器名已存在，会明确退出，避免覆盖此前练习。程序源码是本地文件，<code>docker build</code> 默认使用本机引擎；不要切换到外部远程构建器处理私有项目。</p>
+<pre><code class="language-bash">(
+set -eu
+if [ -e docker-fastapi-lesson ]; then
+  printf '目录 docker-fastapi-lesson 已存在，请换到新的练习父目录。\n' &gt;&amp;2
+  exit 1
+fi
+if docker container inspect lesson-api-e2e &gt;/dev/null 2&gt;&amp;1; then
+  printf '容器 lesson-api-e2e 已存在，请先确认它是否可以删除。\n' &gt;&amp;2
+  exit 1
+fi
+mkdir docker-fastapi-lesson
+cd docker-fastapi-lesson
+cat &gt; app.py &lt;&lt;'PY'
+from fastapi import FastAPI
+
+app = FastAPI()
+
+
+@app.get(&quot;/&quot;)
+def root():
+    return {&quot;message&quot;: &quot;你好，Docker&quot;, &quot;service&quot;: &quot;lesson-api&quot;}
+
+
+@app.get(&quot;/health&quot;)
+def health():
+    return {&quot;status&quot;: &quot;ok&quot;}
+PY
+cat &gt; requirements.txt &lt;&lt;'REQ'
+fastapi==0.115.6
+uvicorn==0.34.0
+REQ
+cat &gt; Dockerfile &lt;&lt;'DOCKER'
+FROM python:3.12.8-slim-bookworm
+WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    LANG=C.UTF-8 \
+    PYTHONIOENCODING=utf-8
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt \
+    &amp;&amp; useradd --create-home --uid 10001 appuser
+COPY --chown=appuser:appuser app.py ./
+USER appuser
+EXPOSE 8000
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 \
+    CMD [&quot;python&quot;, &quot;-c&quot;, &quot;import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)&quot;]
+CMD [&quot;uvicorn&quot;, &quot;app:app&quot;, &quot;--host&quot;, &quot;0.0.0.0&quot;, &quot;--port&quot;, &quot;8000&quot;]
+DOCKER
+cat &gt; .dockerignore &lt;&lt;'IGNORE'
+.git/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+.env.*
+secrets/
+*.pem
+*.key
+data/
+dist/
+build/
+*.log
+IGNORE
+printf '\n[1/4] 构建：首次需要下载基础镜像与 Python 依赖。\n'
+docker build --progress=plain -t lesson-api:1.0 .
+printf '\n[2/4] 启动：下一行应输出容器 ID。\n'
+docker run -d --name lesson-api-e2e \
+  -p 127.0.0.1:8000:8000 \
+  --memory=256m --cpus=1 \
+  --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+  --cap-drop=ALL --security-opt=no-new-privileges:true \
+  --log-driver=json-file --log-opt max-size=10m --log-opt max-file=3 \
+  lesson-api:1.0
+printf '\n[3/4] 等待 HTTP 服务就绪，最多约 60 秒。\n'
+ready=0
+for attempt in $(seq 1 30); do
+  if curl -fsS --max-time 2 http://localhost:8000/health &gt;/dev/null; then
+    ready=1
+    break
+  fi
+  sleep 2
+done
+if [ &quot;$ready&quot; -ne 1 ]; then
+  docker logs --tail 100 lesson-api-e2e
+  exit 1
+fi
+printf '\n[4/4] 应看到中文 message 和 status=ok：\n'
+curl -fsS --max-time 3 http://localhost:8000/
+printf '\n'
+curl -fsS --max-time 3 http://localhost:8000/health
+printf '\n'
+docker logs --tail 10 lesson-api-e2e
+docker inspect --format '{{.State.Health.Status}}' lesson-api-e2e
+)
+</code></pre>
+<p>构建成功时会出现镜像导出或命名完成信息；第二次修改 <code>app.py</code> 再构建，依赖安装步骤通常显示 <code>CACHED</code>。上面阶段提示与命令输出交错出现，最后应该看到：</p>
+<pre><code class="language-text">{&quot;message&quot;:&quot;你好，Docker&quot;,&quot;service&quot;:&quot;lesson-api&quot;}
+{&quot;status&quot;:&quot;ok&quot;}
+</code></pre>
+<p>首次探测失败可能产生短暂连接错误，循环会继续等待。HTTP 已成功时，Docker 健康状态也可能暂时仍为 <code>starting</code>，因为内置探针按时间间隔执行；稍后用下面命令复查。<code>healthy</code> 只是该探针成功，不等于业务所有功能都正常；Docker Engine 也不会因为 <code>unhealthy</code> 自动重启容器。</p>
+<pre><code class="language-bash">docker inspect --format '{{json .State.Health}}' lesson-api-e2e
+docker ps --filter name=lesson-api-e2e
+docker stop --time 30 lesson-api-e2e
+docker rm lesson-api-e2e
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.8 看清空间再清理</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>先查看镜像、容器、卷和构建缓存分别占多少空间</li><li>共享层使“各镜像显示大小之和”不等于实际磁盘占用</li><li>只在自己的练习环境中，确认列表后运行清理；不加 「-f」 保留交互确认</li></ul></div>3
+<p>先查看镜像、容器、卷和构建缓存分别占多少空间。共享层使“各镜像显示大小之和”不等于实际磁盘占用。</p>
+<pre><code class="language-bash">docker system df
+docker system df -v
+docker image ls
+docker container ls -a
+docker volume ls
+</code></pre>
+<p>只在自己的练习环境中，确认列表后运行清理；不加 <code>-f</code> 保留交互确认。<code>container prune</code> 会删除所有已停止容器及其可写层；<code>image prune</code> 默认主要删除悬空镜像；<code>builder prune</code> 删除未使用的构建缓存，下次构建可能变慢。</p>
+<pre><code class="language-bash">docker container prune
+docker image prune
+docker builder prune
+</code></pre>
+<p><code>docker system prune</code> 会同时清理停止容器、未使用网络、悬空镜像和未使用构建缓存，不默认删除卷。<code>-a</code> 会扩大镜像清理范围，<code>--volumes</code> 会扩大到相关未使用匿名卷；命名卷另有清理规则，不能笼统理解为“所有数据一起删”。执行前读确认摘要，生产不应定时无差别 prune。</p>
+<pre><code class="language-bash">docker system prune
+</code></pre>
+<p>如果确定前面的命名卷只是练习数据，显式按名删除最容易审查。删除后 <code>note.txt</code> 无法靠重新创建空卷恢复。</p>
+<pre><code class="language-bash">docker volume rm lesson-data
+</code></pre>
+<h2 id="四常见坑与修复">四、常见坑与修复</h2>2
+<p>以下每条都按“症状 → 原因 → 修复命令”组织。先辨认当前使用的是 Linux 原生 Engine 还是 Desktop；不要把两套启动方式混用。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.1 WSL 2 / Docker Desktop 无法启动</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：Desktop 一直 Starting，提示 WSL kernel、virtualization 或集成不可用</li><li>原因：WSL 过旧、发行版仍是 WSL 1、硬件虚拟化未开启，或集成状态异常</li><li>先检查 BIOS/UEFI 的虚拟化开关；更新 WSL 后重启 Windows</li></ul></div>3
+<p><strong>症状</strong>：Desktop 一直 Starting，提示 WSL kernel、virtualization 或集成不可用。</p>
+<p><strong>原因</strong>：WSL 过旧、发行版仍是 WSL 1、硬件虚拟化未开启，或集成状态异常。先检查 BIOS/UEFI 的虚拟化开关；更新 WSL 后重启 Windows。下面 <code>wsl --shutdown</code> 会停止所有 WSL 发行版，执行前保存工作。</p>
+<p><strong>修复命令</strong>（管理员 PowerShell；之后重新打开 Desktop，确认 WSL Integration 已勾选）：</p>
+<pre><code class="language-powershell">wsl --update
+wsl --set-version Ubuntu-24.04 2
+wsl --shutdown
+wsl --version
+wsl --list --verbose
+</code></pre>
+<h3 id="42-dockersock-permission-denied">4.2 docker.sock permission denied</h3>3
+<p><strong>症状</strong>：连接 <code>/var/run/docker.sock</code> 提示 permission denied，而 <code>sudo docker ps</code> 成功。</p>
+<p><strong>原因</strong>：Linux 原生 Engine 的 socket 由 root/docker 组控制，当前登录会话尚无对应组权限。Desktop 集成异常则应修复集成，不要照搬组权限处理。</p>
+<p><strong>修复命令</strong>（仅 Linux 原生 Engine；执行后重新登录或进入新组会话）：</p>
+<pre><code class="language-bash">sudo usermod -aG docker &quot;$USER&quot;
+newgrp docker
+docker ps
+</code></pre>
+<p>不要 <code>chmod 666 /var/run/docker.sock</code>，它会把近似宿主 root 的控制面开放给所有本地用户。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.3 Cannot connect to the Docker daemon</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：CLI 存在，但 「docker ps」 报 「Cannot connect to the Docker daemon」</li><li>原因：daemon 未启动、Desktop 未启动，或 Docker context / 「DOCKER_HOST」 指向错误地址</li><li>unset DOCKER_HOST DOCKER_CONTEXT</li></ul></div>3
+<p><strong>症状</strong>：CLI 存在，但 <code>docker ps</code> 报 <code>Cannot connect to the Docker daemon</code>。</p>
+<p><strong>原因</strong>：daemon 未启动、Desktop 未启动，或 Docker context / <code>DOCKER_HOST</code> 指向错误地址。</p>
+<p><strong>修复命令</strong>（Linux 原生 Engine）：</p>
+<pre><code class="language-bash">sudo systemctl start docker
+sudo systemctl status docker --no-pager
+unset DOCKER_HOST DOCKER_CONTEXT
+docker context use default
+docker info
+</code></pre>
+<p>Desktop 用户先打开图形应用并等待 Engine 就绪，再运行 <code>docker context ls</code> 选择确实存在的 Desktop context。macOS/Windows 主机通常为 <code>desktop-linux</code>，WSL 集成可能使用 <code>default</code>，不要在列表不存在时强行切换。</p>
+<pre><code class="language-bash">docker context ls
+docker info
+</code></pre>
+<h3 id="44-port-is-already-allocated">4.4 port is already allocated</h3>3
+<p><strong>症状</strong>：<code>docker run</code> 报端口已分配，启动失败。</p>
+<p><strong>原因</strong>：宿主 8000 已被其他应用或容器使用。失败的 <code>run</code> 可能留下同名 Created 容器。</p>
+<p><strong>修复命令</strong>：先定位，再换宿主端口；确认 <code>lesson-api-alt</code> 是自己失败的练习容器才删除。</p>
+<pre><code class="language-bash">docker ps --filter publish=8000
+docker ps -a --filter name=lesson-api-alt
+docker rm lesson-api-alt
+docker run -d --name lesson-api-alt -p 127.0.0.1:8002:8000 lesson-api:1.0
+curl -fsS http://localhost:8002/health
+</code></pre>
+<p>若没有失败残留，跳过 <code>rm</code>；<code>-p</code> 的右侧仍为应用实际监听的 8000。Linux 可用 <code>ss -ltnp 'sport = :8000'</code> 检查非容器进程。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.5 镜像拉取超时、国内网络慢</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：「docker pull」 在请求 registry、下载层时超时</li><li>原因：DNS、代理、出口策略或 Docker Hub 网络链路异常</li><li>宿主 curl 的代理不一定自动传给 daemon；pip 下载慢也不等于镜像 registry 慢</li></ul></div>3
+<p><strong>症状</strong>：<code>docker pull</code> 在请求 registry、下载层时超时。</p>
+<p><strong>原因</strong>：DNS、代理、出口策略或 Docker Hub 网络链路异常。宿主 curl 的代理不一定自动传给 daemon；pip 下载慢也不等于镜像 registry 慢。</p>
+<p><strong>修复命令</strong>：先检查公开 registry 连通性，返回 HTTP 401 通常表示到达服务但需要正常认证流程，并非网络断开。</p>
+<pre><code class="language-bash">curl -I --connect-timeout 10 https://registry-1.docker.io/v2/
+docker info
+</code></pre>
+<p>Linux 原生 Engine 可在 <code>/etc/docker/daemon.json</code> 合并 <code>registry-mirrors</code>。下面是 JSON 结构片段，域名是占位地址，<strong>必须替换为所在组织或云厂商分配并验证可用的 HTTPS 镜像加速地址</strong>；不提供未经验证的“永久免费公共加速站”。镜像加速通常针对 Docker Hub，不会自动加速所有 registry 和 apt/pip。</p>
+<pre><code class="language-json">{
+  &quot;registry-mirrors&quot;: [&quot;https://YOUR-MIRROR.example.com&quot;]
+}
+</code></pre>
+<p>不要把占位地址原样启用，也不要覆盖已有 JSON 中的其他设置。用编辑器合并并替换后校验；重启 daemon 可能影响业务容器，生产安排窗口。Docker Desktop 在 Settings → Docker Engine 编辑对应 JSON 并 Apply &amp; Restart，代理在其代理设置中配置。</p>
+<pre><code class="language-bash">sudo install -d /etc/docker
+sudoedit /etc/docker/daemon.json
+sudo dockerd --validate --config-file=/etc/docker/daemon.json
+sudo systemctl restart docker
+docker pull alpine:3.21.3
+</code></pre>
+<h3 id="46-每次-build-都重装全部依赖">4.6 每次 build 都重装全部依赖</h3>3
+<p><strong>症状</strong>：仅改一行业务代码，pip 安装仍从头执行。</p>
+<p><strong>原因</strong>：Dockerfile 在依赖安装之前 <code>COPY . .</code>；依赖清单由脚本每次改写；使用 <code>--no-cache</code>；或构建器缓存已被清理。文件内容变化比单纯修改时间更关键。</p>
+<p><strong>修复命令</strong>：先按第 3.6 节调整成 <code>COPY requirements.txt</code> → <code>RUN pip install</code> → <code>COPY app.py</code>，去掉日常构建的 <code>--no-cache</code>，然后连续构建检查 <code>CACHED</code>。</p>
+<pre><code class="language-bash">cd docker-fastapi-lesson
+docker build --progress=plain -t lesson-api:cache-check .
+docker build --progress=plain -t lesson-api:cache-check .
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.7 容器重建后文件消失</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：容器中写入的上传文件或数据库数据，在删除并重建后不见了</li><li>仅 stop/start 通常不丢，rm 后重建才会丢；也要排查应用是否写到了与卷不同的目录</li><li>修复命令：为后续数据创建卷并挂在实际数据目录</li></ul></div>3
+<p><strong>症状</strong>：容器中写入的上传文件或数据库数据，在删除并重建后不见了。</p>
+<p><strong>原因</strong>：文件只在旧容器可写层里。仅 stop/start 通常不丢，rm 后重建才会丢；也要排查应用是否写到了与卷不同的目录。</p>
+<p><strong>修复命令</strong>：为后续数据创建卷并挂在实际数据目录。下面不能恢复已经删除容器中的旧数据；若旧容器还存在，先用 <code>docker cp 容器名:/实际目录 ./备份目录</code> 导出，再做重建。</p>
+<pre><code class="language-bash">docker volume create lesson-app-data
+docker run --rm --mount type=volume,src=lesson-app-data,dst=/data \
+  alpine:3.21.3 sh -c 'printf &quot;persistent\n&quot; &gt; /data/check.txt'
+docker run --rm --mount type=volume,src=lesson-app-data,dst=/data \
+  alpine:3.21.3 cat /data/check.txt
+</code></pre>
+<h3 id="48-中文乱码unicodeencodeerror-或-locale-错误">4.8 中文乱码、UnicodeEncodeError 或 locale 错误</h3>3
+<p><strong>症状</strong>：日志中文显示乱码，或应用输出抛编码异常。</p>
+<p><strong>原因</strong>：源文件、标准流、终端解码不一致；或者把镜像没有生成的 <code>zh_CN.UTF-8</code> 强设为 locale。Debian slim 的 <code>C.UTF-8</code> 足以覆盖本文中文 UTF-8 输出，但不等于提供完整中文日期排序规则。</p>
+<p><strong>修复命令</strong>：源码保存为 UTF-8，运行时设置一致编码；宿主终端也选择 UTF-8。JSON 中的 Unicode 转义是合法编码，不应一律当作乱码。</p>
+<pre><code class="language-bash">docker run --rm -e LANG=C.UTF-8 -e PYTHONIOENCODING=utf-8 \
+  python:3.12.8-slim-bookworm \
+  python -c 'import sys; print(sys.stdout.encoding); print(&quot;你好，Docker&quot;)'
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.9 构建上下文巨大，Sending/Transferring context 极慢</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：尚未开始 pip 安装，构建就传输了数 GB 文件</li><li>原因：在过大的目录执行 「docker build .」，包含数据集、「.git」、虚拟环境，或 「.dockerignore」 放错位置</li><li>ignore 文件应位于构建上下文根目录；仅放在其他位置的 Dockerfile 旁边未必生效</li></ul></div>3
+<p><strong>症状</strong>：尚未开始 pip 安装，构建就传输了数 GB 文件。</p>
+<p><strong>原因</strong>：在过大的目录执行 <code>docker build .</code>，包含数据集、<code>.git</code>、虚拟环境，或 <code>.dockerignore</code> 放错位置。ignore 文件应位于构建上下文根目录；仅放在其他位置的 Dockerfile 旁边未必生效。</p>
+<p><strong>修复命令</strong>：进入第 3.7 节项目目录，采用那里完整的 <code>.dockerignore</code>，排除数据目录。下面追加常见大目录规则，再检查 plain 日志中的 context 字节数；若已在项目目录，不要重复执行 <code>cd</code>。</p>
+<pre><code class="language-bash">cd docker-fastapi-lesson
+printf '\nnode_modules/\ndatasets/\n.cache/\n' &gt;&gt; .dockerignore
+docker build --progress=plain -t lesson-api:small-context .
+</code></pre>
+<h3 id="410-容器内-apt-install-交互卡住">4.10 容器内 apt install 交互卡住</h3>3
+<p><strong>症状</strong>：构建过程中安装 tzdata 等包，等待时区或终端输入。</p>
+<p><strong>原因</strong>：软件包配置默认使用交互前端，而镜像构建没有可供用户选择的终端。</p>
+<p><strong>修复命令</strong>：在 Dockerfile 的这一条 RUN 内局部设置 <code>DEBIAN_FRONTEND=noninteractive</code>，需要时同时提供时区；不要把它作为所有运行时程序永久继承的 ENV。可用下面的一次性容器验证包安装方式。</p>
+<pre><code class="language-bash">docker run --rm python:3.12.8-slim-bookworm sh -c \
+  'apt-get update &amp;&amp; DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y --no-install-recommends tzdata &amp;&amp; rm -rf /var/lib/apt/lists/*'
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.11 容器 Up，但无法通过端口访问</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：端口发布存在，curl 仍连接失败</li><li>原因：应用只监听容器内 「127.0.0.1」，或应用端口与 「-p」 右侧不一致</li><li>「EXPOSE」 既不会改应用监听地址，也不会发布端口</li></ul></div>3
+<p><strong>症状</strong>：端口发布存在，curl 仍连接失败。</p>
+<p><strong>原因</strong>：应用只监听容器内 <code>127.0.0.1</code>，或应用端口与 <code>-p</code> 右侧不一致。<code>EXPOSE</code> 既不会改应用监听地址，也不会发布端口。</p>
+<p><strong>修复命令</strong>：当前镜像采用 CMD，可以在镜像名后直接替换整条启动命令。若采用 ENTRYPOINT 方案，则只能传其参数。</p>
+<pre><code class="language-bash">docker run --rm -p 127.0.0.1:8003:8000 lesson-api:1.0 \
+  uvicorn app:app --host 0.0.0.0 --port 8000
+</code></pre>
+<p>此命令保持前台运行，另开终端访问 <code>http://localhost:8003/health</code>；Ctrl+C 后容器因 <code>--rm</code> 自动删除。</p>
+<h2 id="五生产注意事项">五、生产注意事项</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.1 非 root 与 Docker 组是两层权限</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>镜像里的 「USER appuser」 降低应用进程权限，但不会限制拥有宿主 Docker socket 的人</li><li>「docker」 组成员可以创建高权限容器、挂载宿主目录，所以不能给不可信用户</li><li>不要把 「/var/run/docker.sock」 随意挂进 Web 服务；也不要用 「--privileged」 解决普通文件权限问题</li></ul></div>3
+<p>镜像里的 <code>USER appuser</code> 降低应用进程权限，但不会限制拥有宿主 Docker socket 的人。<code>docker</code> 组成员可以创建高权限容器、挂载宿主目录，所以不能给不可信用户。不要把 <code>/var/run/docker.sock</code> 随意挂进 Web 服务；也不要用 <code>--privileged</code> 解决普通文件权限问题。rootless Engine 可进一步降低 daemon 权限，但网络、资源限制和存储能力需要按官方文档评估。</p>
+<h3 id="52-镜像瘦身与依赖兼容">5.2 镜像瘦身与依赖兼容</h3>3
+<p>优先减少运行时工具和无关内容，用多阶段构建隔离编译器。Debian slim 通常兼容 Python wheel，适合入门。Alpine 使用 musl，部分依赖没有对应 wheel 时会触发源码编译，最终可能又慢又大；不能只看基础镜像大小。Distroless 通常没有 shell 和包管理器，需设计调试方式，并检查 Python、共享库、证书和健康检查程序是否齐全。把 apt update、安装和清理索引放在同一 RUN，才能避免把索引留在前一层。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.3 密钥通过运行环境或 secrets 注入</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>不要把密码写进 Dockerfile、ARG、ENV、源码或镜像层；「.dockerignore」 是辅助边界，不能替代审查</li><li>运行时可使用受权限保护的 env 文件，但环境变量仍可能被有管理权限的人读取</li><li>更敏感的内容优先使用只读挂载文件或编排平台 secrets</li></ul></div>3
+<p>不要把密码写进 Dockerfile、ARG、ENV、源码或镜像层；<code>.dockerignore</code> 是辅助边界，不能替代审查。运行时可使用受权限保护的 env 文件，但环境变量仍可能被有管理权限的人读取。更敏感的内容优先使用只读挂载文件或编排平台 secrets。构建访问私有依赖应使用 BuildKit secret mount，不应通过构建参数携带 token。</p>
+<p>下面假设你已经在本地安全准备了文件，仅引用路径，不在命令中写真实秘密。应用还必须主动读取 <code>/run/secrets/app_config</code>；挂载文件不会自动变成环境变量。</p>
+<pre><code class="language-bash">docker run --rm \
+  --mount &quot;type=bind,src=$HOME/.config/lesson/app_config,dst=/run/secrets/app_config,readonly&quot; \
+  lesson-api:1.0
+</code></pre>
+<h3 id="54-健康检查日志与只读根文件系统">5.4 健康检查、日志与只读根文件系统</h3>3
+<p><code>HEALTHCHECK</code> 用于提供服务状态，探针要有超时，并区分存活与就绪需求；依赖数据库短暂故障时，过度激进的存活重启可能放大故障。Docker 原生健康检查不会自动执行“摘流量、重启和告警”，这些需由编排或监控处理。</p>
+<p>应用日志写 stdout/stderr，再由日志驱动采集。第 3.7 节已显式设置 <code>json-file</code> 的 <code>max-size=10m</code>、<code>max-file=3</code>。也可以在 daemon 配置中为新容器设置 <code>local</code> 驱动及轮转；改默认值不会自动修改已有容器。长期开启无限制日志会耗尽磁盘，即使镜像本身很小也会出事故。</p>
+<p><code>--read-only</code> 阻止写容器根文件系统；确需写入的目录通过卷或受限 <code>--tmpfs</code> 显式开放。示例在 <code>/tmp</code> 提供 64 MiB 临时空间，并关闭 Python 字节码写入。不要因为启动报只读错误就直接撤掉保护，应先确认程序到底需要写哪个目录。tmpfs 数据随容器停止丢失，不适合保存业务数据。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.5 资源限制与 OOM</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>为服务设置合理的 「--memory」、「--cpus」，同时监控压力</li><li>超过内存限制可能被 OOM killer 终止；退出码 137 只能说明进程收到 SIGKILL，不能单凭这一项断定 OOM，还要查看 「OOMKilled」 与宿主事件</li><li>内存限制并不保证宿主有足够可用内存，多个容器的总配额仍应纳入容量规划</li></ul></div>3
+<p>为服务设置合理的 <code>--memory</code>、<code>--cpus</code>，同时监控压力。超过内存限制可能被 OOM killer 终止；退出码 137 只能说明进程收到 SIGKILL，不能单凭这一项断定 OOM，还要查看 <code>OOMKilled</code> 与宿主事件。内存限制并不保证宿主有足够可用内存，多个容器的总配额仍应纳入容量规划。</p>
+<pre><code class="language-bash">docker stats --no-stream
+docker inspect --format 'OOMKilled={{.State.OOMKilled}} ExitCode={{.State.ExitCode}}' lesson-api-e2e
+</code></pre>
+<p>这组命令应在第 3.7 节容器仍存在时执行；已删除则不能 inspect。不要用无限 restart 掩盖 OOM 循环。</p>
+<h3 id="56-固定镜像版本扫描与持续更新">5.6 固定镜像版本、扫描与持续更新</h3>3
+<p>生产不要用 <code>latest</code>。本文的固定补丁标签便于解释，但标签仍能被发布者重新指向；更强的制品标识是经验证的 digest。通过 <code>docker image inspect --format '{{json .RepoDigests}}' 基础镜像</code> 获取真实摘要，再记录到构建文件中；不要复制网上随手写的假摘要。固定版本也意味着必须主动安排安全更新和回归测试，不能永远不升级。</p>
+<p>Trivy 是独立镜像扫描工具，下面使用其官方发布的固定版本容器对本地镜像归档进行扫描，不挂载高权限 Docker socket。扫描前先确认镜像数据库下载可达；它需要下载公开漏洞数据库。<code>--offline-scan</code> 避免依赖识别阶段的外部 API 查询，扫描结果留在终端。</p>
+<pre><code class="language-bash">docker image save -o lesson-api-1.0.tar lesson-api:1.0
+docker run --rm \
+  --mount &quot;type=bind,src=$PWD/lesson-api-1.0.tar,dst=/scan/image.tar,readonly&quot; \
+  aquasec/trivy:0.58.2 image --input /scan/image.tar \
+  --scanners vuln --offline-scan --severity HIGH,CRITICAL --exit-code 1
+</code></pre>
+<p>该固定扫描器版本用于说明流程，上线时应换成当时受维护的版本。<code>--exit-code 1</code> 会在命中所选严重级别时返回非零，适合 CI 门禁；扫描成功不代表没有未知漏洞或配置风险。检查完按本地文件管理流程删除不再需要的镜像归档，避免重复占用空间。Trivy 的安装和策略以其官方文档 https://trivy.dev/ 为准，它不是 <code>docker scan</code> 子命令。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.7 优雅停机与发布顺序</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「docker stop」 通常先向主进程发送 SIGTERM，超时后再 SIGKILL</li><li>exec 形式 CMD/ENTRYPOINT 能避免 shell 吞掉信号；入口脚本应最终 「exec」 真正的应用</li><li>HTTP 服务收到终止信号后应停止接收新流量、等待正在处理的请求、释放连接</li></ul></div>3
+<p><code>docker stop</code> 通常先向主进程发送 SIGTERM，超时后再 SIGKILL。exec 形式 CMD/ENTRYPOINT 能避免 shell 吞掉信号；入口脚本应最终 <code>exec</code> 真正的应用。HTTP 服务收到终止信号后应停止接收新流量、等待正在处理的请求、释放连接。生产先摘除流量，再给足应用退出时间，最后删除容器。对长请求或后台作业，30 秒可能仍不够，要按业务设置。</p>
+<pre><code class="language-bash">docker stop --time 30 lesson-api-e2e
+</code></pre>
+<p>上线验收至少覆盖：镜像版本可追溯、健康接口可用、只读根目录下可启动、卷权限正确、日志受限、资源峰值可接受、SIGTERM 后能退出、数据库备份和恢复可执行。把这些做成明确检查项，容器才能真正缩短交付时间。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>先说边界：本库主链路 <code>rag/</code> 没有 Dockerfile（本次 <code>find -maxdepth 3 -iname 'Dockerfile*'</code> 全仓只命中 <code>projects/agent-service-toolkit/docker/</code> 下 3 个）</strong>。知识库是「宿主 venv 直跑」，所以本库对容器化最直接的教训是——<strong>能用 venv 解决的问题别上容器，容器解决的是交付与隔离，不是依赖冲突</strong>。<br />
+  本次实跑踩到的 <code>ImportError</code>（<code>PYTHONPATH</code> 污染）就是「本机环境问题」，容器能解，但更便宜的解法是 <code>env -u PYTHONPATH</code>。</li>
+<li><strong>真实镜像样本在 <code>projects/agent-service-toolkit/docker/Dockerfile.service</code>（本次读源码）</strong>，它把课件讲的几条原则都落实了：<br />
+<code>dockerfile
+  FROM python:3.13.14-slim
+  ENV UV_PROJECT_ENVIRONMENT="/usr/local/"
+  COPY pyproject.toml .
+  COPY uv.lock .
+  RUN pip install --no-cache-dir --upgrade "pip&gt;=26.2.2" &amp;&amp; pip install --no-cache-dir uv==0.13.5
+  RUN uv sync --frozen --no-install-project --no-dev
+  COPY src/agents/ ./agents/</code><br />
+  先拷 <code>pyproject.toml</code>+<code>uv.lock</code> 再 <code>uv sync --frozen</code>，<strong>源码后置</strong>——改业务代码不触发重装依赖；<code>--frozen</code> 保证锁文件说了算。</li>
+<li><strong>和课件讲法的差异</strong>：课件以 <code>docker run -v</code> 练手容器生命周期；本库的「容器」只作为<strong>服务交付形态</strong>出现（Compose 起 postgres + agent_service + streamlit_app），数据卷与网络都交给 Compose 编排，不用手工 <code>docker run</code>。</li>
+<li><strong>本库暂无</strong>：知识库 <code>rag/</code> 没有容器镜像，也就没有「容器里 bge-m3 模型路径怎么挂」的实践（模型在 <code>/home/wuyafang/models/bge-m3</code>，本机 1.3G 索引在 <code>rag/index</code>，若容器化必须处理这两个大目录的挂载）。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库主链路 <code>rag/</code> <strong>没有 Dockerfile</strong>，靠本地 venv 直跑；唯一有镜像的是 fork 进来的 <code>projects/agent-service-toolkit</code>（<code>docker/Dockerfile.service</code> + <code>compose.yaml</code>）。</li>
+<li><strong>读源码</strong>：容器化的边界；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+<h2 id="六参考来源">六、参考来源</h2>2
+<p>以下 Docker 官方链接对应本文的安装、参数和行为说明；Desktop 系统要求和 apt 可用版本会随发布变化，安装时再次核对。</p>
+<ol>
+<li><a href="https://docs.docker.com/get-started/docker-overview/">Docker 概念与架构</a></li>
+<li><a href="https://docs.docker.com/engine/install/ubuntu/">Ubuntu 官方 apt 安装与指定版本</a></li>
+<li><a href="https://docs.docker.com/engine/install/linux-postinstall/">Linux 安装后权限与日志配置</a></li>
+<li><a href="https://docs.docker.com/desktop/setup/install/windows-install/">Docker Desktop for Windows 安装要求</a></li>
+<li><a href="https://docs.docker.com/desktop/setup/install/mac-install/">Docker Desktop for Mac 安装要求</a></li>
+<li><a href="https://docs.docker.com/reference/dockerfile/">Dockerfile 指令参考：CMD、ENTRYPOINT、USER、HEALTHCHECK</a></li>
+<li><a href="https://docs.docker.com/reference/cli/docker/container/run/">Docker run CLI 参数</a></li>
+<li><a href="https://docs.docker.com/build/building/multi-stage/">多阶段构建</a></li>
+<li><a href="https://docs.docker.com/build/cache/invalidation/">构建缓存与失效规则</a></li>
+<li><a href="https://docs.docker.com/build/concepts/context/">构建上下文与 .dockerignore</a></li>
+<li><a href="https://docs.docker.com/build/building/secrets/">构建 secrets</a></li>
+<li><a href="https://docs.docker.com/engine/storage/volumes/">Volumes</a> 与 <a href="https://docs.docker.com/engine/storage/bind-mounts/">Bind mounts</a></li>
+<li><a href="https://docs.docker.com/engine/network/drivers/bridge/">Bridge 网络与名称解析</a></li>
+<li><a href="https://docs.docker.com/engine/daemon/">daemon 配置文件</a></li>
+<li><a href="https://docs.docker.com/docker-hub/image-library/mirror/">Docker Hub 镜像加速机制</a></li>
+<li><a href="https://docs.docker.com/engine/logging/configure/">日志驱动与轮转</a> / <a href="https://docs.docker.com/engine/logging/drivers/json-file/">json-file</a></li>
+<li><a href="https://docs.docker.com/engine/containers/resource_constraints/">资源约束与内存限制</a></li>
+<li><a href="https://docs.docker.com/engine/security/rootless/">Rootless 模式</a></li>
+<li><a href="https://docs.docker.com/reference/cli/docker/system/prune/">docker system prune</a></li>
+<li><a href="https://docs.docker.com/reference/cli/docker/container/stop/">docker stop 与停止信号</a></li>
+</ol>
+<p>本地材料：<a href="../../raw/courseware/%E9%A3%9E%E4%B9%A6%E6%96%B0%E7%A9%BA%E9%97%B4/Dify%E6%9C%AC%E5%9C%B0%E9%83%A8%E7%BD%B2.md">Dify本地部署</a>、<a href="../../raw/courseware/%E9%A3%9E%E4%B9%A6%E6%96%B0%E7%A9%BA%E9%97%B4/LlamaIndex%E6%A1%86%E6%9E%B6.md">LlamaIndex框架（redis-stack 部署片段）</a>。扩展标准：<a href="https://opencontainers.org/">OCI 官方规范入口</a>。</p></div></details></div></body></html>

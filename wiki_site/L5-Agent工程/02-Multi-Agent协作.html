@@ -1,0 +1,325 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>02-Multi-Agent协作</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 02-Multi-Agent协作</span></div><div class="wrap"><h1 id="multi-agent-协作从单-agent-基线到可控编排">Multi-Agent 协作：从单 Agent 基线到可控编排</h1>
+<blockquote>
+<p><a href="../index.html">返回知识库总入口</a></p>
+<p>资产定位：总地图 N2 知识提炼，四之一知识层。本文先建立 ReAct、Plan-and-Execute、Reflection 的单 Agent 基线，再讨论 orchestrator-worker、sequential pipeline、parallel fan-out、handoff、debate 与 supervisor/subagents。检索侧的反馈门控见 <a href="01-Agentic-RAG%E5%85%AD%E6%A8%A1%E5%BC%8F.html">Agentic RAG 六模式</a>。</p>
+</blockquote>
+<h2 id="why先证明单-agent-不够再支付协作成本">WHY：先证明单 Agent 不够，再支付协作成本</h2>2
+<h3 id="1-单-agent-基线reactplan-and-execute-与-reflection">1. 单 Agent 基线：ReAct、Plan-and-Execute 与 Reflection</h3>3
+<p>多 Agent 选型不能从“我要几个角色”开始，而要先知道一个 Agent 在何处失败。课件 day07—09 用 <code>create_agent</code>、Function Calling 和中间件形成最小执行闭环：模型根据消息选择工具，工具结果回到消息历史，模型继续决策；<code>before_agent</code>、<code>wrap_tool_call</code> 等钩子负责权限、审计、参数清洗和重试。这个阶段最重要的不是框架名称，而是把输入、工具、状态、反馈和停止条件做实。</p>
+<p><strong>ReAct</strong> 在每轮观察后决定下一动作，适合路径不确定、需要边走边看的短任务。它的优势是适应性，短板是局部视野和绕圈风险。必须设置 <code>max_iterations</code>、工具次数与总时延上限；不能因为框架自动处理 tool-call loop，就误以为循环天然会结束。</p>
+<p><strong>Plan-and-Execute</strong> 先由 Planner 产出有序步骤，再由 Executor 逐步执行，必要时 Replanner 根据真实工具结果调整剩余计划。课件 day10 的旅行规划示例体现了“先计划、每步用 ReAct 执行”的组合。它适合可分解、依赖明确的任务，不适合需求本身仍模糊或环境快速变化的场景。计划是待验证假设，不是完成凭据；每一步都要写回状态、检查失败，而不是把生成计划当成任务完成。</p>
+<p><strong>Reflection</strong> 在草稿之后加入批评与修订，适合代码、方案、法律文书等质量敏感产物。反馈应尽量来自测试、规则校验、检索证据或独立评审，而非同一个模型反复宣布“我已改进”。反思只放在关键产物上，并限制修订轮数；每个工具调用后都反思，通常只会放大成本和自我偏好。</p>
+<p>三者可以组成强单 Agent：Planner 管全局，Executor 内部用 ReAct 适应环境，最终由 Reflection 或确定性测试把关。如果这个组合在质量、延迟和成本上已满足需求，就没有理由拆成多 Agent。</p>
+<h3 id="2-拆分信号要落在可测量瓶颈上">2. 拆分信号要落在可测量瓶颈上</h3>3
+<p>真正值得评估拆分的信号包括：单一上下文无法容纳任务所需信息；工具与指令过多导致选择错误；子任务可独立并行且总时延受关键路径限制；不同子任务需要不同权限、工具或模型；执行者与审查者必须分离；团队需要独立维护不同能力。相对的，“流程看起来复杂”“框架支持多角色”“想让系统显得更智能”都不是拆分理由。</p>
+<p>拆分前先跑三组基线：单 Agent 顺序执行、单 Agent 加并行工具调用、单 Agent 加 Planner/Reflection。只有多 Agent 相对这些基线在同一评测集上有稳定增量，才继续。评估要同时记录任务成功率、最终产物质量、token、墙钟时间、工具调用、人工接管和失败定位时间。新增一个角色就新增一份提示、一条上下文边界和一类故障，不能只比较最终答案。</p>
+<h3 id="3-第一问产物是信息还是需一致的制品">3. 第一问：产物是“信息”，还是“需一致的制品”</h3>3
+<p>这是 Anthropic 与 Cognition 两种看似相反观点可以统一的边界。</p>
+<p><strong>产物是信息。</strong> 例如分别调研三个技术方案、搜索不同语料、独立核对若干事实。子任务读多写少，结果是可以去重、引用和排序的信息，不要求所有执行者共享同一设计决策。此类任务适合 parallel fan-out 或 orchestrator-worker，主 Agent 最后综合。</p>
+<p><strong>产物是需一致的制品。</strong> 例如同一个代码仓库、统一视觉设计、共享数据库 schema 或一份逻辑严密的长文。写多读少时，每个动作都带有隐含决策：命名、接口、结构、风格、数据约束。多个 Agent 即便拿到相同需求，也可能作出互相冲突的局部选择，最终合并成本高于并行收益。此类任务优先单线程；可以并行只读分析，但由一个写入者串行落地。</p>
+<p>Cognition 因此主张共享完整 agent trace 而非零散消息，并指出动作携带隐含决策。这里的“共享 trace”不等于把所有内容无差别塞给每个 Agent，而是关键决策及其理由必须可见；大体积中间数据仍应按引用传递。Anthropic 的研究系统则展示了另一面：在可广度并行、结果是研究信息的工作中，lead 与独立上下文子 Agent 能发挥作用。其 +90.2%、约 4 倍与 15 倍 token 等数字均来自<strong>原文内部研究评测和其成本口径</strong>，只说明该系统的权衡，不能外推为任意任务都提升或都消耗相同倍数。</p>
+<h2 id="whatwhyt六种协作模式的控制流上下文与终止">WHAT（WHYT）：六种协作模式的控制流、上下文与终止</h2>2
+<h3 id="1-orchestrator-worker中心规划工作者执行">1. Orchestrator-worker：中心规划，工作者执行</h3>3
+<p><strong>控制流。</strong> Orchestrator 接收目标、拆解任务、选择 worker、收集结果并决定是否补派。Worker 只完成明确子任务，不直接改变全局计划。书籍《Building Agentic AI Systems》的 Coordinator—Delegator—Worker 可视为职责细分：Coordinator 管目标与整合，Delegator 管能力、负载和权限匹配，Worker 管执行。三者可以部署为三个组件，也可以由一个编排进程承担。</p>
+<p><strong>上下文与状态。</strong> 编排器保存全局目标、任务 DAG、预算、各任务状态和最终整合所需摘要；worker 默认只拿最小任务包及必要证据引用，不继承整段对话。全局状态应包含任务版本、依赖、幂等键、产物位置、错误和重试次数。需要 worker 延续上游决策时，传“已决定事项及理由”，而不是只传最后一句答案。</p>
+<p><strong>终止条件。</strong> 所有必需任务成功且整合通过验收；或预算耗尽、关键路径失败、无法消除的阻塞出现。可失败的可选任务不应拖死全局，但必须显式标记缺失。</p>
+<p><strong>适用与反例。</strong> 适合复杂研究、多源分析、异构工具与明确分工。反例是强一致制品并行写入、任务无法清晰拆解、编排器本身成为单点且没有持久化。同步等待全部 worker 还会让最慢分支决定总延迟，必要时应改异步任务与结果轮询，而不是不断增加空等重试。</p>
+<h3 id="2-sequential-pipeline依赖明确的质量流水线">2. Sequential pipeline：依赖明确的质量流水线</h3>3
+<p><strong>控制流。</strong> 任务按 A→B→C 顺序执行，每步消费上游产物并产生新产物，例如检索→分析→写作→审查。CrewAI 的 <code>Process.sequential</code> 与 Task <code>context</code> 是课件 day10 的直观示例；生产上更重要的是上游产物要结构化传递，不能只写“等上一步完成”。</p>
+<p><strong>上下文与状态。</strong> 每一步只需要本步指令、上游契约产物和全局不可变约束，无需复制全部历史。状态机记录当前阶段、输入版本、产物哈希、门禁结果和补偿动作。并行分支若汇入同一阶段，必须先定义合并规则。</p>
+<p><strong>终止条件。</strong> 最后阶段通过验收；任一强制质量门失败时可回到指定前序阶段修订，但回退次数有限。永久性输入错误应立即终止，不做无意义重试。</p>
+<p><strong>适用与反例。</strong> 适合数据加工、文档生产、发布审核等依赖清晰的流程。反例是步骤之间没有真实依赖，串行只会增加延迟；或每一步都需要全局反复协商，硬串行会制造大量返工。流水线的单点慢会拖住全链路，应监控各阶段耗时，而不是只测总耗时。</p>
+<h3 id="3-parallel-fan-out动态分发受控汇合">3. Parallel fan-out：动态分发，受控汇合</h3>3
+<p><strong>控制流。</strong> Map 阶段把相互独立的子任务同时发给多个 worker，Join/Reduce 阶段等待所需结果并归并。LangGraph <code>Send</code> 支持运行时决定分支数，课件 day11 的 map-reduce 示例说明局部状态只发给对应 worker，reducer 负责结果合并。</p>
+<p><strong>上下文与状态。</strong> 每个分支有独立输入和局部状态，全局只共享只读约束与任务标识。并行写必须写唯一 key，或通过 reducer 合并；不能让多个节点直接覆盖同一字段。大结果写产物存储，状态中只留引用、哈希和摘要。</p>
+<p><strong>终止条件。</strong> 必需分支全部完成，或达到“允许部分成功”的法定数量；总 deadline 到期后取消剩余分支并汇总部分结果。扇出数量、单分支重试和总 token 必须有硬上限。</p>
+<p><strong>适用与反例。</strong> 适合多文档摘要、独立检索、批量只读分析。反例是分支共同修改一个仓库或数据库、任务拆分后高度重复、Join 必须等待一个可能永久挂起的分支。并行不是免费加速，模型配额、下游限流和汇合成本都可能使吞吐反而下降。</p>
+<h3 id="4-handoff移交控制权而非一次普通委派">4. Handoff：移交控制权，而非一次普通委派</h3>3
+<p><strong>控制流。</strong> 当前 Agent 通过 <code>transfer_to_x</code> 工具或 <code>Command(goto=...)</code> 把后续对话控制权交给另一个 Agent。接收方成为新的主动方，可直接与用户交互；这与“主 Agent 调子 Agent 工具并继续掌握最终回答权”不同。课件 day16 的主管与专家交接体现了这一模式。</p>
+<p><strong>上下文与状态。</strong> 状态需包含 <code>active_agent</code>、移交原因、最小任务摘要、已完成工作、未决问题和移交历史。工具调用必须有配对的 <code>ToolMessage</code> 与 <code>tool_call_id</code>，否则消息历史不完整。全量历史默认不复制，接收方需要更多上下文时按引用拉取。</p>
+<p><strong>终止条件。</strong> 当前专家完成并返回结果、明确交给用户、进入终态，或移交次数超限转人工。状态中的路径记录用于检测 A→B→A 循环。</p>
+<p><strong>适用与反例。</strong> 适合售前转技术支持、保修确认后转退款、需要不同角色直接接管的对话。反例是需要并行探索、主 Agent 必须持续统一口径、多个专家频繁互相退回。Handoff 不适合隐藏责任边界：每次移交都要能解释为什么、交给谁、带走了什么。</p>
+<h3 id="5-debate独立意见与仲裁不是多人聊天">5. Debate：独立意见与仲裁，不是多人聊天</h3>3
+<p><strong>控制流。</strong> 两个或多个 Agent 在不知道彼此答案的情况下独立作答，随后展示证据和分歧，由 arbiter 依据共同 rubric 裁决；必要时只针对分歧追加一轮。它适合高风险方案比较，不适合用角色数量替代证据。</p>
+<p><strong>上下文与状态。</strong> 独立阶段共享相同问题、约束和证据包，但不共享彼此结论，避免过早锚定。仲裁阶段保存各结论、证据来源、分歧点、少数意见和裁决理由。若议题可客观验证，测试和工具结果优先于“谁辩得更有说服力”。</p>
+<p><strong>终止条件。</strong> 仲裁作出决定、达到预设轮数，或证据不足升级人工。禁止以“大家终于同意”作为唯一质量标准，同源模型可能共同犯错。</p>
+<p><strong>适用与反例。</strong> 适合架构选型、复杂排障假设、独立风险评估。反例是简单事实题、存在确定测试可直接裁决、参与者没有独立信息或不同能力。辩论会增加 token 和延迟，也可能把原本正确的独立答案带偏，因此必须保留初始答案供审计。</p>
+<h3 id="6-supervisorsubagents主管保持控制子-agent-工具化">6. Supervisor/subagents：主管保持控制，子 Agent 工具化</h3>3
+<p><strong>控制流。</strong> Supervisor 接收用户目标，通过 <code>task</code> 或专用工具调用 subagent，拿到结构化回传后继续路由、整合或回答。Subagent 可以有独立提示、工具和内部循环，但对主管表现为受控能力。该模式与 orchestrator-worker 很接近，差别在强调点：前者常描述整体组织架构，后者强调“子 Agent 作为工具、主管保留控制权”的实现。</p>
+<p><strong>上下文与状态。</strong> 默认 subagent 无状态，每次在干净上下文中执行，主管保存会话和全局状态。只传任务契约，回传最终契约产物；需要排查内部过程时另接 trace 或将子 Agent 作为显式图节点。父图与子图 schema 不同则做显式映射，不能把内部消息无意泄漏到父状态。</p>
+<p><strong>终止条件。</strong> 子 Agent 成功、返回可回灌错误、超时或被取消；主管在所有必需子调用完成并通过验收后结束。每个子 Agent 也有独立迭代和工具上限，主管另有全局上限，形成双层预算。</p>
+<p><strong>适用与反例。</strong> 适合主管需要统一回答、子任务要求专用上下文、并行与多跳结合的场景。反例是用户必须直接与专家连续对话，此时 handoff 更自然；或所谓 subagent 只包装一次普通函数调用，直接给主管一个工具更简单。</p>
+<h3 id="7-本批论文怎么用共享记忆不能只按稀有或相关压缩">7. 本批论文怎么用：共享记忆不能只按“稀有”或“相关”压缩</h3>3
+<p><a href="../../raw/sources/arxiv-daily/2026-10-27-2610.37624.md">arXiv:2610.37624</a> 的 CrossProfile 在 60 个模板、480 个 hidden-profile 任务上交叉安排支持证据、诱饵和无关事实。论文发现：按决策相关性挑选会把“也在话题内”的诱饵重新放进记忆；按稀有度挑选平均并不优于随机；给事实附上“很多 Agent 都这样说”的归属标签，还会诱发类似社会证明的额外权重。完整讨论 transcript 也可能比无笔记更差，因为证据在进入最终决策前就已经被噪声淹没。这些数值和结论属于该基准及所测模型，不是所有多 Agent 系统的固定损耗。</p>
+<p>我们怎么用：orchestrator 汇总时不再只保存“最稀有/最相关”的几句话，而是保存 <code>claim—evidence—source—counter_evidence</code> 结构，确保支持项、反证和未决项按原任务配比可见；归属人数只能作为来源元数据，不能直接乘成置信度；Join 验收增加三组对照——打乱 Agent 归属标签、固定内容改变行序、比较完整 transcript 与结构化证据包——看最终答案是否被与证据无关的因素改变。对高风险决策，最终 arbiter 必须能回读原始证据引用；若结构化摘要反而遗漏关键反证，应判摘要门失败，而不是让下游继续“达成共识”。</p>
+<h2 id="how契约图骨架与生产故障治理">HOW：契约、图骨架与生产故障治理</h2>2
+<h3 id="1-用结构化契约替代散文式派单">1. 用结构化契约替代散文式派单</h3>3
+<p>委派契约必须让执行者知道目标、边界、可用工具、输入、完成定义和预算；回传契约必须让上游知道交付物、证据、未决项和真实状态。以下 Pydantic 模型可独立做校验，状态枚举避免“成功了但什么也没交”。</p>
+<pre><code class="language-python">from enum import Enum
+from typing import Literal
+from pydantic import BaseModel, Field
+
+class TaskStatus(str, Enum):
+    SUCCEEDED = &quot;succeeded&quot;
+    FAILED = &quot;failed&quot;
+    BLOCKED = &quot;blocked&quot;
+    PARTIAL = &quot;partial&quot;
+
+class Budget(BaseModel):
+    max_iterations: int = Field(default=5, ge=1, le=20)
+    max_tool_calls: int = Field(default=10, ge=0, le=100)
+    timeout_seconds: int = Field(default=120, gt=0)
+
+class TaskContract(BaseModel):
+    task_id: str                 # 全局追踪标识
+    idempotency_key: str         # 重试去重键
+    objective: str               # 单一可验证目标
+    inputs: dict[str, str]       # 大对象只传引用
+    expected_output: str         # 完成态与格式
+    acceptance: list[str]        # 可机检或可审查的验收条件
+    allowed_tools: list[str]     # 最小权限工具集
+    read_scope: list[str]        # 允许读取的工作域
+    write_scope: list[str]       # 允许写入的工作域，只读任务为空
+    context_refs: list[str] = [] # 必要决策与上游产物引用
+    budget: Budget = Budget()
+
+class ResultContract(BaseModel):
+    task_id: str
+    status: TaskStatus
+    summary: str
+    artifact_refs: list[str] = []
+    evidence_refs: list[str] = []
+    decisions: list[str] = []    # 关键取舍及理由
+    unresolved: list[str] = []   # 不确定性与未完成项
+    rejected_actions: list[str] = []
+    error: dict[str, str] | None = None
+    metrics: dict[str, float] = {}
+</code></pre>
+<p>上游先校验 <code>task_id</code>、schema 版本和产物哈希，再接受结果。<code>PARTIAL</code> 不得被归并逻辑当成 <code>SUCCEEDED</code>；<code>BLOCKED</code> 必须说明缺什么输入或权限；错误文本不能含凭据、私有配置或无关原文。自然语言自由讨论可以存在，但跨边界状态和产物必须遵守契约。</p>
+<h3 id="2-langgraph-send有界扇出异常回灌与显式归并">2. LangGraph <code>Send</code>：有界扇出、异常回灌与显式归并</h3>3
+<pre><code class="language-python">import operator
+from typing import Annotated, TypedDict
+from langgraph.graph import StateGraph, START, END
+from langgraph.types import Command, Send
+
+class CollabState(TypedDict):
+    tasks: list[TaskContract]
+    results: Annotated[list[dict], operator.add]
+    final_status: str
+
+def dispatch(state: CollabState):
+    task_ids = [task.task_id for task in state[&quot;tasks&quot;]]
+    if not task_ids:
+        raise ValueError(&quot;空任务集直接拒绝，不允许被 all([]) 误判为成功&quot;)
+    if len(task_ids) != len(set(task_ids)):
+        raise ValueError(&quot;task_id 必须唯一，否则无法判定 Join 是否完整&quot;)
+    return {}
+
+def fan_out(state: CollabState):
+    # 已返回 ID 不再派发；每轮最多四个，剩余任务由 reduce 转回 dispatch
+    returned = {item[&quot;task_id&quot;] for item in state[&quot;results&quot;]}
+    pending = [task for task in state[&quot;tasks&quot;] if task.task_id not in returned]
+    return [Send(&quot;worker&quot;, {&quot;task&quot;: task}) for task in pending[:4]]
+
+def worker(state: dict):
+    task = state[&quot;task&quot;]
+    try:
+        raw = execute_subagent(task)  # 注入具体执行器，内部也有迭代上限
+        result = ResultContract.model_validate(raw)
+        if result.task_id != task.task_id:
+            result = ResultContract(
+                task_id=task.task_id,
+                status=TaskStatus.FAILED,
+                summary=&quot;子 Agent 返回了其他任务的 ID，结果不予接受&quot;,
+                error={&quot;type&quot;: &quot;task_id_mismatch&quot;, &quot;retryable&quot;: &quot;false&quot;},
+            )
+    except TimeoutError:
+        result = ResultContract(
+            task_id=task.task_id,
+            status=TaskStatus.FAILED,
+            summary=&quot;子任务超时，未确认产生外部副作用&quot;,
+            error={&quot;type&quot;: &quot;timeout&quot;, &quot;retryable&quot;: &quot;true&quot;},
+        )
+    except Exception as exc:
+        # 异常变成可观察结果，不让整个 Join 因一个分支静默消失
+        result = ResultContract(
+            task_id=task.task_id,
+            status=TaskStatus.FAILED,
+            summary=&quot;子任务执行失败&quot;,
+            error={&quot;type&quot;: type(exc).__name__, &quot;retryable&quot;: &quot;unknown&quot;},
+        )
+    return {&quot;results&quot;: [result.model_dump(mode=&quot;json&quot;)]}
+
+def reduce_results(state: CollabState) -&gt; Command:
+    # 必须按全部必需 task_id 验收，不能把“当前已返回”误当全集
+    required_ids = {task.task_id for task in state[&quot;tasks&quot;]}
+    returned_ids = {item[&quot;task_id&quot;] for item in state[&quot;results&quot;]}
+    if unknown_ids := returned_ids - required_ids:
+        raise ValueError(f&quot;收到未知任务结果: {sorted(unknown_ids)}&quot;)
+    if len(returned_ids) != len(state[&quot;results&quot;]):
+        raise ValueError(&quot;同一 task_id 返回了重复结果，必须先做幂等归并&quot;)
+    if returned_ids != required_ids:
+        return Command(goto=&quot;dispatch&quot;)  # 下一批最多四个，直到必需任务全部有结果
+
+    required_ok = all(
+        item[&quot;status&quot;] == TaskStatus.SUCCEEDED.value
+        for item in state[&quot;results&quot;]
+    )
+    status = &quot;ready_for_review&quot; if required_ok else &quot;degraded&quot;
+    return Command(update={&quot;final_status&quot;: status}, goto=END)
+
+builder = StateGraph(CollabState)
+builder.add_node(&quot;dispatch&quot;, dispatch)
+builder.add_node(&quot;worker&quot;, worker)
+builder.add_node(&quot;reduce&quot;, reduce_results)
+builder.add_edge(START, &quot;dispatch&quot;)
+builder.add_conditional_edges(&quot;dispatch&quot;, fan_out, [&quot;worker&quot;])
+builder.add_edge(&quot;worker&quot;, &quot;reduce&quot;)
+graph = builder.compile()
+# graph.invoke(initial_state, config={&quot;recursion_limit&quot;: 30})
+</code></pre>
+<p>骨架中的 <code>execute_subagent</code> 是注入点，不代表本文已连接真实模型。空任务和重复 ID 在入口拒绝；worker 拒绝把其他任务的结果冒充当前结果，Join 拒绝未知或重复结果 ID；超过四个任务会分批回到 <code>dispatch</code>，不会静默截断；Join 只有收齐全部必需 ID 才判断成功或降级。若业务允许部分成功，应另设法定数量和显式缺失清单，不能利用 <code>all([])</code>。Join 默认等待当前批次全部分支，慢分支会阻塞汇总；需要“先到先用”时应采用持久化异步 job、状态查询和取消机制。重试前必须先查幂等记录，尤其是写操作，不能仅凭超时就认定副作用未发生。</p>
+<h3 id="3-工具化-subagent主管保留最终回答权">3. 工具化 subagent：主管保留最终回答权</h3>3
+<pre><code class="language-python">from langchain_core.tools import tool
+
+@tool(&quot;research_specialist&quot;, description=&quot;只读调研一个明确子问题，返回结构化结论&quot;)
+def call_research_specialist(task_json: str) -&gt; str:
+    task = TaskContract.model_validate_json(task_json)
+    if task.write_scope:
+        # 工具边界再次强制权限，不能只相信主管提示词
+        return ResultContract(
+            task_id=task.task_id,
+            status=TaskStatus.BLOCKED,
+            summary=&quot;只读子 Agent 收到越界写权限&quot;,
+        ).model_dump_json()
+    try:
+        result = run_research(task)
+        return ResultContract.model_validate(result).model_dump_json()
+    except Exception as exc:
+        # 将失败回灌给主管，由主管决定缩小范围、换源或终止
+        return ResultContract(
+            task_id=task.task_id,
+            status=TaskStatus.FAILED,
+            summary=&quot;调研工具未完成&quot;,
+            error={&quot;type&quot;: type(exc).__name__, &quot;retryable&quot;: &quot;unknown&quot;},
+        ).model_dump_json()
+</code></pre>
+<p>工具描述只声明能力，不构成安全保证。权限必须由执行层、沙箱和资源层再次检查。主 Agent 只依赖最终契约，不依赖子 Agent 中间自言自语；需要完整排障时，通过 <code>trace_id</code> 查看受控 trace，而不是把所有中间消息重新注入上下文。</p>
+<h3 id="4-handoff-防死循环与消息一致性">4. Handoff 防死循环与消息一致性</h3>3
+<p>移交状态至少记录 <code>handoff_path</code>、<code>handoff_count</code>、<code>last_reason</code> 和 <code>active_agent</code>。若下一目标已在最近路径中重复出现，或计数达到上限，就不再移交，转入主管汇总或人工。移交工具禁止与普通写工具并行调用，防止同一轮发生多个相互矛盾的控制权变更。</p>
+<pre><code class="language-python">def guard_handoff(state: dict, target: str, reason: str) -&gt; dict:
+    path = state.get(&quot;handoff_path&quot;, [])
+    count = state.get(&quot;handoff_count&quot;, 0)
+    if count &gt;= 4 or (len(path) &gt;= 2 and path[-2] == target):
+        return {&quot;active_agent&quot;: &quot;human_review&quot;, &quot;stop_reason&quot;: &quot;handoff_loop&quot;}
+    return {
+        &quot;active_agent&quot;: target,
+        &quot;handoff_path&quot;: path + [target],
+        &quot;handoff_count&quot;: count + 1,
+        &quot;last_reason&quot;: reason,
+    }
+</code></pre>
+<p>若通过工具返回 <code>Command</code>，还要按所用框架版本保证 <code>ToolMessage</code> 与 <code>tool_call_id</code> 配对。接收方只获得最小交接包：用户当前目标、已完成工作、关键决定、移交原因和待办。让人接管前，最后一条消息应符合目标框架的消息约束。</p>
+<h3 id="5-幂等权限检查点和补偿必须一起设计">5. 幂等、权限、检查点和补偿必须一起设计</h3>3
+<p><strong>幂等。</strong> 每个任务与副作用使用稳定幂等键，执行前后记录状态。读操作可缓存结果，写操作需要“准备—执行—确认”记录。超时只代表调用方未收到确认，不代表下游没有执行；恢复时先对账，再决定重试或补偿。付款、发信、发帖等不可逆动作不能只靠 LLM 判断。</p>
+<p><strong>权限。</strong> 每个 subagent 只获得完成契约所需的最小工具和数据范围，不继承主管的全部凭据。审查者默认只读，执行者不能自审自批。外部写入、跨域传输与高风险配置改动按影响与可逆性分级审批，审批失败默认关闭而非放行。</p>
+<p><strong>检查点。</strong> 课件 day13 的 checkpointer 与 <code>thread_id</code> 说明会话状态可以恢复；生产应将内存实现换成持久后端，并把任务、工具结果、产物和审批状态放在一致的状态模型里。恢复时跳过已确认步骤，不能从起点重放所有副作用。书籍关于决策版本化、反馈、反思和检查点的观点，在这里转化为可执行的状态治理。</p>
+<p><strong>补偿。</strong> 对已发生但后续流程失败的动作，定义补偿或人工处理路径。不能补偿的动作应在执行前确认。安全资源不足时不得通过关闭沙箱、放宽网络或越权读取来“降级”；正确降级是排队、缩小任务或失败关闭。</p>
+<h3 id="6-独立审查与-decisive-error-归因">6. 独立审查与 decisive error 归因</h3>3
+<p>执行者提交 <code>ResultContract</code> 后，独立审查者读取任务契约、最终产物、证据引用和必要 trace，按同一验收清单检查。审查者不应只看执行者的总结，也不应因输出更长、更自信而给高分。确定性检查优先，LLM 评审用于难以编码的质量维度；关键判断保留人工抽检。</p>
+<p>失败复盘先找 <strong>decisive error</strong>：沿时间线和数据血缘定位最早产生并向下游传播错误的节点。例如 router 先派错任务，后续 worker 即使忠实执行也不是根因；子 Agent 生成错误 schema，主管未校验便接受，则“产出错误”和“门禁缺失”分别记录，但最早可阻断点要清楚。只让决定性错误所在环节做针对性反思，其他 Agent 不陪跑修改。修复后用同一失败样本回归，防止全员改 prompt 掩盖根因。</p>
+<p>可解释性不等于展示冗长思维过程，而是能回答：接收了什么输入、依据哪些来源、调用了什么工具、作出什么关键决定、产物在哪里、谁批准、为何停止。trace 应跨主管与子 Agent 关联，同时对敏感信息脱敏。</p>
+<h3 id="7-六员与-openclaw-模块协同的抽象案例">7. 六员与 OpenClaw 模块协同的抽象案例</h3>3
+<p>在不涉及任何本机敏感配置的前提下，可把现有协作思想抽象为：规划者生成任务 DAG，路由层按能力与工作域选择执行者，只读研究可并行，工程实现保持工作域互斥或单线程，独立审查者只读验收，最终由确定性门禁检查状态与产物。角色名称不是关键，关键是能力注册、权限边界和契约一致。</p>
+<p>OpenClaw 模块笔记提供了另一视角：Routing 将 Task 拆为 Job 并选择 Target；Subagent Manager 管理 Pending、Running、Succeeded、Failed、Timeout 等生命周期；执行结果和资源用量写回历史，供路由复用、重试或升级；协同流程图把控制面、数据面与执行面分开。可复用的不是具体命令或配置，而是“任务路由—隔离执行—状态回流—审计复用”的闭环。</p>
+<p>同时也要对笔记中的工程建议做安全筛选：资源超限不能成为取消隔离的理由，检索为空不能在高风险场景直接纯生成，幂等 ID 也不能替代真实业务去重。多 Agent 架构图越漂亮，越需要用失败注入验证降级路径是否真实存在。</p>
+<h3 id="8-课件框架知识的当前用法">8. 课件框架知识的当前用法</h3>3
+<p>day07—10 的 <code>create_agent</code>、Function Calling、Plan-and-Execute、Reflection、AutoGen 与 CrewAI 用来理解基本范式；day11—16 的 StateGraph、reducer、条件边、<code>Send</code>、checkpointer、父子图和 supervisor/handoff 用来实现可控状态流。CrewAI 的顺序 Crew 适合表达角色和任务依赖，需要事件路由、持久化与汇合时再评估 Flows；其并行状态合并仍要自行明确，不能照搬“角色越多越专业”的表达。</p>
+<p>AutoGen 旧示例只保留为对话式协作和 GroupChat 的历史概念材料。按 2026-11-03 完整业内技术栈扫描，其官方 README 当时显示仓库已归档、停止维护，因此<strong>不把旧代码当作新项目选型</strong>；存量系统应盘点依赖并阅读官方迁移路径，新系统另行评估仍受维护的框架。框架版本和维护状态具有时效性，实施当天必须复核。</p>
+<h3 id="9-观测指标负例与上线顺序">9. 观测指标、负例与上线顺序</h3>3
+<p>每种模式都应观测任务成功率、部分成功率、p50/p95 延迟、token 与单成功任务成本、扇出数、移交次数、重试与重复副作用、人工接管率、契约校验失败率、各阶段等待时间和审查驳回率。Orchestrator 还要看关键路径与单点排队，pipeline 看阶段返工，fan-out 看汇合等待，handoff 看往返循环，debate 看独立答案被改错的比例，supervisor 看子调用错误是否正确回灌。</p>
+<p>负例至少覆盖：子 Agent 超时但写入已成功、同一任务重复投递、永久错误被反复重试、空产物却报告成功、部分结果被当成全量成功、A/B 互相移交、并行写覆盖、审查者越权修改、错误来源在跨 Agent 转述后变成“可信事实”。这些用例比一次 happy-path 演示更能证明系统可运行。</p>
+<p>上线顺序建议为：先实现单 Agent 基线与结构化工具结果；再把一个明确的只读子任务工具化；然后加入有界 <code>Send</code> 并行和 reducer；需要直接角色接管时再加 handoff；最后才考虑自由辩论或更复杂拓扑。每增加一层都重跑基线、负例和恢复测试。最终目标不是让最多 Agent 同时工作，而是用最少的控制权转移，得到可验证、可恢复、可归责的结果。</p>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li><strong>[课1] 课件原文：</strong><a href="../../raw/courseware/Agent%E7%AF%87/code/day10__01-plan-execute%E6%8E%A8%E7%90%86%E6%A1%86%E6%9E%B6.py">day10 Plan-and-Execute</a>、<a href="../../raw/courseware/Agent%E7%AF%87/code/day10__05-crewAi%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93.py">day10 CrewAI 多智能体</a>、<a href="../../raw/courseware/Agent%E7%AF%87/code/day11__05-send%E5%8F%91%E9%80%81-%E5%AE%9E%E7%8E%B0%E5%B9%B6%E8%A1%8C.py">day11 Send 并行</a>、<a href="../../raw/courseware/Agent%E7%AF%87/code/day16__03-%E8%87%AA%E5%AE%9A%E4%B9%89%E4%B8%BB%E7%AE%A1%E6%9E%B6%E6%9E%84.py">day16 主管架构</a>。落点是 WHY 的三种单 Agent 循环、WHAT 的六种协作模式，以及 HOW 的有界扇出和 handoff；课件 AutoGen 旧例不直接作为新选型。</li>
+<li><strong>[书1] 书籍目录与公开划线摘录：</strong><a href="../../raw/weread/Building%20Agentic%20AI%20Systems.md">Building Agentic AI Systems</a>。第 4—9 章目录用于组织反思、工具规划、Coordinator/Worker/Delegator、可解释和安全治理；公开划线中“决策状态版本化并配合检查点”落入 HOW 的恢复设计。只使用本库存有的目录与热门划线，<strong>不声称阅读书籍全文</strong>。</li>
+<li><strong>[业1] 业内作者原文与官方文档：</strong><a href="https://www.anthropic.com/engineering/multi-agent-research-system">Anthropic：How we built our multi-agent research system</a>、<a href="https://cognition.ai/blog/dont-build-multi-agents">Cognition：Don't Build Multi-Agents</a>、<a href="https://docs.langchain.com/oss/python/langchain/multi-agent">LangChain Multi-agent</a>、<a href="https://docs.crewai.com/en/concepts/flows">CrewAI Flows</a>。<a href="../../raw/sources/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%8D%8F%E4%BD%9C%E4%B8%9A%E5%86%85%E6%A0%87%E5%87%86%E8%B0%83%E7%A0%94-20261103.md">多智能体协作业内标准调研</a>于 <strong>2026-11-03</strong> 直读这些一手源，<a href="../../raw/sources/%E4%B8%9A%E5%86%85%E6%8A%80%E6%9C%AF%E6%A0%88%E6%89%AB%E6%8F%8F-20261103.md">业内技术栈扫描</a>记录所取公开 URL <strong>GET 200：2026-11-03</strong>；本次未复跑请求。两类相反经验分别落入“信息产物可并行、一致制品慎并行”的边界。</li>
+<li><strong>[业2] 本批论文：</strong><a href="../../raw/sources/arxiv-daily/2026-10-27-2610.37624.md">arXiv:2610.37624</a> 落入 WHAT 第 7 节的证据平衡、归属标签扰动和结构化摘要验收，用来约束 supervisor/arbiter 的记忆压缩，不把其基准数字外推成普遍成本或准确率。</li>
+<li><strong>[业3] 旧总述融合：</strong>《L5-Agent工程-最佳答案》的 ReAct/Planner/Reflection、单 Agent 优先、结构化派单与 decisive error 已由本文 WHY、WHAT、HOW 深化保留；旧稿未给出可复核来源的固定成本倍数和压缩收益不沿用。</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>"多 Agent"在本库的真实形态是门禁+DAG 审查链，不是自由对话（<code>/home/wuyafang/.hermes/scripts/dispatch-guard.py</code>，grep 可验）</strong>：<br />
+<code>python
+  def validate_dispatch_card(card_fields: List[str], task_desc: str = "") -&gt; Dict:
+      CORE = ["objective", "原始输出", "任务边界", "预埋check"]      # L594 4核必填
+      missing_core = [f for f in CORE if not any(f in c for c in card_fields)]
+      has_node = any("总地图节点" in f and re.search(r'(?&lt;![A-Za-z0-9])N[1-6](?![0-9])', f) for f in card_fields)
+      missing_core += [kw for kw in ("时间预估", "建议步骤", "跟单计划") if not any(kw in f for f in card_fields)]</code><br />
+<code>missing_core</code> 非空即返回 <code>{"结论": "❌ 不许派（缺核字段）"}</code>——机械拒绝，缺字段直接拒派，不做"看着差不多就放行"。<br />
+  即 orchestrator-worker 里"worker 收到的任务"先过确定性门禁：字段不齐不许派、路由不匹配不许派（防默认全塞一个 agent，<code>validate_dispatch_card</code> 后半段的 <code>路由匹配(任务建议派X,你派的是Y)</code>）。</li>
+<li><strong>共享状态与在途登记（<code>/home/wuyafang/.hermes/scripts/inflight-check.py</code> L25 <code>LEDGER</code>，grep 可验）</strong>：多智能体之间靠<strong>落盘状态 + 门禁脚本</strong>同步，不靠对话互传。<br />
+<code>python
+  LEDGER = os.path.expanduser("~/.hermes/cache/scratch/inflight.json")
+  def check_memory():
+      mem_avail_gb, swap_used_gb, mem_total_gb = _read_meminfo()
+      if mem_avail_gb &lt; MEMGUARD_WARN_GB:      # L117 = 1.5
+          print("⚠ 内存紧张(&lt;1.5G)，禁止再起重活脚本；重活请走 memguard-run.sh --mem 2G")</code><br />
+  每批任务 <code>--add --pid --match</code> 登记、<code>--close</code> 收口；起第二个 agent 前先看内存，避免两个 worker 抢内存互相拖死。</li>
+<li><strong>子任务失败可归因（<code>/home/wuyafang/.hermes/scripts/jev_accept.py</code> L114 <code>score_file</code>）</strong>：单文件评分失败只记 <code>issues</code> 不拖垮整批，最后 <code>classify()</code> 阶段再做整体裁决——"失败隔离 + 汇总裁决"两段式，而不是一失败就整单重跑。</li>
+<li><strong>和课件讲法的差异</strong>：课件 <code>AutoGen</code>/CrewAI 式对话协作强调 agent 间自然语言协商；本库用<strong>确定性门禁 + 独立 LLM 评审层</strong>替代协商（OpenClaw 审 → 执行 → 预埋 check 复跑）。原因：协商不可复现、失败不可归因，而 FDE 交付要的是"每次都能复现的通过/不通过"。LangGraph 在本库只用于单条 RAG 链路的状态机（<code>rag/query.py</code>），多 agent 协作层反而是脚本门禁。</li>
+</ul>
+<h2 id="证据边界与未验证项">证据边界与未验证项</h2>2
+<ul>
+<li>书籍材料是<strong>章节重点笔记，不是本次通读原书</strong>；Coordinator/Worker/Delegator、反思、检查点和可解释性仅按笔记展开，未声称覆盖原书完整案例与论证。</li>
+<li>本文 Pydantic 契约与图代码用于说明接口和控制流，<strong>示例代码本次未实跑</strong>；<code>execute_subagent</code>、<code>run_research</code> 等为实现注入点，实际运行需补齐依赖、状态初始化和所锁框架版本适配。</li>
+<li>本次未联网复核官方页面。AutoGen 状态只按 2026-11-03 完整业内扫描谨慎表述，未把课件旧代码作为新选型；版本与维护状态在部署当天应重新检查。</li>
+<li>Anthropic 的性能与 token 数字仅属于其原文内部研究评测和成本口径，Cognition 的观点主要针对长程、需一致决策的 Agent 工作；本文没有把这些数字或结论外推为所有多 Agent 系统的普遍定律。</li>
+<li>OpenClaw 内容来自融合前的本机模块设计笔记，用作抽象协同案例；旧散篇已由本篇替换。本次未验证其中每个配置项、指标和故障路径的真实运行行为，也未披露或依赖任何本机敏感配置。</li>
+</ul></div></body></html>

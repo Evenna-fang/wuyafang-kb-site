@@ -1,0 +1,364 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>01-Agentic-RAG六模式</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../../../../index.html">🏠 总入口</a><a href="../../../../graph.html">🕸 关联图谱</a><a href="../../../../ontology/index.html">📖 术语表</a><span class="cur">/ 01-Agentic-RAG六模式</span></div><div class="wrap"><h1 id="agentic-rag-六模式控制权反馈门控与可组合实现">Agentic RAG 六模式：控制权、反馈门控与可组合实现</h1>
+<blockquote>
+<p><a href="../00-%E7%9F%A5%E8%AF%86%E5%BA%93%E6%80%BB%E5%85%A5%E5%8F%A3.html">返回知识库总入口</a></p>
+<p>资产定位：总地图 N2 知识提炼，四之一知识层。本文把 Router、Agent-as-retriever、CRAG、Self-RAG、Adaptive RAG 与 Agentic-GraphRAG 放进同一套工程模型：它们不是六个互斥产品，而是“谁决定下一步、什么证据允许继续、失败后如何回退”的不同组合。相关代码背景可参见 <a href="../L4-RAG%E5%B7%A5%E7%A8%8B/Agentic-RAG%E5%85%AD%E6%A8%A1%E5%BC%8F%E4%BB%A3%E7%A0%81%E6%A8%A1%E6%9D%BF.html">L4 Agentic RAG 六模式代码模板</a>，多 Agent 研究型检索见 <a href="02-Multi-Agent%E5%8D%8F%E4%BD%9C.html">Multi-Agent 协作</a>。</p>
+</blockquote>
+<h2 id="why为什么需要-agentic-rag又为什么不能一概而上">WHY：为什么需要 Agentic RAG，又为什么不能一概而上</h2>2
+<h3 id="1-固定管线的真正短板不是没有循环">1. 固定管线的真正短板不是“没有循环”</h3>3
+<p>Naive RAG 的基本路径是“问题—检索—拼接上下文—生成”。它便宜、可预测，适合语料覆盖良好、问题单一的问答。Advanced RAG 在此基础上加入查询改写、混合召回、重排和上下文压缩，解决“查得准不准”。Modular RAG 再把切分、索引、检索、评分、生成与评估拆成可替换模块，解决“系统能不能演进”。Agentic RAG 则进一步把运行时决策交给模型或策略器：是否检索、去哪个源、是否重查、何时停止、答案能否发布。</p>
+<p>这三条轴线不能混为一谈。模块化是代码组织结构，Advanced 是检索与生成技巧，Agentic 是运行时控制权。一个完全硬编码的路由系统也可以采用 Modular RAG；一个写得极其混乱的 Agent loop 仍然是 Agentic，但不具备可维护性。工程上应以模块化承载六种模式，而不是把“Agentic”理解为推翻原检索管线。</p>
+<p>固定管线在四类负载下会暴露结构性问题：闲聊与事实问答混合时，每次都检索浪费成本；多源知识并存时，单一向量库无法覆盖 SQL、Web 与图谱；检索结果噪声较大时，直接生成会把错误证据放大；多跳、全局总结或证据不足时，一次 top-k 不可能保证完整。Agentic 的价值就是为这些情况增加受约束的决策和反馈，而不是让模型无限制地自由行动。</p>
+<h3 id="2-六模式是一条光谱不是六选一">2. 六模式是一条光谱，不是六选一</h3>3
+<p>可以用两个正交维度理解六模式。第一维是<strong>控制权</strong>：工程规则固定路径，还是模型选择工具、路由和检索深度。第二维是<strong>反馈门控</strong>：只检查查询类别，还是继续检查文档相关性、证据充分性、答案忠实度与切题性。</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>主要让渡的控制权</th>
+<th>关键反馈门控</th>
+<th>最典型的新增成本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Router</td>
+<td>选择数据源、模型或处理路径</td>
+<td>路由置信度与类别有效性</td>
+<td>一次分类或轻量模型调用</td>
+</tr>
+<tr>
+<td>Agent-as-retriever</td>
+<td>是否检索、何时调用检索工具</td>
+<td>工具结果相关性与停止条件</td>
+<td>多轮模型决策与工具调用</td>
+</tr>
+<tr>
+<td>CRAG</td>
+<td>检索失败后采用何种纠正动作</td>
+<td>检索评估器、文档过滤</td>
+<td>评分、改写和备用搜索</td>
+</tr>
+<tr>
+<td>Self-RAG</td>
+<td>检索、批判、再生成等自适应决策</td>
+<td>相关、支持、有用等反思信号</td>
+<td>训练成本，或工程近似的多次评判</td>
+</tr>
+<tr>
+<td>Adaptive RAG</td>
+<td>按问题复杂度分配检索深度</td>
+<td>复杂度分类与分支质量</td>
+<td>分类器训练或路由调用</td>
+</tr>
+<tr>
+<td>Agentic-GraphRAG</td>
+<td>在局部、全局与关系检索间选择</td>
+<td>图结果覆盖、社区证据与引用</td>
+<td>图构建、社区摘要和维护成本</td>
+</tr>
+</tbody>
+</table>
+<p>因此可以组合出很多合理形态：先用 Adaptive 判断难度，再把难题交给 Agent-as-retriever；检索后用 CRAG 过滤和补源，生成后用 Self-RAG 式双门禁；当问题被判定为全局关系型时，再路由到 GraphRAG 工具。反过来，只给 Agent-as-retriever 加一个 while 循环而不加评分器，只会让同一批差文档被反复消费。</p>
+<h3 id="3-用失败成本而不是先进程度选型">3. 用失败成本而不是“先进程度”选型</h3>3
+<p>简单 FAQ、稳定制度问答应从 Naive 或 Advanced RAG 起步；类别清晰的多库问答先上 Router；检索触发不确定再加检索工具；检索覆盖不稳定加 CRAG；答案错误代价高才增加生成后门禁；负载难度差异显著再引入 Adaptive；只有全局总结、跨文档关系与多跳遍历确实成为主要需求时，才评估 GraphRAG。</p>
+<p>每次升级都要回答三个问题：当前基线的失败究竟发生在路由、召回、证据过滤还是生成；新增节点能否直接干预这个失败；提升是否覆盖新增延迟、token、索引和运维成本。没有基线评测集时，增加循环属于盲改。书籍章节笔记特别强调负例测试：除了“能答什么”，还必须测试“库里没有时是否拒答”。负例能识别一种常见假象——答案更流畅了，但系统更敢编造。</p>
+<h2 id="whatwhyt六种模式的机制论文差异与边界">WHAT（WHYT）：六种模式的机制、论文差异与边界</h2>2
+<h3 id="1-router把一次选择变成可审计的分流">1. Router：把一次选择变成可审计的分流</h3>3
+<p><strong>触发条件。</strong> 查询存在相对稳定、可枚举的类别，例如内部制度库与实时 Web、技术文档与产品手册、小模型与大模型。若类别边界模糊到人工也难标注，路由器只会增加一个错误源。</p>
+<p><strong>机制。</strong> 输入问题后，规则、传统分类器或 LLM 输出受 schema 约束的类别，条件边把请求送往对应查询引擎。课件 day05 的 <code>RouterQueryEngine</code> 用 <code>QueryEngineTool</code> 包装多个索引，再由 <code>LLMSingleSelector</code> 选择；<code>ToolMetadata.description</code> 实际上决定了模型对“哪个库有什么”的理解。路由并不天然等于 Agent，它完全可以是一条确定性的 workflow。</p>
+<p><strong>与原论文或官方范式的关系。</strong> Router 主要对应 Anthropic 的 routing workflow，不是某一篇 RAG 论文的专有算法。LangGraph Adaptive RAG 教程也使用结构化路由，但教程中的“向量库或 Web”是数据源分流，不等于 Adaptive-RAG 论文的三档复杂度分类。</p>
+<p><strong>参数、适用与反例。</strong> 关键参数是类别集合、置信度阈值、默认分支、每类 top-k 和模型档位。适用于客服意图分流、多租户知识域选择、成本分级。反例包括类别高度重叠、路由描述长期不更新、一个问题天然需要多个来源却强制单选。后者应改成多选路由或并行检索。</p>
+<p><strong>观测与故障。</strong> 记录路由类别、置信度、描述版本、误路由率和各分支成功率。低置信度进入默认安全分支，而非强行选择； schema 解析失败时重试一次或直接走通用检索。若某分支 Recall@K 正常但最终答案差，应查生成而非继续调路由器。</p>
+<h3 id="2-agent-as-retriever把检索器变成工具而不是把判断交给运气">2. Agent-as-retriever：把检索器变成工具，而不是把判断交给运气</h3>3
+<p><strong>触发条件。</strong> 同一入口既有无需检索的对话，又有需要私有知识的问题；或者检索次数、子查询和数据源无法预先写死。单一、稳定、每次都必须查库的 FAQ 没有必要付出工具决策成本。</p>
+<p><strong>机制。</strong> 将 retriever 封装成带名称、描述和参数 schema 的工具。模型在“直接回答”与“调用检索”之间选择，工具返回后由相关性评分节点判断是否可用；不足时改写问题或拆分子查询，达到证据充分或预算耗尽后停止。课件 day06 的 <code>chat_mode="react"</code> 已体现“检索作为工具”的思想，day03 的 <code>FunctionAgent</code> 则展示函数签名与 docstring 如何变成工具契约。</p>
+<p><strong>与官方实现的差异。</strong> LangGraph 官方 Agentic RAG 教程提供 <code>generate_query_or_respond</code>、<code>ToolNode</code>、<code>grade_documents</code>、<code>rewrite_question</code> 和 <code>generate</code> 的闭环。生产实现不能只复制节点名，还要增加租户过滤、文档引用、每轮预算、空结果处理和最终忠实度门禁。</p>
+<p><strong>参数、适用与反例。</strong> 建议把 <code>max_iterations</code> 初始设为 3 到 5，另设总 token、工具次数和墙钟时间上限；具体值必须按任务分布压测。适合研究助理、混合对话、多跳问答。反例是强监管场景下让模型自行决定是否查强制依据，或所有问题都有固定检索步骤。此类场景应把必要检索写成硬约束。</p>
+<p><strong>观测与故障。</strong> 除答案指标外，必须记录“该检索未检索”和“不该检索却检索”两类决策错误，以及每轮查询、工具参数、文档 ID、评分和停止原因。连续两轮查询语义等价、文档集合不变时应提前停止；工具超时返回结构化错误，不允许异常直接冒泡成无限重试。</p>
+<h3 id="3-crag先判断检索是否可信再决定纠正动作">3. CRAG：先判断检索是否可信，再决定纠正动作</h3>3
+<p><strong>触发条件。</strong> 知识库覆盖不全、文档时效性差异大，或者 top-k 经常混入表面相关但无法回答问题的片段。若基线召回已经稳定，额外评分和 Web 搜索可能只增加噪声。</p>
+<p><strong>机制。</strong> CRAG 在检索后引入评估器，对结果给出正确、模糊或错误的判断。Correct 路径保留并精炼证据；Ambiguous 可结合内部与外部知识；Incorrect 触发查询改写和备用搜索。其关键不是“搜不到就上网”，而是纠正动作由证据质量驱动。</p>
+<p><strong>与原论文的差异。</strong> 原论文《Corrective Retrieval Augmented Generation》使用轻量检索评估器，并包含 decompose-then-recompose 知识精炼：把文档拆成知识条带，过滤后再组合。常见 LangGraph 工程教程用 LLM 二值评分代替评估器，并简化为“过滤—改写—Web 搜索”，是工程近似而非完整复现。</p>
+<p><strong>参数、适用与反例。</strong> 需要标定高、低阈值和灰区，设定最少有效文档数、备用源数量、改写次数与外部搜索预算。适合动态知识、开放域补充和内部覆盖不完整的助手。反例包括禁止外网的私有数据场景、Web 来源不可信、查询涉及严格权限控制。此时备用动作应是拒答、转人工或查受控数据源，而不是自动联网。</p>
+<p><strong>观测与故障。</strong> 监控评估器判准率、过滤后保留率、纠正触发率、改写后 Recall@K 增量、外部来源引用正确率。若改写后结果没有改善，停止重试并明确证据不足；若评估器频繁把正确证据判错，应先用人工标注集校准评分器，而非继续增加循环。</p>
+<h3 id="4-self-rag原版是训练范式托管-api-只能做工程近似">4. Self-RAG：原版是训练范式，托管 API 只能做工程近似</h3>3
+<p><strong>触发条件。</strong> 答案错误代价高，单纯“文档相关”仍不足以保证每个论断受证据支持，例如合规、医疗、法律和财务问答。若只是低风险闲聊或创意写作，生成后多次评判通常得不偿失。</p>
+<p><strong>机制。</strong> 原论文通过训练让模型按需生成四类反思标记：是否检索、文档是否相关、生成是否受支持、答案是否有用，并用这些信号控制检索和生成。其核心是把反思能力学习进模型及生成过程，而不是在提示词末尾写一句“请检查自己”。</p>
+<p><strong>与原论文的差异。</strong> 托管聊天 API 通常不能训练这些控制 token，也不能复现原模型的控制权重、采样和评分机制。工程上只能用独立结构化评分器近似：检索后做相关性过滤，草稿后做证据支持检查，再做切题检查；不支持则重生成，忠实但跑题则改写或重检索。应明确称为“Self-RAG 式门禁”或“Self-RAG 工程近似”，不能宣称复现了原版收益。</p>
+<p><strong>参数、适用与反例。</strong> 分别限制检索轮数、重写轮数和重生成轮数，避免三个循环叠加爆炸。评分器最好独立于生成模型，关键判断用人工标注校准。适合高失败成本、证据可显式引用的任务。反例是无法提供可核查证据的开放创作，或延迟预算极低的实时交互。</p>
+<p><strong>观测与故障。</strong> 至少观测 faithfulness、answer relevancy、无依据论断数、门禁误杀率、重生成后改善率和负例拒答率。模型连续生成不受支持的内容时，不应无限“再想一次”，而应回退到证据抽取式答案或拒答。忠实与切题必须分开，否则“复述了一段真实但无关的文档”也会被误判为成功。</p>
+<h3 id="5-adaptive-rag把计算预算分配给真正困难的问题">5. Adaptive RAG：把计算预算分配给真正困难的问题</h3>3
+<p><strong>触发条件。</strong> 流量中同时存在无需检索的简单问题、一次检索可解的事实题和需要多轮检索的复杂题，而且三者比例足以影响总成本。若任务分布单一，固定管线更简单。</p>
+<p><strong>机制。</strong> 原论文训练复杂度分类器，将问题分到 no-retrieval、single-step 和 iterative 三类策略，以效率与效果的平衡为目标。路由的依据是解题所需步骤，而不只是主题或时效性。</p>
+<p><strong>与原论文的差异。</strong> 常见工程教程不训练分类器，改用 LLM 结构化输出；有些示例还把类别简化为“向量库或 Web”。这种做法只能算受 Adaptive 思想启发的工程路由。要对齐论文，应保留三档复杂度、构建银标准或人工标签，并比较分类器成本与节省的检索成本。</p>
+<p><strong>参数、适用与反例。</strong> 每档分别配置 top-k、最大轮数、模型和预算；简单分支也应有升级机制，防止分类过低导致无证据作答。适合混合负载和高流量系统。反例包括所有请求都必须引用企业知识、分类标签无法稳定获得、 router 调用本身比节省的检索更贵。</p>
+<p><strong>观测与故障。</strong> 按复杂度分层统计准确率、平均工具次数、p95 延迟和单成功任务成本，特别记录“难题被分到简单档”的漏升级率。低置信度可升到中间档；分类器漂移时回退到固定单步检索。不能只看总平均分，否则简单题的收益会掩盖难题退化。</p>
+<h3 id="6-agentic-graphrag只为全局与关系问题支付图成本">6. Agentic-GraphRAG：只为全局与关系问题支付图成本</h3>3
+<p><strong>触发条件。</strong> 主要问题是“整个语料有哪些主题”“多个实体如何关联”“跨文档证据链是什么”，而普通 top-k 无法代表全库。单一事实、精确条款和局部语义问答通常不应默认走图。</p>
+<p><strong>机制。</strong> Microsoft GraphRAG 在索引期抽取实体与关系，构建图和社区，并预生成社区摘要；查询期 local search 聚焦实体邻域，global search 通过社区摘要的 map-reduce 回答 query-focused summarization。Agentic 化是把 local、global 以及其他检索器作为工具，由路由或 Agent 选择并组合。</p>
+<p><strong>与原论文和官方框架的差异。</strong> 原论文重点是 GraphRAG 的索引与全局摘要方法，不等于必须有多 Agent。把 local/global 包成工具是后续工程集成方式。图也不会自动带来正确推理：实体消歧、关系抽取和社区摘要任何一环出错，都可能生成结构漂亮但证据错误的答案。</p>
+<p><strong>参数、适用与反例。</strong> 需要估算抽取模型、块大小、实体去重、社区层级、更新频率、local/global 调用预算和引用回溯方式。适合情报分析、跨文档主题研究、关系密集语料。反例是小库、更新极频繁但无法增量维护、问题以精确事实为主、无法承担索引期大量 LLM 调用。图索引成本必须在上线前做全量与增量两笔账。</p>
+<p><strong>观测与故障。</strong> 单独建立全局、关系、多跳评测集，观察答案覆盖、关系正确率、引用可追溯性、图与向量索引可见时间差。实体误合并应能回滚到原文证据；图结果为空时回退普通检索并声明降级，禁止把“没有关系边”解释为“现实中不存在关系”。</p>
+<h2 id="how用统一状态模块和预算实现可组合系统">HOW：用统一状态、模块和预算实现可组合系统</h2>2
+<h3 id="1-先把离线知识底座做稳day0306-的落点">1. 先把离线知识底座做稳：day03—06 的落点</h3>3
+<p>Agentic 层不能弥补糟糕的数据底座。课件 day03 的 <code>VectorStoreIndex.from_documents</code> 提供最小索引路径；day04 按文档性质选择 <code>SentenceSplitter</code>、<code>CodeSplitter</code> 或 <code>HierarchicalNodeParser</code>；day05 用 <code>IngestionPipeline</code> 把切分、嵌入和元数据抽取串成可复用管道，并用 <code>RouterQueryEngine</code> 实现多索引分流；day06 通过 <code>storage_context.persist</code> 与 <code>load_index_from_storage</code> 避免每次重启重建索引。</p>
+<p>落地时应把权限元数据、文档版本、来源位置和内容哈希在摄取期写入节点，而不是等检索后再补。层次切分可用叶节点召回、父节点补上下文；代码按结构切分；普通中文制度文本从句子切分起步。<code>IngestionPipeline</code> 中的 LLM 标题抽取和并发要计入索引成本，且抽取结果不能覆盖原始来源。持久化目录必须和嵌入模型、切分参数、schema 版本绑定，否则“成功加载旧索引”可能只是静默使用了不兼容向量。</p>
+<h3 id="2-统一模块化状态-schema">2. 统一模块化状态 schema</h3>3
+<p>六模式共享状态，才能组合和做消融实验。下面是框架无关的 Python 骨架；<code>Document</code> 保留证据身份，<code>Budget</code> 把循环安全变成数据而非口头约定。</p>
+<pre><code class="language-python">from dataclasses import dataclass, field
+from typing import Literal, TypedDict
+
+@dataclass
+class Document:
+    doc_id: str                 # 稳定证据编号
+    text: str                   # 原文片段
+    source_uri: str             # 可回溯来源
+    version: str                # 文档或索引版本
+    tenant_id: str              # 权限过滤维度
+    retrieval_score: float = 0.0
+    relevance: Literal[&quot;unknown&quot;, &quot;yes&quot;, &quot;no&quot;] = &quot;unknown&quot;
+
+@dataclass
+class Budget:
+    max_iterations: int = 5     # 总检索反馈轮数
+    max_rewrites: int = 2       # 查询改写上限
+    max_regenerations: int = 1  # 生成重试上限
+    max_tool_calls: int = 12    # 工具调用总上限
+    max_tokens: int = 30000     # 全链路 token 上限
+    deadline_seconds: int = 60  # 墙钟时间上限
+
+class RagState(TypedDict, total=False):
+    trace_id: str
+    original_question: str
+    question: str
+    route: Literal[&quot;direct&quot;, &quot;single&quot;, &quot;iterative&quot;, &quot;graph_local&quot;, &quot;graph_global&quot;]
+    documents: list[Document]
+    generation: str
+    citations: list[str]
+    iteration: int
+    rewrite_count: int
+    regeneration_count: int
+    tool_calls: int
+    tokens_used: int
+    stop_reason: str
+    errors: list[dict]
+    budget: Budget
+</code></pre>
+<p>状态只保存必要证据与计数，大型原文可按引用存放。每次节点返回部分更新，不在路由函数里偷偷修改状态。并行分支必须定义 reducer，避免后完成者覆盖先完成者。<code>original_question</code> 永远保留，改写不能逐步漂移用户意图。</p>
+<h3 id="3-五个可操作模块检索评分改写生成与门禁">3. 五个可操作模块：检索、评分、改写、生成与门禁</h3>3
+<pre><code class="language-python">def retrieve(state: RagState, retriever) -&gt; dict:
+    # 权限过滤必须先于评分与生成，不能把越权文本交给后续模型
+    docs = retriever.search(
+        state[&quot;question&quot;],
+        top_k=20,
+        tenant_id=current_tenant(),
+    )
+    return {
+        &quot;documents&quot;: docs,
+        &quot;iteration&quot;: state.get(&quot;iteration&quot;, 0) + 1,
+        &quot;tool_calls&quot;: state.get(&quot;tool_calls&quot;, 0) + 1,
+    }
+
+def grade_documents(state: RagState, grader) -&gt; dict:
+    kept = []
+    for doc in state[&quot;documents&quot;]:
+        verdict = grader.relevance(state[&quot;original_question&quot;], doc.text)
+        doc.relevance = verdict
+        if verdict == &quot;yes&quot;:
+            kept.append(doc)
+    return {&quot;documents&quot;: kept}
+
+def rewrite_question(state: RagState, rewriter) -&gt; dict:
+    # 显式告知上一轮失败，保留原问题约束，禁止扩大主题
+    rewritten = rewriter.invoke({
+        &quot;original&quot;: state[&quot;original_question&quot;],
+        &quot;previous&quot;: state[&quot;question&quot;],
+        &quot;failure&quot;: &quot;现有证据不足以回答，不得改变用户意图&quot;,
+    })
+    return {
+        &quot;question&quot;: rewritten,
+        &quot;rewrite_count&quot;: state.get(&quot;rewrite_count&quot;, 0) + 1,
+    }
+
+def generate(state: RagState, generator) -&gt; dict:
+    answer = generator.invoke({
+        &quot;question&quot;: state[&quot;original_question&quot;],
+        &quot;documents&quot;: state[&quot;documents&quot;],
+        &quot;instruction&quot;: &quot;仅依据证据回答；证据不足就明确拒答，并保留引用编号&quot;,
+    })
+    return {&quot;generation&quot;: answer.text, &quot;citations&quot;: answer.citations}
+
+def generation_gate(state: RagState, judge) -&gt; str:
+    # 忠实与切题是两个独立判断，不能合并成一个“看起来不错”
+    if not judge.is_grounded(state[&quot;generation&quot;], state[&quot;documents&quot;]):
+        return &quot;regenerate&quot; if can_regenerate(state) else &quot;insufficient&quot;
+    if not judge.answers_question(state[&quot;original_question&quot;], state[&quot;generation&quot;]):
+        return &quot;rewrite&quot; if can_rewrite(state) else &quot;insufficient&quot;
+    return &quot;publish&quot;
+</code></pre>
+<p><code>grader</code> 可先用重排分数做廉价分层，再让 LLM 只处理灰区，但阈值必须在标注集上标定。<code>judge</code> 不应复用生成器的“我觉得正确”，而应接收结构化 claim—evidence 对，输出可审计理由。任何模型评分都可能误判，因此门禁还需人工抽检和负例回归。</p>
+<h3 id="4-用统一路由函数组合六模式">4. 用统一路由函数组合六模式</h3>3
+<pre><code class="language-python">def next_step(state: RagState) -&gt; str:
+    # 先检查硬预算，再考虑模型希望做什么
+    if exhausted(state):
+        return &quot;degrade&quot;
+    if not state.get(&quot;documents&quot;):
+        return &quot;rewrite&quot; if can_rewrite(state) else &quot;degrade&quot;
+    if state[&quot;route&quot;] == &quot;iterative&quot; and needs_correction(state):
+        return &quot;correct&quot;
+    return &quot;generate&quot;
+
+# LangGraph 组装示意：真实项目需按所锁版本调整 API
+# builder.add_conditional_edges(&quot;grade&quot;, next_step, {
+#     &quot;rewrite&quot;: &quot;rewrite&quot;, &quot;correct&quot;: &quot;correct&quot;,
+#     &quot;generate&quot;: &quot;generate&quot;, &quot;degrade&quot;: &quot;degrade&quot;,
+# })
+# graph.invoke(inputs, config={&quot;recursion_limit&quot;: 25})
+</code></pre>
+<p><code>recursion_limit</code> 是框架最后保险丝，不能替代业务级 <code>max_iterations</code>。超限后的 <code>degrade</code> 应是可预测产物：返回已核实证据、说明不足、缩小答案范围或转人工，而不是绕过门禁直接生成。Router 与 Adaptive 在入口处分流；Agent-as-retriever 决定工具调用；CRAG 对应 <code>correct</code>；Self-RAG 式门禁位于 <code>generate</code> 后；GraphRAG 只是另一组检索工具。这套组合可以逐节点做 A/B，不必维护六套互不相通的代码。</p>
+<h3 id="5-六模式的落地参数表与降级策略">5. 六模式的落地参数表与降级策略</h3>3
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>首批需要压测的预算</th>
+<th>正常停止</th>
+<th>预算耗尽或异常时</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Router</td>
+<td>路由调用 1 次、默认分支、类别置信度</td>
+<td>命中有效类别并进入分支</td>
+<td>通用受控检索或澄清</td>
+</tr>
+<tr>
+<td>Agent-as-retriever</td>
+<td>总轮数 3—5、工具与 token 上限</td>
+<td>无需检索或证据已足</td>
+<td>返回现有证据与不足说明</td>
+</tr>
+<tr>
+<td>CRAG</td>
+<td>改写 1—2 次、备用源数量、评分灰区</td>
+<td>证据达到发布门槛</td>
+<td>受控拒答，不强制外搜</td>
+</tr>
+<tr>
+<td>Self-RAG 式门禁</td>
+<td>重生成 1 次、双门禁、独立 judge</td>
+<td>忠实且切题</td>
+<td>证据抽取式回答或转人工</td>
+</tr>
+<tr>
+<td>Adaptive</td>
+<td>三档各自预算、低置信升级</td>
+<td>当前档完成且通过门禁</td>
+<td>升级一档或回退固定单步</td>
+</tr>
+<tr>
+<td>GraphRAG</td>
+<td>索引成本、社区层级、查询调用上限</td>
+<td>全局或局部证据充分</td>
+<td>回退向量检索并标记降级</td>
+</tr>
+</tbody>
+</table>
+<p>这些数值只是工程起点，不是论文保证或通用最优值。应以真实流量确定。若增加一轮检索后 Recall@K 与 faithfulness 都无改善，继续循环通常没有价值。</p>
+<h3 id="6-评估必须覆盖检索生成决策和成本">6. 评估必须覆盖检索、生成、决策和成本</h3>3
+<p><strong>检索层。</strong> Recall@K 衡量标准相关文档是否出现在前 K 个候选中，至少要区分首次召回和最终保留证据；MRR 可看首个相关结果位置，nDCG 可处理多级相关性。门控过滤后也要重算召回，防止“过滤噪声”变成“删掉答案”。</p>
+<p><strong>生成层。</strong> faithfulness 检查答案中的原子论断能否由所给证据推出，answer relevancy 检查是否真正回应问题。二者都不能被单一流畅度评分替代。引用准确率还要核对引用文档是否真的支持对应句子，而非只存在一个链接。</p>
+<p><strong>决策层。</strong> 建立路由混淆矩阵、检索必要性判断、升级与降级正确率、每轮改写增益和停止原因分布。最终答案错误时，沿 trace 找最早错误节点：选错库、未召回、误过滤、证据不足仍生成，分别对应不同修复。</p>
+<p><strong>负例与对抗。</strong> 至少包括库中无答案、相似但错误实体、过期版本、无权限文档、矛盾证据、全局问题误入 local 工具。期望行为是拒答、澄清、降级或列出冲突，而不是补全一个貌似合理的答案。</p>
+<p><strong>成本层。</strong> 记录每问模型调用、检索次数、输入输出 token、p50/p95 延迟、索引摊销和每个成功任务成本。消融实验按“基线—加路由—加评分—加改写—加生成门禁”逐项推进，同一评测集比较质量与成本。GraphRAG 还要单独计算离线建图和更新成本，不能只统计查询期 token。</p>
+<h3 id="7-本批论文怎么用先修证据标注再解释检索分数">7. 本批论文怎么用：先修证据标注，再解释检索分数</h3>3
+<p><a href="../../raw/sources/arxiv-daily/2026-10-22-2610.31606.html">arXiv:2610.31606</a> 研究的是一个仅含 18 篇文档、18 个查询的乳腺病灶管理 RAG 开发集。论文在<strong>不改变检索排序</strong>的情况下，把人工接受的证据 span 从 25 扩到 37、对应可接受 chunk 从 36 扩到 51，说明 Recall@K、MRR 等分数会直接受 ground truth 覆盖方式影响；它不是“补标让检索器突然变准”。文中 0.94 等结果只属于这个小开发集，且作者明确要求独立验证，不能外推为本库收益。</p>
+<p>我们把论文转成四条落地动作：第一，每个评测问题标注<strong>所有足以支持答案的证据 span</strong>，不要只指定一个碰巧命中的 chunk；第二，含同一证据的重叠 chunk 都计为相关，避免把合理召回误判为假阳性；第三，检索标注版与生成答案版分开评测，不能用 LLM judge 的高分反推召回完整；第四，每次修改切分或重叠率后，冻结同一查询与标注版本重跑 Recall@K、MRR、nDCG，并另留未参与标注调整的查询做独立检查。若补标前后排序完全没变，应解释为“评价口径更完整”，而不是宣称检索算法已优化。</p>
+<h3 id="8-推荐的渐进实施顺序">8. 推荐的渐进实施顺序</h3>3
+<p>第一步，用持久化索引和统一 <code>Document</code> schema 建立 Naive/Advanced 基线，完成 Recall@K、faithfulness 和负例集。第二步，若多源误路由明确，引入 Router；若检索必要性不稳定，引入 Agent-as-retriever。第三步，加入相关性评分和一次受限改写，形成 CRAG 的最小闭环。第四步，只在高价值分支增加 Self-RAG 式生成双门禁。第五步，流量足够大时用历史 trace 标注复杂度，训练或校准 Adaptive 分类器。最后才用全局/关系问题集验证 GraphRAG 是否有增量收益。</p>
+<p>这条顺序的核心是：先获得可解释基线，再逐项购买自主性；先确保每个反馈信号可信，再允许它驱动循环。六模式的最优形态通常不是一个“大而全 Agent”，而是一组可插拔、可预算、可降级、可评测的小决策。</p>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li><strong>[课1] 课件原文：</strong><a href="../../raw/courseware/Agent%E7%AF%87/code/day03__01-%E5%85%A5%E9%97%A8%E6%A1%88%E4%BE%8B.html">Agent 篇 day03 索引实操</a>、<a href="../../raw/courseware/Agent%E7%AF%87/code/day05__09-%E8%B7%AF%E7%94%B1%E7%B4%A2%E5%BC%95.html">day05 路由索引</a>、<a href="../../raw/courseware/Agent%E7%AF%87/code/day06__06-%E8%81%8A%E5%A4%A9%E5%BC%95%E6%93%8E.html">day06 聊天引擎</a>。落点是 WHY/WHAT 的 Router 与工具化检索，以及 HOW 的持久化索引、路由和反馈节点；课件是示例骨架，不等于本文六模式已经实跑。</li>
+<li><strong>[书1] 书籍目录与公开划线摘录：</strong><a href="../../raw/weread/RAG-Driven%20Generative%20AI.html">RAG-Driven Generative AI</a>。第 1、3、5、7、8 章目录用于建立 Naive/Advanced/Modular、索引、动态策略和图 RAG 的知识框架；公开划线用于提醒人工反馈与负例。只使用本库存有的目录和热门划线，<strong>不声称阅读书籍全文</strong>。</li>
+<li><strong>[业1] 官方文档与业内作者原文：</strong><a href="https://www.anthropic.com/engineering/building-effective-agents">Anthropic：Building effective agents</a>、<a href="https://docs.langchain.com/oss/python/langgraph/agentic-rag">LangGraph：Agentic RAG</a>、<a href="https://microsoft.github.io/graphrag/">Microsoft GraphRAG</a>。本地<a href="../../raw/sources/%E4%B8%9A%E5%86%85%E6%8A%80%E6%9C%AF%E6%A0%88%E6%89%AB%E6%8F%8F-20261103.html">业内技术栈扫描</a>记录上述方向公开页面于 <strong>2026-11-03 GET 200</strong>，本次未复跑网络请求；路由、循环、停止条件和图索引成本分别落入 WHAT 与 HOW。</li>
+<li><strong>[业2] 方法论文：</strong>Self-RAG（<a href="https://arxiv.org/abs/2310.11511">arXiv:2310.11511</a>）、CRAG（<a href="https://arxiv.org/abs/2401.15884">arXiv:2401.15884</a>）、Adaptive-RAG（<a href="https://arxiv.org/abs/2403.14403">arXiv:2403.14403</a>）、GraphRAG（<a href="https://arxiv.org/abs/2404.16130">arXiv:2404.16130</a>）用于区分原方法与工程近似；本批论文<a href="../../raw/sources/arxiv-daily/2026-10-22-2610.31606.html">arXiv:2610.31606</a>直接转化为 HOW 第 7 节的证据标注与独立评测步骤，不是只列篇名。</li>
+<li><strong>[业3] 本地调研溯源：</strong><a href="../../raw/sources/Agentic-RAG-%E8%B0%83%E7%A0%94-20261012.html">Agentic RAG 调研</a>、<a href="../../raw/sources/Agentic-RAG%E6%A3%80%E7%B4%A2%E5%BE%AA%E7%8E%AF-%E5%A4%96%E9%83%A8%E8%B0%83%E7%A0%94-20261012.html">检索循环调研</a>。只承接其中可回溯的一手源和工程问题，未把二手数字当作结论。</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>生产链路是 LangGraph 状态机，不是单条 Pipeline（<code>rag/query.py</code> 行 2496 起 <code>build_rag_graph()</code>，grep 可验）</strong>：<br />
+<code>python
+  workflow = StateGraph(RAGState)
+  workflow.add_node("router", lambda s: route_question(s))      # L2500 复杂度分流
+  workflow.add_node("retrieve", lambda s: retrieve_node(s, col))
+  workflow.add_node("grade", lambda s: grade_documents(s, col))  # CRAG 相关性评分
+  workflow.add_conditional_edges(                                 # L2524 grade→rewrite|rerank
+      "grade",
+      should_rewrite,
+      {
+          "rewrite": "rewrite",
+          "pass": "rerank",
+      },
+  )
+  workflow.add_edge("rewrite", "grade")       # L2530 纠错环: 重写后回 grade, 不新增入口</code><br />
+  六模式在本库里是<strong>组合</strong>而非二选一：Router=<code>route_question</code>+<code>_classify_query</code>（simple_fact / complex_reasoning / multi_hop）；Adaptive=同一 <code>retrieve_node</code> 内按 <code>route</code> 走 <code>_do_retrieve</code> 分流；CRAG=<code>grade</code>↔<code>rewrite</code> 回边 + <code>gate_node</code> 阈值拒答。</li>
+<li><strong>Agent-as-retriever 的独立实现（<code>rag/agentic_query.py</code>，grep <code>build_agentic_graph</code>）</strong>：<code>decide → retrieve → grade ─相关→ generate / 不相关→ rewrite → retrieve</code>，<code>DEFAULT_MAX_REWRITES = 3</code> 是业务级轮数上限；<code>route_after_grade()</code> 超限走 <code>refuse</code> 节点返回 <code>query._build_refusal_answer()</code>，即"可预测的降级产物"而不是继续硬生成。</li>
+<li><strong>GraphRAG 作为另一组检索工具（<code>rag/query.py</code> <code>_build_graph_context</code> L1131 / <code>_high_key_retrieve</code> L1525）</strong>：实体匹配→一跳扩展→实体挂载 chunk，再与向量低键路做第二轮 RRF；图谱上下文只对 <code>complex_reasoning</code>/<code>multi_hop</code> 注入。</li>
+<li><strong>和课件讲法的差异</strong>：课件（Agent 篇 day03/05/06）以 LlamaIndex RouterQueryEngine/PersistentClient 起步；本库<strong>只用 LlamaIndex 做了对照版</strong>（<code>rag/query_llamaindex.py</code>：<code>ChromaVectorStore</code> + <code>VectorStoreIndex.from_vector_store</code> + <code>as_retriever</code>），生产走 LangGraph + 自写 <code>rrf_fuse</code>/<code>rerank</code>。原因：本库需要稀疏路（bge-m3 lexical_weights）、tier 加权、TTL 墓碑和句级引用校验，LlamaIndex 原生没有这些钩子，硬塞要改框架内部，反而比自写薄。</li>
+<li><strong>本库暂无的部分</strong>：Self-RAG 原版的 reflection token 训练未做，只做了"生成后引用校验"工程近似（<code>rag/query.py::_validate_citations</code>）。</li>
+</ul>
+<h2 id="证据边界与未验证项">证据边界与未验证项</h2>2
+<ul>
+<li>书籍材料是<strong>章节重点笔记，不是本次通读原书</strong>；本文只使用笔记中明确的主题和观点，未据此声称覆盖原书全部论证、代码和实验条件。</li>
+<li>本文示例代码是统一接口的教学骨架，<strong>示例代码本次未实跑</strong>；<code>retriever</code>、<code>grader</code>、<code>judge</code> 等为待注入实现，LangGraph 注释片段需按项目锁定版本适配。</li>
+<li>本次未联网复核页面，官方 URL 与论文差异依据指定本地调研快照和已有笔记整理；框架 API、GraphRAG 版本及部署特性在实际使用时应重新核验。</li>
+<li>Self-RAG 部分明确区分原论文的训练与控制机制和托管 API 的工程近似，未声称提示词评分器等价复现原论文效果。</li>
+<li>未提供六模式在本知识库上的新增实测收益；所有预算数值均为待评测的初始建议。GraphRAG 是否有收益，必须用本库全局、关系和普通事实问题做对照，并计入索引及更新成本。</li>
+</ul></div></body></html>

@@ -1,0 +1,466 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L2-上下文工程-深挖整合</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L2-上下文工程-深挖整合</span></div><div class="wrap"><blockquote>
+<p>来源：L2-大模型交互/ 下的《上下文工程-Context-Engineering》（主体）、《前沿精读笔记（Prompt与LangChain与vLLM）》（LangChain 与 vLLM 部分）、《L2-大模型交互-最佳答案》与《L2-提示词工程-2026》（多轮对话与长文档部分）。碎片整合，零新增外部内容，纯消化重组</p>
+</blockquote>
+<h1 id="l2-上下文工程深挖整合把上下文窗口当作稀缺资源来经营">L2 上下文工程深挖整合：把上下文窗口当作稀缺资源来经营</h1>
+<h1 id="why把上下文窗口当作稀缺资源来经营">WHY：把上下文窗口当作稀缺资源来经营</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">一、概述</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="11-从怎么说到装什么">1.1 从"怎么说"到"装什么"</h3>3
+<p>提示词工程管的是"怎么写指令"。当任务从一次性问答变成跑在循环里的 Agent 之后，需要管理的对象就不再只是指令文本，而是<strong>每一次推理时，模型上下文窗口里到底装了什么</strong>：系统指令、工具定义、外部数据、消息历史，全部算在内。这就是上下文工程（Context Engineering）。</p>
+<p>素材里引用的 Anthropic 原话是：上下文工程是"在持续演化的可能信息宇宙中，策选出进入有限上下文窗口的内容的艺术与科学"。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1.2 三个关键定义</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Harrison Chase 的工程化表述是："构建动态系统，以正确的格式在正确的时机提供正确的信息与工具，使 LLM 能合理地完成任务</li></ul></div>3
+<p>素材给出了三个互相补充的定义，值得并排放在一起：</p>
+<table>
+<thead>
+<tr>
+<th>来源</th>
+<th>定义</th>
+<th>侧重</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Andrej Karpathy</td>
+<td>"the delicate art and science of filling the context window with just the right information for the next step"，即在每一步为上下文窗口装填恰好正确信息的精密技艺</td>
+<td>目标：恰好正确</td>
+</tr>
+<tr>
+<td>Anthropic</td>
+<td>"找到实现目标所需的最小高信号 token 集合"</td>
+<td>操作准则：最小且高信号</td>
+</tr>
+<tr>
+<td>LangChain</td>
+<td>write / select / compress / isolate 四类策略；今天的好 Harness 本质上就是上下文工程的交付机制</td>
+<td>落地框架：四类动作</td>
+</tr>
+</tbody>
+</table>
+<p>Harrison Chase 的工程化表述是："构建动态系统，以正确的格式在正确的时机提供正确的信息与工具，使 LLM 能合理地完成任务。"</p>
+<h3 id="13-为什么这件事比把话说清楚更重要">1.3 为什么这件事比"把话说清楚"更重要</h3>3
+<p>理由是实证的，而不是直觉：模型对上下文的使用并不均匀。素材里有两个最有冲击力的数字。</p>
+<ul>
+<li>在 20 篇文档的多文档问答里，当相关信息埋在中部时，GPT-3.5-Turbo 的准确率甚至低于完全不给文档的闭卷基线（56.1%）。也就是说，给了文档反而不如不给（arXiv:2307.03172）。</li>
+<li>Chroma 对 18 个模型的测试显示：同样的信息，约 300 token 的聚焦提示，在所有模型上全面胜过约 113K token 的全量历史（Context Rot，2025-07）。</li>
+</ul>
+<p>因此，上下文必须当作<strong>有限且边际收益递减的资源</strong>来经营。本文接下来依次讲：它与提示词工程的区别、上下文的四个组成部分、长上下文的五个失效模式、七类应对策略、与 Harness 的关系，以及落到具体工具链（LangChain、vLLM）上的做法。</p>
+<h1 id="whyt上下文工程的区别组成与失效模式">WHYT：上下文工程的区别、组成与失效模式</h1>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">二、从 Prompt Engineering 到 Context Engineering</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="21-四个维度的对比">2.1 四个维度的对比</h3>3
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Prompt Engineering</th>
+<th>Context Engineering</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>管理对象</td>
+<td>指令文本（主要是 system prompt）</td>
+<td>进入上下文窗口的全部 token：指令、工具定义、MCP、外部数据、消息历史</td>
+</tr>
+<tr>
+<td>工作方式</td>
+<td>一次性写好、静态复用</td>
+<td>每轮推理都要重新策展，迭代式</td>
+</tr>
+<tr>
+<td>失败模式</td>
+<td>措辞歧义、指令被忽略</td>
+<td>上下文腐烂（context rot）、注意力稀释、成本爆炸</td>
+</tr>
+<tr>
+<td>类比</td>
+<td>考卷上写一个好问题</td>
+<td>为决策者准备整套简报包</td>
+</tr>
+</tbody>
+</table>
+<p>这张表有两个值得展开的点。</p>
+<p>第一，<strong>工作方式的差异</strong>。提示词是"写一次，复用很多次"；上下文是"每一轮都要重新决定装什么"。前者像出一道题，后者像每天为决策者准备当天的简报。</p>
+<p>第二，<strong>失败模式的差异</strong>。提示词工程的失败通常是措辞歧义，或指令被模型忽略，改文字就能修；上下文工程的失败往往是系统性的：窗口里东西太多、太杂、互相矛盾，模型的注意力被稀释，成本也一同失控，这不是改一句话能解决的。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.2 升级的推动力是 Agent</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>单体 prompt 做一次性任务时，prompt 本身就是上下文的绝大部分</li><li>这是上下文工程从边缘技巧变成核心能力的原因</li><li>一个跑在循环里的 Agent 则会持续产生工具调用结果、计划、中间产物，这些信息每一轮都要决定"留什么，丢什么"</li></ul></div>3
+<p>单体 prompt 做一次性任务时，prompt 本身就是上下文的绝大部分。一个跑在循环里的 Agent 则会持续产生工具调用结果、计划、中间产物，这些信息每一轮都要决定"留什么，丢什么"。这是上下文工程从边缘技巧变成核心能力的原因。</p>
+<h3 id="23-时间线">2.3 时间线</h3>3
+<p>素材记录的一手脉络如下：</p>
+<ul>
+<li>2025-06：Tobi Lütke 在 X 上提出用 context engineering 取代 prompt engineering。</li>
+<li>一周后：Andrej Karpathy 背书，并给出被引用最广的定义。</li>
+<li>同期：LangChain 创始人 Harrison Chase 给出工程定义。</li>
+<li>2025-09-29：Anthropic 工程博客发表《Effective context engineering for AI agents》，标志着它从流行语变成完整方法论。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">三、上下文的四个组成部分</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>LangChain 官方博客把需要管理的上下文归为四类，与 Anthropic 的解剖一致</li><li>素材把四类概括成一句话：指令和工具定义是常驻成本，要最小化；知识和历史是动态负载，要按需化</li></ul></div>2
+<p>LangChain 官方博客把需要管理的上下文归为四类，与 Anthropic 的解剖一致。</p>
+<table>
+<thead>
+<tr>
+<th>组成部分</th>
+<th>内容</th>
+<th>管理策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>指令（Instructions）</td>
+<td>system prompt、few-shot 示例、工具描述</td>
+<td>写在"正确高度"（right altitude）：足够具体以引导行为，又不硬编码脆弱逻辑；用 XML 标签或 Markdown 标题分节；示例要多样且典型，不要堆边界 case</td>
+</tr>
+<tr>
+<td>知识（Knowledge）</td>
+<td>检索到的文档、外部数据、注入的事实</td>
+<td>不预塞，改用 just-in-time 检索（RAG/搜索），让 Agent 需要时自己取；检索结果只给轻引用</td>
+</tr>
+<tr>
+<td>工具定义（Tools）</td>
+<td>工具 schema、MCP 服务描述</td>
+<td>工具要自包含、容错、最小且不重叠，臃肿的工具集会制造模糊的决策点</td>
+</tr>
+<tr>
+<td>历史（History）</td>
+<td>消息历史、工具调用结果、Agent 中间产物</td>
+<td>最大的失控源，需要压缩（compaction）、剔除（offload）、摘要治理</td>
+</tr>
+</tbody>
+</table>
+<p>素材把四类概括成一句话：<strong>指令和工具定义是常驻成本，要最小化；知识和历史是动态负载，要按需化</strong>。</p>
+<h3 id="31-指令正确高度">3.1 指令：正确高度</h3>3
+<p>"正确高度"是 Anthropic 的一个提法。指令写得太低（硬编码一堆 if-else 式的规则）会脆弱，换一个场景就失效；写得太高（只讲大原则）又给不了具体引导。适中的做法是：给足够具体的行为指引，同时不替模型写死每一步。这与提示词工程里"给为什么，而不是禁止"的黄金法则相通。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">3.2 知识：从预塞到按需</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>传统做法是把可能用到的资料一次性塞进 prompt</li><li>上下文工程的做法是 just-in-time 检索：Agent 在需要时自己去取，并且检索结果只回传轻引用，而不是全文</li><li>这样做的依据就是前文 Chroma 的数字：聚焦注入严格优于全量塞入</li></ul></div>3
+<p>传统做法是把可能用到的资料一次性塞进 prompt。上下文工程的做法是 just-in-time 检索：Agent 在需要时自己去取，并且检索结果只回传轻引用，而不是全文。这样做的依据就是前文 Chroma 的数字：聚焦注入严格优于全量塞入。</p>
+<h3 id="33-工具定义最小且不重叠">3.3 工具定义：最小且不重叠</h3>3
+<p>工具定义是常驻成本，每一轮都在占窗口。工具集臃肿还有第二个副作用：多个工具功能重叠，会让模型在选择时犹豫、选错，也就是"模糊的决策点"。所以工具设计原则是自包含、容错、最小、不重叠。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.4 历史：最大的失控源</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>历史包括消息记录、工具调用结果、Agent 的中间产物</li><li>其中工具调用结果是"最肥的上下文流"：读一个大文件、拉一次 API 数据，就可能带来成千上万 token</li><li>历史的治理手段是压缩、剔除和摘要，下文第五章详述</li></ul></div>3
+<p>历史包括消息记录、工具调用结果、Agent 的中间产物。其中工具调用结果是"最肥的上下文流"：读一个大文件、拉一次 API 数据，就可能带来成千上万 token。历史的治理手段是压缩、剔除和摘要，下文第五章详述。</p>
+<h2 id="四上下文长度的五个失效模式">四、上下文长度的五个失效模式</h2>2
+<p>这是素材中最有分量的一张表。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.1 失效一：Lost in the middle（位置偏置）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>性能呈 U 形曲线：相关信息位于开头或结尾时效果最好，埋在中部时显著变差</li><li>20 篇文档的场景下，GPT-3.5-Turbo 的中部准确率低于闭卷基线 56.1%，给了文档反而不如不给</li><li>出处是 arXiv:2307.03172（TACL 2023）</li></ul></div>3
+<p>性能呈 U 形曲线：相关信息位于开头或结尾时效果最好，埋在中部时显著变差。20 篇文档的场景下，GPT-3.5-Turbo 的中部准确率低于闭卷基线 56.1%，<strong>给了文档反而不如不给</strong>。专门为长上下文优化的模型同样会中招。出处是 arXiv:2307.03172（TACL 2023）。</p>
+<h3 id="42-失效二context-rot整体衰减">4.2 失效二：Context rot（整体衰减）</h3>3
+<p>Chroma 测了 18 个模型，包括 GPT-4.1、Claude 4、Gemini 2.5、Qwen3。任务难度不变、只加长输入，准确率就持续下降。在 LongMemEval 上，约 300 token 的聚焦提示，在所有模型上都胜过约 113K token 的全量历史，多出来的 11 万 token 是净负资产。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.3 失效三：注意力稀释（attention budget）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Transformer 让每个 token 两两交互，形成 n² 的关系，上下文越长，关系捕捉越稀薄</li><li>Anthropic 称之为有限的"注意力预算"</li><li>此外，训练分布中短序列远多于长序列，模型对超长依赖缺乏专门参数</li></ul></div>3
+<p>Transformer 让每个 token 两两交互，形成 n² 的关系，上下文越长，关系捕捉越稀薄。Anthropic 称之为有限的"注意力预算"。此外，训练分布中短序列远多于长序列，模型对超长依赖缺乏专门参数。</p>
+<h3 id="44-失效四干扰distractor-与-poisoning">4.4 失效四：干扰（distractor 与 poisoning）</h3>3
+<p>Drew Breunig 把干扰分为四种：</p>
+<ul>
+<li><strong>Poisoning</strong>：幻觉进入上下文，被后续推理当作真实信息；</li>
+<li><strong>Distraction</strong>：上下文淹没了训练得到的知识；</li>
+<li><strong>Confusion</strong>：多余的上下文影响回答；</li>
+<li><strong>Clash</strong>：上下文内部互相矛盾。</li>
+</ul>
+<p>Chroma 的实测给出了数字：一个干扰项就会让结果低于干净基线，四个更差。NoLiMa 基准（非字面匹配）下，32K 处 12 个模型中有 10 个跌破短上下文基线的 50%，GPT-4o 从 99.3% 掉到 69.7%（arXiv:2502.05167，ICML 2025）。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.5 失效五：成本</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>每个 token 都计入计费、延迟和 KV cache</li><li>LangChain 官方的提醒是：不要把检索全文灌进主上下文，否则 80% 的 token 浪费在搬运上</li></ul></div>3
+<p>上下文即成本。每个 token 都计入计费、延迟和 KV cache。LangChain 官方的提醒是：不要把检索全文灌进主上下文，否则 80% 的 token 浪费在搬运上。</p>
+<h3 id="46-关键认知niah-会骗人">4.6 关键认知：NIAH 会骗人</h3>3
+<p>NIAH（大海捞针）基准只测字面匹配式的检索，各模型近乎满分，会让人误以为长上下文问题已经解决。换成需要语义关联的 NoLiMa，性能立刻跌落。<strong>因此评估长上下文能力时，不能只看 NIAH 的成绩。</strong></p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.7 五个失效模式的综合判断</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>失效模式</th>
+<th>根因</th>
+<th>治理方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lost in the middle</td>
+<td>位置偏置</td>
+<td>重排序：最相关放开头，次相关放结尾</td>
+</tr>
+<tr>
+<td>Context rot</td>
+<td>长度本身有害</td>
+<td>缩减：聚焦注入，压缩摘要</td>
+</tr>
+<tr>
+<td>注意力稀释</td>
+<td>n² 关系与训练分布</td>
+<td>隔离：子 Agent 用干净上下文</td>
+</tr>
+<tr>
+<td>干扰</td>
+<td>无关或矛盾信息</td>
+<td>筛选：检索精度、剔除脏数据</td>
+</tr>
+<tr>
+<td>成本</td>
+<td>token 计费与 KV cache</td>
+<td>卸载：大结果落盘，前缀复用</td>
+</tr>
+</tbody>
+</table>
+<h1 id="how治理策略工具链落地与成本验证">HOW：治理策略、工具链落地与成本验证</h1>
+<h2 id="五七类实用策略">五、七类实用策略</h2>2
+<p>LangChain 把业界做法归为 write / select / compress / isolate 四类，Anthropic 又做了补充，素材整理成七行表格。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.1 检索注入（select，just-in-time）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>不预塞知识，让 Agent 用 RAG 或搜索按需获取</li><li>Chroma 的 300 对 113K token 数据证明：聚焦注入严格优于全量塞入</li></ul></div>3
+<p>不预塞知识，让 Agent 用 RAG 或搜索按需获取。适用于知识库大且动态的场景。Chroma 的 300 对 113K token 数据证明：聚焦注入严格优于全量塞入。</p>
+<h3 id="52-剔除与卸载offload">5.2 剔除与卸载（offload）</h3>3
+<p>大结果不进窗口。LangChain Deep Agents SDK 的具体阈值是：超过 <strong>20,000 token</strong> 的工具结果立即落盘，只在上下文里留前 10 行预览加文件路径；超长的用户消息（阈值 50,000）同样处理。Anthropic 也把"清理已消费的工具结果"列为最安全的轻量压缩。适用于工具输出大的场景，比如读大文件、拉 API 数据。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.3 压缩与摘要（compaction，compress）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>上下文用到窗口的 85% 时，用另一次 LLM 调用把旧消息压成结构化摘要，摘要包含会话意图、已产出内容和下一步，原文落盘可回查</li><li>适用于长会话、长程任务，摘要后 Agent 可以通过读文件恢复细节</li></ul></div>3
+<p>上下文用到窗口的 <strong>85%</strong> 时，用另一次 LLM 调用把旧消息压成结构化摘要，摘要包含会话意图、已产出内容和下一步，原文落盘可回查。适用于长会话、长程任务，摘要后 Agent 可以通过读文件恢复细节。</p>
+<h3 id="54-分层渐进披露">5.4 分层（渐进披露）</h3>3
+<p>常驻的只有一行描述，正文按需加载。这就是 Skills 与 CLAUDE.md 的"薄入口加专业文档"模式，也是 Anthropic 系统提示分层（例如 <code>## Tool guidance</code> 等分节）的思路。适用于常驻指令太多、互相干扰的情况，对应本库 Claude Code 条目里的"给地图不给说明书"。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.5 结构化笔记（write，note-taking）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Agent 定期把目标、进度、关键发现写到上下文外的文件，例如 NOTES.md 或 todo list，需要时再读回</li><li>Anthropic 用 Claude 玩宝可梦做演示：跨越数千步仍靠自己的笔记保持策略连贯</li></ul></div>3
+<p>Agent 定期把目标、进度、关键发现写到上下文外的文件，例如 NOTES.md 或 todo list，需要时再读回。适用于多步骤任务。Anthropic 用 Claude 玩宝可梦做演示：跨越数千步仍靠自己的笔记保持策略连贯。</p>
+<h3 id="56-隔离isolate子-agent">5.6 隔离（isolate，子 Agent）</h3>3
+<p>噪音大的活派给一个干净上下文的子 Agent，主 Agent 只接收浓缩结论。Anthropic 给出的数据是：子 Agent 可能消耗数万 token，但只回传 <strong>1,000 到 2,000 token</strong> 的摘要。适用于可并行的探索型工作，比如研究和搜索，对应 Harness"编排"组件里的子智能体。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.7 重排序（re-rank）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>把最相关的检索块放在上下文开头，次相关的放结尾，其余夹在中间</li><li>适用于 RAG 多路召回，直接对冲 lost-in-the-middle 的 U 形曲线</li><li>这是 arXiv:2307.03172 的工程推论</li></ul></div>3
+<p>把最相关的检索块放在上下文<strong>开头</strong>，次相关的放结尾，其余夹在中间。适用于 RAG 多路召回，直接对冲 lost-in-the-middle 的 U 形曲线。这是 arXiv:2307.03172 的工程推论。</p>
+<h3 id="58-如何选择">5.8 如何选择</h3>3
+<p>Anthropic 给出的选择原则很简洁：</p>
+<ul>
+<li>压缩适合需要连续对话流的任务；</li>
+<li>笔记适合有清晰里程碑的迭代开发；</li>
+<li>多 Agent 适合并行探索有收益的复杂研究。</li>
+</ul>
+<p>七类策略与失效模式的对应关系如下：</p>
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>主要对冲的失效模式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>检索注入</td>
+<td>context rot、成本</td>
+</tr>
+<tr>
+<td>卸载</td>
+<td>成本、干扰</td>
+</tr>
+<tr>
+<td>压缩摘要</td>
+<td>context rot、注意力稀释</td>
+</tr>
+<tr>
+<td>分层披露</td>
+<td>干扰（常驻指令互相冲突）、成本</td>
+</tr>
+<tr>
+<td>结构化笔记</td>
+<td>注意力稀释（把长期状态移出窗口）</td>
+</tr>
+<tr>
+<td>隔离</td>
+<td>注意力稀释、干扰</td>
+</tr>
+<tr>
+<td>重排序</td>
+<td>lost in the middle</td>
+</tr>
+</tbody>
+</table>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">六、长文档与多轮对话：提示词层面的具体写法</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>上下文工程并不只是 Agent 的事，普通调用也能用得上</li></ul></div>2
+<p>上下文工程并不只是 Agent 的事，普通调用也能用得上。</p>
+<h3 id="61-长文档20k-以上的写法">6.1 长文档（20k 以上）的写法</h3>3
+<p>Anthropic 官方指南给出了三条：长文档放在 prompt <strong>顶部</strong>；每篇文档用 <code>&lt;document index="n"&gt;</code> 包裹，里面包含 <code>&lt;source&gt;</code> 与 <code>&lt;document_content&gt;</code>；采用 <strong>ground in quotes</strong>，要求先引用原文再作答，用来抑制幻觉。这三条正好对应前面的失效分析：放顶部与引用，是在对冲位置偏置和干扰。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">6.2 多轮对话的截断与摘要</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>最佳答案的多轮对话模板里，messages 数组每轮追加 user 与 assistant 消息，并明确提示：messages 越来越长，生产环境必须截断或摘要历史</li><li>这句话与上下文工程的"历史是最大失控源"一脉相承</li><li>但素材也坦率地列出了缺口：长对话 messages 的截断与摘要策略（对应 L3 省 Token 三件套）尚未在课件示例中实现</li></ul></div>3
+<p>最佳答案的多轮对话模板里，messages 数组每轮追加 user 与 assistant 消息，并明确提示：messages 越来越长，生产环境必须截断或摘要历史。这句话与上下文工程的"历史是最大失控源"一脉相承。但素材也坦率地列出了缺口：长对话 messages 的截断与摘要策略（对应 L3 省 Token 三件套）尚未在课件示例中实现。</p>
+<h3 id="63-工具结果的处理">6.3 工具结果的处理</h3>3
+<p>官方指南的另一条建议：agent 循环里批量发起 tool_use 以减少往返；若需要进度可见性，则显式要求补充总结。结合前述"工具结果是最肥的上下文流"，批量调用减少了往返次数，也就减少了每轮重复携带的历史。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.4 Token 预算</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「max_tokens」 按任务设：摘要 512，代码 2048，长文 4096 以上，不要一律开 8192</li><li>low effort 便宜且快，难例再升到 high</li></ul></div>3
+<p><code>max_tokens</code> 按任务设：摘要 512，代码 2048，长文 4096 以上，不要一律开 8192。low effort 便宜且快，难例再升到 high。这属于对"输出侧上下文"的预算管理。</p>
+<h2 id="七与-harness-的关系">七、与 Harness 的关系</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7.1 命名演进与包含关系</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>本库的《Harness 工程到底是什么》记录了三次命名演进：Prompt Engineering → Context Engineering → Harness Engineering</li><li>LangChain 在《The Anatomy of an Agent Harness》里的说法很直白："今天的好 Harness 在很大程度上就是良好上下文工程的交付机制</li><li>"压缩、工具卸载、Skills 渐进披露、子 Agent 隔离，全都是 Harness 组件在替上下文工程干活</li></ul></div>3
+<p>本库的《Harness 工程到底是什么》记录了三次命名演进：Prompt Engineering → Context Engineering → Harness Engineering。三者是包含关系，而不是替代。</p>
+<p>LangChain 在《The Anatomy of an Agent Harness》里的说法很直白："今天的好 Harness 在很大程度上就是良好上下文工程的交付机制。"压缩、工具卸载、Skills 渐进披露、子 Agent 隔离，全都是 Harness 组件在替上下文工程干活。</p>
+<h3 id="72-映射到-harness-五组件">7.2 映射到 Harness 五组件</h3>3
+<table>
+<thead>
+<tr>
+<th>Harness 组件</th>
+<th>在上下文工程中的对应</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>指令</td>
+<td>上下文的"指令"部分：system prompt 分层、CLAUDE.md 薄入口</td>
+</tr>
+<tr>
+<td>约束</td>
+<td>工具定义与输出格式的最小化、不重叠设计</td>
+</tr>
+<tr>
+<td>记忆</td>
+<td>结构化笔记、文件系统外置记忆（Anthropic memory tool 的方向）</td>
+</tr>
+<tr>
+<td>编排</td>
+<td>子 Agent 上下文隔离加 compaction，即"让十匹马各带各的缰绳"</td>
+</tr>
+<tr>
+<td>反馈</td>
+<td>工具调用结果这条最肥上下文流的治理（offload、剔除）</td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7.3 操作系统类比</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>衔接前沿精读笔记的 Model + Harness 框架：模型是 CPU，上下文窗口是 RAM（Karpathy 的类比），Harness 是操作系统</li><li>上下文工程就是操作系统的内存管理器：决定哪个页进 RAM，哪个页换出，哪个页压缩</li><li>这个类比有助于记忆：RAM 小而快，磁盘大而慢；上下文窗口小而昂贵，文件系统大而便宜；好的内存管理器让常用的东西在 RAM 里，不常用的留在磁盘，用的时候再读回</li></ul></div>3
+<p>衔接前沿精读笔记的 Model + Harness 框架：模型是 CPU，上下文窗口是 RAM（Karpathy 的类比），Harness 是操作系统。上下文工程就是操作系统的<strong>内存管理器</strong>：决定哪个页进 RAM，哪个页换出，哪个页压缩。这个类比有助于记忆：RAM 小而快，磁盘大而慢；上下文窗口小而昂贵，文件系统大而便宜；好的内存管理器让常用的东西在 RAM 里，不常用的留在磁盘，用的时候再读回。</p>
+<h3 id="74-三篇文档的分工">7.4 三篇文档的分工</h3>3
+<p>素材明确了分工：L2 提示词工程讲"单次调用怎么说"；上下文工程讲"多轮系统每轮窗口里装什么"；L3 Harness 讲"整个工程环境怎么设计"。上下文工程是 L2 与 L3 之间的桥梁。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">八、落到工具链：LangChain 与 vLLM 的上下文视角</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>前沿精读笔记中的 LangChain 与 vLLM 两部分，如果从上下文工程的角度去读，有很强的对应关系</li></ul></div>2
+<p>前沿精读笔记中的 LangChain 与 vLLM 两部分，如果从上下文工程的角度去读，有很强的对应关系。</p>
+<h3 id="81-langchainagent-model-harness">8.1 LangChain：Agent = Model + Harness</h3>3
+<p>LangChain 2026 年的认知更新是：Agent 等于 Model 加 Harness，Harness 是模型循环之外的一切，包括 prompt、tools、middleware。它提供四层工具：</p>
+<ul>
+<li><code>create_agent</code>：最小、可高度定制的 harness；</li>
+<li><code>create_deep_agent</code>（Deep Agents）：batteries-included，自带上下文压缩、虚拟文件系统、子 agent 派生；</li>
+<li>LangGraph：低层编排，确定性加 agentic 混合工作流；</li>
+<li>LangSmith：tracing、调试和评估，设置 <code>LANGSMITH_TRACING=true</code> 即可开启。</li>
+</ul>
+<p>其中 Deep Agents 自带的三项能力（压缩、虚拟文件系统、子 agent）与第五章的卸载、压缩、隔离三类策略正好一一对应。这说明上下文工程的策略并非停留在理论层面，而是已经被做进框架的默认能力里。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">8.2 Retrieve-offload-delegate 范式</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>2026 年官方推荐的 RAG 范式是"检索、落盘、委派"：检索到的 chunk 不要全塞进主 agent 上下文，而是写到虚拟文件系统，再派子 agent 并行分析，主 agent 只拿摘要</li><li>RAG 通用六步与框架无关：load → split → embed → store → retrieve → augment prompt → generate</li></ul></div>3
+<p>2026 年官方推荐的 RAG 范式是"检索、落盘、委派"：检索到的 chunk 不要全塞进主 agent 上下文，而是写到虚拟文件系统，再派子 agent 并行分析，主 agent 只拿摘要。它解决的是长文档撑爆上下文的问题。官方给出四种 RAG 模式，按语料、延迟、grounding 严格度选择：Skills-guided、Rubric-checked grounding、Todo-driven investigation、Retrieve-offload-delegate。</p>
+<p>RAG 通用六步与框架无关：load → split → embed → store → retrieve → augment prompt → generate。</p>
+<h3 id="83-memory-与会话隔离">8.3 Memory 与会话隔离</h3>3
+<p>checkpointer 负责持久化，<code>thread_id</code> 负责隔离会话，生产环境用 <code>langgraph-checkpoint-postgres</code>。长会话靠自动上下文压缩，不手写裁剪逻辑。这又对应了第五章的压缩与摘要策略。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">8.4 LangChain 的两个"坑"</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>素材归纳了两个坑：其一，不要把检索全文灌进主上下文，否则 80% 的 token 浪费在搬运；其二，tracing 要先开，否则工具循环出问题时看不见</li><li>另外，老教程里的 「LLMChain」 与 「ConversationBufferMemory」 已被 「create_agent」 加 middleware 取代，学新不学旧</li></ul></div>3
+<p>素材归纳了两个坑：其一，不要把检索全文灌进主上下文，否则 80% 的 token 浪费在搬运；其二，tracing 要先开，否则工具循环出问题时看不见。另外，老教程里的 <code>LLMChain</code> 与 <code>ConversationBufferMemory</code> 已被 <code>create_agent</code> 加 middleware 取代，学新不学旧。</p>
+<h3 id="85-vllm上下文成本在推理侧的体现">8.5 vLLM：上下文成本在推理侧的体现</h3>3
+<p>上下文即成本，在推理引擎里体现得最直接。</p>
+<p><strong><code>max-model-len</code></strong>：线性决定单条序列的 KV 占用，4K 与 32K 相差 8 倍；<code>max_model_len × max_num_seqs</code> 不能超过预留的 KV。这就是"窗口开得越大越贵"的硬约束。</p>
+<p><strong><code>gpu-memory-utilization</code></strong>：只对 KV cache 预留，权重恒定全量加载；默认 0.85（0.6.x 起从 0.9 下调）。KV cache 在首次请求时贪婪地一次性分配，设 0.95 时在 80GB A100 上会一次预留 76GB。素材特别指出一个认知纠正：调低它并不省权重显存。经验区间是：H100（HBM3）可 0.90 以上，A100/A6000 为 0.75 到 0.80，混合负载（推理加微调同卡）不超过 0.85。</p>
+<p><strong>Prefix caching</strong>：共享前缀（相同的 system prompt、few-shot）逐字节匹配时可以跳过重复 prefill，对 agent、多轮、RAG 的提速最明显。但前缀差一个字符就不命中，跨进程或重启缓存也会失效。这给提示词写作提了一个实际要求：<strong>把稳定不变的内容放在前面，把会变化的内容放在后面，并且不要在前缀里夹带时间戳之类每次都变的字符</strong>。这是上下文工程与推理优化的交汇点。</p>
+<p><strong>OOM 排查顺序</strong>：先确认是权重还是 KV；再降 utilization（0.95 → 0.85 → 0.75）；再压 max-model-len；再压 max-num-seqs；最后量化（AWQ/FP8，70B 可压到约 40GB）。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">8.6 三者的共性</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 上下文即成本：Anthropic 的长文档前置、LangChain 的 offload、vLLM 的 prefix caching，本质上都是压缩或复用上下文</li><li>2. 测量先行：Prompt 靠 eval，LangChain 靠 LangSmith tracing，vLLM 靠真实负载压测，先能看见，才能调</li></ul></div>3
+<p>精读笔记总结的三点共性，用上下文工程的语言重述：</p>
+<ol>
+<li><strong>上下文即成本</strong>：Anthropic 的长文档前置、LangChain 的 offload、vLLM 的 prefix caching，本质上都是压缩或复用上下文。</li>
+<li><strong>测量先行</strong>：Prompt 靠 eval，LangChain 靠 LangSmith tracing，vLLM 靠真实负载压测，先能看见，才能调。</li>
+<li><strong>harness 与模型可插拔</strong>：工具契约、provider 字符串（<code>init_chat_model</code> 的 <code>provider:model</code> 语法）、OpenAI 兼容接口，都在把模型做成可替换件，换模型不该动业务代码。</li>
+</ol>
+<h2 id="九案例一次长任务中的上下文治理">九、案例：一次长任务中的上下文治理</h2>2
+<p>下面用素材里的元素，串起一个完整的情境，说明各策略如何配合。注意这不是新增内容，而是把已有的策略按时间顺序摆开。</p>
+<p><strong>起点</strong>：Agent 接到一个需要阅读大量资料的任务。系统指令走薄入口，常驻的只有一行描述，专业文档按需加载（分层）。工具集保持最小且不重叠。</p>
+<p><strong>检索阶段</strong>：Agent 不预塞资料，而是用 RAG 按需检索（select）。检索回来的 chunk 先写到虚拟文件系统（offload），再派子 Agent 并行分析（isolate）。子 Agent 可能消耗数万 token，但只回传 1,000 到 2,000 token 的摘要。多路召回的结果做重排序：最相关的放开头，次相关放结尾。</p>
+<p><strong>推进阶段</strong>：Agent 把目标、进度、关键发现写进 NOTES.md（write）。某次工具调用返回超过 20,000 token 的结果，立即落盘，上下文里只留前 10 行预览和路径。</p>
+<p><strong>长会话阶段</strong>：上下文用到窗口的 85% 时，触发 compaction：用另一次 LLM 调用把旧消息压成结构化摘要，包含会话意图、已产出内容和下一步，原文落盘可回查。</p>
+<p><strong>推理侧</strong>：system prompt 与 few-shot 示例作为稳定前缀放在最前，prefix caching 命中，重复 prefill 被跳过。</p>
+<p><strong>全程</strong>：LangSmith tracing 始终开着，出现问题时能看见每一轮窗口里装了什么。</p>
+<p>这个情境把七类策略、LangChain 的 Deep Agents 能力和 vLLM 的 prefix caching 放进了同一条时间线，也说明为什么素材说"好 Harness 就是上下文工程的交付机制"。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">十、常见误区</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Chroma 的数据表明，多出来的 11 万 token 可能是净负资产</li><li>80% token 浪费在搬运</li><li>NIAH 只测字面匹配，NoLiMa 才能暴露语义关联场景下的跌落</li></ul></div>2
+<p>结合素材，可以归纳出几个典型误区：</p>
+<ol>
+<li><strong>以为窗口越大越好</strong>。Chroma 的数据表明，多出来的 11 万 token 可能是净负资产。</li>
+<li><strong>只看 NIAH 的成绩</strong>。NIAH 只测字面匹配，NoLiMa 才能暴露语义关联场景下的跌落。</li>
+<li><strong>把检索全文灌进主上下文</strong>。80% token 浪费在搬运。</li>
+<li><strong>常驻指令越写越多</strong>。常驻成本每轮都要付，且互相干扰，应分层、薄入口。</li>
+<li><strong>工具越多越好</strong>。重叠的工具制造模糊决策点。</li>
+<li><strong>调低 gpu-memory-utilization 想省权重显存</strong>。它只管 KV cache。</li>
+<li><strong>前缀里放变化的字符</strong>。prefix caching 逐字节匹配，差一个字符就不命中。</li>
+<li><strong>不开 tracing</strong>。看不见窗口里装了什么，就无法调优。</li>
+</ol>
+<h2 id="十一小结">十一、小结</h2>2
+<p>上下文工程是提示词工程的自然升级，核心问题从"怎么写指令"变成"每一轮窗口里该装什么"。三条判断可以记住：Karpathy 的"恰好正确的信息"、Anthropic 的"最小高信号 token 集合"、LangChain 的 write / select / compress / isolate 四类动作。</p>
+<p>支撑这套方法的是一组不容忽视的实证：位置偏置让中部信息的准确率低于闭卷基线；18 个模型上 300 token 的聚焦提示胜过 113K token 的全量历史；NoLiMa 下 GPT-4o 从 99.3% 掉到 69.7%。这些数字共同说明：<strong>上下文是有限且边际收益递减的资源</strong>。</p>
+<p>落地上，指令和工具定义是常驻成本要最小化，知识和历史是动态负载要按需化。具体手段有七类：检索注入、卸载（20,000 token 阈值）、压缩（85% 阈值）、分层披露、结构化笔记、子 Agent 隔离（1,000 到 2,000 token 回传）、重排序。它们是 Harness 五组件的内容，也是操作系统式"内存管理器"的职责。</p>
+<p>最后别忘了素材反复强调的方法论：先测量，再调优。无论是 Prompt 的 eval、LangChain 的 tracing，还是 vLLM 的真实负载压测，都是同一个原则的不同体现。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">十二、HOW 实操补强：token 计量、四策略最小实现与成本账（2026-11-03）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>前文全是策略与证据，没有一行代码；本章把 write / select / compress / isolate 中能手写落地的部分补上</li><li>代码与算式为本文编写的工程实现，无第三方依赖（除调用模型的 OpenAI SDK）</li></ul></div>2
+<p>前文全是策略与证据，没有一行代码；本章把 write / select / compress / isolate 中能手写落地的部分补上。<strong>代码与算式为本文编写的工程实现</strong>，无第三方依赖（除调用模型的 OpenAI SDK）。</p>
+<h3 id="121-先能测量一个够用的-token-估算器">12.1 先能测量：一个够用的 token 估算器</h3>3
+<p>没有计量就没有"85% 水位"和"20K 阈值"。离线场景用字符近似（中文约 1 token/字、英文约 1 token/4 字符，是粗估不是精确值），在线场景直接用响应里的 <code>usage.prompt_tokens</code> 校准：</p>
+<pre><code class="language-python">def est_tokens(messages) -&gt; int:
+    &quot;&quot;&quot;粗估：中文按 1 token/字，其余按 1 token/4 字符；用于水位判断，不用于对账。&quot;&quot;&quot;
+    total = 0
+    for m in messages:
+        text = m[&quot;content&quot;]
+        cjk = sum('一' &lt;= ch &lt;= '鿿' for ch in text)
+        total += cjk + (len(text) - cjk) // 4 + 4   # +4 = 每条消息的结构开销粗估
+    return total
+</code></pre>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">12.2 offload：大结果落盘 + 可操作指针</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>关键不是"截断"而是指针可操作：Agent 后面能按路径读回细节，压缩才是无损工作流</li><li>哈希命名顺带解决同一结果被反复返回的去重</li></ul></div>3
+<pre><code class="language-python">import hashlib, pathlib
+STORE = pathlib.Path(&quot;./context_store&quot;); STORE.mkdir(exist_ok=True)
+
+def offload(text: str, max_chars: int = 2000) -&gt; str:
+    if len(text) &lt;= max_chars:
+        return text
+    path = STORE / (hashlib.sha256(text.encode()).hexdigest()[:16] + &quot;.txt&quot;)
+    path.write_text(text, encoding=&quot;utf-8&quot;)
+    preview = &quot;\n&quot;.join(text.splitlines()[:10])
+    return f&quot;{preview}\n...[已截断] 全文 {len(text)} 字符，用读文件工具读取：{path}&quot;
+</code></pre>
+<p>关键不是"截断"而是<strong>指针可操作</strong>：Agent 后面能按路径读回细节，压缩才是无损工作流。哈希命名顺带解决同一结果被反复返回的去重。</p>
+<h3 id="123-compress-re-rank水位触发与免费准确率">12.3 compress + re-rank：水位触发与免费准确率</h3>3
+<ul>
+<li><strong>compress</strong>：<code>est_tokens(messages) &gt; budget × 0.85</code> 时，把 system 与最近 3 轮之外的旧消息交给便宜模型压成"会话意图 / 已产出 / 下一步"三段摘要，原文落盘（完整函数见 <a href="L2-%E5%A4%A7%E6%A8%A1%E5%9E%8B%E4%BA%A4%E4%BA%92-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">最佳答案篇</a> 模板 5）。验收方法：撤掉原文只留摘要，让 Agent 继续下一步，观察是否重复劳动。</li>
+<li><strong>re-rank</strong>：检索块按相关度降序后 <code>chunks[::2] + chunks[1::2][::-1]</code>，最相关放开头、次相关放结尾，对冲 lost-in-the-middle 的 U 形曲线（工程推论，非论文原算法）。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">12.4 上下文成本账：为什么 offload 的收益随会话变长发大</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>示例占位（单价以实际账单为准）：一条 8,000 token 的工具结果若留在历史里被后续 20 轮携带，卸载它每会话省 160,000 token；日 5,000 会话、输入 2 元/百万 token，日省约 1,600 元</li><li>这就是"历史是最大的失控源"的账单表达：它不是一次性的体积问题，是每一轮都在复利的成本问题</li><li>缓存侧的另一半账（前缀稳定、Prompt Caching 倍率）见 成本侧实战</li></ul></div>3
+<pre><code>单轮输入成本 = (system + 工具schema + 历史 + 检索注入)token × 输入单价 / 1e6
+offload 节省 = 被卸载token × 后续携带轮数 × 单价 / 1e6   # 历史每轮重复计费
+</code></pre>
+<p>示例占位（单价以实际账单为准）：一条 8,000 token 的工具结果若留在历史里被后续 20 轮携带，卸载它每会话省 160,000 token；日 5,000 会话、输入 2 元/百万 token，日省约 <strong>1,600 元</strong>。这就是"历史是最大的失控源"的账单表达：它不是一次性的体积问题，是<strong>每一轮都在复利的成本问题</strong>。缓存侧的另一半账（前缀稳定、Prompt Caching 倍率）见 <a href="%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B-%E7%BC%93%E5%AD%98%E4%B8%8E%E5%B7%A5%E5%85%B7%E4%B8%8A%E4%B8%8B%E6%96%87-%E6%88%90%E6%9C%AC%E4%BE%A7%E5%AE%9E%E6%88%98.html">成本侧实战</a>。</p>
+<h3 id="125-落地顺序建议">12.5 落地顺序建议</h3>3
+<p>对已有 Agent 系统，按"先测量 → 再 offload → 再 compress → 最后谈 isolate（多 Agent）"的顺序改：前两步只加代码不改架构，收益可用 12.4 的算式直接核算；多 Agent 涉及架构之争（见 <a href="%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B-%E9%95%BF%E7%A8%8BAgent%E7%9A%84%E4%B8%8A%E4%B8%8B%E6%96%87%E6%8C%81%E4%B9%85%E5%8C%96%E4%B8%8E%E5%A4%9AAgent%E4%B9%8B%E4%BA%89.html">长程 Agent 篇</a> 第六节），不该作为第一步。</p>
+<blockquote>
+<p>来源：L2-大模型交互/ 下的《上下文工程-Context-Engineering》（主体）、《前沿精读笔记（Prompt与LangChain与vLLM）》（LangChain 与 vLLM 部分）、《L2-大模型交互-最佳答案》与《L2-提示词工程-2026》（多轮对话与长文档部分）。碎片整合，零新增外部内容，纯消化重组</p>
+</blockquote>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库的上下文是「双层切分 + 分角色取用」，三个把手各管一段（本次读源码）</strong>：<br />
+  | 把手 | 位置 | 管什么 |<br />
+  |---|---|---|<br />
+  | 父块 | <code>rag/ingest.py</code> L613 <code>split_parent_chunks()</code>（800 字符，<code>PARENT_CHUNK_SIZE</code>） | 给生成侧完整语义 |<br />
+  | 子块 + 标题 | <code>rag/query.py</code> L1926 <code>retrieve_node()</code> 里 <code>_rerank_text = f"{hp}\n{h['text']}"</code> | 只给 rerank 用，缩短输入 |<br />
+  | 父块回灌 | <code>rag/query.py</code> L2689 注释：<code>explain 上下文用 parent_text, 不用子块 _rerank_text</code> | 给生成侧 |</li>
+<li><strong>为什么这样切</strong>：reranker 吃的是「子块 + 标题」（本次熔断前本应输入 30 条），生成吃的是「父块」——<strong>同一个 chunk 在链路上有两个视图</strong>。<code>retrieve_node</code> 的注释写死了这条纪律：<code>生成侧不再共享此字段 …… 否则只改这里会把作答上下文也退化成子块(审查 claude_rerank_review.log 致命点A5)</code>。<br />
+  这是上下文工程里最实用的一条：<strong>上下文不是一份文档，而是按消费者裁剪的多个视图</strong>。</li>
+<li><strong>上下文污染的防护</strong>：①<code>gate_node</code> 在拼上下文之前做质量门禁，不达标直接拒答（不给模型「凑合用的片段」）；②<code>jev_filter_chunks</code> 逐条剔除跑题 chunk；③<code>_validate_citations</code> 在生成后把「引用了不存在的来源」的句子标⚠️——<strong>入场、场内、出场三道都管</strong>。</li>
+<li><strong>和课件讲法的差异</strong>：课件讲上下文窗口、压缩、摘要；本库没有做对话历史压缩（无长会话记忆），上下文工程全部服务于「单轮 RAG」——<strong>窗口利用率靠切分粒度，不靠摘要</strong>。</li>
+<li><strong>本库暂无</strong>：没有对话记忆/多轮上下文（<code>rag/serve.py</code> 只取最后一条 user 消息），也没有上下文预算计数器（没有「超了多少 token 就裁剪」的机制）。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库上下文工程的三个硬把手：父块回灌（<code>rag/ingest.py</code> L613 <code>split_parent_chunks</code>，800 字符父块）、rerank 只吃「heading_path + 子块」（<code>rag/query.py</code> L1926 起 <code>_rerank_text</code>）、生成侧改吃 <code>parent_text</code>（L2689 注释「explain 上下文用 parent_text, 不用子块 _rerank_text」）。</li>
+<li><strong>读源码</strong>：上下文长度的分配；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul></div></details></div></details></div></body></html>

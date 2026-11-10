@@ -1,0 +1,275 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L8-2-Ontology构建-最佳答案</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L8-2-Ontology构建-最佳答案</span></div><div class="wrap"><h1 id="l8-2-ontology-构建-最佳答案">L8-2 Ontology 构建 · 最佳答案</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>纯 RAG 是"读得到、改不动"——它能回答"文档里写了什么"，回答不了"把这张工单改派给张三会触发谁审批、哪些下游"</li><li>Ontology（业务数字孪生）是 Palantir 方法论的核心，也是我们交付行业 RAG/Agent 项目时区别于"普通知识库"的护城河：让大模型安全地对真实公司对象做受控读写，而不是拿 root 连生产库</li><li>同时，Ontology 不是给大企业专属的——中小微企业的 AI 改造第一步同样是"先把流程和术语理顺再上 AI"，否则就是"把混乱自动化"</li></ul></div>2
+<p>纯 RAG 是"读得到、改不动"——它能回答"文档里写了什么"，回答不了"把这张工单改派给张三会触发谁审批、哪些下游"。Ontology（业务数字孪生）是 Palantir 方法论的核心，也是我们交付行业 RAG/Agent 项目时区别于"普通知识库"的护城河：让大模型<strong>安全地对真实公司对象做受控读写</strong>，而不是拿 root 连生产库。同时，Ontology 不是给大企业专属的——中小微企业的 AI 改造第一步同样是"先把流程和术语理顺再上 AI"，否则就是"把混乱自动化"。</p>
+<h2 id="what这个节点的最佳答案是什么">WHAT：这个节点的最佳答案是什么</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 什么时候必须上 Ontology，什么时候纯 RAG 就够</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>客户真的需要写 Action 层吗</li><li>有没有一条可端到端跑通的核心工作流</li><li>只是"客服查手册""员工查制度" → 纯 RAG 够了，别上 Ontology（Ontology 成本主要在 Action + 权限 + 写回审批）</li></ul></div>3
+<p>先做两个判断：<br />
+- <strong>客户真的需要写 Action 层吗？</strong> 只是"客服查手册""员工查制度" → 纯 RAG 够了，别上 Ontology（Ontology 成本主要在 Action + 权限 + 写回审批）。<br />
+- <strong>有没有一条可端到端跑通的核心工作流？</strong> 找一条高频、跨系统、有明确"现在人工在做"的流程（如"客诉→派单→换货→退款"），作为第一个建模对象域。</p>
+<h3 id="2-ontology-vs-纯-rag-vs-graphrag-差异">2. Ontology vs 纯 RAG vs GraphRAG 差异</h3>3
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>纯 RAG</th>
+<th>Graph RAG</th>
+<th>Palantir 式 Ontology</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据形态</td>
+<td>文本块</td>
+<td>实体+三元组</td>
+<td>对象+链接+<strong>动作</strong></td>
+</tr>
+<tr>
+<td>写操作</td>
+<td>无</td>
+<td>无</td>
+<td>有，受控事务</td>
+</tr>
+<tr>
+<td>权限模型</td>
+<td>文档级</td>
+<td>三元组级</td>
+<td>对象级 + 动作级 + 审批</td>
+</tr>
+<tr>
+<td>Agent 用法</td>
+<td>检索回答</td>
+<td>多跳推理</td>
+<td>检索 + <strong>执行动作</strong></td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. Palantir 三大原语（官方定义）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Action 要用业务动词命名（「TransferEmployee」、「EscalateSupportTicket」），不是 「UpdateInventoryStatus」 这种技术动作</li><li>Action 是带提交校验、带副作用的事务，不是"一个按钮改一个字段"</li><li>克制（restraint）：每条 link 都是一条有人会走的路径，也是"过期关系→错误决策"的风险点</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>原语</th>
+<th>含义</th>
+<th>举例（物流）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Object Type</strong></td>
+<td>真实实体/事件的 schema</td>
+<td><code>Shipment</code>、<code>Asset</code>、<code>Order</code>、<code>Incident</code></td>
+</tr>
+<tr>
+<td><strong>Property</strong></td>
+<td>对象字段（主键/展示/时序）</td>
+<td><code>Shipment.dest_city</code>、<code>Shipment.eta</code></td>
+</tr>
+<tr>
+<td><strong>Link Type</strong></td>
+<td>有类型的对象间关系</td>
+<td><code>Shipment→Asset</code>（1..N）、<code>Order→Shipment</code>（1..1）</td>
+</tr>
+<tr>
+<td><strong>Action Type</strong></td>
+<td>受控事务（改属性+改链接+副作用）</td>
+<td><code>RerouteShipment</code>、<code>ApproveClaim</code></td>
+</tr>
+</tbody>
+</table>
+<p>关键纪律：<br />
+- Action 要用<strong>业务动词</strong>命名（<code>TransferEmployee</code>、<code>EscalateSupportTicket</code>），不是 <code>UpdateInventoryStatus</code> 这种技术动作。<br />
+- Action 是<strong>带提交校验、带副作用</strong>的事务，不是"一个按钮改一个字段"。<br />
+- <strong>克制（restraint）</strong>：每条 link 都是一条有人会走的路径，也是"过期关系→错误决策"的风险点。只建模操作真正会用的关系。<br />
+- <strong>先做透一条工作流再扩第二条</strong>：不要一次性把全企业 E-R 图倒进来。<br />
+- Ontology 变更当生产库 migration 管：版本化、权限受控。</p>
+<h3 id="4-中小微企业的-ontology流程再造是前置">4. 中小微企业的 Ontology：流程再造是前置</h3>3
+<p>中小微企业的典型现状——没有标准流程、数据散在微信/Excel/脑子里、预算有限、老板要快速见效。结论：<strong>AI 改造的第一步不是选模型，是先把最核心 1-2 个流程理清楚</strong>。</p>
+<p>四步法（《流程！》+ FDE 实战结合）：<br />
+1. <strong>识别核心流程</strong>：找每天重复最多、最耗人力、最容易出错的 1-2 个。奶茶店老板最痛的那个就是。<br />
+2. <strong>流程可视化</strong>：谁、什么时间、用什么工具、做什么动作、产出什么——一步一步写清楚。你自己说不清流程，AI 怎么帮你跑？<br />
+3. <strong>找 AI 可替代的环节</strong>："查信息→判断→回复"最适合 AI；"必须人到场"先别碰。<br />
+4. <strong>最小化上线</strong>：80%/20% 只是素材中的教学配比，不是通用承诺；实际应按冻结 Eval、错误代价与人工容量决定自动处理和转人工范围，上线后持续看数据补知识库。</p>
+<p>最大敌人是<strong>惯性</strong>——你推出去的工具员工不用等于白干。破法：把 AI 嵌到他们已经在用的地方（微信/钉钉/企业微信），不要让员工学新工具；找一个内部代言人（老板自己或愿意尝试的员工）先用起来做出效果。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">HOW：从客户业务提炼 Ontology 的落地步骤</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="阶段-0先回答两个问题">阶段 0：先回答两个问题</h3>3
+<ul>
+<li>客户场景是"只读问答"还是"要执行写动作"？</li>
+<li>有没有一条跨系统、高频、有明确人工操作的核心流程可以作为首发建模对象？</li>
+</ul>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">阶段 1：Definitional Workshop（定义工作坊）——最关键</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Palantir 实施伙伴反复强调：Ontology 质量由 workshop 决定，不由平台决定</li><li>1. 业务流程 mapping：让业务方画泳道图（谁、对哪个对象、做了什么、改了什么字段、触发谁）</li><li>2. 列名词清单 → 候选 Object Type</li></ul></div>3
+<p>Palantir 实施伙伴反复强调：<strong>Ontology 质量由 workshop 决定，不由平台决定</strong>。建议 2 天议程：<br />
+1. 业务流程 mapping：让业务方画泳道图（谁、对哪个对象、做了什么、改了什么字段、触发谁）。<br />
+2. 列名词清单 → 候选 Object Type。<br />
+3. 列动词清单 → 候选 Action Type。<br />
+4. 确认关系基数（1:1 / 1:N / N:N，强约束还是弱关联）。<br />
+5. 定义 Action 提交校验（<code>ApproveClaim</code> 要求金额 &lt; 10k？保险单在有效期内？）。<br />
+6. 权限矩阵：哪些角色看哪些对象、能执行哪些动作。</p>
+<p>产出物 YAML 示例：</p>
+<pre><code class="language-yaml">object_types:
+  - name: Shipment
+    primary_key: shipment_id
+    properties: [dest_city, eta, carrier, status, weight_kg]
+    links:
+      - to: Order
+        cardinality: N:1
+        relation: &quot;fulfills&quot;
+action_types:
+  - name: RerouteShipment
+    input: [shipment_id, new_dest_city, reason_code]
+    preconditions:
+      - &quot;shipment.status == 'IN_TRANSIT'&quot;
+      - &quot;reason_code in {CUSTOMER_CHANGE, WEATHER, CARRIER_DELAY}&quot;
+    effects:
+      - &quot;shipment.dest_city = new_dest_city&quot;
+      - &quot;shipment.log.append({action: 'REROUTE', by: current_user, ts: now()})&quot;
+    side_effects:
+      - notify_carrier_webhook()
+    roles_allowed: [DISPATCHER, PLANNER]
+</code></pre>
+<h3 id="阶段-2自建栈实现非-palantir-平台">阶段 2：自建栈实现（非 Palantir 平台）</h3>3
+<ul>
+<li><strong>对象存储</strong>：PostgreSQL（对象表 + 关系表 + 时序表）。</li>
+<li><strong>检索增强</strong>：对象字段同时向量化（bge-m3），挂在对象 UUID 上做 RAG。</li>
+<li><strong>Action 执行器</strong>：FastAPI 每个 Action 一个 endpoint，强制走事务 + 审计日志。</li>
+<li><strong>AI Agent 接口</strong>：只暴露三个工具——<code>query_object(type, filters)</code>、<code>list_links(object)</code>、<code>apply_action(type, params)</code>。<strong>禁止直连业务库</strong>。</li>
+</ul>
+<p>关键代码模式（RerouteShipment）：</p>
+<pre><code class="language-python">@app.post(&quot;/actions/RerouteShipment&quot;)
+def reroute(p: RerouteShipmentParams, user: str):
+    with psycopg.connect(&quot;...&quot;) as conn, conn.transaction():
+        cur = conn.cursor()
+        cur.execute(&quot;SELECT status FROM shipment WHERE id=%s FOR UPDATE&quot;, (p.shipment_id,))
+        row = cur.fetchone()
+        if not row: raise HTTPException(404)
+        if row[0] != &quot;IN_TRANSIT&quot;: raise HTTPException(409, &quot;not in transit&quot;)
+        cur.execute(&quot;UPDATE shipment SET dest_city=%s WHERE id=%s&quot;,
+                    (p.new_dest_city, p.shipment_id))
+        cur.execute(&quot;INSERT INTO audit_log(user, action, payload) VALUES (%s,%s,%s)&quot;,
+                    (user, &quot;RerouteShipment&quot;, p.model_dump_json()))
+    # 副作用 webhook 在事务外、提交成功后再触发
+    notify_carrier_webhook(p)
+    return {&quot;ok&quot;: True}
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">阶段 3：给 AI Agent 用</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>System prompt 里只暴露三个 Ontology 工具，模型即使幻觉，也只会在受控 schema + 参数校验里被拦下，不会 DELETE 生产表</li></ul></div>3
+<p>System prompt 里只暴露三个 Ontology 工具，模型即使幻觉，也只会在<strong>受控 schema + 参数校验</strong>里被拦下，不会 DELETE 生产表。</p>
+<h3 id="阶段-4验收清单">阶段 4：验收清单</h3>3
+<ul>
+<li>[ ] 一条核心工作流端到端跑通（人工每一步都映射到一个 Action）</li>
+<li>[ ] 每个 Action 有 precondition + 审计日志 + 角色限制</li>
+<li>[ ] Agent 压力测试下没有一次绕过 Ontology 访问业务库</li>
+<li>[ ] Ontology 变更有版本记录，回滚脚本可执行</li>
+</ul>
+</div></details><h3 id="阶段-4-补充一手源口诀技术边界见-ontology私有化与多模态专项">阶段 4 补充：一手源口诀（技术边界见 <a href="L8-%E6%8A%80%E6%9C%AF%E4%B8%93%E9%A1%B9-Ontology%E7%A7%81%E6%9C%89%E5%8C%96%E5%A4%9A%E6%A8%A1%E6%80%81-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">Ontology、私有化与多模态专项</a>）</h3>3
+<ul>
+<li><strong>据[一手源]：Palantir 官方 ontology-system 文档</strong>：Ontology 不是薄语义层，是 Data（名词）+ Action（动词）+ Logic（规则/ML/LLM 函数）+ Security（权限织入前三者，agent 继承人类权限）四重整合；由 Language / Engine / Toolchain 三件套实现。AIP 节奏：Day 0-1 建本体 → Day 2 接 AIP 暴露为工具 → Day 3 交付可跑的决策流应用 → Day 4-N 迭代。</li>
+<li><strong>据[一手源]：FDE知识图谱全球对标调研 / OC-FDE图谱对标调研（2026-10-29）</strong>：验收知识型图谱看 7 项结构指标，最关键三项是<strong>强类型语义边占比</strong>（共现/提及弱边不进主图）、<strong>证据接地覆盖率</strong>（每条边可溯源，可作 release gate）、<strong>枢纽质量</strong>（泛化词不当枢纽）；"短不一定好"，2 跳 RELATED_TO 不如 4 跳带类型带证据的路径。</li>
+<li>验收清单加两条：[ ] 每个 link type 都是强类型、有业务含义的谓词（不是 related_to） [ ] 每个对象/关系能回指数据来源与抽取时间</li>
+</ul>
+<h3 id="常见坑palantir-anti-patterns">常见坑（Palantir anti-patterns）</h3>3
+<ol>
+<li><strong>Action Sprawl</strong>：为每个字段写一个 update 动作 → 按业务操作捆绑，一个动作 = 一次完整业务事务。</li>
+<li><strong>Time Machine</strong>：把历史版本建成独立对象 → 一个实体一个对象，历史用 linked history / 时序属性。</li>
+<li><strong>把计算塞进 Action</strong>：<code>CalculateRegionalSales</code> → 让 pipeline 聚合出 Summary 对象。</li>
+<li><strong>Ontology 当数据湖用</strong>：把所有表都建模成对象 → 只建模操作面，其余留数据层。</li>
+<li><strong>权限事后补</strong>：Workshop 阶段就出权限矩阵。</li>
+</ol>
+<h3 id="三源论文与接口扰动验收">三源、论文与接口扰动验收</h3>3
+<ul>
+<li><strong>课件</strong>：<code>raw/courseware/2603期AI大模型Agent篇__2603期AI大模型Agent篇__7-Agent详解-2026-4-3-初见__day07/_代码课件汇总.md</code> 的 Agent 工具调用素材用于说明工具 schema、参数校验和 Eval 的衔接；课件演示不等于生产权限证明。</li>
+<li><strong>书籍/摘录</strong>：<code>raw/weread/FDE/流程！（人人都能落地的简明流程再造手册，专为中小微企业打造）.md</code> 的“少数核心流程”和 FBA 核对清单划线，对应先选一条核心 Action 流，再逐步验证人员、条件、频率和结果；只使用本地目录与划线。</li>
+<li><strong>业内一手材料</strong>：<code>raw/sources/Anthropic-FDE与Palantir-Ontology一手-20260930.md</code> 所收 Palantir 官方 Ontology 文档明确 Data、Action、Logic、Security 的一体化边界，因此对象建模与权限、动作、审计必须同批验收。</li>
+<li><strong>论文落地</strong>：arXiv:2610.20576（<code>raw/sources/arxiv-daily/2026-10-14-2610.20576.md</code>）发现只改变 action 名称或接口记法，post-trained agent 在未见接口扰动下也可能明显退化，CIPR 只能部分恢复。Ontology 验收必须增加“语义不变”的 action/tool 重命名、参数顺序与格式扰动，并分别测正常执行、条件拒绝、越权拒绝；固定 API 名称上的高分不能替代该测试。</li>
+</ul>
+<p>上文 Action 函数是接口骨架，依赖客户事务与通知实现，<strong>未实跑，不能直接复制到生产</strong>。下面仅用标准库验证重命名后的语义契约归一化，不涉及真实业务写入。</p>
+<pre><code class="language-bash">python -I - &lt;&lt;'PY'
+ALIASES = {&quot;create_work_order&quot;: &quot;create_order&quot;, &quot;approve_work_order&quot;: &quot;approve_order&quot;}
+REQUIRED = {&quot;create_order&quot;: {&quot;asset_id&quot;, &quot;priority&quot;}, &quot;approve_order&quot;: {&quot;order_id&quot;, &quot;approver_id&quot;}}
+def normalize_action(name, args):
+    canonical = ALIASES.get(name, name)
+    assert canonical in REQUIRED, &quot;未登记动作：拒绝&quot;
+    assert set(args) == REQUIRED[canonical], &quot;参数契约不符：拒绝&quot;
+    return canonical
+assert normalize_action(&quot;create_order&quot;, {&quot;asset_id&quot;: &quot;A1&quot;, &quot;priority&quot;: &quot;P2&quot;}) == &quot;create_order&quot;
+assert normalize_action(&quot;create_work_order&quot;, {&quot;priority&quot;: &quot;P2&quot;, &quot;asset_id&quot;: &quot;A1&quot;}) == &quot;create_order&quot;
+try:
+    normalize_action(&quot;delete_order&quot;, {&quot;order_id&quot;: &quot;O1&quot;})
+except AssertionError as exc:
+    assert &quot;未登记&quot; in str(exc)
+else:
+    raise AssertionError(&quot;未登记动作未被拒绝&quot;)
+print(&quot;Ontology 接口扰动契约：PASS（未执行真实 Action）&quot;)
+PY
+</code></pre>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>Ontology 的最小可行形态：人工审校三元组表（<code>ontology/ontology-triples.csv</code> + <code>rag/build_wiki_graph.py</code> L130 <code>load_triples()</code>，grep 可验）</strong>：<br />
+<code>python
+  def load_triples() -&gt; tuple[dict, list]:
+      """读取人工审校三元组，返回 (entities, relations)。"""
+      with open(TRIPLES_CSV, encoding="utf-8") as f:
+          for row in csv.DictReader(f):
+              sub = (row.get("subject") or "").strip()
+              pred = (row.get("predicate") or "").strip()
+              obj = (row.get("object") or "").strip()
+              src = (row.get("source") or "").strip()
+              desc = (row.get("description") or "").strip()
+              if not (sub and pred and obj):
+                  continue</code><br />
+  表头就是 <code>subject,predicate,object,source,description,wiki_ref</code>——<strong>source 与 description 是硬字段</strong>：一条边必须能说出"为什么连"和"依据在哪"，否则不算知识。</li>
+<li><strong>谓词受控：未登记谓词不丢但标待复核（<code>rag/build_wiki_graph.py</code> L416 <code>relabel_relations()</code>）</strong>：<code>fam is None</code> 时 <code>r["in_taxonomy"] = False; r["family"] = "unmapped"</code>，既不静默丢弃，也不让它在多跳检索里冒充结构边。</li>
+<li><strong>和课件讲法的差异</strong>：课件 Ontology 常从 TTL/OWL 起步（类、对象属性、基数约束）；本库从 <strong>CSV 三元组</strong>起步，因为客户现场往往只有术语表和 Excel，先求"能审校、能进检索"，再谈形式化。本库暂无 OWL/TTL 解析，也没有推理机。</li>
+</ul>
+<h2 id="缺口清单">缺口清单</h2>2
+<ul>
+<li>中小微企业 Ontology 简版（一张 Excel 就够的那种）模板还没沉淀</li>
+<li>Workshop 两天议程的具体物料（白板/便利贴/角色卡）缺</li>
+<li>跨行业（物流/制造/金融）的首发 Object Type 清单缺</li>
+<li>从"纯 RAG 项目"升级到"Ontology 项目"的迁移步骤缺</li>
+</ul></div></details></div></body></html>

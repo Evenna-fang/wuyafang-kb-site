@@ -1,0 +1,296 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L9-全栈工程-2026</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L9-全栈工程-2026</span></div><div class="wrap"><h1 id="全栈-llm-交付react-fastapi-流式服务与生产护栏">全栈 LLM 交付：React + FastAPI 流式服务与生产护栏</h1>
+<blockquote>
+<p>本篇融合原《全栈工程主线》《前后端 LLM 集成与流式服务》《全栈交付参考架构》。课件给出 FastAPI + 前后端分离的最小项目，书籍补充流式解析、中断恢复与工具安全，官方文档用于校正当前 API。代码是实施模板，本轮未启动完整前后端服务。</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY：为什么 demo 能聊天，离生产仍很远</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>课件的 FastAPI + Vue 项目已经覆盖认证、聊天、流式输出和 Markdown，但 README 同时明确列出教学环境的三项风险：JWT 密钥硬编码、CORS 全开放、数据只在内存中</li><li>两者合起来的工程结论是：流式协议、后端并发和安全验收不是后补优化，而是交付骨架</li><li>这恰好说明全栈交付的难点不是“把字显示出来”，而是把密钥、权限、背压、取消、错误和持久化串成同一条请求生命周期</li></ul></div>2
+<p>课件的 FastAPI + Vue 项目已经覆盖认证、聊天、流式输出和 Markdown，但 README 同时明确列出教学环境的三项风险：JWT 密钥硬编码、CORS 全开放、数据只在内存中。这恰好说明全栈交付的难点不是“把字显示出来”，而是把<strong>密钥、权限、背压、取消、错误和持久化</strong>串成同一条请求生命周期。</p>
+<p>生产版必须回答五个问题：</p>
+<ol>
+<li>首 token 多久到达，用户停止后上游是否立即停止计费？</li>
+<li>上游限流或进程过载时，请求是有界排队、快速失败，还是无限堆积？</li>
+<li>SSE 的一个事件被 TCP 拆成两半时，前端是否仍能正确解析？</li>
+<li>首字节之后失败时，用户能否保留部分答案并得到可重试的终止事件？</li>
+<li>检索或工具内容包含恶意指令时，模型能否借此越权读写？</li>
+</ol>
+<p>《Hermes 技术内幕》把流式响应解析、中断恢复和流式输出适配分别列为独立章节；《持续交付2.0》强调质量内建与快速反馈。两者合起来的工程结论是：<strong>流式协议、后端并发和安全验收不是后补优化，而是交付骨架。</strong></p>
+<h2 id="what-whyt一条请求经过哪些层每层负责什么">WHAT / WHYT：一条请求经过哪些层，每层负责什么</h2>2
+<pre><code class="language-text">React UI
+  │ POST JSON + AbortSignal
+  ▼
+同源 BFF / FastAPI：鉴权、Pydantic 校验、限流、并发闸、成本预算
+  │ async stream；密钥只在服务端
+  ▼
+模型 Provider
+  │ token delta
+  ▼
+SSE（JSON data 帧）→ React 外部缓冲/消息状态 → 文本、工具、引用分块渲染
+  │
+  └─ trace_id 贯穿日志、指标、评测；用户取消沿原路向上传播
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>必须负责</th>
+<th>不应负责</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>React</td>
+<td>消息状态、取消、错误态、文本/工具/引用分块</td>
+<td>持有 Provider 密钥、信任任意工具结果</td>
+</tr>
+<tr>
+<td>FastAPI/BFF</td>
+<td>身份、输入上限、配额、并发闸、超时、上游取消、脱敏错误</td>
+<td>把同步阻塞调用直接塞进事件循环</td>
+</tr>
+<tr>
+<td>检索/工具</td>
+<td>租户过滤、最小权限、参数校验、审计</td>
+<td>把检索文本当成系统指令</td>
+</tr>
+<tr>
+<td>可观测</td>
+<td>trace、TTFT、总时长、token、错误与取消原因</td>
+<td>默认记录完整敏感 prompt</td>
+</tr>
+</tbody>
+</table>
+<h3 id="两条落地栈与适用边界">两条落地栈与适用边界</h3>3
+<table>
+<thead>
+<tr>
+<th>路线</th>
+<th>何时选</th>
+<th>不应误当成</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>React + FastAPI + 现有 PostgreSQL/pgvector</td>
+<td>Python 检索/模型管线已存在；需要自定义 SSE、异步工具和细粒度后端控制</td>
+<td>必须把训练、检索和 Web API 全改写成 TypeScript</td>
+</tr>
+<tr>
+<td>Next.js Route Handler + AI SDK + Supabase</td>
+<td>新项目是 TypeScript 主栈；希望 Auth/Storage/Postgres 一体交付，接受托管边界</td>
+<td>默认免运维、天然满足数据主权或自动获得检索质量</td>
+</tr>
+</tbody>
+</table>
+<p>Supabase/pgvector 适合把事务数据、租户权限和向量放在同一数据库，但检索仍要按《RAG 检索调优与项目实战》做召回与权限负例。AI SDK 的 UI message stream 与本文自定义 SSE 是两套协议，选定一条端到端实现，不在中间混拼。Fluid compute、平台时长和模型价格属于会变的产品口径，上线时查当前官方文档，不在正文固化数字。</p>
+<p><strong>论文怎么说 → 我们怎么用</strong>：WEAVE（<a href="https://arxiv.org/abs/2610.22039">arXiv:2610.22039</a>）指出真实功能、迁移和系统修复常跨多个 PR，并将验证过的变更组织成有界依赖 DAG，用测试衡量依赖一致的部分进度。它不是 React/FastAPI 性能论文；这里借鉴的是交付拆单方法：把“建数据契约→实现 BFF→接流式 UI→做权限/断流测试”建成依赖图，每一层用可执行测试记账，避免一个“页面能聊天”的总分掩盖底层未完成。</p>
+<h3 id="传输与-api-的准确边界">传输与 API 的准确边界</h3>3
+<ul>
+<li>SSE 是文本事件流，不等于某个模型厂商的 chunk 格式。服务端应自定义稳定事件协议，例如 <code>data: {"text":"..."}\n\n</code>、 <code>event: error</code>、<code>data: [DONE]</code>，避免把 Provider 原始错误和内部字段透给浏览器。</li>
+<li>原生 <code>EventSource</code> 适合简单 GET 事件流；需要 POST JSON、自定义请求头和主动取消时，用 <code>fetch + ReadableStream + AbortController</code>。</li>
+<li>TCP chunk 与 SSE event 没有一一对应关系。前端必须保留跨 chunk 的 buffer，以空行 <code>\n\n</code> 分帧；直接对每个网络 chunk <code>split('\n')</code> 会丢字、错 JSON。</li>
+<li>FastAPI 官方说明 <code>StreamingResponse</code> 同时接受异步生成器和普通生成器；真正需要避免的是<strong>在事件循环里执行阻塞 I/O</strong>。第三方客户端支持 <code>await</code> 时用 <code>async def</code>；只有同步客户端时，应使用其线程池/同步路由语义，而不是伪装成异步。</li>
+<li>异步任务只有运行到 <code>await</code> 才有机会响应取消。流循环必须真正等待异步 I/O，并在 <code>finally</code> 关闭上游 stream。</li>
+<li>若采用 Next.js 全 TypeScript 路线，当前 AI SDK 官方形态是 <code>useChat + DefaultChatTransport + message.parts</code>，服务端用 <code>streamText</code> 产生 UI message stream。<strong>该协议与下面的自定义 SSE 示例不同，不能不加适配地混接。</strong></li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">HOW：从可运行骨架到上线验收</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="1-fastapi有界并发sse-与取消传播">1. FastAPI：有界并发、SSE 与取消传播</h3>3
+<p>安装和配置（密钥只放服务端环境变量，不写进仓库或前端）：</p>
+<pre><code class="language-bash">python -m venv .venv
+source .venv/bin/activate
+pip install fastapi 'uvicorn[standard]' openai pydantic
+export OPENAI_API_KEY='由密钥管理系统注入'
+export MODEL_NAME='你的已授权模型名'
+export MAX_IN_FLIGHT='16'
+</code></pre>
+<p><code>main.py</code> 模板：</p>
+<pre><code class="language-python">import asyncio
+import json
+import logging
+import os
+from typing import Literal
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
+from openai import AsyncOpenAI
+from pydantic import BaseModel, Field
+
+app = FastAPI()
+client = AsyncOpenAI()  # 从服务端环境读取密钥
+model_name = os.environ[&quot;MODEL_NAME&quot;]
+gate = asyncio.Semaphore(int(os.getenv(&quot;MAX_IN_FLIGHT&quot;, &quot;16&quot;)))
+log = logging.getLogger(&quot;chat&quot;)
+
+class Message(BaseModel):
+    role: Literal[&quot;system&quot;, &quot;user&quot;, &quot;assistant&quot;]
+    content: str = Field(min_length=1, max_length=32_000)
+
+class ChatRequest(BaseModel):
+    messages: list[Message] = Field(min_length=1, max_length=50)
+
+@app.post(&quot;/api/chat&quot;)
+async def chat(req: ChatRequest):
+    # 本例选择快速失败；若改排队，队列也必须有长度与等待超时。
+    if gate.locked():
+        raise HTTPException(status_code=503, detail=&quot;服务繁忙，请稍后重试&quot;)
+
+    async def events():
+        stream = None
+        try:
+            async with gate:
+                stream = await client.chat.completions.create(
+                    model=model_name,
+                    messages=[m.model_dump() for m in req.messages],
+                    stream=True,
+                    timeout=90,
+                )
+                async for chunk in stream:
+                    if not chunk.choices:
+                        continue
+                    text = chunk.choices[0].delta.content
+                    if text:
+                        payload = json.dumps({&quot;text&quot;: text}, ensure_ascii=False)
+                        yield f&quot;data: {payload}\n\n&quot;
+                yield &quot;data: [DONE]\n\n&quot;
+        except asyncio.CancelledError:
+            # 客户端断开或服务器取消：不再继续生成，finally 关闭上游。
+            raise
+        except Exception:
+            log.exception(&quot;LLM stream failed&quot;)  # 不记录 prompt 与密钥
+            yield 'event: error\ndata: {&quot;message&quot;:&quot;生成中断，请稍后重试&quot;}\n\n'
+        finally:
+            if stream is not None:
+                await stream.close()
+
+    return StreamingResponse(
+        events(),
+        media_type=&quot;text/event-stream&quot;,
+        headers={&quot;Cache-Control&quot;: &quot;no-cache&quot;, &quot;X-Accel-Buffering&quot;: &quot;no&quot;},
+    )
+</code></pre>
+<p>启动与正负例：</p>
+<pre><code class="language-bash">uvicorn main:app --host 127.0.0.1 --port 8000
+curl -N http://127.0.0.1:8000/api/chat \
+  -H 'Content-Type: application/json' \
+  -d '{&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;用三句话介绍SSE&quot;}]}'
+# 应逐步看到 data 帧，而不是最后一次性出现；[DONE] 只出现一次。
+# 另测：空消息→422；并发超过闸值→部分请求 503；curl 中途 Ctrl+C→上游连接关闭。
+</code></pre>
+<blockquote>
+<p><code>MAX_IN_FLIGHT=16</code> 只是起点，不是通用最优值。用上游 RPM/TPM、单请求 token 和 TTFT/SLO 压测确定；多 worker/多副本时，进程内 Semaphore 不是全局限流，应把配额放到 Redis/API Gateway。</p>
+</blockquote>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2. React：正确拼接跨 chunk 的 SSE 帧</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>async function streamChat(messages: unknown[], signal: AbortSignal,</li><li>组件中用 「AbortController」 绑定“停止”按钮和卸载清理</li></ul></div>3
+<p>下面是与上述 FastAPI 协议配套的核心解析，不依赖 AI SDK：</p>
+<pre><code class="language-tsx">async function streamChat(messages: unknown[], signal: AbortSignal,
+                          append: (text: string) =&gt; void) {
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({messages}),
+    signal,
+  });
+  if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const {done, value} = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, {stream: true});
+    let end: number;
+    while ((end = buffer.indexOf('\n\n')) &gt;= 0) {
+      const frame = buffer.slice(0, end);
+      buffer = buffer.slice(end + 2);
+      const data = frame.split('\n')
+        .filter(line =&gt; line.startsWith('data:'))
+        .map(line =&gt; line.slice(5).trimStart()).join('\n');
+      if (!data || data === '[DONE]') continue;
+      const event = JSON.parse(data);
+      if (event.text) append(event.text);
+    }
+  }
+  buffer += decoder.decode();  // 收尾时刷新 UTF-8 解码器
+}
+</code></pre>
+<p>组件中用 <code>AbortController</code> 绑定“停止”按钮和卸载清理。高频 token 不要无条件触发整棵组件树重渲染：先在外部 store 聚合短时间窗口，再用 React 官方 <code>useSyncExternalStore(subscribe, getSnapshot)</code> 订阅快照；<code>getSnapshot</code> 必须返回缓存值，不能每次新建对象造成循环渲染。</p>
+<p>若选 AI SDK，则按同一版本官方文档实现 <code>useChat</code>、transport 和服务端 UI message stream，并渲染 <code>message.parts</code> 中的 text、tool 与 source 部分；锁版本后再抄示例，不能将旧版 <code>maxSteps/parameters</code> 与新版 <code>stopWhen/inputSchema</code> 混用。</p>
+<h3 id="3-安全与交付门禁">3. 安全与交付门禁</h3>3
+<ul>
+<li>密钥只在服务端；CORS 列明确来源；会话与历史落数据库，按用户/租户隔离。</li>
+<li>system prompt、用户输入、检索内容、工具结果分区；后三者都不是高权限指令。写文件、付款、发消息等副作用工具采用参数校验、最小权限和人工审批。</li>
+<li>首字节前失败用 4xx/5xx；首字节后失败用脱敏 <code>error</code> event，保留已生成文本。流中途不自动整包重试，避免重复计费和重复副作用。</li>
+<li>反代关闭 SSE 缓冲并配置读超时；压测覆盖长答案、慢 Provider、客户端提前断开和上游 429。</li>
+<li>验收至少包含：流式逐帧、跨 chunk 分帧、停止传播、超闸 503、错误脱敏、越权检索拒绝、刷新后会话恢复策略。</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库全栈链路的四个可运行入口，本次全部定位到源码（其中两个实跑过）</strong>：<br />
+  | 层 | 入口 | 本次状态 |<br />
+  |---|---|---|<br />
+  | 索引层 | <code>rag/ingest.py</code>（1515 行） | 未重跑（幂等增量设计） |<br />
+  | 检索+生成 | <code>rag/query.py</code>（2727 行） | <strong>实跑 exit 0</strong> |<br />
+  | 服务层 | <code>rag/serve.py</code>（398 行，OpenAI 兼容） | 未启动（避免占端口） |<br />
+  | 可视化层 | <code>rag/build_graph_site.py</code>（2009 行） | 产物 <code>wiki_site/graph.html</code>，538 实体 / 620 语义边 |</li>
+<li><strong>全栈里最容易被跳过的一层是「可视化」</strong>：<code>build_graph_site.py</code> 把 <code>rag/graph/entities.json</code> + <code>relations.json</code> 渲成<strong>自包含</strong>图谱页——docstring 明写「数据 + 渲染 JS 全内嵌，零外网 CDN，file:// 双击即用」，并承诺<strong>幂等</strong>（数据未变时内容逐字节一致，不含时间戳）。<br />
+  这两条约束在企业交付里比「好看」重要得多：内网能开、能进版本对比。</li>
+<li><strong>和课件讲法的差异</strong>：课件全栈是「Vue/React 前端 + 后端 + 数据库」三段；本库是<strong>知识库全栈</strong>（数据 → 检索 → 服务 → 展现），前端借第三方（OpenWebUI）。</li>
+<li><strong>本库暂无</strong>：没有用户体系与权限模型，没有部署编排（<code>rag/</code> 无 Dockerfile），「全栈」目前是单机单用户可用。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库全栈链路实跑覆盖三段：索引（<code>rag/ingest.py</code>）+ 检索生成（<code>rag/query.py</code>，本次 exit 0）+ 服务（<code>rag/serve.py</code>，OpenAI 兼容）+ 图可视化（<code>rag/build_graph_site.py</code> 渲染 <code>wiki_site/graph.html</code>，538 实体/620 语义边）。</li>
+<li><strong>读源码</strong>：全栈分层；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+</div></details></div></details><h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] <strong>课件</strong>：<a href="../../raw/courseware/%E9%A3%9E%E4%B9%A6%E6%96%B0%E7%A9%BA%E9%97%B4/FastAPI.md">FastAPI 课件</a>，用于 Pydantic、HTTP、async/await 基础；<a href="../../raw/courseware/%E5%9F%BA%E7%A1%80%E7%AF%87/day06__fastapi%E9%A1%B9%E7%9B%AE%E6%A1%88%E4%BE%8B__fastapi%E9%A1%B9%E7%9B%AE%E6%A1%88%E4%BE%8B__README.md">FastAPI 前后端项目</a>，用于流式聊天骨架及教学环境风险对照。</li>
+<li>[书1] <strong>书籍摘录</strong>：<a href="../../raw/weread/Hermes%20%E6%8A%80%E6%9C%AF%E5%86%85%E5%B9%95%EF%BC%9AAgent%20%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86.md">Hermes 技术内幕</a>，目录与公开划线覆盖流式响应、工具安全和输出适配；<a href="../../raw/weread/%E6%8C%81%E7%BB%AD%E4%BA%A4%E4%BB%982.0%EF%BC%9A%E4%B8%9A%E5%8A%A1%E5%BC%95%E9%A2%86%E7%9A%84DevOps%E7%B2%BE%E8%A6%81%EF%BC%88%E5%A2%9E%E8%AE%A2%E6%9C%AC%EF%BC%89.md">持续交付2.0</a>，用于质量内建与快速验证。均为目录/划线摘录，不声称阅读书籍全文。</li>
+<li>[业1] <strong>业内官方</strong>：<a href="https://fastapi.tiangolo.com/advanced/custom-response/#streamingresponse">FastAPI StreamingResponse</a>、<a href="https://react.dev/reference/react/useSyncExternalStore">React useSyncExternalStore</a>、<a href="https://ai-sdk.dev/docs/ai-sdk-ui/chatbot">AI SDK Chatbot</a>（均 GET 200：2026-11-04），分别校正后端流式响应、前端快照订阅和 AI SDK 协议边界。</li>
+<li>[业2] <strong>论文</strong>：<a href="https://arxiv.org/abs/2610.22039">WEAVE，arXiv:2610.22039</a>（GET 200：2026-11-04；<a href="../../raw/sources/arxiv-daily/2026-10-15-2610.22039.md">本地摘要</a>），落在“依赖结构交付与测试记账”，不作为 Web 框架性能证据。</li>
+<li>历史课程整理：<a href="../../raw/fullstack/%E5%89%8D%E7%AB%AFLLM%E9%9B%86%E6%88%90-2026.md">前端 LLM 集成</a>、<a href="../../raw/fullstack/%E5%90%8E%E7%AB%AFLLM%E6%9C%8D%E5%8A%A1-2026.md">后端 LLM 服务</a>、<a href="../../raw/fullstack/2026%E5%85%A8%E6%A0%88%E4%BA%A4%E4%BB%98%E6%A1%88%E4%BE%8B-Nextjs-Supabase-Vercel.md">Next.js/Supabase 交付案例</a>；其中固定版本、时长、价格和绝对化选型结论未直接继承。</li>
+</ul></div></body></html>

@@ -1,0 +1,624 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L8-FDE交付方法论全景-深挖整合</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L8-FDE交付方法论全景-深挖整合</span></div><div class="wrap"><p>来源（四类）：【合成教学案例】VanGong1999/FDE 示例及本文 HOW 教学操作；【行业调研】行业报告、本地客服复盘与 B站材料转述，本文未独立核验客户事实；【Palantir-Anthropic文档解析】Palantir 披露/官方文档与 Anthropic 工程博客解析，六周节奏另属 Perspective AI 二手分析；【一手源】DDDR/OpenFDE 原文在既有素材中的引述，本次未回溯原站；书摘与 ASR 均按转述使用，不把整篇或案例升级为一手实证。</p>
+<blockquote>
+<p>owner: wuyafang · 类型: 深挖整合 · 素材: FDE交付总纲-最佳答案、FDE交付方法论-2026、FDE实战方法论-2026、FDE三大核心能力-8阶段工作流-九天Hector、全球FDE对标-Palantir与Anthropic</p>
+</blockquote>
+<h1 id="l8-fde-交付方法论全景四阶段工作流口径与-palantiranthropic-对标">L8 FDE 交付方法论全景：四阶段、工作流口径与 Palantir/Anthropic 对标</h1>
+<blockquote>
+<p>三段阅读说明：WHY 先确定业务价值与不做的后果；WHYT 再看方法骨架、模式协同和取舍；HOW 最后按步骤、模板与门禁执行。为完整保留原文，原有章节编号、WHYTF 小标题和历史阅读说明均保留，重组后的顺序以三个一级标题为准。新增教学模板是合成教学案例，不是客户记录或已取得的实测结果。</p>
+</blockquote>
+<h1 id="why让工程交付对可持续业务结果负责">WHY：让工程交付对可持续业务结果负责</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY：为什么 FDE 方法论必须以业务结果为中心</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>FDE 是 Forward Deployed Engineer 的缩写，起源于 Palantir</li><li>骨架：Discover、Design、Deploy、Review 四阶段（简称 DDDR），每一阶段有入口条件、关键动作、出口产物和出口检查</li><li>验收口径：4C，以及九天Hector 讲的三大核心能力</li></ul></div>2
+<p>FDE 是 Forward Deployed Engineer 的缩写，起源于 Palantir。到 2026 年，Anthropic、OpenAI、AWS、微软、Google Cloud 都设了类似的部门。五份素材反复强调同一个定位：售前对方案负责，咨询对建议负责，交付对验收负责，而 FDE 对生产环境里真实发生的业务结果负责。这句话是整套方法论的起点。它决定了 FDE 的工作不止于做出一个能演示的系统，而要一直做到系统在客户基础设施上稳定运行、指标真的变好。</p>
+<p>本文把五份素材合并成一张全景图，按下面的顺序展开。</p>
+<ul>
+<li>骨架：Discover、Design、Deploy、Review 四阶段（简称 DDDR），每一阶段有入口条件、关键动作、出口产物和出口检查。</li>
+<li>微观循环：OpenFDE 的 FDE Loop 五步，在每个阶段内部持续运转。</li>
+<li>验收口径：4C，以及九天Hector 讲的三大核心能力。</li>
+<li>对标：Palantir 如何发明这套模式，Anthropic 如何改造。</li>
+<li>实战提炼：一个智能客服端到端项目沉淀出的三条可迁移原则。</li>
+<li>现场节奏与商业模式，以及对转岗求职者的差距清单。</li>
+</ul>
+<p>先说明 FDE 和咨询、外包的本质区别，这一点在对标 Palantir 的素材里讲得最清楚。咨询是一次性交付，不影响产品。FDE 的路径叫 Gravel Road 到 Paved Highway 的反馈环：FDE 先为单个客户建一条粗糙但快速的碎石路，总部团队再把跨客户的共同模式提炼成标准功能，也就是高速公路。每个定制方案都成为产品化的原料。这套机制需要纪律，管理不好就会退化成难以规模化的纯定制，素材后面还专门列了几种退化的形态（见第十一节）。</p>
+<p>素材也明确区分了来源口径。DDDR 和 FDE Loop 来自 VanGong1999/FDE 和 OpenFDE 的一手 GitHub 与博客原文。Palantir 部分来自 S-1/10-K 口径和官方文档。九天Hector 部分是 B站口述的 ASR 转录，观点是讲师个人的综合，不是官方口径。智能客服案例来自本地一个完整 RAG 项目的复盘。本文的整理性归纳都会标注“本文整理”，不同来源数字口径不同时并列呈现，不做裁决。</p>
+<h3 id="十一退化形态与风险提示">十一、退化形态与风险提示</h3>3
+<p>五份素材里分散出现了几类“方法被用歪”的警示，本文整理在这里，方便做交付前自查。</p>
+<ul>
+<li>方法层：Discover 没做完就 Deploy；没有 Eval 计划就宣称 Design 完成；用 Demo 的掌声代替 Eval；用“先做了再说”代替安全。以上都与第一节的红线对应。</li>
+<li>产品化层：Gravel Road 到 Paved Highway 的反馈环断掉，每个客户从头做一遍，素材称这样的 FDE 会退化成难以规模化的纯定制。</li>
+<li>商业层：素材提到 Palantir 的七条准则里有“拒当系统集成商”，说明按人天外包的模式与 FDE 的定位冲突。</li>
+<li>工具层：Anthropic 工程共识提醒，复杂框架和过多工具本身就是风险，需要证明必要性。</li>
+</ul>
+<p>这些警示与失败案例篇的细节在另一篇深挖整合中展开，本篇只保留与方法论骨架直接相关的部分。</p>
+</div></details><h2 id="价值成立的前提以及不采用这套方法的后果">价值成立的前提，以及不采用这套方法的后果</h2>2
+<p>这套方法的价值链是“找对问题—在约束内实现—证明结果—把经验变成可复用能力”。客户买的不是一个模型调用入口，而是一条可持续运行的工作流；团队要减少的也不只是首版开发时间，还包括上线返工、持续人工兜底和人员撤离后的停摆。缺少 Discover，会实现错问题；缺少 Design 的 Eval，会把演示当能力；缺少 Deploy 的运营与交接，会形成英雄交付；缺少 Review，则既无法证明价值，也无法判断该停还是该扩。</p>
+<p>适用对象是需要进入真实组织、接入数据与权限、持续运营并接受业务验收的 AI 项目。对于输入输出已固定的简单脚本，不必照搬全部驻场节奏；对于无业务 Owner、无法建立判据或无法取得合法数据的需求，应先补条件或不做。DDDR 不是“所有项目都要排满同样周数”，4C 不是人才认证标准，FDE Loop 的参考实现也不等于可以直接生产自治的产品。</p>
+<h1 id="whyt用-dddrfde-loop-与-4c-组织协作和取舍">WHYT：用 DDDR、FDE Loop 与 4C 组织协作和取舍</h1>
+<h2 id="whytf用什么框架理解并校准-fde-交付">WHYTF：用什么框架理解并校准 FDE 交付</h2>2
+<p>课件骨架负责把项目拆成阶段，书籍负责补上价值、流程与人的约束，行业调研和 Palantir/Anthropic 文档负责校准最新实践。三源不是并列摘抄：DDDR 决定“先做什么”，《赢利》与《流程！》解释“为什么指标和组织不能后补”，业内案例与调研则检验这些原则在真实分布、权限和成本压力下是否仍成立。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">一、DDDR 四阶段：逐段拆解</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>素材的总览表把四个阶段压缩成一句话和一个核心问题</li><li>Discover 是弄清真相，核心问题是谁痛、被什么指标衡量、约束是什么</li><li>Design 是把真相变成可执行计划，核心问题是做什么、不做什么、如何证明成功</li></ul></div>3
+<p>素材的总览表把四个阶段压缩成一句话和一个核心问题。Discover 是弄清真相，核心问题是谁痛、被什么指标衡量、约束是什么。Design 是把真相变成可执行计划，核心问题是做什么、不做什么、如何证明成功。Deploy 是在约束内实现并上线，核心问题是权限、数据、集成、培训、观测是否齐备。Review 是学习与杠杆，核心问题是有没有效、为什么有效、怎样复用并反馈给产品。</p>
+<h4 id="11-discover发现">1.1 Discover（发现）</h4>
+<p>入口条件有两条：有赞助人，或至少有一名业务 champion；能接触到真实用户或一线操作者，而不是只有 IT 转述。第二条看似简单，却是后面失败案例里反复出现的雷区。</p>
+<p>关键动作有五项：</p>
+<ul>
+<li>画干系人地图，区分出资的、使用的、否决的、维护的。</li>
+<li>梳理现状工作流，包括用时、工具、例外情况和失败代价。</li>
+<li>弄清数据与权限现实：数据在哪里，能否出域，质量如何，新鲜度如何。</li>
+<li>给出成功的可观测定义，并回答“只能选一个指标时选哪个”。</li>
+<li>明确非目标。</li>
+</ul>
+<p>出口产物是发现纪要，内容涵盖问题陈述、用户、指标、约束、风险和开放问题，再加上初步的范围假设。出口检查有三条：能用一句话说清“为谁、解决什么可测问题”；知道最大的技术风险和最大的组织风险各一条；赞助人认可问题陈述，哪怕方案还没定。</p>
+<p>这里有一个细节值得注意。出口检查要求的是赞助人认可“问题”，而不是认可“方案”。本文整理：把确认的对象前移到问题陈述，是为了让后面方案换了再换时，项目的目标不会跟着漂移。</p>
+<h4 id="12-design设计">1.2 Design（设计）</h4>
+<p>入口条件是 Discover 的出口检查已通过，并且已经对数据做过抽样或有等价的了解。关键动作有六项：</p>
+<ul>
+<li>方案选项至少两个，其中必须包含“不做 LLM”的选项。</li>
+<li>画架构草图，覆盖数据流、权限、人机回环和失败降级。</li>
+<li>设计 Eval：golden set 从哪里来，量规是什么。</li>
+<li>切出试点切片，由用户群、文档或流程子集、时间盒三个维度共同确定。</li>
+<li>做成本与延迟预算。</li>
+<li>列出安全与合规审查清单。</li>
+</ul>
+<p>出口产物是设计一页纸、可勾选的 POC/Pilot 验收标准、风险登记与缓解措施。出口检查要求成功标准可测并和业务指标挂钩，有明确的非目标和时间盒，安全或 IT 部门至少已经看到权限与数据流。</p>
+<p>素材给出了一条原文红线：AI 项目特别容易在 Deploy 之前假装 Design 已经完成，没有 Eval 计划就不算 Design 完成。后面的失败案例分析也反复回到这一条。</p>
+<h4 id="13-deploy部署">1.3 Deploy（部署）</h4>
+<p>入口条件是 Design 的验收标准已书面确认，环境、密钥、网络路径已经打通，或者有明确的阻塞项并已升级。关键动作包括：</p>
+<ul>
+<li>实现与集成，每次迭代都能演示。</li>
+<li>评测闭环：改动、跑 eval、看失败案例，循环往复。</li>
+<li>权限、审计、日志、告警。</li>
+<li>用户培训与 Runbook。</li>
+<li>分阶段 rollout，顺序是影子模式、建议模式、自动模式。</li>
+<li>交接计划，要回答谁值班。</li>
+</ul>
+<p>出口产物是在生产或试点环境中运行的系统、观测看板与 on-call 说明，以及用户启用材料。出口检查有三条：达到书面验收线，或者有明确的“未达线但不扩大范围”的决策；回滚路径可用；至少有一名客户侧人员能独立完成主路径操作。</p>
+<p>第三条是能力移交的最低门槛。如果只有 FDE 本人能操作系统，那这个项目离开 FDE 就会停摆，素材的反模式表里称之为英雄交付。</p>
+<h4 id="14-review复盘">1.4 Review（复盘）</h4>
+<p>入口条件是试点或生产已经运行了一个约定窗口，素材举的量级是两到四周。关键动作有六项：</p>
+<ul>
+<li>对照指标，既看数量也看质量，包括失败案例抽样。</li>
+<li>访谈用户，了解采用障碍。</li>
+<li>复盘技术债与成本。</li>
+<li>模式化，即判断哪些内容可以进入解决方案库。</li>
+<li>产品反馈，指出平台缺什么。</li>
+<li>做决定：扩大、维持、停掉还是改方向。</li>
+</ul>
+<p>出口产物是带数据的复盘文档、更新后的 Playbook，以及给产品或领导层的简报。出口检查要求有“下一轮 Discover”的输入，或者明确结项，并且知识不能只存在于个人笔记本里。</p>
+<h4 id="15-阶段之间的节奏规则">1.5 阶段之间的节奏规则</h4>
+<p>素材给出的规则很具体。允许的做法是在 Deploy 早期同时补充 Discover 的细节。禁止的做法有两条：用 Demo 的欢呼声跳过 Eval，以及用“先做了再说”跳过安全。时间盒方面，Discover 通常一到两周，窄 Pilot 通常两到六周。</p>
+<p>最常见的翻车模式也是两条：Discover 没做完就进入 Deploy；没有 Eval 计划却宣布 Design 完成。这两条在失败案例素材里得到了印证。</p>
+<h3 id="二阶段工作流的多种口径对照">二、阶段工作流的多种口径对照</h3>3
+<p>五份素材里出现了多套“阶段”划分，口径不同，服务的目的也不同。下表把它们放在一起。</p>
+<table>
+<thead>
+<tr>
+<th>口径</th>
+<th>来源</th>
+<th>划分</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DDDR</td>
+<td>VanGong1999/FDE</td>
+<td>Discover、Design、Deploy、Review</td>
+<td>项目级交付流程</td>
+</tr>
+<tr>
+<td>六阶段</td>
+<td>VanGong1999/FDE 引用的公开讲解</td>
+<td>Discover、Design、Build、Deploy、Prove、Scale</td>
+<td>把实现与上线拆开，增加 ROI 证明与扩展</td>
+</tr>
+<tr>
+<td>落地三阶段</td>
+<td>九天Hector 转述 Palantir</td>
+<td>POC、Pilot、Production</td>
+<td>上线范围的推进梯度</td>
+</tr>
+<tr>
+<td>接项目四步 SOP</td>
+<td>九天Hector</td>
+<td>理需求、做方案、推落地、按基线验收</td>
+<td>个人接项目的操作顺序</td>
+</tr>
+<tr>
+<td>六周节奏</td>
+<td>Anthropic</td>
+<td>Discovery、Eval 设计、迭代、生产切换、持续改进</td>
+<td>受监管行业的嵌入式交付</td>
+</tr>
+<tr>
+<td>驻场周期</td>
+<td>Palantir</td>
+<td>八到十六周驻场嵌入；AIP bootcamp 五天出可跑应用</td>
+<td>情报与国防类客户的嵌入式交付</td>
+</tr>
+</tbody>
+</table>
+<p>这张表的解读如下。DDDR 和六阶段是同一件事的两种切分，素材给出了一一映射：六阶段的 Discover 对应 DDDR 的 Discover，Design 对应 Design，Build 对应 Deploy 里的实现，Deploy 对应 Deploy 里的上线，Prove 对应 Review，Scale 则是 Review 之后进入下一轮 Discover。六阶段在两处比 DDDR 更细。一是把“实现”和“上线”分开，Build 的核心提醒是生产可靠性比 Demo 重要，要能兼容脏 API 甚至没有 API 的系统；Deploy 的核心提醒是私有化或云、合规和文化阻力。二是单独列出 Prove，要求把效果换算成钱、风险或时间，素材称 ROI 是建立信任的关键。Scale 则要求复制到相邻部门、监控漂移与成本，并把模式回流产品。</p>
+<p>POC、Pilot、Production 是另一个维度，它描述的是上线范围，不是工作类型。POC 是概念验证，小范围上线 MVP 功能。Pilot 是小范围试点，测试稳定性和真实业务提升。Production 是生产上线并大规模使用。本文整理：DDDR 的每个阶段里，都可以落在这三个梯度上的某一级，所以两者是交叉关系，不是替代关系。</p>
+<h4 id="关于8-阶段工作流的说明">关于“8 阶段工作流”的说明</h4>
+<p>九天Hector 那篇素材的文件名和标题写的是“8 阶段工作流”。但是逐行核对正文，里面并没有逐条列出八个阶段。正文实际包含的内容有：三大核心能力，三能力交替使用的方式，POC、Pilot、Production 三阶段，国内落地现状，以及“理需求、做方案、推落地”加“验收红线”的四步 SOP。另有一篇 B站案例文档提到九天Hector 的《10分钟搞懂FDE》包含“三大核心能力加 8 阶段工作流”，但同样没有展开清单。</p>
+<p>因此本文不补写“8 阶段”的具体名称，也不把别的口径硬凑成八个。这属于素材缺口，列入小结的缺口清单，后续需要回到原始转录或视频核对。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">三、FDE Loop：判断力沉淀的微观循环</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>DDDR 是人类 FDE 的项目级流程，FDE Loop 是每个阶段内部都在跑的小循环</li><li>2. ELICIT（问）：在关键时刻追问，比如“你刚才为什么这么判断、看了什么、什么情况下会不这么做”，把 why 引出来</li><li>它来自 OpenFDE 的 README 与 Agent v0.1 博客，本意是“AI Agent 作为驻场 FDE”的运行时协议，把“向专家学判断”做成机制</li></ul></div>3
+<p>DDDR 是人类 FDE 的项目级流程，FDE Loop 是每个阶段内部都在跑的小循环。它来自 OpenFDE 的 README 与 Agent v0.1 博客，本意是“AI Agent 作为驻场 FDE”的运行时协议，把“向专家学判断”做成机制。五步如下。</p>
+<ol>
+<li>OBSERVE（看）：坐在专家旁边看真实工作流。原文的说法是观察只告诉你 what。</li>
+<li>ELICIT（问）：在关键时刻追问，比如“你刚才为什么这么判断、看了什么、什么情况下会不这么做”，把 why 引出来。</li>
+<li>INDUCE（学）：归纳成判断单元，即 Judgment Unit。</li>
+<li>ACT（做）：把判断单元编译成内建治理的 Agent 配置，写操作强制要求审批，即使是 auto 模式也不能越过。</li>
+<li>EVOLVE（长）：信任是挣来的，真实结果归因加一之后，判断单元才从 suggest 升到 approve。</li>
+</ol>
+<p>判断单元包含几个字段：触发情境与信号、决策、理由、被放弃的备选、反转条件、渐进自主度（suggest、approve、auto 三档），以及归因到的真实结果。素材特别强调反转条件，它只存在于专家的脑子里，不主动引出就拿不到。</p>
+<p>循环之外还有两个“面”作为基础设施。DEPLOY 面让 Agent 真正驻进现场，包含连接器、授权、审计。ATTRIBUTION 面负责归因，回答哪一次判断真正推动了业务结果，把判断和生意连起来。</p>
+<p>素材给出的诚实边界不能漏掉：OpenFDE Agent v0.1 是能跑、离线、确定性的参考实现，INDUCE 的抽取基于规则，判停、排序、归因都是给护城河留位的简单基线。所以它是一个方法的演示，不是成熟产品的证据。</p>
+<p>本文整理：FDE Loop 的“渐进自主度”和 DDDR 的 Deploy 阶段“影子、建议、自动”三步 rollout 是同构的，都在表达“自动化要靠结果来换取”。后面的客服、知识库、代码助手场景全部从助手起步，原因也在这里。</p>
+<h3 id="四4c-验收与三大核心能力">四、4C 验收与三大核心能力</h3>3
+<h4 id="41-4c-四个面">4.1 4C 四个面</h4>
+<p>OpenFDE 的《什么是FDE》把 FDE 的工作分成四个面，可以直接作为交付物的验收维度。</p>
+<table>
+<thead>
+<tr>
+<th>面</th>
+<th>内容</th>
+<th>验收口径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Context</td>
+<td>深入客户真实环境：流程、数据在哪、谁有权限、谁买单、失败成本</td>
+<td>问题不是“客户要什么功能”，而是“真正的业务结果卡在哪”</td>
+</tr>
+<tr>
+<td>Code</td>
+<td>亲手把方案写到生产：接数据、做检索与 Agent、处理权限与审计、部署</td>
+<td>不是 demo、PPT 或配置，而是能在客户基础设施上真实运行的系统</td>
+</tr>
+<tr>
+<td>Calibration</td>
+<td>用真实业务指标和失败模式做 eval</td>
+<td>正确率、覆盖率、越权率、人工接管率、采用率；被用起来且指标真的变好才算</td>
+</tr>
+<tr>
+<td>Compounding</td>
+<td>把现场反复出现的摩擦沉淀成连接器、模板、评估集和产品需求</td>
+<td>让下一个客户更快落地</td>
+</tr>
+</tbody>
+</table>
+<p>这四个面的排列有内在顺序：先理解环境，再动手实现，然后用指标校准，最后把经验回流。其中 Calibration 的五个指标里，越权率在传统软件验收里不常见，却是 AI 系统必须盯的一项。Compounding 则对应前面说的 Paved Highway：没有这一面，FDE 就只是在重复做定制。</p>
+<h4 id="42-三大核心能力">4.2 三大核心能力</h4>
+<p>九天Hector 的口述给出另一种切法。他的核心主张是，FDE 的能力不在于掌握某几项技术，是否懂 LangChain 的所有 API、是否熟悉工具生态都不重要，重要的是知道用什么工具解决什么问题。三项能力如下。</p>
+<p><strong>能力一，业务理解与需求判断。</strong> 要回答三个问题：当前场景最核心的问题是什么，能不能用 AI 解决，能解决到什么程度。甲方的需求常常不明确，比如只说“提升问答准确率”，FDE 要靠技术素养和对业务的理解把问题划分清楚，并定义基线、评估指标和成功标准。他的原话大意是，不定成功标准，尾款就收不回来。口述中的示例是营销问答效率从 4 小时降到 1 小时，要先定基线 4 小时，再定成功指标、上线条件和工作范围。</p>
+<p><strong>能力二，Agent 开发工程化。</strong> 把方案做成完整系统，包括接入真实数据系统、处理权限和运行环境，框架不限。他强调的关键差异是：传统工程师做完功能、测试通过就结束，FDE 开发完还没有结束，还要保障上线运行并创造价值。</p>
+<p><strong>能力三，组织落地。</strong> 让系统进入真实组织，步骤包括部署上线、引导业务人员使用、内部培训、找试点先用、收集反馈优化、推动组织接受，最终进入真实业务流程稳定运行。交付的是“可持续生产业务价值的系统”。</p>
+<p>三项能力不是线性分阶段使用，而是交替使用。理需求时也得懂技术才能合理设计架构。讲师还指出，软性能力同样有对应的工作流，比如“接入真实数据”属于企业集成，可以用 Palantir 的 Ontology 方法把它标准化。</p>
+<h4 id="43-两套口径怎么对上">4.3 两套口径怎么对上</h4>
+<p>本文整理一张对应关系。Hector 的能力一对应 4C 的 Context 加 Calibration 的前置（定基线与成功标准）。能力二对应 Code。能力三对应 Deploy 阶段的培训、交接，以及 Compounding 里的推广与回流。两套口径指向的是同一套工作内容，不同在于 4C 是验收视角，Hector 的三能力是人才视角。</p>
+<p>素材里另一个对应点是 Anthropic 的做法：eval 套件与客户共建、门槛归客户，这与能力一里“基线与成功标准要先定”是同一个意思。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">五、对标 Palantir：它发明了什么</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>以下事实来自 Palantir S-1/10-K 口径的素材</li><li>这个前提解释了为什么 Discover 要用观察和实验代替问卷，也解释了 DDDR 里 Discover 为什么出现在最前面并有明确的出口检查</li><li>素材还给出 2020 至 2025 年公开市场回报约 640%，2024 年营收 28.7 亿美元，其中政府部分 15.7 亿美元</li></ul></div>3
+<p>以下事实来自 Palantir S-1/10-K 口径的素材。</p>
+<p><strong>动因。</strong> 2005 年前后，CIA、NSA、美军情报类客户“无法明说需求、不能分享数据、工作流常变”，传统的收需求、设计、开发流程完全失效。破局办法是把工程师直接嵌进客户环境，通过观察、实验和实时构建来学习需求。</p>
+<p><strong>规模佐证。</strong> 2016 年之前，Palantir 的 FDE 数量超过传统软件工程师。2020 年直接上市时，FDE 已经是主要的 go-to-market 引擎。素材还给出 2020 至 2025 年公开市场回报约 640%，2024 年营收 28.7 亿美元，其中政府部分 15.7 亿美元。</p>
+<p><strong>独有护城河。</strong> 持有 TS/SCI 安全许可的 FDE 可以嵌入五角大楼、FBI、特战司令部。取得许可的周期是 12 到 18 个月，并包含测谎，AI 实验室短期内无法复制，这是政府营收有韧性的原因。</p>
+<p><strong>七条组织设计准则里的四条硬核。</strong> 素材说 Anthropic、OpenAI、DeepMind、Databricks、Cohere 都在效仿这些准则，其中四条尤其有反常识之处。</p>
+<ul>
+<li>Ship on day one：第一周就交付能运行的原型，拒绝“调研九十天、交付一份 PPT”。</li>
+<li>客户发现是工程活：每周五到十五场深度对话，2026 年已有团队把 30% 到 40% 的时间制度化地给对话式客户发现。</li>
+<li>先建客户专属 Ontology，再上模型：通用模型给通用答案，企业价值要扎根在客户的“名词和动词”上，这是工程活，不是 prompt。</li>
+<li>拒当系统集成商：交付客户自己的应用，拒绝 Accenture 式的按人天外包合同。</li>
+</ul>
+<p><strong>Echo 加 Delta 的团队结构。</strong> Echo 是领域专家，出身军事、医疗、金融等行业，负责找对问题。Delta 是执行工程师，负责快速建方案。两者组成客户环境内的迷你创业团队。</p>
+<p><strong>Ontology 的官方定义。</strong> 素材转述 palantir.com 官方文档：Ontology 建模的是企业的“决策”，不仅是数据，让人类和 AI agent 能在运营工作流里协作。它不是薄的语义层，而是四重整合：Data（名词）、Action（动词，实时写回运营系统）、Logic（驱动 action 的规则、机器学习或 LLM 函数）、Security（细粒度权限织入前三者）。具体怎么建，见本库的技术专项篇，此处不展开。</p>
+<p>本文整理：Palantir 模式的前提是客户“说不清需求”。这个前提解释了为什么 Discover 要用观察和实验代替问卷，也解释了 DDDR 里 Discover 为什么出现在最前面并有明确的出口检查。</p>
+<h3 id="六对标-anthropicapplied-ai-engineer">六、对标 Anthropic：Applied AI Engineer</h3>3
+<p><strong>同职不同名。</strong> OpenAI 叫 FDE，Cohere 叫 Solutions Architect (Agentic)，Databricks 叫 Customer Engineering，Anthropic 特意叫 Applied AI Engineer。后者避开 field 和 deployed 这类暗示远离研发的词，强调自己处在“研究到部署连续体的生产端”。功能相同，差异在于各家的自我定位。</p>
+<p><strong>起点客户与节奏。</strong> Anthropic 面向受监管行业：金融、医疗、法律、政府。起家优势是前沿模型本身，素材提到一笔 15 亿美元的合资为嵌入式工程团队提供支撑。交付节奏是六周：Discovery、Eval 设计、迭代、生产切换、持续改进。</p>
+<p><strong>安全思维。</strong> 这是 Anthropic 独有的强调：信用备忘录或临床记录里的幻觉属于“可报告事故”，evals 要绑定模型风险管理。</p>
+<p><strong>招聘画像。</strong> 三合一：高级工程深度、创始人级的客户判断、研究工程师的安全思维。</p>
+<p><strong>两个可复用的细节。</strong></p>
+<p>第一，客户访谈是研究输入，不是销售电话。素材列出三个差异：访谈要限定在工作流上，不是功能清单；优先访谈操作员，不是高管，因为被替代的是操作员的工作流；访谈转录要喂回 eval 套件，引语、摩擦点和未解问题直接变成测试用例。</p>
+<p>第二，薪酬逻辑。素材给出总包 35 万到 55 万美元的区间，比肩研究工程，并转述理由：客户工程如果按折扣付薪就只能得到折扣人才，按研究付薪才能得到与预训练团队对等评审的工程师。素材还提到 Palantir 老兵大量流入 AI 实验室，说明 FDE 是被验证过的跳板。</p>
+<h4 id="三方对照">三方对照</h4>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Palantir</th>
+<th>Anthropic</th>
+<th>九天Hector（国内口述）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>起点客户</td>
+<td>情报、国防</td>
+<td>金融、医疗、法律、政府</td>
+<td>互联网科技企业，政府与央国企</td>
+</tr>
+<tr>
+<td>优势来源</td>
+<td>TS/SCI 许可</td>
+<td>前沿模型本身</td>
+<td>无单独说明</td>
+</tr>
+<tr>
+<td>交付节奏</td>
+<td>8 到 16 周驻场；bootcamp 5 天出应用</td>
+<td>6 周五段</td>
+<td>POC、Pilot、Production</td>
+</tr>
+<tr>
+<td>核心强调</td>
+<td>Ontology 先行、定制回流产品</td>
+<td>安全思维、eval 共建</td>
+<td>基线与成功标准、组织落地</td>
+</tr>
+<tr>
+<td>能力画像</td>
+<td>工程深度、领域好奇心、沟通跨度、不躲流程</td>
+<td>工程深度、客户判断、安全思维</td>
+<td>业务理解、工程化、组织落地</td>
+</tr>
+</tbody>
+</table>
+<p>解读：三家的画像明显收敛。Hector 的能力一（先定基线与成功标准）对应 Anthropic 的 eval 共建；Hector 的能力三（组织落地）对应 Palantir 的产品反馈经 FDE 回流；Hector 提的“用 Ontology 标准化企业集成”则与 Palantir 官方定义一致。素材据此得出判断：国内外独立来源指向同一套能力模型，可信度因此加分。这个判断是素材自己做的，本文如实转述，并提醒 Hector 一侧是个人口述。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">七、Anthropic 的工程共识</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>素材引用了 Anthropic 的两篇工程博客，对 FDE 交付的方案阶段有直接约束</li><li>《Effective Context Engineering》（2025 年 9 月）的核心说法是，好的上下文工程是找到“尽可能小的一组高信号 token”</li><li>上下文是有限资源，存在 context rot 与注意力预算的问题</li></ul></div>3
+<p>素材引用了 Anthropic 的两篇工程博客，对 FDE 交付的方案阶段有直接约束。</p>
+<p>《Building Effective Agents》（2024 年 12 月）的核心说法是，最成功的实现使用简单、可组合的模式，而不是复杂框架；建议从直接调用 LLM API 写起，若使用框架必须理解底层代码。文中区分了 workflow 和 agent：workflow 是预定义代码路径的编排，agent 是由 LLM 动态决定过程与工具使用。</p>
+<p>《Effective Context Engineering》（2025 年 9 月）的核心说法是，好的上下文工程是找到“尽可能小的一组高信号 token”。上下文是有限资源，存在 context rot 与注意力预算的问题。工具要做到“最小可用集”，原话大意是：如果人类工程师都无法明确说出某个场景该用哪个工具，也不能指望 AI agent 做得更好。</p>
+<p>对 FDE 交付的含义，素材总结为：方案阶段先选最简单的可组合模式，包括 prompt chaining、routing、parallelization、orchestrator-workers、evaluator-optimizer，复杂度只在被证明必要时才增加。这与 Design 阶段“方案至少两个、含不做 LLM 的选项”的要求一脉相承。本文整理：二者共同的精神是把复杂度当成需要被论证的成本。</p>
+<h3 id="十对转岗求职者的差距清单">十、对转岗求职者的差距清单</h3>3
+<p>素材把 Palantir 四要素（工程深度、领域好奇心、沟通跨度、不躲流程）、Anthropic 三合一、Hector 三能力放在一起，给转岗者（零基础转行、目标是企业 AI 降本增效方向）列了九条自查项。</p>
+<p>硬性能力，可以通过项目补齐并展示：</p>
+<ol>
+<li>生产级工程深度。要写全栈生产代码而不是 notebook，素材称这是 Anthropic 的第一道门槛，也是最需要补的课。做法是每个学习项目都按“能上线运行”的标准收尾。</li>
+<li>Eval 设计能力。能从模糊需求推导出 eval 套件，这是 Anthropic 面试必考。每个练习项目都写基线、指标、成功标准和上线条件。</li>
+<li>端到端交付至少一个“真实数据加权限加运行环境”的完整系统，覆盖 POC 到 Pilot 到 Production，而不是停在 demo。</li>
+</ol>
+<p>软性能力，可以在日常工作和社区中练习：</p>
+<ol start="4">
+<li>客户判断。练习“访谈操作员而非高管”、把访谈限定在工作流、把转录喂回测试用例。</li>
+<li>安全与风险思维。受监管方向（央国企）岗位量大，对幻觉和错误的容忍度极低，练习为每个方案写“失败模式加缓解措施”。</li>
+<li>领域好奇心。选定一两个目标行业深耕，简历上能讲出该行业的真实工作流。Palantir 的要求是愿意花三个月学反洗钱、物流或供应链这类领域。</li>
+</ol>
+<p>岗位筛选与叙事：</p>
+<ol start="7">
+<li>不要被“FDE 必须驻场、长期出差”劝退。投递时看岗位描述是否要求“对最终业务效果负责”。</li>
+<li>面试叙事锚点：准备 Palantir 起源故事，也就是为什么传统交付在说不清需求的场景里失效；再准备一个自己的“快速交付加定成功标准”的案例。素材提到可以拿 Palantir 的案例题练手：“给你这份乱 CSV，周五交付什么？”</li>
+<li>认清定位溢价：市场为 FDE 付研究级薪酬，逻辑是“技术翻译加创始人级判断”这个组合稀缺，不是会多少框架 API，所以学习重心应放在问题定义、评估、落地推动，不是追新工具。</li>
+</ol>
+<h4 id="国内落地的两驾马车">国内落地的两驾马车</h4>
+<p>Hector 的口述描述了国内现状，分两股力量。一是互联网科技企业，用 AI 改造既有业务流，是生产力驱动，有前沿技术基础、数据和硬件。二是政府与央国企，是更大的一股力量，由政策驱动。素材引述国务院《深入人工智能+行动指导意见》要求 2027 年前 AI 普及率达到 97%，这一数字出自讲师口述的转引。这类客户的难点是数据不能出域、必须本地部署，历史数据和系统改造接入困难。素材认为这是转岗者岗位量最大的方向，且天然要求私有化部署能力。</p>
+<p>FDE 的交付形态有三种：企业内部交付、外部外派驻场（即“长期出差”）、混合交付。Hector 明确纠正一个误解：“FDE 一定驻场”并不成立，驻不驻场不是最关键的，关键在于工作流程与岗位定位要对最终业务效果负责。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">十二、2026 年最新材料对方法论的校准：路径可借鉴，数字必须对账</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>前面的 DDDR、4C 与 FDE Loop 给出稳定骨架，但 2026 年 11 月新增的案例对账说明，方法论还有一个不可省略的底座：证据治理</li><li>原件整理版还给出试点季 7000 份、准备时间约减少三分之一、吞吐量约提升 50% 等总体口径</li><li>更值得关注的是上线初期正确字段完成率只有 25%，6 周内到 86%：成功不是因为第一版完美，而是因为自动化被限制在提取与映射层，会计师持续审核，人工修正被回收成 Eval</li></ul></div>3
+<p>前面的 DDDR、4C 与 FDE Loop 给出稳定骨架，但 2026 年 11 月新增的案例对账说明，方法论还有一个不可省略的底座：证据治理。九份 B 站案例原件与《B站精选FDE标杆案例合集》逐项核对后，合集里 22 个可数量化说法只有 2 个得到原件支持，4 个与原件冲突，16 个在原件中找不到。这个统计只描述本库材料的一致程度，不等于判定合集作者造假；它真正改变的是交付动作：任何外部 ROI 进入方案、报价或验收前，都要先回到原件核对口径。</p>
+<p>最典型的三个纠偏如下。</p>
+<ol>
+<li><strong>报税案例必须把个案与总体分开。</strong>“180 小时到 15 小时”是一位高级会计师的年度个案，不应改写成所有复杂税单的通用收益。原件整理版还给出试点季 7000 份、准备时间约减少三分之一、吞吐量约提升 50% 等总体口径。更值得关注的是上线初期正确字段完成率只有 25%，6 周内到 86%：成功不是因为第一版完美，而是因为自动化被限制在提取与映射层，会计师持续审核，人工修正被回收成 Eval。这直接印证 Deploy 的“先助手后自动”和 Review 的“错误回流”。</li>
+<li><strong>NL2SQL 必须把路径与数字分开。</strong>“查询两天到分钟级、自助覆盖率 85%、重复需求减少 60%”在原件中均找不到，且原件明确写 ROI 未公开，不能对客户引用。可借鉴的是渐进路径与治理重点：先限定主题域，补表描述、主外键、枚举和指标口径，采用只读账号、行级权限、超时和扫描上限，再考虑多步分析。六阶段架构属于业界参考，不应写成“B站内部披露”。</li>
+<li><strong>鞋服素材案例不能把 POC 写成商用成功。</strong>合集的效率四倍、成本下降 65%、七天到两天与原件“POC、内部试用、尚未给出统一节省金额”冲突。可复用的是跟设计师和运营走流程、素材与商品信息关联、按商品一致性验收，以及“生成量不等于可发布量”。</li>
+</ol>
+<p>行业调研也要求同样的口径纪律。Gartner 关于 2027 年底前超过 40% agentic AI 项目可能被取消的是预测，不是所有 AI 项目的实测失败率；S&amp;P Global 的 42% 放弃大部分 AI 项目与 46% PoC 未进生产来自特定样本调研；RAND 的超过 80% 来自 65 名资深从业者访谈；McKinsey 的 88% 使用 AI 与 39% 报告可测利润影响说的是“采用”和“价值”的落差。它们不能平均成一个失败率，却共同支持 DDDR 的两个前置门：业务问题先确认，Eval 与基线先于扩量。</p>
+<p><strong>把校准变成每周动作。</strong>在每个项目的案例引用登记表中增加六列：<code>claim</code>、<code>source_file</code>、<code>original_locator</code>、<code>population_and_denominator</code>、<code>evidence_level</code>、<code>allowed_use</code>。只有能定位到原件、口径与当前项目一致的数字才可进入客户承诺；只有二手合集支持的降级为待验证假设；与原件冲突或原件明确未公开的禁用。评审时依次问：这是事实还是推演？是个案还是总体？是速度、质量还是业务收益？是 POC、试点还是生产？这四问把“来源诚实”变成方法论的执行门，而不是文末一句免责声明。</p>
+<h2 id="三套框架的协同关系与选型顺序">三套框架的协同关系与选型顺序</h2>2
+<p>DDDR 管项目阶段，FDE Loop 管阶段内部的学习与行动，4C 管交付证据；POC、Pilot、Production 则管暴露范围和运营成熟度。把它们混成一张线性“阶段表”，会出现“POC 做完就等于 Discover 和 Design 都做完”的误判。正确关系是：每个阶段用 Loop 获取事实与反馈，阶段出口用 4C 检查结果，再决定是否允许扩大上线范围。</p>
+<p>方案取舍先看业务是否有判据，再看规则、搜索或固定工作流能否满足；需要私有事实、引用和权限时引入检索；只有 Eval 证明固定路径不足，才增加动态 Agent 决策。Palantir 的对象与动作治理、Anthropic 的最小工具与评测原则、九天Hector 的业务判断与组织落地，在这里分别约束“系统能碰什么”“复杂度为什么必要”“组织如何接住”。它们提供方法对照，不提供可直接复制的收益、薪酬或交付周期承诺。原文未取得的“八阶段”仍保持缺口，不由本文补造。</p>
+<h1 id="how把阶段出口落成操作单元交接与复盘">HOW：把阶段出口落成操作单元、交接与复盘</h1>
+</div></details><h2 id="执行导航按产物推进不按日历自动放行">执行导航：按产物推进，不按日历自动放行</h2>2
+<p>先按第九节约定时间盒，再用第八节检查架构与运营边界，随后执行 M01—M10。操作单元的依赖是：问题合同与基线先于方案比较；数据权限和冻结评测先于验收；预算与降级先于上线；接手人演练先于撤离；净收益与采用情况先于扩量。原文的具体周数和示例阈值不替代项目签认。</p>
+<h2 id="how按时间盒执行验收并沉淀">HOW：按时间盒执行、验收并沉淀</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">九、现场节奏与商业模式</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>《交付总纲》把现场工作节奏写成五步</li><li>2. 第二到六周做 Design 加窄 Pilot：写 golden set，跑通一条核心工作流，产出“可勾选”的验收标准</li><li>5. 商业模式：第一次以小额收费的 Demo 建立信任，再以项目制交付核心场景，再以 retainer 持续优化</li></ul></div>3
+<p>《交付总纲》把现场工作节奏写成五步。</p>
+<ol>
+<li>第一周做 Discover：旁看一线、画流程图、找硬点、定非目标。</li>
+<li>第二到六周做 Design 加窄 Pilot：写 golden set，跑通一条核心工作流，产出“可勾选”的验收标准。</li>
+<li>部署期：分阶段 rollout，把工具嵌进员工已在使用的系统，寻找内部代言人，交付 Runbook。</li>
+<li>运行两到四周后做 Review：对照指标复盘，把案例补回知识库，把可复用的内容沉淀成模板并反馈产品。</li>
+<li>商业模式：第一次以小额收费的 Demo 建立信任，再以项目制交付核心场景，再以 retainer 持续优化。</li>
+</ol>
+<p>定价上，素材主张按成果价值，不按工时。依据是《赢利》里的“价是本，量是末”：收多少钱决定利润的正负，做多少单只决定规模大小。素材举了一个设备维修知识库的例子：维修工每单查历史故障要 20 分钟，日耗 140 小时，AI 上线后变成看一眼 AI 提取结果、重点复核标黄项，一年省 200 万人力；若按 3 天工时报价收 2 万，等于报价被工时锚定了，没有被客户价值锚定。</p>
+<p>三种定价模型如下。</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>适用场景</th>
+<th>参考逻辑</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>按成果定价</td>
+<td>客户能算清省了多少人力或时间</td>
+<td>节省的人力乘以 3 到 6 个月</td>
+</tr>
+<tr>
+<td>按项目定价</td>
+<td>交付物明确，如知识库搭建、流程改造</td>
+<td>行业基准加复杂度系数</td>
+</tr>
+<tr>
+<td>按 retainer 定价</td>
+<td>持续优化、上线后的迭代</td>
+<td>月度固定费，超量按次计</td>
+</tr>
+</tbody>
+</table>
+<p>实操要点三条。第一次合作用小额 Demo 加后续转化的模式，Demo 本身也收费（素材给出 5000 到 10000 的区间），否则客户不珍惜，也筛不掉白嫖者。报价时把准确率拆成阶段：第一版做到 80%，解决 80% 的场景，后续迭代到 90%，客户预期是“第一版 80%”，做到 83% 就是超预期。中小微客户要把服务拆成标准化小模块，例如知识库梳理一次固定价、流程诊断一次固定价、月度维护月度固定费，不要报“整体 AI 改造方案”，免得被价格吓跑。</p>
+<h3 id="八实战提炼智能客服端到端的七节方法论">八、实战提炼：智能客服端到端的七节方法论</h3>3
+<p>《FDE实战方法论》来自本地一个完整的智能客服 RAG 项目复盘，素材标注其性质是“从完整实战案例中提炼的通用方法论”。下面按七节整理。</p>
+<p><strong>需求：先划边界，再谈功能。</strong> 接到需求的第一个动作不是选模型，而是把“不做什么”写死。案例中客户想要“什么都能答”，实际交付的是只答退货、物流、商品三类，其余转人工。边界外的场景用代码硬编码为转人工，比让 Agent 自由发挥便宜得多，因为一次错误的退货承诺造成的损失，可能超过整套系统一个月的收益。SLA 要可测量：响应时间小于 3 秒、准确率大于 85% 这类指标必须配上测量方式，比如从 token 计时的首包时间、500 条人工标注评测集。RAG 主要解决外部知识与证据供给，微调主要解决经 Eval 证明的行为或任务适配；法律条文、医学指南即使更新慢，只要需要引用、权限和可追溯性，也不能默认把事实知识微调进参数。更新频率只是运营成本因素之一，不能单独决定选型。</p>
+<p><strong>选型：用解耦代替追新。</strong> 语言能力是通用的，知识是专属的，RAG 把两者解耦，知识更新是分钟级的，微调迭代以周计。是否引入微调要看 Eval 是否证明存在行为或任务适配需求，而不是等“RAG 做到最优”才考虑；需要引用、权限或可追溯知识时仍由 RAG/检索层承担。Embedding 选型三条标准：是否支持 dense 加 sparse 一体化，中文与垂直领域语义强度，能否本地部署。向量库按数据量和过滤需求选，十万级、简单过滤用嵌入式的 Chroma 快速验证，千万级、多条件权限过滤用服务式的 Qdrant。两者的切换应当是预案，不是返工，因为向量本身与库无关。</p>
+<p><strong>Demo：三天跑通“问一句、有答、带来源”。</strong> MVP 的价值在三条保守约束：低温（temperature 不高于 0.1），拒绝发散；“资料没有就转人工”，用 prompt 显式划边界，不指望模型自觉；强制标注来源，为评测与溯源留证据链。Demo 暴露的问题，比如 chunk 粒度切散了规则，就是迭代的起点。</p>
+<p><strong>部署：流式输出、并发兜底、模型路由。</strong> SSE 流式输出的意义在于主观等待时间取决于首 token 的出现，不是端到端时长。并发要用有界并发、队列上限、超时与背保护住上游，同时依据队列长度和 SLO 扩容；持续超载不能只靠排队，无界队列还会扩大内存与超时风险。模型路由按意图分级：物流查询这类高频模板化问题走小模型，退货规则这类复杂判断走大模型，边界场景根本不调 LLM。路由本身用轻量分类器，延迟小于 200 毫秒。语义缓存对高频重复 query 做 embedding 相似度命中，命中率 30% 到 40% 时能省掉三分之一以上的 LLM 费用。</p>
+<p><strong>成本：在架构里省钱。</strong> 月活 1 万用户的实测：全量大模型约 9360 元每月；加模型路由，75% 的请求走小模型，降到约 3700 元；再加语义缓存再省 35%，最终约 2400 元每月，合计省 74%。关键认知是省钱设计必须在写第一行 server 代码时就埋进去，等账单爆了再改，线上变更的风险大于收益。</p>
+<p><strong>故障复盘：幻觉的根因 80% 在检索。</strong> 案例里 AI 错答“掉色能 7 天无理由退”，表面是幻觉，根因是检索层没有召回“质量问题 15 天”那条文档。那条文档的标题是“非人为损坏说明”，不含“掉色”二字，dense embedding 对口语同义词不敏感。定位顺序应当是先查召回，也就是 top-k 里有没有正确答案，再去怪模型。修复手段是 hybrid 检索（dense 加 sparse）加 rerank 精排。性能类故障（超时）则优先查批处理凑批策略、定时任务抢占资源和上游限流，监控告警要盯队列长度，不能只看响应时间。</p>
+<p><strong>三条可迁移原则。</strong></p>
+<ol>
+<li>先上线再优化，但边界先划死。真实 query 分布只有上线后才暴露，但“什么必须转人工”第一天就要硬编码。</li>
+<li>评测集优先于模型选型。与其纠结哪个模型更好，不如建一个 500 条真实 query 的标注集，每次改动都回归跑一遍。准确率是磨出来的，不是换出来的。</li>
+<li>架构里埋省钱设计。模型路由和语义缓存是第一天的默认设计，不是事后补丁。</li>
+</ol>
+<p>这三条被《交付总纲》收录为“智能客服端到端三原则”，并配上“幻觉根因 80% 在检索层”的结论。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">HOW 补缺：把 DDDR 落成十个可验收操作单元</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>以下 M01—M10 是基于本文 DDDR、Eval、分阶段上线与业务复盘原则编写的合成教学实操，不是新增客户故事或厂商官方配置</li><li>常见坑：这里的 0.85 和 3000ms 是教学值，不能复制为所有行业的生产要求</li><li>non_goals: [自动改合同, 自动给法律结论]</li></ul></div>3
+<p>以下 M01—M10 是基于本文 DDDR、Eval、分阶段上线与业务复盘原则编写的<strong>合成教学实操</strong>，不是新增客户故事或厂商官方配置。配置块是自建项目的字段契约，须由应用实现并验证；保存 YAML 不代表系统已执行。阈值均为教学起点，生产值需由业务与安全负责人根据基线确认。Python 命令只依赖 Python 3 标准库、使用内存中的合成数据，不访问客户系统。</p>
+<h4 id="实操-m01冻结问题范围和拍板人">实操 M01：冻结问题、范围和拍板人</h4>
+<p><strong>步骤</strong>：①找一名一线操作者复现最近一次任务；②把问题、非目标和退出线填入下表；③业务 Owner 确认后记为 v1，后续改动另起版本并记录原因。</p>
+<pre><code class="language-yaml">pilot_contract:
+  version: v1
+  task: 合同条款定位与引用
+  owner: 待填业务负责人
+  mode: suggestion
+  non_goals: [自动改合同, 自动给法律结论]
+  baseline_window_days: 14
+  pilot_window_days: 14
+  decision: 待确认
+</code></pre>
+<p><strong>验收</strong>：Owner 不为空且不再是“待填”，有基线记录和签认定位后才进入 Design。<strong>常见坑</strong>：把 IT 联系人当业务 Owner；“准确率更高”没有分母，不能作验收线。</p>
+<h4 id="实操-m02算出包含复核的耗时基线">实操 M02：算出包含复核的耗时基线</h4>
+<p><strong>步骤</strong>：①按同一任务类型记录人工处理、AI 后处理及复核分钟数；②保留每单明细；③用下面命令核对净变化，试点后再换成获准使用的脱敏实测数据。</p>
+<pre><code class="language-bash">python3 - &lt;&lt;'PY'
+from statistics import median
+rows = [(45, 18, 7), (50, 20, 8), (40, 17, 9)]
+before = [record[0] for record in rows]
+after = [record[1] + record[2] for record in rows]
+print(f&quot;n={len(rows)} before_p50={median(before)} after_p50={median(after)}&quot;)
+print(f&quot;net_saved_minutes={sum(before)-sum(after)}&quot;)
+PY
+</code></pre>
+<p><strong>验收</strong>：示例输出 <code>n=3 before_p50=45 after_p50=26</code>、<code>net_saved_minutes=56</code>；真实评估同时记质量和任务难度。<strong>常见坑</strong>：漏算复核时间；同一人重复做同一题有记忆效应，不能直接据此宣称因果收益。</p>
+<h4 id="实操-m03先锁数据版本和可见范围">实操 M03：先锁数据版本和可见范围</h4>
+<p><strong>步骤</strong>：①请数据 Owner 提供一份获准使用的样本；②逐条填版本、生效期和权限；③把缺字段的记录列入隔离清单，补齐前不进试点索引。</p>
+<pre><code class="language-yaml">document_contract:
+  required: [doc_id, version, effective_from, effective_to, acl_groups, owner]
+  missing_acl: deny
+  expired_document: exclude
+  timezone: UTC
+  permission_check: before_retrieval_and_before_context
+  cache_partition: [tenant_id, permission_version, corpus_version]
+</code></pre>
+<p><strong>验收</strong>：普通用户、跨组用户、撤权用户各测一次，候选片段与缓存都只含当前可见版本。<strong>常见坑</strong>：只在最终回答遮盖越权内容；缓存命中绕过权限复核。</p>
+<h4 id="实操-m04用同一把尺子比较非-llm-与-rag">实操 M04：用同一把尺子比较非 LLM 与 RAG</h4>
+<p><strong>步骤</strong>：①选同一批任务；②分别跑规则/搜索方案和 RAG 助手；③盲评可用性，登记总耗时、复核和成本，再按硬门禁筛选。</p>
+<pre><code class="language-csv">candidate,task_set,usable_count,total_count,total_minutes,review_minutes,cost_cny
+rules_search,eval_v1,待测,待测,待测,待测,待测
+rag_assistant,eval_v1,待测,待测,待测,待测,待测
+</code></pre>
+<p><strong>验收</strong>：两行使用相同 task_set 和分母；total_minutes 含 review_minutes，计算时不重复相加；缺实测项则不作优胜结论。<strong>常见坑</strong>：只比模型回答速度，却不算人工校正或索引维护成本。</p>
+<h4 id="实操-m05冻结分层评测集并防止泄题">实操 M05：冻结分层评测集并防止泄题</h4>
+<p><strong>步骤</strong>：①从约定时间窗抽样并按文档/会话去重；②由业务人员标 expected_action 与正确出处；③按来源文档分组切分开发集和测试集，冻结后才调提示词。</p>
+<pre><code class="language-yaml">eval_contract:
+  version: eval_v1
+  sample_count: 100
+  strata: {answerable: 50, no_evidence: 20, cross_permission: 20, expired_version: 10}
+  group_split_key: source_document_id
+  required: [case_id, stratum, expected_action, expected_source, reviewer]
+  held_out: true
+</code></pre>
+<p><strong>验收</strong>：100 条均有标注；开发与测试的来源组无交集；各层分别报分子/分母。<strong>常见坑</strong>：100 条只是教学样本量，不保证统计充分；不能用看过答案的测试题继续调参后仍称其为盲测。</p>
+<h4 id="实操-m06把验收阈值写成可失败的判定">实操 M06：把验收阈值写成可失败的判定</h4>
+<p><strong>步骤</strong>：①业务 Owner 先冻结质量、权限与延迟线；②评测器输出同名指标；③运行判定，任何一项失败都给 No-Go，禁止用平均分覆盖越权。</p>
+<pre><code class="language-bash">python3 - &lt;&lt;'PY'
+limits = dict(min_accuracy=0.85, max_p95_ms=3000, max_acl_leaks=0)
+samples = [
+    dict(accuracy=0.90, p95_ms=2400, acl_leaks=0),
+    dict(accuracy=0.99, p95_ms=2400, acl_leaks=1),
+]
+def gate(metrics):
+    return (metrics[&quot;accuracy&quot;] &gt;= limits[&quot;min_accuracy&quot;]
+            and metrics[&quot;p95_ms&quot;] &lt;= limits[&quot;max_p95_ms&quot;]
+            and metrics[&quot;acl_leaks&quot;] &lt;= limits[&quot;max_acl_leaks&quot;])
+results = [gate(metrics) for metrics in samples]
+assert results == [True, False]
+print(&quot;positive=GO negative_acl=NO_GO&quot;)
+PY
+</code></pre>
+<p><strong>验收</strong>：正例通过、越权负例拒绝；缺指标或样本不足应由实际评测器报错并阻断。<strong>常见坑</strong>：这里的 0.85 和 3000ms 是教学值，不能复制为所有行业的生产要求。</p>
+<h4 id="实操-m07为超时过载和成本设预算">实操 M07：为超时、过载和成本设预算</h4>
+<p><strong>步骤</strong>：①在隔离试点逐档压测并记录吞吐与尾延迟；②按瓶颈配置下面的应用契约；③模拟队列满、上游超时和预算耗尽，检查每种情况的处理结果。</p>
+<pre><code class="language-yaml">runtime_budget:
+  max_inflight: 8
+  queue_capacity: 16
+  request_deadline_ms: 3000
+  max_retries: 1
+  retry_within_original_deadline: true
+  queue_full: reject_with_retry_after
+  timeout: handoff
+  daily_budget_cny: 100
+  budget_exhausted: handoff
+</code></pre>
+<p><strong>验收</strong>：超载能明确拒绝，重试不重置总超时，人工队列有容量与负责人；成本阈值触发后有记录。<strong>常见坑</strong>：无限队列吞内存；只计成功调用，漏计重试和失败调用费用。</p>
+<h4 id="实操-m08按状态推进上线并演练降级">实操 M08：按状态推进上线并演练降级</h4>
+<p><strong>步骤</strong>：①影子阶段仅记建议；②业务签认后进入建议模式；③发生泄漏或错误写操作立即关闭自动动作并回人工，记录恢复到安全状态的耗时。</p>
+<pre><code class="language-yaml">rollout:
+  current: shadow
+  allowed: [shadow, suggestion, limited_auto]
+  transition_requires: [eval_pass, owner_signoff, rollback_drill_pass]
+  auto_allowlist: [物流状态只读查询]
+  force_human_on: [acl_leak, unexpected_write]
+  rollback_target: human
+  initial_cohort_users: 5
+</code></pre>
+<p><strong>验收</strong>：低权限测试身份确实无法触发写操作；切回 human 后新请求走人工，已排队动作也取消或重新审批。<strong>常见坑</strong>：只改前端按钮，后台任务仍在写；回滚应用版本无法撤销已发生的业务副作用。</p>
+<h4 id="实操-m09由接手人完成交接演练">实操 M09：由接手人完成交接演练</h4>
+<p><strong>步骤</strong>：①维护者只看 Runbook，在测试环境独立完成主路径；②注入一个超时和一个无证据问题；③按记录定位故障、接管并恢复，不靠原作者口头提示。</p>
+<pre><code class="language-text">handoff_record:
+  服务/配置版本:
+  主路径输入与预期:
+  故障注入条件:
+  观测位置与关联 trace_id:
+  人工接管步骤与值班人:
+  恢复步骤与完成时间:
+  接手人/日期/证据定位:
+</code></pre>
+<p><strong>验收</strong>：主路径、超时接管、无证据拒答三条均有证据；接手人能解释何时升级。<strong>常见坑</strong>：培训签到不能代替实际操作；Runbook 引用不存在的命令或只有原作者能访问的看板。</p>
+<h4 id="实操-m10review-算净收益并做四选一决策">实操 M10：Review 算净收益并做四选一决策</h4>
+<p><strong>步骤</strong>：①同口径统计业务量、全链路耗时和质量；②扣除运行与维护费用；③把“扩大/维持/缩范围/停止”写进复盘，附下一轮验证项。</p>
+<pre><code class="language-bash">python3 - &lt;&lt;'PY'
+volume, before_min, after_min = 1000, 45, 28
+hourly_cost, attribution = 60, 0.5
+monthly_run_cost, monthly_maintenance = 1000, 2000
+capacity_value = volume * (before_min-after_min) / 60 * hourly_cost * attribution
+net = capacity_value-monthly_run_cost-monthly_maintenance
+print(f&quot;capacity_value_cny={capacity_value:.2f} net_estimate_cny={net:.2f}&quot;)
+PY
+</code></pre>
+<p><strong>验收</strong>：输出 <code>capacity_value_cny=8500.00 net_estimate_cny=5500.00</code>，仅为产能价值估算；需同时过质量、采用与权限门禁，才可讨论扩大。<strong>常见坑</strong>：节约分钟数不等于现金降本；0.5 归因系数是示例假设，须写依据和敏感性区间。</p>
+<h3 id="案例">案例</h3>3
+<p>本章把素材里与方法论直接相关的案例逐个展开，看每个案例分别体现了方法论的哪一环。</p>
+<h4 id="案例一智能客服端到端项目本地真实实战">案例一：智能客服端到端项目（本地真实实战）</h4>
+<p>这是《FDE实战方法论》的来源，也是本篇最完整的一条链路。把它放回 DDDR 框架，对应关系如下。</p>
+<ul>
+<li>Discover：客户说想要“什么都能答”，FDE 通过划边界把需求收敛成三类问题加转人工。SLA 要求响应小于 3 秒、准确率大于 85%，并配上测量办法。</li>
+<li>Design：按知识供给、引用权限与行为适配需求划分 RAG 和微调的职责，Embedding 与向量库的选型都留了切换预案。</li>
+<li>Deploy：三天 Demo 加三条保守约束，之后上 SSE 流式输出、信号量限流、模型路由与语义缓存。</li>
+<li>Review：用 500 条真实 query 的评测集回归，处理“掉色能 7 天无理由退”这类故障，把根因追到检索层，并以 hybrid 检索加 rerank 修复。</li>
+</ul>
+<p>这个案例对方法论的贡献在三处。其一，它把“边界即安全”落到了具体的工程动作上，即边界外硬编码转人工。其二，它给出了一组可复核的成本数字：9360 元降到 3700 元再降到 2400 元，省 74%。其三，它给出了一条诊断顺序：先查召回再怪模型。素材同时标注其来源是本地实战，数字是该项目的实测，客户承诺前必须以自己项目的实测替换。</p>
+<h4 id="案例二远洋保险的流程耗时表素材转述未独立核验">案例二：远洋保险的流程耗时表（素材转述，未独立核验）</h4>
+<p>这个案例在素材《FDE交付总纲》中被用来说明定价的锚点，也在其他篇目中用来说明 Discover 阶段如何用一张表找到 AI 的插入点。核对环节占用 20 分钟，约占单案总时长的一半，日总耗时 140 小时。AI 预读环节插入后，理赔员的动作从打开三个系统逐项核对，变成看一眼 AI 提取的结果、重点复核标黄项。</p>
+<p>放到方法论里，这个例子说明 Discover 的出口产物应当是“能指出钱该花在哪”的数据，而不是泛泛的痛点列表。本文整理：这张表既是 Discover 的产物，也是后面 Prove 阶段对照 ROI 的基线，并且支撑了定价时的“成果锚定”。需要说明的是，本篇使用的素材对这个案例的转述限于上述数字，更完整的细节在其他篇目，此处不扩写。</p>
+<h4 id="案例三制造业设备维修知识库素材转述未独立核验">案例三：制造业设备维修知识库（素材转述，未独立核验）</h4>
+<p>素材在多处提到同一个制造业例子：公司想用 AI 整理设备维修记录，初衷是让维修工能秒读历史故障和解决方案，但发现设备编码和故障分类都没有统一，AI 读不懂这些记录。外部团队进来后先做了三件事：统一设备编码和故障分类，把高频问题提炼成标准知识条目，规定提问格式和答案验收标准。</p>
+<p>它对方法论的意义是说明 Discover 阶段要包含“数据与权限现实”的核查，而 Design 阶段在选型之前就要先决定数据治理要不要先做。在《交付总纲》里，这个例子又被用作定价案例：维修工每单查历史故障 20 分钟、日耗 140 小时，素材估算 AI 上线后一年可省 200 万人力，对应的定价错误是按 3 天工时报价 2 万。该“200 万”是素材中的价值估算，不是经独立核验的实际节省结果，而且净节省还须扣除上线后的全链路复核耗时。同一个例子在两处用于不同论点，本文原样并列，不做合并裁决。</p>
+<h4 id="案例四palantir-的起源场景">案例四：Palantir 的起源场景</h4>
+<p>Palantir 的案例是“组织层面的案例”：客户（情报与国防机构）既说不清需求，又不能共享数据，工作流还常变，传统流程失效，于是把工程师嵌进客户环境。它的价值在于说明：Discover 不是一个可以外包给问卷的环节，在需求说不清的场景里，观察加实验加实时构建才是获得需求的方式。从结果看，素材给出了 FDE 规模超过传统工程师、2024 年营收 28.7 亿美元等公开口径数字，但这些是上市公司披露口径，不等于方法论本身的因果证明。</p>
+<h4 id="案例五anthropic-的六周节奏与访谈转测试用例">案例五：Anthropic 的六周节奏与访谈转测试用例</h4>
+<p>Anthropic 一侧的素材没有给具体客户案例，给的是做法：六周分五段，访谈转录里的引语、摩擦点、未解问题直接变成 eval 用例，门槛归客户。本文把它当作“方法案例”使用，用来对照 DDDR 中 Design 阶段的“Eval 设计”。素材的来源是 Perspective AI 的分析，属于第三方二手解读，使用时需要留意这一点。</p>
+</div></details><h2 id="阶段评审与跨阶段移交卡">阶段评审与跨阶段移交卡</h2>2
+<p>以下合成教学案例模板把原有阶段出口压到同一张移交卡，供真实项目填入证据，不是厂商官方表单：</p>
+<pre><code class="language-text">阶段/范围/版本：
+问题合同及非目标：
+Context证据：用户、现状、约束、Owner
+Code证据：目标环境主路径、权限、审计
+Calibration证据：冻结集版本、分层结果、业务基线、失败样本
+Compounding证据：新增模板、连接器、回归题、产品反馈
+本阶段未达项/下一阶段禁止扩大范围：
+下一责任人/接手演练定位/值班升级路径：
+Go或No-Go/决策人/日期/失效条件：
+</code></pre>
+<p>放行检查同时看正例与负例：正常请求完成并有证据；无证据问题拒答或接管；越权与撤权请求被阻断；超时与预算耗尽走既定降级；接手人不依赖作者完成主路径。任一硬约束未通过，就维持原范围或缩范围；不能用其他维度高分抵消。</p>
+<h3 id="小结">小结</h3>3
+<p>本篇把五份素材归并为一条主线：FDE 对生产环境的真实业务结果负责，用 DDDR 四阶段做项目骨架，用 FDE Loop 在每个阶段内部沉淀判断力，用 4C 和三大核心能力做验收与人才画像，用 Palantir 与 Anthropic 的做法作为外部参照，用智能客服端到端案例作为落地样本。</p>
+<p>几条贯穿全篇的规律，本文整理如下。</p>
+<ul>
+<li>红线集中在入口：Discover 的出口检查、Design 的 Eval 计划，是后续所有翻车的最早可拦截点。</li>
+<li>自动化靠结果换取：影子、建议、自动的 rollout 与判断单元的 suggest、approve、auto 是同一种思想。</li>
+<li>复杂度需要论证：Anthropic 的工程共识与 Design 阶段“含不做 LLM 选项”的要求互相印证。</li>
+<li>价值要能被量化：Discover 阶段的耗时表、Prove 阶段的 ROI、定价阶段的成果锚定，三者共用同一份基线。</li>
+</ul>
+<h4 id="缺口清单">缺口清单</h4>
+<p>素材自带的缺口清单如下，原样保留，便于后续补课。</p>
+<ul>
+<li>缺 FDE 报价速算表，即按行业和场景的参考价区间。</li>
+<li>缺 Playbook 模板，即每类客户跑完一遍后应沉淀的可复用件。</li>
+<li>缺“从项目交付到产品化”的演进路径，也就是什么时候该把某个场景做成标准 SaaS 模块。</li>
+<li>缺 FDE 能力评估与招聘的标准题库，即 4C 维度的面试题。</li>
+<li>缺六员协作里 FDE 角色与 DSH、Claude、Codex 的分工手册。</li>
+</ul>
+<p>本文整理时发现的新缺口：</p>
+<ul>
+<li>“8 阶段工作流”只有标题，没有在正文中列出八个阶段的名称，需要回到九天Hector 的原始转录或视频核对，目前不得补写。</li>
+<li>OpenFDE 的 3C 能力框架在素材中未取到具体内容，与 4C 的关系未证实。</li>
+<li>七条组织设计准则中只有四条在素材中展开，其余三条未取得。</li>
+<li>五份素材之间对“交付节奏”的口径各异，没有统一的对照基准，本文只做了并列。</li>
+</ul>
+<h4 id="诚实边界">诚实边界</h4>
+<ul>
+<li>合成教学案例（VanGong1999/FDE）的数字是示意值，用于说明方法，不能当作行业基准；对客户做出承诺前，必须以自己项目的实测数据替换。</li>
+<li>B站案例的数据来自源文档整理，本文未独立核验；九天Hector 一侧是 ASR 转录加讲师个人综合，转录中个别字词需要甄别，不是官方口径。</li>
+<li>Palantir 的财务与规模数字是素材转引的公开口径，Anthropic 一侧来自第三方分析（Perspective AI），本文未回溯原始披露。</li>
+<li>智能客服项目的成本数字是该本地项目的实测，不构成通用结论。</li>
+<li>本文不编造真实客户故事，所有案例都来自上述素材，未加入任何素材之外的事实。</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>"评审对着证据不对话术"：收口凭据门禁（<code>/home/wuyafang/.hermes/scripts/receipt.py</code>，文件头即门禁清单，grep 可验）</strong>：<br />
+<code>python
+  G4 新鲜度(P0-1)         证据 mtime 必须晚于 declare (防旧存证复用); retroactive 补救须晚于上次判红
+  G5 范围绑定(P0-1)       证据文本须包含本次 --files 的每个 basename (防自撰/无关存证)
+  G6 时间戳反证(Claude)   证据 mtime &lt; 改动 mtime 才绿 (先审后改), 反之=先改后审→红
+  G7 baseline范围检测     guard 类变更集 ⊆ declared files, 越界→红 (抓 under-declaration)</code><br />
+  这三条正好对应交接卡最容易糊弄的三处：<strong>拿旧证据充数、拿无关证据充数、偷偷超出申报范围改动</strong>——全部被机械判红。用法是 <code>declare</code>（声明任务与 <code>--check</code> 命令）→ <code>verify</code>（复跑，<code>p2 = sub.add_parser("verify", help="验收(全绿+门禁过才算完成)")</code>）。</li>
+<li><strong>跨阶段移交的历史留痕（<code>/home/wuyafang/.hermes/scripts/handoff_state.py</code>）</strong>：<code>HANDOFF.md</code> 六段（Current task / Confirmed decisions / Evidence / Completed / Still unverified / Next action）+ <code>MAX_LOG_ENTRIES = 15</code>——"未验证项"必须显式留在纸上，不靠口头补。</li>
+<li><strong>和课件讲法的差异</strong>：课件阶段评审是"评审会 + 移交卡 + 决策记录"的组织形式；本库用<strong>脚本凭据 + 状态文件</strong>替代。本库没有评审委员会这一层，也没有正式的阶段 Gate 会议记录模板与客户侧签字流程。</li>
+</ul>
+<h2 id="三源与论文融合落点2026-11-04">三源与论文融合落点（2026-11-04）</h2>2
+<ul>
+<li><strong>课件</strong>：<code>raw/courseware/2603期AI大模型Agent篇__2603期AI大模型Agent篇__7-Agent详解-2026-4-3-初见__day07/_代码课件汇总.md</code> 的 Agent/Eval 素材对应 Design 阶段“先可评估，再增加自主性”；不把课件演示能力写成生产能力。</li>
+<li><strong>书籍/摘录</strong>：<code>raw/weread/FDE/赢利：未来10年的经营能力.md</code> 的成果思维、战略边界与知识银行热门划线，对应 Discover 的业务基线、Design 的非目标和 Review 的组织资产沉淀；只使用本地划线，未声称阅读全书。<code>raw/weread/FDE/FDE-AI落地实战指南.md</code> 第 18—21 章目录也用于核对 Demo 到生产的治理链条。</li>
+<li><strong>业内一手材料</strong>：<code>raw/sources/Anthropic-FDE与Palantir-Ontology一手-20260930.md</code> 与 <code>raw/sources/全球FDE对标-Palantir与AI巨头方法论-20260930.md</code> 分别提供 Palantir Ontology/FDE 与 Anthropic 工程原则的一手或整理材料；落地为最小可行模式、权限随 Action 设计、项目反馈回流产品，而非把第三方转述当官方保证。</li>
+<li><strong>论文结论→执行动作</strong>：arXiv:2610.31657（<code>raw/sources/arxiv-daily/2026-10-22-2610.31657.md</code>）的成本敏感拒答框架要求在校准集选择并冻结策略，再在留出集评价错误路由成本。全景方法据此把“自动化程度”改为可评审决策：Design 记录正确自动、转人工和错误自动的代价；Deploy 用影子/建议期数据校准；冻结阈值后才评审有限自动，高代价或低置信动作保持 HITL。论文不是通用上线认证。</li>
+</ul>
+<blockquote>
+<p>三段结构补齐 2026-11-03；三源与论文落点补齐 2026-11-04</p>
+</blockquote></div></body></html>

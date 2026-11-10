@@ -1,0 +1,203 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L3-AI协同编程-最佳答案</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L3-AI协同编程-最佳答案</span></div><div class="wrap"><h1 id="l3-ai-协同编程harness-基础与最小工程闭环">L3 AI 协同编程：Harness 基础与最小工程闭环</h1>
+<blockquote>
+<p>本主题唯一正文。阅读路线：本篇建立工程闭环 → <a href="L3-ClaudeCode%E4%B8%8EVibeCoding-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">Claude Code 与 Vibe Coding</a> → <a href="L3-%E5%85%AD%E5%91%98%E5%8D%8F%E5%90%8C%E4%B8%8E%E5%B7%A5%E5%85%B7%E9%80%89%E5%9E%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">六员协作与 Codex</a> → <a href="L3-Harness%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">性能与成本</a> → <a href="L3-Harness%E6%A1%88%E4%BE%8B%E4%B8%8E%E4%B8%9A%E7%95%8C%E5%AF%B9%E6%AF%94-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">案例与选型</a>。<br />
+核验日：2026-11-03。“WHYT”按“是什么”解释，标题保留 WHAT / WHYT 两种标识。书籍证据范围为本地目录与划线，不宣称读过全文。</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY：为什么生成代码之后还需要 Harness</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>让模型生成一段能运行的程序，只完成了交付的一部分</li><li>真实任务还要求知道改哪个目录、哪些接口不能变、失败后从哪里继续，以及由什么证据证明结果满足需求</li><li>Harness 是承载这些动作的工程运行环境：模型提出行动，运行时检查权限、执行工具、收集观察，再把可验证的结果反馈给下一步</li></ul></div>2
+<p>让模型生成一段能运行的程序，只完成了交付的一部分。真实任务还要求知道改哪个目录、哪些接口不能变、失败后从哪里继续，以及由什么证据证明结果满足需求。Harness 是承载这些动作的工程运行环境：模型提出行动，运行时检查权限、执行工具、收集观察，再把可验证的结果反馈给下一步。它影响可靠性，但“永远比模型重要”不是已经证明的普适定律。[课1][书1][业1]</p>
+<p>课件从常见失败讲起：复杂任务容易路径错乱、上下文膨胀、目标丢失；DeepAgents 因而组合规划、文件操作、子代理和上下文管理。橙皮书把同类工程问题拆成指令、约束、反馈、记忆、编排五组件。当前 Deep Agents 官方文档直接称其为 agent harness，并说明它建立在 LangChain、LangGraph 之上。这三类材料应合成一个落地判断：先找出阻止交付的具体缺口，再补对应机制，不按组件数量评判先进程度。[课1][书1][业1]</p>
+<p>例如，模型修改了接口却忘记更新调用方，优先补接口契约与回归；模型不知道测试命令，补薄入口；任务中断后重复执行付款，补幂等和持久状态。三种故障都不能靠“再认真一点”解决，也不必一律引入六个智能体。</p>
+<h2 id="what-whyt五组件如何成为可检查的系统">WHAT / WHYT：五组件如何成为可检查的系统</h2>2
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>需要保存的实际对象</th>
+<th>验证方式</th>
+<th>常见误解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>指令</td>
+<td>AGENTS.md / CLAUDE.md、目录约定、验收标准</td>
+<td>从正确目录启动，检查模型是否识别适用规则</td>
+<td>文件存在就代表已加载</td>
+</tr>
+<tr>
+<td>约束</td>
+<td>操作权限、路径边界、网络边界</td>
+<td>在隔离实验中试允许与拒绝两条路径</td>
+<td>在提示词写“只读”就是只读</td>
+</tr>
+<tr>
+<td>反馈</td>
+<td>测试、静态检查、人工复核、错误摘要</td>
+<td>故意引入缺陷，检查是否失败</td>
+<td>退出码 0 或自报完成就足够</td>
+</tr>
+<tr>
+<td>记忆</td>
+<td>决策、失败触发条件、恢复位置、证据指针</td>
+<td>新会话能恢复约束并继续任务</td>
+<td>把整个历史永久塞回提示词</td>
+</tr>
+<tr>
+<td>编排</td>
+<td>任务依赖、写入归属、交接契约</td>
+<td>子任务失败时整体不能报完成</td>
+<td>六个文件就应拆六个代理</td>
+</tr>
+</tbody>
+</table>
+<p>五组件是书籍的教学分解，不是任何产品共享的配置协议。旧稿里的 <code>harness/instruction.yaml</code>、<code>constraint.sandbox</code>、<code>feedback_strength</code> 等字段没有对应加载器，不能复制进 Claude Code 或 Codex 就期待生效。本篇用真实指令文件、标准 Python 验证程序和显式任务契约代替这些“看似配置”的示意字段。[书1][书2]</p>
+<p>三个层次也要分开：Prompt 工程处理单次表达；Context 工程处理输入资料的选择与组织；Harness 工程把这些输入连接到工具、权限、状态与验证。框架可以实现其中多个层次。DeepAgents 同时提供编排和执行能力，因此不应把“所有框架只管编排，所有 Harness 只管执行”写成绝对划分。[业1]</p>
+<p>课件中的 <code>MemorySaver</code> 是内存检查点，不能据此宣称进程退出后仍可恢复；<code>FilesystemBackend(..., virtual_mode=True)</code>限定文件工具的路径视图，也不能替代任意 shell 命令的操作系统隔离。验证时必须分别测文件工具、命令执行、网络、持久化，不用一个参数推断四项能力。[课1，后两项为工程推导]</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">HOW：从一个小任务搭建能验收的闭环</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="1-先把需求写成契约">1. 先把需求写成契约</h3>3
+<p>以下是教学项目，使用 Python 3 标准库，不连接模型、不读取凭据。任务是实现 <code>normalize_tags</code>：接收字符串列表，去除两侧空白、转小写、丢弃空项、去重并保持首次出现顺序；遇到非字符串抛 <code>TypeError</code>。它刻意包含顺序与错误分支，避免只验证正常输入。</p>
+<p>在专用练习目录建立下面结构；不要把示例命令指向已有生产仓库。</p>
+<pre><code class="language-text">harness-lab/
+├── AGENTS.md
+├── CLAUDE.md
+├── tags.py
+├── test_tags.py
+└── handoff.md
+</code></pre>
+<p><code>AGENTS.md</code> 的最小内容如下。Claude Code 使用的 <code>CLAUDE.md</code> 可放相同的短规则；这属于教学双工具适配，实际团队应明确哪个文件是维护正本。</p>
+<pre><code class="language-markdown"># 项目约定
+目标：实现可预测、可解释的标签规范化函数。
+只修改 tags.py、test_tags.py、handoff.md。
+接口：normalize_tags(values: list[str]) -&gt; list[str]。
+保留首次出现顺序；非字符串元素抛 TypeError。
+验收：python3 -m unittest -v test_tags.py。
+先说明计划，再修改；完成时报告真实测试结果与剩余限制。
+任务结束把接口、修改文件、测试命令写入 handoff.md。
+</code></pre>
+<p>Codex 的官方发现规则是按全局、项目根到工作目录构建指令链，同一目录优先 <code>AGENTS.override.md</code>，再 <code>AGENTS.md</code>；并非全仓库每个同名文件都自动加载。合并文档默认大小上限是 32 KiB，属于字节上限，不是 token 数。[业2]</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2. 用行为断言锁定验收边界</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>将下面内容保存成 「test_tags.py」</li><li>self.assertEqual(normalize_tags([" AI ", "Python"]), ["ai", "python"])</li><li>self.assertEqual(normalize_tags(["B", "a", "b"]), ["b", "a"])</li></ul></div>3
+<p>将下面内容保存成 <code>test_tags.py</code>。本例是行为契约，不限定实现算法。</p>
+<pre><code class="language-python">import unittest
+from tags import normalize_tags
+
+class TagTests(unittest.TestCase):
+    def test_normalize(self):
+        self.assertEqual(normalize_tags([&quot; AI &quot;, &quot;Python&quot;]), [&quot;ai&quot;, &quot;python&quot;])
+    def test_order_and_dedup(self):
+        self.assertEqual(normalize_tags([&quot;B&quot;, &quot;a&quot;, &quot;b&quot;]), [&quot;b&quot;, &quot;a&quot;])
+    def test_empty(self):
+        self.assertEqual(normalize_tags([&quot;&quot;, &quot;  &quot;]), [])
+        self.assertEqual(normalize_tags([]), [])
+    def test_non_string(self):
+        for value in (None, 3, {}, True):
+            with self.assertRaises(TypeError):
+                normalize_tags([&quot;ok&quot;, value])
+    def test_input_unchanged(self):
+        values = [&quot; A &quot;, &quot;a&quot;]
+        original = values.copy()
+        normalize_tags(values)
+        self.assertEqual(values, original)
+
+if __name__ == &quot;__main__&quot;:
+    unittest.main()
+</code></pre>
+<p>先只有空实现时测试应该失败。参考实现如下；可以交给 AI 独立实现后再比较行为，不能把“与参考代码长得一样”当作质量门槛。</p>
+<pre><code class="language-python">def normalize_tags(values):
+    result, seen = [], set()
+    for value in values:
+        if not isinstance(value, str):
+            raise TypeError(&quot;tag must be a string&quot;)
+        tag = value.strip().lower()
+        if tag and tag not in seen:
+            seen.add(tag)
+            result.append(tag)
+    return result
+</code></pre>
+<pre><code class="language-bash">python3 -m unittest -v test_tags.py
+</code></pre>
+<p>预期 5 个测试通过。负例验证：临时把 <code>result.append(tag)</code> 改为 <code>result.insert(0, tag)</code>，顺序测试必须失败，然后恢复。这证明验收会识别一种真实缺陷，不能证明所有 Unicode、性能或业务需求都被覆盖。</p>
+<h3 id="3-让反馈真正改变下一步">3. 让反馈真正改变下一步</h3>3
+<p>失败时交给执行者四项信息：失败测试名、输入、期望与实际、允许修改范围。不要只发“测试没过”。修复后复跑失败项与同模块回归；同一原因最多重试 2 次，再次失败应回到需求或环境诊断。两次是本任务采用的工作上限，不是行业默认值。</p>
+<p>记忆只保存可复用内容：例如“标签顺序具有业务含义，禁止用排序替代去重”。一次性的运行日志只存引用，不变成常驻规则。课件的销售分析 Skill 同样要求先读 KPI 定义、调用现有脚本、消费结构化结果，只有脚本不覆盖需求时才补代码。这是减少重复推理与口径漂移的具体做法。[课2]</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4. 把交接写成恢复说明</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-markdown"># handoff
+目标：normalize_tags，保持首次出现顺序。
+已改：tags.py、test_tags.py。
+已验证：python3 -m unittest -v test_tags.py；5 个测试通过。
+负例：反转输出顺序会使测试失败，已恢复正确实现。
+未验证：超大输入性能、业务特定 Unicode 规则。
+下一步：由接手者重跑命令，再判断是否进入业务集成。
+</code></pre>
+<p>以上为填写示例，真实项目必须换成实际输出。重新开会话时只提供契约、相关文件与交接，不复制全部对话。若新会话仍改了无关文件，先查指令发现路径和权限，不继续加十条同义规则。</p>
+<h3 id="5-何时升级系统">5. 何时升级系统</h3>3
+<p>单任务可用时才考虑并行：先固定接口，拆成不相交写集；共享配置、数据库迁移、同一文件统一串行。需要跨进程恢复时引入持久检查点；需要业务审批时保存批准绑定的产物版本；需要长期运行时定期产出可验证增量。清单、哈希和测试各有作用：哈希能证明字节一致，不能证明内容正确；测试能证明覆盖行为，不能证明权限隔离。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库的「协同编程最佳答案」其实是三条能机械复现的约束（<code>~/.hermes/AGENTS.md</code> + 门禁脚本，本次实测）</strong>：<br />
+  1. <strong>写操作必须派子智能体、且用真通道</strong>：<code>dispatch-guard.py --task "..."</code> 本次实跑给出「建议执行者: DSH」，并给后闸「写操作必须用真通道命令，不能用 delegate_task」。<br />
+  2. <strong>完成必须有可执行证据</strong>：<code>receipt.py</code> 的技能文档写明「自述✅不被采信，逐项贴 <code>-n</code> 原始输出」；本次任务的验收就是「实跑 + 贴原始日志行」。<br />
+  3. <strong>同错 3 次停手</strong>：错误指纹去时间戳/路径/ID 后 <code>lookup_error.py</code> 查台账，命中即套用。本次查询「替换后字数减少」「wiki 小节插入 位置」两条都是「新坑，台账无记录」——<strong>先查后动手</strong>。</li>
+<li><strong>一个真实的失败成本对比</strong>：本库技能文档记录 receipt 全流程「实测烧 20 分钟 50 轮，改动本体 1 行」，因此判据被收窄为「<strong>能用一次真调/grep 复原验证的，不进 receipt 全流程</strong>」。这条判断是本库对「协同编程最佳答案」最有价值的贡献——<strong>门禁要按风险分级，不是越多越好</strong>。</li>
+<li><strong>和课件讲法的差异</strong>：课件/文章讲多 Agent 协作多在「如何分工、如何通信」；本库补的是「<strong>如何防止多 Agent 互相帮倒忙</strong>」（并发写锁、trace 防篡改、收口人必填）。</li>
+<li><strong>本库暂无</strong>：跨 Agent 的实时消息通道；六员交互靠任务表与文件落盘。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库的「协同编程最佳答案」最后落到三条机械约束：<code>AGENTS.md</code> 里「写操作派子智能体」「trace 带 sha256」「派单前跑 dispatch-guard」，对应的判据都能用一条命令复现。</li>
+<li><strong>读源码</strong>：协同编程要点；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">来源与三源融合落点</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>[课1] 课件：DeepAgent框架，开篇三层关系、Backends、StateBackend / FilesystemBackend、子代理章节</li><li>本次读取对应原文与代码，未运行含模型调用的课件</li><li>[课2] 课件：Agent篇 day16 销售分析 Skill，执行流程 1—8、脚本调用规则</li></ul></div>2
+<ul>
+<li><strong>[课1] 课件</strong>：<a href="../../raw/courseware/%E9%A3%9E%E4%B9%A6%E6%96%B0%E7%A9%BA%E9%97%B4/DeepAgent%E6%A1%86%E6%9E%B6.md">DeepAgent框架</a>，开篇三层关系、Backends、StateBackend / FilesystemBackend、子代理章节。本次读取对应原文与代码，未运行含模型调用的课件。</li>
+<li><strong>[课2] 课件</strong>：<a href="../../raw/courseware/Agent%E7%AF%87/day16__skills__sales-analysis__SKILL.md">Agent篇 day16 销售分析 Skill</a>，执行流程 1—8、脚本调用规则。转化为“先统一契约、复用脚本、消费结果”的实践。</li>
+<li><strong>[书1] 书籍摘录</strong>：<a href="../../raw/weread/Harness%20Engineering%E6%A9%99%E7%9A%AE%E4%B9%A6%EF%BC%9AAI%E7%BC%96%E7%A8%8B%E6%97%B6%E4%BB%A3%E7%9A%84%E5%B7%A5%E7%A8%8B%E6%96%B9%E6%B3%95%E8%AE%BA.md">Harness Engineering橙皮书</a>，章节 04—05、13—17 与划线 2、3、11、12。五组件来自书籍；本篇教学程序为原创示例。</li>
+<li><strong>[书2] 书籍摘录</strong>：<a href="../../raw/weread/Claude%20Code%E5%AE%9E%E6%88%98%EF%BC%9AHarness%E5%B7%A5%E7%A8%8B%E4%B9%8B%E9%81%93.md">Claude Code实战：Harness工程之道</a>，划线 3、11、17、20。支持规则减法、记忆与渐进式披露。</li>
+<li><strong>[业1] 官方</strong>：<a href="https://docs.langchain.com/oss/python/deepagents/overview.md">Deep Agents overview</a>，2026-11-03 GET 200，支持 harness 定位、框架关系、文件系统、上下文和子代理能力。</li>
+<li><strong>[业2] 官方</strong>：<a href="https://developers.openai.com/codex/guides/agents-md">Custom instructions with AGENTS.md</a>，2026-11-03 GET 200，支持发现顺序与文档大小上限。</li>
+</ul>
+<p>验收口径：文内标准库例子可离线复验；模型执行、权限隔离和生产集成需在具体宿主另验。实测记录见<a href="00-%E8%9E%8D%E5%90%88%E6%B8%85%E5%8D%95%E4%B8%8E%E9%AA%8C%E6%94%B6.html">融合清单与验收</a>。</p></div></details></div></body></html>

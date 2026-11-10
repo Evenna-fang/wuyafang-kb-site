@@ -1,0 +1,689 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L5-多Agent协作与编排-深挖整合</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/L5-多Agent协作与编排-深挖整合</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="l5-agent">L5 多 Agent 协作与编排：何时拆、怎么编、哪里会坑</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a>
+本篇是 L5 Agent 工程的第 2 篇。第 1 篇讲单 Agent 的循环设计，第 3 篇讲框架选型，第 4 篇讲工具层与 A2A 协议，第 5 篇讲记忆，第 6 篇讲生产化可靠性与评估。本篇只讲"多个 Agent 怎么协作"，与其他篇重叠的内容只保留一句话并给出链接。</p>
+</blockquote>
+<h2 id="_1">导读</h2>
+<p><strong>核心结论</strong></p>
+<ol>
+<li>多 Agent 是用 token 与延迟换取能力的权衡，不是更高级的默认形态。默认先上单 Agent，跑一段时间遇到真实瓶颈再拆。</li>
+<li>拆之前看四个信号：prompt 装不下、工具选错率高、需要独立的批判者、任务天然分阶段。四个信号都没有出现时，拆出来的多 Agent 通常只会增加成本。</li>
+<li>协作成立有三个前提：任务真可并行、子任务之间没有强依赖的共享上下文、没有写冲突。Cognition 进一步主张共享完整的 agent trace，并把写操作放在单线程里。</li>
+<li>六员体系的默认骨架是 orchestrator-worker，加步骤间自动校验、独立的 LLM 评审层（OpenClaw）和确定性终门。常见的协作坑集中在通信开销、责任归因不清、幻觉传递和成本失控几类，每类都有对应的规避手段。</li>
+<li>LangGraph 的并行分叉、条件边、Send 动态分发、父子图和 handoff 是实现以上编排的基本原语。CrewAI 适合确定性流水线，AutoGen 适合开放式对话式协作。</li>
+</ol>
+<hr />
+<h2 id="agent">一、为什么、何时拆多 Agent</h2>
+<h3 id="11-agent">1.1 默认是单 Agent，拆是最后手段</h3>
+<p>多 Agent 不是更高级，而是更贵、更慢、更难调试。《动手做 AI Agent》和《Building Agentic AI Systems》两本书都对"为了拆而拆"提出了警告。我们的判断与之一致：先用单 Agent 把能力榨干，再决定是否拆。</p>
+<p>下表给出单 Agent 足够和应该拆分的判断维度。</p>
+<table>
+<thead>
+<tr>
+<th>判断维度</th>
+<th>单 Agent 就够</th>
+<th>该拆多 Agent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>任务步数</td>
+<td>不超过 5 步</td>
+<td>10 步以上，且能清晰分段</td>
+</tr>
+<tr>
+<td>工具数量</td>
+<td>不超过 10 个</td>
+<td>20 个以上，混在一起模型选错率飙升</td>
+</tr>
+<tr>
+<td>人设需求</td>
+<td>一个 persona 搞定</td>
+<td>调研、编码、审查需要不同的 prompt</td>
+</tr>
+<tr>
+<td>成本敏感</td>
+<td>要省 token</td>
+<td>质量优先，愿意付 2 到 5 倍 token</td>
+</tr>
+<tr>
+<td>调试难度</td>
+<td>出问题好定位</td>
+<td>能接受"哪个 Agent 出问题"的排查成本</td>
+</tr>
+</tbody>
+</table>
+<p>默认结论写在这里：先上单 Agent，ReAct 或 Plan-and-Execute 都可以，跑一周遇到真实瓶颈再拆。简单任务拆成多 Agent，等于付 N 倍 API 成本，换不来对应的收益。</p>
+<h3 id="12">1.2 四个必须拆的信号</h3>
+<p>信号一，prompt 已经装不下。典型情况是 system prompt 里塞了 30 个工具描述、5 套业务规则和 2 个人格设定。模型的注意力被稀释，开始丢三落四。</p>
+<p>信号二，工具选错率高。同一个 Agent 既查数据库、又发邮件、又写代码，模型经常会选"发邮件"去做"查数据库"的事。拆成"数据 Agent"和"通信 Agent"可以直接解决这个问题。</p>
+<p>信号三，需要对抗或批判。写代码的 Agent 不应该自己审自己。《Building Agentic AI Systems》专门强调，Reflection 需要独立的 Critic，不能是同一个 LLM 的自我循环，因为自己审自己等于没有审。</p>
+<p>信号四，任务天然分阶段。调研、设计、执行、验收是四个不同阶段，可以用不同 Agent 各管一段，状态通过消息或文件传递。</p>
+<h3 id="13">1.3 拆的代价与不拆的代价</h3>
+<p>不拆的代价，是单 Agent 跑复杂任务时会出现三类问题。长上下文会导致模型"中间遗忘"（lost in the middle）。工具一多，选错率随之升高。一个 prompt 改一处，会牵动全身。</p>
+<p>拆的代价也有四项。Token 成本是 2 到 5 倍，因为每个 Agent 都有自己的 system prompt。延迟会拉长，串行的多 Agent 比单 Agent 慢 3 到 10 倍。调试变难，"是哪个 Agent 哪一步出的错"必须依靠全链路日志才能回答。状态传递本身也有成本，Agent 之间传递上下文时容易丢信息。</p>
+<p>成本的量级在不同来源里有不同口径，这里并列列出，不做合并。Anthropic 官方口径是多 Agent 约消耗 15 倍的 chat token，单 Agent 约 4 倍。同一来源指出，token 用量单独就能解释 BrowseComp 评测 80% 的方差，所以"多 Agent 的魔法很大程度上是花更多算力"。单 Agent 与多 Agent 选型的判断文档给出的拆分代价是 2 到 5 倍 token，延迟 3 到 10 倍。两组 token 数字的测量对象不同，选型时应按自己的任务各测一遍。</p>
+<h3 id="14">1.4 书籍之间的观点分歧</h3>
+<p>三本书的立场并不一致，需要标注清楚。《大模型项目实战》偏乐观，认为 CrewAI 和 AutoGen 的多角色协作效果好。《Building Agentic AI Systems》偏保守，主张只有高风险任务才值得投入更多算力做多 Agent，普通任务单 Agent 即可。Cognition 的文章主张默认排除多 Agent。我们采用的判断是：先单 Agent 榨干，再拆，多 Agent 是最后手段，不是默认配置。</p>
+<h3 id="15">1.5 拆分的最小可行步骤</h3>
+<p>第一步，把单 Agent 的 prompt 按业务域切成两份，看拆完是不是真的更好。第二步，用最小通信方式，共享一个文件或数据库即可，不要一开始就搭复杂的消息总线。第三步，给每个 Agent 加日志，回调处理器要记录每次运行的状态。《零基础搭建》的划线里也建议这样做。第四步，跑一周，看 token 成本和成功率，再决定要不要继续扩。</p>
+<hr />
+<h2 id="_2">二、协作范式与编排模式</h2>
+<h3 id="21">2.1 三类典型架构</h3>
+<p>多 Agent 的架构可以归为三类，各自来自不同的书。</p>
+<p><strong>A. Coordinator-Worker-Delegator</strong>（《Building Agentic AI Systems》第 6 章）。Coordinator 负责全局规划和接收最终结果。Delegator 把任务分派给 Worker。Worker 是具体执行的独立单 Agent。这种架构适合任务可分解、子任务相对独立的场景。该书把它称为企业级的标准架构。</p>
+<p><strong>B. 角色对话式</strong>（AutoGen 与 CAMEL，《动手做 AI Agent》第 9 到 10 章）。两个或多个 Agent 通过对话协作，典型组合是 UserProxy、Assistant 和 Critic。适合需要多轮辩论、代码生成加自审的场景。</p>
+<p><strong>C. 流水线式</strong>（CrewAI 与 MetaGPT，《大模型项目实战》第 14 章）。定义多个角色，例如研究员、工程师、测试员，然后按流程 kickoff。这类架构适合有明确流程的团队模拟。《大模型项目实战》的 CrewAI 案例还给出一个工程细节：用 Gradio 回调加异步线程，避免 UI 被阻塞。</p>
+<h3 id="22">2.2 协作范式表</h3>
+<p>上面三类是书里的分类，生产中常用的协作范式则以成立条件和代价来区分。下表来自调研文档。</p>
+<table>
+<thead>
+<tr>
+<th>范式</th>
+<th>代表</th>
+<th>成立条件</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>orchestrator-worker（星型或中心编排）</td>
+<td>Anthropic Research：lead 为 Opus 4，派出 3 到 5 个 Sonnet 4 子 agent（各自独立 context），另有 CitationAgent 做二遍引用</td>
+<td>任务可 breadth-first 并行，子任务独立</td>
+<td>15 倍 token；同步 fan-out 是信息流瓶颈，lead 不能中途纠偏</td>
+</tr>
+<tr>
+<td>sequential pipeline</td>
+<td>质量门之间串行，分工明确</td>
+<td>有清晰的串行依赖</td>
+<td>单点慢即全线慢</td>
+</tr>
+<tr>
+<td>parallel fan-out</td>
+<td>同一题派给多个 worker 并行</td>
+<td>上下文装不下，且无写冲突</td>
+<td>容易重复劳动，Anthropic 曾对简单 query 派出 50 个子 agent</td>
+</tr>
+<tr>
+<td>handoff</td>
+<td>分歧升级给用户</td>
+<td>需要人接手的边界</td>
+<td>交接时信息容易丢失</td>
+</tr>
+<tr>
+<td>debate（辩论）</td>
+<td>Claude 与 Codex 独立作答，再归并</td>
+<td>高风险决策</td>
+<td>过度协商的反模式：在辩论实验中，correct 翻成 incorrect 的次数在所有配置下都压过反向翻转</td>
+</tr>
+</tbody>
+</table>
+<p>orchestrator-worker 是生产主流骨架。Anthropic 的内部评测显示，这种结构比单个 Opus 4 高出 90.2%。这个数字的前提是任务能拆成彼此独立的广度优先子任务。</p>
+<h3 id="23">2.3 反方的权威判断</h3>
+<p>Cognition 在《Don't Build Multi-Agents》中主张默认排除多 Agent，理由有两条。第一，多 Agent 需要共享完整的 agent trace，而不是零散的消息。第二，动作携带隐式决策，两个子 Agent 各自做决定，结果会互相打架。文中的例子是两个子 Agent 各自选定视觉风格，产物彼此冲突。</p>
+<p>RefactorPlatform（arXiv:2609.04898）给出了一组实测佐证。在仓库级重构任务里，"瘦检索的单 Agent"完成率达到 86%，而"子 Agent 委派"只有 66%。多派一层子 Agent 反而把任务做坏了。这说明，委派本身也要算账，不能默认它更好。</p>
+<h3 id="24">2.4 本库三种实测编排模式</h3>
+<p>本库用同一个任务做过三种编排模式的实测，任务是查询 RAG 索引的状态。</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>流程</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pipeline</td>
+<td>Hermes 派给 DSH 执行，再由 OC 审查</td>
+<td>线性流水线，需要逐步校验</td>
+</tr>
+<tr>
+<td>Fan-out（并行）</td>
+<td>同一题派给多个 worker 并行</td>
+<td>可以并行拆解，上下文装不下</td>
+</tr>
+<tr>
+<td>Debate（辩论）</td>
+<td>Claude 与 Codex 独立作答，OC 对比归并</td>
+<td>选型、架构、排障方向这类高风险决策</td>
+</tr>
+</tbody>
+</table>
+<p>三种模式都能跑通。Pipeline 对应的是需要逐步校验的线性任务，Fan-out 对应可拆分的大任务，Debate 对应需要多方独立意见的决策。</p>
+<h3 id="25">2.5 六员体系的默认骨架</h3>
+<p>六员协作的默认骨架是 orchestrator-worker，加上步骤间的自动校验、独立的 LLM 评审层（OpenClaw），以及确定性的终门。</p>
+<p>从形态上看，本库已经是多 Agent 系统。Hermes 主对话扮演 Coordinator，通过 delegate_task 派发子任务。Claude Code 是单 Agent，但可以 spawn subagent，结构类似。Codex、OpenClaw、QwenCode 各自是单 Agent。六员整体通过文件和任务队列通信，天然构成多 Agent 系统。</p>
+<p>但每个 Agent 内部仍然是单 Agent 循环。因此下一步的重点不是"再拆一个 Agent"，而是把六员之间的通信协议标准化，减少派任务靠口头约定的模糊地带。《多智能体协作流程》对此的判断是，参考 A2A 协议做标准化。A2A 的细节见第 4 篇。</p>
+<hr />
+<h2 id="_3">三、协作流程与落地纪律</h2>
+<p>本章以《多智能体协作流程》为准。它记录了本库的编排模式实测和落地教训，是多 Agent 协作的权威版本。</p>
+<h3 id="31">3.1 拆卡前的三问</h3>
+<p>派单之前，先回答三个问题。子任务真的独立吗？只读，还是存在写冲突？它的价值配得上 fan-out 的放大成本吗？三个问题中任何一个答案是否定的，就走单 Agent 串行。</p>
+<h3 id="32-agent">3.2 派单前先对单 Agent 基线算账</h3>
+<p>RefactorPlatform 的教训是，委派可能同时更贵也更差。所以派单前应该先对单 Agent 基线算一次账，比较两者的 token 成本和完成质量，再决定是否拆分。这条规则与第 1 章的"先试单 Agent 再拆"是同一个纪律的两个说法。</p>
+<h3 id="33">3.3 通信结构化</h3>
+<p>派单的 context 应该用 JSON 契约来写，内容包括需求、输入、输出格式和验收标准，不写成散文。实测数据显示，自然语言的消息体曾占到 token 预算的 40% 到 60%。结构化之后可以压缩到原来的 3.2 倍，且没有掉点。</p>
+<p>Routed Graph Handoff（arXiv:2608.25277）的实测也支持这一点。强制英文中转会掉点，西班牙语掉 13 个百分点，印地语掉 30.6 个百分点。另一个做法是用一个 155 token 的轻量 router，在图结构和自然语言之间自适应切换。</p>
+<h3 id="34">3.4 委派契约的四个字段</h3>
+<p>委派给子 Agent 时，契约要写清四个字段。第一是 objective，即目标。第二是输出格式。第三是工具与来源指引。第四是任务边界。只分任务、不"教"委派，子 Agent 会重复劳动、留下空隙，或者误读任务。</p>
+<p>回传契约同样需要 schema 化。回传内容包括：交付了什么、证据路径、关键取舍、未解决的不确定性、被拒绝的动作。这样做可以防止多级转述中的信息衰减。</p>
+<h3 id="35">3.5 并行卡声明工作域</h3>
+<p>并行的任务卡要写明各自负责的文件、目录或检索关键词。只有工作域互斥时才并行，两张卡的工作域重叠，就改成串行，或者合并成一张卡。</p>
+<h3 id="36">3.6 失败先归因，再反思</h3>
+<p>多 Agent 失败复盘时，先定位 decisive error，也就是那一步向下游传播错误的 Agent。只让这一个 Agent 做反思。DoCtOR（arXiv:2608.28264）的实验显示，全员反思是反模式，改成"先归因、只让责任 Agent 反思"后，效果提升 22% 到 27%。</p>
+<p>pre-hoc 的上游筛查也比事后救火便宜。HalluProp 的数据显示，事前风险推断的 AUROC 为 84.6%，比事后检测快 65 倍。</p>
+<h3 id="37">3.7 共享记忆要做来源门控</h3>
+<p>共享记忆如果照单全收，假信念会被传播。CPB（arXiv:2609.30813）的实验显示，一条假信念进入共享记忆后，下游在 0.97 到 0.99 的探测中都把它当作真的。因此进库之前要过一道来源门，并且让不确定性随消息一起传递。这部分的完整讨论见第 5 篇，本篇只作指向。</p>
+<h3 id="38">3.8 全局体检的结论</h3>
+<p>本库曾对 15 个协作技能做过一次全局体检。结果显示，职责重叠 3 组，硬矛盾 4 组，触发词撞车 3 处。最大的缺口并不是内容缺失，而是分发链断裂。规则只写在 Hermes 的真源里，六员读不到。因此，协作规则的分发机制和规则内容本身同样重要。</p>
+<hr />
+<h2 id="_4">四、框架里怎么实现</h2>
+<h3 id="41-crewai">4.1 CrewAI 源码对我们的用处</h3>
+<p>CrewAI 是与六员同类的多 Agent 框架。它给每个 Agent 定义角色、目标和背景，给每个 Task 定义要做什么、完成长什么样、依赖谁，然后按顺序或分层执行。我们的六员是同样思想的自研版本。</p>
+<p>源码中有三个值得抄的做法：</p>
+<ol>
+<li><strong>任务要写清"完成长什么样"，而且直接发给执行者。</strong> 它不是写给旁人看的备注。派单卡也要把完成态写进任务正文，执行者才知道做到什么程度算完成。</li>
+<li><strong>任务之间的依赖要传产物，而不是只标一个记号。</strong> 前置任务的产出直接拼进下一个任务的输入。"等 S5 收口再做 X"这类依赖原来靠口头约定，改成显式传递产物会更稳。</li>
+<li><strong>限流和迭代次数上限由程序强制执行，不靠自觉。</strong> CrewAI 把"每分钟最多几次"和"最多迭代几轮"写死在执行层。这可以治理 429 限流和执行者反复重试卡住的问题。</li>
+</ol>
+<p>结论是不换框架。切换成本太大，而且我们已经有与 LangGraph 同级的能力。要做的是把这三点放进派单卡模板和任务台账，让派出去的任务更可控。源文件还提到"3+3"个可抄的实现，但正文只展开了前三个，另外三个在源文件指向的一手资料中，不在本篇素材范围内。</p>
+<h3 id="42-autogen">4.2 AutoGen 最小示例</h3>
+<p>AutoGen 的核心思维是"对话"。Agent 之间自由交流，直到满足终止条件。课件中的最小示例如下。原课件代码没有写 <code>import os</code>，运行前需要补上。</p>
+<pre><code class="language-python">import autogen
+
+# LLM 配置（OpenAI 兼容协议）
+llm_config = {
+    &quot;config_list&quot;: [{
+        &quot;model&quot;: &quot;qwen3-max&quot;,
+        &quot;api_key&quot;: os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+        &quot;base_url&quot;: os.getenv(&quot;DASHSCOPE_BASE_URL&quot;),
+    }],
+    &quot;temperature&quot;: 0.1,
+}
+
+# 1) 用户代理（可以代人执行代码、也可以自动回复）
+user_proxy = autogen.UserProxyAgent(
+    name=&quot;user_proxy&quot;,
+    human_input_mode=&quot;NEVER&quot;,           # 全自动，不等人
+    max_consecutive_auto_reply=10,
+    code_execution_config={&quot;work_dir&quot;: &quot;coding_output&quot;},
+    llm_config=llm_config,
+)
+
+# 2) 助手代理（纯 LLM，不执行代码）
+assistant = autogen.AssistantAgent(
+    name=&quot;assistant&quot;,
+    system_message=&quot;你是 Python 专家。写代码时先给用户代理执行，再根据结果调试。&quot;,
+    llm_config=llm_config,
+)
+
+# 3) 两人对话：用户代理发任务 → 助手写代码 → 用户代理执行 → 看结果
+user_proxy.initiate_chat(
+    assistant,
+    message=&quot;写一个 Python 脚本，读取 city.json 并统计每个省的城市数量。&quot;,
+)
+</code></pre>
+<p>核心概念有三点。<code>UserProxyAgent</code> 是"人"的代理，能执行代码，也能让人介入。<code>AssistantAgent</code> 是"AI"的代理，只负责思考和写代码。<code>human_input_mode</code> 有 <code>ALWAYS</code>、<code>TERMINATE</code>、<code>NEVER</code> 三档，生产自动化应使用 <code>NEVER</code>。</p>
+<p>多人协作时，课件用 <code>GroupChat</code> 加 <code>speaker_selection</code> 做多 Agent 轮询。课件中的例子是用它做"开发、测试、监督"三方对话。</p>
+<h3 id="43-crewai">4.3 CrewAI 最小示例</h3>
+<p>CrewAI 的思维是"流水线"。Task 之间有明确依赖，跑完即结束。课件中的最小示例如下。</p>
+<pre><code class="language-python">import os
+from dotenv import load_dotenv
+from crewai import Agent, Task, Crew, Process, LLM
+from crewai_tools import TavilySearchTool
+
+load_dotenv()
+llm = LLM(api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+          base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;),
+          model=&quot;MiniMax-M2.1&quot;, temperature=0.7)
+search = TavilySearchTool(max_results=2)
+
+# 1) Agent = 角色 + 目标 + 背景故事
+researcher = Agent(role=&quot;技术情报员&quot;,
+                   goal=&quot;搜索最新技术资讯&quot;,
+                   backstory=&quot;你是专业的技术记者&quot;,
+                   tools=[search], llm=llm, verbose=True, max_iter=1)
+
+analyst = Agent(role=&quot;数据分析师&quot;,
+                goal=&quot;分析技术趋势&quot;,
+                backstory=&quot;你能从信息中发现趋势&quot;,
+                llm=llm, verbose=True, max_iter=1)
+
+writer = Agent(role=&quot;科技作者&quot;,
+               goal=&quot;写出高质量技术文章&quot;,
+               backstory=&quot;资深科技记者&quot;,
+               llm=llm, verbose=True, max_iter=1)
+
+# 2) Task = 具体任务 + 期望输出 + 依赖哪些上游 task
+t1 = Task(description=&quot;搜索 'AI Agent 框架' 最新信息&quot;,
+          agent=researcher,
+          expected_output=&quot;原始信息摘要&quot;)
+t2 = Task(description=&quot;分析关键趋势&quot;,
+          agent=analyst, context=[t1],
+          expected_output=&quot;分析报告&quot;)
+t3 = Task(description=&quot;基于分析写一篇 800 字文章&quot;,
+          agent=writer, context=[t1, t2],
+          expected_output=&quot;完整文章&quot;)
+
+# 3) Crew = 把 agent + task 组装成流水线
+crew = Crew(agents=[researcher, analyst, writer],
+            tasks=[t1, t2, t3],
+            process=Process.sequential,    # 顺序执行
+            verbose=True)
+result = crew.kickoff()
+print(result)
+</code></pre>
+<p>示例里 <code>context=[t1, t2]</code> 对应的就是 3.1 节所说的"依赖传产物"。对比两个框架，课件的结论是：确定性流水线用 CrewAI，开放式协作（调试代码、头脑风暴）用 AutoGen。</p>
+<h3 id="44-langgraph">4.4 LangGraph 编排原语概述</h3>
+<p>课件后半段以 LangGraph 为主角。它的核心模型是 StateGraph，由三部分组成：节点（函数）、边（路由）和状态（TypedDict）。课件的 day11 讲基础原语，day12 讲父子图和重试，day13 讲持久化记忆，day14 讲流式输出，day15 讲消息修剪和工具记忆，day16 讲多 Agent 交接。本节只取与编排直接相关的原语，持久化和记忆部分见第 5 篇。</p>
+<h3 id="45">4.5 入门：节点与边</h3>
+<p>下面的代码展示了最小的图：两个节点，一条顺序边。</p>
+<pre><code class="language-python">from typing import TypedDict
+from langgraph.graph import StateGraph
+
+# 状态：TypedDict 定义图中流动的数据结构
+class InputState(TypedDict):
+    question: str
+
+class OutputState(TypedDict):
+    final_answer: str
+
+class MyState(TypedDict):
+    question: str
+    answer: str
+    final_answer: str
+
+# 节点：输入 state，返回要更新的字段 dict
+def search_node(state: MyState):
+    print(f&quot;搜索: {state['question']}&quot;)
+    return {&quot;answer&quot;: &quot;搜索到的资料片段&quot;}
+
+def llm_result(state: MyState):
+    return {&quot;final_answer&quot;: f&quot;基于[{state['answer']}]总结的答案&quot;}
+
+# 组装图
+g = StateGraph(state_schema=MyState,
+               input_schema=InputState,
+               output_schema=OutputState)
+g.add_node(&quot;search_node&quot;, search_node)
+g.add_node(&quot;llm_result&quot;, llm_result)
+g.set_entry_point(&quot;search_node&quot;)     # 入口
+g.add_edge(&quot;search_node&quot;, &quot;llm_result&quot;)
+g.add_edge(&quot;llm_result&quot;, &quot;__end__&quot;)   # 等价 END
+graph = g.compile()
+
+print(graph.invoke({&quot;question&quot;: &quot;什么是 LangGraph？&quot;}))
+</code></pre>
+<p>关键约定有三条。节点函数必须返回 dict，表示要更新的字段，不能直接修改 state。<code>input_schema</code> 和 <code>output_schema</code> 是可选的视图，对外暴露的字段可以不同于内部状态字段。<code>compile()</code> 之后才是可执行的图，可以用 <code>graph.get_graph().draw_mermaid_png()</code> 把它画出来。</p>
+<h3 id="46-annotated-add_messages">4.6 归并函数：Annotated 与 add_messages</h3>
+<p>默认情况下，节点返回的字段会覆盖旧值。对于列表字段，如果要追加，就必须显式声明归并函数。</p>
+<pre><code class="language-python">from typing import Annotated, TypedDict
+from langgraph.graph import StateGraph
+from langgraph.graph.message import add_messages
+from langgraph.graph import MessagesState
+
+# 不写归并函数：每个节点返回 messages 会**覆盖**之前的
+# 写了 Annotated[..., add_messages]：自动**追加**到列表末尾
+
+class ChatState(MessagesState):           # MessagesState 已经内置 messages: Annotated[list, add_messages]
+    pass
+
+def user_input_node(state: ChatState):
+    return {&quot;messages&quot;: [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;什么是 LangGraph？&quot;}]}
+
+def assistant_node(state: ChatState):
+    return {&quot;messages&quot;: [{&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: &quot;有状态的图编排框架。&quot;}]}
+
+builder = StateGraph(ChatState)
+builder.add_node(&quot;user_input&quot;, user_input_node)
+builder.add_node(&quot;assistant_reply&quot;, assistant_node)
+builder.set_entry_point(&quot;user_input&quot;)
+builder.add_edge(&quot;user_input&quot;, &quot;assistant_reply&quot;)
+graph = builder.compile()
+
+print(graph.invoke({&quot;messages&quot;: []}))
+</code></pre>
+<p>这段代码的重要性在于：对话系统里，每个节点都要往 messages 列表里加内容。如果没有 <code>add_messages</code>，第二次 invoke 会把第一次的消息覆盖掉，上下文随之断裂。普通字段（非 list）默认是覆盖；list 字段要追加，必须显式使用 <code>Annotated[list, operator.add]</code> 或 <code>add_messages</code>。</p>
+<h3 id="47-barrier">4.7 并行节点与 barrier</h3>
+<p>一个节点有多条出边，就是并行分叉。多个节点指向同一个节点，就是等所有上游完成后再继续，即 join 或 barrier。下面的代码是一个菱形结构。</p>
+<pre><code class="language-python">import operator
+from typing import Annotated, TypedDict
+from langgraph.graph import StateGraph, START, END
+
+class State(TypedDict):
+    aggregate: Annotated[list, operator.add]   # 并行节点的返回会自动合并
+
+def a(state): return {&quot;aggregate&quot;: [&quot;A&quot;]}
+def b(state): return {&quot;aggregate&quot;: [&quot;B&quot;]}
+def c(state): return {&quot;aggregate&quot;: [&quot;C&quot;]}
+def d(state): return {&quot;aggregate&quot;: [&quot;D&quot;]}
+
+builder = StateGraph(State)
+for n in [a, b, c, d]:
+    builder.add_node(n)
+builder.add_edge(START, &quot;a&quot;)
+builder.add_edge(&quot;a&quot;, &quot;b&quot;)     # a 之后同时去 b 和 c（并行）
+builder.add_edge(&quot;a&quot;, &quot;c&quot;)
+builder.add_edge(&quot;b&quot;, &quot;d&quot;)
+builder.add_edge(&quot;c&quot;, &quot;d&quot;)      # b、c 都完成后才进 d（barrier）
+builder.add_edge(&quot;d&quot;, END)
+graph = builder.compile()
+
+print(graph.invoke({&quot;aggregate&quot;: [&quot;start&quot;]}))
+</code></pre>
+<p>三个要点：一个节点的多个出边表示并行分叉；多个上游指向同一节点表示 barrier；归并函数 <code>operator.add</code> 保证并行节点返回的 list 不会互相覆盖。</p>
+<h3 id="48">4.8 条件边</h3>
+<p>条件边根据状态决定下一步去哪个节点。路由函数返回一个字符串，映射表把字符串翻译成目标节点名。</p>
+<pre><code class="language-python">from typing import TypedDict
+from langgraph.graph import StateGraph, END
+
+class MyState(TypedDict):
+    type: str
+    result: str
+
+def route_condition(state: MyState):
+    &quot;&quot;&quot;路由函数：返回字符串，决定下一步去哪个节点&quot;&quot;&quot;
+    if state[&quot;type&quot;] == &quot;a&quot;:    return &quot;A&quot;
+    elif state[&quot;type&quot;] == &quot;b&quot;: return &quot;b&quot;
+    else:                       return &quot;default&quot;
+
+def node_a(state):     return {&quot;result&quot;: &quot;走了 A 分支&quot;}
+def node_b(state):     return {&quot;result&quot;: &quot;走了 B 分支&quot;}
+def node_default(state): return {&quot;result&quot;: &quot;走了默认分支&quot;}
+
+g = StateGraph(MyState)
+g.add_node(&quot;a&quot;, node_a)
+g.add_node(&quot;b&quot;, node_b)
+g.add_node(&quot;default&quot;, node_default)
+g.set_entry_point(&quot;a&quot;)   # 演示：假设入口直接做路由
+# 上面的入口可以换成 judge_node；这里简化
+g.add_conditional_edges(
+    &quot;a&quot;,                   # 从哪个节点出发
+    route_condition,      # 路由函数
+    {&quot;A&quot;: &quot;a&quot;, &quot;b&quot;: &quot;b&quot;, &quot;default&quot;: &quot;default&quot;},  # 路由返回值 → 目标节点
+)
+g.add_edge(&quot;a&quot;, END)
+g.add_edge(&quot;b&quot;, END)
+g.add_edge(&quot;default&quot;, END)
+app = g.compile()
+</code></pre>
+<p>课件原文对这段代码的说明是"简化"，入口节点与路由节点是同一个节点，实际使用时应替换为独立的 judge 节点。两个坑需要注意。路由函数返回的字符串必须出现在映射 dict 的 key 里，否则会报错。路由函数只做决策，不要在里面修改 state，要修改 state 应单独写一个 judge 节点。</p>
+<h3 id="49-sendmap-reduce">4.9 Send：运行时动态分发（Map-Reduce）</h3>
+<p>普通并行的分支数在画图时就已确定。Send 则允许在运行时决定分支数，例如"给 100 个文档每个派一个 worker"。</p>
+<pre><code class="language-python">import operator
+from typing import Annotated, TypedDict, List
+from langgraph.graph import StateGraph, START, END
+from langgraph.types import Send
+
+class State(TypedDict):
+    numbers: List[int]
+    results: Annotated[list[int], operator.add]
+    final_sum: int
+
+def split_numbers(state: State):
+    &quot;&quot;&quot;Map 阶段：每个数字发给一个 worker，带临时状态&quot;&quot;&quot;
+    return [Send(&quot;worker&quot;, {&quot;number&quot;: n}) for n in state[&quot;numbers&quot;]]
+
+def calculate_square(state):
+    &quot;&quot;&quot;每个 worker 只处理一个数字&quot;&quot;&quot;
+    return {&quot;results&quot;: [state[&quot;number&quot;] ** 2]}
+
+def sum_results(state):
+    &quot;&quot;&quot;Reduce 阶段：阻塞等所有 worker 完成&quot;&quot;&quot;
+    return {&quot;final_sum&quot;: sum(state.get(&quot;results&quot;, []))}
+
+g = StateGraph(State)
+g.add_node(&quot;splitter&quot;, lambda s: s)        # 分发器
+g.add_node(&quot;worker&quot;, calculate_square)
+g.add_node(&quot;summer&quot;, sum_results)
+g.add_edge(START, &quot;splitter&quot;)
+g.add_conditional_edges(&quot;splitter&quot;, split_numbers, [&quot;worker&quot;])
+g.add_edge(&quot;worker&quot;, &quot;summer&quot;)
+g.add_edge(&quot;summer&quot;, END)
+app = g.compile()
+
+print(app.invoke({&quot;numbers&quot;: [1, 2, 3, 4, 5], &quot;results&quot;: [], &quot;final_sum&quot;: 0}))
+</code></pre>
+<p>Send 与普通并行的区别有三点。普通并行的分支在画图时就固定；Send 的分支数在运行时才确定。Send 的第二个参数是临时局部状态，只发给对应的 worker，不污染全局 state。Map 阶段的 worker 结果通过 <code>operator.add</code> 归并，reduce 节点在所有 worker 完成后才执行。</p>
+<h3 id="410">4.10 父子图</h3>
+<p>父子图用来把一段完整流程封装成一个节点。子图本身是一个独立编译的 StateGraph。</p>
+<pre><code class="language-python">from langgraph.graph import StateGraph, START, END, MessagesState
+from langchain.chat_models import init_chat_model
+from langchain.messages import HumanMessage
+
+llm = init_chat_model(...)
+
+def sub_plot(state: MessagesState):
+    content = state[&quot;messages&quot;][-1].content
+    summary = llm.invoke(f&quot;用一句话总结：{content}&quot;)
+    return {&quot;messages&quot;: [summary]}
+
+# 子图：本身就是一个完整的 StateGraph.compile()
+summary_subgraph = (
+    StateGraph(MessagesState)
+    .add_node(&quot;subplot&quot;, sub_plot)
+    .add_edge(START, &quot;subplot&quot;)
+    .compile()
+)
+
+def llm_answer_node(state):
+    return {&quot;messages&quot;: [llm.invoke(state[&quot;messages&quot;])]}
+
+# 父图：把子图当普通节点用
+parent = (
+    StateGraph(MessagesState)
+    .add_node(&quot;llm_answer&quot;, llm_answer_node)
+    .add_node(&quot;summarize&quot;, summary_subgraph)   # 注意：直接传 compiled subgraph
+    .add_edge(START, &quot;llm_answer&quot;)
+    .add_edge(&quot;llm_answer&quot;, &quot;summarize&quot;)
+    .add_edge(&quot;summarize&quot;, END)
+    .compile()
+)
+
+print(parent.invoke({&quot;messages&quot;: [HumanMessage(content=&quot;LangGraph 是什么？&quot;)]}))
+</code></pre>
+<p><code>init_chat_model(...)</code> 是课件原文的省略写法，实际运行时需要补全模型参数。</p>
+<p>什么时候拆父子图，取决于 state schema。父图和子图共享同一个 state schema 时，直接把子图当节点加进去即可。子图需要独立的 state，字段与父图不同，则用 <code>add_node("sub", subgraph, input_schema=..., output_schema=...)</code> 做字段映射。</p>
+<h3 id="411-agent-handoff">4.11 多 Agent 交接（handoff）</h3>
+<p>day16 的核心是主管（supervisor）把任务派给专家。LangGraph 的机制是 <code>Command(goto=...)</code>。课件中的骨架代码如下。</p>
+<pre><code class="language-python">from langgraph.types import Command
+
+def supervisor_node(state):
+    &quot;&quot;&quot;根据用户问题决定派给谁&quot;&quot;&quot;
+    q = state[&quot;messages&quot;][-1].content
+    if &quot;代码&quot; in q:
+        return Command(goto=&quot;coder_agent&quot;)
+    elif &quot;写作&quot; in q:
+        return Command(goto=&quot;writer_agent&quot;)
+    else:
+        return Command(goto=&quot;END&quot;)
+
+def coder_agent(state):
+    # 写完代码后回传给主管
+    return {&quot;messages&quot;: [...], &quot;goto&quot;: &quot;supervisor&quot;}
+</code></pre>
+<p>这段代码是骨架，<code>[...]</code> 是课件中省略的占位，<code>"goto"</code> 字段也不是标准的 <code>Command</code> 写法。它的价值在于表达思路，而不是可以直接运行。</p>
+<p>课件实际在 day16 中使用的是另一种方式：用 <code>transfer_to_xxx</code> 工具让 LLM 自己决定交接。这比硬编码的 if-else 更灵活，也是 OpenAI Swarm 和 LangGraph supervisor 的标准范式。它的结构有三条。每个专家 Agent 注册一个 <code>transfer_to_&lt;name&gt;</code> 工具。LLM 调用这个工具，控制权就切换到对应 Agent。专家干完活后，再调用 <code>transfer_to_supervisor</code> 把控制权交还。</p>
+<p>第 4 篇会讲工具层的 Function Calling 与 MCP，<code>transfer_to_xxx</code> 本质上也是一种工具调用，两者的分工在那一篇展开。</p>
+<h3 id="412">4.12 其他原语的指向</h3>
+<p>Checkpoint 和 Store 是 LangGraph 的持久化与长期记忆原语，分别对应会话状态恢复与跨会话的用户画像，属于第 5 篇的范围。断点续传的生产化要求，属于第 6 篇。</p>
+<p>A2A 协议是 Agent 之间的标准通信协议，它的细节见第 4 篇。</p>
+<hr />
+<h2 id="_5">五、常见坑与规避</h2>
+<p>多 Agent 的失败模式集中在少数几类。下表按坑的类型列出实证和规避方法。失败模式的完整分类体系（MAST 论文的对照表）和前沿论文的细节属于第 6 篇，本表只保留与协作设计直接相关的内容。</p>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>实证</th>
+<th>规避</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>通信开销与上下文损耗</td>
+<td>自然语言消息占 40% 到 60% 的 token 预算（Routed Graph Handoff, arXiv:2608.25277）；强制英文中转会掉点，西班牙语掉 13 个百分点，印地语掉 30.6 个百分点</td>
+<td>用 typed JSON 或 schema 传递状态；用 155 token 的轻量 router 在图与自然语言之间切换（3.2 倍压缩不掉点）；消息里带上来源指针</td>
+</tr>
+<tr>
+<td>死循环、重复劳动与平台期</td>
+<td>AgentWorld（arXiv:2609.31590）在 50 轮以上、3 到 20 个角色的设定下，最好的成功率只有 52%；Agensh（arXiv:2609.26781）指出中心编排者本身就是容量瓶颈</td>
+<td>任务先试单 Agent 再拆；做贡献度归因，DAG-Shapley 可以把 LLM 调用降低 80%；隔离 lazy agent；使用异步共享工作区</td>
+</tr>
+<tr>
+<td>单点与级联故障</td>
+<td>Proxifield（arXiv:2609.20889）显示，星型结构只保住 38.8% 的奖励，语义路由去中心化后保住 73.6%</td>
+<td>采用去中心拓扑；做 pre-hoc 风险推断（HalluProp 的 AUROC 为 84.6%，比事后快 65 倍）；故障隔离加局部回滚（BRA-Audit）</td>
+</tr>
+<tr>
+<td>责任边界模糊、互相推诿</td>
+<td>DoCtOR（arXiv:2608.28264）：全员反思是反模式，先归因 decisive error 的 Agent，只让它反思，可提升 22% 到 27%</td>
+<td>角色契约显式化；先归因再反思；责任血缘图落盘</td>
+</tr>
+<tr>
+<td>评估困难</td>
+<td>SCHEMA（arXiv:2608.00711）：最终答案准确率与轨迹诚实度脱钩，蒙对不等于推理对</td>
+<td>加入过程级指标，例如 CCE 因果贡献度与轨迹诚实度；做长程、异步、黑盒评测</td>
+</tr>
+<tr>
+<td>幻觉传递</td>
+<td>CPB（arXiv:2609.30813）：一条假信念进入共享记忆后，下游在 0.97 到 0.99 的探测中都当它为真</td>
+<td>不确定性随消息一起传递（logprob 或语义熵）；共享记忆按来源门控；加入对抗性 critic</td>
+</tr>
+<tr>
+<td>成本失控</td>
+<td>BRA-Audit 的预算感知调度使端到端 token 降低 17.2% 到 40.6%；Cost-Aware HMAS 的平均分析成本降低 43.97%</td>
+<td>自适应分层；审计按预算贪心投放；复用中间输出；先算委派的账再下单</td>
+</tr>
+</tbody>
+</table>
+<h3 id="51">5.1 链式可靠性</h3>
+<p>协作链的可靠性由每一步的成功率连乘决定。按 95% 的单步成功率计算，10 步后整体成功率为 59.9%，20 步后约为 36%。长链必然腐烂，每多一个 Agent，就多一次上下文掉落的交接。这一计算是本篇各条规避方法的底层理由：缩短链条、减少交接、让每次交接都结构化。</p>
+<h3 id="52">5.2 为什么要先归因</h3>
+<p>失败复盘时，常见的做法是所有 Agent 一起反思。这会产生大量无关的修改，也容易让真正的源头被淹没。DoCtOR 的结论是先找出最初出错的那个 Agent，只让它单独反思，这也是 3.6 节"先归因再反思"的依据。</p>
+<h3 id="53">5.3 委派可能更差</h3>
+<p>RefactorPlatform 的结果说明，委派不一定带来收益。派单之前要先算单 Agent 基线，对比成本和质量。这条纪律与第一章的"拆之前看四个信号"互为补充，前者判断是否该拆，后者判断拆出来的结构是否真的更好。</p>
+<hr />
+<h2 id="_6">六、知识链路七层与落地清单</h2>
+<h3 id="61-agent">6.1 Agent 知识链路的七层</h3>
+<p>调研文档给出了一个 Agent 知识链路的七层模型。它描述的是从输入到回流的完整链路，每一层的职责如下。</p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 输入 Intake</td>
+<td>用户 query、arXiv 订阅、GitHub watch、会话轨迹、手工笔记</td>
+</tr>
+<tr>
+<td>2 采集 Collection</td>
+<td>从输入源抓取全文，raw/ 目录冻结快照</td>
+</tr>
+<tr>
+<td>3 提炼 Distillation</td>
+<td>raw 长文提炼为 3 到 5 行核心内容加上对我们的价值，写进 wiki/</td>
+</tr>
+<tr>
+<td>4 分流 Routing/Tagging</td>
+<td>按 source_tier、主题、Owner 归档</td>
+</tr>
+<tr>
+<td>5 检索 Retrieval</td>
+<td>ChromaDB 加 bge-m3 的 dense 与 sparse 检索，top-k 召回</td>
+</tr>
+<tr>
+<td>6 应用 Application</td>
+<td>召回的 chunk 拼进 prompt，作为上下文</td>
+</tr>
+<tr>
+<td>7 回流 Feedback Loop</td>
+<td>记录哪些 chunk 被采纳、哪些被忽略，反馈回提炼层</td>
+</tr>
+</tbody>
+</table>
+<p>七层各自的检索与回流细节不在本篇展开，记忆相关内容见第 5 篇。</p>
+<h3 id="62">6.2 落地清单</h3>
+<p>调研文档整理了五条可直接执行的落地清单，内容如下。</p>
+<ol>
+<li><strong>拆卡前三问</strong>：子任务真的独立吗？是只读，还是存在写冲突？价值配得上 fan-out 的放大吗？任一答案为否，就走单 Agent 串行。</li>
+<li><strong>委派契约四字段</strong>：objective、输出格式、工具与来源指引、任务边界。</li>
+<li><strong>并行卡声明工作域</strong>：负责的文件、目录或检索关键词。互斥才并行，重叠即串行或合并卡。</li>
+<li><strong>派单前先对单 Agent 基线算账</strong>：RefactorPlatform 的教训是，委派可能同时更贵也更差。</li>
+<li><strong>回传契约 schema 化</strong>：交付了什么、证据路径、关键取舍、未解决的不确定性、被拒绝的动作。这一条用于防止多级转述中的信息衰减。</li>
+</ol>
+<h3 id="63">6.3 本库仍待补的缺口</h3>
+<p>与协作直接相关的缺口有两项。第一，六员之间的通信协议还未标准化。短期内不上 JSON-RPC server，只借用 A2A 的两个产物：每个 Agent 写一份 <code>agent_card.md</code>，记录能力边界、输入输出契约和典型任务；派单走 task envelope，即 <code>{task_id, status, input, artifacts}</code> 落盘，不再散在 prompt 中。第二，六员统一的高风险操作确认机制还没有建立。写操作前自动询问人类，可以参考 MCP 的弹窗设计。</p>
+<hr />
+<h2 id="_7">小结</h2>
+<p>多 Agent 的价值来自拆分带来的能力，代价是 token、延迟和调试难度。判断拆不拆，先看四个信号，并且先用单 Agent 的基线做对照。</p>
+<p>协作的骨架以 orchestrator-worker 为主，适合可以并行、子任务相对独立的任务。任务不满足可并行、无强依赖共享上下文、无写冲突这三个前提时，应走单 Agent 串行，写操作保持单线程。三种实测模式各有适用场景：Pipeline 对应需要逐步校验的线性任务，Fan-out 对应可拆分的任务，Debate 对应高风险决策。</p>
+<p>协作中的主要坑是通信开销、责任归因、幻觉传递和成本失控。规避的主线是结构化通信、先归因再反思、来源门控和预算审计。框架层面，LangGraph 的并行、条件边、Send、父子图和 handoff 是编排的基本原语，CrewAI 与 AutoGen 则分别对应确定性流水线与开放式对话。</p>
+<hr />
+<h2 id="_8">来源</h2>
+<ul>
+<li>多Agent还是单Agent怎么选.md（单 Agent 与多 Agent 的选型判断、四个信号、三种架构、书籍观点分歧）</li>
+<li>多智能体协作流程.md（三种编排模式实测、四条落地教训、全局体检结论）</li>
+<li>多智能体协作工作流调研.md（协作范式表、常见坑与规避表、链式可靠性、Agent 知识链路七层、落地清单；A2A 协议一节仅作指向）</li>
+<li>CrewAI源码解析-对我们的用处-20261021.md（三个可抄的工程做法、不换框架的结论）</li>
+<li>L5-Agent工程-最佳答案.md（单 Agent 与多 Agent 的判断口径、多智能体协作编排模式）</li>
+<li>L5-Agent工程-课件实操.md（§四 AutoGen 与 CrewAI 最小示例，§五 LangGraph 的 5.1 至 5.5、5.8、5.9 与概述段）</li>
+</ul>
+<h2 id="_9">相关条目</h2>
+<ul>
+<li><a href="L5-Agent核心循环与业务落地-深挖整合.html">L5 Agent 核心循环与业务落地（深挖整合）</a></li>
+<li><a href="L5-Agent框架选型与平台生态-深挖整合.html">L5 Agent 框架选型与平台生态（深挖整合）</a></li>
+<li><a href="L5-工具层与协议-FC-MCP-A2A-深挖整合.html">L5 工具层与协议：FC、MCP、A2A（深挖整合）</a></li>
+<li><a href="L5-Agent记忆与自进化-深挖整合.html">L5 Agent 记忆与自进化（深挖整合）</a></li>
+<li><a href="L5-Agent生产化可靠性与评估-深挖整合.html">L5 Agent 生产化可靠性与评估（深挖整合）</a></li>
+<li><a href="L5-OpenClaw模块协同-深挖整合.html">L5 OpenClaw 模块协同（深挖整合）</a></li>
+</ul></div></body></html>

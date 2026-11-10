@@ -1,0 +1,438 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LlamaIndex实操-节点分割器存储索引</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ LlamaIndex实操-节点分割器存储索引</span></div><div class="wrap"><h1 id="llamaindex-实操节点分割器存储索引">LlamaIndex 实操：节点、分割器、存储、索引</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="L4-RAG%E5%B7%A5%E7%A8%8B-%E8%AF%BE%E4%BB%B6%E5%AE%9E%E6%93%8D.html">L4-RAG工程-课件实操</a>（LangChain 路线 day01–day14） · <a href="Chunk%E5%A4%A7%E5%B0%8F%E6%80%8E%E4%B9%88%E9%80%89.html">Chunk大小怎么选</a> · <a href="%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E6%90%AD%E5%BB%BA%E5%85%A8%E6%B5%81%E7%A8%8B.html">企业级RAG搭建全流程</a> · <a href="L4-RAG%E5%B7%A5%E7%A8%8B-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L4-RAG工程-最佳答案</a><br />
+来源标记：据[课件]：2605期llama_index（柏汌，day04，2026-10-7）。标 <strong>[实测]</strong> 的结论是 2026-11-02 在本机 <code>llama-index-core 0.14.24</code> 上跑过的；标 <strong>[仅课件]</strong> 的是课件写法，本机缺对应包（MongoDB / Redis / DashScope / readers-file），未运行。</p>
+</blockquote>
+<h2 id="why">WHY</h2>2
+<h3 id="核心论点">核心论点</h3>3
+<p><strong>LlamaIndex 的数据模型是"文档 → 节点 → 三种存储"：Node 是检索的最小单位，docstore 存节点原文，vector_store 存向量，index_store 存索引结构，三者可以分别换后端。</strong> 课件 day04 的主线就是把这三者拆开演示：先造节点（01–04），再分别持久化文档（05–06）、向量（07–08）、索引（09），最后混搭（10：文档和索引放 Redis，向量放 Chroma）。最容易踩的坑也出在这个拆分上：用 Chroma 这类自带存文本的向量库时，docstore 默认是空的，依赖 docstore 的功能（节点关系遍历、父子回溯）会静默失效，需要显式打开 <code>store_nodes_override=True</code>。</p>
+<p>本库自研栈（<code>rag/ingest.py</code> + <code>rag/query.py</code>）更适合生产，LlamaIndex 在这里的价值是读懂框架、读懂别人的项目，以及 <code>rag/query_llamaindex.py</code> 这类对照实现。</p>
+<h2 id="what">WHAT</h2>2
+<h3 id="四和本库自研栈对照">四、和本库自研栈对照</h3>3
+<table>
+<thead>
+<tr>
+<th>课件 LlamaIndex 写法</th>
+<th>本库对应</th>
+<th>差异</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SentenceSplitter(chunk_size, chunk_overlap)</code>，token 单位</td>
+<td><code>ingest.py::split_file()</code>，<code>.md</code> 按 H1–H3 标题切 + 800/100 字符</td>
+<td>单位不同；本库结构感知更强，见 <a href="%E7%BB%93%E6%9E%84%E6%84%9F%E7%9F%A5%E5%88%87%E5%88%86%E6%98%AF%E5%88%86%E5%9D%97%E7%AC%AC%E4%B8%80%E6%9D%A0%E6%9D%86-%E5%9B%9B%E4%BB%B6%E5%A5%97%E6%96%B9%E6%B3%95%E8%AE%BA.html">结构感知切分是分块第一杠杆</a></td>
+</tr>
+<tr>
+<td><code>MarkdownNodeParser</code>（按标题路径，<code>header_path</code>）</td>
+<td><code>MarkdownHeaderTextSplitter</code> H1–H3</td>
+<td>思路相同，元数据字段名不同</td>
+</tr>
+<tr>
+<td><code>ChromaVectorStore</code> + <code>VectorStoreIndex.from_vector_store</code></td>
+<td><code>rag/query_llamaindex.py</code>（读 <code>wuyafang_kb</code> 集合，只读，不写库）</td>
+<td>该脚本就是 08 讲"复用已有 Chroma 库"的实现</td>
+</tr>
+<tr>
+<td><code>StorageContext</code> / <code>load_index_from_storage</code></td>
+<td>不用：向量在 Chroma，元数据在 <code>data/registry.json</code> 与 <code>chunks.jsonl</code></td>
+<td>本库增量靠 sha256 registry，不靠 LlamaIndex index_store</td>
+</tr>
+<tr>
+<td>笔记：文档 Mongo / 向量 Milvus / 索引 Redis</td>
+<td>Chroma（<code>wuyafang_kb</code>）+ 文件系统</td>
+<td>单机规模无需拆三个后端；Milvus 选型见 <a href="Milvus%E5%90%91%E9%87%8F%E5%BA%93%E7%99%BD%E7%9A%AE%E4%B9%A6-%E6%9E%B6%E6%9E%84%E9%80%89%E5%9E%8B%E4%B8%8E%E6%A1%88%E4%BE%8B.html">Milvus向量库白皮书</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="三种存储的分工定义与边界">三种存储的分工（定义与边界）</h3>3
+<p><code>StorageContext</code> 是三种存储的容器，每一讲换一个后端：</p>
+<table>
+<thead>
+<tr>
+<th>存储</th>
+<th>存什么</th>
+<th>课件内存版</th>
+<th>课件外部后端</th>
+<th>笔记里的选型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>docstore</td>
+<td>节点原文+元数据</td>
+<td><code>SimpleDocumentStore</code></td>
+<td><code>MongoDocumentStore</code>、<code>RedisDocumentStore</code></td>
+<td>文档 → Mongo</td>
+</tr>
+<tr>
+<td>vector_store</td>
+<td>向量</td>
+<td><code>SimpleVectorStore</code></td>
+<td><code>ChromaVectorStore</code></td>
+<td>向量 → Milvus</td>
+</tr>
+<tr>
+<td>index_store</td>
+<td>索引结构（哪个 index 含哪些节点）</td>
+<td>内存默认</td>
+<td><code>RedisIndexStore</code></td>
+<td>索引 → Redis</td>
+</tr>
+</tbody>
+</table>
+<h2 id="how">HOW</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">〇、环境与依赖</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>课件用到的 import</th>
+<th>pip 包</th>
+<th>本机状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>llama_index.core</code>（节点、分割器、StorageContext、VectorStoreIndex）</td>
+<td><code>llama-index-core</code></td>
+<td>已装 0.14.24</td>
+</tr>
+<tr>
+<td><code>llama_index.vector_stores.chroma</code></td>
+<td><code>llama-index-vector-stores-chroma</code></td>
+<td>已装 0.6.0</td>
+</tr>
+<tr>
+<td><code>llama_index.embeddings.huggingface</code></td>
+<td><code>llama-index-embeddings-huggingface</code></td>
+<td>已装 0.8.0</td>
+</tr>
+<tr>
+<td><code>llama_index.readers.file</code>（FlatReader）</td>
+<td><code>llama-index-readers-file</code></td>
+<td>未装</td>
+</tr>
+<tr>
+<td><code>llama_index.storage.docstore.mongodb</code></td>
+<td><code>llama-index-storage-docstore-mongodb</code></td>
+<td>未装</td>
+</tr>
+<tr>
+<td><code>llama_index.storage.docstore.redis</code> / <code>storage.index_store.redis</code></td>
+<td><code>llama-index-storage-docstore-redis</code> / <code>llama-index-storage-index-store-redis</code></td>
+<td>未装</td>
+</tr>
+<tr>
+<td><code>llama_index.llms.dashscope</code></td>
+<td><code>llama-index-llms-dashscope</code></td>
+<td>未装</td>
+</tr>
+</tbody>
+</table>
+<p>课件 <code>base_llm.py</code> 的全局客户端（后面各讲都 <code>from base_llm import llm, embed_model</code>）：</p>
+<pre><code class="language-python"># 来源：2605期 day04/源码/base_llm.py
+import os
+from dotenv import load_dotenv
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.llms.dashscope import DashScope
+
+load_dotenv()
+llm = DashScope(model_name=&quot;qwen-max&quot;, api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;))
+embed_model = HuggingFaceEmbedding(
+    model_name=r&quot;D:\...\BAAI--bge-m3\snapshots\master&quot;,  # 课件本地路径，换成自己的
+    device=&quot;cuda&quot;,
+)
+</code></pre>
+<p>要点：embedding 用 bge-m3（与本库一致），LLM 走通义千问。后面所有 <code>VectorStoreIndex(..., embed_model=embed_model)</code> 都显式传了 embed_model，不依赖全局 <code>Settings</code>；建库和查询必须用同一个 embed_model（同 <a href="L4-RAG%E5%B7%A5%E7%A8%8B-%E8%AF%BE%E4%BB%B6%E5%AE%9E%E6%93%8D.html">L4-RAG工程-课件实操</a> §1.2 的坑）。</p>
+<h3 id="一节点node">一、节点（Node）</h3>3
+<h4 id="11-认识节点reader-sentencesplitter01-认识节点py">1.1 认识节点：Reader + SentenceSplitter（01-认识节点.py）</h4>
+<pre><code class="language-python"># 来源：2605期 day04/源码/01-认识节点.py
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core import SimpleDirectoryReader
+
+documents = SimpleDirectoryReader(input_files=['../data_file/公司规章制度.txt']).load_data()
+nodes = SentenceSplitter().get_nodes_from_documents(documents)
+print(repr(nodes[1]))
+</code></pre>
+<p>三步固定套路：<code>SimpleDirectoryReader</code> 读成 Document → NodeParser 切成 Node → 后续存储/建索引。课件笔记里叫"分割孤岛"问题：切完的块不能丢掉出处，每个节点要知道三件事：来自哪个文档、上一个节点是谁、下一个节点是谁。LlamaIndex 把这三件事放在 <code>node.relationships</code> 里。</p>
+<p><strong>[实测]</strong> <code>SentenceSplitter</code> 切出的节点自带三条关系：<code>SOURCE</code>（来源文档）、<code>PREVIOUS</code>、<code>NEXT</code>（首尾节点各缺一条）；<code>node_id</code> 是 UUID。<strong>默认参数 <code>chunk_size=1024, chunk_overlap=200</code></strong>（01 讲没传参，用的就是这组）。</p>
+<h4 id="12-手动创建节点并连关系02-创建节点py">1.2 手动创建节点并连关系（02-创建节点.py）</h4>
+<pre><code class="language-python"># 来源：2605期 day04/源码/02-创建节点.py
+from llama_index.core.schema import TextNode, NodeRelationship, RelatedNodeInfo
+
+def link_bidirectional(a: TextNode, b: TextNode, a_note: str, b_note: str):
+    a.relationships[NodeRelationship.NEXT] = RelatedNodeInfo(
+        node_id=b.node_id, metadata={&quot;desc&quot;: a_note})
+    b.relationships[NodeRelationship.PREVIOUS] = RelatedNodeInfo(
+        node_id=a.node_id, metadata={&quot;desc&quot;: b_note})
+
+node1 = TextNode(text=&quot;deepseek&quot;)
+node2 = TextNode(text=&quot;chatgpt&quot;)
+link_bidirectional(node1, node2, a_note=&quot;这是节点2&quot;, b_note=&quot;这是节点1&quot;)
+</code></pre>
+<p>用途：不走分割器、自己从结构化数据（QA 对、制度条款）直接造节点。双向链接要<strong>两头都写</strong>（NEXT 和 PREVIOUS 分别设），只写一头遍历时会断。<code>RelatedNodeInfo.metadata</code> 可挂关系描述，方便追溯。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">二、分割器</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<h4 id="21-sentencesplitter-的长度单位是-token03-分割器pytestpy">2.1 SentenceSplitter 的长度单位是 token（03-分割器.py、test.py）</h4>
+<pre><code class="language-python"># 来源：2605期 day04/源码/03-分割器.py
+splitter = SentenceSplitter(
+    chunk_size=100,    # 单位是 token，不是字符数
+    chunk_overlap=5,   # 同样是 token
+)
+nodes = splitter.get_nodes_from_documents(documents)
+for node in nodes:
+    print(repr(node)); print(len(node.text))   # 对比字符数和 chunk_size
+</code></pre>
+<p>课件 <code>test.py</code> 专门用来证明这一点：</p>
+<pre><code class="language-python">from llama_index.core import get_tokenizer
+bb = '这些人，都如此刻薄势力吗？或许是因为三年前他们曾经在自己面前露出过最谦卑的笑容'
+print(len(bb), len(get_tokenizer()(bb)))
+</code></pre>
+<p><strong>[实测]</strong> 这句 39 个字符 = 50 个 token（默认 tokenizer）。对照本库 <code>ingest.py</code> 的 800/100 是<strong>字符</strong>单位（LangChain <code>RecursiveCharacterTextSplitter</code>），两边数字不能直接比：LlamaIndex 的 <code>chunk_size=512</code> 对应的中文字数明显少于 512（本机两组样本约 0.78 与 0.9 字/token，随内容变化），不是 512 字。</p>
+<p>笔记里记的分句逻辑：<code>SentenceSplitter</code> 先按段落（多个换行）分，再用 nltk 按句号切，保证不在句子中间断开；小于 <code>chunk_size</code> 的段落不产生重叠块（课件注释："如果分割完之后小于长度，不会有重叠块"）。</p>
+<h4 id="22-选尺寸的方法笔记md">2.2 选尺寸的方法（笔记.md）</h4>
+<p>课件笔记给的是一套流程，比"512 最好"更有用：</p>
+<ol>
+<li>分析业务：先问知识库是什么（HR 制度库、产品 QA 库……）。</li>
+<li>分析文档结构：员工手册这类按条款组织的，结构单元比固定长度重要。</li>
+<li>找知识单元：QA 对用"问题+答案"整体做一个块；企业制度按条款（如"第 3.2 条 迟到处理"）切。</li>
+<li>候选尺寸：<strong>384 / 512 / 768 / 1024</strong>，重叠取 <strong>10%–20%</strong>。</li>
+<li>测试：准备约 100 个问题，<strong>只改切分尺寸</strong>，对比准确率、召回率、token 消耗、耗时。</li>
+<li>上线。</li>
+</ol>
+<p>向量模型维度/上限只是约束（笔记提到上限 8000 但"文本太长语义不够健壮"），不是目标。这条流程与 <a href="Chunk%E5%A4%A7%E5%B0%8F%E6%80%8E%E4%B9%88%E9%80%89.html">Chunk大小怎么选</a> 的"同一把评测尺子"一致。</p>
+<h4 id="23-其他-nodeparserhtml-json-markdown04-html解析器py">2.3 其他 NodeParser：HTML / JSON / Markdown（04-html解析器.py）</h4>
+<p>课件把三个解析器写在同一个文件里，<strong>只有 Markdown 这段没被注释</strong>：</p>
+<pre><code class="language-python"># 来源：2605期 day04/源码/04-html解析器.py（HTML、JSON 两段在课件里是注释状态）
+from llama_index.core.node_parser import HTMLNodeParser, JSONNodeParser, MarkdownNodeParser
+from llama_index.readers.file import FlatReader
+from pathlib import Path
+
+# HTML：只取指定标签的内容做节点（需 pip install beautifulsoup4）
+html_docs = FlatReader().load_data(Path(&quot;../data_file/index.html&quot;))
+nodes = HTMLNodeParser(tags=[&quot;p&quot;, &quot;h1&quot;, &quot;li&quot;]).get_nodes_from_documents(html_docs)
+
+# JSON
+json_docs = FlatReader().load_data(Path(&quot;../data_file/request.json&quot;))
+nodes = JSONNodeParser().get_nodes_from_documents(json_docs)
+
+# Markdown：按标题层级切
+md_docs = FlatReader().load_data(Path(&quot;../data_file/test.md&quot;))
+nodes = MarkdownNodeParser().get_nodes_from_documents(md_docs)
+</code></pre>
+<ul>
+<li><code>FlatReader</code> 把文件原样读成一个 Document（不做格式解析），解析交给后面的 NodeParser。[仅课件] HTML/JSON 两段本机缺 readers-file，未跑。</li>
+<li><strong>[实测]</strong> <code>MarkdownNodeParser</code> 在课件 <code>test.md</code>（含 Markdown 表格 + HTML <code>&lt;table&gt;</code> + 多级标题）上切出 3 个节点，metadata 里只有 <code>header_path</code>；<strong>一个节点的 <code>header_path</code> 是它所在的父标题路径，不含自己的标题</strong>（"标题三"节点的 <code>header_path</code> 是 <code>/标题二/</code>，顶层标题节点是 <code>/</code>）。表格没有被拆开，整张留在所属标题节点里。</li>
+<li>课件配的测试数据 <code>厦门.md</code> 是年报（MinerU 转出的 Markdown），<code>test.md</code> 里的 <code>&lt;table rowspan colspan&gt;</code> 就是这类转换产物：说明 Markdown 路线的表格会带 HTML 标签，进库前要决定是否转文本，见 <a href="../../raw/rag-arch/%E5%90%84%E7%B1%BB%E6%A0%BC%E5%BC%8F%E8%BF%9BRAG%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-20261021.md">各类格式进RAG处理方案</a>。</li>
+</ul>
+<h3 id="三存储docstore-vector_store-index_store">三、存储：docstore / vector_store / index_store</h3>3
+<h4 id="31-文档存储本地持久化与-mongo0506">3.1 文档存储：本地持久化与 Mongo（05、06）</h4>
+<pre><code class="language-python"># 来源：2605期 day04/源码/05-文档存储.py
+from llama_index.core.storage.docstore import SimpleDocumentStore
+from llama_index.core import StorageContext
+
+doc_store = SimpleDocumentStore()
+doc_store.add_documents(nodes)                       # 默认存内存
+storage_context = StorageContext.from_defaults(docstore=doc_store)
+storage_context.persist(&quot;./documents&quot;)               # 落盘
+
+new_ctx = StorageContext.from_defaults(persist_dir=&quot;./documents&quot;)   # 重新加载
+print(new_ctx.docstore.docs)
+</code></pre>
+<pre><code class="language-python"># 来源：2605期 day04/源码/06-mongo存储.py  [仅课件]
+from llama_index.storage.docstore.mongodb import MongoDocumentStore
+
+docstore = MongoDocumentStore.from_uri(
+    uri=&quot;mongodb://localhost:27017&quot;,
+    db_name=&quot;llama_index1&quot;,
+    namespace=&quot;novel&quot;,        # 命名空间：多个知识库共用一个库时做隔离
+)
+storage_context = StorageContext.from_defaults(docstore=docstore)
+storage_context.docstore.add_documents(nodes)   # 课件里这行是注释，首次运行要打开
+</code></pre>
+<p><strong>[实测]</strong> <code>persist()</code> 即使只传了 docstore，也会写出 5 个文件：<code>docstore.json</code>、<code>index_store.json</code>、<code>default__vector_store.json</code>、<code>image__vector_store.json</code>、<code>graph_store.json</code>；重新加载后 <code>docstore.docs</code> 完整还原。</p>
+<p><strong>坑</strong>：05、06 两个文件把"写入"那几行注释掉了，只留"读取"。直接运行会因为 <code>./documents</code> 不存在或 Mongo 里没数据而报错/空；先开着写入跑一遍，再注释掉。</p>
+<h4 id="32-向量存储内存版与-chroma0708">3.2 向量存储：内存版与 Chroma（07、08）</h4>
+<pre><code class="language-python"># 来源：2605期 day04/源码/07-向量存储.py
+from llama_index.core.vector_stores import SimpleVectorStore
+vector_store = SimpleVectorStore()
+storage_context = StorageContext.from_defaults(vector_store=vector_store)
+nodes = SentenceSplitter().get_nodes_from_documents(documents)
+for node in nodes:
+    node.embedding = embed_model.get_text_embedding(node.text)   # 手动逐个算向量
+storage_context.vector_store.add(nodes)
+storage_context.docstore.add_documents(nodes)
+storage_context.persist('./vector_store')
+</code></pre>
+<p>07 是"手工档"：自己给每个 node 填 <code>node.embedding</code>，再 <code>vector_store.add(nodes)</code>。它展示的是向量库内部在做什么，生产里不会这么写（逐条调 embedding，没有批量）。</p>
+<pre><code class="language-python"># 来源：2605期 day04/源码/08-向量数据库存储.py
+import chromadb
+from llama_index.core import VectorStoreIndex, StorageContext
+from llama_index.vector_stores.chroma import ChromaVectorStore
+
+chroma_client = chromadb.PersistentClient(&quot;./chroma_db&quot;)      # 本地持久化；EphemeralClient 是内存版
+chroma_collection = chroma_client.get_or_create_collection(&quot;quickstart&quot;)
+vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
+storage_context = StorageContext.from_defaults(vector_store=vector_store)
+
+index = VectorStoreIndex.from_documents(
+    documents, storage_context=storage_context, embed_model=embed_model)
+print(chroma_collection.count())
+print(index.as_retriever().retrieve('萧炎的妹妹是谁？'))
+
+# 之后复用已有 Chroma 库，不重新写入：
+vector_store_new = ChromaVectorStore(chroma_collection=chroma_client.get_collection(&quot;quickstart&quot;))
+index_new = VectorStoreIndex.from_vector_store(
+    vector_store=vector_store_new, embed_model=embed_model)   # embed_model 必须与建库时一致
+</code></pre>
+<p><strong>[实测]</strong> 用 MockEmbedding 跑通：<code>from_documents</code> 写入 Chroma 后 <code>collection.count()</code> 等于节点数；换一个新进程用 <code>from_vector_store</code> 重载，<code>retrieve</code> 能返回带原文的节点。</p>
+<p><strong>[实测]</strong> 重要：<strong>Chroma 自带存文本，LlamaIndex 因此不再往 docstore 写节点</strong>。上面这套流程跑完，<code>index.docstore.docs</code> 是空的，<code>chroma_db/</code> 目录里也没有 <code>docstore.json</code>。只做向量检索不受影响，但任何依赖 docstore 的功能（按 node_id 取节点、<code>NEXT/PREVIOUS</code> 遍历、父子回溯）都拿不到数据。解法见 §3.4。</p>
+<h4 id="33-索引存储整体持久化09-索引存储py">3.3 索引存储：整体持久化（09-索引存储.py）</h4>
+<pre><code class="language-python"># 来源：2605期 day04/源码/09-索引存储.py
+from llama_index.core import StorageContext, load_index_from_storage, VectorStoreIndex
+
+index = VectorStoreIndex.from_documents(documents, embed_model=embed_model)
+index.storage_context.persist(&quot;./vector_store_index&quot;)
+
+new_ctx = StorageContext.from_defaults(persist_dir=&quot;./vector_store_index&quot;)
+new_index = load_index_from_storage(new_ctx, embed_model=embed_model)
+print(new_index.as_retriever().retrieve('古河是谁?'))
+</code></pre>
+<p>这是最省事的路径：默认内存三件套（docstore + 内存向量 + index_store）一起 <code>persist</code>，再用 <code>load_index_from_storage</code> 整体恢复。<strong>[实测]</strong> 恢复后检索正常，且因为用的是内存向量库，docstore 里有全部节点（对比 §3.2 的 Chroma 情形）。代价：向量存在 JSON 里，数据量大了加载慢，只适合小库和教学。</p>
+<h4 id="34-混搭存储redis-chroma10-文档数据存储py">3.4 混搭存储：Redis + Chroma（10-文档数据存储.py）</h4>
+<pre><code class="language-python"># 来源：2605期 day04/源码/10-文档数据存储.py  [Redis 仅课件]
+from llama_index.storage.index_store.redis import RedisIndexStore
+from llama_index.storage.docstore.redis import RedisDocumentStore
+
+# 文档存 Redis，向量存 Chroma，索引存 Redis
+storage_context = StorageContext.from_defaults(
+    index_store=RedisIndexStore.from_host_and_port(
+        host=&quot;127.0.0.1&quot;, port=6379, namespace=&quot;novel_index&quot;),
+    docstore=RedisDocumentStore.from_host_and_port(
+        host=&quot;127.0.0.1&quot;, port=6379, namespace=&quot;novel_docs&quot;),
+    vector_store=ChromaVectorStore(chroma_collection=chroma_collection),
+)
+index = VectorStoreIndex(nodes, storage_context=storage_context, embed_model=embed_model)
+print(index.as_retriever(similarity_top_k=5).retrieve(&quot;小说中古河是个什么样的人？&quot;))
+print(index.as_query_engine(llm=llm).query(&quot;小说中古河是个什么样的人？&quot;))   # 检索+生成
+</code></pre>
+<ul>
+<li>两个 Redis 存储用不同的 <code>namespace</code>（<code>novel_index</code> / <code>novel_docs</code>），同一个 Redis 实例里互不干扰。</li>
+<li><code>as_retriever</code> 只检索返回节点；<code>as_query_engine(llm=llm).query(...)</code> 才会再调 LLM 生成答案。</li>
+<li><strong>[实测，推断到 Redis]</strong> 因为向量库是 Chroma，按 §3.2 的机制，这段代码里 <code>RedisDocumentStore</code> 不会收到节点，课件示例看起来"混搭了三个后端"，实际 docstore 是空的。要让节点真的进 Redis docstore，构造索引时加 <code>store_nodes_override=True</code>。本机实测（Chroma + 默认 docstore）：不加该参数 docstore=0 个节点，加了=20 个节点（与节点总数一致）；Redis 后端本机未装，没有直接跑。</li>
+</ul>
+<pre><code class="language-python">index = VectorStoreIndex(nodes, storage_context=storage_context,
+                         embed_model=embed_model, store_nodes_override=True)
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">五、速查：常见坑</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>据[课件]：2605期llama_index（day04 源码 01–10、笔记.md、base_llm.py、test.py，数据 test.md/厦门.md）</li><li>day01–day03 目录里除 「财务管理文档.md」 外没有代码，本页不涉及</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>现象</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chunk_size</code> 当成字符数</td>
+<td>切出来的块比预期短，和 LangChain 的参数对不上</td>
+<td>它是 token；用 <code>get_tokenizer()</code> 量一下再定</td>
+</tr>
+<tr>
+<td>不传参数</td>
+<td>默认 1024/200，对短条款库偏大</td>
+<td>按 §2.2 流程测过再定</td>
+</tr>
+<tr>
+<td>Chroma 库 + 依赖 docstore 的功能</td>
+<td><code>docstore.docs</code> 为空，按 id 取节点/父子回溯无结果</td>
+<td><code>store_nodes_override=True</code>，或另建 docstore</td>
+</tr>
+<tr>
+<td>示例里写入行被注释</td>
+<td>05/06 首次运行读不到数据</td>
+<td>先打开写入，跑一遍再注释</td>
+</tr>
+<tr>
+<td>建库和查询的 embed_model 不一致</td>
+<td>维度报错或检索塌掉</td>
+<td>沿用同一个模型，08 讲注释已强调</td>
+</tr>
+<tr>
+<td>只写 <code>NEXT</code> 不写 <code>PREVIOUS</code></td>
+<td>反向遍历断</td>
+<td>02 讲的双向写法</td>
+</tr>
+<tr>
+<td>Markdown 表格带 <code>&lt;table&gt;</code> 标签</td>
+<td>节点文本含大量 HTML</td>
+<td>进库前转纯文本或 Markdown 表格</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>据[课件]：2605期llama_index（day04 源码 01–10、笔记.md、base_llm.py、test.py，数据 test.md/厦门.md）。day01–day03 目录里除 <code>财务管理文档.md</code> 外没有代码，本页不涉及。</p>
+</blockquote>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+</div></details><h3 id="三源融合清单">三源融合清单</h3>3
+<ul>
+<li>[课1] 课件：<code>../../raw/courseware/2605期AI大模型rag篇__4_llama_index框架-2-2026-10-7-柏汌__day04(1)/day04/源码/</code>——01–10 示例、<code>笔记.md</code>、<code>base_llm.py</code>、<code>test.py</code>。</li>
+<li>[课2] 课件：<code>../../raw/courseware/2605期AI大模型rag篇__data_file/data_file/test.md</code>——MarkdownNodeParser 实测输入。</li>
+<li>[业1] 工程对照：<code>rag/query_llamaindex.py</code> 与本机 <code>llama-index-core 0.14.24</code> 实测；原文未列独立官方文档 URL 或 arXiv 编号。</li>
+<li>说明：原文未列书籍来源，本次不补造。</li>
+</ul>
+<h2 id="本库真实落地">本库真实落地</h2>2
+<blockquote>
+<p>本节 2026-11-05 补写，逐条核验路径与函数名（可 grep 复核），不复述正文课件代码。</p>
+</blockquote>
+<ul>
+<li><strong>课件的节点/分割器/存储/索引四件套，本库对应实现在 <code>rag/query_llamaindex.py</code>（301 行，本次实读）</strong>：<code>build_llama_index()</code>（L73）按课件 day06 姿势 <code>Settings + ChromaVectorStore + VectorStoreIndex.from_vector_store</code> 复用已有 Chroma 库；<code>retrieve_via_llamaindex()</code>（L101）用 <code>index.as_retriever(similarity_top_k=...)</code> 拿候选 nodes 并转成与 <code>rag/query.py</code> 同构的 hit 列表（<code>dist = 1.0 - score</code> 对齐语义）；<code>rerank()</code>（L126）/<code>gen_answer()</code>（L150）收尾。</li>
+<li><strong>"分割器"环节本库不用 LlamaIndex 的 NodeParser</strong>：<code>rag/ingest.py</code> <code>split_file()</code>（L587）自建 <code>.md</code> 标题原子切（<code>_atomic_split()</code> L497）+ <code>split_parent_chunks()</code>（L645）父子块，课件 <code>MarkdownNodeParser</code>/<code>SentenceSplitter</code> 的效果由这套自实现覆盖——<strong>换 LlamaIndex 检索不必换切分器</strong>。</li>
+<li><strong>和课件讲法的差异</strong>：课件 day04 的 <code>base_llm.py</code>/<code>test.py</code> 是教学客户端；本库把 embedding（bge-m3 本地路径常量 <code>BGE_M3_LOCAL_PATH</code>）与 reranker（<code>RERANKER_PATH</code>）直接钉在 <code>rag/query_llamaindex.py</code> 顶部，参数与 <code>rag/ingest.py</code> 对齐，避免"建库和查询 embed_model 不一致"这个课件坑。</li>
+</ul></div></body></html>

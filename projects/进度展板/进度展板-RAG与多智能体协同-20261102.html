@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>项目进度展板 - RAG知识库重构 & 多智能体协同前端</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d1117;
+    color: #c9d1d9;
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    line-height: 1.6;
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 22px;
+    color: #f0f6fc;
+    border-bottom: 2px solid #30363d;
+    padding-bottom: 12px;
+    margin-bottom: 24px;
+  }
+  h1 .date { font-size: 14px; color: #8b949e; font-weight: normal; margin-left: 12px; }
+  .nav { background: rgba(255, 255, 255, 0.06); border: 1px solid #30363d; border-radius: 8px; padding: 12px 16px; margin-bottom: 24px; }
+  .nav a { color: #c4b5fd; text-decoration: none; overflow-wrap: anywhere; }
+  .nav a:hover, .nav a:focus-visible { color: #ddd6fe; text-decoration: underline; }
+  .project-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  .project-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 16px;
+  }
+  .project-title { font-size: 18px; color: #f0f6fc; font-weight: 600; }
+  .project-stage {
+    font-size: 13px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: #1f6feb33;
+    color: #58a6ff;
+    border: 1px solid #1f6feb66;
+  }
+  .progress-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .progress-bar-wrap { flex: 1; height: 8px; background: #21262d; border-radius: 4px; overflow: hidden; }
+  .progress-bar { height: 100%; background: linear-gradient(90deg, #1f6feb, #58a6ff); border-radius: 4px; transition: width 0.3s; }
+  .progress-num { font-size: 14px; color: #58a6ff; font-weight: 600; min-width: 48px; text-align: right; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .stat-box { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 12px; text-align: center; }
+  .stat-box .label { font-size: 11px; color: #8b949e; margin-bottom: 4px; }
+  .stat-box .value { font-size: 18px; color: #f0f6fc; font-weight: 600; }
+  .stat-box .value.warn { color: #d29922; }
+  .stat-box .value.good { color: #3fb950; }
+  .stat-box .value.bad { color: #f85149; }
+  .wbs-title { font-size: 14px; color: #f0f6fc; font-weight: 600; margin-bottom: 10px; padding-left: 4px; }
+  .wbs-list { list-style: none; margin-bottom: 16px; }
+  .wbs-list li { padding: 6px 8px; border-left: 3px solid #30363d; margin-bottom: 4px; font-size: 13.5px; background: #0d1117; border-radius: 0 4px 4px 0; }
+  .wbs-list li.done { border-left-color: #3fb950; }
+  .wbs-list li.active { border-left-color: #d29922; }
+  .wbs-list li.todo { border-left-color: #8b949e; }
+  .next-action { background: #1f6feb11; border: 1px solid #1f6feb44; border-radius: 6px; padding: 12px; font-size: 13.5px; }
+  .next-action strong { color: #58a6ff; }
+  .next-action ul { margin-left: 20px; margin-top: 6px; }
+  .checkin-section { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; }
+  .checkin-section h2 { font-size: 16px; color: #f0f6fc; margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { border: 1px solid #30363d; padding: 8px 10px; text-align: left; }
+  th { background: #21262d; color: #f0f6fc; font-weight: 600; }
+  td[contenteditable="true"]:hover { background: #1c2128; }
+  td[contenteditable="true"]:focus { background: #1f6feb22; outline: 1px solid #1f6feb; }
+  .btn { background: #238636; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-bottom: 10px; }
+  .btn:hover { background: #2ea043; }
+  .btn.secondary { background: #30363d; }
+  .btn.secondary:hover { background: #484f58; }
+  .formula { font-size: 11px; color: #8b949e; line-height: 1.7; padding: 8px 12px; background: #0d1117; border-radius: 6px; margin-top: 8px; border: 1px dashed #30363d; }
+  .formula b { color: #58a6ff; }
+  /* ---- OKR 目标追踪卡 ---- */
+  .okr-o { border: 1px solid #30363d; border-radius: 6px; padding: 14px 16px; margin-bottom: 16px; background: #0d1117; }
+  .okr-o-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+  .okr-o-title { font-size: 15.5px; color: #f0f6fc; font-weight: 600; }
+  .okr-o-title .okr-id { color: #c4b5fd; margin-right: 6px; }
+  .okr-ratio { font-size: 14px; color: #58a6ff; font-weight: 600; border: 1px solid #1f6feb66; background: #1f6feb22; border-radius: 12px; padding: 2px 10px; white-space: nowrap; }
+  #okr .project-header { flex-wrap: wrap; gap: 8px; }
+  #okr .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 8px; }
+  .okr-kr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 10px; align-items: start; margin-top: 10px; }
+  .okr-kr { min-width: 0; overflow-wrap: anywhere; border-radius: 6px; padding: 10px 12px; border: 1px solid #30363d; background: #161b22; border-left-width: 5px; }
+  .okr-kr.okr-untested { border-left-color: #6e7681; background: #6e76811f; }
+  .okr-kr.okr-blocked  { border-left-color: #f85149; background: #f851491f; }
+  .okr-kr.okr-wip      { border-left-color: #d29922; background: #d299221f; }
+  .okr-kr.okr-done     { border-left-color: #3fb950; background: #3fb9501f; }
+  .okr-kr-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+  .okr-kr-id { font-size: 13.5px; color: #f0f6fc; font-weight: 600; }
+  .okr-kr-id .okr-knum { color: #8b949e; font-weight: normal; margin-left: 6px; }
+  .okr-lamp { font-size: 12px; padding: 1px 8px; border-radius: 10px; white-space: nowrap; border: 1px solid #30363d; }
+  .okr-lamp.okr-untested { background: #6e76814d; color: #c9d1d9; }
+  .okr-lamp.okr-blocked  { background: #f8514966; color: #ffdcd7; }
+  .okr-lamp.okr-wip      { background: #d2992266; color: #fff1c9; }
+  .okr-lamp.okr-done     { background: #3fb95066; color: #d7ffe0; }
+  .okr-kr-row { font-size: 12.5px; display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 6px; margin-top: 3px; }
+  .okr-kr-row .k { color: #8b949e; }
+  .okr-kr-row.evi code { background: #21262d; border-radius: 3px; padding: 0 4px; color: #a5d6ff; }
+  .okr-kr-row.evi a code { color: #79c0ff; text-decoration: underline; }
+  .okr-evi-missing { color: #d29922; }
+  .okr-note, .okr-verdict { font-size: 12px; color: #8b949e; margin: 6px 0; }
+  .okr-support { margin: 10px 0 0 8px; padding-left: 10px; border-left: 2px solid #c4b5fd55; }
+  .okr-support-label { font-size: 12px; color: #c4b5fd; margin-bottom: 3px; }
+  .okr-support-list { list-style: none; }
+  .okr-init { padding: 4px 0; font-size: 12.5px; }
+  .okr-init + .okr-init { border-top: 1px solid #30363d; }
+  .okr-init-id { color: #c4b5fd; font-weight: 600; margin-right: 5px; }
+  .okr-tag { font-size: 11px; color: #d29922; border: 1px solid #d2992244; border-radius: 8px; padding: 0 6px; white-space: nowrap; }
+  .okr-init-text code { background: #21262d; border-radius: 3px; padding: 0 4px; color: #a5d6ff; }
+  .okr-meta { display: block; font-size: 11px; color: #8b949e; margin-top: 2px; }
+  .okr-weight { display: inline-block; background: #c4b5fd22; border: 1px solid #c4b5fd44; border-radius: 8px; padding: 0 5px; margin-right: 3px; }
+  .okr-prog-row { font-size: 11px; font-weight: normal; margin-top: 2px; color: #79c0ff; }
+  .okr-prog { white-space: nowrap; }
+  .okr-divergence { border: 1px solid #d2992266; background: #d299221a; border-radius: 6px; padding: 6px 10px; font-size: 12px; margin: 6px 0; color: #ffd479; }
+  a.okr-chip { color: #c4b5fd; text-decoration: none; border: 1px solid #c4b5fd55; border-radius: 8px; padding: 0 5px; font-size: 11.5px; }
+  a.okr-chip:hover { background: #c4b5fd22; }
+  .okr-legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; font-size: 12px; }
+  .okr-legend span.lamp { padding: 1px 8px; border-radius: 10px; border: 1px solid #30363d; }
+  .okr-banner { border: 1px solid #d2992266; background: #d299221a; border-radius: 6px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px; }
+  .okr-banner ul { margin: 6px 0 0 20px; }
+  .okr-banner.bad { border-color: #f8514966; background: #f851491a; }
+  .okr-register { margin: 16px 0; padding: 12px; border: 1px solid #30363d; border-radius: 6px; }
+  .okr-register h3 { font-size: 15px; color: #f0f6fc; }
+  .okr-table-wrap { overflow-x: auto; margin-top: 8px; }
+  .okr-register table { min-width: 840px; font-size: 12px; }
+  .okr-register td { vertical-align: top; min-width: 90px; }
+  .okr-register .okr-evi { color: #79c0ff; overflow-wrap: anywhere; }
+  #okr-guardrails { border-left: 4px solid #f85149; background: #f851490a; }
+  #okr [id] { scroll-margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<h1>📊 项目执行全景图进度展板 <span class="date">2026-11-10 11:13</span></h1>
+<div class="nav"><a href="file:///mnt/c/MyData/Documents/wuyafang-l/raw/_task_orders/RAG全库整理执行总图-20261103.md">📋 RAG全库整理执行总图（计划+进度真源）</a> &nbsp;·&nbsp; <a href="#okr">🎯 目标追踪（OKR）</a> &nbsp;·&nbsp; <a href="file:///mnt/c/MyData/Documents/wuyafang-l/wiki/总网流程/OKR-2026Q4.md">📄 OKR-2026Q4.md（目标真源）</a></div>
+
+<!-- ========== 项目三：OKR 目标追踪 ========== -->
+<div class="project-card" id="okr">
+  <div class="project-header">
+    <div class="project-title">🎯 目标追踪（OKR 2026 Q4）</div>
+    <div class="project-stage">
+      <a href="file:///mnt/c/MyData/Documents/wuyafang-l/wiki/总网流程/OKR-2026Q4.md" style="color:#58a6ff;text-decoration:none">📄 OKR-2026Q4.md</a>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-box"><div class="label">O 总数</div><div class="value">3</div></div>
+    <div class="stat-box"><div class="label">KR 达标 / 总数</div><div class="value good">0 / 10</div></div>
+    <div class="stat-box"><div class="label">举措总数</div><div class="value">16</div></div>
+  </div>
+
+  <div class="okr-legend"><span class="lamp okr-untested">⚪ 未测 4</span><span class="lamp okr-blocked">🔴 受阻 3</span><span class="lamp okr-wip">🟡 进行中 3</span><span class="lamp okr-done">✅ 达标 0</span></div>
+  <div class="okr-note">四色灯表示当前状态；Confidence（信心：高/中/低）是季度达成判断，不是状态灯或完成率。信心依据随实测复核，不因登记在跑而升档。</div>
+  
+
+
+  <div class="okr-o" id="okr-o1">
+    <div class="okr-o-head">
+      <div class="okr-o-title"><span class="okr-id">O1</span>让知识库真正成为「可用的 FDE 专家库」</div>
+      <div class="okr-ratio">达标 0 / 3</div>
+    </div>
+    <div class="okr-verdict">有进展但未达标，按举措继续推进</div>
+    <div class="okr-note">为什么：库里有 124 篇融合正文，但检索能不能答对一直没测过。有内容 ≠ 能用。</div>
+    <div class="okr-kr-grid">
+      <div class="okr-kr okr-wip" id="okr-kr1.1">
+        <div class="okr-kr-head">
+          <div class="okr-kr-id">KR1.1 检索命中<span class="okr-knum">改进</span></div>
+          <div class="okr-lamp okr-wip">🟡 进行中<div class="okr-prog-row"><span class="okr-prog">推进度 0.0%（公式）</span></div></div>
+        </div>
+        <div class="okr-note">⛔ blocking 依赖门：I1.3 0% 未到 100%，推进度已封顶</div>
+        <div class="okr-kr-row"><span class="k">目标值</span><span>比基线提升（起始值已测，目标值待确认）</span></div>
+        <div class="okr-kr-row"><span class="k">当前值</span><span>起始值 recall@5 = 40%（10/25）、recall@1 = 20%（5/25），2026-11-06 实测，top_k=6 配置，25 条样本</span></div>
+        <div class="okr-kr-row"><span class="k">信心</span><span class="okr-confidence">信心：中：已有可复现基线；25 条样本偏小，建议扩到 51 条复核</span></div>
+        <div class="okr-kr-row"><span class="k">Owner</span><span class="okr-owner">Codex</span></div>
+        <div class="okr-kr-row evi"><span class="k">证据落点</span><span><code>kr11_quick_eval.py</code> + golden-set-remap-20261105.json</span></div>
+        <div class="okr-support"><div class="okr-support-label">↳ 支撑</div><ul class="okr-support-list"><li class="okr-init" id="okr-i1.1"><span class="okr-init-id">I1.1</span><span class="okr-init-text">恢复 Chroma 索引（19443 条备份 + 增量补，含今天融合的 124 篇）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.5334</span> <span class="okr-weight">主 0.2333</span> <span class="okr-weight">主 0.2333</span></span><span class="okr-meta">数据流 in: rag/db:embeddings(auto)、raw/backup-chroma:19443(auto) | out: KR1.3.coverage(auto)</span> <span class="okr-tag">↔ 3 KR</span></li><li class="okr-init" id="okr-i1.2"><span class="okr-init-id">I1.2</span><span class="okr-init-text">建 golden question 集（≥30 条，含负例）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.65</span> <span class="okr-weight">主 0.35</span></span><span class="okr-meta">数据流 in: golden/question-set:30(auto) | out: KR1.1.recall(auto)、KR1.2.ragas(auto)</span> <span class="okr-tag">↔ 2 KR</span></li><li class="okr-init" id="okr-i1.3"><span class="okr-init-id">I1.3</span><span class="okr-init-text">跑三层评测拿基线</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.5334</span> <span class="okr-weight">主 0.2333</span> <span class="okr-weight">主 0.2333</span></span><span class="okr-tag">⛔ blocking</span><span class="okr-meta">数据流 in: rag/eval:kr11_quick_eval(auto)、rag/eval_ragas.py(manual) | out: KR1.1.baseline(auto)、KR1.2.baseline(auto)、KR1.3.baseline(auto)</span> <span class="okr-tag">↔ 3 KR</span></li></ul></div>
+      </div>
+      <div class="okr-kr okr-untested" id="okr-kr1.2">
+        <div class="okr-kr-head">
+          <div class="okr-kr-id">KR1.2 答案忠实<span class="okr-knum">改进</span></div>
+          <div class="okr-lamp okr-untested">⚪ 未测<div class="okr-prog-row"><span class="okr-prog">推进度 0.0%（公式）</span></div></div>
+        </div>
+        <div class="okr-note">⛔ blocking 依赖门：I1.3 0% 未到 100%，推进度已封顶</div>
+        <div class="okr-kr-row"><span class="k">目标值</span><span>RAGAS faithfulness 达基线后按季度提升</span></div>
+        <div class="okr-kr-row"><span class="k">当前值</span><span>暂不可测：golden set 仅 51 条（24 处映射到新文件名），RAGAS 每条需 4 次 LLM 调用，成本高；样本量未达 OKR 要求的 ≥30 条同口径</span></div>
+        <div class="okr-kr-row"><span class="k">信心</span><span class="okr-confidence">信心：中：阻塞原因具体，扩样本后可测</span></div>
+        <div class="okr-kr-row"><span class="k">Owner</span><span class="okr-owner">Codex</span></div>
+        <div class="okr-kr-row evi"><span class="k">证据落点</span><span><a class="okr-evi" href="file:///mnt/c/MyData/Documents/wuyafang-l/rag/eval_ragas.py"><code>rag/eval_ragas.py</code></a> + 扩样本后的 golden set</span></div>
+        <div class="okr-support"><div class="okr-support-label">↳ 支撑</div><ul class="okr-support-list"><li class="okr-init" id="okr-kr1.2-i1.1"><span class="okr-init-id">I1.1</span><span class="okr-init-text">恢复 Chroma 索引（19443 条备份 + 增量补，含今天融合的 124 篇）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.5334</span> <span class="okr-weight">主 0.2333</span> <span class="okr-weight">主 0.2333</span></span><span class="okr-meta">数据流 in: rag/db:embeddings(auto)、raw/backup-chroma:19443(auto) | out: KR1.3.coverage(auto)</span> <span class="okr-tag">↔ 3 KR</span></li><li class="okr-init" id="okr-kr1.2-i1.2"><span class="okr-init-id">I1.2</span><span class="okr-init-text">建 golden question 集（≥30 条，含负例）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.65</span> <span class="okr-weight">主 0.35</span></span><span class="okr-meta">数据流 in: golden/question-set:30(auto) | out: KR1.1.recall(auto)、KR1.2.ragas(auto)</span> <span class="okr-tag">↔ 2 KR</span></li><li class="okr-init" id="okr-kr1.2-i1.3"><span class="okr-init-id">I1.3</span><span class="okr-init-text">跑三层评测拿基线</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.5334</span> <span class="okr-weight">主 0.2333</span> <span class="okr-weight">主 0.2333</span></span><span class="okr-tag">⛔ blocking</span><span class="okr-meta">数据流 in: rag/eval:kr11_quick_eval(auto)、rag/eval_ragas.py(manual) | out: KR1.1.baseline(auto)、KR1.2.baseline(auto)、KR1.3.baseline(auto)</span> <span class="okr-tag">↔ 3 KR</span></li></ul></div>
+      </div>
+      <div class="okr-kr okr-untested" id="okr-kr1.3">
+        <div class="okr-kr-head">
+          <div class="okr-kr-id">KR1.3 内容可检索<span class="okr-knum">成果</span></div>
+          <div class="okr-lamp okr-untested">⚪ 未测<div class="okr-prog-row"><span class="okr-prog">推进度 0.0%（公式）</span></div></div>
+        </div>
+        <div class="okr-note">⛔ blocking 依赖门：I1.3 0% 未到 100%，推进度已封顶</div>
+        <div class="okr-kr-row"><span class="k">目标值</span><span>工程主题文档全部可被检索召回到（不是「写完」）</span></div>
+        <div class="okr-kr-row"><span class="k">当前值</span><span>索引云端 31243 条 / 本地 30908 条（2026-11-06 实测），1216 个文件全部入库；检索服务 6400 在跑</span></div>
+        <div class="okr-kr-row"><span class="k">信心</span><span class="okr-confidence">信心：中：索引与检索服务均已验证可用；原「0 条」为 10 月过期快照</span></div>
+        <div class="okr-kr-row"><span class="k">Owner</span><span class="okr-owner">DSH</span></div>
+        <div class="okr-kr-row evi"><span class="k">证据落点</span><span><code>/health</code> 返回 embeddings + 检索抽查</span></div>
+        <div class="okr-support"><div class="okr-support-label">↳ 支撑</div><ul class="okr-support-list"><li class="okr-init" id="okr-kr1.3-i1.1"><span class="okr-init-id">I1.1</span><span class="okr-init-text">恢复 Chroma 索引（19443 条备份 + 增量补，含今天融合的 124 篇）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.5334</span> <span class="okr-weight">主 0.2333</span> <span class="okr-weight">主 0.2333</span></span><span class="okr-meta">数据流 in: rag/db:embeddings(auto)、raw/backup-chroma:19443(auto) | out: KR1.3.coverage(auto)</span> <span class="okr-tag">↔ 3 KR</span></li><li class="okr-init" id="okr-kr1.3-i1.3"><span class="okr-init-id">I1.3</span><span class="okr-init-text">跑三层评测拿基线</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.5334</span> <span class="okr-weight">主 0.2333</span> <span class="okr-weight">主 0.2333</span></span><span class="okr-tag">⛔ blocking</span><span class="okr-meta">数据流 in: rag/eval:kr11_quick_eval(auto)、rag/eval_ragas.py(manual) | out: KR1.1.baseline(auto)、KR1.2.baseline(auto)、KR1.3.baseline(auto)</span> <span class="okr-tag">↔ 3 KR</span></li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="okr-o" id="okr-o2">
+    <div class="okr-o-head">
+      <div class="okr-o-title"><span class="okr-id">O2</span>让多智能体协作稳定到「不用人盯」+ 飞书团队协作能干更多事</div>
+      <div class="okr-ratio">达标 0 / 4</div>
+    </div>
+    <div class="okr-verdict">2 条受阻，是当前主矛盾</div>
+    <div class="okr-note">为什么：40 张单待收口、今天多次判错单状态。人不在就管不住。</div>
+    <div class="okr-kr-grid">
+      <div class="okr-kr okr-wip" id="okr-kr2.1">
+        <div class="okr-kr-head">
+          <div class="okr-kr-id">KR2.1 派单一次通过<span class="okr-knum">改进</span></div>
+          <div class="okr-lamp okr-wip">🟡 进行中<div class="okr-prog-row"><span class="okr-prog">推进度 0.0%（公式）</span></div></div>
+        </div>
+        
+        <div class="okr-kr-row"><span class="k">目标值</span><span>达基线后按季度提升</span></div>
+        <div class="okr-kr-row"><span class="k">当前值</span><span>起始值：自动收口率 = 29/(29+24) = 54.7%（2026-11-06 实测，auto_chain 日志全量统计）；原「派单一次通过率」无结构化日志，改为此口径</span></div>
+        <div class="okr-kr-row"><span class="k">信心</span><span class="okr-confidence">信心：中：口径已可复算，分子分母均来自 auto-chain.log</span></div>
+        <div class="okr-kr-row"><span class="k">Owner</span><span class="okr-owner">Hermes</span></div>
+        <div class="okr-kr-row evi"><span class="k">证据落点</span><span><code>~/.hermes/cache/auto-chain.log</code> 收口/转人工计数</span></div>
+        <div class="okr-support"><div class="okr-support-label">↳ 支撑</div><ul class="okr-support-list"><li class="okr-init" id="okr-i2.1"><span class="okr-init-id">I2.1</span><span class="okr-init-text">判断前强制实测（已入记忆 + dispatch-guard 已接 Jev）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.65</span> <span class="okr-weight">主 0.35</span></span><span class="okr-meta">数据流 in: dispatch-guard.py(auto) | out: KR2.1.pass-rate(auto)、KR2.3.misjudge-count(auto)</span> <span class="okr-tag">↔ 2 KR</span></li><li class="okr-init" id="okr-i2.3"><span class="okr-init-id">I2.3</span><span class="okr-init-text">通道冷启动阈值写入技能（DSH 22s / OC 25s，避免把「慢」当「坏」）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.65</span> <span class="okr-weight">主 0.35</span></span><span class="okr-meta">数据流 in: skill/cold-start-threshold:DSH22s/OC25s(manual) | out: KR2.1.pass-rate(auto)、KR2.3.misjudge-count(auto)</span> <span class="okr-tag">↔ 2 KR</span></li><li class="okr-init" id="okr-i2.4"><span class="okr-init-id">I2.4</span><span class="okr-init-text">度量实际交付成功率（先挂账，测出基线再定是否升 KR）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.65</span> <span class="okr-weight">主 0.35</span></span><span class="okr-meta">数据流 in: shared-tasks.db(auto) | out: KR2.1.pass-rate(auto)、KR2.2.backlog(auto)</span> <span class="okr-tag">↔ 2 KR</span></li></ul></div>
+      </div>
+      <div class="okr-kr okr-blocked" id="okr-kr2.2">
+        <div class="okr-kr-head">
+          <div class="okr-kr-id">KR2.2 在途单收口积压下降<span class="okr-knum">改进曲线</span></div>
+          <div class="okr-lamp okr-blocked">🔴 受阻<div class="okr-prog-row"><span class="okr-prog">推进度 0.0%（公式）</span></div></div>
+        </div>
+        
+        <div class="okr-kr-row"><span class="k">目标值</span><span>2026-11-04 快照 40 → 按周净减少；每周同日核存量、新增与验收收口数，季度目标值在基线复核后确认；100% 收口约束另见 G2.2</span></div>
+        <div class="okr-kr-row"><span class="k">当前值</span><span>40 待收口（原始快照，后续周值未测）</span></div>
+        <div class="okr-kr-row"><span class="k">信心</span><span class="okr-confidence">信心：低：待收口积压 40，尚无按周下降序列</span></div>
+        <div class="okr-kr-row"><span class="k">Owner</span><span class="okr-owner">Hermes</span></div>
+        <div class="okr-kr-row evi"><span class="k">证据落点</span><span><a class="okr-evi" href="file:///home/wuyafang/.hermes/scripts/inflight-check.py"><code>inflight-check.py</code></a> 同口径周快照 + 逐单验收结论</span></div>
+        <div class="okr-support"><div class="okr-support-label">↳ 支撑</div><ul class="okr-support-list"><li class="okr-init" id="okr-i2.2"><span class="okr-init-id">I2.2</span><span class="okr-init-text">在途单自动收口验收（<a class="okr-evi" href="file:///home/wuyafang/.hermes/scripts/jev_accept.py"><code>jev_accept.py</code></a>）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.65</span> <span class="okr-weight">主 0.35</span></span><span class="okr-meta">数据流 in: jev_accept.py(auto)、shared-tasks.db(auto) | out: KR2.2.backlog(auto)、KR2.3.misjudge-count(auto)</span> <span class="okr-tag">↔ 2 KR</span></li><li class="okr-init" id="okr-kr2.2-i2.4"><span class="okr-init-id">I2.4</span><span class="okr-init-text">度量实际交付成功率（先挂账，测出基线再定是否升 KR）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.65</span> <span class="okr-weight">主 0.35</span></span><span class="okr-meta">数据流 in: shared-tasks.db(auto) | out: KR2.1.pass-rate(auto)、KR2.2.backlog(auto)</span> <span class="okr-tag">↔ 2 KR</span></li><li class="okr-init" id="okr-i2.5"><span class="okr-init-id">I2.5</span><span class="okr-init-text">度量人工接管负担（每天被催/纠几次，同上）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.65</span> <span class="okr-weight">主 0.35</span></span><span class="okr-meta">数据流 in: session/daily-corrections(manual) | out: KR2.2.backlog(auto)、KR2.3.misjudge-count(auto)</span> <span class="okr-tag">↔ 2 KR</span></li></ul></div>
+      </div>
+      <div class="okr-kr okr-blocked" id="okr-kr2.3">
+        <div class="okr-kr-head">
+          <div class="okr-kr-id">KR2.3 重大误判下降<span class="okr-knum">改进曲线</span></div>
+          <div class="okr-lamp okr-blocked">🔴 受阻<div class="okr-prog-row"><span class="okr-prog">推进度 0.0%（公式）</span></div></div>
+        </div>
+        
+        <div class="okr-kr-row"><span class="k">目标值</span><span>2026-11-04 当日 5 → 同口径日计数下降、按周复盘收敛；先测完整周序列再定周目标，不将 5 次当周基线；季度零误判约束另见 G2.3</span></div>
+        <div class="okr-kr-row"><span class="k">当前值</span><span>2026-11-04 当天 5 次；后续日/周趋势未测，不宣称已收敛</span></div>
+        <div class="okr-kr-row"><span class="k">信心</span><span class="okr-confidence">信心：低：已有 5 次误判，暂无连续纠偏证据</span></div>
+        <div class="okr-kr-row"><span class="k">Owner</span><span class="okr-owner">OC</span></div>
+        <div class="okr-kr-row evi"><span class="k">证据落点</span><span>会话记录 + 用户指出次数，按日留证、按周复盘</span></div>
+        <div class="okr-support"><div class="okr-support-label">↳ 支撑</div><ul class="okr-support-list"><li class="okr-init" id="okr-kr2.3-i2.1"><span class="okr-init-id">I2.1</span><span class="okr-init-text">判断前强制实测（已入记忆 + dispatch-guard 已接 Jev）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.65</span> <span class="okr-weight">主 0.35</span></span><span class="okr-meta">数据流 in: dispatch-guard.py(auto) | out: KR2.1.pass-rate(auto)、KR2.3.misjudge-count(auto)</span> <span class="okr-tag">↔ 2 KR</span></li><li class="okr-init" id="okr-kr2.3-i2.2"><span class="okr-init-id">I2.2</span><span class="okr-init-text">在途单自动收口验收（<a class="okr-evi" href="file:///home/wuyafang/.hermes/scripts/jev_accept.py"><code>jev_accept.py</code></a>）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.65</span> <span class="okr-weight">主 0.35</span></span><span class="okr-meta">数据流 in: jev_accept.py(auto)、shared-tasks.db(auto) | out: KR2.2.backlog(auto)、KR2.3.misjudge-count(auto)</span> <span class="okr-tag">↔ 2 KR</span></li><li class="okr-init" id="okr-kr2.3-i2.3"><span class="okr-init-id">I2.3</span><span class="okr-init-text">通道冷启动阈值写入技能（DSH 22s / OC 25s，避免把「慢」当「坏」）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.65</span> <span class="okr-weight">主 0.35</span></span><span class="okr-meta">数据流 in: skill/cold-start-threshold:DSH22s/OC25s(manual) | out: KR2.1.pass-rate(auto)、KR2.3.misjudge-count(auto)</span> <span class="okr-tag">↔ 2 KR</span></li><li class="okr-init" id="okr-kr2.3-i2.5"><span class="okr-init-id">I2.5</span><span class="okr-init-text">度量人工接管负担（每天被催/纠几次，同上）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.65</span> <span class="okr-weight">主 0.35</span></span><span class="okr-meta">数据流 in: session/daily-corrections(manual) | out: KR2.2.backlog(auto)、KR2.3.misjudge-count(auto)</span> <span class="okr-tag">↔ 2 KR</span></li></ul></div>
+      </div>
+      <div class="okr-kr okr-wip" id="okr-kr2.4">
+        <div class="okr-kr-head">
+          <div class="okr-kr-id">KR2.4 协作真用起来<span class="okr-knum">成果</span></div>
+          <div class="okr-lamp okr-wip">🟡 进行中<div class="okr-prog-row"><span class="okr-prog">推进度 25.0%（公式）</span></div></div>
+        </div>
+        
+        <div class="okr-kr-row"><span class="k">目标值</span><span>月内真跑通 N≥3 个端到端协作场景（发消息/建群/派单/收口/汇报全链真跑通）；N 由用户确认</span></div>
+        <div class="okr-kr-row"><span class="k">当前值</span><span>消息族 8/8 真调通（原 KR2.4 成果，2026-11-06 实测）；建群/拉人已有；群管理 2/5；日历/任务/审批 0；端到端场景 0</span></div>
+        <div class="okr-kr-row"><span class="k">信心</span><span class="okr-confidence">信心：中：能力层部分就绪（消息族高信心），场景层未起</span></div>
+        <div class="okr-kr-row"><span class="k">Owner</span><span class="okr-owner">Claude</span></div>
+        <div class="okr-kr-row evi"><span class="k">证据落点</span><span>端到端协作场景真跑留证</span></div>
+        <div class="okr-support"><div class="okr-support-label">↳ 支撑</div><ul class="okr-support-list"><li class="okr-init" id="okr-i2.6"><span class="okr-init-id">I2.6</span><span class="okr-init-text">消息能力补全（原 <a class="okr-chip" href="#okr-kr2.4">KR2.4</a> 降级：文字/图片/文件/卡片/回复/转发/表情/Pin，8/8 已真调通）</span><span class="okr-meta">进度 85% · 权重 <span class="okr-weight">主 1</span></span><span class="okr-meta">数据流 in: feishu/openapi:message(auto)、feishu/openapi:im-resource(auto) | out: KR2.4.collab-scenarios(auto)</span></li><li class="okr-init" id="okr-i2.7"><span class="okr-init-id">I2.7</span><span class="okr-init-text">群管理能力补全（原 <b>KR2.5</b> 降级：建群/拉人已有，群公告/改名/移人/群信息待补 2/5）</span><span class="okr-meta">进度 40% · 权重 <span class="okr-weight">主 1</span></span><span class="okr-meta">数据流 in: feishu/openapi:im-chat(auto) | out: KR2.4.collab-scenarios(auto)</span></li><li class="okr-init" id="okr-i2.8"><span class="okr-init-id">I2.8</span><span class="okr-init-text">协作事务接入（原 <b>KR2.6</b> 降级：日历/任务/审批/文档协作）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 1</span></span><span class="okr-meta">数据流 in: feishu/openapi:calendar(auto)、feishu/openapi:task(auto)、feishu/openapi:approval(auto) | out: KR2.4.collab-scenarios(auto)</span></li><li class="okr-init" id="okr-i2.10"><span class="okr-init-id">I2.10</span><span class="okr-init-text">端到端协作场景编排（原 <b>KR2.7</b> 降级并入新 <a class="okr-chip" href="#okr-kr2.4">KR2.4</a>：发消息/建群/派单/收口/汇报全链真跑通）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 1</span></span><span class="okr-meta">数据流 in: agent/scene:协作场景编排(manual) | out: KR2.4.collab-scenarios(auto)</span></li><li class="okr-init" id="okr-i2.9"><span class="okr-init-id">I2.9</span><span class="okr-init-text">飞书自动推进链（cron 心跳→派单→收口→推飞书，全链保障）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">辅 1</span></span><span class="okr-meta">数据流 in: cron/heartbeat(auto)、shared-tasks.db(auto) | out: KR2.4.collab-scenarios(auto)</span></li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="okr-o" id="okr-o3">
+    <div class="okr-o-head">
+      <div class="okr-o-title"><span class="okr-id">O3</span>让知识可被外部验证（FDE 交付能力）</div>
+      <div class="okr-ratio">达标 0 / 3</div>
+    </div>
+    <div class="okr-verdict">1 条受阻，是当前主矛盾</div>
+    <div class="okr-note">为什么：知识库自己说好没用，要能被第三方验证「你说得有依据」。</div>
+    <div class="okr-kr-grid">
+      <div class="okr-kr okr-untested" id="okr-kr3.1">
+        <div class="okr-kr-head">
+          <div class="okr-kr-id">KR3.1 三源溯源<span class="okr-knum">成果</span></div>
+          <div class="okr-lamp okr-untested">⚪ 未测<div class="okr-prog-row"><span class="okr-prog">推进度 0.0%（公式）</span></div></div>
+        </div>
+        
+        <div class="okr-kr-row"><span class="k">目标值</span><span>工程主题 100% 有三源标注（课件/书籍/业内）</span></div>
+        <div class="okr-kr-row"><span class="k">当前值</span><span>未统计</span></div>
+        <div class="okr-kr-row"><span class="k">信心</span><span class="okr-confidence">信心：低：工程主题覆盖尚未逐篇核验，不能据正文齐全推断达标</span></div>
+        <div class="okr-kr-row"><span class="k">Owner</span><span class="okr-owner">OC</span></div>
+        <div class="okr-kr-row evi"><span class="k">证据落点</span><span>各篇「来源与三源融合落点」段</span></div>
+        <div class="okr-support"><div class="okr-support-label">↳ 支撑</div><ul class="okr-support-list"><li class="okr-init" id="okr-i3.2"><span class="okr-init-id">I3.2</span><span class="okr-init-text">统计三源溯源覆盖</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.65</span> <span class="okr-weight">主 0.35</span></span><span class="okr-meta">数据流 in: wiki/L4-L12:工程篇(auto) | out: KR3.1.three-source(auto)、KR3.3.arxiv-rate(auto)</span> <span class="okr-tag">↔ 2 KR</span></li></ul></div>
+      </div>
+      <div class="okr-kr okr-untested" id="okr-kr3.2">
+        <div class="okr-kr-head">
+          <div class="okr-kr-id">KR3.2 源码可追溯<span class="okr-knum">成果</span></div>
+          <div class="okr-lamp okr-untested">⚪ 未测<div class="okr-prog-row"><span class="okr-prog">推进度 100.0%（公式）</span></div></div>
+        </div>
+        
+        <div class="okr-kr-row"><span class="k">目标值</span><span>工程主题 100% 有本库源码落点</span></div>
+        <div class="okr-kr-row"><span class="k">当前值</span><span>39/39 工程篇 + L4-RAG工程 14 篇补强 = 53 篇含「本库真实落地」小节</span></div>
+        <div class="okr-kr-row"><span class="k">信心</span><span class="okr-confidence">信心：中：六层(L4/L5/L6/L8-FDE/L12/L8-5)全部 .md 含小节，源码路径 ls 核验真实，原文 .bak 逐字节一致；待 OC 复核口径</span></div>
+        <div class="okr-kr-row"><span class="k">Owner</span><span class="okr-owner">DSH</span></div>
+        <div class="okr-kr-row evi"><span class="k">证据落点</span><span>「本库真实落地」小节 + src-landing-20261105.log 路径真实性审计</span></div>
+        <div class="okr-support"><div class="okr-support-label">↳ 支撑</div><ul class="okr-support-list"><li class="okr-init" id="okr-i3.1"><span class="okr-init-id">I3.1</span><span class="okr-init-text">补 39 篇工程主题源码落点</span><span class="okr-meta">进度 100% · 权重 <span class="okr-weight">主 1</span></span><span class="okr-meta">数据流 in: wiki/L4-L12:工程篇(auto) | out: KR3.2.src-landing(auto)</span></li></ul></div>
+      </div>
+      <div class="okr-kr okr-blocked" id="okr-kr3.3">
+        <div class="okr-kr-head">
+          <div class="okr-kr-id">KR3.3 论文引用<span class="okr-knum">成果</span></div>
+          <div class="okr-lamp okr-blocked">🔴 受阻<div class="okr-prog-row"><span class="okr-prog">推进度 0.0%（公式）</span></div></div>
+        </div>
+        
+        <div class="okr-kr-row"><span class="k">目标值</span><span>工程主题 67 篇（实测冻结口径；原写 39 不可复现）中 ≥ 80% 引 arXiv（至少 54/67，逐篇核 ID 与论述相关性）</span></div>
+        <div class="okr-kr-row"><span class="k">当前值</span><span>32/67 = 47.8%（2026-11-05 实测，缺口 22 篇）</span></div>
+        <div class="okr-kr-row"><span class="k">信心</span><span class="okr-confidence">信心：中：两套独立实现机器判定一致（正文含 ID = 36 篇），人工复核后 32 篇为论述性引用；L12=0/5、L4=8/24 为主要缺口</span></div>
+        <div class="okr-kr-row"><span class="k">Owner</span><span class="okr-owner">OC</span></div>
+        <div class="okr-kr-row evi"><span class="k">证据落点</span><span>工程 67 篇清单（含 sha256 冻结快照）+ 各篇 arXiv ID 与相关论述</span></div>
+        <div class="okr-support"><div class="okr-support-label">↳ 支撑</div><ul class="okr-support-list"><li class="okr-init" id="okr-kr3.3-i3.2"><span class="okr-init-id">I3.2</span><span class="okr-init-text">统计三源溯源覆盖</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 0.65</span> <span class="okr-weight">主 0.35</span></span><span class="okr-meta">数据流 in: wiki/L4-L12:工程篇(auto) | out: KR3.1.three-source(auto)、KR3.3.arxiv-rate(auto)</span> <span class="okr-tag">↔ 2 KR</span></li><li class="okr-init" id="okr-i3.3"><span class="okr-init-id">I3.3</span><span class="okr-init-text">补论文引用（工程主题口径）</span><span class="okr-meta">进度 0% · 权重 <span class="okr-weight">主 1</span></span><span class="okr-meta">数据流 in: arxiv/papers(manual) | out: KR3.3.arxiv-rate(auto)</span></li></ul></div>
+      </div>
+    </div>
+  </div>
+
+<section class="okr-register" id="okr-guardrails"><h3>质量红线/护栏（独立于 KR 打分）</h3><p class="okr-note">不计入 KR 达标数。触发即拦截 + 强制复盘：冻结受影响结论/依赖动作，实测纠正、留证、独立复核后恢复。改进下降不抵销违规；日观测不是周基线。此处为约束语义，本轮未实现自动拦截门禁。</p><div class="okr-table-wrap"><table><thead><tr><th scope="col">护栏</th><th scope="col">原目标关联</th><th scope="col">约束</th><th scope="col">当前证据</th><th scope="col">触发与处置</th><th scope="col">Owner</th><th scope="col">证据落点</th></tr></thead><tbody><tr><td>G2.2 收口兜底</td><td>KR2.2</td><td>收口率 <b>100%</b>（跑完必有结论；成功、失败或需重派均须留验收结论）</td><td>原始快照 <b>40 待收口</b>；约定期限与应收口分母未核，护栏状态待核；不能凭 40 推断收口率或违规数</td><td>到约定检查点仍无结论，或已核实应收口样本的有结论率不足 100%，则触发即拦截受影响的完成声明与依赖流转、强制复盘；未约定期限的先补检查点</td><td>Hermes</td><td><a class="okr-evi" href="file:///home/wuyafang/.hermes/scripts/inflight-check.py"><code>inflight-check.py</code></a> 汇总 + 逐单结论/检查点</td></tr><tr><td>G2.3 重大误判零容忍</td><td>KR2.3</td><td>状态误判（说废了/在跑/丢了而实际相反）= <b>0 次/季度</b></td><td>2026-11-04 当天 <b>5 次</b>；按原记录已触线，不能因改进曲线下降而清零</td><td>任一重大误判即拦截受影响状态结论、强制实测纠正与强制复盘；OC 独立复核，保留原事件记录，不豁免或重置季度计数</td><td>OC</td><td>会话记录 + 用户指出次数 + 实测纠正凭据</td></tr></tbody></table></div></section>
+<section class="okr-register" id="okr-milestones"><h3>关键路径/里程碑</h3><p class="okr-note">测基线 → 定 KR 目标值 → 算进度 → 排计划。以下为计划检查点，未执行不算进展；前置未验收则后续阻塞。</p><div class="okr-table-wrap"><table><thead><tr><th scope="col">里程碑</th><th scope="col">日期</th><th scope="col">Owner</th><th scope="col">依赖</th><th scope="col">交付物</th><th scope="col">检查点</th><th scope="col">状态</th></tr></thead><tbody><tr><td>M1 测基线</td><td>2026-11-09（11-10 前）</td><td>Codex（评测）、DSH（索引）、Hermes（答对口径）、OC（引用核验）</td><td>I1.1 chroma-merge 恢复与召回验收；I1.2 ≥30 条 golden set 口径确认</td><td>检索/忠实度基线报告、派单样本分母、工程 39 篇清单与引用统计、收口/误判起点及完整首周观测窗口</td><td>索引可召回；评测样本可回溯；首周窗口未满必须注明不可比，不虚构周趋势；依赖不满足当日升级报告</td><td>计划，尚未验收</td></tr><tr><td>M2 定 KR 目标值</td><td>2026-11-10</td><td>Hermes（提案）、OC（复核）</td><td>M1 验收通过；用户确认改善幅度</td><td>每条改进 KR 的起始值、季末目标值、样本窗口与计算口径</td><td>不套用统一 +10~15pp；不放松 G2.2/G2.3；用户未确认则不擅自定数</td><td>计划，依赖 M1</td></tr><tr><td>M3 算进度</td><td>2026-11-11</td><td>Codex</td><td>M2 目标和口径确认</td><td>基于同口径实测的 KR 当前值/趋势与达标数</td><td>未测不计 0%；护栏不入分；KR3.3 分母始终为工程 67（2026-11-05 冻结口径）；原项目运行加权百分比不是 OKR 分数</td><td>计划，依赖 M2</td></tr><tr><td>M4 排计划</td><td>2026-11-12</td><td>Hermes（排程）、DSH/Codex（执行建议）、OC（复核）</td><td>M3 差距与关键依赖可判定</td><td>owner + 举措 + 关联单 + 到期日 + 验收点的周计划</td><td>src-landing 先核失败重派分支；chroma-merge 核产物；2605 下载先核独立单，不假报在跑；每周复核信心和风险</td><td>计划，依赖 M3</td></tr></tbody></table></div></section>
+<section class="okr-register" id="okr-measurement-notes"><h3>度量口径与快照说明</h3><p class="okr-note">原始快照、重渲染时的运行统计与账本登记分开显示；未测不补 0，不用全库分母替代工程主题分母。</p><div class="okr-table-wrap"><table><thead><tr><th scope="col">事项</th><th scope="col">口径与快照</th></tr></thead><tbody><tr><td>KR3.3 工程分母</td><td>目标与当前值都只用 L4/L5/L6/L8-FDE/L12/L8-5 的实测 67 工程篇（2026-11-05 冻结口径；原 39 不可复现已废）；达到 ≥80% 至少需 54 篇有效引用。当前 32/67 = 47.8%，缺口 22 篇。历史 89/124 全库 72% 仅留档，不参与工程 KR 评分或进度计算。</td></tr><tr><td>KR2.2 存量曲线</td><td>2026-11-04 原始快照 40 待收口；按周同日记录期初存量、本周新增、验收收口、期末存量及超期项。当前缺后续周值，只显示起点与目标方向，不绘制虚构折线；存量减少不等于收口率 100%。</td></tr><tr><td>KR2.3 误判曲线</td><td>2026-11-04 当天 5 次是日观测，不是周基线；之后逐日记录、每周汇总事件数及判断总次数，避免低活动量伪装改善。完整首周与目标未确认前不画下降曲线，不用改进趋势抵销季度零容忍红线。</td></tr><tr><td>快照与任务登记</td><td>OKR 的索引 0 条、3/39 源码落点与 40 待收口是原观测；下方运行统计是重渲染时实时读取，采样对象/时间不同不得直接替换。账本 2026-11-04 登记 chroma-merge=running；src-landing=failed_needs_redispatch（18:16:19）；2605 下载独立单待核。只显示关联，不写回或代收口。</td></tr></tbody></table></div></section>
+</div>
+
+
+<!-- ========== 项目一：RAG知识库重构 ========== -->
+<div class="project-card">
+  <div class="project-header">
+    <div class="project-title">🔍 RAG知识库重构</div>
+    <div class="project-stage">阶段：全量灌库补全 + 前端信息架构重构</div>
+  </div>
+
+  <div class="progress-row">
+    <div class="progress-bar-wrap"><div class="progress-bar" style="width: 51%"></div></div>
+    <div class="progress-num">51%</div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-box"><div class="label">wiki 总篇数</div><div class="value">170</div></div>
+    <div class="stat-box"><div class="label">深篇 (≥6k字)</div><div class="value good">53</div></div>
+    <div class="stat-box"><div class="label">已灌来源/切片</div><div class="value">0 / 0</div></div>
+    <div class="stat-box"><div class="label">书籍灌库 0/71</div><div class="value warn">0.0%</div></div>
+    <div class="stat-box"><div class="label">深度达标率</div><div class="value">31.2%</div></div>
+    <div class="stat-box"><div class="label">批次完成度</div><div class="value">25.0%</div></div>
+    <div class="stat-box"><div class="label">主题 WBS 完成度</div><div class="value">62.1%</div></div>
+    <div class="stat-box"><div class="label">在途单 (跑中+待收口)</div><div class="value warn">0+0</div></div>
+  </div>
+
+  <div class="wbs-title">融合深化</div>
+  <div class="stats-grid">
+    <div class="stat-box"><div class="label">L4 八主题融合 · 已收口/总数</div><div class="value good">0/8 · 0.0%</div><div class="label">🔄 执行中 1 · ⏳ 待办 7</div></div>
+    <div class="stat-box"><div class="label">B3.2 三源融合 · 已完成篇数</div><div class="value good">6篇 / 6篇</div><div class="label">状态：✅</div></div>
+    <div class="stat-box"><div class="label">融合清单</div><div class="value good">13/12 层</div></div>
+    <div class="stat-box"><div class="label">缺三段</div><div class="value warn">25 篇</div></div>
+    <div class="stat-box"><div class="label">待清快照</div><div class="value good">0 个</div></div>
+  </div>
+
+  <div class="wbs-title">WBS 任务清单（29 项）</div>
+  <ul class="wbs-list">
+    <li class="done">✅ B2.1 方法论全景</li>
+    <li class="done">✅ B2.2 交付模板与门禁</li>
+    <li class="done">✅ B2.3 成功案例</li>
+    <li class="done">✅ B2.4 失败案例</li>
+    <li class="done">✅ B2.5 客户场景</li>
+    <li class="done">✅ B2.6 技术专项</li>
+    <li class="done">✅ B2.7 需求挖掘与客户访谈</li>
+    <li class="done">✅ B3.2-1 Agentic RAG</li>
+    <li class="done">✅ B3.2-2 Multi-Agent</li>
+    <li class="done">✅ B3.2-3 MCP</li>
+    <li class="done">✅ B3.2-4 A2A</li>
+    <li class="done">✅ B3.2-5 LangGraph</li>
+    <li class="done">✅ B3.2-6 生产部署</li>
+    <li class="active">🔄 01-RAG系统架构与生产落地</li>
+    <li class="todo">⏳ 02-检索优化与分块</li>
+    <li class="todo">⏳ 03-检索不准排查</li>
+    <li class="todo">⏳ 04-Embedding与向量库选型</li>
+    <li class="todo">⏳ 05-Agentic RAG</li>
+    <li class="todo">⏳ 06-GraphRAG与知识图谱</li>
+    <li class="todo">⏳ 07-RAG评估与保鲜</li>
+    <li class="todo">⏳ 08-数据入库实操</li>
+    <li class="done">✅ 七篇文件实际存在且非空，逐篇列路径、字符数与字节数；完成范围限定为深文交付</li>
+    <li class="done">✅ LangGraph 融合设计（M4）</li>
+    <li class="done">✅ 32项契约 · 设计与契约文件</li>
+    <li class="todo">⏳ 32项契约 · 实现落地</li>
+    <li class="todo">⏳ D4 单（执行可靠性自动化）</li>
+    <li class="todo">⏳ D6 单（四层回归落地）</li>
+    <li class="active">🔄 融合篇（wiki 各 L 层）</li>
+    <li class="done">✅ 机制脚本（~/.hermes/scripts）</li>
+  </ul>
+
+  <div class="next-action">
+    <strong>🚀 下一步动作：</strong>
+    <ul>
+      <li>推进批1 L4-RAG工程八主题融合（当前 🔄执行中）</li>
+      <li>启动批3-批8 主题收敛（当前 ⏳待办）</li>
+      <li>收口在途 0 张单（跑中 0 + 待收口 0）</li>
+    </ul>
+  </div>
+
+  <div class="formula">
+    <b>进度口径</b>：0.30×深度达标率(31.2%) + 0.25×批次完成度(25.0%) + 0.25×主题WBS(62.1%) + 0.20×在途健康(100.0%) = <b>51%</b>
+  </div>
+</div>
+
+
+<!-- ========== 项目二：多智能体协同前端 ========== -->
+<div class="project-card">
+  <div class="project-header">
+    <div class="project-title">🤖 多智能体协同前端聊天可展示系统</div>
+    <div class="project-stage">阶段：后端基础设施完成 · 前端看板开发中</div>
+  </div>
+
+  <div class="progress-row">
+    <div class="progress-bar-wrap"><div class="progress-bar" style="width: 64%"></div></div>
+    <div class="progress-num">64%</div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-box"><div class="label">M 系列完成度</div><div class="value good">90%</div></div>
+    <div class="stat-box"><div class="label">任务账本</div><div class="value">11条</div></div>
+    <div class="stat-box"><div class="label">done/claimed/pending</div><div class="value">8/2/1</div></div>
+    <div class="stat-box"><div class="label">账本完成率</div><div class="value">72.7%</div></div>
+    <div class="stat-box"><div class="label">前端交付完成度</div><div class="value warn">0%</div></div>
+    <div class="stat-box"><div class="label">在途单</div><div class="value warn">0</div></div>
+  </div>
+
+  <div class="wbs-title">M 系列工作包</div>
+  <ul class="wbs-list">
+    <li class="done">✅ M1 多智能体协同线</li>
+    <li class="done">✅ M2 多智能体协同线</li>
+    <li class="done">✅ M3 多智能体协同线</li>
+    <li class="done">✅ M4 多智能体协同线</li>
+    <li class="active">🔄 M5 多智能体协同线</li>
+  </ul>
+
+  <div class="wbs-title">前端交付清单</div>
+  <ul class="wbs-list">
+    <li class="todo">⏳ 前端看板</li>
+    <li class="todo">⏳ 选型决策</li>
+    <li class="todo">⏳ ACP</li>
+  </ul>
+
+  <div class="next-action">
+    <strong>🚀 下一步动作：</strong>
+    <ul>
+      <li>基于 shared-tasks.db 数据，开发前端看板+聊天流可视化界面</li>
+      <li>完成 Flightdeck vs OpenHands Agent Canvas 选型决策</li>
+      <li>启动 ACP 协议对接设计</li>
+    </ul>
+  </div>
+
+  <div class="formula">
+    <b>进度口径</b>：0.30×M系列(90%) + 0.30×账本完成率(72.7%) + 0.25×前端交付(0%) + 0.15×在途健康(100.0%) = <b>64%</b>
+  </div>
+</div>
+
+
+<!-- ========== 打卡记录 ========== -->
+<div class="checkin-section">
+  <h2>📝 打卡记录</h2>
+  <button class="btn" onclick="addRow()">➕ 新增一行</button>
+  <button class="btn secondary" onclick="exportData()">💾 导出JSON文件</button>
+  <button class="btn secondary" onclick="document.getElementById('importFile').click()">📂 导入JSON文件</button>
+  <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importData(event)">
+  <table id="checkinTable">
+    <thead>
+      <tr><th style="width:110px">日期</th><th style="width:180px">项目</th><th>今日进展</th><th style="width:220px">下一步</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td contenteditable="true">2026-11-10</td>
+        <td contenteditable="true">RAG知识库重构 + 多智能体协同</td>
+        <td contenteditable="true">自动刷新(11:13)：wiki 170篇/深篇53；已灌来源0、chunk 0；books 0/71；任务账本8done/2claimed/1pending；在途0跑中+0待收口</td>
+        <td contenteditable="true">收口8张在途单（6张待收口须复跑验收后再close）；跟踪artifact-verify-fix、hermes-net-p2收尾；重启books续灌</td>
+      </tr>
+<tr>
+        <td contenteditable="true">2026-11-09</td>
+        <td contenteditable="true">RAG知识库重构 + 多智能体协同</td>
+        <td contenteditable="true">自动刷新(19:59)：wiki 170篇/深篇53；已灌来源1216、chunk 30643；books 72/71；任务账本8done/2claimed/1pending；在途0跑中+0待收口</td>
+        <td contenteditable="true">收口8张在途单（6张待收口须复跑验收后再close）；跟踪artifact-verify-fix、hermes-net-p2收尾；重启books续灌</td>
+      </tr>
+<tr>
+        <td contenteditable="true">2026-11-06</td>
+        <td contenteditable="true">RAG知识库重构 + 多智能体协同</td>
+        <td contenteditable="true">自动刷新(22:00)：wiki 170篇/深篇53；已灌来源1216、chunk 30643；books 72/71；任务账本8done/2claimed/1pending；在途0跑中+0待收口</td>
+        <td contenteditable="true">收口8张在途单（6张待收口须复跑验收后再close）；跟踪artifact-verify-fix、hermes-net-p2收尾；重启books续灌</td>
+      </tr>
+<tr>
+        <td contenteditable="true">2026-11-05</td>
+        <td contenteditable="true">RAG知识库重构 + 多智能体协同</td>
+        <td contenteditable="true">自动刷新(23:58)：wiki 145篇/深篇53；已灌来源1216、chunk 30643；books 72/71；任务账本8done/2claimed/1pending；在途0跑中+2待收口</td>
+        <td contenteditable="true">收口8张在途单（6张待收口须复跑验收后再close）；跟踪artifact-verify-fix、hermes-net-p2收尾；重启books续灌</td>
+      </tr>
+<tr>
+        <td contenteditable="true">2026-11-04</td>
+        <td contenteditable="true">RAG知识库重构 + 多智能体协同</td>
+        <td contenteditable="true">自动刷新(21:03)：wiki 145篇/深篇52；已灌来源45、chunk 1616；books 0/71；任务账本8done/2claimed/1pending；在途0跑中+0待收口</td>
+        <td contenteditable="true">收口8张在途单（6张待收口须复跑验收后再close）；跟踪artifact-verify-fix、hermes-net-p2收尾；重启books续灌</td>
+      </tr>
+<tr>
+        <td contenteditable="true">2026-11-03 11:55</td>
+        <td contenteditable="true">RAG知识库重构 + 多智能体协同</td>
+        <td contenteditable="true">定时数据刷新（11:55）：RAG数据无变化（总来源268、books 11/71、chunk 7712）。协同账本11条（8done/2claimed/1pending）无变化。在途单0张。</td>
+        <td contenteditable="true">继续推进books续灌与课件批量入库</td>
+      </tr>
+<tr>
+        <td contenteditable="true">2026-11-03</td>
+        <td contenteditable="true">RAG知识库重构 + 多智能体协同</td>
+        <td contenteditable="true">RAG全库整理启动：执行总图落盘，L4/L8融合替换派单；多智能体协同：Claude配kimi、派单硬校验、业内调研落地。</td>
+        <td contenteditable="true">5路并行推进：L4主题1、L8深文、图谱验证、业内扫描、LangGraph设计</td>
+      </tr>
+<tr>
+        <td contenteditable="true">2026-11-03</td>
+        <td contenteditable="true">RAG知识库重构</td>
+        <td contenteditable="true">进度数据刷新：总来源268、books 11/71、chunk 7712。在途待收口单已清零（此前7张），无新增在途单。</td>
+        <td contenteditable="true">重启books续灌进程；批量入库课件959个md</td>
+      </tr>
+<tr>
+        <td contenteditable="true">2026-11-03</td>
+        <td contenteditable="true">多智能体协同前端</td>
+        <td contenteditable="true">任务账本数据同步：11条记录（8done/2claimed/1pending）。无在途单。</td>
+        <td contenteditable="true">前端看板开发；选型决策</td>
+      </tr>
+<tr>
+        <td contenteditable="true">2026-11-02</td>
+        <td contenteditable="true">RAG知识库重构</td>
+        <td contenteditable="true">核实灌库进度：books 11/71、课件3/959、总来源268、chunk 7712、R@1=35.3%。梳理7张在途单、rag目录待清理、C盘旧索引96条待清理。</td>
+        <td contenteditable="true">重启books续灌进程；批量入库课件959个md</td>
+      </tr>
+<tr>
+        <td contenteditable="true">2026-11-02</td>
+        <td contenteditable="true">多智能体协同前端</td>
+        <td contenteditable="true">业内工具对比调研完成（Flightdeck/OpenHands/Cato），尚未立项。</td>
+        <td contenteditable="true">立项评审，确定技术选型</td>
+      </tr>
+<tr>
+        <td contenteditable="true">2026-11-02</td>
+        <td contenteditable="true">多智能体协同</td>
+        <td contenteditable="true">进度修正为45%，后端基础设施已完成</td>
+        <td contenteditable="true">前端看板开发</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="font-size:12px;color:#8b949e;margin-top:8px">💡 点击表格单元格可直接编辑；点击「导出JSON文件」会下载 进度展板-打卡记录.json（和本HTML放同目录），「导入JSON文件」选择该文件即可恢复数据（不再使用浏览器存储）。</p>
+</div>
+
+
+<script>
+function addRow() {
+  const tbody = document.querySelector('#checkinTable tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = '<td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td><td contenteditable="true"></td>';
+  tbody.appendChild(tr);
+}
+function getRows() {
+  return [...document.querySelectorAll('#checkinTable tbody tr')].map(tr =>
+    [...tr.children].map(td => td.innerText)
+  );
+}
+function renderRows(rows) {
+  const tbody = document.querySelector('#checkinTable tbody');
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = r.map(c => `<td contenteditable="true">${c}</td>`).join('');
+    tbody.appendChild(tr);
+  });
+}
+function exportData() {
+  const rows = getRows();
+  const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '进度展板-打卡记录.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  alert('已导出 进度展板-打卡记录.json，请将文件保存到本HTML所在的目录以便下次导入');
+}
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const rows = JSON.parse(reader.result);
+      if (!Array.isArray(rows)) throw new Error('格式不对：应为行数组');
+      renderRows(rows);
+      alert('已导入打卡记录');
+    } catch (e) {
+      alert('导入失败：' + e.message);
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+</script>
+
+</body>
+</html>

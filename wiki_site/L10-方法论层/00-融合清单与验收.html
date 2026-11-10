@@ -1,0 +1,248 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>00-融合清单与验收</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 00-融合清单与验收</span></div><div class="wrap"><h1 id="l10-三源融合主题收敛替换与验收记录">L10 三源融合：主题收敛、替换与验收记录</h1>
+<p>本文件为维护清单，不是主题正文。2026-11-03 已有 4 篇旧正文；2026-11-04 上一层执行者新写 2 篇融合正文（需求访谈与问题契约、技术选型与验证决策），本次收尾只做核对、补清单、删被取代散篇、清快照，未改写任何已有正文内容。<br />
+三源为本地课件、书籍目录与划线摘录、公开官方文档及业内作者原文（含 arXiv 论文摘要）。未把摘录声称为书籍全文，未把摘要声称为论文全文。<br />
+核验日期：2026-11-04。只写 L10-方法论层；未修改 raw、ontology、其他层、全局入口、RAG 索引或 HTML 产物。</p>
+<h2 id="主题收敛与字数">主题收敛与字数</h2>2
+<p>汉字数：去掉 frontmatter 和 fenced code 后，统计 Unicode U+4E00—U+9FFF；非空白字符：全文含元数据、代码、标点。</p>
+<table>
+<thead>
+<tr>
+<th>主题</th>
+<th>唯一正文</th>
+<th style="text-align: right;">合并旧篇数</th>
+<th style="text-align: right;">正文汉字数</th>
+<th style="text-align: right;">全文非空白字符</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FDE方法论全景</td>
+<td><a href="01-FDE%E6%96%B9%E6%B3%95%E8%AE%BA%E5%85%A8%E6%99%AF.html">01-FDE方法论全景.md</a></td>
+<td style="text-align: right;">1（原路径保留，本轮未重写）</td>
+<td style="text-align: right;">6915</td>
+<td style="text-align: right;">9059</td>
+</tr>
+<tr>
+<td>需求访谈与问题契约</td>
+<td><a href="02-%E9%9C%80%E6%B1%82%E8%AE%BF%E8%B0%88%E4%B8%8E%E9%97%AE%E9%A2%98%E5%A5%91%E7%BA%A6.html">02-需求访谈与问题契约.md</a></td>
+<td style="text-align: right;">1（取代 02-需求访谈与问题定义.md）</td>
+<td style="text-align: right;">4579</td>
+<td style="text-align: right;">9116</td>
+</tr>
+<tr>
+<td>交付方法论与门禁</td>
+<td><a href="03-%E4%BA%A4%E4%BB%98%E6%96%B9%E6%B3%95%E8%AE%BA%E4%B8%8E%E9%97%A8%E7%A6%81.html">03-交付方法论与门禁.md</a></td>
+<td style="text-align: right;">1（原路径保留，本轮未重写）</td>
+<td style="text-align: right;">6523</td>
+<td style="text-align: right;">9113</td>
+</tr>
+<tr>
+<td>技术选型与验证决策</td>
+<td><a href="03-%E6%8A%80%E6%9C%AF%E9%80%89%E5%9E%8B%E4%B8%8E%E9%AA%8C%E8%AF%81%E5%86%B3%E7%AD%96.html">03-技术选型与验证决策.md</a></td>
+<td style="text-align: right;">1（取代 04-技术选型决策框架.md）</td>
+<td style="text-align: right;">4758</td>
+<td style="text-align: right;">10605</td>
+</tr>
+</tbody>
+</table>
+<p>说明：主题数为 4，不是"4 旧篇收敛为 2 篇"。两篇新正文各取代一篇同主题旧篇；FDE 全景与交付门禁两篇无新替代篇，保留 2026-11-03 版原正文。编号 03 现由交付门禁与技术选型两篇共用，属命名冲突遗留，本单边界不含改名，待后续处理。</p>
+<h2 id="逐项去向与删除清单">逐项去向与删除清单</h2>2
+<p>原始 SHA-256 取自 <code>.fusion-work/original-sha256.txt</code>，删除前已对 <code>.fusion-work/originals/</code> 内副本逐一复算 <code>sha256sum</code>，4/4 与记录一致（快照目录实际名为 <code>originals/</code>，非任务书所写的 <code>original/</code>）。</p>
+<table>
+<thead>
+<tr>
+<th>原文件</th>
+<th>处理</th>
+<th>唯一去向</th>
+<th>原始 SHA-256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01-FDE方法论全景.md</td>
+<td>原路径保留（未重写，未达标项见验收记录）</td>
+<td><a href="01-FDE%E6%96%B9%E6%B3%95%E8%AE%BA%E5%85%A8%E6%99%AF.html">01-FDE方法论全景.md</a></td>
+<td><code>41601366679ad431c6034f2df4338b38ba736f2fd5f221f2e3890659790239b6</code></td>
+</tr>
+<tr>
+<td>02-需求访谈与问题定义.md</td>
+<td>删除旧散篇（已被更完整新正文取代）</td>
+<td><a href="02-%E9%9C%80%E6%B1%82%E8%AE%BF%E8%B0%88%E4%B8%8E%E9%97%AE%E9%A2%98%E5%A5%91%E7%BA%A6.html">02-需求访谈与问题契约.md</a></td>
+<td><code>5b2bf0aa49dfe2f83970d916460d1bd29eb7e5648db17ee7f0aa1d01da9231c6</code></td>
+</tr>
+<tr>
+<td>03-交付方法论与门禁.md</td>
+<td>原路径保留（未重写，未达标项见验收记录）</td>
+<td><a href="03-%E4%BA%A4%E4%BB%98%E6%96%B9%E6%B3%95%E8%AE%BA%E4%B8%8E%E9%97%A8%E7%A6%81.html">03-交付方法论与门禁.md</a></td>
+<td><code>8c8f2907332cc499de492eb792152e8a7e595dfcdebc7ae2c2df79604edf04ec</code></td>
+</tr>
+<tr>
+<td>04-技术选型决策框架.md</td>
+<td>删除旧散篇（已被更完整新正文取代）</td>
+<td><a href="03-%E6%8A%80%E6%9C%AF%E9%80%89%E5%9E%8B%E4%B8%8E%E9%AA%8C%E8%AF%81%E5%86%B3%E7%AD%96.html">03-技术选型与验证决策.md</a></td>
+<td><code>7efea9206e731289d87c1644be9ec6ebc1baafdd7a465fc53b073655ac5d3c42</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="三源边界说明">三源边界说明</h2>2
+<ul>
+<li>课件：本地飞书课件《Prompt Engineering项目实战》《Agent智能体》《Dify本地部署》，仅引用可见教学内容；历史模型名、旧命令不当作当前生产承诺。</li>
+<li>书籍：樊中恺《FDE：AI落地实战指南》、乔梁《持续交付2.0》仅使用本地目录与划线摘录，未声称阅读全文；仅取得目录的章节不转述未读细节。</li>
+<li>业内：GOV.UK Service Manual、Palantir 官方文档、Anthropic《Building effective agents》、AWS Well-Architected、Nygard《Documenting Architecture Decisions》、NIST AI RMF 等公开页面只读 GET；论文（arXiv:2610.31606 / 2610.22187 / 2610.31657 / 2610.31303 / 2610.28577）依据本地保存的标题、作者与摘要，未声称阅读全文，未把小样本结果外推。</li>
+<li>实跑边界：两篇新正文仅实跑契约校验器、候选硬筛与成本脚本的合成样例；真实访谈、数据库、模型评分、缓存/记忆服务、外部平台均未实跑，正文已分别标注。</li>
+<li>保留篇旧口径：01 全景与 03 交付门禁中的 Google SRE 连接故障、法规义务需专业核验等边界声明仍以其原文为准，本次未改动。</li>
+</ul>
+<h2 id="验收记录">验收记录</h2>2
+<h3 id="三段式标题核对只读逐篇-grep-标题">三段式标题核对（只读，逐篇 grep 标题）</h3>3
+<table>
+<thead>
+<tr>
+<th>正文</th>
+<th>独立 WHY</th>
+<th>独立 WHAT / WHYT</th>
+<th>独立 HOW</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01-FDE方法论全景.md</td>
+<td>✅ 一、WHY</td>
+<td>✅ 二、WHAT</td>
+<td>✅ 三、HOW</td>
+<td>三段齐</td>
+</tr>
+<tr>
+<td>02-需求访谈与问题契约.md</td>
+<td>✅ WHY</td>
+<td>✅ WHAT / WHYT</td>
+<td>✅ HOW（七步法）</td>
+<td>三段齐</td>
+</tr>
+<tr>
+<td>03-交付方法论与门禁.md</td>
+<td>✅ 一、WHY</td>
+<td>✅ 二、WHAT</td>
+<td>✅ 三、HOW（G0—G6）</td>
+<td>三段齐</td>
+</tr>
+<tr>
+<td>03-技术选型与验证决策.md</td>
+<td>✅ WHY</td>
+<td>✅ WHAT / WHYT</td>
+<td>✅ HOW（六步落地）</td>
+<td>三段齐</td>
+</tr>
+</tbody>
+</table>
+<h3 id="来源与三源融合落点段与-arxiv-引用核对">「来源与三源融合落点」段与 arXiv 引用核对</h3>3
+<table>
+<thead>
+<tr>
+<th>正文</th>
+<th>文末段落标题</th>
+<th>课件/书籍/业内三源</th>
+<th>arXiv ID</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01-FDE方法论全景.md</td>
+<td>九、来源与适用边界</td>
+<td>✅ 有（C/B/P 编号）</td>
+<td>❌ 无</td>
+<td><strong>未达标</strong></td>
+</tr>
+<tr>
+<td>02-需求访谈与问题契约.md</td>
+<td>来源与三源融合落点</td>
+<td>✅ 有（课/书/业编号）</td>
+<td>✅ 2610.31606、2610.22187</td>
+<td>达标</td>
+</tr>
+<tr>
+<td>03-交付方法论与门禁.md</td>
+<td>九、来源与适用边界</td>
+<td>✅ 有（C/B/P 编号）</td>
+<td>❌ 无</td>
+<td><strong>未达标</strong></td>
+</tr>
+<tr>
+<td>03-技术选型与验证决策.md</td>
+<td>来源与三源融合落点</td>
+<td>✅ 有（课/书/业编号）</td>
+<td>✅ 2610.31657、2610.31303、2610.28577</td>
+<td>达标</td>
+</tr>
+</tbody>
+</table>
+<h3 id="未达标篇目清单诚实记录本次不补写正文">未达标篇目清单（诚实记录，本次不补写正文）</h3>3
+<ol>
+<li><strong>01-FDE方法论全景.md</strong>：三段齐全，但来源段标题为「来源与适用边界」而非「来源与三源融合落点」，且全文无 arXiv 论文引用。本轮无新替代正文，原篇保留。</li>
+<li><strong>03-交付方法论与门禁.md</strong>：同上——三段齐全、三源齐备，但来源段标题不符约定、无 arXiv 引用。本轮无新替代正文，原篇保留。</li>
+</ol>
+<p>上述两篇需后续按同一标准重写来源段并补论文融合落点，不在本收尾单范围内。</p>
+<h3 id="删除确认">删除确认</h3>3
+<ul>
+<li>删除前确认 <code>.fusion-work/originals/</code> 内存有 02-需求访谈与问题定义.md、04-技术选型决策框架.md 副本，SHA-256 复算与 <code>original-sha256.txt</code> 记录一致。</li>
+<li>已删除旧散篇 2 篇：02-需求访谈与问题定义.md、04-技术选型决策框架.md。</li>
+<li>已删除 <code>.fusion-work</code> 整个目录（含 4 篇副本与哈希记录），原始 SHA-256 已留存于本清单，不保留第二份副本。</li>
+<li>本层无任何 <code>.bak</code> / 备份副本遗留。</li>
+</ul>
+<h2 id="目录外引用影响只读扫描不在本单修复">目录外引用影响（只读扫描，不在本单修复）</h2>2
+<p>删除 2 篇旧散篇后，以下目录外文件仍含其文件名引用，属已知残留，不计为全库链接通过；本单边界不含修改这些文件，需要全库同步时按上表去向映射修复。</p>
+<ul>
+<li><code>wiki/00-知识库总入口.md</code></li>
+<li><code>wiki/CONVERT-INVENTORY-20261030.md</code></li>
+<li><code>wiki/L4-RAG工程/E5-RAG-Agentic化路线-20261026.md</code>（及其 <code>.fusion-work/original/</code> 同名快照）</li>
+<li><code>wiki/L9-全栈工程/成本是RAG第一约束-k值缓存分层路由三杠杆.md</code>（及其 <code>.fusion-work/original/</code> 同名快照）</li>
+<li><code>notes/processes/L10-方法论层补强-20261103.md</code>（历史实施记录，保留原引用属合理）</li>
+</ul>
+<h2 id="收口">收口</h2>2
+<p>最终落盘：4 篇主题正文 + 1 篇维护清单，共 5 个 md；2 篇被取代旧散篇已删除；<code>.fusion-work</code> 已删除；三段式 4/4 齐全，新来源段+arXiv 标准 2/4 达标，未达标 2 篇已在上文点名。本次未新建付费模型任务、未读取凭据、未上传本地内容。</p></div></body></html>

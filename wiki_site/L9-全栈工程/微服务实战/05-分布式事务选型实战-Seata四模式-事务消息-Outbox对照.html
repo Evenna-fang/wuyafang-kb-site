@@ -1,0 +1,650 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>05-分布式事务选型实战-Seata四模式-事务消息-Outbox对照</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../../index.html">🏠 总入口</a><a href="../../graph.html">🕸 关联图谱</a><a href="../../ontology/index.html">📖 术语表</a><span class="cur">/ 05-分布式事务选型实战-Seata四模式-事务消息-Outbox对照</span></div><div class="wrap"><h2 id="why">WHY</h2>2
+<h3 id="1-定位与先给结论">1. 定位与先给结论</h3>3
+<p>本系列前三篇已经落了三个模块：01 篇搭基础设施，02 篇做秒杀，03 篇做派单和支付。03 篇 3.4 节只演示了 Seata AT，02 篇只用一句话提到事务消息和本地消息表。读完之后一个问题仍然悬着：同样是"跨服务保持数据一致"，Seata 的 AT、TCC、Saga、XA，RocketMQ 事务消息，本地消息表和 Outbox，一共七种做法，什么业务该用哪一种？</p>
+<p>本篇回答这个问题。业务名词沿用前三篇：云岚到家的秒杀下单扣库存，智链云途的派单调度和支付回调。</p>
+<h2 id="what">WHAT</h2>2
+<h3 id="七种方案先给结论">七种方案先给结论</h3>3
+<p>先给结论，细节在后文展开，关键结论后的方括号是文末"官方参考"的序号。</p>
+<ol>
+<li><strong>能用一个本地事务解决的，不要上分布式事务。</strong> 接单抢单、骑手单量加一、支付单状态迁移，都在单库内，用条件更新和唯一索引即可。</li>
+<li><strong>需要同步看到"全部成功或全部回滚"，且参与方都是自己控制的关系库：先考虑 Seata AT</strong>，因为它对业务代码侵入最小。但 AT 默认隔离级别是读未提交，写冲突靠全局锁串行化 [1]。热点行不适合。</li>
+<li><strong>参与方不是关系库、需要业务级冻结资源，或要避开全局锁：用 TCC。</strong> 代价是每个接口写三个方法，并且必须处理空回滚、悬挂、幂等三个问题 [3][4]。</li>
+<li><strong>流程长、有外部系统、无法提供 TCC 三接口：用 Saga。</strong> 它不保证隔离性，隔离问题要业务自己设计 [5][9]。</li>
+<li><strong>XA 只在"迁移已有 XA 应用"或"必须由数据库保证强隔离"时考虑</strong>，分支 prepare 之后要阻塞等待，锁持有时间长，性能较差 [6]。</li>
+<li><strong>只需要"本地事务成功，则下游一定最终收到消息"：用事务消息或 Outbox，不要用全局事务。</strong> 这两者只保证上游与下游的最终一致，不保证下游处理成功 [7][10]。</li>
+<li><strong>调用第三方支付渠道的步骤，不放进任何全局事务。</strong> 渠道不受 Seata 控制，用本地消息表加重试、查询和对账。这与 03 篇的判断一致。</li>
+</ol>
+<h3 id="2-先把问题讲清楚">2. 先把问题讲清楚</h3>3
+<h4 id="21-什么叫跨服务一致">2.1 什么叫"跨服务一致"</h4>
+<p>微服务拆分之后，每个服务拥有自己的数据库。microservices.io 对 Saga 模式的定义是：当每个服务有独立数据库、又不能使用两阶段提交（2PC）时，跨服务业务事务要拆成一系列本地事务 [9]。因此选型实际上是在回答三个问题：</p>
+<ul>
+<li><strong>一致性强度</strong>：是要求任意时刻外部都看不到中间状态（强一致），还是允许短暂不一致、最终收敛（最终一致）。</li>
+<li><strong>隔离性</strong>：全局事务进行到一半时，别的事务能不能读到或改到中间数据。</li>
+<li><strong>侵入性与性能</strong>：业务代码要改多少，热点数据上能扛多少并发。</li>
+</ul>
+<h4 id="22-双写问题">2.2 双写问题</h4>
+<p>03 篇的支付回调里有一个典型的双写：更新支付单，同时给订单服务发"支付成功"消息。数据库和消息中间件是两个系统，没有一个事务能同时覆盖。microservices.io 的 Transactional Outbox 页把它表述为：如何在更新数据库的同时，原子地向消息代理发送消息；2PC 往往不可行，因为数据库或消息代理可能不支持，并且让服务同时耦合两者通常不可取 [10]。</p>
+<p>先更新库再发消息，发送失败或进程宕机，下游永远收不到；先发消息再更新库，库更新失败，下游收到了一个不存在的事实。事务消息、本地消息表和 Outbox 都是对这个问题的不同解法。</p>
+<h4 id="23-隔离性是-saga-类方案的短板">2.3 隔离性是 Saga 类方案的短板</h4>
+<p>没有隔离性意味着并发的全局事务可能互相看到中间状态。Seata 文档给了一个例子：用户 A 先被入账，B 的余额随后被扣减；如果 A 在事务提交前把这笔钱花掉，回滚时就无法补偿 [5]。microservices.io 也把"缺少隔离性"列为 Saga 的主要缺点，并说明需要用对策（countermeasures）来补，但该页面没有列出具体对策，只指向作者的书 [9]。所以后文凡涉及"对策"的部分，都标明是业务设计而非框架提供的能力。</p>
+<h2 id="how">HOW</h2>2
+<h3 id="3-seata-at对业务最透明隔离最弱">3. Seata AT：对业务最透明，隔离最弱</h3>3
+<h4 id="31-原理">3.1 原理</h4>
+<p>AT 适用于支持本地 ACID 事务的关系库，并要求 Java 应用通过 JDBC 访问 [1]。</p>
+<ul>
+<li><strong>一阶段</strong>：在同一个本地事务里提交业务数据和回滚日志（<code>UNDO_LOG</code>），然后释放本地锁和连接。具体步骤是解析 SQL、记录更新前镜像、执行更新、记录更新后镜像、写入 <code>UNDO_LOG</code>、向 TC 申请全局锁、提交本地事务并上报结果 [1]。</li>
+<li><strong>二阶段提交</strong>：异步快速完成，批量删除 <code>UNDO_LOG</code> [1]。</li>
+<li><strong>二阶段回滚</strong>：按 XID 和 Branch ID 取出 <code>UNDO_LOG</code>，比对后镜像与当前数据，再由前镜像生成回滚 SQL [1]。</li>
+</ul>
+<p>因为一阶段就提交了本地事务，数据库行锁很快释放，这是 AT 比 XA 性能好的原因。代价是它另外引入了一把"全局锁"。</p>
+<h4 id="32-全局锁与写隔离">3.2 全局锁与写隔离</h4>
+<p>一阶段提交本地事务之前必须先拿到全局锁，拿不到就不能提交，并且会重试，超过超时时间则回滚本地事务并释放本地锁 [1]。官方举的例子是两个事务先后更新同一字段：后者因全局锁被前者持有而不断重试，直到前者全局提交并释放全局锁。由于全局锁一直由前者持有，所以不存在脏写 [1]。</p>
+<p>回滚路径有一个容易被忽略的细节：前者回滚时需要本地锁来还原数据，而本地锁正被等全局锁的后者持有，于是前者反复重试，直到后者超时回滚并释放本地锁 [1]。这意味着热点行上并发的全局事务会互相等待直到超时。</p>
+<h4 id="33-读隔离">3.3 读隔离</h4>
+<p>本地库隔离级别是读已提交或更高，所以全局事务的默认隔离级别是读未提交 [1]。要读已提交，目前靠 <code>SELECT FOR UPDATE</code>：执行时申请全局锁，被占用则释放本地锁并重试，查询阻塞到拿到全局锁。出于性能考虑，只代理 <code>SELECT FOR UPDATE</code>，普通 <code>SELECT</code> 不处理 [1]。</p>
+<p>这一条对业务的直接影响是：下单事务进行到一半时，别的请求用普通查询可能读到还没全局提交的库存。如果这个读取会影响业务判断（例如据此展示"已抢完"），就要在读取处加 <code>FOR UPDATE</code>，或者接受读未提交。</p>
+<h4 id="34-最小代码">3.4 最小代码</h4>
+<p>03 篇已经给出了 <code>@GlobalTransactional</code> 下单示例，这里补上读已提交的写法。以下代码未实跑。</p>
+<pre><code class="language-java">@Service
+@RequiredArgsConstructor
+public class InventoryQueryService {
+    private final InventoryMapper inventoryMapper;
+
+    // 需要读已提交语义时，走 FOR UPDATE，才会被 Seata 代理并申请全局锁
+    @Transactional
+    public int availableForUpdate(long skuId) {
+        return inventoryMapper.selectAvailableForUpdate(skuId);
+    }
+}
+</code></pre>
+<pre><code class="language-sql">-- InventoryMapper.selectAvailableForUpdate 对应的 SQL
+SELECT available FROM inventory WHERE sku_id = ? FOR UPDATE;
+</code></pre>
+<h4 id="35-边界">3.5 边界</h4>
+<ul>
+<li>参与方必须是支持本地事务的关系库，且经 JDBC 访问 [1]。Redis、RocketMQ、第三方 HTTP 接口都不在 AT 的覆盖范围内。</li>
+<li>全局事务期间不要有长时间等待，例如等骑手接单。03 篇已经强调这一点。</li>
+<li>回滚时如果发现数据已被当前事务之外的操作改动，官方页面只说需要"以不同策略处理"，没有展开 [1]。工程上等于要有人工兜底，所以必须监控回滚失败和 <code>UNDO_LOG</code> 堆积。</li>
+</ul>
+<h3 id="4-tcc自己写三个阶段换来更细的控制">4. TCC：自己写三个阶段，换来更细的控制</h3>3
+<h4 id="41-原理">4.1 原理</h4>
+<p>每个分支事务都必须满足两阶段模型：一阶段 prepare（Try），二阶段 commit（Confirm）或 rollback（Cancel）。TCC 不依赖底层资源的事务能力，三个阶段的逻辑全部由开发者实现 [2]。与 AT 的区别就在这里：AT 的二阶段补偿由框架自动生成，TCC 则由业务自己写 [2]。</p>
+<p>用法上，在 Try 方法上标注 <code>@TwoPhaseBusinessAction</code>，参数 <code>name</code> 是全局唯一的 TCC bean 名，<code>commitMethod</code> 和 <code>rollbackMethod</code> 指定另外两个方法；参与者是本地 bean 时，接口上还要加 <code>@LocalTCC</code>；上下文参数用 <code>@BusinessActionContextParameter</code> 标注传入，<code>BusinessActionContext</code> 里能取到 <code>xid</code>、<code>branchId</code>、<code>actionName</code> 和 <code>actionContext</code> [3]。</p>
+<h4 id="42-库存冻结的业务设计">4.2 库存冻结的业务设计</h4>
+<p>TCC 的 Try 不能直接扣最终值，而是"预留"。以秒杀之外的普通下单扣库存为例：</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>操作</th>
+<th>数据变化</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Try</td>
+<td>条件冻结</td>
+<td><code>available = available - n</code>，<code>frozen = frozen + n</code>，条件 <code>available &gt;= n</code></td>
+</tr>
+<tr>
+<td>Confirm</td>
+<td>确认扣减</td>
+<td><code>frozen = frozen - n</code></td>
+</tr>
+<tr>
+<td>Cancel</td>
+<td>释放冻结</td>
+<td><code>available = available + n</code>，<code>frozen = frozen - n</code></td>
+</tr>
+</tbody>
+</table>
+<p>Try 提交后，别的事务立刻就能看到 <code>available</code> 已减少。预留资源对外可见，这就是 TCC 隔离性比 AT 的读未提交更可控的原因：中间状态是业务显式建模出来的，不是数据库行的原始中间值。</p>
+<h4 id="43-三个必须处理的问题">4.3 三个必须处理的问题</h4>
+<p>TCC 的二阶段由 TC 驱动，会遇到网络超时、乱序，所以必须面对三类问题。下面的定义和解法来自 Seata 官方博客 [4]。</p>
+<p><strong>幂等</strong>：提交或回滚阶段，若 TC 没收到分支事务的响应，会重试该操作，因此分支必须支持幂等。Seata 的做法是提交时先查 <code>tcc_fence_log</code>：记录已是 committed 则直接返回成功，无记录则插入新记录供后续重试检测 [4]。</p>
+<p><strong>空回滚</strong>：Try 阶段在某节点失败（官方例子是两节点集群中一个节点的 Try 没有执行），全局事务仍然对它发起 Cancel。此时没有东西可以回滚。Seata 在 Try 阶段向 <code>tcc_fence_log</code> 插入状态为 <code>STATUS_TRIED</code> 的记录；回滚时若记录不存在，则不执行回滚逻辑；若存在，把状态由 <code>STATUS_TRIED</code> 更新为 <code>STATUS_ROLLBACKED</code>，更新成功后才执行回滚 [4]。</p>
+<p><strong>悬挂</strong>：网络问题导致资源管理器先收到 Cancel、后收到 Try，Try 随后预留了资源，却再也没人释放。Seata 的做法是：回滚前先查该 xid 的记录，若无记录，则插入状态为 <code>STATUS_SUSPENDED</code> 的记录且不执行回滚；之后 Try 再插入同一主键时会冲突，prepare 失败，预留的资源就不会产生 [4]。</p>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant TC as TC
+  participant RM as 库存服务
+  participant F as tcc_fence_log
+  Note over TC,RM: 正常路径
+  TC-&gt;&gt;RM: Try
+  RM-&gt;&gt;F: 插入 TRIED(与冻结同一本地事务)
+  TC-&gt;&gt;RM: Confirm/Cancel
+  RM-&gt;&gt;F: TRIED→COMMITTED/ROLLBACKED
+  Note over TC,RM: 悬挂路径
+  TC-&gt;&gt;RM: Cancel(先到)
+  RM-&gt;&gt;F: 无记录→插入 SUSPENDED,不回滚
+  TC-&gt;&gt;RM: Try(后到)
+  RM-&gt;&gt;F: 插入同主键→冲突,Try失败
+</code></pre>
+<h4 id="44-防护机制的开关与代价">4.4 防护机制的开关与代价</h4>
+<p>这套防护由 <code>@TwoPhaseBusinessAction</code> 的 <code>useTCCFence</code> 属性控制，<strong>默认值是 false，即默认关闭</strong> [4]。如果沿用默认值写 TCC，空回滚、悬挂都没有保护，这是实践中很容易漏掉的一点。</p>
+<p>使用围栏有两个前提：Try 阶段必须提交本地事务，资源以中间状态落库；业务操作与 <code>tcc_fence_log</code> 的操作必须在同一个本地事务内成功或失败，这靠 Seata 的代理数据源实现 [4]。也就是说，围栏只对"落在关系库里的资源预留"有效；如果 Try 阶段是调用第三方接口，围栏保证不了什么。博客还指出 <code>queryTCCFenceDO</code> 使用 <code>for update</code>，会对记录加锁，其对并发性能的影响文中没有讨论 [4]。围栏表需要维护清理，博客未说明清理机制，需要查阅所用版本的配置 [4]。</p>
+<p>围栏表字段为 <code>xid</code>、<code>branch_id</code>、<code>action_name</code>、<code>status</code>、<code>gmt_create</code>、<code>gmt_modified</code>，主键 <code>(xid, branch_id)</code>，状态值 1 到 4 分别对应 TRIED、COMMITTED、ROLLBACKED、SUSPENDED [4]。以下建表语句是按这些字段整理的，具体以所用 Seata 版本 script 目录里的官方脚本为准，未实跑。</p>
+<pre><code class="language-sql">CREATE TABLE IF NOT EXISTS tcc_fence_log (
+  xid           VARCHAR(128) NOT NULL,
+  branch_id     BIGINT       NOT NULL,
+  action_name   VARCHAR(64)  NOT NULL,
+  status        TINYINT      NOT NULL COMMENT '1:TRIED 2:COMMITTED 3:ROLLBACKED 4:SUSPENDED',
+  gmt_create    DATETIME(3)  NOT NULL,
+  gmt_modified  DATETIME(3)  NOT NULL,
+  PRIMARY KEY (xid, branch_id),
+  KEY idx_gmt_modified (gmt_modified),
+  KEY idx_status (status)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+</code></pre>
+<h4 id="45-最小代码">4.5 最小代码</h4>
+<p>以下代码未实跑，注解及参数名依据官方用户文档和博客 [3][4]。</p>
+<pre><code class="language-java">@LocalTCC
+public interface InventoryTccAction {
+
+    @TwoPhaseBusinessAction(name = &quot;inventoryReserve&quot;,
+            commitMethod = &quot;commit&quot;, rollbackMethod = &quot;rollback&quot;, useTCCFence = true)
+    boolean tryReserve(BusinessActionContext ctx,
+                       @BusinessActionContextParameter(paramName = &quot;skuId&quot;) long skuId,
+                       @BusinessActionContextParameter(paramName = &quot;qty&quot;) int qty);
+
+    boolean commit(BusinessActionContext ctx);
+
+    boolean rollback(BusinessActionContext ctx);
+}
+</code></pre>
+<pre><code class="language-java">@Service
+@RequiredArgsConstructor
+public class InventoryTccActionImpl implements InventoryTccAction {
+    private final InventoryMapper mapper;
+
+    @Override
+    public boolean tryReserve(BusinessActionContext ctx, long skuId, int qty) {
+        // UPDATE inventory SET available=available-?, frozen=frozen+? WHERE sku_id=? AND available&gt;=?
+        return mapper.freeze(skuId, qty) == 1;
+    }
+
+    @Override
+    public boolean commit(BusinessActionContext ctx) {
+        long skuId = Long.parseLong(String.valueOf(ctx.getActionContext(&quot;skuId&quot;)));
+        int qty = Integer.parseInt(String.valueOf(ctx.getActionContext(&quot;qty&quot;)));
+        // UPDATE inventory SET frozen=frozen-? WHERE sku_id=?
+        return mapper.confirm(skuId, qty) &gt;= 0;
+    }
+
+    @Override
+    public boolean rollback(BusinessActionContext ctx) {
+        long skuId = Long.parseLong(String.valueOf(ctx.getActionContext(&quot;skuId&quot;)));
+        int qty = Integer.parseInt(String.valueOf(ctx.getActionContext(&quot;qty&quot;)));
+        // UPDATE inventory SET available=available+?, frozen=frozen-? WHERE sku_id=?
+        return mapper.release(skuId, qty) &gt;= 0;
+    }
+}
+</code></pre>
+<p>注意：官方用户文档里 <code>doTransactionCommit</code> 示例声明了返回 <code>String</code> 但没有 <code>return</code>，直接复制会编译失败，这是文档示例的小瑕疵 [3]。</p>
+<h3 id="5-saga长流程与外部系统">5. Saga：长流程与外部系统</h3>3
+<h4 id="51-原理">5.1 原理</h4>
+<p>Saga 把长事务拆成一串本地事务，每个参与者提交自己的本地事务；任一参与者失败，框架对此前已成功的参与者执行补偿。正向服务和补偿服务都由业务实现 [5]。</p>
+<p>Seata 提供两种实现 [5]：</p>
+<ul>
+<li><strong>状态机引擎</strong>：用 JSON 状态语言定义流程，每个节点可配置补偿节点，支持单选、并发、子流程、参数转换、异常捕获。</li>
+<li><strong>注解方式</strong>：在业务接口上用 <code>@CompensationBusinessAction</code>，由 <code>compensationMethod</code> 指定补偿方法，再配合 <code>@GlobalTransactional</code> 启动全局事务。</li>
+</ul>
+<p>恢复策略有两种：<strong>向后恢复</strong>是节点异常时路由到补偿触发器，由引擎反向执行已成功节点的补偿，且补偿不会自动触发，是否回滚由 JSON 中的路由决定；<strong>向前恢复</strong>是对失败的状态机实例调用 <code>forward</code> 接口重新启动，继续执行直到最终一致 [5]。状态机实例记录在本地数据库，崩溃重启后由 Seata Server 触发恢复，提交或回滚失败时 Server 会持续重试 [5]。</p>
+<h4 id="52-编排与协同">5.2 编排与协同</h4>
+<p>microservices.io 把 Saga 的协调方式分为两类 [9]：</p>
+<ul>
+<li><strong>编排（Orchestration）</strong>：一个编排器告诉各参与方执行哪个本地事务。</li>
+<li><strong>协同（Choreography）</strong>：每个本地事务发布领域事件，触发其他服务的本地事务。</li>
+</ul>
+<p>派单场景的"创建运单、锁定骑手、通知用户"适合编排，因为状态流转复杂、需要集中看进度；支付成功后"订单置已付款、派单服务开始调度、积分服务发积分"适合协同，各下游独立订阅同一事件。</p>
+<h4 id="53-适用与缺点">5.3 适用与缺点</h4>
+<p>官方列出的适用场景是流程长、环节多，以及参与方是其他公司或遗留系统，无法提供 TCC 要求的三个接口 [5]。优点是一阶段直接提交本地事务、不持有锁，性能高，补偿服务较易实现 [5]。缺点是不保证隔离性 [5]。</p>
+<p>microservices.io 还指出，发起 Saga 的同步请求如何把结果告诉客户端也是需要设计的问题，有三种做法：完成后再返回；先返回 <code>orderID</code> 让客户端轮询；先返回 <code>orderID</code> 再通过 WebSocket 或 Webhook 推送 [9]。云岚到家的秒杀查询接口返回"排队中、成功、失败"，就是第二种。</p>
+<h4 id="54-最小代码">5.4 最小代码</h4>
+<p>以下注解式示例未实跑。页面只确认了注解名和 <code>compensationMethod</code> 属性 [5]，其他属性以所用版本为准。</p>
+<pre><code class="language-java">public interface RiderLockAction {
+
+    @CompensationBusinessAction(compensationMethod = &quot;unlockRider&quot;)
+    boolean lockRider(long riderId, String waybillNo);
+
+    boolean unlockRider(long riderId, String waybillNo);
+}
+</code></pre>
+<p>补偿方法必须自行保证幂等，并能处理"正向方法没执行过"的情况，原因与 TCC 的空回滚相同。</p>
+<h3 id="6-xa数据库保证强隔离代价是阻塞">6. XA：数据库保证强隔离，代价是阻塞</h3>3
+<p>Seata XA 利用数据库对 XA 协议的支持管理分支。执行阶段，业务 SQL 在 XA 分支内执行；分支完成后执行 XA prepare，由资源保证结果持久化，之后故障也不影响回滚；完成阶段对各分支执行 XA commit 或 XA rollback [6]。官方称，由资源自身支持 XA 协议可以从任何角度保证数据的有效隔离，从而满足全局一致 [6]。</p>
+<p>与 AT 的使用方式几乎一致，区别只在数据源代理类型，XA 使用 <code>DataSourceProxyXA</code>，AT 使用 <code>DataSourceProxy</code> [6]。以下代码未实跑。</p>
+<pre><code class="language-java">@Bean(&quot;dataSourceProxy&quot;)
+public DataSource dataSource(DruidDataSource druidDataSource) {
+    return new DataSourceProxyXA(druidDataSource);
+}
+</code></pre>
+<p>限制很明确：分支完成 XA prepare 后进入阻塞阶段，必须等 XA commit 或 XA rollback，事务资源长时间不释放，锁周期长；应用层无法介入，官方评价性能较差；适用场景是把基于 XA 协议的旧应用迁移到 Seata，或不适配 AT 的数据库应用 [6]。对秒杀这类高并发场景，基本可以排除。</p>
+<h3 id="7-rocketmq-事务消息可靠发布不是分布式事务">7. RocketMQ 事务消息：可靠发布，不是分布式事务</h3>3
+<h4 id="71-机制">7.1 机制</h4>
+<p>RocketMQ 5.x 官方文档描述的流程共七步 [7]：</p>
+<ol>
+<li>生产者向 Broker 发送消息。</li>
+<li>Broker 保存消息并标记为不可投递，即半事务消息，返回 ACK。</li>
+<li>生产者执行本地事务。</li>
+<li>生产者发送第二次 ACK，结果为 Commit 或 Rollback；Commit 则消息可投递，Rollback 则丢弃。</li>
+<li>若 Broker 没收到第二次 ACK，或状态是 Unknown（网络断开、生产者重启），Broker 等待一段时间后向生产者集群发起<strong>事务回查</strong>。</li>
+<li>生产者检查对应本地事务的执行结果。</li>
+<li>生产者按结果再次发送 ACK。</li>
+</ol>
+<p>关键参数来自参数限制页 [8]：事务异常检查间隔（回查间隔）默认 60 秒；半消息最大超时时间默认 4 小时，超时仍无结果会被强制回滚；<code>RMQ_SYS_TRANS_HALF_TOPIC</code> 和 <code>RMQ_SYS_TRANS_OP_HALF_TOPIC</code> 是系统保留名，不能用作 Topic 名。最大回查次数在该页没有给出数值。</p>
+<h4 id="72-它保证什么不保证什么">7.2 它保证什么，不保证什么</h4>
+<p>官方限制说明得很清楚 [7]：</p>
+<ul>
+<li>事务消息只保证<strong>生产端与下游分支</strong>的事务一致，<strong>不保证消费结果与上游结果一致</strong>，消费者要自己正确处理并配置消费重试。</li>
+<li>只保证最终一致。消息投递给消费者之前，上游与下游状态可能不一致，所以只适用于能接受异步执行的场景。</li>
+<li>事务消息只能发送到 MessageType 为 Transaction 的 Topic。</li>
+</ul>
+<p>使用注意：本地事务返回未知结果会触发大量回查，拖慢性能；回查时如果事务仍在执行，应保持 Unknown，不要提前返回 Commit 或 Rollback [7]。</p>
+<h4 id="73-5x-代码骨架">7.3 5.x 代码骨架</h4>
+<p>以下代码未实跑。页面确认的 API 有 <code>setTransactionChecker</code>、<code>beginTransaction()</code>、<code>send(message, transaction)</code>、<code>transaction.commit()</code>、<code>transaction.rollback()</code> [7]；<code>ClientServiceProvider</code> 等构建器写法是 5.x 客户端通用写法，页面未逐字确认。</p>
+<pre><code class="language-java">// 回查器：按业务ID查本地订单，存在则 COMMIT，否则 ROLLBACK
+TransactionChecker checker = messageView -&gt; {
+    String orderNo = messageView.getProperties().get(&quot;OrderNo&quot;);
+    return orderRepo.exists(orderNo) ? TransactionResolution.COMMIT
+                                     : TransactionResolution.ROLLBACK;
+};
+Producer producer = provider.newProducerBuilder()
+        .setClientConfiguration(cfg).setTopics(&quot;PAY_SUCCESS_TXN&quot;)
+        .setTransactionChecker(checker).build();
+
+Transaction tx = producer.beginTransaction();
+producer.send(message, tx);          // 发送半消息，失败则终止
+try {
+    paymentService.markPaid(orderNo); // 本地事务
+    tx.commit();
+} catch (Exception e) {
+    tx.rollback();
+}
+</code></pre>
+<h4 id="74-版本提醒">7.4 版本提醒</h4>
+<p>本库 01 到 03 篇的基线是 RocketMQ 4.9.7。4.x 的事务消息文档（<code>/docs/4.x/producer/04transactionmessage/</code>）本次访问返回 404，旧版示例页也没有取到内容，因此 4.x 的 <code>TransactionMQProducer</code> 和 <code>TransactionListener</code> 写法没有核实到官方页面。按通用认知，4.x 的回查入口是 <code>TransactionListener#checkLocalTransaction</code>，本地事务入口是 <code>executeLocalTransaction</code>，返回 <code>LocalTransactionState</code>，但这一点属于未核实，使用前请核对所用版本的文档。5.x 的回查间隔和半消息超时数值也不应直接套到 4.9.7 上。</p>
+<h3 id="8-本地消息表与-outbox">8. 本地消息表与 Outbox</h3>3
+<h4 id="81-做法">8.1 做法</h4>
+<p>microservices.io 的 Transactional Outbox 模式：服务在更新业务实体的<strong>同一个本地事务</strong>里，把要发送的消息存进同库的 outbox 表，再由一个独立的消息中继（Message Relay）读取并发给消息代理 [10]。保证是"消息当且仅当数据库事务提交时才会被发送"，并且消息按应用写入的顺序进入代理 [10]。</p>
+<p>中继有两种实现：事务日志追踪和轮询发布者 [10]。03 篇 3.3 节的"后台投递器"属于轮询发布者。</p>
+<h4 id="82-缺点必须面对">8.2 缺点必须面对</h4>
+<p>两个缺点来自官方页面 [10]：一是开发者可能更新了数据库却忘记写 outbox；二是中继可能重复发布，例如它发布之后、记录已发布状态之前崩溃，重启后会再发一次。因此<strong>消费者必须幂等</strong>，比如记录已处理的消息 ID。</p>
+<h4 id="83-用-debezium-代替轮询">8.3 用 Debezium 代替轮询</h4>
+<p>如果不想自己写轮询投递器，可以用 Debezium 读取数据库日志并路由 outbox 表。Debezium 的 Outbox Event Router 要求默认列 <code>id</code>、<code>aggregatetype</code>、<code>aggregateid</code>、<code>type</code>、<code>payload</code>；<code>aggregatetype</code> 决定 topic 名，默认路由为 <code>outbox.event.${routedByValue}</code>，<code>aggregateid</code> 作为消息 key 以保证分区内顺序 [11]。官方说明 outbox 表上的变更预期都是 INSERT，DELETE 事件会被自动过滤，遇到 UPDATE 的行为由 <code>table.op.invalid.behavior</code> 控制，默认 <code>warn</code> [11]。页面提到可用 <code>id</code> 去重 [11]，但没有直接说明投递语义，也没有说明插入后能否删行，这两点需要另行确认。Debezium 通常搭配 Kafka Connect，本库的消息中间件是 RocketMQ，引入前要评估运维成本，本篇不展开。</p>
+<h4 id="84-最小代码">8.4 最小代码</h4>
+<p>以下为本库自拟的最小结构，沿用 Debezium 的默认列名以便将来迁移，未实跑。</p>
+<pre><code class="language-sql">CREATE TABLE outbox (
+  id            CHAR(36)     NOT NULL PRIMARY KEY,
+  aggregatetype VARCHAR(64)  NOT NULL,
+  aggregateid   VARCHAR(64)  NOT NULL,
+  type          VARCHAR(64)  NOT NULL,
+  payload       JSON         NOT NULL,
+  status        TINYINT      NOT NULL DEFAULT 0 COMMENT '0待发送 1已发送',
+  created_at    DATETIME(3)  NOT NULL,
+  KEY idx_status_created (status, created_at)
+);
+CREATE TABLE consumed_message (
+  consumer VARCHAR(64) NOT NULL,
+  msg_id   CHAR(36)    NOT NULL,
+  PRIMARY KEY (consumer, msg_id)
+);
+</code></pre>
+<pre><code class="language-java">@Transactional
+public void onPaymentNotify(PaymentNotify n) {
+    paymentMapper.markSuccessIfPaying(n.getPayNo());           // 条件更新，天然幂等
+    outboxMapper.insert(Outbox.of(&quot;payment&quot;, n.getOrderNo(),   // 同一个本地事务
+            &quot;PaymentSucceeded&quot;, n.toJson()));
+}
+
+// 轮询发布者：按创建时间取待发送，发送成功再标记；崩溃会重复发送，下游以 msg_id 去重
+@Scheduled(fixedDelay = 500)
+public void relay() {
+    for (Outbox o : outboxMapper.listPending(100)) {
+        mqTemplate.syncSend(&quot;PAYMENT_EVENT&quot;, o.toMessage());
+        outboxMapper.markSent(o.getId());
+    }
+}
+</code></pre>
+<p>多实例部署时，<code>listPending</code> 要么加行锁跳过已锁行，要么按分片领取，否则同一条消息会被多个中继重复取走。重复发送无害，但会放大下游压力。</p>
+<h3 id="9-对比矩阵">9. 对比矩阵</h3>3
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>一致性</th>
+<th>隔离性</th>
+<th>侵入性</th>
+<th>性能</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Seata AT</td>
+<td>最终一致，二阶段异步 [1]</td>
+<td>默认读未提交，写靠全局锁，<code>FOR UPDATE</code> 可读已提交 [1]</td>
+<td>低，注解加代理数据源</td>
+<td>较好，但热点行全局锁等待</td>
+<td>自控关系库、短事务</td>
+</tr>
+<tr>
+<td>Seata TCC</td>
+<td>最终一致</td>
+<td>业务建模的预留状态，需自行设计</td>
+<td>高，三个方法加围栏 [3][4]</td>
+<td>好，无全局锁</td>
+<td>资源可冻结、需避开全局锁</td>
+</tr>
+<tr>
+<td>Seata Saga</td>
+<td>最终一致，可向前或向后恢复 [5]</td>
+<td>无隔离，需业务对策 [5][9]</td>
+<td>中，补偿接口或状态机</td>
+<td>高，一阶段不持锁 [5]</td>
+<td>长流程、外部系统</td>
+</tr>
+<tr>
+<td>Seata XA</td>
+<td>强一致</td>
+<td>数据库提供强隔离 [6]</td>
+<td>低</td>
+<td>差，prepare 后阻塞 [6]</td>
+<td>迁移旧 XA 应用</td>
+</tr>
+<tr>
+<td>RocketMQ 事务消息</td>
+<td>上游与下游分支最终一致，不含消费结果 [7]</td>
+<td>中间状态对外可见</td>
+<td>中，实现回查</td>
+<td>好</td>
+<td>本地事务后必达通知</td>
+</tr>
+<tr>
+<td>本地消息表 / Outbox</td>
+<td>最终一致，至少一次 [10]</td>
+<td>中间状态对外可见</td>
+<td>中，建表加中继</td>
+<td>好</td>
+<td>任何可写同库的场景，含外部渠道</td>
+</tr>
+</tbody>
+</table>
+<p>读这张表要抓两点。第一，只有 XA 同时提供强一致与强隔离，代价是阻塞。第二，事务消息和 Outbox 解决的是"消息一定发出"，不是"下游一定成功"，下游成功要靠消费重试、幂等和对账。</p>
+<h3 id="10-场景落地决策表">10. 场景落地决策表</h3>3
+<table>
+<thead>
+<tr>
+<th>业务环节</th>
+<th>选择</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>秒杀：Redis 预扣、投递下单消息</td>
+<td>请求事实表加状态机加 UNKNOWN 补偿（02 篇既有设计）</td>
+<td>Redis 与 MQ 是跨系统双写，没有全局事务可用，02 篇已用状态机收敛</td>
+</tr>
+<tr>
+<td>秒杀：消费者扣库存加写订单</td>
+<td>单库本地事务加唯一索引加条件更新</td>
+<td>同库同事务即可，不需要分布式事务</td>
+</tr>
+<tr>
+<td>秒杀：库存热点行</td>
+<td>不用 Seata AT</td>
+<td>推断：全部请求更新同一库存行，AT 的全局锁会把它们串行化并拉长等待 [1]，本篇未做压测验证</td>
+</tr>
+<tr>
+<td>普通下单：订单库加库存库</td>
+<td>AT 为默认；热点商品改 TCC</td>
+<td>非热点短事务 AT 侵入最低；热点商品需要预留语义</td>
+</tr>
+<tr>
+<td>取消订单后回补库存</td>
+<td>事务消息或 Outbox 加幂等回补</td>
+<td>只要求取消事实必达，回补表有唯一键（02 篇既有设计）</td>
+</tr>
+<tr>
+<td>派单：骑手抢单</td>
+<td>单库条件更新</td>
+<td><code>WHERE status='已派单'</code> 即可，03 篇既有设计</td>
+</tr>
+<tr>
+<td>派单：创建运单并锁定骑手</td>
+<td>同库则本地事务；跨库则 Saga 编排</td>
+<td>流程需集中观察进度，且包含通知等外部步骤</td>
+</tr>
+<tr>
+<td>派单：超时重新调度</td>
+<td>延迟消息加状态校验加条件更新</td>
+<td>属于补偿动作，必须幂等</td>
+</tr>
+<tr>
+<td>支付：渠道下单、验签</td>
+<td>不放入任何全局事务</td>
+<td>渠道不受事务控制，XID 也不会天然跨异步消息传播（03 篇结论）</td>
+</tr>
+<tr>
+<td>支付：支付单加通知订单</td>
+<td>Outbox，需要 Broker 侧保证时用事务消息</td>
+<td>双写问题，目标是消息必达</td>
+</tr>
+<tr>
+<td>支付：退款</td>
+<td>Saga 编排</td>
+<td>调用渠道，步骤长，需向后补偿与人工介入</td>
+</tr>
+<tr>
+<td>对账</td>
+<td>定时任务加三方流水比对</td>
+<td>任何最终一致方案都要靠对账兜底</td>
+</tr>
+</tbody>
+</table>
+<p>这张表里有一处与 03 篇不同：03 篇 3.4 节对"下单扣库存加创建运单"用了 AT。这没有错，但要注意运单创建如果包含等待骑手这类长动作，就应从全局事务中拆出，只把"运单记录写入"放进去，其余走 Saga 或消息。</p>
+<pre><code class="language-mermaid">flowchart TD
+  A[跨服务一致需求] --&gt; B{能在单库本地事务完成?}
+  B -- 是 --&gt; L[本地事务+条件更新+唯一索引]
+  B -- 否 --&gt; C{涉及第三方或非关系库?}
+  C -- 是 --&gt; D{只需下游必达通知?}
+  D -- 是 --&gt; E[Outbox 或事务消息]
+  D -- 否 --&gt; F[Saga 编排+补偿+对账]
+  C -- 否 --&gt; G{热点行或需业务预留?}
+  G -- 是 --&gt; H[TCC+useTCCFence]
+  G -- 否 --&gt; I{必须强隔离?}
+  I -- 是 --&gt; J[XA 并评估阻塞]
+  I -- 否 --&gt; K[AT 短事务]
+</code></pre>
+<h3 id="11-失败注入与补偿对账清单">11. 失败注入与补偿对账清单</h3>3
+<p>只要引入最终一致，就要把"出错后会怎样"当作交付内容。以下清单可直接用作测试用例。</p>
+<h4 id="111-失败注入">11.1 失败注入</h4>
+<table>
+<thead>
+<tr>
+<th>注入点</th>
+<th>预期结果</th>
+<th>检查什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AT：二阶段回滚时本地锁被占</td>
+<td>反复重试直到对方超时 [1]</td>
+<td>回滚耗时与超时配置是否合理</td>
+</tr>
+<tr>
+<td>AT：回滚前数据被他人改动</td>
+<td>回滚校验失败</td>
+<td>是否告警并进入人工处理 [1]</td>
+</tr>
+<tr>
+<td>TCC：Cancel 先于 Try 到达</td>
+<td>Try 因主键冲突失败，不产生预留 [4]</td>
+<td><code>tcc_fence_log</code> 出现 SUSPENDED，冻结量不增加</td>
+</tr>
+<tr>
+<td>TCC：Try 未执行就收到 Cancel</td>
+<td>不执行回滚逻辑 [4]</td>
+<td>可用量不会被多加回去</td>
+</tr>
+<tr>
+<td>TCC：Confirm 响应丢失重试</td>
+<td>第二次直接返回成功 [4]</td>
+<td>冻结量只减一次</td>
+</tr>
+<tr>
+<td>TCC：未开启 <code>useTCCFence</code></td>
+<td>以上三项都可能出错</td>
+<td>确认注解属性为 true [4]</td>
+</tr>
+<tr>
+<td>事务消息：本地事务返回 Unknown</td>
+<td>触发回查，回查器按业务数据判断 [7]</td>
+<td>回查器是否会在事务进行中误判</td>
+</tr>
+<tr>
+<td>事务消息：半消息长时间无结果</td>
+<td>超时强制回滚，默认 4 小时 [8]</td>
+<td>业务侧是否有补偿</td>
+</tr>
+<tr>
+<td>Outbox：中继发送后、标记前宕机</td>
+<td>消息重复发送 [10]</td>
+<td>下游去重表是否拦住</td>
+</tr>
+<tr>
+<td>Outbox：多个中继并发</td>
+<td>同一消息被多次领取</td>
+<td>领取是否加锁或分片</td>
+</tr>
+<tr>
+<td>消费者：处理后未确认</td>
+<td>消息重投</td>
+<td>业务幂等键是否生效</td>
+</tr>
+<tr>
+<td>Saga：补偿接口被重复调用</td>
+<td>结果不变</td>
+<td>补偿是否幂等，是否处理"正向未执行"</td>
+</tr>
+</tbody>
+</table>
+<h4 id="112-对账清单">11.2 对账清单</h4>
+<ul>
+<li><strong>库存守恒</strong>：初始库存等于已售加冻结加可用加人工调整，TCC 场景下 <code>frozen</code> 长期大于 0 要排查悬挂和未完成的全局事务。</li>
+<li><strong>围栏表</strong>：<code>tcc_fence_log</code> 中状态长期停在 TRIED 的记录；SUSPENDED 记录数量异常增长，说明乱序频繁。</li>
+<li><strong>UNDO_LOG</strong>：堆积量与存活时间，超过全局事务超时仍存在的记录。</li>
+<li><strong>支付单与订单</strong>：支付成功单对应订单必须为已付款，不一致的进入补偿队列；渠道流水逐日比对。</li>
+<li><strong>Outbox</strong>：<code>status=0</code> 且创建时间超过阈值的记录数，这个指标是中继是否卡住的第一信号。</li>
+<li><strong>消费幂等表</strong>：去重命中率突然升高，往往意味着上游在重复发送。</li>
+<li><strong>死信队列</strong>：每条死信必须有处理人、原因和结论，并有重放脚本。</li>
+</ul>
+<h3 id="12-常见误区">12. 常见误区</h3>3
+<ol>
+<li><strong>以为事务消息等于分布式事务。</strong> 它只保证上游本地事务与"消息可被投递"的一致，下游处理结果不在保证范围内 [7]。</li>
+<li><strong>把 Redis、HTTP 调用放进 <code>@GlobalTransactional</code>。</strong> AT 只管关系库 JDBC [1]。</li>
+<li><strong>TCC 忘了开 <code>useTCCFence</code>。</strong> 默认是 false [4]，空回滚和悬挂都没有保护。</li>
+<li><strong>在 TCC 的 Try 里调第三方接口并指望围栏兜底。</strong> 围栏要求业务操作与围栏表在同一个本地事务 [4]，外部调用不满足。</li>
+<li><strong>认为 AT 没有隔离问题。</strong> 它避免了脏写，但默认读未提交，普通 <code>SELECT</code> 看到的是别人未全局提交的数据 [1]。</li>
+<li><strong>Saga 补偿只写正向的反操作。</strong> 补偿还要处理"正向没执行"和"补偿重复执行"，并且补偿期间别的事务可能已经读到中间状态 [5][9]。</li>
+<li><strong>Outbox 只在发送成功后才记录，认为不会重复。</strong> 中继崩溃必然产生重复 [10]。</li>
+<li><strong>回查器直接返回 Rollback。</strong> 回查时本地事务可能还在跑，应保持 Unknown [7]。</li>
+<li><strong>把 4.x 与 5.x 的参数混用。</strong> 回查间隔、超时等数值取自 5.x 文档页 [8]，4.9.7 需另行核对。</li>
+<li><strong>用分布式事务掩盖拆分不当。</strong> 两个服务总是要一起改同一份数据，往往说明边界划错了，应先考虑合并或重新划分。</li>
+</ol>
+<h3 id="13-小结">13. 小结</h3>3
+<p>选型可以压缩成四步判断：能否单库本地事务；是否涉及外部系统；是否有热点或需要业务预留；是否必须强隔离。绝大多数业务环节落在"本地事务加幂等加 Outbox 或事务消息加对账"，少数同步强要求的环节才用 AT 或 TCC，Saga 承担长流程，XA 基本留给遗留系统。每上一种方案，都同步写失败注入用例和对账指标，否则最终一致只存在于设计文档里。</p>
+<h3 id="14-声明">14. 声明</h3>3
+<ul>
+<li><strong>代码未实跑</strong>：本机无 Java 工程环境，本文所有 Java 与 SQL 代码都未编译、未连接中间件运行，接入时请以所用版本的官方示例为准。</li>
+<li><strong>未核实项</strong>：RocketMQ 4.x 事务消息官方页面（404 与空内容）；最大回查次数的具体数值；<code>@CompensationBusinessAction</code> 除 <code>compensationMethod</code> 外的属性；<code>tcc_fence_log</code> 的清理机制与官方建表脚本原文；5.x 构建器链路的逐字写法；Debezium Outbox 的投递语义；秒杀热点行上 AT 的实际性能（文中为推断，未压测）。</li>
+<li><strong>Seata 版本</strong>：围栏文章示例基于 Seata 1.5.1 [4]，与本系列使用的版本组合是否一致，需要自行核对。</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库没有 Seata / RocketMQ / Outbox 表（本次读源码确认），但有一处「最朴素也最正确」的原子写：先写临时文件再 <code>os.replace</code>（<code>rag/ingest.py</code> L338-347）</strong>：<br />
+<code>python
+  def save_registry(reg: dict) -&gt; None:
+      os.makedirs(os.path.dirname(REGISTRY_PATH), exist_ok=True)
+      tmp = REGISTRY_PATH + ".tmp"
+      with open(tmp, "w", encoding="utf-8") as f:
+          json.dump(reg, f, ensure_ascii=False, indent=2)
+      os.replace(tmp, REGISTRY_PATH)</code><br />
+<strong><code>os.replace</code> 在同一文件系统内是原子的</strong>，不会出现「写了一半的 registry」。这是最小可用的「本地事务」实现，对应课件里 TCC/Outbox 想解决的「中间态不可见」问题。</li>
+<li><strong>跨进程一致性靠「锁 + 幂等」而不是分布式事务</strong>：<code>rag/ingest.py</code> 用 <code>rag/.ingest.lock</code> 文件锁串行化入库（注释：「锁文件必须保留，不能 unlink，否则等待者可能锁到不同 inode 而同时写库」），任务总线靠 <code>claim_token</code> + 状态机防并发。</li>
+<li><strong>知识库还有一个需要一致性思考的点：索引与源文件不同步</strong>。<code>ingest.py</code> 按 <code>sha256</code> 增量更新（内容变→删旧 chunk→写新 chunk），<strong>没有回滚机制</strong>——如果 ingest 中途失败，索引可能处于「部分新部分旧」的状态。本库目前的兜底是「重跑 ingest」（幂等），不是事务。</li>
+<li><strong>和课件讲法的差异</strong>：课件对比 Seata AT/TCC/SAGA/XA 四模式；本库的经验是 <strong>在单机场景里「文件原子替换 + 幂等重跑」胜过任何分布式事务框架</strong>，上框架的前提是先有真正的多服务跨库写。</li>
+<li><strong>本库暂无</strong>：多服务跨库写场景尚未出现（任务总线与知识库互不写对方数据），所以「选哪个分布式事务」在本库没有真问题，也没有答案。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库没有 Seata/RocketMQ；真实「跨进程一致性」只有两处：①SQLite 单库事务 + <code>claim_token</code> 乐观锁（<code>scripts/task_bus.py</code>）②<code>rag/ingest.py</code> 写 metadata registry 时「先写 <code>.tmp</code> 再 <code>os.replace</code>」（L344-346）保证不出现半个文件。</li>
+<li><strong>读源码</strong>：一致性方案对照；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] <strong>课程内容落点</strong>：<a href="../../../raw/sources/%E8%AF%BE%E7%A8%8B%E5%A4%A7%E7%BA%B2-%E9%BB%91%E9%A9%AC-AI%E5%BA%94%E7%94%A8%E6%99%BA%E8%83%BD%E4%BD%93v6-20261026.md">黑马 AI 应用智能体课程项目大纲</a>；<code>raw/courseware/</code> 未检索到对应 Java 微服务原始课件，故不虚构课件路径。</li>
+<li>[业1] <strong>业内官方</strong>：以下 Seata、RocketMQ、microservices.io 与 Debezium 官方资料，落在四种事务模式、可靠消息、Outbox 和消费者幂等。</li>
+</ul>
+<h3 id="官方参考">官方参考</h3>3
+<p>访问日期均为 2026-11-02。</p>
+<ol>
+<li>Seata AT 模式（dev）：https://seata.apache.org/docs/dev/mode/at-mode/</li>
+<li>Seata TCC 模式原理（dev）：https://seata.apache.org/docs/dev/mode/tcc-mode/</li>
+<li>Seata TCC 模式用户文档：https://seata.apache.org/docs/user/mode/tcc/</li>
+<li>Seata 官方博客，TCC 幂等、悬挂、空回滚（tcc_fence_log）：https://seata.apache.org/blog/seata-tcc-fence/</li>
+<li>Seata Saga 模式用户文档：https://seata.apache.org/docs/user/mode/saga/</li>
+<li>Seata XA 模式用户文档：https://seata.apache.org/docs/user/mode/xa/</li>
+<li>Apache RocketMQ 5.x 事务消息：https://rocketmq.apache.org/docs/featureBehavior/04transactionmessage/</li>
+<li>Apache RocketMQ 参数限制：https://rocketmq.apache.org/docs/introduction/03limits/</li>
+<li>microservices.io，Saga 模式：https://microservices.io/patterns/data/saga.html</li>
+<li>microservices.io，Transactional Outbox 模式：https://microservices.io/patterns/data/transactional-outbox.html</li>
+<li>Debezium Outbox Event Router：https://debezium.io/documentation/reference/3.7/transformations/outbox-event-router.html</li>
+</ol>
+<p>访问但未取得有效内容：<code>https://rocketmq.apache.org/docs/4.x/producer/04transactionmessage/</code>（404）、<code>http://rocketmq.apache.org/docs/transaction-example/</code>（空内容）。</p></div></body></html>

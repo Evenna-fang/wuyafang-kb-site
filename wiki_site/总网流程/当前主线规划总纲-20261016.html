@@ -1,0 +1,152 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>当前主线规划总纲-20261016</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 当前主线规划总纲-20261016</span></div><div class="wrap"><h1 id="当前主线规划总纲2026-10-16">当前主线规划总纲（2026-10-16）</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="%E6%80%BB%E7%BD%91%E5%8D%8F%E8%AE%AE%E6%80%BB%E7%BA%B2-%E4%B8%80%E6%89%8B-20261015.html">总网协议总纲-一手</a> · <a href="../../raw/rag-arch/RAG%E5%9B%BE%E8%B0%B1%E9%87%8D%E6%9E%84%E8%AE%BE%E8%AE%A1%E5%AE%9A%E7%A8%BFv2-20261016.md">RAG图谱重构设计定稿v2</a> · 本地RAG剩余差距 · <a href="../L4-RAG%E5%B7%A5%E7%A8%8B/RAG%E4%BD%9C%E6%88%98%E6%89%8B%E5%86%8C-%E5%85%A8%E6%99%AF%E5%9B%BE-20261021.html">RAG作战手册-全景图</a><br />
+<strong>用途：新会话开局的"我该干什么"入口。读完这份就知道主线、已完成、下一步。</strong></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">1. 主线目标（用户定的，不是自创）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>把本地 RAG 做成全球最强的 FDE 专家库，且总网与 RAG 图谱都要逻辑闭环（用户 2026-10-16 17:06 原话纠正："不是总网结构，是总网和 RAG 图谱都要逻辑闭环"）</li><li>检索两路 RRF 混合：dense + bge-m3 学习型 sparse（生产 grep 实测；云端 BM25 替代方案已 A/B 验证：R@1 +2pp、耗时 2867s vs 392s，待接线）</li><li>用户 2026-10-15 原话："看下本地 RAG 和总网有没有打通，规划使其可以和总网一起自进化，优化 RAG 库内容提升质量并去重"</li></ul></div>2
+<p>把本地 RAG 做成<strong>全球最强的 FDE 专家库</strong>，且<strong>总网与 RAG 图谱都要逻辑闭环</strong>（用户 2026-10-16 17:06 原话纠正："不是总网结构，是总网和 RAG 图谱都要逻辑闭环"）。<br />
+三条信息流：日扫 / 周析 / 专项。检索两路 RRF 混合：dense + bge-m3 学习型 sparse（生产 grep 实测；云端 BM25 替代方案已 A/B 验证：R@1 +2pp、耗时 2867s vs 392s，待接线）。</p>
+<p>用户 2026-10-15 原话："看下本地 RAG 和总网有没有打通，规划使其可以和总网一起自进化，优化 RAG 库内容提升质量并去重"。<br />
+用户 2026-10-16 16:13 原话（三步）：①总网自进化 ②总网进 RAG + 更新及时同步 ③图谱往下拆一层仍逻辑清晰。</p>
+<h2 id="2-当前状态10-16-夜更新于-10-21">2. 当前状态（10-16 夜；更新于 10-21）</h2>2
+<table>
+<thead>
+<tr>
+<th>线</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>检索质量</td>
+<td>R@1=35.3% / R@5=78.4%（51题 e2e_topn30，2026-10-20 扩标后；含/剔图谱槽同值）</td>
+</tr>
+<tr>
+<td>压缩卡顿</td>
+<td>✅ 已修（见 §3）</td>
+</tr>
+<tr>
+<td>记忆插件</td>
+<td>✅ 链路已修（embeddings 恢复）</td>
+</tr>
+<tr>
+<td>图谱谓词族</td>
+<td>✅ 已闭环（2026-10-21 实测三族已落地，纵向 41 条 = broader 3 + narrower 20 + partitive 18，达标 30-50）</td>
+</tr>
+<tr>
+<td>总网三层智能化机制</td>
+<td>🔄 方案 v2 已过一轮审，步骤 1a 已实施待补审查凭据</td>
+</tr>
+<tr>
+<td>生成层</td>
+<td>✅ 已切火山豆包 doubao-seed-2.1-lite（2026-10-21 E2E 验证 HTTP200/2.2s，答案非空带来源标注）</td>
+</tr>
+<tr>
+<td>上云现状</td>
+<td>存储部分上云（Zilliz 文本 17,234 + 图片 3,492 实测计数）；检索侧 0 接线（cloud_backend.py 无消费方）</td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">3. 已闭环（2026-10-14 ~ 10-16）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>实测对照（8k 输入）：小米 mimo 11.4s / 百炼 v4.1-flash 3.65s / 百炼 qwen3.8-max 4.4s / DeepSeek 官方 deepseek-chat 1.2s</li><li>注意：魔搭不支持 embeddings 接口（4 个 model id 全 400）→ 向量只能本地 bge-m3 或百炼付费</li><li>sparse 检索修复 + 「simple_fact_top_n」 4→10 → R@5 56.9% → 66.7%</li></ul></div>2
+<ul>
+<li><strong>压缩卡顿</strong>：根因 = <code>compression.threshold 0.12</code>（官方默认 0.5）+ 压缩模型慢。<br />
+  → 已改 <code>auxiliary.compression = deepseek/deepseek-chat</code> + <code>threshold=0.5</code>（DSH 执行，Hermes 独立复跑验收 PASS；<strong>生效需 /new</strong>）。<br />
+  实测对照（8k 输入）：小米 mimo 11.4s / 百炼 v4.1-flash 3.65s / 百炼 qwen3.8-max 4.4s / DeepSeek 官方 deepseek-chat 1.2s。</li>
+<li><strong>记忆插件（Hindsight）</strong>：两条链路——LLM 侧=魔搭免费 DeepSeek-V4.1-Flash；<strong>embeddings 侧=本地 Ollama bge-m3 @11434</strong>。<br />
+  故障在 embeddings（Ollama 未起 + bge-m3 未下载）→ 已修（bge-m3 1.6G 拉完，实测 1024 维 200，recall 恢复）。<br />
+  364 条被呛死的失败操作已全部回收（failed→0）。<br />
+  注意：<strong>魔搭不支持 embeddings 接口</strong>（4 个 model id 全 400）→ 向量只能本地 bge-m3 或百炼付费。</li>
+<li><strong>sparse 检索修复</strong> + <code>simple_fact_top_n</code> 4→10 → R@5 56.9% → 66.7%。</li>
+<li><strong>ruler 修复</strong>：golden 集 13 条死标签重指 + 5 条负样本标 negative → 真实水位 R@5 76%（n=46）。</li>
+<li><strong>谓词族三族重标</strong>（P1 完结，纵向 41 条）</li>
+<li><strong>图谱槽 after_top1</strong>（10-19）</li>
+<li><strong>topn 10→30</strong>（R@5 66.7%→78.4%）</li>
+</ul>
+<h2 id="4-待办按优先级">4. 待办（按优先级）</h2>2
+<p><strong>P0 — 图谱槽无条件置顶</strong> ✅ 已于 2026-10-19 闭环<br />
+<code>query.py</code> 新增 after_top1 档（multi_hop：rerank 第 1 位保真、图谱插第 2 位，不截断不丢席）；config.yaml <code>graph_slot_mode=after_top1</code>。冷测三题 EXIT=0，complex_reasoning 图谱尾部豁免完好。详见 scratch/graphslot_aftertop1_20261019.md。</p>
+<p><strong>P1 — 图谱进 RAG 的同步机制</strong>（用户 §1 原话第②条）<br />
+总网更新 → 及时同步进 RAG，避免"总网改了 RAG 还是旧的"。</p>
+<p><strong>P2 — 记忆分类治理</strong>（用户点过："分类不到位"）<br />
+Hindsight 现状：节点 11,036 = experience 5,559 + world 3,816 + observation 1,661。<br />
+问题：experience 里混大量运维/配置过程日志，标签是 <code>#xx</code> 内嵌正文写法 → 检索相关性差。</p>
+<p><strong>下轮 — courseware 符号层</strong>（设计定稿 v2 §2 第②步；OC 审查 2026-10-21：实测盘子 py=1371/md=497，'2.6万'口径虚高）<br />
+机械索引（LSP documentSymbol + tree-sitter tags），不烧 LLM。</p>
+<p><strong>RAG深度全面解决方案（2026-10-21定）</strong><br />
+三层深度（解决"内容不深"问题的整体框架）：<br />
+- <strong>知识深度</strong>（内容够不够深）→ 提炼层规模化：B4 CODE Distill 从试点 3 篇 → <strong>推全库</strong>，把 raw 层 93.8% 占比的原材料蒸馏成 wiki/ontology 层深度方法论（当前 wiki+ontology 仅 6%）。这是深度主体（约 80%）。<br />
+- <strong>质量深度</strong>（进库够不够格）→ 摄取质量门：进库前先判断"值不值得提炼"，防照单全收堆浅料；是提炼层的<strong>配套</strong>，不是主体。<br />
+- <strong>推理深度</strong>（跨内容想得远不远）→ 图谱推理：多跳推理 / 跨文档串联。</p>
+<p>图谱结构体检结论（2026-10-21 实测：422 实体 / 2558 关系；族分布 assoc 146 / hierarchy 41 / bfo 408 / weak 1963）：<br />
+- ✅ 谓词族三族已闭环（纵向 41 条 = broader 3 + narrower 20 + partitive 18，达标）——不用动。<br />
+- ✅ S2 噪音边已过滤（taxonomy_only 开启，噪音边=0）——不用动。<br />
+- ⚠️ 图谱量不足：B3 图谱 LLM 抽三元组只跑了 2/20 篇，图谱量没起来 = 结构深度不足。<br />
+- ⚠️ 多跳链深度浅是已知短板，且<strong>尚未量化体检</strong>。<br />
+→ 先解决"B3 补跑（2→20 篇）+ 多跳链深度体检"这两条，再上图谱推理。</p>
+<p>决策原则（用户 2026-10-21 定）：<strong>图谱结构内容没问题就直接上图谱推理；有问题就先解决问题再上——不绕过判断点。</strong></p>
+<p><strong>在途/挂账</strong><br />
+在途：<br />
+- <code>S5 双键检索集成设计</code>（RAPTOR 已砍，先集成设计过审再实施；含 S2 噪音边消费端过滤修复）— 10-21 状态：S2 噪音边侧已收口（taxonomy_only 过滤后噪音边=0），S5 设计本体待过审实施。<br />
+- <code>S3 ttl 保鲜门禁 check_ttl.py</code>（在建，dbt 式 warn/error 双阈值）— 10-21 状态：仍在建。<br />
+- <code>RECALL-TOPN30-1020</code>：✅ 已收口验收（R@1=35.3/R@5=78.4）。<br />
+- <code>oc-D2-research</code>（RAG 知识组织一手源对标）产物为空（0B/不存在）→ 已判 FAIL，待重派。— 10-21 状态：FAIL 已定性，重派未启动。<br />
+- 总网智能化三层机制步骤 1a 已实施，待补单独审查凭据（<code>steps-总网智能化-20261015.json</code> id=1）。— 10-21 状态：实施已收口，仅凭据未补。</p>
+<p>挂账：<br />
+- 摄取/提炼层 = 下轮第一优先（用户点名过）→ 已升级为上文「RAG深度全面解决方案」的<strong>知识深度主体</strong>（B4 CODE Distill 推全库）+ 质量深度配套（摄取质量门）。<br />
+- 检索切云端接线（A/B 凭据已绿）<br />
+- S2 噪音边消费端过滤（<code>query.py _build_adjacency</code> 不读 in_taxonomy，1963 条噪音边仍参与图谱扩展，修复并入 S5 设计）— 10-21 更新：摄取侧 taxonomy_only 过滤后噪音边=0；消费端 <code>_build_adjacency</code> 仍不读 in_taxonomy，该项与 S5 绑定<strong>仍挂账</strong>。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">5. 恢复指引（新会话怎么用这份）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<ol>
+<li>先读本文件 → 得到主线 + 待办优先级；</li>
+<li>要动图谱/谓词 → 读 <a href="../../raw/rag-arch/RAG%E5%9B%BE%E8%B0%B1%E9%87%8D%E6%9E%84%E8%AE%BE%E8%AE%A1%E5%AE%9A%E7%A8%BFv2-20261016.md">RAG图谱重构设计定稿v2</a>（六层 + 一手源 + 落地顺序）；</li>
+<li>要动流程/门禁 → 读 <a href="%E6%80%BB%E7%BD%91%E5%8D%8F%E8%AE%AE%E6%80%BB%E7%BA%B2-%E4%B8%80%E6%89%8B-20261015.html">总网协议总纲-一手</a>；<br />
+3b. 要跑/修本地 RAG → 读 <a href="../L4-RAG%E5%B7%A5%E7%A8%8B/RAG%E4%BD%9C%E6%88%98%E6%89%8B%E5%86%8C-%E5%85%A8%E6%99%AF%E5%9B%BE-20261021.html">RAG作战手册-全景图</a>（模块步骤 + 缺口清单 + 源码解读）；</li>
+<li>要评估检索现状 → 读 本地RAG剩余差距；</li>
+<li>任务单原文件在 <code>~/.hermes/plans/</code>（近期：总网智能化三层机制-实施方案-v2 / 本地RAG剩余差距 / review-*）。</li>
+</ol></div></details></div></body></html>

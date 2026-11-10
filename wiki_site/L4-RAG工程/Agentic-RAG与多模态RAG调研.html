@@ -1,0 +1,335 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agentic-RAG与多模态RAG调研</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ Agentic-RAG与多模态RAG调研</span></div><div class="wrap"><h1 id="agentic-rag-与多模态-rag-调研">Agentic RAG 与多模态 RAG 调研</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/sources/Agentic-RAG-%E8%B0%83%E7%A0%94-20261012.md">Agentic-RAG-调研-20261012</a> · <a href="../../raw/sources/Agentic-RAG%E6%A3%80%E7%B4%A2%E5%BE%AA%E7%8E%AF-%E5%A4%96%E9%83%A8%E8%B0%83%E7%A0%94-20261012.md">Agentic-RAG检索循环-外部调研-20261012</a> · <a href="../../raw/sources/%E5%A4%9A%E6%A8%A1%E6%80%81RAG-%E8%B0%83%E7%A0%94-20261012.md">多模态RAG-调研-20261012</a> · <a href="../../raw/sources/%E5%90%91%E9%87%8F%E6%95%B0%E6%8D%AE%E5%BA%93%E5%B7%A5%E7%A8%8B%E7%BB%86%E8%8A%82-%E8%B0%83%E7%A0%94-20261012.md">向量数据库工程细节-调研-20261012</a></p>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践</a> · <a href="RAG%E6%A3%80%E7%B4%A2%E4%B8%8D%E5%87%86%E6%80%8E%E4%B9%88%E6%8E%92%E6%9F%A5.html">RAG检索不准怎么排查</a> · <a href="Contextual-Retrieval%E5%AE%98%E6%96%B9%E6%96%B9%E6%B3%95-20261009.html">Contextual-Retrieval官方方法</a> · <a href="RAG%E8%AF%84%E4%BC%B0%E6%80%8E%E4%B9%88%E8%B7%91.html">RAG评估怎么跑</a> · <a href="Embedding%E6%A8%A1%E5%9E%8B%E9%80%89%E5%9E%8B%E5%AF%B9%E6%AF%94.html">Embedding模型选型对比</a> · <a href="../L5-Agent%E5%B7%A5%E7%A8%8B/01-Agentic-RAG%E5%85%AD%E6%A8%A1%E5%BC%8F.html">Agentic RAG 六模式</a></p>
+</blockquote>
+<h1 id="why按失败类型决定是否增加-agent视觉和向量库复杂度">WHY：按失败类型决定是否增加 Agent、视觉和向量库复杂度</h1>
+<h2 id="业务价值反事实与启用边界">业务价值、反事实与启用边界</h2>2
+<p>本篇解决的业务问题不是“追上三个热点”，而是把三种失败分开：证据需要多轮寻找，用 Agentic；答案藏在表格或版式里，用多模态；已有证据因索引参数进不了候选池，才查向量库。若把三种问题都当成“换更强模型”，会同时增加调用费、部署依赖和排障变量，却仍不知道哪一步修好了问题。</p>
+<p>来源：<a href="../../raw/sources/Agentic-RAG-%E8%B0%83%E7%A0%94-20261012.md">Agentic 调研</a>明确要求从简单方案开始、补文档评价和决策评测；<a href="../../raw/sources/%E5%A4%9A%E6%A8%A1%E6%80%81RAG-%E8%B0%83%E7%A0%94-20261012.md">多模态调研</a>把页面图像标注列为前置。因此适用边界是：真实问题需要动态取证或视觉证据，且已有文本基线；纯 Markdown FAQ、单点事实、没有标注与预算的试点不应同时打开所有增强。</p>
+<p>上线前先约定质量合同：简单事实不因增强而退化，多跳证据链能回溯来源，视觉答案中的表格数值能对照原页，达到循环预算时停止而不是继续猜。下文旧文的调用次数、GPU 门槛、pgvector 规模与召回比例均保留为原调研观察，不构成所有模型、硬件和数据集的通用保证。</p>
+<h2 id="核心论点">核心论点</h2>2
+<p>检索范式的真正分水岭不是"用不用 Agent"，而是把质量决策权交给谁：Agentic RAG 把"要不要检索、够不够好"的判断交回 LLM，靠 grade_documents 评估节点和独立 faithfulness judge 兜底，缺了这两道门禁的循环只是把差检索反复刷。它在难题上稳定胜出、在易题上反输，且每次回答涨到 3–8 次 LLM 调用 + 2–6 次检索，因此边界是按负载切片而非一律 agent 化。多模态方向的核心主张是跳过 OCR——ColPali/VisRAG 直接编码页面图像比"OCR→文本→embedding"更保真，但 ColPali 推理要 A100 级 GPU，这是本地部署的实际门槛。工程侧的默认解已经收敛：pgvector 在 200 万向量内零调优，但默认 ef_search=40 只召回约一半，这类隐形坑比选型争论更值得先修。</p>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">为什么调研这三条路线（动机与代价）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>不调研直接上，会在成本/硬件/召回上踩隐形坑——调研的动机是先搞清各方向的适用边界与真实代价，再决定上不上、按什么顺序上</li><li>共同的权衡原则：按负载切片（难题才 agent 化、版式文档才走多模态、规模超阈值才调 pgvector），不一律上最贵方案</li></ul></div>2
+<ul>
+<li><strong>动机（WHY）</strong>：Agentic RAG、多模态 RAG、向量库调优是 2026 年 RAG 工程的三个热点方向，但每个方向都有"宣传与实测的落差"：Agentic RAG 在难题上胜出但易题反输、成本涨到 3-8 次 LLM 调用；多模态跳 OCR 更保真但要 A100 级 GPU；向量库 pgvector 默认参数只召回一半。不调研直接上，会在成本/硬件/召回上踩隐形坑——调研的动机是<strong>先搞清各方向的适用边界与真实代价，再决定上不上、按什么顺序上</strong>。</li>
+<li><strong>代价与权衡</strong>：三个方向的代价各不相同——Agentic 化的代价是延迟/token 成本（每回答 3-8 次 LLM 调用 + 2-6 次检索），必须配 grade_documents 门控否则盲循环；多模态的代价是 GPU 硬件门槛（ColPali 推理要 A100 级，CPU 不实际）；向量库调优的代价是默认参数的隐形召回损失（ef_search=40 只召回约一半）。共同的权衡原则：按负载切片（难题才 agent 化、版式文档才走多模态、规模超阈值才调 pgvector），不一律上最贵方案。</li>
+</ul>
+<h1 id="whyt决策循环模态路由与存储层如何协同">WHYT：决策循环、模态路由与存储层如何协同</h1>
+<h2 id="组件协同与对标口径">组件协同与对标口径</h2>2
+<pre><code class="language-text">问题 → 负载/模态判断
+       ├─ 文本 → dense+sparse → RRF → 相关性评价 → 有界重检
+       └─ 版式 → 页面图像检索，或 OCR/VLM 描述后进入文本链
+                         ↓
+             证据组装 → 生成 → 引用/忠实度检查
+存储层负责候选覆盖与过滤，不替代上述质量判断
+</code></pre>
+<p>检索输出至少应能还原 source、章节或 page、原问题、改写历史与真实证据；图像描述还要能回到原图，描述不是原始数值的替代事实。<a href="../../raw/rag-arch/%E5%A4%9A%E6%A8%A1%E6%80%81RAG%E5%9B%BE%E7%89%87%E5%A4%84%E7%90%86%E4%B8%A4%E8%B7%AF%E7%BA%BF-%E9%A3%9E%E4%B9%A6-20261020.md">图片两路线素材</a>说明了两条路线的成本转移：直接图片向量把多模态成本留到查询期，先转描述则把成本前置到建库期；文字密集截图可以先 OCR，不能把“跳过 OCR”写成所有载体的必选项。</p>
+<p>对标按职责而不是名词：LangGraph 负责显式状态与条件边，ColPali/VisRAG 改变检索单元和编码空间，pgvector/Qdrant/Chroma 改变存储与运维约束。它们不是互斥的三选一，也不意味着本库已部署外部方案；外部版本、价格和速度只按原素材日期转引，本轮不新增市场判断。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">是什么（定义与边界）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>每块含核心结论、关键细节表、本库落地对应物</li><li>⚠️ "按负载切片而非一律 agent 化"是本篇的边界核心——Agentic/多模态/图谱都是补强件，不是默认件，先判断自己的负载再决定（见"怎么用"节的实测入口）</li><li>✅ 管：三方向的原理、实测数字、适用边界、本库替代落地路径</li></ul></div>2
+<p><strong>定义</strong>：本篇是三个 RAG 工程热点方向的调研笔记合集——①Agentic RAG（检索从固定前置步骤变成 Agent 的工具调用，决策权从工程硬编码交回 LLM）、②多模态 RAG（ColPali/VisRAG 直接编码页面图像检索，跳过 OCR）、③向量数据库工程（pgvector 的 ef_search/规模阈值/halfvec 调优）。每块含核心结论、关键细节表、本库落地对应物。</p>
+<p><strong>边界</strong>：<br />
+- ✅ 管：三方向的原理、实测数字、适用边界、本库替代落地路径。<br />
+- ❌ 不管：Agentic RAG 六模式的代码模板（<a href="Agentic-RAG%E5%85%AD%E6%A8%A1%E5%BC%8F%E4%BB%A3%E7%A0%81%E6%A8%A1%E6%9D%BF.html">Agentic-RAG六模式代码模板</a>）、图谱方案细节（<a href="RAG%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E6%A0%87%E5%87%86%E4%B8%8E%E9%AA%8C%E8%AF%81.html">RAG知识图谱标准与验证</a>）、检索流水线（<a href="RRF%E8%9E%8D%E5%90%88%E5%8A%A0%E9%87%8D%E6%8E%92%E8%A7%A3%E5%86%B3%E6%A3%80%E7%B4%A2%E7%9F%AD%E6%9D%BF-%E6%B7%B7%E5%90%88%E6%A3%80%E7%B4%A2%E6%B5%81%E6%B0%B4%E7%BA%BF.html">RRF融合加重排</a>）、评测（<a href="RAG%E8%AF%84%E4%BC%B0%E6%80%8E%E4%B9%88%E8%B7%91.html">RAG评估怎么跑</a>）。<br />
+- ⚠️ "按负载切片而非一律 agent 化"是本篇的边界核心——Agentic/多模态/图谱都是补强件，不是默认件，先判断自己的负载再决定（见"怎么用"节的实测入口）。</p>
+<h2 id="核心结论">核心结论</h2>2
+<ol>
+<li><strong>检索正从"固定前置步骤"变成"Agent 的工具调用"</strong>：传统 RAG 是 query→检索→生成的一步到位管线，而 Agentic RAG 让模型在回答前自主判断要不要检索、检索几次、结果够不够，检索被封装成 tool。这一跃迁的本质是决策权从工程硬编码交回给 LLM，代价是延迟和 token 成本上升。</li>
+<li><strong>真正拉开质量差距的是"评估节点"而非"循环本身"</strong>：LangGraph 模板里的 <code>grade_documents</code>（判断检索结果是否相关，不相关则改写 query 重检）才是核心；digitalapplied 明确点出——缺了 critique/self-check 步的 agent 只是把同一次检索反复刷，属于最常见的失败模式。</li>
+<li><strong>Agentic RAG 不是万能药，要按工作负载切片</strong>：2026 年检索层分裂为两支，agentic 分支在难题上稳定胜出、在易题上反输。落地顺序应是"先判断负载，再决定上不上"，而非一律 agent 化。据[一手源]：Agentic-RAG-调研-20261012：Anthropic 的核心建议是"从最简单的方案开始，只在灵活性收益大于延迟和成本时才增加复杂度"，先用单 agent + tool use，不要一上来 multi-agent；Anthropic 5 种 workflow pattern（prompt chaining / routing / evaluator-optimizer / tool use / orchestrator-workers）里，Agentic RAG 本质是 tool use 的特例。</li>
+<li><strong>多模态 RAG 的核心转变是"跳过 OCR"</strong>：ColPali 与 VisRAG 两条 ICLR 2025 路线都证明直接编码页面图像做检索，比"OCR→文本→embedding"管线更保真，尤其对表格、图表、复杂版式文档。</li>
+<li><strong>向量库选型在 2026 已收敛</strong>：pgvector 是大多数 RAG 系统的默认最优解，200 万向量以内零特殊调优；但默认 <code>ef_search=40</code> 只召回约一半，是"答案质量受损却无人知晓"的隐形坑。</li>
+</ol>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">关键细节</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="agentic-rag-检索循环">Agentic RAG 检索循环</h3>3
+<table>
+<thead>
+<tr>
+<th>环节</th>
+<th>做法</th>
+<th>要点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>要不要检索</td>
+<td>LLM 先判断，简单问题直接答</td>
+<td>省延迟省成本</td>
+</tr>
+<tr>
+<td>检索</td>
+<td>retriever 包成 tool，LLM 自主调用</td>
+<td><code>@tool</code> 装饰器</td>
+</tr>
+<tr>
+<td>质量门控</td>
+<td><code>grade_documents</code> 只答 yes/no</td>
+<td>Agentic 与普通 tool-use 的分水岭</td>
+</tr>
+<tr>
+<td>改写重检</td>
+<td>不相关则 rewrite query 再检索</td>
+<td><strong>必设最大循环次数（如 3 次）</strong>，防无限检索</td>
+</tr>
+<tr>
+<td>多源路由</td>
+<td>向量库/Web/SQL 按 query 类型分发</td>
+<td>Anthropic routing pattern</td>
+</tr>
+<tr>
+<td>自检门禁</td>
+<td>独立 judge 评估每条 claim 有无 chunk 证据</td>
+<td>缺这一步就是"抓不住幻觉"</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>迭代检索反思 pattern 五步：Retrieve → Read → Critique → Refine → Loop，循环到置信度高或步数预算耗尽。</li>
+<li>与 Classic RAG 的量级差：每轮检索次数由 1 次变为 1–6 次动态；延迟由 1 次 LLM+1 次检索，涨到 3–8 次 LLM 调用 + 2–6 次检索。</li>
+<li><strong>真实事故</strong>：某生产法律 QA agent 检索 8 chunks、草稿直接发货，两天后客户发现其中一条是编造的——trace 显示它用了 6/8，凭空捏造第 7 个事实，全因没有任何 span 做 faithfulness 评分。2026 行业共识：草稿生成后必须由独立 judge 过门禁才允许输出。</li>
+<li><strong>arXiv 一手</strong>：<code>arXiv:2501.09136v4</code> 综述给出四大 pattern（Reflection / Tool Use / Planning / Multi-Agent Collaboration）；企业知识库场景见 <code>arXiv:2605.05538</code>；RL 自适应检索深度见 <code>arXiv:2604.17337</code>（AutoSearch）；<code>arXiv:2505.04588</code>（ZeroSearch，阿里通义，用 LLM 模拟检索、训练成本约降 88%）；<code>arXiv:2511.19399</code>（DR Tulu，Allen AI）；<code>arXiv:2605.10899</code>（RubricEM）。</li>
+<li>三种范式：Tool-use RAG（LangGraph，通用）、Multi-agent RAG（Anthropic，主 agent 规划 + 子 agent 并行检索）、Just-in-time retrieval（Anthropic 2025-09 上下文工程，不预建索引、运行时按文件路径/URL 按需加载）。</li>
+<li>2026 框架：LangGraph（有状态、可调试、可 instrument）、OpenAI Agents SDK（轻量单厂商）、LlamaIndex AgentWorkflow（retrieval-first）、LangChain Deep Agents（skills-guided retrieval + rubric grading + subagent）。</li>
+<li>转折信号：RL 正在替代"手写 agent loop"——OpenAI Deep Research（2025-02-02，端到端 RL，HLE 26.6%）；vLLM 2026-06 起支持 Session-Aware Agentic Routing。</li>
+<li>FDE 落地：<code>max_iterations ≤ 5</code>、faithfulness judge 必配、必须接 LangSmith/OpenTelemetry（无 trace = 盲开），渐进迁移路径为"Naive RAG + query 改写 → 加 retriever tool → 加 critique judge → 加 subagent decomposition"。</li>
+<li>据[一手源]：Agentic-RAG-调研-20261012（现状差距 7 维）：从传统 RAG 升级要补的是——①检索触发（每次都检索 → LLM 自主决定，缺决策节点）②检索质量（直接用 top-k → 要 grade_documents 门控）③Query 处理（原 query 直检 → rewrite 迭代）④数据源（单向量库 → 向量 + Web + SQL 多源 router）⑤执行框架（线性管线 → LangGraph 状态图）⑥可观测性（基础日志 → 每步决策 trace）⑦Eval（端到端质量 → 决策质量 + 答案质量）。</li>
+<li>据[一手源]：Agentic-RAG-调研-20261012（Eval 口径）：Agentic RAG 比传统 RAG 多出"决策路径"维度，评测要问"不该检索时检索了吗 / 该检索时没检索吗"，并用 LangSmith/Langfuse 记录每轮 tool call、grade 结果、rewrite 历史；Anthropic 指出 agent 一步失败会让执行轨迹完全不同、错误级联放大，缺 eval suite 就分不清"决策错误"还是"生成错误"。成本是双刃剑：省掉不必要的检索，但增加 LLM 决策调用的 token，所以"简单 query 直接回答"的能力至关重要。</li>
+<li>据[一手源]：Agentic-RAG检索循环-外部调研-20261012（来源分层）：该源 12 个 URL 里 tier1 一手 8 个（arXiv 2501.09136v4 / 2605.05538 / 2604.17337 / 2505.04588 / 2511.19399、LangGraph 与 Deep Agents 官方文档、vLLM 官方博客），tier2 二手 4 个（digitalapplied、futureagi、buzzgrewal、rahulkolekar）。上文的"1–6 次检索 / 3–8 次 LLM 调用"对比表、法律 QA 事故案例、RL 转折判断都出自二手博客，引用时标"二手观察"，不能当官方基准数字；Reflection 四大 pattern 的定义才是 arXiv 一手。</li>
+<li>据[一手源]：RAG优化-外部调研-20260929（方向 5，范式选型决策树，ByteByteGo）：答案就在文档里且速度重要 → 标准 RAG；结构化知识、要"追关系"（depends on / causes / references，法律/合规/生物医学）→ Graph RAG；多步推理 + 自我纠错 → Agentic RAG（代价：慢、贵、难调试）。LazyGraphRAG（Microsoft 2025）把全图索引成本降到 vector RAG 的 0.1% 且质量相当，"图贵 100–1000×"的 2024 年说法已过时。该源对 162 chunk 个人库的裁决是"暂不上 Graph/Agentic，直到 chunk 数 &gt; 5000 或出现'追关系'类 query"，防止过度工程。</li>
+</ul>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">多模态 RAG</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>ColPali（ICLR 2025，「arXiv:2407.01449」）基于 PaliGemma + ColBERT 晚交互，把页面切 patch 生成多向量；HuggingFace 有 ColPali + Qwen2-VL 完整 cookbook 可复现</li><li>混合检索推荐：纯文本 query 走图像检索，条款编号等精确匹配补一层 BM25/文本向量，两路用 RRF 合并</li><li>检索单元从"文本 chunk"变为"页面图像/多向量 patch"，embedding 空间变图文共享，生成端由 LLM 换成 VLM（推荐 Qwen2-VL / GPT-4o 视觉版）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>ColPali 路线</th>
+<th>VisRAG 路线</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>检索方式</td>
+<td>多向量 patch + late interaction（ColBERT 式）</td>
+<td>全页面单向量嵌入</td>
+</tr>
+<tr>
+<td>适合场景</td>
+<td>大量文档、要精确检索</td>
+<td>中等文档量、版式复杂</td>
+</tr>
+<tr>
+<td>存储成本</td>
+<td>高（每文档多向量）</td>
+<td>低（每文档单向量）</td>
+</tr>
+<tr>
+<td>检索精度</td>
+<td>高（patch 级）</td>
+<td>中（页面级）</td>
+</tr>
+<tr>
+<td>开源状态</td>
+<td>有完整 repo + 权重</td>
+<td>论文 + 方法描述</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>ColPali（ICLR 2025，<code>arXiv:2407.01449</code>）基于 PaliGemma + ColBERT 晚交互，把页面切 patch 生成多向量；HuggingFace 有 ColPali + Qwen2-VL 完整 cookbook 可复现。</li>
+<li>检索单元从"文本 chunk"变为"页面图像/多向量 patch"，embedding 空间变图文共享，生成端由 LLM 换成 VLM（推荐 Qwen2-VL / GPT-4o 视觉版）。</li>
+<li>混合检索推荐：纯文本 query 走图像检索，条款编号等精确匹配补一层 BM25/文本向量，两路用 RRF 合并。</li>
+<li>硬件约束：ColPali 推理需 GPU（A100 级别），CPU 不实际——是本地部署的主要门槛。IJCAI 2025 综述把多模态 RAG 分三方向（共享 embedding+ 检索 / 模态专属检索 / 整模态对象检索），ColPali 属第一类、VisRAG 属第三类。</li>
+<li>据[一手源]：多模态RAG-调研-20261012（上不上的判断标准）：文档里有大量表格、图表、公式、扫描页、复杂排版才值得引入 ColPali/VisRAG；纯文本 markdown/代码文档传统 text RAG 仍更优。最小管线：<code>pip install colpali-engine qdrant-client</code> → PDF 用 pdf2image/PyMuPDF 渲染成页面图像 → ColPali（PaliGemma 系）每页生成多向量 → 存 Qdrant（支持 late interaction）→ query 经 VLM 编码检索 top-k 页面图 → Qwen2-VL/GPT-4o 视觉版读图回答。</li>
+<li>据[一手源]：多模态RAG-调研-20261012（评估口径）：多模态 eval 比文本 RAG 难，要标注"哪些页面图像与该 query 相关"；初期可沿用 RAGAS faithfulness 思路，但 judge 必须是 VLM 而非纯文本 LLM；重点盯表格数据是否被正确提取、图表数据是否被正确理解。与现有文本 RAG 的 6 项缺口为：页面图像渲染、VLM 多向量 embedding、多向量/late interaction 向量库、VLM 生成端、页面级相关性标注、文本 + 图像双路融合。</li>
+<li>据[一手源]：多模态RAG图片处理两路线-飞书-20261020（图片进 RAG 的两条路线，小猫AI学飞书 wiki，tier2）：</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>路线一：图片转向量</th>
+<th>路线二：VLM 转文字简介</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>模型</td>
+<td>多模态 Embedding（如 ColPali）</td>
+<td>VLM 生成描述 + 文本 Embedding</td>
+</tr>
+<tr>
+<td>检索</td>
+<td>向量相似度直接命中图</td>
+<td>文本相似度命中描述文字</td>
+</tr>
+<tr>
+<td>回答</td>
+<td>命中图喂给 VLM 看图回答</td>
+<td>描述文字直接喂 LLM</td>
+</tr>
+<tr>
+<td>成本</td>
+<td>建库便宜，每次查询要调多模态模型</td>
+<td>建库贵（每张图调一次 VLM），查询便宜</td>
+</tr>
+<tr>
+<td>短板</td>
+<td>可解释性弱，需与文本向量双路融合</td>
+<td>描述可能漏细节、有幻觉</td>
+</tr>
+</tbody>
+</table>
+<p>选型口诀：要保留"图里有什么"的原始信息选路线一；要产出直接并入现有 dense+sparse 检索、可加 source_tier 等元数据、查询便宜，选路线二。本库约 1.7 万张图（多为课件截图/架构图/流程图）当前纯文本 RAG 完全未处理，在"免费上云省内存"约束下起步选路线二，VLM 与 Embedding 全走云 API（如硅基 PaddleOCR-VL/视觉模型免费额度），本地零增量内存；文字密集型截图先 OCR 提取文字，保真度高于自由描述。</p>
+<h3 id="向量数据库工程">向量数据库工程</h3>3
+<table>
+<thead>
+<tr>
+<th>参数/场景</th>
+<th>建议值</th>
+<th>依据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hnsw.ef_search</code></td>
+<td>默认 40（召回约 50%）→ 生产 100–200</td>
+<td>100→召回约 80%、约 1.5ms；200→约 100%、约 2.3ms；&gt;200 可能降级 Seq Scan</td>
+</tr>
+<tr>
+<td><code>m</code> / <code>ef_construction</code></td>
+<td>16 / 64（默认即可）</td>
+<td>仅当 ef_search=200 仍召回不足 95% 才重建</td>
+</tr>
+<tr>
+<td><code>halfvec</code></td>
+<td>&gt;2000 维必用</td>
+<td><code>vector</code> 类型 3072 维撞 HNSW 2000 维上限</td>
+</tr>
+<tr>
+<td>DiskANN(SBQ)</td>
+<td>pgvectorscale</td>
+<td>索引可由 193MB 压到 21MB</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>分片决策树：&lt;100 万向量什么都不做；100 万–1000 万先调 ef_search + halfvec + DiskANN；&gt;1000 万考虑 Citus 分布式表/PgDog 分片/迁 Qdrant；&gt;5000 万是 pgvector 单节点上限，必须专用库（Qdrant/Milvus）。</li>
+<li>HNSW 构建时间随 <code>m</code> 线性增长（100 万条 1536 维约 60 分钟），是运维瓶颈信号。</li>
+<li>选型结论：pgvector（含 pgvectorscale）是 2026 大多数系统默认最优（跑在 Postgres 内、零额外运维、200 万以内免调优）；Chroma 仅适合原型；Qdrant 在自托管吞吐与量化压缩上更强，适合 500 万以上且需高级过滤。</li>
+<li>据[一手源]：RAG优化-外部调研-20260929（方向 3，本地 vs 云端选型）：Chroma 适合本地开发/原型，"几百万向量内 + 简单过滤"都够用，162 chunks 远在舒适区；团队需要"自有基础设施上的过滤 + 持久化"时再升 Qdrant（Rust，p95 &lt; 10ms @ 1000 万向量，过滤模型强，量化成熟）；Milvus/Weaviate 星数高（44k+）但分布式运维复杂，不适合个人/小团队；已有 Postgres 的团队 pgvector 比 Chroma 更优（单 VM 约 $50/月起步）。统一天花板："All of them share one ceiling: the quality of the content you embed"，换库不是当前瓶颈，应把精力放在 chunking + metadata + eval；该源给的迁移触发线是 chunk 数 &gt; 1 万再迁 Qdrant。</li>
+</ul>
+<h1 id="how先建文本对照再逐条验证增强分支">HOW：先建文本对照，再逐条验证增强分支</h1>
+</div></details></div></details><h2 id="本仓库最小验证步骤先只读后试点">本仓库最小验证步骤（先只读，后试点）</h2>2
+<p>以下是供读者执行的工作流，本次结构整理未执行生产检索、图片上传或向量库迁移。</p>
+<ol>
+<li>先核验尺子与当前参数；标签失效时停在此步，不拿失效题库比较增强收益。</li>
+</ol>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --check-golden
+rg -n 'dense_top_n:|sparse_top_n:|rrf_k:|top_k:|max_rewrite_retries:' rag/config.yaml
+</code></pre>
+<p>验收：尺子检查退出 0；记录实际参数，不把下面旧文数字当本轮结果。源码快照中 RRF k=60，dense/sparse 候选 1000/100，最终 top_k=4，CRAG 最多改写 2 次。</p>
+<ol start="2">
+<li>对同一真实复杂问题分别跑默认路径与关闭 CRAG 的路径，保留两次的来源、重写次数和 gate 结果。</li>
+</ol>
+<pre><code class="language-bash">env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/query.py &quot;Agentic RAG 的文档评价和改写怎样协同？&quot; --no-gen --scope all
+env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/query.py &quot;Agentic RAG 的文档评价和改写怎样协同？&quot; --no-gen --scope all --no-crag
+</code></pre>
+<p>验收：相关证据增加才算重检有用，循环不超过配置预算；仅日志多了几次调用不算收益。<code>--no-gen</code> 不等于零模型调用，默认路由与 CRAG 仍可能调用模型，需在获批的数据边界内执行。</p>
+<ol start="3">
+<li>多模态先做路径级核对，不能用文本召回分数冒充图片检索验收。</li>
+</ol>
+<pre><code class="language-bash">rg -n 'glob|rglob|ocr|vision|colpali' rag/ingest.py rag/query.py
+rg --files raw/courseware | rg '\.(png|jpg|jpeg)$' | head -20
+</code></pre>
+<p>验收：逐张建立 query→相关页面→原图定位的人工标注，并区分“原图存在”“描述可查”“数值正确”三件事。没有页面级标注就不宣布 ColPali/VisRAG 胜出；本轮不执行任何向外部模型传图的命令。</p>
+<h2 id="怎么用">怎么用</h2>2
+<ul>
+<li><strong>用本库 Adaptive RAG 实测“要不要 agent 化”</strong>：<code>rag/query.py</code> 是 LangGraph 状态机（<code>_classify_query</code> 路由 simple_fact / complex_reasoning / multi_hop + <code>rewrite_query_crag</code> CRAG 重写），跑 <code>source ~/ai-stack/bin/activate &amp;&amp; python3 rag/query.py "你的问题" --explain</code>，再用 <code>--no-adaptive</code> 对比，路由差异就是 agentic 化的真实收益面。</li>
+<li><strong>按负载切片前先看召回短板在谁</strong>：<code>python3 rag/eval/eval_recall_fast.py --mode hybrid</code> vs <code>--mode dense</code>（消融开关 <code>--no-sparse</code> / <code>--no-graph</code>），难题 agentic 赢、易题反输的结论要用自己 query 分布的 Recall@1/@5 验证，别照搬调研数字。</li>
+<li><strong>grade_documents 门控对应本库的 CRAG 环</strong>：<code>rag/config.yaml</code> <code>crag:</code> 段 <code>relevance_threshold: 0.5</code>、<code>min_relevant_docs: 2</code>、<code>max_rewrite_retries: 2</code>、<code>rewrite_daily_limit: 100</code>，调这组参数就是调“评估节点”的松紧，改后必须重跑 <code>_e2e_eval.py</code>。</li>
+<li><strong>多模态跳 OCR 路线的本库替代</strong>：版式文档（PDF/扫描件）先走 <code>scripts/mineru_ocr_batch.py</code>（MinerU OCR）再进 <code>rag/ingest.py</code>（bge-m3 dense 1024 维 + sparse → Chroma 集合 <code>wuyafang_kb</code>）；ColPali/VisRAG 需 A100 级 GPU，本机不具备时不要写进交付方案。</li>
+<li><strong>向量库隐形坑（ef_search）在本库的对应物</strong>：Chroma 侧用 <code>retrieval.dense_top_n: 1000</code> / <code>sparse_top_n: 100</code> 保候选池足够大（曾因 dense_top_n=200 把 dist=0.28 的真答案挤出）；换 pgvector 时记得显式调 <code>ef_search</code>，默认 40 只召回约一半。</li>
+<li><strong>动库前跑端到端保真评测</strong>（生产输出是 rerank 之后，不是之前）：<br />
+<code>bash
+  cd /mnt/c/MyData/Documents/wuyafang-l/rag/eval &amp;&amp; python3 -u _e2e_eval.py</code></li>
+</ul>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">来源</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>「raw/sources/Agentic-RAG-调研-20261012.md」（Anthropic《Building effective agents》、LangGraph agentic-rag 文档、multi-agent research system）</li><li>「raw/sources/向量数据库工程细节-调研-20261012.md」（pgvector 官方仓库、Crunchy Data、Neon Docs、PgDog 分片）</li><li>「raw/sources/RAG优化-外部调研-20260929.md」（方向 3 向量库选型、方向 5 Agentic/Graph 范式决策树，21 个来源，tier2）</li></ul></div>2
+<ul>
+<li><code>raw/sources/Agentic-RAG-调研-20261012.md</code>（Anthropic《Building effective agents》、LangGraph agentic-rag 文档、multi-agent research system）</li>
+<li><code>raw/sources/Agentic-RAG检索循环-外部调研-20261012.md</code>（<code>arXiv:2501.09136v4</code>、digitalapplied、futureagi 事故案例、vLLM Session-Aware Routing）</li>
+<li><code>raw/sources/多模态RAG-调研-20261012.md</code>（ColPali <code>arXiv:2407.01449</code>、VisRAG ICLR 2025、HuggingFace Cookbook）</li>
+<li><code>raw/sources/向量数据库工程细节-调研-20261012.md</code>（pgvector 官方仓库、Crunchy Data、Neon Docs、PgDog 分片）</li>
+<li><code>raw/sources/RAG优化-外部调研-20260929.md</code>（方向 3 向量库选型、方向 5 Agentic/Graph 范式决策树，21 个来源，tier2）</li>
+<li><code>raw/rag-arch/多模态RAG图片处理两路线-飞书-20261020.md</code>（图片转向量 vs 图片转文字两路线，tier2）</li>
+</ul>
+<h2 id="相关术语">相关术语</h2>2
+<p>对应 <code>ontology/</code> 术语表-RAG架构.md、术语表-Agent框架.md：</p>
+<ul>
+<li><strong>Graph RAG / Agentic RAG（检索范式选型）</strong>（术语表-RAG架构）：本篇是其"多步推理 + 自我纠错"分支的展开。</li>
+<li><strong>Hybrid Retrieval / RRF / Reranker / Quality Gating</strong>（术语表-RAG架构）：与本篇的 grade_documents 门控、混合检索融合直接互补。</li>
+<li><strong>LangGraph</strong>（术语表-Agent框架）：Agentic RAG 的默认编排载体。</li>
+<li>说明：多模态 RAG（ColPali/VisRAG）、向量库调优（ef_search/halfvec）目前 ontology 术语表<strong>暂无</strong>对应条目。</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">相关条目</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Agentic RAG 六模式代码模板</li></ul></div>2
+<ul>
+<li><a href="Agentic-RAG%E5%85%AD%E6%A8%A1%E5%BC%8F%E4%BB%A3%E7%A0%81%E6%A8%A1%E6%9D%BF.html">Agentic RAG 六模式代码模板</a></li>
+</ul>
+<blockquote>
+<p>三段结构补齐 2026-11-03</p>
+</blockquote>
+<h2 id="本库真实落地">本库真实落地</h2>2
+<blockquote>
+<p>本节 2026-11-05 补写，逐条 <code>os.path.exists</code> 核验路径，函数名可 grep 复核；不复述正文。</p>
+</blockquote>
+<ul>
+<li><strong>Agentic 检索循环的真实落点是 <code>rag/agentic_query.py</code>（全文 295 行，本次实读）</strong>：<code>build_agentic_graph()</code>（L243）用 LangGraph 把 <code>decide_node → retrieve_node → grade_node → (rewrite_node | generate_node | refuse_node)</code> 编成受控循环；<code>DEFAULT_MAX_REWRITES = 3</code>（L31）是改写上限，<code>route_after_grade()</code>（L196）三档分流，<code>refuse_node</code> 落拒答。这正是调研里"Agentic RAG 多步推理 + 自我纠错"的本库实现。</li>
+<li><strong>多模态侧本库只有文本入库，没有图文融合向量</strong>：课件图 OCR 走 <code>scripts/mineru_ocr_batch.py</code>（全文 46 行，脚本 docstring：「mineru批量OCR课件图 -&gt; raw/courseware/ocr-text/…供后续灌进RAG补图文融合」，幂等跳过已存在产物），OCR 文字转 <code>.md</code> 后再走 <code>rag/ingest.py</code> 常规入库。ColPali/VisRAG 那类"图直接转向量"路线<strong>本库暂无实现</strong>。</li>
+<li><strong>和课件讲法的差异</strong>：调研中 ColPali/VisRAG 的多模态检索路线本库未采用（成本与 OCR 已够用）；Agentic 循环用 LangGraph 自建而非 LlamaIndex 的 agentic 模块，与课件主栈（LlamaIndex）不同，但图编排思路一致。</li>
+</ul></div></details></div></body></html>

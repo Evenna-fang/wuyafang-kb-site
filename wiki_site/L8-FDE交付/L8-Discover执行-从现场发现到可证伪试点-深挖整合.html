@@ -1,0 +1,429 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L8-Discover执行-从现场发现到可证伪试点-深挖整合</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L8-Discover执行-从现场发现到可证伪试点-深挖整合</span></div><div class="wrap"><p>来源（四类）：【合成教学案例】金融合同、权限、知识库案例及访谈/配置示例；【行业调研】Gartner/S&amp;P/RAND/McKinsey、本地 B站案例原件整理与对账，书籍仅用既有摘要；【Palantir-Anthropic文档解析】起源经验、最小工具与 Eval 原则的本地解析；【一手源】DDDR/OpenFDE 原文引述及官方案例的本地整理，未在本次回溯原站，不将 B站整理稿或报税转述等同官方原文。</p>
+<blockquote>
+<p>owner: wuyafang · 类型: 深挖整合 · 主题: 篇2 Discover执行 · 更新: 2026-11-03<br />
+融合材料：DDDR 与 OpenFDE 课件骨架、需求访谈与失败复盘、B站案例原件及对账、NL2SQL 深拆、交付案例库；《The Mom Test》《流程！》仅按既有书摘使用，行业数字保留各自口径。</p>
+</blockquote>
+<h1 id="l8-discover-执行从现场发现到可证伪试点">L8 Discover 执行：从现场发现到可证伪试点</h1>
+<blockquote>
+<p>三段阅读说明：WHY 先确定业务价值与不做的后果；WHYT 再看方法骨架、模式协同和取舍；HOW 最后按步骤、模板与门禁执行。为完整保留原文，原有章节编号、WHYTF 小标题和历史阅读说明均保留，重组后的顺序以三个一级标题为准。新增教学模板是合成教学案例，不是客户记录或已取得的实测结果。</p>
+</blockquote>
+<h1 id="why以可核对的业务问题降低交付试错成本">WHY：以可核对的业务问题降低交付试错成本</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY：为什么 Discover 不是“收集需求”，而是降低交付不确定性</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>FDE 项目最危险的时刻，往往不是模型答错，而是所有人对一个错误的问题达成了共识</li><li>制造业老师傅案例不是先把文档扔给模型，而是跟岗和访谈形成知识地图；律所案例发现最痛的不是找不到法条，而是整理材料；报税案例把自动化限定在提取和映射层，并从会计师修改中持续学习；鞋服案例跟设计师与运营走流程，才发现“生成量”不等于“可发布量”；NL2SQL 的真正难点是表结构、指标口径与权限，而不只是生成 SQL</li><li>客户说“我要 AI 客服”“我要自动审合同”“我要一个能问数据的机器人”，这些都是解决方案提议，不是可直接验收的问题</li></ul></div>2
+<p>FDE 项目最危险的时刻，往往不是模型答错，而是所有人对一个错误的问题达成了共识。客户说“我要 AI 客服”“我要自动审合同”“我要一个能问数据的机器人”，这些都是解决方案提议，不是可直接验收的问题。若 FDE 立即选择模型、框架和演示数据，后续每一步都在放大最初的不确定性：访谈对象错，容错标准就错；容错标准错，评测集就错；评测集错，POC 的漂亮数字就无法外推；最后只能靠人工兜底和延期维持“上线”的表象。</p>
+<p>行业材料从不同口径指向同一风险。RAND 2024 对 65 名资深数据科学家和工程师的访谈，把业务领导层对问题的理解或传达错误列为首要根因；S&amp;P Global 2025 的调研口径中，42% 的企业放弃大部分 AI 项目，平均 46% 的 PoC 在进入生产前被砍；Gartner 对 agentic AI 项目取消率的判断是面向 2027 年底的预测，不是实测；McKinsey 的 88% 企业使用 AI 与 39% 报告可测利润影响，则说明“用了”不等于“用出价值”。这些数字不能平均成一个失败率，却足以说明：Discover 的任务不是把需求文档写厚，而是尽早消灭会导致项目重来的未知数。</p>
+<p>新增失败复盘把这一点进一步落到时间线上。七个失败或半失败样本的“最早检出点”都不晚于 Design/POC 验收：金融合同构造示例在 Discover 就漏掉法务；连锁零售第三方复盘在立项就只盯降本；知识库合成案例在 Design 验收时就能发现测试题由自己精选；权限合成案例在第一周就能发现超级账号；鞋服素材原件在 POC 评审时就该追问审核人手与连续使用标准。样本小，不能外推为行业统计，但操作含义很清楚：越早在现场看到真实动作，越便宜。</p>
+<p>公开成功案例也说明了 Discover 的价值。制造业老师傅案例不是先把文档扔给模型，而是跟岗和访谈形成知识地图；律所案例发现最痛的不是找不到法条，而是整理材料；报税案例把自动化限定在提取和映射层，并从会计师修改中持续学习；鞋服案例跟设计师与运营走流程，才发现“生成量”不等于“可发布量”；NL2SQL 的真正难点是表结构、指标口径与权限，而不只是生成 SQL。它们的共同点不是用了同一个模型，而是先改写了问题。</p>
+<p>本篇因此把 Discover 定义为一段有入口、有证据、有退出条件的工程工作：<strong>在承诺大规模交付之前，用真实用户、真实任务、真实数据和真实约束，证明“为谁解决什么可测问题”，同时证明哪些问题现在不该做。</strong></p>
+<h2 id="价值代价与适用边界">价值、代价与适用边界</h2>2
+<p>Discover 的业务产出不是“多了解客户”，而是让后续预算、设计与验收都锚定同一个问题：谁在真实任务里承担什么损失，现状如何测量，改变后由谁确认。把流程耗时、人工复核、数据可用性和否决权提前显性化，才能决定该投入开发，还是先治理数据、调整流程或停止立项。没有这层发现，团队可能把错误需求实现得很完整，却无法证明业务结果。</p>
+<p>适用条件是存在具体岗位、可观察任务和愿意对问题负责的业务方，但关键约束尚未被验证。不适用边界也要写清：已有明确输入输出、可用规则闭环的小任务，不应被强行扩成驻场调研；拿不到合法样本或真实使用者时，只能交付带缺口的发现结论，不能承诺试点效果；存在不可逆动作时，Quick Win 不构成跳过安全与授权的理由。发现“不应做 AI”同样是合格产出，而不是 Discover 失败。</p>
+<h1 id="whyt把发现路径证据等级与试点假设连成方法">WHYT：把发现路径、证据等级与试点假设连成方法</h1>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">WHYTF：Discover 的知识骨架、证据模型与案例校准</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="一三源怎样融合成一条逻辑链">一、三源怎样融合成一条逻辑链</h3>3
+<p>课件骨架提供顺序。DDDR 中，Discover 的入口是至少有赞助人或业务 Champion，并且能接触真实用户；关键动作是画干系人地图、走现状流程、确认数据与权限、定义可观测成功、写非目标；出口是发现纪要、问题陈述、指标、约束、风险与开放问题。OpenFDE 的 OBSERVE→ELICIT→INDUCE→ACT→EVOLVE 则提供微观循环：先看，再问，再归纳判断，再做小动作，最后根据真实结果提升自主度。</p>
+<p>书籍补上“为什么会议室里的需求不可靠”。《The Mom Test》的既有二手摘要强调：谈对方的生活而非你的方案，问过去具体行为而非未来泛泛意愿，少说多听。它直接纠正“你们想要哪些功能”“你会不会用”这类诱导式问题。《流程！》的既有书摘强调识别少数核心流程、厘清每一步的人、内容、时间、地点与方式，并正视惯性；它解释了为什么 Discover 必须跟岗，而不是只收一张理想流程图。本文未读两书全文，不引用页码或虚构原话。</p>
+<p>业内最新材料负责校准证据。Palantir 的起源经验说明，在客户无法明说需求、数据不能直接共享、工作流常变的环境里，观察、实验与实时构建比问卷更有效；Anthropic 的工程共识要求从简单可组合模式开始，工具保持最小可用集，客户访谈中的引语、摩擦点和未解问题应回到 Eval。2026 年 B 站案例对账又补充了引用纪律：22 个量化说法中，只有 2 个获得本库原件支持，4 个冲突，16 个原件无。这说明 Discover 不仅要发现客户事实，还要发现“我们引用的案例究竟能证明什么”。</p>
+<p>三源环环相扣：课件告诉你何时做什么，书籍告诉你为什么口头需求会失真，业内材料告诉你哪些方法在现实里经受了约束、哪些数字必须降级。最终产物不是一堆链接，而是一份能指导下一步行动的证据包。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">二、Discover 的输入、输出与不做清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Discover 也不等于无限调研</li><li>它的终点不是“所有问题都有答案”，而是关键未知数已有证据，剩余未知数有 Owner 和补证日期，并且能选择一个窄而真的下一步</li><li>能在一天内闭环的小问题可以直接做完再复盘；涉及权限、不可逆动作、跨部门责任的大问题，不能用“小步快跑”跳过评审</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>必须有的内容</th>
+<th>不能接受的替代品</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>用户</td>
+<td>日常执行者、结果负责人、否决者、维护者</td>
+<td>只有 IT 或采购转述</td>
+</tr>
+<tr>
+<td>任务</td>
+<td>最近一次真实处理过程，含例外、返工与系统切换</td>
+<td>理想流程图或产品宣传页</td>
+</tr>
+<tr>
+<td>基线</td>
+<td>耗时、质量、量、成本、风险中至少一个同口径基线</td>
+<td>“效率很低”“体验不好”</td>
+</tr>
+<tr>
+<td>数据</td>
+<td>权威源、样例、质量、刷新、权限、出域约束</td>
+<td>“我们有大量数据”</td>
+</tr>
+<tr>
+<td>成功</td>
+<td>指标定义、分子分母、样本来源、目标与测量人</td>
+<td>“领导满意”“Demo 惊艳”</td>
+</tr>
+<tr>
+<td>边界</td>
+<td>非目标、必须人工、只读范围、最高自主度</td>
+<td>先全量上线再补权限</td>
+</tr>
+<tr>
+<td>退出</td>
+<td>何时停、改、缩，谁拍板</td>
+<td>项目投入后再谈止损</td>
+</tr>
+<tr>
+<td>证据</td>
+<td>观察、文档、原话、推断分级</td>
+<td>把 FDE 推断写成客户事实</td>
+</tr>
+</tbody>
+</table>
+<p>Discover 也不等于无限调研。它的终点不是“所有问题都有答案”，而是关键未知数已有证据，剩余未知数有 Owner 和补证日期，并且能选择一个窄而真的下一步。能在一天内闭环的小问题可以直接做完再复盘；涉及权限、不可逆动作、跨部门责任的大问题，不能用“小步快跑”跳过评审。</p>
+<h3 id="四a-d-证据分级事实原话与推演不能混写">四、A-D 证据分级：事实、原话与推演不能混写</h3>3
+<table>
+<thead>
+<tr>
+<th>等级</th>
+<th>含义</th>
+<th>示例</th>
+<th>使用边界</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A 观察</td>
+<td>FDE 亲眼看到的动作</td>
+<td>理赔员在三个系统间复制两次</td>
+<td>可进问题陈述，但注明只观察了谁、多久</td>
+</tr>
+<tr>
+<td>B 文档</td>
+<td>原始系统或制度记录</td>
+<td>工单导出、审计日志、版本表</td>
+<td>可作基线，必须写时间窗与口径</td>
+</tr>
+<tr>
+<td>C 原话</td>
+<td>当事人陈述</td>
+<td>“漏审后要写情况说明”</td>
+<td>标角色，尽量用 A/B 补证</td>
+</tr>
+<tr>
+<td>D 推断</td>
+<td>FDE 的解释、换算或建议</td>
+<td>“所以法务需要 95%”</td>
+<td>只能进待验证清单，不能冒充客户要求</td>
+</tr>
+</tbody>
+</table>
+<p>常见升级路径是 C→B：对方说“上个月漏审”，就请求看情况说明或工单；A 仍不能直接外推全体：跟岗一个人只能代表这个人，至少覆盖不同资历、班次或业务类型后才能描述分布。D 不是不能写，而是必须显著标出并安排证伪。</p>
+<p>公开案例也使用同样的诚实纪律。NL2SQL 的“两天到分钟级、85%、60%”在原件中无出处，只能禁用；报税“180 到 15 小时”必须带“个别高级会计师年度个案”限定；bili-bot 与 Lumine 没有公开 ROI，只能用于架构启发。Discover 的证据表若混入这些数字，后面的 ROI 与合同都会被污染。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">五、从事实到判断单元，再到试点假设</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Discover 不是把观察记录直接交给开发，而要经过 INDUCE</li><li>2. 判断层：在什么信号下，专家为什么选择动作 A 而非 B，何时会反转</li><li>Discover 的产出要把它们拆开，避免一个“准确率 90%”掩盖不同风险</li></ul></div>3
+<p>Discover 不是把观察记录直接交给开发，而要经过 INDUCE。推荐固定写四层：</p>
+<ol>
+<li><strong>事实层</strong>：谁在什么系统做了什么，证据等级是什么。</li>
+<li><strong>判断层</strong>：在什么信号下，专家为什么选择动作 A 而非 B，何时会反转。</li>
+<li><strong>系统层</strong>：哪些判断可由规则、检索、模型或人工承担，各自错误代价是什么。</li>
+<li><strong>试验层</strong>：用哪个最小任务验证哪条假设，达到什么结果才继续，未达到怎么办。</li>
+</ol>
+<p>例如“自动审合同”不是一个判断单元，而是一组异质任务：提取条款、比较模板、识别缺失、解释风险、给出处置、写回系统。提取可能可自动，风险处置可能必须人工。Discover 的产出要把它们拆开，避免一个“准确率 90%”掩盖不同风险。</p>
+<p>试点假设必须可证伪。差的写法是“验证 AI 是否能提升法务效率”；好的写法是“两名法务在 30 份覆盖长合同和歧义条款的样本上，比较人工初审与 AI 建议后初审；记录人均时长、高风险漏检、误报和全部重看率；若漏检高于基线或复核时长未下降，则缩为条款定位助手，不进入自动风险提示”。这里没有预设一定成功，却能让下一周产生明确决策。</p>
+<h2 id="发现方法的选型按未知数选证据不按案例热度选方案">发现方法的选型：按未知数选证据，不按案例热度选方案</h2>2
+<table>
+<thead>
+<tr>
+<th>当前最大的未知数</th>
+<th>优先路径</th>
+<th>与其他环节怎样协同</th>
+<th>何时不能据此下结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>操作者实际怎么判断</td>
+<td>跟岗、例外追问、知识地图</td>
+<td>把信号与反转条件转成判断单元，再进试点假设</td>
+<td>单人观察不能代表全部岗位</td>
+</tr>
+<tr>
+<td>多部门对“好”的定义不同</td>
+<td>分角色访谈与流程分解</td>
+<td>对齐指标 Owner、否决权和工作流交接</td>
+<td>高层赞同不能替代使用者标准</td>
+</tr>
+<tr>
+<td>技术输出是否真能使用</td>
+<td>同任务现场对比</td>
+<td>用同批样本、同一量规连接人工与系统结果</td>
+<td>更快不能自动证明更准或更省钱</td>
+</tr>
+<tr>
+<td>上线后标准仍在变化</td>
+<td>回收用户修正</td>
+<td>差异进入 Eval，Eval 结果回到下一轮发现</td>
+<td>反馈未授权、未脱敏时不得收集</td>
+</tr>
+</tbody>
+</table>
+<p>原文的 Palantir 经验强调从现场观察理解业务对象与动作，Anthropic 相关材料强调把摩擦点转成 Eval；九天Hector 的口述则要求先确认问题、基线和成功标准。这里把三者作为不同的约束视角：现场事实决定做什么，评测判据决定能承诺什么，业务责任决定何时推进。它们不是同一家公司的一套标准，也不能互相替代证据。</p>
+<h1 id="how从进场取证到可证伪试点的执行闭环">HOW：从进场取证到可证伪试点的执行闭环</h1>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">HOW：一周 Discover 执行手册</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="六进场前把访问权与证据容器准备好">六、进场前：把访问权与证据容器准备好</h3>3
+<p>进场前先确认四件事：业务赞助人是谁；能观察哪几个岗位；能否接触脱敏真实任务与系统；安全、法务、数据 Owner 谁有权否决。只拿到 IT 联系人，不算具备入口。</p>
+<p>建立四个文件或目录，不需要复杂工具：</p>
+<pre><code class="language-text">discover/
+  01_stakeholder_map.md       # 角色、诉求、否决权、被考核指标
+  02_evidence_register.csv    # A-D证据、来源定位、时间窗、补证Owner
+  03_workflow_samples/        # 脱敏任务样本与观察记录，权限按客户要求
+  04_problem_statement.md     # 问题陈述、非目标、退出线、开放问题
+</code></pre>
+<p><code>evidence_register.csv</code> 至少包含：</p>
+<pre><code class="language-csv">evidence_id,role,observed_at,fact_or_quote,level,source_locator,scope,inference,next_proof,owner,due
+E-001,法务专员,2026-11-03,&quot;十条提示有一条错就全部重看&quot;,C,访谈02/第8轮,仅该受访者,&quot;90%可能没有效率价值&quot;,调阅近20份复核记录,业务Owner,2026-11-06
+</code></pre>
+<p>示例中的内容用于说明格式，不是实际客户记录。真实项目禁止把密钥、个人信息或未授权合同复制进个人笔记。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">七、第一天：跟岗、画流程、量耗时、对齐问题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>上午：只观察，不急着演示</li><li>》的书摘在这里变成具体检查：是否识别了少数核心流程，而不是试图全企业改造；每一步的人、内容、时间、地点与方式是否清楚；新方案是否要求用户再开系统、再记密码、改变全部习惯</li><li>选择一名真实操作者，请求看最近一次完整任务</li></ul></div>3
+<p><strong>上午：只观察，不急着演示。</strong>选择一名真实操作者，请求看最近一次完整任务。记录打开的系统、每次复制粘贴、等待、返工、查阅的例外规则。除安全和澄清外不打断，避免把流程引导成你希望看到的样子。</p>
+<p><strong>下午：把流程画成泳道。</strong>泳道至少包括一线、业务负责人、IT/数据、安全或审批者。每个节点写“谁、输入、动作、系统、输出、耗时、错误处理”。用三种标记找候选切入点：瓶颈是耗时最长，重复是相同动作多次，易错是返工或后果集中。</p>
+<p><strong>傍晚：拿一页纸回去核对。</strong>只写流程现状、最痛的三点、证据等级、待补问题和下一步。不要第一天承诺模型或全自动。客户否定你的推断是收益，因为 D 级假设在写码前就被证伪。</p>
+<p>《流程！》的书摘在这里变成具体检查：是否识别了少数核心流程，而不是试图全企业改造；每一步的人、内容、时间、地点与方式是否清楚；新方案是否要求用户再开系统、再记密码、改变全部习惯。若答案为是，采用风险必须进 Top3。</p>
+<h3 id="三五种发现路径观察追踪对比回收分解">三、五种发现路径：观察、追踪、对比、回收、分解</h3>3
+<h4 id="31-跟岗加知识地图发现文档外的判断">3.1 跟岗加知识地图：发现文档外的判断</h4>
+<p>制造业老师傅案例（Datawhale 案例整理）记载的路径是跟岗观察与主管访谈，梳理新人高频问题、易错知识点和隐性经验。其价值不在“做了 RAG”，而在先识别老师傅何时不机械照标准执行。这类反转条件通常不在手册里，只能问：“最近一次你让新人别照标准做，是什么情况？你看到了什么信号？如果信号变了，你会不会换做法？”</p>
+<p>输出不应只有文档清单，而应有判断单元：触发信号、动作、理由、被放弃的备选、反转条件、可由谁审批。它们后续才能转成检索条目、规则或 Eval 题。原件中的带教时长与首次合格率说明，业务指标在 Discover 就已出现，不是上线后才补。</p>
+<h4 id="32-跟着职能走流程发现角色目标不一致">3.2 跟着职能走流程：发现角色目标不一致</h4>
+<p>鞋服素材案例（原件明确为 POC、内部试用与持续迭代）要求分别观察管理层、设计师和运营。管理层可能关心成本与产量，设计师关心改稿与可控性，运营关心商品一致性与能否发布。把三类人放进一场大会，往往只得到折中后的功能清单；分别跟随真实任务，才能看到素材散落在个人电脑、提示词各自维护、审核队列没人接等硬点。</p>
+<p>该案例不能用来证明商用 ROI。合集里的效率四倍、成本下降 65% 与原件“尚未给出统一节省金额”冲突，Discover 阶段若拿这些数字立项，就把证据错误带进了商业目标。正确用法是提出待测指标：可发布素材率、人工审核时长、商品一致性错误率、设计师连续使用率。</p>
+<h4 id="33-现场对比验证把口头认同变成真实任务结果">3.3 现场对比验证：把口头认同变成真实任务结果</h4>
+<p>黑湖科技案例（21 世纪经济报道的本地整理）中，客户提供真实图纸，老师傅与 Agent 同场处理。“两小时对五分钟”是速度对比，不是准确率或整体效率证明。Discover 可借鉴的是试验设计：同一批任务、同一时间窗、同一验收人，事先记录质量判据，避免只比速度。</p>
+<p>现场对比尤其适合客户无法清楚描述标准的场景。不要问“你觉得 Agent 做得怎么样”，而问“这份结果哪里不能直接用”“你会改哪几处”“哪一处错误会导致整份结果作废”。修改痕迹比赞美更接近真实验收标准。</p>
+<h4 id="34-回收使用者修正把上线后工作变成持续访谈">3.4 回收使用者修正：把上线后工作变成持续访谈</h4>
+<p>报税案例（OpenAI 官方博客的本地整理版，未回溯原文）把会计师每次修改记录下来：系统提议了什么、专家改了什么、最终提交了什么。反复出现的差异再进入 Eval。上线初期正确字段完成率只有 25%，6 周内到 86%，说明系统不是一次做对，而是在窄边界、人在环和反馈回流中演进。</p>
+<p>Discover 要提前设计这条回路：“用户每次修改记录在哪里？谁判断是否反复出现？如何脱敏？哪个版本把差异变成回归题？”如果现场没有反馈入口，Deploy 后就会失去最重要的需求来源。</p>
+<h4 id="35-按环节分解发现最痛点不一定是最炫的功能">3.5 按环节分解：发现最痛点不一定是最炫的功能</h4>
+<p>律所案例（Datawhale 案例整理）把受理、准备、开庭拆开，发现材料整理比法条检索更痛。操作时让使用者分别按“耗时”和“烦人程度”排序，再问“哪一步错了会让后面全部返工”。前者找量，后者找情绪与风险，硬点往往在两者的交叉处。</p>
+<p>NL2SQL 也适用这种分解：取数需求从提出、排队、编写、执行、核对到解释，每一段的时延与返工不同。若瓶颈其实是指标口径争议，单做 SQL 生成只会让错误数字产生得更快。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">八、访谈：十组可直接使用的问法</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. “最近一次你处理这件事，从头到尾做了哪几步</li><li>2. “能带我看一次真实案例，而不是标准演示吗</li><li>3. “上一次这件事没做好，后来发生了什么，谁负责</li></ul></div>3
+<ol>
+<li>“最近一次你处理这件事，从头到尾做了哪几步？”</li>
+<li>“能带我看一次真实案例，而不是标准演示吗？”</li>
+<li>“上一次这件事没做好，后来发生了什么，谁负责？”</li>
+<li>“如果系统给十条提示，其中一条错，你会怎么处理？漏掉一条呢？”</li>
+<li>“上级用什么数字看这个团队？这个数字现在从哪里统计？”</li>
+<li>“能打开系统，让我看刚才说的那条记录吗？”</li>
+<li>“哪些步骤只有老人知道？最近一次例外是什么？”</li>
+<li>“为什么现在做？三个月前为什么没做？以前类似工具为什么停用？”</li>
+<li>“谁有权否决上线？什么条件会让他否决？”</li>
+<li>“试点多久后，指标什么样我们就停、改或缩？谁来拍板？”</li>
+</ol>
+<p>追问时少替对方给选项。对方说“很慢”，问最近一次慢多久；说“数据很多”，看一条真实记录；说“应该能用”，问谁愿意在下周用真实任务试一次。未来意愿要用行为补证，礼貌赞同不算采用证据。</p>
+<p>多角色问题不能混。问一线步骤、例外和复核成本；问赞助人业务结果、预算窗口与退出；问 IT 权威源、刷新、网络和环境；问安全法务数据分级、审计、权限与否决；问维护者谁接 Runbook、谁更新知识、谁值夜班。</p>
+<h3 id="九基线用同口径数据证明问题值得做">九、基线：用同口径数据证明问题值得做</h3>3
+<p>基线优先从系统记录计算，不从印象估计。以取数需求为例，先定义时间窗、任务状态和重复需求，再用 SQL 取原始明细；以下 PostgreSQL 示例需按客户 schema 修改，不可未核对字段直接执行：</p>
+<pre><code class="language-sql">SELECT
+  request_id,
+  requester_team,
+  topic_domain,
+  created_at,
+  delivered_at,
+  EXTRACT(EPOCH FROM (delivered_at - created_at)) / 3600.0 AS lead_hours,
+  metric_name,
+  dimensions,
+  time_range
+FROM analytics_request
+WHERE created_at &gt;= TIMESTAMPTZ '2026-10-01 00:00+00'
+  AND created_at &lt;  TIMESTAMPTZ '2026-11-01 00:00+00'
+  AND status = 'delivered';
+</code></pre>
+<p>计算中位数和 P90 时保留原始明细与查询版本。若只做汇总，把同一明细查询包成 CTE，避免引用未定义关系：</p>
+<pre><code class="language-sql">WITH request_lead_time AS (
+  SELECT
+    request_id,
+    EXTRACT(EPOCH FROM (delivered_at - created_at)) / 3600.0 AS lead_hours
+  FROM analytics_request
+  WHERE created_at &gt;= TIMESTAMPTZ '2026-10-01 00:00+00'
+    AND created_at &lt;  TIMESTAMPTZ '2026-11-01 00:00+00'
+    AND status = 'delivered'
+)
+SELECT
+  percentile_cont(0.50) WITHIN GROUP (ORDER BY lead_hours) AS p50_hours,
+  percentile_cont(0.90) WITHIN GROUP (ORDER BY lead_hours) AS p90_hours,
+  COUNT(*) AS delivered_requests
+FROM request_lead_time;
+</code></pre>
+<p>“重复需求”必须先定义，例如“同一指标、同一维度，仅时间范围不同”，再统计；不能把标题相似直接当重复。“覆盖率”必须写分子分母，“准确率”必须写判据与抽样，“平均时长”要同时看中位数和尾部。若数据不足，Discover 的下一产物就是补日志或人工抽样，不是编造一个精确数字。</p>
+<p>基线还要包含质量护栏。客服项目不能只测成本，要同时记录投诉率、复拨率、满意度；合同项目不能只测初审时长，要测高风险漏检与误报；NL2SQL 不能只测执行成功，要测结果正确、口径一致与越权拦截。单一效率指标会诱导系统牺牲未测量的维度。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">十、数据与权限现场勘察：Day 0 五问加一条真实记录</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 数据能否出域，是否必须私有化或 VPC</li><li>NL2SQL 场景需要额外补表描述、粒度、主外键、字段含义、枚举映射、名词解释、同义词和业务逻辑</li><li>2. 身份从哪里来，角色如何映射到文档、行、对象和动作权限</li></ul></div>3
+<ol>
+<li>数据能否出域，是否必须私有化或 VPC？</li>
+<li>身份从哪里来，角色如何映射到文档、行、对象和动作权限？</li>
+<li>提示词、日志、音频、页面图是否含 PII，保留多久，谁能看？</li>
+<li>工具是否可能写系统，哪些动作必须审批，如何回滚？</li>
+<li>审计记录谁可看，权限撤销后索引和缓存何时失效？</li>
+</ol>
+<p>再加一条：“请打开一条真实记录。”看它是否有统一编码、版本、生效时间、Owner、权限标签和可追溯 ID。只有 PDF 文件名，不足以判断知识可用；只有数据库连接成功，不足以判断目标环境可交付。</p>
+<p>NL2SQL 场景需要额外补表描述、粒度、主外键、字段含义、枚举映射、名词解释、同义词和业务逻辑。公开析言 GBI 文档可作为这类配置项的参照，但不是 B 站实现披露。若“续费率”在运营和财务之间有多个口径，先由业务 Owner 决定权威定义，再谈模型。</p>
+<h3 id="十一把发现收成问题陈述非目标与试点">十一、把发现收成问题陈述、非目标与试点</h3>3
+<p>问题陈述使用固定句式：</p>
+<pre><code class="language-text">【具体用户】在【真实场景】下需要【业务结果】，
+今天通过【现状流程】完成，主要问题是【有证据的痛点】，
+基线为【时间窗+指标+分子分母】，
+试点成功时【指标从A到B】且【质量/安全护栏不恶化】，
+约束包括【数据/权限/网络/组织】，
+本次非目标是【明确不做的功能与自动化】。
+若【退出条件】出现，则默认【停/改/缩】，由【具名Owner】决策。
+</code></pre>
+<p>合同初审的构造示例可以这样写：一线法务需要定位与模板不符的高风险条款，当前人工通读，痛点是积压和漏标；成功不只看初审时长下降，还要求高风险漏检不高于基线；合同不出域且需要审计；非目标是自动改写合同和商务谈判建议。示例数字不能用于真实承诺，真实项目必须填自己的基线。</p>
+<p>试点切片坚持“窄、真、可测、可退出”：一个团队、一类任务、一个主题域、一个时间盒；样本来自真实分布并含困难与负例；指标冻结；未达线有默认动作。不要用“全公司”“全量知识库”“全自动”“大家觉得好”作为第一期的四个维度。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">十二、五类项目的下一步示范</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>表中报税、黑湖等公开案例只用于设计试验，不转移其数字</li><li>鞋服仍是 POC，NL2SQL 的 ROI 未公开；若需要商业目标，就用本项目刚测出的基线</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>Discover 的关键证据</th>
+<th>最小可证伪下一步</th>
+<th>明确非目标</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>老师傅知识传承</td>
+<td>例外判断、知识地图、带教与合格率基线</td>
+<td>选一个设备族，把 20 个高频例外制成条目并由两名师傅盲评</td>
+<td>第一期不做全自动质量判定</td>
+</tr>
+<tr>
+<td>报税提取与映射</td>
+<td>修改痕迹、字段级错误分类、源文件定位</td>
+<td>选一种表单，记录 AI 提议到专家修正，反复差异进 Eval</td>
+<td>不让模型独立做税务判断</td>
+</tr>
+<tr>
+<td>鞋服素材</td>
+<td>可发布率、商品一致性、审核人手、连续使用</td>
+<td>一个商品组试产，记录生成到发布的全链路耗时与退回原因</td>
+<td>不以生成数量作为成功</td>
+</tr>
+<tr>
+<td>NL2SQL</td>
+<td>表与口径清单、取数基线、角色权限</td>
+<td>一个主题域、十几张核心表，冻结分层问题集和只读账号</td>
+<td>不开放全库，不直接多 Agent</td>
+</tr>
+<tr>
+<td>工业现场对比</td>
+<td>同批真实图纸、质量判据、速度与修改记录</td>
+<td>老师傅与系统同场做同一批任务，业务方先写验收 rubric</td>
+<td>不把单次速度对比写成全面替代</td>
+</tr>
+</tbody>
+</table>
+<p>表中报税、黑湖等公开案例只用于设计试验，不转移其数字。鞋服仍是 POC，NL2SQL 的 ROI 未公开；若需要商业目标，就用本项目刚测出的基线。</p>
+<h3 id="十三discover-出口评审八项全有证据才进-design">十三、Discover 出口评审：八项全有证据才进 Design</h3>3
+<ul>
+<li>[ ] 一句话说清“为谁、解决什么可测问题”，赞助人认可的是问题而非某个预设方案。</li>
+<li>[ ] 至少一名日常使用者被观察，关键否决者已识别；不是只听管理层或 IT。</li>
+<li>[ ] 真实流程含例外、返工、等待与系统切换，关键事实标 A-D。</li>
+<li>[ ] 基线有时间窗、分子分母与来源；没有数字的字段有补证计划。</li>
+<li>[ ] 数据出域、身份、权限、PII、写操作与审计五问有答案或阻塞升级。</li>
+<li>[ ] 成功指标、质量护栏、非目标和最高自主度书面化。</li>
+<li>[ ] 退出线、默认停/改/缩动作和拍板人已确认。</li>
+<li>[ ] 下一步是可证伪试验，含时间、人、样本、产出和评审日。</li>
+</ul>
+<p>任何一个“是”都要能指向证据。无法用证据回答时，可以缩范围或继续 Discover，但不能把“团队觉得差不多”当通过。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">十四、最常见的六个反模式与现场纠正</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>纠正不是再开一场高层会，而是拿到一线跟岗许可</li><li>把笔记里的功能词逐条改成“当前动作、结果指标、失败代价”</li><li>执行引用三档：可引、待验证、禁用；冲突和未公开数字不进入立项</li></ul></div>3
+<p><strong>只听管理层。</strong>纠正不是再开一场高层会，而是拿到一线跟岗许可。<strong>只问功能。</strong>把笔记里的功能词逐条改成“当前动作、结果指标、失败代价”。<strong>用外部 ROI 代替基线。</strong>执行引用三档：可引、待验证、禁用；冲突和未公开数字不进入立项。<strong>把权限留到二期。</strong>在真实样本勘察时就用目标角色测试，不用超级账号。<strong>只做漂亮 Demo。</strong>测试集加入最长、最怪、歧义、越权和应拒答样本。<strong>没有退出条件。</strong>在投入最小的时候先谈停线，避免 POC 后因沉没成本失去判断。</p>
+<p>Discover 最终交付的是一种组织能力：客户能看到自己的真实流程和证据，团队能说出哪些假设已被证伪，下一步即使失败也知道会停在哪里。做到这一点，Design 的架构选择、Deploy 的分阶段自主度和 Review 的业务归因才有共同锚点。</p>
+<h2 id="最小交付包与评审决策模板">最小交付包与评审决策模板</h2>2
+<p>执行时依次完成：确认观察与样本授权；按关键未知数选择前述发现路径；把证据与推断分开登记；由业务方核对问题陈述；冻结一个可证伪试验；最后按第十三节逐项给出证据定位。第九节的 SQL 是基线提取模板，执行前必须由数据 Owner 核对 schema、只读权限和统计口径，不能拿示意字段连接客户生产库试错。</p>
+<p>下面是由原有问题陈述与出口检查合并的合成教学案例模板，空白必须用实际证据填写，不预填收益：</p>
+<pre><code class="language-text">Discover 出口记录
+目标用户/任务：
+业务指标/统计窗口/分子分母：
+基线证据定位/版本：
+最高代价的错误/必须人工的步骤：
+已确认约束/尚未确认约束：
+下一步试验/样本取得方式/评审日：
+继续条件/未达条件时停、改或缩：
+业务拍板人/数据Owner/安全否决方：
+开放问题/补证Owner/到期日：
+结论：进入Design / 继续补证 / 缩范围 / 停止
+</code></pre>
+<p>验收不是模板非空：问题陈述中的数字必须能回指基线；A/B/C 与 D 分栏；关键角色缺席、样本未授权、约束未确认时不放行对应范围。评审后的首个动作必须能证伪一条具体假设，而不是笼统地“搭一个 Agent 看看”。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">诚实边界与来源索引</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 制造业知识库“一成一败”等 VanGong1999/FDE 案例是合成或构造教学材料，数字为示意，不是真实客户故事</li><li>3. NL2SQL 六阶段属于业界参考，不是 B 站内部披露；85% 等 ROI 数字禁用</li><li>2. B 站案例原件多数也是 Datawhale、官方博客或媒体报道的整理版；本库未逐项取得原始视频/文章</li></ul></div>2
+<ol>
+<li>制造业知识库“一成一败”等 VanGong1999/FDE 案例是合成或构造教学材料，数字为示意，不是真实客户故事。</li>
+<li>B 站案例原件多数也是 Datawhale、官方博客或媒体报道的整理版；本库未逐项取得原始视频/文章。对账中的“支持、冲突、原件无”只描述本库材料一致程度，不推断任何作者动机。</li>
+<li>NL2SQL 六阶段属于业界参考，不是 B 站内部披露；85% 等 ROI 数字禁用。鞋服素材仍处 POC；报税个案与总体分开；bili-bot、Lumine 无公开 ROI 时不补商业收益。</li>
+<li>《流程！》仅按本地目录与热门划线使用，未读全书；《The Mom Test》仍按既有二手摘要使用，不标页码、不伪造原话；问法、证据分级、Runbook 为本文整理，未经每个行业实测。</li>
+<li>行业数字口径不同：Gartner 为预测，S&amp;P/RAND/McKinsey 的样本和指标不同，不得合并成统一失败率。</li>
+<li>主要溯源：<code>raw/fde/FDE方法论-20260930.md</code>、<code>raw/fde/FDE交付失败案例-2026.md</code>、<code>raw/fde/FDE交付案例-构造示例-成功与失败.md</code>、<code>raw/fde/B站精选FDE标杆案例合集-20261012.md</code>、<code>raw/archive/b站案例/01</code> 至 <code>09</code>、阿里云百炼析言 GBI 公开指南本地镜像，以及被本次整合的访谈、失败复盘、NL2SQL 与案例对账材料。</li>
+</ol>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>可证伪试点在本库的实现方式：先立基线，再只改一处（<code>/home/wuyafang/.hermes/skills/devops/config-verification/scripts/audit_layer.py</code>，grep 可验）</strong>：<br />
+<code>python
+  exit: 0=干净/仅monitor  1=有未认领漂移  2=环境文件缺失
+  设计依据: sop-optimization-review-20260923.md 两方审查(OpenClaw修正+Claude定论)</code><br />
+<code>python
+  def sha(p):
+  def expand(pats):
+  def state(paths):
+      return {p: sha(p) if os.path.exists(p) else None for p in paths}</code><br />
+<strong>"改了什么"由基线 diff 说话</strong>：评审时只问一句"变更集能否全部被申报认领（exit 1 还是 0）"。这正是"可证伪"——不靠叙述证明有效，靠<strong>未被认领的改动为零</strong>这一可观测事实。</li>
+<li><strong>否定性证据同样要求可复跑（<code>/home/wuyafang/.hermes/scripts/config-drift-check.py</code> 的 <code>--pairs</code> sha256 比对）</strong>：<code>exit 0=无漂移, 1=有漂移, 2=用法错误</code>——三种退出码把"没问题"和"没检查"分开。</li>
+<li><strong>和课件讲法的差异</strong>：课件 Discover 强调旁看一线、画流程图、找硬点（人员方法 + 定性）；本库补的是<strong>定量可证伪</strong>：基线哈希 + 变更集 + 未认领数。本库暂无客户现场流程分析与工时测量。</li>
+</ul>
+<h2 id="三源与论文融合落点2026-11-04">三源与论文融合落点（2026-11-04）</h2>2
+<ul>
+<li><strong>课件</strong>：<code>raw/courseware/2603期AI大模型Agent篇__2603期AI大模型Agent篇__7-Agent详解-2026-4-3-初见__day07/_代码课件汇总.md</code> 的 Agent 与评测素材用于把现场摩擦点改写成任务、输入、预期行为和评分项；课件样例只提供结构，真实样本仍须客户授权。</li>
+<li><strong>书籍/摘录</strong>：<code>raw/weread/FDE/流程！（人人都能落地的简明流程再造手册，专为中小微企业打造）.md</code> 第 4、7 章热门划线要求锁定少数核心流程、厘清步骤要素并用合规性/频率/结果验证。Discover 因此同时交付流程证据与结果基线；仅使用目录和划线，未读全书。《The Mom Test》仍只按既有二手摘要使用，不标页码、不伪造原话。</li>
+<li><strong>业内一手材料</strong>：<code>raw/sources/Anthropic-FDE与Palantir-Ontology一手-20260930.md</code> 的 Palantir/Anthropic 原文整理支持工作流级访谈、最小高信号上下文与受监管场景前置 Eval；落地为观察真实操作员、记录证据定位、在试点前明确错误责任。</li>
+<li><strong>论文结论→执行动作</strong>：arXiv:2610.31636（<code>raw/sources/arxiv-daily/2026-10-22-2610.31636.md</code>）将 Agent 用作只读、预算受限的语料调试器，并把人工确认的发现编译成可执行测试；同时静态采样基线在部分维度更强。Discover 的数据体检采用“分层抽样与只读 Agent 辅助发现→母语者/业务 Owner 确认→冻结确定性回归测试”，不默认全语料 LLM 分类，也不把模型发现直接写成事实。</li>
+</ul>
+<blockquote>
+<p>三段结构补齐 2026-11-03；三源与论文落点补齐 2026-11-04</p>
+</blockquote></div></details></div></body></html>

@@ -1,0 +1,351 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LLM评估体系-Evals-2026</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ LLM评估体系-Evals-2026</span></div><div class="wrap"><h1 id="llm-评估体系-evals2026hamel-方法论-recallkfaithfulness-ragaslangsmith-用法">LLM 评估体系 Evals（2026）：Hamel 方法论 × Recall@k/faithfulness × RAGAS/LangSmith 用法</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="RAG%E8%AF%84%E6%B5%8B%E4%B8%89%E5%B1%82%E6%96%B9%E6%B3%95%E8%AE%BA-20261009.html">RAG评测三层</a> · <a href="RAG%E7%AE%A1%E7%BA%BF%E7%8E%B0%E7%8A%B6%E4%B8%8E%E9%98%88%E5%80%BC%E6%A0%87%E5%AE%9A.html">RAG管线阈值</a></p>
+<p>入库: 2026-09-30 | 项目: wuyafang-l | 来源: Hamel Husain(hamel.dev: Your AI Product Needs Evals / Evals FAQ / Field Guide) + LangChain 官方博客(RAGAS×LangSmith) + RAGAS 官方文档 + LangSmith 官方评测文档 | source_tier: 1 | 用途: 从零搭 LLM/RAG 评测闭环——三级 eval 结构、golden set、LLM-as-judge 校验、RAGAS 指标用法，以及本库 golden-q 闭环的改进方向</p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心结论</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>评测体系是 AI 产品的「地基」：Hamel 的判断是「不成功的 LLM 产品几乎都有同一个根因——没建起稳健的评测系统」，而大部分团队把精力全花在改 prompt/改代码（迭代）上，跳过了「评测」和「调试看数据」两环（📄 hamel.dev《Your AI Product Needs Evals》原文）</li><li>对 RAG 来说，评测必须把检索失败和生成失败拆开测——只测端到端分数的管线，会把「检索变差但生成变强」的对消变化放过去（📰 Confident AI RAG 评测指南）</li><li>本库已经有一条最小闭环（golden-q 25 条 + run_eval.py），本文给它补上方法论骨架与工具用法</li></ul></div>2
+<p>评测体系是 AI 产品的「地基」：Hamel 的判断是「不成功的 LLM 产品几乎都有同一个根因——没建起稳健的评测系统」，而大部分团队把精力全花在改 prompt/改代码（迭代）上，跳过了「评测」和「调试看数据」两环（📄 hamel.dev《Your AI Product Needs Evals》原文）。对 RAG 来说，评测必须<strong>把检索失败和生成失败拆开测</strong>——只测端到端分数的管线，会把「检索变差但生成变强」的对消变化放过去（📰 Confident AI RAG 评测指南）。本库已经有一条最小闭环（golden-q 25 条 + run_eval.py），本文给它补上方法论骨架与工具用法。</p>
+<hr />
+<h2 id="核心论点">核心论点</h2>2
+<p>不成功的 LLM 产品几乎都有同一个根因——没建起稳健的评测系统，评测不是流程装饰而是产品地基：Hamel 的三级体系（代码断言→人工+模型评测→A/B）里，便宜确定的 Level 1 该先做够再上模型评测，且断言要按 feature × scenario 组织而非按代码函数。对 RAG 必须把检索失败和生成失败拆开测——只测端到端分数会把"检索变差但生成变强"的对消放过去，RAGAS 分项指标的全部价值就在定位故障层。方法论的边界条件同样硬：LLM judge 是元问题（要持续追踪与人的对齐，类别不平衡时用 precision/recall 而非 raw agreement），golden set 以 50–200 条真实 query 起步且每条生产失败都要进集，通过率 100% 不是目标。本库的现状正好卡在缺口上：检索侧 Recall@k 闭环已跑（run_eval.py），但生成侧 faithfulness 无测量、golden set 26 条低于行业下限、错误分析制度缺位——补齐这三项，才谈得上评测闭环。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">为什么要做三级评测体系（动机与代价）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>动机（WHY）：不成功的 LLM 产品几乎都有同一个根因——没建起稳健的评测系统；大部分团队把精力全花在改 prompt/改代码（迭代）上，跳过了「评测」和「调试看数据」两环（Hamel 一手判断）</li><li>关键指标（Recall@K）不能让 LLM 评 LLM（judge 偏差：GPT-4 评 GPT-4 偏高）</li><li>权衡原则是断言按 feature × scenario 组织而非按代码函数（覆盖真实使用场景），且 Level 1 该先做够——很多团队跳过断言直接上模型评测，花了冤枉钱还测不出结构问题</li></ul></div>2
+<ul>
+<li><strong>动机（WHY）</strong>：不成功的 LLM 产品几乎都有同一个根因——没建起稳健的评测系统；大部分团队把精力全花在改 prompt/改代码（迭代）上，跳过了「评测」和「调试看数据」两环（Hamel 一手判断）。评测不是流程装饰而是产品地基：没有评测，每次改动都是"盲改"（不知道改好还是改坏），积累不出"什么有效"的判断。三级体系（代码断言 → 人工+模型评测 → A/B）的动机是<strong>把评测成本按确定性排序</strong>：便宜确定的 Level 1（代码断言）先做够再上贵的模型评测，而不是一上来就 LLM-as-judge。</li>
+<li><strong>代价与权衡</strong>：三级体系的成本递增——Level 1 断言几乎零成本但只能测结构性问题（格式/字段/引用存在性）；Level 2 人工+模型评测要标注预算 + judge 成本，但能测语义质量；Level 3 A/B 要线上流量与统计显著性。权衡原则是<strong>断言按 feature × scenario 组织而非按代码函数</strong>（覆盖真实使用场景），且 Level 1 该先做够——很多团队跳过断言直接上模型评测，花了冤枉钱还测不出结构问题。关键指标（Recall@K）不能让 LLM 评 LLM（judge 偏差：GPT-4 评 GPT-4 偏高）。</li>
+</ul>
+<h2 id="是什么定义与边界">是什么（定义与边界）</h2>2
+<p><strong>定义</strong>：LLM 评估体系 = Hamel Husain 的三级评测方法论（Level 1 代码断言 / Level 2 人工+模型评测 / Level 3 A/B 测试）× RAG 检索侧指标（Recall@k、golden set 工程规范）× RAGAS 四类核心指标 × LangSmith 评测用法（离线 vs 在线、评测器类型）；最终串成一条评测闭环流水线。</p>
+<p><strong>边界</strong>：<br />
+- ✅ 管：评测体系的整体方法论（分级、节奏、组织方式）、RAGAS/LangSmith 工具用法、golden set 工程规范、与本库现状对照。<br />
+- ❌ 不管：RAG 三层指标的机制细节（<a href="RAG%E8%AF%84%E6%B5%8B%E4%B8%89%E5%B1%82%E6%96%B9%E6%B3%95%E8%AE%BA-20261009.html">RAG评测三层方法论</a>）、阈值标定（<a href="RAG%E7%AE%A1%E7%BA%BF%E7%8E%B0%E7%8A%B6%E4%B8%8E%E9%98%88%E5%80%BC%E6%A0%87%E5%AE%9A.html">RAG管线现状与阈值标定</a>）、评测集建设实操（<a href="../L4-RAG%E5%B7%A5%E7%A8%8B/RAG%E8%AF%84%E4%BC%B0%E6%80%8E%E4%B9%88%E8%B7%91.html">RAG评估怎么跑</a>）。<br />
+- ⚠️ Hamel 三级体系是通用 LLM 产品评测方法论，不专限 RAG——RAG 特有的检索/生成分层指标见 <a href="RAG%E8%AF%84%E6%B5%8B%E4%B8%89%E5%B1%82%E6%96%B9%E6%B3%95%E8%AE%BA-20261009.html">RAG评测三层方法论</a>，两者互补不重复。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">一、Hamel Husain 三级评测体系（📄 一手，hamel.dev）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="分级与节奏">分级与节奏</h3>3
+<table>
+<thead>
+<tr>
+<th>级别</th>
+<th>是什么</th>
+<th>节奏</th>
+<th>成本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Level 1: 单元测试</strong></td>
+<td>代码断言（pytest 风格）：<code>len(listing_array)==1</code>、输出不含 UUID 的正则断言</td>
+<td><strong>每次代码变更都跑</strong></td>
+<td>最低</td>
+</tr>
+<tr>
+<td><strong>Level 2: 人工 + 模型评测</strong></td>
+<td>先记 trace → 人看数据标 good/bad（二元）→ LLM judge 自动化并对齐人工</td>
+<td>按固定节奏（如每周），覆盖全部测试用例 + 生产采样</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>Level 3: A/B 测试</strong></td>
+<td>线上实验，验证 AI 改动是否真驱动了用户行为/业务结果</td>
+<td>只在重大产品变更后</td>
+<td>最高</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>原文节奏建议：<strong>先做完相当一部分 Level 1 再上模型评测</strong>——断言便宜、快、确定性强；模型评测贵且需要对齐工作。</p>
+</blockquote>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">关键操作细节（原文摘录级）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 断言要按「feature × scenario」组织，不是按代码函数组织（Rechat 把「找房源」拆成 1 条/多条/0 条结果三个场景各配断言）</li><li>3. 通过率 100% 不是目标——「pass rate 是产品决策，取决于你能容忍哪些失败」（原文）</li><li>2. 测试用例可以 LLM 合成：Rechat 用 prompt 生成 50 条「创建联系人→查询联系人」配对指令，执行后断言 CRM 恰好返回 1 条</li></ul></div>3
+<ol>
+<li><strong>断言要按「feature × scenario」组织</strong>，不是按代码函数组织（Rechat 把「找房源」拆成 1 条/多条/0 条结果三个场景各配断言）。</li>
+<li><strong>测试用例可以 LLM 合成</strong>：Rechat 用 prompt 生成 50 条「创建联系人→查询联系人」配对指令，执行后断言 CRM 恰好返回 1 条。</li>
+<li><strong>通过率 100% 不是目标</strong>——「pass rate 是产品决策，取决于你能容忍哪些失败」（原文）。</li>
+<li><strong>看数据消除一切摩擦</strong>：Hamel 主张为每个问题自建数据查看/标注工具（Gradio/Streamlit/Shiny 一天内可搭），比通用 dashboard 更有效。</li>
+<li><strong>二元标注优于打分</strong>：good/bad 比 1–5 分好管得多。</li>
+<li><strong>LLM judge 要用你能负担的最强模型</strong>，且它是「元问题」——必须维护一个迷你评测系统持续追踪 judge 与人的对齐度；类别不平衡时<strong>别用 raw agreement，要用 precision/recall 分开看</strong>（原文 Warning 框）。</li>
+<li><strong>停止条件</strong>：一直读 trace 到「不再学到新东西」（原文脚注 3 的启发式）；成熟系统每两周复盘 10–20 条离群 trace（📄 Evals FAQ）。</li>
+<li><strong>错误分析频次计数</strong>：Field Guide 的自底而上做法——spreadsheet 每行一条对话写开放式笔记 → LLM 归纳失败分类法 → 每行贴标签 → <strong>按频次排序修复</strong>（NurtureBoss 案例：日期处理成功率 33%→95%）（📄 hamel.dev《A Field Guide to Rapidly Improving AI Products》）。</li>
+</ol>
+<h3 id="闭环全景">闭环全景</h3>3
+<pre><code>看数据(trace) → 错误分析(频次分类) → 写测试/评测(Level1+2) → 改进(prompt/RAG/微调) → 再看数据
+        ↑________________________________________________________|
+        微调数据也从这里来：Level1/2 过滤掉坏样本 = 现成的微调数据集
+</code></pre>
+<p>（依据：📄 Your AI Product Needs Evals「Eval Systems Unlock Superpowers」章节——评测系统同时是调试系统和微调数据工厂）</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">二、RAG 检索侧指标：Recall@k 与 golden set</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="21-指标定义-redis-dataaihub-检索评测指南二手但定义标准">2.1 指标定义（📰 Redis / DataAIHub 检索评测指南，二手但定义标准）</h3>3
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>公式</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Recall@k</strong></td>
+<td>top-k 命中相关文档数 / 相关文档总数</td>
+<td>检索主指标；行业经验目标 <strong>0.80+</strong>（DataAIHub 口径）</td>
+</tr>
+<tr>
+<td>Precision@k</td>
+<td>top-k 中相关数 / k</td>
+<td>看噪声占比</td>
+</tr>
+<tr>
+<td>MRR@k</td>
+<td>首个命中位置的倒数均值</td>
+<td>看排序质量（本库 hybrid+rerank 实测 0.605，见 arXiv:2604.01733）</td>
+</tr>
+</tbody>
+</table>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.2 golden set 工程规范</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>规模：50–200 条真实 query–doc 对起步（DataAIHub 建议 50+；Confident AI 建议 50–100 条人工复核案例）</li><li>纪律：一次只改一个检索组件再复测（DataAIHub）；聚合指标告诉你「差多少」，失败案例告诉你「为什么」——逐条看 miss（本库 run_eval.py 的 MISS 打印就是这个用法）</li><li>据[一手源]：raw/rag-arch/RAG进阶调研-6方向-Top3落地方案-20260928.md（混合检索方向），另一组经验数字：recall@10 纯向量约 78%、纯 BM25 约 65%、RRF 融合约 91%，纯向量在精确匹配/缩写/产品 ID 类 query 上 miss 30–40%</li></ul></div>3
+<ul>
+<li><strong>规模</strong>：50–200 条真实 query–doc 对起步（DataAIHub 建议 50+；Confident AI 建议 50–100 条人工复核案例）。</li>
+<li><strong>构成</strong>：按真实流量比例覆盖常见查询 + 边界 case + <strong>每一条已确认的生产失败</strong>（Confident AI）。</li>
+<li><strong>来源</strong>：生产 trace 是第一来源（Braintrust：真实查询的措辞是开发者想不到的）；合成数据只用来 bootstrap 覆盖面，<strong>必须抽样人工验证</strong>（生成的 question 可能答非所问）。</li>
+<li><strong>门禁</strong>：每个组件改动（embedding 换型/chunking/检索参数/索引重建）都跑 golden set，<strong>per-metric 阈值当合并门禁</strong>；检索指标和生成指标<strong>分别 gate</strong>（Confident AI）。</li>
+<li><strong>纪律</strong>：一次只改一个检索组件再复测（DataAIHub）；聚合指标告诉你「差多少」，失败案例告诉你「为什么」——<strong>逐条看 miss</strong>（本库 run_eval.py 的 MISS 打印就是这个用法）。</li>
+</ul>
+<blockquote>
+<p>参考线：检索侧 Recall@5 0.80+；RAGAS 侧 Context Recall &lt;0.8 意味着生成端拿不到必要信息、会开始编（📰 Redis）。</p>
+</blockquote>
+<p>据[一手源]：raw/sources/RAG优化-外部调研-20260929.md（方向 4）：这条 0.80 线有一份大样本参照，arXiv 2604.01733（23,088 queries / 7,318 docs / 10 种检索策略）实测 hybrid+rerank Recall@5=0.816，dense-only 0.587（hybrid+rerank 相对 +39%），hybrid-only 0.695（相对 dense +18.4%；hybrid+rerank 相对 hybrid-only 再 +17.4%），MRR@3 从 0.433 升到 0.605。召回不够时的修复顺序是 chunking+metadata → hybrid → candidate size → 最后才换 embedding。据[一手源]：raw/rag-arch/RAG进阶调研-6方向-Top3落地方案-20260928.md（混合检索方向），另一组经验数字：recall@10 纯向量约 78%、纯 BM25 约 65%、RRF 融合约 91%，纯向量在精确匹配/缩写/产品 ID 类 query 上 miss 30–40%。</p>
+<hr />
+<h2 id="三ragas-指标体系-ragas-官方文档-langchain-官方博客">三、RAGAS 指标体系（📄 RAGAS 官方文档 + LangChain 官方博客）</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.1 四类核心指标</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>完整清单还含 context utilization / noise sensitivity / summarization score 等（📄 RAGAS Metrics 文档）</li><li>「context_entities_precision」 在 v0.2 移除，被 LLM-based context_precision/recall 取代</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>测什么</th>
+<th>计算方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Faithfulness</strong>（忠实度）</td>
+<td>答案是否忠于检索到的上下文（防幻觉）</td>
+<td>LLM 先把答案拆成陈述句，再逐句判定是否被 context 支持，取支持比例（📄 LangChain 官方博客）</td>
+</tr>
+<tr>
+<td><strong>Answer Relevancy</strong></td>
+<td>答案是否切题</td>
+<td>LLM 由答案反推问题再比对</td>
+</tr>
+<tr>
+<td><strong>Context Recall</strong></td>
+<td>检索是否捞全了答对所需的信息</td>
+<td>用 <strong>ground truth 答案</strong>逐句问「这句能在 context 里找到吗」，找不到 = 检索缺失（同上）</td>
+</tr>
+<tr>
+<td><strong>Context Precision</strong></td>
+<td>相关 chunk 是否排在前面</td>
+<td>按位置加权的相关性</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>四者的调和均值 = 单一 ragas score（📄 LangChain 官方博客）；分项的价值在于<strong>定位故障在检索还是生成</strong>（📰 QASkills 教程）。完整清单还含 context utilization / noise sensitivity / summarization score 等（📄 RAGAS Metrics 文档）。</p>
+</blockquote>
+<p>据[一手源]：raw/rag-arch/RAG业内最高标准-20261009.md（官方 docs 逐字核对）：本表四类之外，<strong>Context Relevance</strong> 由 LLM 判每个 chunk 与 query 相关再取均值，不需要 ground truth（检索层唯一 reference-free 指标）；<strong>Noise Sensitivity</strong> 打乱/删除 chunk 后重新生成，看正确性下降；<strong>Topic Adherence</strong> 看答案是否停留在预定义主题内；<strong>Hallucination</strong> = 1 − 不受支持 claims / 总 claims。<code>context_entities_precision</code> 在 v0.2 移除，被 LLM-based context_precision/recall 取代。另据[一手源]：raw/sources/RAG优化-外部调研-20260929.md：RAGAS 的 RAG 专属指标共 8 个（faithfulness / answer relevancy / context precision / context recall / context utilization / noise sensitivity / answer correctness / answer similarity）。</p>
+<h3 id="32-代码形态-ragas-langsmith-官方集成文档示例">3.2 代码形态（📄 RAGAS × LangSmith 官方集成文档示例）</h3>3
+<pre><code class="language-python">from ragas import evaluate
+from ragas.llms import LangchainLLMWrapper
+from ragas.metrics import LLMContextRecall, Faithfulness, FactualCorrectness
+from langchain_openai import ChatOpenAI
+
+evaluator_llm = LangchainLLMWrapper(ChatOpenAI(model=&quot;gpt-4o-mini&quot;))
+result = evaluate(
+    dataset=evaluation_dataset,
+    metrics=[LLMContextRecall(), Faithfulness(), FactualCorrectness()],
+    llm=evaluator_llm,
+)
+# 输出示例: {'context_recall': 1.0000, 'faithfulness': 0.9333, 'factual_correctness': 0.8520}
+</code></pre>
+<ul>
+<li>可换成本地 judge（<code>ChatOllama</code> + <code>OllamaEmbeddings</code>，📰 QASkills 示例）——评测成本可控。</li>
+<li>并发/超时用 <code>RunConfig(max_workers=8, timeout=120)</code>（📰 QASkills，API 版本相关，接入时以当前文档为准）。</li>
+</ul>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">四、LangSmith 评测用法（📄 langchain.com 官方文档）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="41-离线-vs-在线">4.1 离线 vs 在线</h3>3
+<ul>
+<li><strong>离线评测</strong>：对 curated dataset 跑，像 LLM 应用的单元测试，部署前拦回归；<strong>在线评测</strong>：对生产流量实时打分，抓质量漂移（📄 LangSmith Evaluation 产品页）。</li>
+<li>起步没有标注集的路径：<strong>先采生产 trace → 挑可疑 run 进 dataset → LLM-judge 打初标 → 人工精修</strong>（同上）。</li>
+</ul>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">4.2 评测器类型与关键技巧</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「exact_match」 会因空白/大小写静默失败，真实输出用语义相似度或 LLM judge</li><li>据[一手源]：raw/rag-arch/反面教材-踩坑Top10-20260928.md（Top3）：评测结论不采信自报，只测正例的"通过"无效，验收要正例 + 负例误报 + 文档与实测一致三件套</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>用法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>启发式/代码断言</td>
+<td>校验格式、能否编译——快但覆盖窄</td>
+</tr>
+<tr>
+<td>LLM-as-judge</td>
+<td>按你定义的 criteria 打分，可自定义 Python/TS evaluator</td>
+</tr>
+<tr>
+<td><strong>Pairwise 对比</strong></td>
+<td><code>evaluate_comparative(["exp-a","exp-b"], evaluators=[evaluate_pairwise])</code>——比单独打分<strong>区分度高得多</strong>：单标准打分对两个模型常常拉不开差距，成对比较才能看出偏好（📄 LangChain 官方博客《Pairwise Evaluations with LangSmith》）</td>
+</tr>
+<tr>
+<td>人工</td>
+<td>annotation queue，把不确定样本路由给评审，结果回流 dataset</td>
+</tr>
+</tbody>
+</table>
+<p><strong>回归测试的工程坑</strong>（📰 The Neural Base LangSmith 实战，⚠️二手经验）：<br />
+- <code>exact_match</code> 会因空白/大小写<strong>静默失败</strong>，真实输出用语义相似度或 LLM judge<br />
+- CI 里 <code>evaluate()</code> 要包 try/except，大数据集跑一半 API 超时会导致<strong>静默部分失败</strong>——跑完核对 <code>len(results.runs) == len(dataset)</code> 再宣布成功<br />
+- 自定义 evaluator 签名按当前版本文档（0.1.0+ 用 <code>@evaluate</code> 装饰器模式，返回顶层 <code>{'key','score','comment'}</code>）<br />
+- 据[一手源]：raw/sources/RAG优化-外部调研-20260929.md（方向 4）：CI 与线上的工具分工口诀是 "DeepEval catches regressions at PR time, RAGAS monitors drift over time"——DeepEval 是 pytest-based CI runner，RAGAS 做定时采样（CronJob 每小时采样 1–5% traces，Grafana 看 7 天滚动平均），<strong>faithfulness &lt; 0.80 触发告警</strong>。<br />
+- 据[一手源]：raw/rag-arch/外部调研-雷点知识学习-20260925.md（主题 5）：门禁里的断言要<strong>可重放</strong>，不依赖墙钟或上轮残留的计数器；失败先智能重跑判可复现，可复现直接红，盲目自动重跑会把红洗成绿（调研引用 47% 重启即过的失败 job 掩盖了真问题）；flaky 检查进 quarantine，必须带 owner 和 deadline。<br />
+- 据[一手源]：raw/rag-arch/反面教材-踩坑Top10-20260928.md（Top3）：评测结论不采信自报，只测正例的"通过"无效，验收要正例 + 负例误报 + 文档与实测一致三件套。</p>
+<hr />
+<h2 id="五评测闭环把上面串成一条流水线">五、评测闭环（把上面串成一条流水线）</h2>2
+<pre><code>1. 记 trace（LangSmith/任意）           ← 一切的原料
+2. 人工看 trace 做错误分析（频次分类）     ← Hamel: 最高 ROI 的一步
+3. 沉淀 golden set（50–200 条，含生产失败）
+4. 检索侧: Recall@k/MRR → 门禁           ← 本库已做（run_eval.py）
+5. 生成侧: RAGAS faithfulness/context recall + LLM judge（对齐人工后才可信）
+6. 改动 → 重跑 4/5 → 逐条看 miss → 定位是检索还是生成
+7. 线上: A/B + 在线评测 → 新失败回流 step 2
+</code></pre>
+<p><strong>与本库 golden-q 的差异</strong>：本库只做 step 4（检索 Recall@k，26 条 golden-q，5 方向），<strong>缺 step 5 生成侧评测</strong>（faithfulness 无）、缺 step 2 的错误分析制度、golden set 规模（26 条）低于行业建议的 50–200 条下限。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">六、与本库现状对照</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>本库环节</th>
+<th>现状（现场 grep 确认）</th>
+<th>差距 / 下一步</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>golden set</td>
+<td><code>rag/eval/golden-q.jsonl</code> 26 条，5 方向，标注 <code>relevant_source</code></td>
+<td>低于 50 条建议下限；可从 query.py 的历史 MISS 里补生产型问题</td>
+</tr>
+<tr>
+<td>评测脚本</td>
+<td><code>rag/eval/run_eval.py</code> + <code>eval_recall.py</code>，算 Recall@k 并打印 MISS</td>
+<td>✅ 已具备检索侧闭环，符合 Hamel Level 1「每次改动都跑」的定位</td>
+</tr>
+<tr>
+<td>基线（2026-09-29）</td>
+<td>R@1=16% / R@3=28% / R@5=32%，目标 &gt;60%；最差方向「模型部署」R@5=20%</td>
+<td>与行业 0.80 线差距大；但检索问题归检索管线（三路融合/use_cases 前缀），不是加文档能解决</td>
+</tr>
+<tr>
+<td>最新检索基线（据[一手源]：raw/rag-arch/RAG基线评测-20261013.md）</td>
+<td>2026-10-14 DSH 纯净检索（<code>--no-gen --no-rerank --no-crag</code>）10 条 golden：R@1=30%、R@5=70%、R@10=70%，旧基线 R@5=32%</td>
+<td>3 个 miss 分属阈值过严+脏 chunk（B002）、中文论文名语义弱（B005）、golden 标注错（B010）；样本只有 10 条，和 51 条 e2e 口径不同，不能互比</td>
+</tr>
+<tr>
+<td>生成侧评测</td>
+<td>❌ 无 faithfulness/answer relevancy 测量</td>
+<td>若给客户交付 RAG，<strong>生成侧评测是验收必备</strong>，可直接抄 §3.2 的 RAGAS 代码</td>
+</tr>
+<tr>
+<td>评测纪律</td>
+<td>skill 规定「每次加内容/改管线必须重跑，不提升=没用」</td>
+<td>✅ 与 Confident AI 的「per-metric 门禁」同构；缺的是检索/生成<strong>分别 gate</strong> 的拆分</td>
+</tr>
+<tr>
+<td>LLM-as-judge</td>
+<td>❌ 未引入</td>
+<td>引入前先做 §1 第 6 条的对齐验证（binary + precision/recall）</td>
+</tr>
+</tbody>
+</table>
+<h2 id="怎么用">怎么用</h2>2
+<ul>
+<li><strong>三层评测的标准执行序列</strong>（先检索层、再生成层、最后端到端）：<br />
+<code>bash
+  source ~/ai-stack/bin/activate
+  cd /mnt/c/MyData/Documents/wuyafang-l
+  python3 rag/eval/eval_recall.py                       # 检索层 Recall@1/@5/@10
+  python3 rag/eval/eval_recall_fast.py --mode hybrid    # 快速版（可 --no-sparse/--no-graph 消融）
+  cd rag &amp;&amp; ~/ai-stack/bin/python eval_ragas.py          # 生成层 + context 四指标
+  cd rag/eval &amp;&amp; python3 -u _e2e_eval.py                 # 端到端（retrieve_node→rerank_node 真实生产口径）</code></li>
+<li><strong>golden set 维护</strong>：<code>rag/eval/golden-q.jsonl</code> 每行 {id, question, relevant_source, category, answer_keywords, qtype, is_no_answer}（56 条，含 Q052–Q056 域外负样本）；新增题补 <code>relevant_source</code> 用库内相对路径（如 <code>wiki/L4-RAG工程/xxx.md</code>），<code>eval_recall.py</code> 按前缀匹配判定命中。</li>
+<li><strong>“找到≠答对”复现路径</strong>：<code>rag/eval/run_baseline.py</code> 一次拿全 6 指标（Recall@k / P@1 / Rel / Faith / AnsRel），对比 Recall=100% 而 faithfulness&lt;1 的样本就是 Q004 型生成层被旧值带偏案例；答案侧答案正确性另看 <code>_e2e_eval.py</code> 输出。</li>
+<li><strong>动库门禁 = 三层联合不降</strong>：改库（去重/重灌/加 contextual 前缀）前先留三层基线（<code>eval/baseline-*.json</code> 系列是历史留档样式），改后同命令重跑逐项对比；任一层掉线即回滚，禁止只看 Recall@5 放行。</li>
+<li><strong>badcase 回流</strong>：<code>_e2e_eval.py</code> 自动把 Recall@5 失败题 append 到 <code>rag/eval/badcase.jsonl</code>（status=open），语义档走“生成改写草稿→人审→改 wiki/raw→sync 重灌→本集合回归”，机械档（缺 chunk）自动触发 ingest 重跑。</li>
+<li><strong>指标换算口径</strong>：Answer Correctness = 0.75×F1事实重合 + 0.25×语义相似度；R@5=R@10 在 top_k=4 下是结构性假象，报告里别把 R@10 当独立指标（见 <code>rag/config.yaml</code> top_k=4）。</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">来源清单</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>10. 📰 Redis / DataAIHub / Braintrust 检索评测 — redis.io / dataaihub.co / braintrust.dev</li><li>11. 📰 The Neural Base LangSmith 回归测试坑 — theneuralbase.com</li></ul></div>2
+<ol>
+<li>📄 Your AI Product Needs Evals — https://hamel.dev/blog/posts/evals/index.html</li>
+<li>📄 AI Evals: Everything You Need to Know (Evals FAQ) — https://hamel.dev/blog/posts/evals-faq</li>
+<li>📄 A Field Guide to Rapidly Improving AI Products — https://hamel.dev/blog/posts/field-guide</li>
+<li>📄 AI Evals for Engineers &amp; PMs（课程大纲） — https://hamelhusain.substack.com/p/ai-evals-for-engineers-and-product</li>
+<li>📄 Evaluating RAG pipelines with Ragas + LangSmith — https://www.langchain.com/blog/evaluating-rag-pipelines-with-ragas-langsmith</li>
+<li>📄 Pairwise Evaluations with LangSmith — https://www.langchain.com/blog/pairwise-evaluations-with-langsmith</li>
+<li>📄 LangSmith Evaluation 产品页 — https://www.langchain.com/langsmith/evaluation</li>
+<li>📄 RAGAS Metrics / LangSmith 集成 — https://docs.ragas.io/ 、 https://docs.ragas.io/en/stable/howtos/integrations/langsmith</li>
+<li>📰 Confident AI RAG 评测指南 — https://www.confident-ai.com/knowledge-base/guides/rag-evaluation</li>
+<li>📰 Redis / DataAIHub / Braintrust 检索评测 — redis.io / dataaihub.co / braintrust.dev</li>
+<li>📰 The Neural Base LangSmith 回归测试坑 — theneuralbase.com</li>
+</ol>
+<h2 id="相关条目">相关条目</h2>2
+<ul>
+<li><a href="L8-5-%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L8-5 评估体系 · 最佳答案</a></li>
+</ul></div></details></div></body></html>

@@ -1,0 +1,560 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>多Agent协作生产级实战-Subagents-Handoffs-CrewAI-AutoGen-202611</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/多Agent协作生产级实战-Subagents-Handoffs-CrewAI-AutoGen-202611</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="agent-subagentshandoffs-langgraph-crewai-autogen">多 Agent 协作生产级实战：Subagents、Handoffs 与框架取舍（LangGraph / CrewAI / AutoGen）</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a>
+相关：<a href="L5-多Agent协作与编排-深挖整合.html">多Agent协作与编排-深挖整合</a> · <a href="多Agent还是单Agent怎么选.html">多Agent还是单Agent怎么选</a> · <a href="LangGraph生产级状态机设计-State-Reducer-路由与错误处理-202611.html">状态机设计篇</a> · <a href="LangGraph持久化与人机协同-断点续跑-中断-TimeTravel生产实战-202611.html">持久化与人机协同篇</a> · <a href="CrewAI源码解析-对我们的用处-20261021.html">CrewAI源码解析</a></p>
+</blockquote>
+<h2 id="0">0. 本篇补什么缺口</h2>
+<p><a href="L5-多Agent协作与编排-深挖整合.html">多Agent协作与编排-深挖整合</a> 已经讲了"何时拆、拆的代价、协作范式表"，也给了 LangGraph 的 <code>Send</code>、父子图、handoff 的入门代码。仍然缺三样东西：</p>
+<ol>
+<li><strong>各协作模式的量化对比</strong>：调用次数、token 差多少，据此怎么选。</li>
+<li><strong>一手的生产经验</strong>：Anthropic 多 Agent 研究系统的真实数字与教训，以及 Cognition 的反方立场。</li>
+<li><strong>框架现状核对</strong>：<code>langgraph-supervisor</code> 库现在还推荐吗？AutoGen 还能用吗？CrewAI 的 Flows 是什么？这些在本库旧文档里要么没提，要么停留在 2025 年的认知。</li>
+</ol>
+<p>本篇同时补"工具调用"在多 Agent 里的生产细节。代码在本机 <code>~/ai-stack</code>（langgraph 1.2.11）用确定性节点验证过，标 🧪；📄 是官方文档；📰 是二手资料（已逐条标明）。</p>
+<hr />
+<h2 id="1">1. 先回答"要不要拆"：两方一手立场</h2>
+<h3 id="11-anthropic">1.1 支持方：Anthropic 的数字</h3>
+<p>📄 Anthropic 工程博客《How we built our multi-agent research system》给出了少见的量化数据：</p>
+<ul>
+<li>架构是<strong>编排者—工作者</strong>：主 Agent 分析问题、制定策略，并行派生多个子 Agent 搜索，最后汇总；另有独立的 CitationAgent 给论断找来源。</li>
+<li>在其内部研究评测中，以 Opus 4 做主 Agent、Sonnet 4 做子 Agent 的多 Agent 系统，比单个 Opus 4 <strong>高 90.2%</strong>。</li>
+<li>BrowseComp 评测中，三个因素解释了 95% 的性能差异，其中 <strong>token 用量单独解释 80%</strong>，另外两个是工具调用次数和模型选择。</li>
+<li>代价：Agent 约消耗聊天 <strong>4 倍</strong> token，多 Agent 系统约 <strong>15 倍</strong>。因此只适合"高价值、可大量并行"的任务。</li>
+<li>博客明确说：编码类任务可并行的部分少，多 Agent 目前不太适用。</li>
+</ul>
+<p>读这组数据要注意：80% 的差异来自 token 用量，意味着多 Agent 的收益很大一部分是"花了更多算力"，而不是协作本身神奇。算账时要问：同样的 token 预算给单 Agent 做并行工具调用，差距还有多大？这呼应 <a href="L5-多Agent协作与编排-深挖整合.html">多Agent协作与编排-深挖整合</a> 3.2 节"派单前先对单 Agent 基线算账"。</p>
+<h3 id="12-cognition">1.2 反对方：Cognition 的两条原则</h3>
+<p>📄 Cognition《Don't Build Multi-Agents》的论点是，2025 年的多 Agent 系统很脆弱，构建长时间运行的 Agent 应默认避开。两条原则（原文）：</p>
+<ol>
+<li>"Share context, and share full agent traces, not just individual messages"：要共享完整执行轨迹，不只是单条消息。</li>
+<li>"Actions carry implicit decisions, and conflicting decisions carry bad results"：每个动作都隐含决策，冲突的决策导致糟糕结果。</li>
+</ol>
+<p>他们的例子：做 Flappy Bird 克隆，任务拆给两个子 Agent。一个把背景做成了超级马里奥风格，另一个做的小鸟既不像游戏素材、移动方式也不对，最后的 Agent 只能合并两个互相矛盾的理解。即使共享了上下文，两个子 Agent 仍基于没有事先约定的假设各自行动。推荐方案：<strong>单线程线性 Agent</strong>，需要时加一个专门的模型做上下文压缩。作者承认压缩很难做好，有时要微调小模型。</p>
+<h3 id="13">1.3 两个立场不矛盾</h3>
+<p>把两篇放在一起看，分歧在<strong>任务类型</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>任务特征</th>
+<th>倾向</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>读多写少，子任务彼此独立（调研、检索、分析）</td>
+<td>多 Agent 并行</td>
+<td>子任务之间没有"隐含决策"需要对齐，汇总时只是合并信息</td>
+</tr>
+<tr>
+<td>写多读少，产物需要整体一致（写代码、做设计）</td>
+<td>单线程</td>
+<td>子 Agent 之间的隐含决策会冲突，合并成本高</td>
+</tr>
+</tbody>
+</table>
+<p>本文把它当作选型第一问：<strong>子任务的产物是"信息"还是"需要拼在一起的制品"？</strong> 信息可以并行，制品要谨慎。</p>
+<hr />
+<h2 id="2-langgraph-agent">2. LangGraph 官方的五种多 Agent 模式</h2>
+<p>📄 LangChain 官方多 Agent 文档把模式归为五类，并强调多 Agent 的核心是<strong>上下文工程</strong>，即决定每个 Agent 能看到哪些信息。官方同时提醒：很多复杂任务用一个配了合适工具和提示的 Agent 就能完成。</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>机制</th>
+<th>强项</th>
+<th>短板</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Subagents</td>
+<td>主 Agent 把子 Agent 当工具调用，路由全经主 Agent</td>
+<td>并行、多跳、分布式开发</td>
+<td>用户很难直接和子 Agent 对话</td>
+</tr>
+<tr>
+<td>Handoffs</td>
+<td>工具调用更新 state 变量，切换当前 Agent 或其提示/工具</td>
+<td>多跳、可直接与用户交互</td>
+<td>不支持并行</td>
+</tr>
+<tr>
+<td>Skills</td>
+<td>单 Agent 按需加载专门的提示和知识</td>
+<td>实现简单、可直接交互</td>
+<td>加载的上下文持续占 token</td>
+</tr>
+<tr>
+<td>Router</td>
+<td>路由步骤分类输入，分派给一个或多个专门 Agent 再综合</td>
+<td>并行强</td>
+<td>不支持多跳，每次都多一次路由调用</td>
+</tr>
+<tr>
+<td>Custom workflow</td>
+<td>用 LangGraph 混合确定性逻辑与 Agent，其他模式可作节点嵌入</td>
+<td>灵活性最高</td>
+<td>需要自己设计和维护</td>
+</tr>
+</tbody>
+</table>
+<h3 id="21">2.1 官方的量化对比</h3>
+<p>📄 官方用三个场景对比了模型调用次数和 token（官方明确说<strong>数字是示意，不是基准测试</strong>）：</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>单次请求</th>
+<th>重复请求（第二轮）</th>
+<th>多领域对比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Subagents</td>
+<td>4 次</td>
+<td>4 次（累计 8）</td>
+<td>5 次，约 9K token</td>
+</tr>
+<tr>
+<td>Handoffs</td>
+<td>3 次</td>
+<td>2 次（累计 5）</td>
+<td>7 次以上，约 14K+ token，串行</td>
+</tr>
+<tr>
+<td>Skills</td>
+<td>3 次</td>
+<td>2 次（累计 5）</td>
+<td>3 次，约 15K token，上下文累积</td>
+</tr>
+<tr>
+<td>Router</td>
+<td>3 次</td>
+<td>3 次（累计 6）</td>
+<td>5 次，约 9K token</td>
+</tr>
+</tbody>
+</table>
+<p>从这张表能读出三条规律：</p>
+<ul>
+<li><strong>有状态</strong>的 Handoffs 和 Skills 在重复请求时更省（第二轮只要 2 次调用），无状态的 Subagents 每轮都要走完整流程。</li>
+<li>多领域场景下，能<strong>并行</strong>的 Subagents 和 Router 最省 token；Handoffs 只能串行，最慢。</li>
+<li>Skills 调用次数最少，但已加载的文档在之后每次调用都要重复处理，token 并不低。</li>
+</ul>
+<h3 id="22">2.2 选型决策</h3>
+<p>按官方建议整理成问答（📄 官方选择建议 + 本文补充）：</p>
+<pre><code>任务是确定性流程？            → Custom workflow（把其他模式当节点）
+需要并行 / 上下文很大？       → Subagents 或 Router
+需要子 Agent 直接和用户对话？  → Handoffs
+单次请求、任务聚焦？          → Skills（最简单）
+重复请求、对话有状态？        → Handoffs 或 Skills
+</code></pre>
+<p>📄 模式可以组合：子 Agent 可以内部是一个自定义工作流，也可以用 Skills 按需加载上下文。</p>
+<hr />
+<h2 id="3-subagents-agent">3. Subagents：把子 Agent 做成工具</h2>
+<h3 id="31">3.1 官方要点</h3>
+<p>📄 官方 Subagents 文档的核心：</p>
+<ul>
+<li>主 Agent 负责路由、传什么输入、如何合并结果。子 Agent 通过 tool 被调用，"By default, subagents are stateless"，记忆由主 Agent 维护。</li>
+<li>每次调用在干净的上下文窗口中进行，避免撑大主对话。</li>
+<li><strong>同步</strong>（默认）：主 Agent 等子 Agent 返回，适合后续步骤依赖结果。<strong>异步</strong>：启动后台任务继续对话，通常需要"启动返回 job ID、查状态、取结果"三个工具，完成时由应用通知用户。</li>
+<li>工具组织：每个 Agent 一个工具（控制细，配置多）；或单个 <code>task</code> 分发工具（适合 Agent 多的场景，上下文灵活性低）。使用分发工具时，告知主 Agent 可选子 Agent 有三种方式：系统提示列举（少于 10 个且稳定）、枚举约束（类型安全）、工具发现如 <code>list_agents</code>（数量多或动态）。</li>
+</ul>
+<h3 id="32">3.2 最小可用写法</h3>
+<p>📄 官方示意，🧪 本文用确定性函数验证了异常回灌路径：</p>
+<pre><code class="language-python">@tool(&quot;research&quot;, description=&quot;调研某个主题并返回结论&quot;)
+def call_research(query: str) -&gt; str:
+    try:
+        result = research_agent.invoke(
+            {&quot;messages&quot;: [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: query}]}
+        )
+        return result[&quot;messages&quot;][-1].content      # 只返回最终消息文本
+    except TimeoutError as e:
+        return f&quot;[research 失败: {e}] 请缩小范围重试或改用其他来源&quot;
+</code></pre>
+<p>🧪 实测：工具内部把 <code>TimeoutError</code> 转成字符串返回，主 Agent 拿到的是一条普通工具结果，图不会崩溃，模型可以据此改写查询。</p>
+<h3 id="33">3.3 生产要点</h3>
+<ol>
+<li><strong>输出契约</strong>。📄 官方说主 Agent 只能看到子 Agent 的<strong>最终消息</strong>，所以要在子 Agent 提示里要求把结论、依据、未解决的问题写进最终消息。需要结构化回传时，用 <code>Command</code> 把额外字段写回 state。</li>
+<li><strong>输入隔离</strong>。默认只传任务描述。📄 需要延续父 Agent 已做工作时才传消息历史，代价是提示变长、隔离性下降。</li>
+<li><strong>异常回灌</strong>（上面 3.2）：子 Agent 失败要变成文本，且工具返回要带 <code>tool_call_id</code>（<code>@tool</code> 机制自动处理）。</li>
+<li><strong>持久化范围</strong>。📄 默认的继承 checkpointer 模式下，每次调用从空状态开始，支持中断、可安全并行。想让子 Agent 跨调用保留自己的对话历史，编译时设 <code>checkpointer=True</code>。</li>
+<li><strong>可观测性有盲区</strong>。📄 子 Agent 在工具函数内部被调用，LangGraph <strong>无法静态发现</strong>它们，<code>get_state(..., subgraphs=True)</code> 读不到其状态。需要排查子 Agent 内部时，应改成在自定义图的节点函数里调用子 Agent，或者另接 LangSmith 追踪。</li>
+</ol>
+<h3 id="34">3.4 🧪 实测：并行扇出与上下文隔离</h3>
+<p>用 <code>Send</code> 实现"主 Agent 同时派 3 个研究子 Agent"，结果靠 reducer 汇总：</p>
+<pre><code class="language-python">class Orch(TypedDict):
+    questions: list[str]
+    answers: Annotated[list[str], operator.add]
+
+g.add_conditional_edges(START, lambda s: [Send(&quot;worker&quot;, {&quot;q&quot;: q}) for q in s[&quot;questions&quot;]], [&quot;worker&quot;])
+# 输入 3 个问题，answers 得到 3 条，顺序不保证
+</code></pre>
+<p>另一个实测是<strong>父子图状态映射</strong>：父图和子图 state 结构不同时，写一个包装节点，只把任务描述传进子图，只取回 <code>result</code>：</p>
+<pre><code class="language-python">def call_sub(s):
+    r = sub_app.invoke({&quot;task&quot;: s[&quot;todo&quot;][0], &quot;result&quot;: &quot;&quot;})
+    return {&quot;results&quot;: [r[&quot;result&quot;]]}      # 子图内部过程不进父图
+</code></pre>
+<p>结果父图只有 <code>results</code>，没有子图的中间消息。这是"上下文隔离"在代码上的落点：<strong>返回什么，父图就只能看到什么</strong>。</p>
+<hr />
+<h2 id="4-handoffs">4. Handoffs：移交控制权</h2>
+<h3 id="41">4.1 官方要点</h3>
+<p>📄 官方 Handoffs 文档：</p>
+<ul>
+<li>机制：工具返回 <code>Command</code>，更新 state 里的变量（如 <code>current_step</code> 或 <code>active_agent</code>），系统读取它来切换配置（system prompt、工具集）或把对话路由给另一个 Agent。</li>
+<li>适用：有先后顺序、需满足前置条件才能解锁能力的流程。例如先确认保修状态，再进入维修或退款。</li>
+<li>两种实现：<strong>单 Agent 加中间件</strong>（中间件按 <code>current_step</code> 覆盖提示和工具，多数场景更简单，应优先）；<strong>多 Agent 子图</strong>（每个 Agent 是图里一个节点，交接工具用 <code>Command(goto=..., graph=Command.PARENT)</code> 跳转，只在需要复杂专用实现时才值得）。</li>
+<li><strong>ToolMessage 配对</strong>：LLM 调用工具后，必须收到带相同 <code>tool_call_id</code> 的 <code>ToolMessage</code>，否则历史格式错误。</li>
+<li>子图交接的上下文控制：只传触发交接的 <code>AIMessage</code> 和一条确认用的 <code>ToolMessage</code>，不传子 Agent 的全部历史；接收方需要更多信息就把摘要写进 <code>ToolMessage</code> 内容。</li>
+<li>让用户接管前，最后一条消息应是 <code>AIMessage</code>。</li>
+</ul>
+<h3 id="42-parent">4.2 🧪 实测：PARENT 跳转与消息配对</h3>
+<p>父图有两个子图节点 <code>sales_agent</code>、<code>support_agent</code>，销售子图内部节点返回：</p>
+<pre><code class="language-python">def sales_node(state):
+    ai = AIMessage(content=&quot;&quot;, tool_calls=[{&quot;name&quot;: &quot;transfer_to_support&quot;, &quot;args&quot;: {}, &quot;id&quot;: &quot;c1&quot;}])
+    tm = ToolMessage(content=&quot;Transferred to support&quot;, tool_call_id=&quot;c1&quot;)
+    return Command(goto=&quot;support_agent&quot;, graph=Command.PARENT,
+                   update={&quot;messages&quot;: [ai, tm]})
+</code></pre>
+<p>实测消息序列为 <code>HumanMessage → AIMessage → ToolMessage → AIMessage</code>，support 收到的历史是 3 条（用户消息加交接的两条），最终由 support 回复。交接成功，且 <code>tool_call_id</code> 配对完整。</p>
+<h3 id="43">4.3 容易出错的地方</h3>
+<ul>
+<li><strong>并行工具调用</strong>：📄 官方示例用 <code>messages[-1]</code> 取交接消息，前提是没有并行工具调用。同一轮模型同时发出多个工具调用时这样取会取错，生产里要按 <code>tool_call_id</code> 精确匹配，或者对交接工具禁用并行调用。</li>
+<li><strong>未知步骤</strong>：中间件里按 <code>current_step</code> 查配置字典，未知步骤会 <code>KeyError</code>；<code>prompt.format(**state)</code> 遇到 state 缺字段也会抛错。这两处官方示例没处理，生产要加默认分支。</li>
+<li><strong>移交死循环</strong>：A 交给 B，B 又交回 A。要在 state 里记录移交次数，超限转人工，结合 <a href="LangGraph生产级状态机设计-State-Reducer-路由与错误处理-202611.html">状态机设计篇</a> 第 5 节的 <code>RemainingSteps</code> 兜底。</li>
+</ul>
+<hr />
+<h2 id="5-supervisor">5. Supervisor 库的现状：别再新建依赖</h2>
+<p>本库旧文档和不少教程会提 <code>langgraph-supervisor</code>（<code>create_supervisor</code>）。📄 抓取其 GitHub README 的结果：</p>
+<ul>
+<li>README 开头写明："We now recommend using the supervisor pattern directly via tools rather than this library for most use cases."（现在推荐直接用工具实现 supervisor 模式，而不是用这个库）。</li>
+<li>页面显示该仓库已于 <strong>2026 年 9 月 20 日被所有者归档，只读</strong>。仅当已有代码依赖它，或需要平滑升级到 LangChain 1.0 时才值得保留。</li>
+<li>该库本质是把 tool-calling 子 Agent 模式打包：自动生成 handoff 工具、管理消息历史。参数包括 <code>output_mode</code>（<code>full_history</code> 或 <code>last_message</code>）、<code>add_handoff_messages</code>、层级 supervisor 等。</li>
+</ul>
+<p>结论：<strong>新项目按本文第 3 节自己写工具</strong>，对上下文工程的控制更直接；<code>output_mode="last_message"</code> 的思路（只保留子 Agent 最终回复）对应第 3.3 节的"输出契约"。库里 <code>forward_message</code>（把子 Agent 最后一条消息直接作为输出，省 token 且避免主 Agent 改写）的思路值得借鉴：当子 Agent 的回答不需要二次加工时，直接透传。</p>
+<hr />
+<h2 id="6-anthropic">6. 生产级委派：Anthropic 的七条做法</h2>
+<p>📄 Anthropic 博客里的提示工程与评估做法，对任何多 Agent 系统都适用：</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>做法</th>
+<th>细节</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>委派要写清楚</td>
+<td>每个子 Agent 需要目标、输出格式、工具与来源指引、任务边界。模糊指令会导致重复搜索或遗漏</td>
+</tr>
+<tr>
+<td>2</td>
+<td>投入与复杂度匹配</td>
+<td>简单事实查询 1 个 Agent、3–10 次工具调用；直接比较 2–4 个子 Agent、各 10–15 次；复杂研究 10 个以上</td>
+</tr>
+<tr>
+<td>3</td>
+<td>先宽后窄</td>
+<td>先短而宽的查询了解全貌，再收窄</td>
+</tr>
+<tr>
+<td>4</td>
+<td>并行</td>
+<td>主 Agent 同时启动 3–5 个子 Agent，子 Agent 同时用 3 个以上工具；复杂查询研究时间最多减少 90%</td>
+</tr>
+<tr>
+<td>5</td>
+<td>工具描述要清晰</td>
+<td>让测试 Agent 反复调用有缺陷的工具并改写描述，后续任务完成时间下降 40%</td>
+</tr>
+<tr>
+<td>6</td>
+<td>评估从小样本开始</td>
+<td>约 20 个真实查询即可起步；LLM 评委按事实准确性、引用准确性、完整性、来源质量、工具效率打分；人工测试必不可少，能发现来源选择偏差</td>
+</tr>
+<tr>
+<td>7</td>
+<td>有状态任务看终态</td>
+<td>检查最终状态是否正确，不逐步检查过程</td>
+</tr>
+</tbody>
+</table>
+<h3 id="61-anthropic">6.1 Anthropic 披露的生产难点</h3>
+<ul>
+<li><strong>错误累积</strong>：长时间运行的 Agent 出错后从头重启代价高。他们做了断点续跑，加重试和定期检查点。</li>
+<li><strong>调试难</strong>：非确定性。他们加了完整生产追踪，并监控决策模式和交互结构，不读取单个对话内容以保护隐私。</li>
+<li><strong>部署协调</strong>：用彩虹部署逐步切流量。</li>
+<li><strong>同步瓶颈</strong>：主 Agent 要等一批子 Agent 全部结束才继续，一个慢子 Agent 拖住整体。异步能提高并行度，但带来结果协调、状态一致性和错误传播的新问题。</li>
+</ul>
+<p>这四条在 LangGraph 里分别对应：checkpointer 与 <code>invoke(None)</code> 续跑（见持久化篇）、LangSmith/<code>stream_mode="debug"</code> 追踪、新旧版本并存、<code>Send</code> 扇出的 join 语义。<strong>同步瓶颈</strong>是 <code>Send</code> 加 join 的天然特性：<code>add_edge</code> 汇合要等所有分支完成。需要"先到先用"时，只能走异步 job 方式，复杂度高很多。</p>
+<hr />
+<h2 id="7-agent">7. 工具调用：多 Agent 里最容易出事的环节</h2>
+<p>📄 LangChain 官方工具文档的生产相关要点，加本文补充：</p>
+<ol>
+<li><strong>类型和 docstring 就是 schema</strong>。<code>@tool</code> 的类型提示定义输入 schema，docstring 成为模型看到的描述。工具名用 <code>snake_case</code>。<code>config</code>、<code>runtime</code> 是保留参数名。</li>
+<li><strong>错误要回灌</strong>。用 <code>@wrap_tool_call</code> 中间件统一 catch，返回带 <code>tool_call_id</code> 的 <code>ToolMessage</code>，让模型看到错误后自行修正。别让工具异常直接冒泡成图崩溃。</li>
+<li><strong>并行工具调用</strong>。模型一次可调多个工具，全部执行后结果一起回传。📄 只有批次里<strong>每个</strong>工具都设 <code>return_direct=True</code> 才会直接结束；多个并行工具同时更新同一个 state 字段时，必须定义 reducer。</li>
+<li><strong>用 <code>Command</code> 从工具改 state</strong>。📄 <code>Command(update=...)</code> 指向当前图时，<code>update</code> 里必须包含 <code>ToolMessage</code> 且 <code>tool_call_id</code> 用 <code>runtime.tool_call_id</code>，否则 <code>ToolNode</code> 抛 <code>ValueError</code>；指向父图（<code>graph=Command.PARENT</code>）则不需要。</li>
+<li><strong>用 <code>ToolRuntime</code> 取上下文</strong>。📄 在工具签名加 <code>runtime: ToolRuntime</code>，由 <code>ToolNode</code> 自动注入，不会出现在发给模型的 schema 里。<code>runtime.state</code> 读会话状态，<code>runtime.context</code> 读每次调用的不可变配置，<code>runtime.store</code> 访问长期存储。旧的 <code>InjectedState</code>、<code>InjectedStore</code> 官方标记为旧写法。</li>
+<li><strong>动态工具选择</strong>。📄 两种：预注册后用 <code>wrap_model_call</code> 按权限或状态过滤；运行时才发现的工具（如 MCP）需要同时用 <code>wrap_model_call</code> 加入和 <code>wrap_tool_call</code> 执行。后者漏掉任何一个，Agent 都不知道怎么调用。</li>
+</ol>
+<p><strong>权限收敛是多 Agent 的安全底线</strong>：给每个子 Agent 只暴露它需要的工具。写操作工具（发信、转账、改库）单独放在一个子 Agent 里，并在其调用前用 <code>interrupt()</code> 做人工确认（见持久化篇第 3 节）。</p>
+<hr />
+<h2 id="8-crewaiflows">8. CrewAI：Flows 才是生产形态</h2>
+<p>本库已有 <a href="CrewAI源码解析-对我们的用处-20261021.html">CrewAI源码解析</a> 与最小 Crew 示例。生产层面要补的是 <strong>Flows</strong> 和 <strong>Process</strong>。</p>
+<h3 id="81-process">8.1 Process：只有两种</h3>
+<p>📄 CrewAI 官方 Process 文档：</p>
+<ul>
+<li><strong>sequential</strong>：任务按列表顺序执行，前一个输出作为后一个的上下文，可用 Task 的 <code>context</code> 参数指定哪些输出供后续使用。</li>
+<li><strong>hierarchical</strong>：由管理者规划、分配、审核。必须指定 <code>manager_llm</code> 或 <code>manager_agent</code> 之一，否则无法运行。</li>
+<li>文档<strong>没有</strong>说明性能、成本、并发，也没有说明管理者出错时怎么办。这些是生产必须自己补的盲区。</li>
+</ul>
+<h3 id="82-flows">8.2 Flows：事件驱动的编排层</h3>
+<p>📄 官方 Flows 文档的核心：<strong>Flow 负责编排，Crew 负责执行具体任务</strong>。</p>
+<ul>
+<li><code>@start()</code> 入口（可多个）；<code>@listen(method)</code> 在指定方法完成后执行，并把输出作为参数传入。</li>
+<li><code>or_(a, b)</code> 任一完成触发；<code>and_(a, b)</code> 全部完成才触发；<code>@router(method)</code> 返回字符串标签分支，下游用 <code>@listen("label")</code> 接收。</li>
+<li>状态：非结构化用 <code>self.state</code> 字典（自动生成 UUID <code>id</code>）；结构化则继承 Pydantic <code>BaseModel</code> 并写 <code>Flow[MyState]</code>。</li>
+<li>持久化：<code>@persist</code>，默认 SQLite，可自定义 <code>FlowPersistence</code>。<code>kickoff(inputs={"id": uuid})</code> 恢复同一状态继续写；<code>kickoff(restore_from_state_id=uuid)</code> 从快照<strong>复制</strong>状态并分配新 id，原历史不变。</li>
+<li><code>@human_feedback</code>（CrewAI 1.8.0 起）暂停流程等人工反馈。</li>
+<li><code>flow.usage_metrics</code> 汇总一次 <code>kickoff()</code> 里所有 LLM 调用的 token，包括 Crew 内部；<code>kickoff().token_usage</code> 只反映<strong>最后一个</strong> Crew。做成本核算要用前者。</li>
+</ul>
+<h3 id="83-langgraph">8.3 与 LangGraph 的对应关系</h3>
+<table>
+<thead>
+<tr>
+<th>能力</th>
+<th>LangGraph</th>
+<th>CrewAI Flows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>入口/串联</td>
+<td><code>START</code>、<code>add_edge</code></td>
+<td><code>@start</code>、<code>@listen</code></td>
+</tr>
+<tr>
+<td>条件分支</td>
+<td><code>add_conditional_edges</code> / <code>Command</code></td>
+<td><code>@router</code> + <code>@listen("label")</code></td>
+</tr>
+<tr>
+<td>汇合</td>
+<td><code>add_edge([a, b], c)</code></td>
+<td><code>and_(a, b)</code></td>
+</tr>
+<tr>
+<td>状态</td>
+<td><code>TypedDict</code> + reducer</td>
+<td>Pydantic <code>BaseModel</code>，<strong>无 reducer 概念</strong></td>
+</tr>
+<tr>
+<td>持久化</td>
+<td>checkpointer（super-step 粒度，Postgres 等）</td>
+<td><code>@persist</code>（SQLite 默认）</td>
+</tr>
+<tr>
+<td>回放/分叉</td>
+<td><code>get_state_history</code> + <code>update_state</code></td>
+<td><code>restore_from_state_id</code>（复制快照）</td>
+</tr>
+</tbody>
+</table>
+<p>差别集中在<strong>状态合并</strong>：LangGraph 的 reducer 明确规定并行写入怎么合并，CrewAI 文档里没有对应机制，并行写同一状态字段需要自己保证。这也是 <a href="Agent框架实操选型-2026.html">框架实操选型</a> 里把断点续跑和 time travel 判给 LangGraph 的依据之一。</p>
+<hr />
+<h2 id="9-autogen">9. AutoGen：现状与可借鉴的两个模式</h2>
+<h3 id="91">9.1 现状（先于一切）</h3>
+<p>📰 二手资料（LangChain 对比页、迁移指南搜索结果，非 Microsoft 原文逐字）一致称：AutoGen 于 <strong>2025 年 10 月进入维护模式</strong>，只做社区维护、不再有新特性；微软推荐新项目用 <strong>Microsoft Agent Framework</strong>（合并了 AutoGen 的编排思想和 Semantic Kernel 的企业能力），据称 2026 年 4 月 1.0 GA。Microsoft Learn 上有官方的《AutoGen to Microsoft Agent Framework Migration Guide》。<strong>这一节的事实来自搜索摘要，上线决策前请读官方迁移指南核实。</strong></p>
+<p>本库旧文档的 AutoGen 最小示例（<code>UserProxyAgent</code> 加 <code>AssistantAgent</code>）可以保留作概念参考，<strong>不应作为新项目的技术选型</strong>。</p>
+<h3 id="92-graphflow">9.2 GraphFlow：显式图（实验性）</h3>
+<p>📄 AutoGen AgentChat 的 <code>GraphFlow</code> 用有向图控制执行顺序，支持顺序、并行、条件分支、循环，文档标注为<strong>实验性</strong>。要点：</p>
+<ul>
+<li><code>DiGraphBuilder</code> 的 <code>add_node</code>、<code>add_edge</code>、<code>set_entry_point</code>、<code>build</code>。纯循环图没有源节点时必须用 <code>set_entry_point</code>。</li>
+<li>条件边：<code>condition</code> 可以是关键字或对 <code>msg.to_model_text()</code> 判断的 lambda。<strong>文档提醒条件字符串依赖 Agent 在系统提示里遵守输出约定，要自己验证。</strong></li>
+<li>循环必须有退出条件，并用 <code>termination_condition</code>（如 <code>MaxMessageTermination(10)</code>）设上限。</li>
+<li><code>activation_group</code> 与 <code>activation_condition</code>（<code>"all"</code> 或 <code>"any"</code>）区分"必须全部到齐"和"先到先执行"，这是 LangGraph 里 <code>add_edge([a,b], c)</code> 与普通多边的差别的另一种表达。</li>
+<li><strong>消息图与执行图分离</strong>：谁先执行是执行图的事，每个 Agent 看到哪些消息要用 <code>MessageFilterAgent</code> 和 <code>PerSourceFilter</code> 另外限制。默认所有消息发给所有 Agent，上下文会膨胀。</li>
+</ul>
+<p>可借鉴点：把"谁执行"和"谁看到什么"拆成两件事设计。LangGraph 里对应的是图结构（边）与 state/传参（上下文）。</p>
+<h3 id="93-swarm">9.3 Swarm：去中心化移交</h3>
+<p>📄 AutoGen Swarm 与 LangGraph Handoffs 同构：Agent 通过特殊工具调用（<code>HandoffMessage</code>）移交，所有 Agent <strong>共享同一份消息上下文</strong>，最近的 <code>HandoffMessage</code> 决定下一个发言者。几个值得带走的细节：</p>
+<ul>
+<li>移交依赖模型的工具调用能力。📄 模型若<strong>并行调用工具</strong>会同时产生多个移交，行为异常；OpenAI 客户端可设 <code>parallel_tool_calls=False</code> 避免。这与第 4.3 节的结论一致。</li>
+<li>移交给 <code>"user"</code> 时团队停止并等待输入，用户回复以 <code>HandoffMessage</code> 发回，这是 AutoGen 的人机协同方式，比 LangGraph <code>interrupt()</code> 粗糙：没有 checkpoint 级恢复。</li>
+<li>终止条件可组合：<code>HandoffTermination(target="user") | TextMentionTermination("TERMINATE")</code>。</li>
+</ul>
+<hr />
+<h2 id="10">10. 综合选型与落地清单</h2>
+<h3 id="101-2026-11">10.1 框架速选（2026-11 本文判断）</h3>
+<table>
+<thead>
+<tr>
+<th>需求</th>
+<th>选择</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>长任务、要断点续跑、要人审、要 time travel</td>
+<td>LangGraph</td>
+<td>本库<a href="Agent框架实操选型-2026.html">框架实操选型</a>的横评（二手）把持久化粒度判给它，本文对其 checkpoint 续跑、interrupt、time travel 做了实测</td>
+</tr>
+<tr>
+<td>快速出多角色原型，流程简单</td>
+<td>CrewAI（Crew）</td>
+<td>上手快；上线再考虑迁移到 Flows 或 LangGraph</td>
+</tr>
+<tr>
+<td>已有 CrewAI 且要上生产</td>
+<td>CrewAI Flows + <code>@persist</code></td>
+<td>注意并行状态合并没有 reducer，自己兜底</td>
+</tr>
+<tr>
+<td>新项目考虑 AutoGen</td>
+<td>不选；看 Microsoft Agent Framework</td>
+<td>维护模式</td>
+</tr>
+<tr>
+<td>新项目考虑 <code>langgraph-supervisor</code></td>
+<td>不选；直接用工具</td>
+<td>官方推荐、仓库已归档</td>
+</tr>
+</tbody>
+</table>
+<h3 id="102">10.2 上线检查清单</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>检查项</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>已用"产物是信息还是制品"判断，写代码类任务默认单线程</td>
+</tr>
+<tr>
+<td>2</td>
+<td>已对比过"单 Agent 加并行工具调用"的基线，多 Agent 收益明确</td>
+</tr>
+<tr>
+<td>3</td>
+<td>每个子 Agent 有书面委派契约：目标、输出格式、工具范围、边界</td>
+</tr>
+<tr>
+<td>4</td>
+<td>子 Agent 的最终消息按契约输出，主 Agent 不依赖其中间过程</td>
+</tr>
+<tr>
+<td>5</td>
+<td>子 Agent 异常全部转文本回灌，工具返回带 <code>tool_call_id</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>交接有次数上限和 <code>recursion_limit</code> 兜底</td>
+</tr>
+<tr>
+<td>7</td>
+<td>并行工具调用时，reducer 已定义；交接工具已处理并行调用</td>
+</tr>
+<tr>
+<td>8</td>
+<td>写操作工具集中在一个子 Agent，调用前有 <code>interrupt()</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td>子 Agent 内部可观测：LangSmith 追踪已接，或子 Agent 作为图节点而非工具内部调用</td>
+</tr>
+<tr>
+<td>10</td>
+<td>有 20 条左右的真实查询评测集，LLM 评委加人工抽检</td>
+</tr>
+<tr>
+<td>11</td>
+<td>token 预算有上限，扇出数量有上限</td>
+</tr>
+</tbody>
+</table>
+<h3 id="103">10.3 对本库六员体系的启示</h3>
+<p>总地图的六员（Hermes 规划、DSH 执行、Claude Code 实现、Codex 原型、OpenClaw 审查、QwenCode 复核）本质是<strong>编排者—工作者</strong>加<strong>审查者</strong>。与本文对照：</p>
+<ul>
+<li>派单卡的 4 核必填字段，对应第 6 节第 1 条的委派契约（目标、输出格式、工具范围、边界）。</li>
+<li>"审查者与执行者分离"、"审查只读"，对应第 7 节权限收敛。</li>
+<li>Cognition 的批评直接对应本库已踩过的坑：全局 CLAUDE.md 第 4 条记录的"Hermes 单方改配置同时搞坏 OpenClaw 与 Codex"，就是多个 Agent 基于<strong>未对齐的隐含假设</strong>各自行动的实例。所以涉及多 Agent 配置改动要走三阶评审，这与"共享完整上下文"的原则一致。</li>
+<li>以上是对照分析，<strong>未改造任何现有流程</strong>。</li>
+</ul>
+<hr />
+<h2 id="_1">来源</h2>
+<p>标注规则：📄 官方或一手；📰 二手；🧪 本机实测（<code>~/ai-stack</code> langgraph 1.2.11，确定性节点，脚本已清理）。</p>
+<ul>
+<li>📄 <a href="https://docs.langchain.com/oss/python/langchain/multi-agent">LangChain 多 Agent 总览</a>：五种模式、调用次数与 token 对比、选择建议</li>
+<li>📄 <a href="https://docs.langchain.com/oss/python/langchain/multi-agent/subagents">Subagents</a>：工具化子 Agent、同步异步、持久化与状态可见性</li>
+<li>📄 <a href="https://docs.langchain.com/oss/python/langchain/multi-agent/handoffs">Handoffs</a>：<code>Command</code> 更新 state、<code>graph=Command.PARENT</code>、<code>ToolMessage</code> 配对</li>
+<li>📄 <a href="https://docs.langchain.com/oss/python/langchain/tools">LangChain Tools</a>：<code>wrap_tool_call</code>、并行工具调用、<code>ToolRuntime</code>、动态工具</li>
+<li>📄 <a href="https://github.com/langchain-ai/langgraph-supervisor-py">langgraph-supervisor 仓库</a>：README 推荐改用工具实现，仓库已归档</li>
+<li>📄 <a href="https://www.anthropic.com/engineering/multi-agent-research-system">Anthropic: How we built our multi-agent research system</a>：90.2%、15 倍 token、委派与评估做法、生产难点</li>
+<li>📄 <a href="https://cognition.com/blog/dont-build-multi-agents">Cognition: Don't Build Multi-Agents</a>：两条原则与单线程推荐（原 cognition.ai 地址 301 到此）</li>
+<li>📄 <a href="https://docs.crewai.com/en/concepts/flows">CrewAI Flows</a> 与 <a href="https://docs.crewai.com/en/concepts/processes">CrewAI Processes</a></li>
+<li>📄 <a href="https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/graph-flow.html">AutoGen GraphFlow</a> 与 <a href="https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/swarm.html">AutoGen Swarm</a></li>
+<li>📰 AutoGen 维护模式与 Microsoft Agent Framework：<a href="https://www.langchain.com/resources/langchain-vs-autogen">LangChain 对比页</a>、<a href="https://learn.microsoft.com/fr-fr/agent-framework/migration-guide/from-autogen/">Microsoft Learn 迁移指南（法文版入口，搜索结果）</a>。事实来自搜索摘要，未读全文</li>
+</ul>
+<h2 id="_2">未验证与边界</h2>
+<ul>
+<li>AutoGen 维护模式与 Agent Framework GA 时间来自搜索摘要，未读官方原文。</li>
+<li>Anthropic 的 90.2%、15 倍是其内部评测数字，不可直接外推到本库任务。</li>
+<li>官方第 2.1 节的调用次数表本身是示意数字，非基准测试。</li>
+<li>本机验证只覆盖 LangGraph 的确定性路径，没有调真实 LLM，因此没有验证"模型是否真的会按预期发起交接/并行工具调用"。</li>
+<li>CrewAI、AutoGen 的代码本篇均未在本机运行，仅整理官方文档。</li>
+</ul></div></body></html>

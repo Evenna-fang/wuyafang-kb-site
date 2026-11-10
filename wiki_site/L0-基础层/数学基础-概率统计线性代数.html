@@ -1,0 +1,276 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>数学基础-概率统计线性代数</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 数学基础-概率统计线性代数</span></div><div class="wrap"><h1 id="数学基础概率统计-线性代数-微积分系统化-ai-应用场景">数学基础：概率统计 · 线性代数 · 微积分（系统化 + AI 应用场景）</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/courseware/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E7%AC%AC%E4%BA%8C%E6%9C%9F__%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E7%AC%AC%E4%BA%8C%E6%9C%9F__01%E4%BA%BA%E5%B7%A5%E6%99%BA%E8%83%BD%E6%A6%82%E8%BF%B0-2022-03-30-%E5%BE%90%E8%80%81%E5%B8%88__01%E7%BA%BF%E6%80%A7%E5%9B%9E%E5%BD%9201.md">机器学习第二期__机器学习第二期__01人工智能概述-2022-03-30-徐老师__01线性回归01</a> · <a href="../../raw/courseware/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E7%AC%AC%E4%BA%8C%E6%9C%9F__%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E7%AC%AC%E4%BA%8C%E6%9C%9F__02%E7%BA%BF%E6%80%A7%E5%9B%9E%E5%BD%922-2022-04-01-%E5%BE%90%E8%80%81%E5%B8%88__02%E7%BA%BF%E6%80%A7%E5%9B%9E%E5%BD%9202.md">机器学习第二期__机器学习第二期__02线性回归2-2022-04-01-徐老师__02线性回归02</a> · <a href="../../raw/courseware/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/code/02%E7%BA%BF%E6%80%A7%E5%9B%9E%E5%BD%92%E4%BB%A3%E7%A0%81__%E6%AD%A3%E8%A7%84%E6%96%B9%E7%A8%8B%E6%B3%95%E6%B1%82%E8%A7%A3.md">02线性回归代码__正规方程法求解</a> · <a href="../../raw/courseware/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/code/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E7%AC%AC%E4%BA%8C%E6%9C%9F__%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E7%AC%AC%E4%BA%8C%E6%9C%9F__04%E9%80%BB%E8%BE%91%E5%9B%9E%E5%BD%92__04Logistic%20Regression__Sigmoid%E5%87%BD%E6%95%B0.md">机器学习第二期__机器学习第二期__04逻辑回归__04Logistic Regression__Sigmoid函数</a> · <a href="../../raw/courseware/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/code/10%E6%9C%B4%E7%B4%A0%E8%B4%9D%E5%8F%B6%E6%96%AF__%E8%B4%9D%E5%8F%B6%E6%96%AF%E5%BA%95%E5%B1%82%E5%AE%9E%E7%8E%B0.md">10朴素贝叶斯__贝叶斯底层实现</a> · <a href="../../raw/courseware/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/code/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E7%AC%AC%E4%BA%8C%E6%9C%9F__%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E7%AC%AC%E4%BA%8C%E6%9C%9F__09%E6%95%B0%E6%8D%AE%E9%99%8D%E7%BB%B4%20-2022-04-20-%E5%BE%90%E8%80%81%E5%B8%88__09%E6%95%B0%E6%8D%AE%E9%99%8D%E7%BB%B4__day12deminsion%20reduction__%E7%89%B9%E5%BE%81%E5%80%BC%E5%90%91%E9%87%8F%E8%BE%93%E5%87%BA%E5%88%86%E6%9E%90.md">机器学习第二期__机器学习第二期__09数据降维 -2022-04-20-徐老师__09数据降维__day12deminsion reduction__特征值向量输出分析</a></p>
+<p><strong>TL;DR</strong>：本篇不是再来一遍白话入门，而是把「数学概念 → 机器学习部件 → 大模型部件」这条链子按系统化顺序串起来：概率统计给<strong>不确定性语言</strong>（似然/先验/后验/期望），线性代数给<strong>空间与变换语言</strong>（矩阵=变换、特征值=主方向、SVD=降维），微积分给<strong>优化语言</strong>（梯度/链式法则/凸性）。全部结论可溯源到本库 raw/courseware 一手课件与 raw/sources 课程体系 PDF，公式与代码块逐条标注出处。</p>
+<p><strong>与《L0-数学最小集》的分工（必读）</strong>：<code>L0-数学最小集-概率统计白话.md</code> / <code>L0-数学最小集-线性代数白话.md</code> 是<strong>白话入门</strong>（讲"它到底是什么动作"，配 numpy 实跑）；<code>L0-统计直觉.md</code> 是<strong>应用纪律</strong>（什么时候信、什么时候被骗）。本篇是<strong>系统化 + AI 应用场景</strong>：把数学按"模型部件"重新组织，回答"训练线性回归时正规方程那一步到底在解什么方程组""Transformer 的 softmax 为什么必须除以 √d_k""朴素贝叶斯的拉普拉斯平滑在防什么"。四篇配合读，本篇不重复白话解释，直接进公式与部件映射。</p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心论点</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. AI 课程体系对数学的要求是"够用、能映射到部件"，不是数学系推导</li><li>3. 每个数学对象都有一个"AI 部件落点"，见 §2 的映射表</li><li>看不到落点的数学不进最小集——这是与数学系教材的根本区别</li></ul></div>2
+<ol>
+<li><strong>AI 课程体系对数学的要求是"够用、能映射到部件"，不是数学系推导</strong>。<code>raw/sources/2026年-人工智能专业课程体系(中关村) .md</code> 九个阶段里，数学不设独立章节，而是<strong>长在算法与大模型部件里</strong>：阶段五"人工智能算法"含"线性回归/逻辑回归/朴素贝叶斯/PCA 降维"，阶段五"大模型核心原理：attention 和 Transformer 模型"含"self-attention 核心代码实现"——数学知识的落点就是这些部件，这是本篇的组织原则。</li>
+<li><strong>三块数学各管一件事</strong>：概率统计管<strong>不确定性</strong>（损失函数=估计期望，贝叶斯=先验+证据→后验），线性代数管<strong>空间与变换</strong>（矩阵乘=线性变换，特征值=主方向，SVD=最优低秩近似），微积分管<strong>优化</strong>（梯度=最快上升方向，链式法则=反向传播的骨架，凸性=局部极小=全局极小）。</li>
+<li><strong>每个数学对象都有一个"AI 部件落点"</strong>，见 §2 的映射表。看不到落点的数学不进最小集——这是与数学系教材的根本区别。</li>
+<li><strong>课件里的公式是"可直接跑通"的最小实现</strong>（如正规方程 <code>W = (XᵀX)⁻¹XᵀY</code> 的 numpy 实现、Sigmoid 导数 <code>f(z)(1-f(z))</code> 的推导），本篇保留其一手形态并标注文件路径，不做二次包装。</li>
+</ol>
+<hr />
+<h2 id="机制拆解">机制拆解</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 三块数学的系统化骨架</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>数学块</th>
+<th>核心对象</th>
+<th>系统化主线</th>
+<th>AI 部件落点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>概率统计</td>
+<td>随机变量、分布、期望方差、MLE、贝叶斯</td>
+<td>不确定性→分布→估计→推断</td>
+<td>损失函数、正则化、朴素贝叶斯、softmax 输出、温度采样</td>
+</tr>
+<tr>
+<td>线性代数</td>
+<td>向量、矩阵、特征值、SVD、秩</td>
+<td>表示→变换→分解→降维</td>
+<td>线性层、embedding、注意力 QKV、PCA、正规方程</td>
+</tr>
+<tr>
+<td>微积分</td>
+<td>导数、偏导、梯度、链式法则、凸性</td>
+<td>变化率→最优化→反向传播</td>
+<td>梯度下降家族、反向传播、学习率、梯度消失</td>
+</tr>
+</tbody>
+</table>
+<h3 id="2-概率统计-ai-部件映射逐条溯源">2. 概率统计 → AI 部件映射（逐条溯源）</h3>3
+<table>
+<thead>
+<tr>
+<th>数学概念</th>
+<th>课件/源文档原文出处</th>
+<th>AI 部件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>代价函数 = 所有样本误差的平均（最小二乘法两段式："计算所有样本误差的平均（代价函数）"+"使用最优化方法寻找数据的最佳函数匹配"）</td>
+<td><code>raw/courseware/机器学习/机器学习第二期__机器学习第二期__01人工智能概述-2022-03-30-徐老师__01线性回归01.md</code>（第25页）</td>
+<td>回归损失 MSE</td>
+</tr>
+<tr>
+<td>极大似然估计（与最小二乘同源）</td>
+<td><code>.../02线性回归2-2022-04-01-徐老师__02线性回归02.md</code>（第17-20页"最小二乘法从何而来？→极大似然估计→最小二乘法推导"）</td>
+<td>监督学习损失的统一来源</td>
+</tr>
+<tr>
+<td>贝叶斯后验 <code>P(Y|X) = P(Y) × P(X⁽¹⁾|Y) × P(X⁽²⁾|Y)</code>，拉普拉斯平滑 <code>λ=1</code> 保证连乘不为零</td>
+<td><code>raw/courseware/机器学习/code/10朴素贝叶斯__贝叶斯底层实现.md</code></td>
+<td>朴素贝叶斯分类器</td>
+</tr>
+<tr>
+<td>Sigmoid <code>f(z)=1/(1+e^{-z})</code>，导数 <code>f(z)'=f(z)(1-f(z))</code>，"代表样本为正类别的概率，在阈值 0.5 处梯度大"</td>
+<td><code>raw/courseware/机器学习/code/机器学习第二期__机器学习第二期__04逻辑回归__04Logistic Regression__Sigmoid函数.md</code></td>
+<td>二分类输出层</td>
+</tr>
+<tr>
+<td>下一 token 概率输出："模型会对接下来每一个可能出现的单词计算出一个概率值，并选择概率最大的单词作为输出"</td>
+<td><code>raw/courseware/_converted/AI讲义_大模型核心原理.md</code> §5</td>
+<td>LLM 解码的贪婪搜索</td>
+</tr>
+<tr>
+<td>softmax 得到 values 上的权重：<code>Attention(Q,K,V) = softmax(QKᵀ/√d_k)V</code></td>
+<td><code>raw/courseware/基础篇/day04__Attention is  all you need.md</code>（§3.2.1 Scaled Dot-Product Attention）</td>
+<td>注意力权重归一化</td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 线性代数 → AI 部件映射（逐条溯源）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>数学概念</th>
+<th>课件/源文档原文出处</th>
+<th>AI 部件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>正规方程解析解 <code>W = (Xᵀ·X)⁻¹XᵀY</code>，numpy 实现 <code>(X.T*X).I*X.T*Y</code> → <code>matrix([[1.85],[1.3]])</code></td>
+<td><code>raw/courseware/机器学习/code/02线性回归代码__正规方程法求解.md</code></td>
+<td>线性回归闭式解</td>
+</tr>
+<tr>
+<td>线性回归模型矩阵表达方式（课件专列一章）</td>
+<td><code>.../01线性回归01.md</code>（目录第2、4、12页）</td>
+<td>批量预测的向量化</td>
+</tr>
+<tr>
+<td>SVD/特征值分解 <code>A = UΣVᵀ</code>，实对称阵 <code>A = WΣWᵀ</code>；numpy <code>np.linalg.eig(A)</code> → <code>np.dot(np.dot(vecs, Lambda), vecs.T)</code></td>
+<td><code>raw/courseware/机器学习/code/机器学习第二期__机器学习第二期__09数据降维 -2022-04-20-徐老师__09数据降维__day12deminsion reduction__特征值向量输出分析.md</code></td>
+<td>PCA 降维、白化</td>
+</tr>
+<tr>
+<td>Q、K、V 打包成矩阵：<code>Attention(Q,K,V) = softmax(QKᵀ/√d_k)V</code></td>
+<td><code>raw/courseware/基础篇/day04__Attention is  all you need.md</code>（§3.2.1）</td>
+<td>多头注意力</td>
+</tr>
+<tr>
+<td>Embedding 层 + pre-softmax 线性变换共享同一权重矩阵</td>
+<td>同上（§3.4 Embeddings and Softmax）</td>
+<td>词嵌入 + LM head</td>
+</tr>
+<tr>
+<td>特征缩放/归一化（"尚未标准化就进行 L1/L2 正则化是错误的"）</td>
+<td><code>.../02线性回归2-2022-04-01-徐老师__02线性回归02.md</code>（第30-31页）</td>
+<td>训练稳定性</td>
+</tr>
+</tbody>
+</table>
+<h3 id="4-微积分-ai-部件映射逐条溯源">4. 微积分 → AI 部件映射（逐条溯源）</h3>3
+<table>
+<thead>
+<tr>
+<th>数学概念</th>
+<th>课件/源文档原文出处</th>
+<th>AI 部件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>梯度下降：用负梯度方向作搜索方向（"最速下降法"），<code>α</code> 步长/学习率，收敛条件=目标函数变化极小或达最大迭代次数</td>
+<td><code>.../02线性回归2-2022-04-01-徐老师__02线性回归02.md</code>（第5-6页）</td>
+<td>一切迭代训练</td>
+</tr>
+<tr>
+<td>梯度下降家族：Batch GD（准确/慢）、SGD（快/不准）、Mini-batch GD（折衷）</td>
+<td>同上（第9页）</td>
+<td>大模型训练的 mini-batch</td>
+</tr>
+<tr>
+<td>Sigmoid 导数 <code>f(z)(1-f(z))</code>（链式法则的最小实例）</td>
+<td><code>.../Sigmoid函数.md</code></td>
+<td>反向传播</td>
+</tr>
+<tr>
+<td>梯度消失："RNN…会出现梯度消失现象，无法支持长时间序列"；残差连接"解决深层网络的梯度消失/爆炸和训练退化问题"，层归一化"提升训练稳定性和加速收敛"</td>
+<td><code>raw/courseware/_converted/AI讲义_大模型核心原理.md</code> §4.3-§4.4</td>
+<td>深层网络设计动机</td>
+</tr>
+<tr>
+<td>缩放点积的梯度保护："for large values of d_k, the dot products grow large in magnitude, pushing the softmax function into regions where it has extremely small gradients. To counteract this effect, we scale the dot products by 1/√d_k"</td>
+<td><code>raw/courseware/基础篇/day04__Attention is  all you need.md</code>（§3.2.1）</td>
+<td>√d_k 缩放的数学理由</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">怎么用</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="用法-1按部件查数学系统化读法">用法 1：按"部件"查数学（系统化读法）</h3>3
+<p>遇到某个 AI 部件想补数学时，按 §2/§3/§4 的映射表反查：先定位部件行，再跳到"原文出处"列的课件文件读一手公式与代码。例如想搞懂"注意力为什么要除以 √d_k"→ §4 表最后一行 → 打开 <code>raw/courseware/基础篇/day04__Attention is  all you need.md</code> §3.2.1，那里有英文原文 + 数学式。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">用法 2：最小可跑验证脚本框架（源码框架 + 技术栈）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>技术栈：Python 3 + numpy + scikit-learn</li><li>以下代码骨架对应本篇引用的一手课件，可直接改造成冒烟脚本验证"数学↔部件"映射没记错</li></ul></div>3
+<p>技术栈：Python 3 + numpy + scikit-learn。以下代码骨架对应本篇引用的一手课件，可直接改造成冒烟脚本验证"数学↔部件"映射没记错。</p>
+<pre><code class="language-python"># 三块数学各一个最小验证，注释标注对应课件出处
+import numpy as np
+
+# --- 线性代数：正规方程（raw/courseware/机器学习/code/02线性回归代码__正规方程法求解.md）---
+X = np.mat([[1, 1], [2, 1], [3, 1], [4, 1]])   # 含截距列
+Y = np.mat([[3.2], [4.7], [7.3], [8.5]])
+W = (X.T * X).I * X.T * Y                       # W = (XᵀX)⁻¹XᵀY
+print(&quot;正规方程解:&quot;, W)                          # 课件实测 matrix([[1.85],[1.3]])
+
+# --- 线性代数：特征值分解还原（.../特征值向量输出分析.md）---
+A = np.array([[126, 52, -3, -69],
+              [52, 292, -73, -80],
+              [-3, -73, 141, -31],
+              [-69, -80, -31, 781]])
+vals, vecs = np.linalg.eig(A)
+Lambda = np.diag(vals)
+print(&quot;A = WΣWᵀ 还原:&quot;, np.allclose(np.dot(np.dot(vecs, Lambda), vecs.T), A))
+
+# --- 微积分/概率：Sigmoid 与导数（.../Sigmoid函数.md）---
+x = np.linspace(-10, 10)
+y = 1 / (1 + np.exp(-x))
+print(&quot;sigmoid导数恒等式 f'=f(1-f):&quot;, np.allclose(y * (1 - y), y * (1 - y)))
+
+# --- 概率统计：朴素贝叶斯 + 拉普拉斯平滑（.../贝叶斯底层实现.md，λ=1 防连乘为零）---
+lam = 1
+# P[y] = (count(y) + lam) / (N + len(Y)*lam)；条件概率同理
+</code></pre>
+<p>依赖安装：<code>pip install numpy scikit-learn</code>；运行环境参考本库惯例 <code>/home/wuyafang/.venv-hermes/bin/python</code>。</p>
+<h3 id="用法-3速查命令">用法 3：速查命令</h3>3
+<pre><code class="language-bash"># 查某数学概念落在哪个课件（在本库根目录执行）
+grep -rl &quot;极大似然\|正规方程\|Sigmoid\|拉普拉斯&quot; raw/courseware/机器学习 --include='*.md'
+# 查课程体系里数学相关章节
+grep -n &quot;线性回归\|逻辑回归\|朴素贝叶斯\|PCA\|attention\|Transformer&quot; &quot;raw/sources/2026年-人工智能专业课程体系(中关村) .md&quot;
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">学习路径建议（配合最小集三篇）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 白话直觉 → 「L0-数学最小集-概率统计白话.md」 / 「L0-数学最小集-线性代数白话.md」</li><li>2. 应用纪律（信/不信判据）→ 「L0-统计直觉.md」</li><li>3. 系统化 + 部件映射（本篇） → 对照 §2-§4 表格读 raw/courseware 一手课件</li></ul></div>3
+<ol>
+<li>白话直觉 → <code>L0-数学最小集-概率统计白话.md</code> / <code>L0-数学最小集-线性代数白话.md</code></li>
+<li>应用纪律（信/不信判据）→ <code>L0-统计直觉.md</code></li>
+<li><strong>系统化 + 部件映射（本篇）</strong> → 对照 §2-§4 表格读 raw/courseware 一手课件</li>
+<li>进阶 AI 部件 → <code>raw/sources/2026年-人工智能专业课程体系(中关村) .md</code> 阶段五（机器学习/深度学习/attention）与阶段七（Embedding/RAG 向量召回）</li>
+</ol>
+<hr />
+<h2 id="溯源">溯源</h2>2
+<ul>
+<li>一手源（PDF 文本版，本篇课程体系结论的出处）：<code>raw/sources/2026年-人工智能专业课程体系(中关村) .md</code>（来源 PDF：<code>raw/sources/2026年-人工智能专业课程体系(中关村) .pdf</code>；转换工具 pdfplumber，转换时间 2026-10-23，页数 7）</li>
+<li>数学↔部件映射的一手课件（均已存在于本库 raw/courseware，<code>captured_at=2026-10-09</code>，<code>captured_by=hermes</code>）：</li>
+<li><code>raw/courseware/机器学习/机器学习第二期__机器学习第二期__01人工智能概述-2022-03-30-徐老师__01线性回归01.md</code>（线性回归/代价函数/梯度下降/矩阵表达）</li>
+<li><code>raw/courseware/机器学习/机器学习第二期__机器学习第二期__02线性回归2-2022-04-01-徐老师__02线性回归02.md</code>（梯度下降家族/极大似然/正规方程/特征缩放）</li>
+<li><code>raw/courseware/机器学习/code/02线性回归代码__正规方程法求解.md</code></li>
+<li><code>raw/courseware/机器学习/code/机器学习第二期__机器学习第二期__04逻辑回归__04Logistic Regression__Sigmoid函数.md</code></li>
+<li><code>raw/courseware/机器学习/code/10朴素贝叶斯__贝叶斯底层实现.md</code></li>
+<li><code>raw/courseware/机器学习/code/机器学习第二期__机器学习第二期__09数据降维 -2022-04-20-徐老师__09数据降维__day12deminsion reduction__特征值向量输出分析.md</code></li>
+<li><code>raw/courseware/基础篇/day04__Attention is  all you need.md</code>（Vaswani et al. 2017，"Attention Is All You Need"，Scaled Dot-Product Attention §3.2.1 / Embeddings and Softmax §3.4）</li>
+<li><code>raw/courseware/_converted/AI讲义_大模型核心原理.md</code>（Transformer/RNN 梯度消失/贪婪搜索概率输出）</li>
+<li>同层分工文档（白话入门/应用纪律，勿与本篇混读）：<code>wiki/L0-基础层/L0-数学最小集-概率统计白话.md</code>、<code>wiki/L0-基础层/L0-数学最小集-线性代数白话.md</code>、<code>wiki/L0-基础层/L0-统计直觉.md</code></li>
+<li>外部一手源（soft 溯源，非本篇结论依据）：https://arxiv.org/abs/1706.03762</li>
+</ul></div></details></div></details></div></body></html>

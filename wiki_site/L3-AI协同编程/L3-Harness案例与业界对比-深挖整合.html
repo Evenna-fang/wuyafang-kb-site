@@ -1,0 +1,290 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L3-Harness案例与业界对比-深挖整合</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L3-Harness案例与业界对比-深挖整合</span></div><div class="wrap"><h1 id="harness-案例与框架选型从七个故事提炼可验证的决策">Harness 案例与框架选型：从七个故事提炼可验证的决策</h1>
+<blockquote>
+<p>本主题合并橙皮书七案例、LangChain/CrewAI/AutoGen 比较和迁移路径。案例事实、书籍转述与本篇推演分别标注。核验日：2026-11-03。</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY：案例应该帮助设计实验，而不是制造收益承诺</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>“别人每周合并很多 PR”不能直接证明自己也能提高数倍效率</li><li>任务难度、人员数量、验收制度、环境准备程度和统计范围都会改变结果</li><li>旧稿将书籍简介中的数字扩展成“任何人力团队无法企及”“同一错误永久免疫”“一次成型概率为零”，没有证据支撑</li></ul></div>2
+<p>“别人每周合并很多 PR”不能直接证明自己也能提高数倍效率。任务难度、人员数量、验收制度、环境准备程度和统计范围都会改变结果。旧稿将书籍简介中的数字扩展成“任何人力团队无法企及”“同一错误永久免疫”“一次成型概率为零”，没有证据支撑。本篇保留七案例的主题价值，将未独立核验的数字留在证据边界内。</p>
+<p>Agent课件把 DeepAgents 放在 LangGraph、LangChain 上层，并给出后端、记忆、Skill、子代理组合；橙皮书用工程团队案例说明相似机制；当前官方文档则确认产品已经覆盖哪些能力。三源融合应回答：我们遇到什么故障、哪个能力能解决、用什么小实验验证，而不是先选一个热词再给它找理由。[课1][书1][业1]</p>
+<h2 id="what-whyt案例的证据等级与框架的能力边界">WHAT / WHYT：案例的证据等级与框架的能力边界</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">七案例保留什么，哪些需要重新取证</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>本地橙皮书材料包含简介、章节大纲和 20 条划线，并不包含全部案例正文</li><li>以下“书籍材料可见”只表示摘录里能看到，不能升级为本次独立复现实验</li><li>这张表保留案例检索价值，不把案例目录扩写成发生过的细节</li></ul></div>3
+<p>本地橙皮书材料包含简介、章节大纲和 20 条划线，并不包含全部案例正文。以下“书籍材料可见”只表示摘录里能看到，不能升级为本次独立复现实验。</p>
+<table>
+<thead>
+<tr>
+<th>案例</th>
+<th>书籍材料可见</th>
+<th>可用于设计的机制</th>
+<th>本次不作事实保证的内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OpenAI Codex 团队</td>
+<td>简介及第6章列出零手写、百万行产品叙述</td>
+<td>让规范、验证和仓库环境支持代理工作</td>
+<td>人均生产率、质量优势、是否全程只有7人</td>
+</tr>
+<tr>
+<td>Mitchell Hashimoto</td>
+<td>第7章包括六步采纳、AGENTS.md、不发布不理解代码</td>
+<td>失败转成局部规则并回归</td>
+<td>每次失败都永久免疫</td>
+</tr>
+<tr>
+<td>Anthropic</td>
+<td>第8章包括三代理、冲刺合约、并发会话</td>
+<td>实现与评审分离，先定义成功</td>
+<td>$9/$200 的完整实验条件与一般收益</td>
+</tr>
+<tr>
+<td>Stripe Minions</td>
+<td>简介和第9章包括1300 PR、devbox、人工审查</td>
+<td>标准环境、可审查增量、固定出口</td>
+<td>PR 数等于质量、10秒为所有环境保证</td>
+</tr>
+<tr>
+<td>LangChain</td>
+<td>简介和第10章包括排名跳升20名、推理三明治</td>
+<td>固定模型，对单个运行时变量做实验</td>
+<td>排名变化等于固定百分比能力提升</td>
+</tr>
+<tr>
+<td>Kent Beck</td>
+<td>第11章包括 CLAUDE.md、前两次失败、Augmented Coding</td>
+<td>短反馈、测试与重构纪律</td>
+<td>两次失败的具体原因，未见原文不能补写</td>
+</tr>
+<tr>
+<td>花叔</td>
+<td>第12章与划线7有从规则到路由、Hooks、Skills 的演化</td>
+<td>依据真实失败逐步扩展，再清理</td>
+<td>百万用户的审计数据、必经五轮重构</td>
+</tr>
+</tbody>
+</table>
+<p>这张表保留案例检索价值，不把案例目录扩写成发生过的细节。遇到数量冲突，例如旧稿同时出现 OpenAI 团队“3人”和“7人”，不能擅自选一个数字或合成时间线；应读取原始文章明确时间与统计范围。没有原文就标未核实。</p>
+<h3 id="工程能力不是严格互斥的产品分层">工程能力不是严格互斥的产品分层</h3>3
+<table>
+<thead>
+<tr>
+<th>候选</th>
+<th>当前资料支持的核心能力</th>
+<th>需要自己验证的事项</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Codex / Claude Code</td>
+<td>仓库工具执行、指令、权限与任务反馈</td>
+<td>当前宿主隔离、授权、恢复、接口版本</td>
+</tr>
+<tr>
+<td>LangChain / LangGraph</td>
+<td>Agent 构建组件与状态图运行时</td>
+<td>存储后端、跨进程恢复、审批和副作用语义</td>
+</tr>
+<tr>
+<td>Deep Agents</td>
+<td>在 LangChain/LangGraph 上加入上下文、文件系统、子代理等 harness 能力</td>
+<td>文件后端与 shell 边界、上下文成本、可选能力启用方式</td>
+</tr>
+<tr>
+<td>CrewAI Flows</td>
+<td>事件驱动工作流、状态、分支和任务连接</td>
+<td>持久化配置、审计、部署与权限边界</td>
+</tr>
+<tr>
+<td>AutoGen</td>
+<td>历史多代理研究与应用资产</td>
+<td>维护状态与迁移可行性；不按旧文章默认用于新生产系统</td>
+</tr>
+</tbody>
+</table>
+<p>旧稿说“CrewAI 的 state 必须从零自建、只有 LangGraph 提供状态”，与当前官方 Flows 文档不符；本次读到 Flows 的状态与条件控制能力，撤下该绝对比较。反过来，有状态对象不等于数据库持久化已经配置，更不等于业务操作恰好执行一次。[业2]</p>
+<p>2026-11-03 读取微软 AutoGen 官方 README，明确标为 archived，不再维护，并建议新用户采用 Microsoft Agent Framework、旧用户迁移。这里使用官方仓库原文，不再用二手新闻替代。迁移路线图仍要按项目 API 实测；“官方推荐迁移”并不代表代码可以无修改搬过去。[业3]</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">HOW：用一个离线交付流水线评估框架需求</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="1-先列必须能力不先打产品总分">1. 先列必须能力，不先打产品总分</h3>3
+<p>用最近一次实际故障填写表格：故障触发、失败环节、已有机制、缺失能力、最小验证方法。例如“进程重启后从头开始”对应持久恢复，“模型修改工作区外文件”对应执行边界，“审批后产物被改”对应审批与版本绑定。每条都应能转成一个失败用例。</p>
+<p>教学验收可以设为：正常任务完成；测试失败不能进入审查；拒绝审批不能完成；审批绑定旧产物时不能通过；进程重启后恢复正确阶段；超出重试上限转人工。阈值由任务风险决定，不能以某框架提供多少组件作为验收。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2. 用标准库先验证业务状态契约</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>下面的 「workflow_demo.py」 不依赖任何框架或模型，演示执行→测试→审批→完成的业务不变量</li><li>这些断言可以在迁移时复用；它不是生产工作流引擎，不实现数据库或副作用幂等</li><li>raise ValueError("invalid transition or stale artifact")</li></ul></div>3
+<p>下面的 <code>workflow_demo.py</code> 不依赖任何框架或模型，演示执行→测试→审批→完成的业务不变量。这些断言可以在迁移时复用；它不是生产工作流引擎，不实现数据库或副作用幂等。</p>
+<pre><code class="language-python">from dataclasses import dataclass, replace
+
+@dataclass(frozen=True)
+class Job:
+    stage: str = &quot;planned&quot;
+    artifact: str = &quot;&quot;
+    tested_artifact: str = &quot;&quot;
+    approved_artifact: str = &quot;&quot;
+
+def advance(job, event, artifact=&quot;&quot;):
+    if event == &quot;generated&quot; and job.stage == &quot;planned&quot; and artifact:
+        return replace(job, stage=&quot;testing&quot;, artifact=artifact)
+    if event == &quot;tests_passed&quot; and job.stage == &quot;testing&quot;:
+        return replace(job, stage=&quot;review&quot;, tested_artifact=job.artifact)
+    if event == &quot;approved&quot; and job.stage == &quot;review&quot; and artifact == job.artifact:
+        return replace(job, stage=&quot;ready&quot;, approved_artifact=artifact)
+    if event == &quot;finish&quot; and job.stage == &quot;ready&quot;:
+        if job.artifact == job.tested_artifact == job.approved_artifact:
+            return replace(job, stage=&quot;done&quot;)
+    raise ValueError(&quot;invalid transition or stale artifact&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    initial = Job()
+    testing = advance(initial, &quot;generated&quot;, &quot;sha256-demo-v1&quot;)
+    review = advance(testing, &quot;tests_passed&quot;)
+    ready = advance(review, &quot;approved&quot;, &quot;sha256-demo-v1&quot;)
+    assert advance(ready, &quot;finish&quot;).stage == &quot;done&quot;
+    invalid = [(initial, &quot;finish&quot;, &quot;&quot;), (testing, &quot;approved&quot;, &quot;sha256-demo-v1&quot;),
+               (review, &quot;approved&quot;, &quot;sha256-demo-v2&quot;),
+               (replace(ready, artifact=&quot;sha256-demo-v2&quot;), &quot;finish&quot;, &quot;&quot;)]
+    for job, event, artifact in invalid:
+        try:
+            advance(job, event, artifact)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(&quot;invalid transition accepted&quot;)
+    print(&quot;workflow: 5 checks passed&quot;)
+</code></pre>
+<pre><code class="language-bash">python3 workflow_demo.py
+</code></pre>
+<p><code>sha256-demo-v1</code> 是清楚标明的教学标识，不是真哈希。生产接入必须由可信侧计算实际产物摘要；调用者若能任意宣称 <code>tests_passed</code>，状态机再整齐也是假门禁。独立测试者、操作权限和不可任意改写的状态存储共同建立可信链。</p>
+<h3 id="3-将同一契约映射到候选框架">3. 将同一契约映射到候选框架</h3>3
+<p>LangGraph 路线：让节点分别负责生成、验证和审批，状态保存产物引用与实际检查结果；需要恢复时使用适合部署的持久检查点，并按线程标识恢复。课件的 MemorySaver 示例适合进程内练习，不能拿它冒充服务器重启后的恢复证据。[课1]</p>
+<p>Deep Agents 路线：让 harness 处理复杂生成子任务，外层仍检查输出契约；根据任务需要选择文件后端、工具和子代理。官方文档将 planning、skills 等描述为可选能力，不能假设所有安装版本的默认工具和行为都相同。[业1]</p>
+<p>CrewAI 路线：用 Flow 的状态和事件控制交接，Crew 承担具体工作；状态字段承载上述版本绑定。先核对当前 API，再选持久化方式。不能因为 role/goal 文字清楚就省略结构化输出校验，也不能因为引入 Flow 就断言所有审计需求已满足。[业2]</p>
+<p>CLI 路线：已有 Codex/Claude Code 能完成单节点工作时，优先用明确输入输出包装它。必须同时处理任务退出、无结果、超时、取消和人工批准，不把 CLI 退出码直接映射成业务 done。对于一个独立小脚本，CLI 加现有测试就可能足够，不需要为展示架构再引入三个框架。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4. 对每条路线执行同一组故障演练</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>本次实际执行的是离线状态契约程序，未安装候选框架，也未执行真实审批、进程恢复或模型任务</li><li>表格后两项是生产选型的待执行演练，不能从内存单元测试推断其通过</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>演练</th>
+<th>操作</th>
+<th>应观察到的结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>正常交付</td>
+<td>生成通过测试的产物并批准</td>
+<td>完成态、产物版本、检查记录一致</td>
+</tr>
+<tr>
+<td>测试失败</td>
+<td>换成已知错误实现</td>
+<td>停在失败/修复分支，不能完成</td>
+</tr>
+<tr>
+<td>审批拒绝</td>
+<td>拒绝当前版本</td>
+<td>不执行发布或外部副作用</td>
+</tr>
+<tr>
+<td>陈旧批准</td>
+<td>批准后修改产物</td>
+<td>原批准失效或需要重验</td>
+</tr>
+<tr>
+<td>中断恢复</td>
+<td>在测试完成后停止进程并重启</td>
+<td>恢复正确状态，不重复已执行副作用</td>
+</tr>
+<tr>
+<td>重试超限</td>
+<td>连续制造同一失败</td>
+<td>两次重试后返回诊断，不无限循环</td>
+</tr>
+</tbody>
+</table>
+<p>本次实际执行的是离线状态契约程序，未安装候选框架，也未执行真实审批、进程恢复或模型任务。表格后两项是生产选型的待执行演练，不能从内存单元测试推断其通过。</p>
+<h3 id="5-迁移只动已证实的薄弱环节">5. 迁移只动已证实的薄弱环节</h3>3
+<p>如果外层状态图工作正常，而编码节点不可靠，只替换这个执行单元；保留流程标识、输入输出 schema 和回归用例。若失败来自状态恢复，就优先修持久化和幂等，不用换模型掩盖。两层同时换会丢失对照，也使回退困难。</p>
+<p>从 AutoGen 迁出时，分别盘点：对话或协作顺序、工具协议、模型适配、消息状态、人工中断、终止条件、观测数据。先迁无副作用的支线，用相同脱敏样例双跑。涉及付款、写库或发消息的任务不能双跑两次真实副作用，可用模拟工具或影子记录对比。[业3；迁移步骤为本篇工程设计]</p>
+<p>回退应回到已知可运行版本，而不是在新旧配置间反复猜测。回退也要兼容已产生的数据和状态：如果新栈已经写入新格式，旧栈可能读不了，必须事先设计转换或禁止在试验阶段写生产数据。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6. 形成一页决策记录</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-markdown"># 选型决策
+故障：描述可复现问题，而不是“架构不够先进”。
+候选：现有 CLI / LangGraph / Deep Agents / CrewAI / 其他。
+必须能力：恢复、权限、审查、数据与接口约束。
+实验：固定输入、版本、测试、故障注入方式。
+结果：通过与失败项，端到端时间，包含失败的总成本。
+选择：解释解决了哪项实际问题。
+未解决：保留限制，不把计划写成已完成。
+退出条件：出现哪种回归即停用，恢复哪一已验证版本。
+</code></pre>
+<p>七案例最终对应七个可操作问题：环境能否复现、失败是否变成验证、审查是否独立、增量是否可合并、实验是否控制变量、反馈是否足够短、规则是否定期修剪。它们共同指导试验，但没有任何一例能替代你自己的任务集与责任边界。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库的 Harness 就是 <code>~/.hermes/</code> 这几个件，各管一件事（本次实测调用）</strong>：<br />
+  | 件 | 职责 | 本次证据 |<br />
+  |---|---|---|<br />
+  | <code>AGENTS.md</code> | 行为规则（三档分流、审查链、停手规则） | 本次任务的执行说明即由此约束 |<br />
+  | <code>scripts/dispatch-guard.py</code> | 派单门禁：路由建议 + 通道检查 | 本次实跑输出「建议执行者: DSH」「写操作必须用真通道」 |<br />
+  | <code>scripts/receipt.py</code> | 完成凭据（declare → verify） | 本次任务判定为「不值得全流程」（纯文档改动） |<br />
+  | <code>skills/</code> | 100+ SKILL.md 按需加载 | 本次加载 <code>receipt-declare-verify</code>、<code>error-ledger</code> |<br />
+  | <code>shared-state.db</code> | 六员任务总线（tasks + inbox） | 收口时回传用 |</li>
+<li><strong>和业界 Harness（Claude Code / Codex / OpenHands）的对比点</strong>：本库多了一层「<strong>派单前机械门禁</strong>」——不是模型自己决定怎么干，而是脚本先判「这件事该谁干、用哪个通道、算哪一档」。好处是可审计，代价是<strong>规则变多后门禁自己成了维护成本</strong>。</li>
+<li><strong>本库的真实教训（写进技能文档的）</strong>：receipt 全流程「实测烧 20 分钟 50 轮，改动本体 1 行」——<strong>门禁的成本要和改动的风险匹配</strong>，这是本库与业界 Harness 差异最大的一条设计判断。</li>
+<li><strong>和课件讲法的差异</strong>：课件对比的是「用不用 Harness」；本库面对的是「<strong>自建 Harness 与官方 Harness 的边界</strong>」——壳层（规则/门禁/台账）自建，模型调用交给官方 CLI。</li>
+<li><strong>本库暂无</strong>：没有统一的 Harness 性能/质量评测（如「同一任务用不用 Harness 的成功率差」），对比停留在定性。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库的 Harness 真实配置面在 <code>~/.hermes/</code>：<code>AGENTS.md</code>（行为规则）、<code>scripts/dispatch-guard.py</code>（派单门禁，写操作必须真通道）、<code>scripts/receipt.py</code>（完成凭据）、<code>skills/</code>（技能目录）——本次任务的执行说明就由这几个件约束。</li>
+<li><strong>读源码</strong>：业界 Harness 对比的维度；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li><strong>[课1] 课件</strong>：<a href="../../raw/courseware/%E9%A3%9E%E4%B9%A6%E6%96%B0%E7%A9%BA%E9%97%B4/DeepAgent%E6%A1%86%E6%9E%B6.md">DeepAgent框架</a>，开篇三层关系、Backends、MemorySaver、子代理；支持组合架构与验证边界。</li>
+<li><strong>[书1] 书籍摘录</strong>：<a href="../../raw/weread/Harness%20Engineering%E6%A9%99%E7%9A%AE%E4%B9%A6%EF%BC%9AAI%E7%BC%96%E7%A8%8B%E6%97%B6%E4%BB%A3%E7%9A%84%E5%B7%A5%E7%A8%8B%E6%96%B9%E6%B3%95%E8%AE%BA.md">Harness Engineering橙皮书</a>，简介、章节06—12、划线2/3/7/11/14/18。七案例按现有证据保留主题，未将目录补写为历史细节。</li>
+<li><strong>[业1] 官方</strong>：<a href="https://docs.langchain.com/oss/python/deepagents/overview.md">Deep Agents overview</a>，2026-11-03 GET 200，harness 定位及 LangChain/LangGraph 关系、可选组件。</li>
+<li><strong>[业2] 官方</strong>：<a href="https://docs.crewai.com/en/concepts/flows">CrewAI Flows</a>，2026-11-03 GET 200，Overview、State Management、start/listen 与条件控制；撤下旧稿“没有状态能力”的说法。</li>
+<li><strong>[业3] 官方</strong>：<a href="https://github.com/microsoft/autogen/blob/main/README.md">Microsoft AutoGen README</a>，2026-11-03 从 raw GitHub GET 200 读取归档公告与迁移建议；<a href="https://learn.microsoft.com/en-us/agent-framework/migration-guide/from-autogen/">官方迁移指引入口</a>由 README 提供，本次未展开正文，不能据此确认具体迁移 API。</li>
+</ul>
+<p>本篇状态机和选型表为原创教学设计，验证输出见<a href="00-%E8%9E%8D%E5%90%88%E6%B8%85%E5%8D%95%E4%B8%8E%E9%AA%8C%E6%94%B6.html">融合清单与验收</a>。</p></div></details></div></details></div></body></html>

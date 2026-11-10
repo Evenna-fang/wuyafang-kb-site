@@ -1,0 +1,109 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>多智能体协作流程</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/多智能体协作流程</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="_1">多智能体协作流程（编排模式实测 + 落地清单）</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a>
+相关：<a href="Agent框架实操选型-2026.html">Agent框架选型</a> · <a href="Agent框架与协议进展-2026.html">Agent框架进展</a> · <a href="Agent记忆双进程范式.html">Agent记忆双进程</a> · <a href="多智能体共享记忆G-Memory.html">G-Memory共享记忆</a></p>
+<p><strong>同主题去重导航（4 篇分工）</strong>：本篇=<strong>最权威</strong>（编排模式实测 + 落地教训）；<a href="../总网流程/六员高阶玩法与并行调度.html">多智能体（六员）高阶玩法与并行调度</a>=编排原语与并行调度引擎；<a href="../总网流程/六员配置终局.html">六员配置终局</a>=角色/模型/预算配置；<a href="../总网流程/六员通道与派单监督-一手.html">六员通道与派单监督-一手</a>=通道实测与派单监督。</p>
+</blockquote>
+<h2 id="_2">核心结论</h2>
+<p>六员协作的默认骨架是 <strong>orchestrator-worker + 步骤间自动校验 + 独立 LLM 评审层（OpenClaw）+ 确定性终门</strong>。实测三种编排模式都能跑通；最重要的反模式纪律是"先试单 Agent 再拆"——简单任务拆多 Agent 是 N 倍 API 成本换不来收益。</p>
+<h2 id="_3">关键细节</h2>
+<h3 id="rag">三种编排模式实测（同一任务：查 RAG 索引状态）</h3>
+<blockquote>
+<p>编排原语（Kanban Swarm / Goals / Loops / MoA）与并行调度引擎全量细节<strong>详见 <a href="../总网流程/六员高阶玩法与并行调度.html">多智能体（六员）高阶玩法与并行调度篇</a></strong>（本节只讲三模式实测对比与落地教训）。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>流程</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pipeline</strong></td>
+<td>Hermes→DSH执行→OC审</td>
+<td>线性流水线、需要逐步校验</td>
+</tr>
+<tr>
+<td><strong>Fan-out（并行）</strong></td>
+<td>同一题派多个 worker 并行</td>
+<td>可并行拆解、上下文装不下</td>
+</tr>
+<tr>
+<td><strong>Debate（辩论）</strong></td>
+<td>Claude+Codex 独立作答→OC 对比归并</td>
+<td>选型/架构/排障方向这类高风险决策</td>
+</tr>
+</tbody>
+</table>
+<h3 id="arxiv-12">四条落地教训（来自 arXiv 12 篇核心论文对照）</h3>
+<ol>
+<li><strong>通信结构化</strong>：派单 context 用 JSON 契约（需求/输入/输出格式/验收），不写散文——消息体曾占 token 预算 40–60%，结构化后 3.2× 压缩不掉点。</li>
+<li><strong>先试单 Agent 再拆</strong>：派单前先问"单 Agent 能不能干"，能就不拆。</li>
+<li><strong>失败先归因再反思</strong>：先定位 decisive error 是哪一步向下游传的错，只让那个反思（pre-hoc 上游筛查比事后救火便宜 65×）。</li>
+<li><strong>共享记忆来源 gating</strong>：RAG 无差别照收会让假信念被下游 97–99% 采信，进库要过来源门。</li>
+</ol>
+<h3 id="_4">全局体检结论</h3>
+<p>15 个协作技能曾过量未收敛（职责重叠 3 组、硬矛盾 4 组、触发词撞车 3 处），最大缺口不是内容缺失而是<strong>分发链断裂</strong>（规则只写在 Hermes 真源，六员读不到）。</p>
+<h2 id="_5">来源</h2>
+<ul>
+<li>notes/processes/编排模式实测-20260928.md</li>
+<li>notes/processes/多智能体协作落地清单-20260928.md</li>
+<li>notes/decisions/多智能体协作工作流全局体检-20260925.md</li>
+</ul>
+<h2 id="_6">相关术语</h2>
+<ul>
+<li>Orchestrator-Walker / Kanban Swarm：ontology/术语表-Agent框架.md</li>
+<li>A2A / MCP：ontology/术语表-Agent框架.md</li>
+<li>Budget-Tiered Routing：ontology/Agent记忆术语表.md</li>
+</ul>
+<h2 id="_7">相关条目</h2>
+<ul>
+<li><a href="多智能体协作工作流调研.html">多智能体协作工作流调研（范式 · 坑 · A2A · 链路分层）</a></li>
+</ul></div></body></html>

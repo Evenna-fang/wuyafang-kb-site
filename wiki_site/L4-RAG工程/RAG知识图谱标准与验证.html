@@ -1,0 +1,341 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RAG知识图谱标准与验证</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ RAG知识图谱标准与验证</span></div><div class="wrap"><h1 id="rag-知识图谱标准与验证">RAG 知识图谱标准与验证</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/rag-arch/RAG%E5%9B%BE%E8%B0%B1%E8%A1%8C%E4%B8%9A%E6%A0%87%E5%87%86%E8%B0%83%E7%A0%94-20261009.md">RAG图谱行业标准调研-20261009</a> · <a href="../../raw/rag-arch/RAG%E5%9B%BE%E8%B0%B1%E8%B0%83%E7%A0%94-%E7%8B%AC%E7%AB%8B%E9%AA%8C%E8%AF%81%E6%8A%A5%E5%91%8A-20261009.md">RAG图谱调研-独立验证报告-20261009</a> · <a href="../../raw/rag-arch/%E5%A4%96%E9%83%A8%E8%B0%83%E7%A0%94-%E9%9B%B7%E7%82%B9%E7%9F%A5%E8%AF%86%E5%AD%A6%E4%B9%A0-20260925.md">外部调研-雷点知识学习-20260925</a> · <a href="../../raw/rag-arch/RAG%E5%9B%BE%E8%B0%B1%E9%87%8D%E6%9E%84%E8%AE%BE%E8%AE%A1%E5%AE%9A%E7%A8%BFv2-20261016.md">RAG图谱重构设计定稿v2-20261016</a> · <a href="../../raw/rag-arch/RAG%E7%9F%A5%E8%AF%86%E7%BB%84%E7%BB%87%E4%B8%80%E6%89%8B%E6%BA%90%E5%AF%B9%E6%A0%87-20261022.md">RAG知识组织一手源对标-20261022</a> · <a href="../../raw/rag-arch/RAG%E7%9F%A5%E8%AF%86%E7%BD%91-WHY-WHAT-HOW-20261014.md">RAG知识网-WHY-WHAT-HOW-20261014</a> · <a href="../../raw/sources/RAG%E7%9F%A5%E8%AF%86%E7%BB%84%E7%BB%87%E5%AF%B9%E6%A0%87-%E4%B8%80%E6%89%8B%E6%BA%90-20261016.md">RAG知识组织对标-一手源-20261016</a></p>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E6%90%AD%E5%BB%BA%E5%85%A8%E6%B5%81%E7%A8%8B.html">企业级RAG搭建全流程</a> · <a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践</a> · <a href="Contextual-Retrieval%E5%AE%98%E6%96%B9%E6%96%B9%E6%B3%95-20261009.html">Contextual Retrieval 官方方法</a> · <a href="RAG%E8%A1%8C%E4%B8%9A%E6%A0%87%E5%87%86%E4%B8%8E%E7%8E%B0%E7%8A%B6%E5%B7%AE%E8%B7%9D.html">RAG行业标准与现状差距</a></p>
+</blockquote>
+<h1 id="why让关系成为可追溯证据而不是新的噪声来源">WHY：让关系成为可追溯证据，而不是新的噪声来源</h1>
+<h2 id="业务价值与质量边界">业务价值与质量边界</h2>2
+<p>图谱标准的业务价值是让不同文档、框架和维护者对“同一个实体、同一种关系、同一段有效时间”有一致解释。没有标准，别名会碎裂，<code>PART_OF</code> 与 <code>part-of</code> 会被当成两种边，错误关系又会在多跳检索中被放大；只有标准却没有证据和评测，也只是把噪声写得更工整。</p>
+<p>本篇 sources 中的<a href="../../raw/rag-arch/RAG%E5%9B%BE%E8%B0%B1%E9%87%8D%E6%9E%84%E8%AE%BE%E8%AE%A1%E5%AE%9A%E7%A8%BFv2-20261016.md">图谱重构设计</a>与<a href="../../raw/sources/RAG%E7%9F%A5%E8%AF%86%E7%BB%84%E7%BB%87%E5%AF%B9%E6%A0%87-%E4%B8%80%E6%89%8B%E6%BA%90-20261016.md">知识组织一手源对标</a>提供三族谓词、合法边矩阵与来源回溯依据。适用于存在实体关系、多跳或全局问题且能人工核验边的知识库；单一 FAQ、未清洗原文、没有 competency questions 的试点不应先追求复杂本体。SKOS 的概念关系、代码图的符号关系、GraphRAG 的社区层级也不能混为一个“行业统一 schema”。</p>
+<p>上线前的合同分三项：结构合法、边有原文支持、检索有净收益。下文论文数字保留各自数据集、日期与转引等级；来源中已有冲突的 0.60/1.00 不在本轮擅自裁决，缺少原文复核就标未定，不补造统一结论。</p>
+<h2 id="核心论点">核心论点</h2>2
+<p>图谱类 RAG 在 2026 年是成熟的补强环节而非前沿：它结构性地赢在全局摘要（comprehensiveness 胜率 72–83%）与多跳推理，却在简单事实上比 vanilla RAG 低 13.4%、延迟乘 2.3 倍——所以决策变量是 query 分布里多跳/全局类占多少，不是"要不要上图谱"。真正方向是图谱被吸收进 Agentic 范式（GA-RAG），而非被取代。落地的硬边界在工程侧：SEC 10-K 实验证明 tab/空白污染能让图抽取近乎归零，ontology 救不了上游坏掉的抽取；成本上抽取约占索引 75%，必须便宜模型 + 600-token 窗口 + 增量索引。补的顺序有定论：先补最便宜且已证降 35–67% 检索失败率的 Contextual Retrieval，再上图谱 + ontology，最后才 agentic 化，且双闸门 + 止损线（试点无提升即停、简单事实不能变差）必须前置。</p>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">为什么要有图谱标准与验证（动机与代价）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>动机（WHY）：图谱类 RAG（GraphRAG 等）在 2026 年方案多、宣传猛，但一手 benchmark 显示它"结构性赢在全局摘要与多跳、却在简单事实上比 vanilla RAG 低 13.4%、延迟乘 2.3 倍"——不上标准对照就会被"图谱万能"的叙事带偏，把该用纯向量的单点查询场景也上图谱（负优化）</li><li>调研结论本身也要验证（独立验证 A- 可信度、17 项一致 + 2 项瑕疵），因为二手转引的数字（如 83.2%）容易被泛化超原文</li><li>代价与权衡：图谱的索引成本是数量级级别的（抽取约占索引 75%，完整 GraphRAG 索引成本约向量 RAG 的 1000 倍），且"简单事实变差"是实测硬伤——所以上图谱前必须设双闸门（试点无提升即停、简单事实不能变差）+ 止损线</li></ul></div>2
+<ul>
+<li><strong>动机（WHY）</strong>：图谱类 RAG（GraphRAG 等）在 2026 年方案多、宣传猛，但一手 benchmark 显示它"结构性赢在全局摘要与多跳、却在简单事实上比 vanilla RAG 低 13.4%、延迟乘 2.3 倍"——不上标准对照就会被"图谱万能"的叙事带偏，把该用纯向量的单点查询场景也上图谱（负优化）。标准与验证的作用是把决策变量钉死在"query 分布里多跳/全局类占多少"，而不是"要不要上图谱"这种伪问题。</li>
+<li><strong>代价与权衡</strong>：图谱的索引成本是数量级级别的（抽取约占索引 75%，完整 GraphRAG 索引成本约向量 RAG 的 1000 倍），且"简单事实变差"是实测硬伤——所以上图谱前必须设双闸门（试点无提升即停、简单事实不能变差）+ 止损线。补的顺序有定论：先补最便宜且已证降 35-67% 检索失败率的 Contextual Retrieval，再上图谱 + ontology，最后才 agentic 化——顺序错了就是花钱买负收益。调研结论本身也要验证（独立验证 A- 可信度、17 项一致 + 2 项瑕疵），因为二手转引的数字（如 83.2%）容易被泛化超原文。</li>
+</ul>
+<h1 id="whyt区分语义标准检索架构和工程质量合同">WHYT：区分语义标准、检索架构和工程质量合同</h1>
+<h2 id="三层协同及选型依据">三层协同及选型依据</h2>2
+<pre><code class="language-text">源文与版本 → 术语归一/别名 → 类型与合法关系约束 → 有出处的边
+                                            ↓
+                          实体邻域或社区层级 → 文本证据回取
+                                            ↓
+                                  排序 → 门禁 → 可核引用
+</code></pre>
+<p>语义层管类型、谓词和时间窗口；检索层管怎样用图找到证据；工程层管增量、写入一致性和可重放验收。实体/边至少能解析端点、关系和 source chunk；社区摘要是上层派生表示，不能代替原文凭据。Graphiti 的有效时间窗口与本库文件 TTL 分属事实层、文档层，不是改一个 <code>ttl</code> 就自动得到双时态图。</p>
+<p>业内对标按需求选：SKOS 支持概念互操作，SchemaLLMPathExtractor 的 strict 模式约束合法边，Microsoft GraphRAG 强调社区报告，LightRAG 强调实体/关系检索，Kythe 服务代码符号。它们提供可借鉴机制，不证明本库已实现对应能力。本库构图入口先消费现有 ontology/wiki，<code>graph_slot_mode=after_top1</code> 只表明当前配置，历史“图无条件置顶”的掉分实验不能直接当本轮结果。</p>
+<p>工程期望与现状须分开：下文“临时文件+rename”是应达到的写入合同；本轮读 <code>rag/build_wiki_graph.py</code>，当前非 dry-run 分支直接写图文件，不能把建议写成已具备的原子事务。本次不修代码，以只读 dry-run 避开写入风险。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">核心结论</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 图谱类 RAG 在 2026 年是"成熟的补强环节"，不是最新前沿：它的核心价值（全局摘要 + 多跳关系推理）已被 arXiv 一手 benchmark 反复证实，但索引成本高、对简单事实查询甚至更差</li><li>4. 调研结论可信度经独立验证为 A-：17 项关键论断与官方源一致、0 项冲突、仅 2 项瑕疵；可作定标基础，但需补核 [6] 原文并给 "83.2%" 补"novel 数据集"限定</li><li>补的顺序应是先补 Contextual Retrieval（最便宜、已证降 35–67% 检索失败率）→ 再上图谱 + ontology → 最后 agentic 化</li></ul></div>2
+<ol>
+<li><strong>图谱类 RAG 在 2026 年是"成熟的补强环节"，不是最新前沿</strong>：它的核心价值（全局摘要 + 多跳关系推理）已被 arXiv 一手 benchmark 反复证实，但索引成本高、对简单事实查询甚至更差。真正的最新方向是 <strong>Agentic RAG</strong>（检索变成 agent 动态决策循环，arXiv 2501.09136）以及图谱与之融合的 <strong>GA-RAG</strong>——即"图谱被吸收进 agentic 范式"，而非被取代。</li>
+<li><strong>选型问题不是"要不要上图谱"，而是"query 分布里多跳 / 全局 / agentic 类占多少"</strong>：简单事实（单跳）纯向量 + BM25 + reranker 即够；多跳关系、整库摘要才值得上图谱；类型不确定则混合 + 路由。</li>
+<li><strong>本库图谱层从 0 开始</strong>：<code>grep graph/entity/relation</code> 零命中、ontology 目录空、无 ttl/owl。补的顺序应是<strong>先补 Contextual Retrieval（最便宜、已证降 35–67% 检索失败率）→ 再上图谱 + ontology → 最后 agentic 化</strong>。</li>
+<li><strong>调研结论可信度经独立验证为 A-</strong>：17 项关键论断与官方源一致、0 项冲突、仅 2 项瑕疵；可作定标基础，但需补核 [6] 原文并给 "83.2%" 补"novel 数据集"限定。</li>
+<li>
+<p>落地必须设<strong>双闸门 + 止损线 + 负面指标</strong>：先测 query 分布、chunk 先去重才动图谱；试点无明显提升即停；简单事实不能变差、延迟不能暴涨。</p>
+</li>
+<li>
+<p><strong>图谱 RAG 的“agentic 化”不等于全量静态建图</strong>：据[一手源]：RAG图谱行业标准调研-20261009（§5 阶段3，引 arXiv 2604.09666，2026-04）——agentic search 大幅缩小 dense RAG 与 GraphRAG 的差距（RL 设定尤甚），但复杂多跳 GraphRAG 仍占优，且离线成本摊销后 agentic 行为更稳定。落地含义：图谱预算只投在已证实的复杂多跳场景，简单场景交给 agentic 循环，不为全部文档建全量静态图。</p>
+</li>
+<li><strong>本库的真问题是谓词族没分，不是边少</strong>：据[一手源]：RAG图谱重构设计定稿v2-20261016——当时 141 条关系里纵向关系只有 9 条，因平级/纵向/映射三类关系混在同一谓词空间；解法是先“只加谓词 + 三族互斥规则”（实测纵向补到 41 条），再谈符号层和双键检索，不一次全量重建（一次建全图无法归因）。</li>
+</ol>
+<h2 id="是什么定义与边界">是什么（定义与边界）</h2>2
+<p><strong>定义</strong>：图谱类 RAG = 用 LLM 从文档抽实体/关系建图（+ 可选社区摘要），查询时沿图做多跳推理或全局归纳的检索增强方法。本文是其"行业标准对照 + 独立验证 + 落地雷点"的方法论笔记：六方案横评（GraphRAG/LightRAG/nano/neo4j/LlamaIndex/LangChain）、成本口径、增益 vs 反面证据表、评测标准（Evidence Recall、Comprehensiveness 等）。</p>
+<p><strong>边界</strong>：<br />
+- ✅ 管：图谱方案选型依据、成本口径区分、增益/反面证据、落地雷点（清洗、schema、成本失控）、验证方法。<br />
+- ❌ 不管：具体跑通步骤（<a href="GraphRAG%E6%9C%80%E5%B0%8F%E7%A4%BA%E4%BE%8B.html">GraphRAG最小示例</a>）、Agentic RAG 范式（<a href="Agentic-RAG%E4%B8%8E%E5%A4%9A%E6%A8%A1%E6%80%81RAG%E8%B0%83%E7%A0%94.html">Agentic-RAG与多模态RAG调研</a>）、检索流水线（<a href="RRF%E8%9E%8D%E5%90%88%E5%8A%A0%E9%87%8D%E6%8E%92%E8%A7%A3%E5%86%B3%E6%A3%80%E7%B4%A2%E7%9F%AD%E6%9D%BF-%E6%B7%B7%E5%90%88%E6%A3%80%E7%B4%A2%E6%B5%81%E6%B0%B4%E7%BA%BF.html">RRF融合加重排</a>）。<br />
+- ⚠️ 成本口径不可混用：原论文只给时间/token 相对量，美元数字来自官方博客/社区 issue——引用时须标来源类型（见"成本口径"节）。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">关键细节</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="六方案横评选型头部">六方案横评（选型头部）</h3>3
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>抽取/架构</th>
+<th>图存储</th>
+<th>索引成本特征</th>
+<th>成熟度实据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Microsoft GraphRAG</td>
+<td>全 LLM 抽实体/关系/claim + 社区报告</td>
+<td>parquet（非图库）</td>
+<td>最贵（抽取约占 75%）</td>
+<td>36.3k stars，v3.3.0（2026-10-08），<strong>maintenance mode</strong></td>
+</tr>
+<tr>
+<td>LightRAG（HKUDS, arXiv 2410.05779, EMNLP 2025）</td>
+<td>双层图 + LLM profiling，KV 对索引</td>
+<td>JSON/KV+向量，可接 Neo4j</td>
+<td>远低于 GraphRAG：检索 token &lt;100 vs GraphRAG 610×1000</td>
+<td><strong>40k stars</strong>，v1.5.7（2026-09），活跃</td>
+</tr>
+<tr>
+<td>nano-graphrag</td>
+<td>GraphRAG 核心 ~1100 行极简重实现</td>
+<td>networkx</td>
+<td>极简为卖点</td>
+<td>4k stars，半活跃</td>
+</tr>
+<tr>
+<td>neo4j-graphrag</td>
+<td>SimpleKGPipeline + retriever 类族</td>
+<td><strong>强绑 Neo4j</strong>（需 APOC）</td>
+<td>未获取</td>
+<td>1.3k stars，官方一方，活跃</td>
+</tr>
+<tr>
+<td>LlamaIndex KG</td>
+<td>kg_extractors 逐 chunk 抽路径</td>
+<td>Simple 内存/Neo4j/…</td>
+<td>未获取</td>
+<td>主仓 52.4k stars，活跃</td>
+</tr>
+<tr>
+<td>LangChain GraphRAG</td>
+<td>无官方端到端，仅 LLMGraphTransformer 积木</td>
+<td>Neo4j/NetworkX</td>
+<td>未获取</td>
+<td>端到端靠低活跃社区包</td>
+</tr>
+</tbody>
+</table>
+<p><strong>事实标准</strong>：LightRAG（40k、活跃）与 microsoft/graphrag（36k、维护期）是两大头部；本地内存受限场景首选 LightRAG 与 nano-graphrag（离线/本地 LLM 支持最全）。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">Microsoft GraphRAG 四步（原论文 arXiv:2404.16130）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>①+② 实体 + 关系抽取：单 prompt 完成，带 gleaning（自省迭代）；实体消歧用精确字符串匹配；论文实测 GPT-4 在 600-token 窗口抽到的实体引用约为 2400-token 的近两倍</li><li>Podcast 索引耗时 281 分钟；根层社区每查询仅 26,657 context token（比全量 map-reduce 省 97%+）</li><li>③ 社区检测：Leiden 层级社区检测（graspologic 实现），递归细分至叶层，逐层互斥穷尽</li></ul></div>3
+<ul>
+<li><strong>①+② 实体 + 关系抽取</strong>：单 prompt 完成，带 gleaning（自省迭代）；实体消歧用<strong>精确字符串匹配</strong>；论文实测 GPT-4 在 600-token 窗口抽到的实体引用约为 2400-token 的近两倍。</li>
+<li><strong>③ 社区检测</strong>：<strong>Leiden 层级社区检测</strong>（graspologic 实现），递归细分至叶层，逐层互斥穷尽。</li>
+<li><strong>④ 层级社区摘要</strong>：叶层按节点度排序塞满窗口，上层用子社区摘要滚动替换，自底向上递归；查询期 map-reduce 聚合。</li>
+<li>实测规模：Podcast（~100 万 token）→ 8,564 节点 / 20,691 边；News（~170 万 token）→ 15,754 / 19,520。Podcast 索引耗时 281 分钟；根层社区每查询仅 26,657 context token（比全量 map-reduce 省 97%+）。</li>
+</ul>
+<h3 id="成本口径务必区分勿混用">成本口径（务必区分，勿混用）</h3>3
+<ul>
+<li>原论文<strong>没有</strong>美元成本与 GPT-4 调用次数，只给时间 / token 相对量；美元数字均来自微软官方博客或社区 issue，两类口径不可混用。</li>
+<li>官方 docs："graph extraction ≈ 75% of indexing cost"；官方 repo 警告 indexing 昂贵、"start small"。</li>
+<li><strong>LazyGraphRAG</strong>：索引成本 = vector RAG 的 <strong>0.1%</strong>，查询比 global search 便宜 <strong>700×</strong>。</li>
+<li>官方博客口径：《绿野仙踪》embedding 仅 $0.0056；GPT-4o-mini 约 $0.0000113/词 → 3 万词 ≈ $0.34。</li>
+<li>据[一手源]：RAG图谱行业标准调研-20261009（§2.2）——社区 issue 的半官方量级参考：一本约 3.3 万词的书用 GPT-4 约 $5；1000 页 PDF 误用 GPT-4-turbo 约 $120；1.2M token 数据集用 DeepSeek 约 $8.20。三个案例的数据规模与模型各不相同，不能直接横比，只能说明<strong>模型选型对账单的影响不亚于图谱方案本身</strong>。第三方博客的成本估算（如 tianpan.co、falkordb、datastudios）该调研判为“数字未溯源，不予采信”，只当量级参考。</li>
+<li>据[一手源]：同上（§2.3）——降本不止 LazyGraphRAG：微软 2024-11 官方博客的 dynamic community selection 经 AP News 实测平均降 77% token；v1.0 把启动时间 148s 压到 2s、向量存独立 store 省 80% parquet / 43% 总盘、88 个 workflow 压成 11 个并新增增量 update；v2.0 加入 NLP 抽取（FastGraphRAG 入口）和 multi-index 查询。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">增益 vs 反面证据（一手，含代价）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>一句话：不问“要不要上图谱”，先问“我的 query 里 B/C/E 类占多少”，占少数就先别动架构</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>结论</th>
+<th>数字</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>✅ 全局摘要增益</td>
+<td>comprehensiveness 胜率 72–83%、diversity 75–82%</td>
+</tr>
+<tr>
+<td>✅ 多跳增益</td>
+<td>HippoRAG 在 Level-2/3 Evidence Recall 87.9–90.9%</td>
+</tr>
+<tr>
+<td>✅ KG+向量混合</td>
+<td>KAG 端到端 Precision 66.5→91.6、Recall 52.6→71.8</td>
+</tr>
+<tr>
+<td>✅ Hybrid</td>
+<td>Hybrid GraphRAG factual correctness +8%、context relevance +11%</td>
+</tr>
+<tr>
+<td>⚠️ 简单事实更差</td>
+<td>GraphRAG 在 Natural Questions 比 vanilla RAG <strong>低 13.4%</strong>（时间敏感 query −16.6%）</td>
+</tr>
+<tr>
+<td>⚠️ 延迟/token 膨胀</td>
+<td>HotpotQA 多跳仅 +4.5% 但延迟 <strong>2.3×</strong>；global prompt 达 <strong>4×10⁴ tokens</strong></td>
+</tr>
+<tr>
+<td>⚠️ KG 覆盖度限制</td>
+<td>HotPotQA 仅 65.8% 答案实体在建成 KG 中（NQ 65.5%）</td>
+</tr>
+<tr>
+<td>⚠️ agentic 替代性</td>
+<td>agentic search 缩小 dense RAG 与 GraphRAG 差距，复杂多跳 GraphRAG 仍占优</td>
+</tr>
+<tr>
+<td>✅ 融合策略（据[一手源]：RAG图谱行业标准调研-20261009，arXiv 2502.11371）</td>
+<td>RAG+GraphRAG Integration 融合 <strong>+6.4%</strong>，Selection 路由 <strong>+1.1%</strong>：融合收益远大于单纯路由，类型不确定时优先“混合”而不是“先分类再二选一”</td>
+</tr>
+</tbody>
+</table>
+<p><strong>选型决策树口诀</strong>（据[一手源]：RAG图谱行业标准调研-20261009 §3）：A 单跳事实 → 向量 + BM25 + reranker 即够；B 多跳关系（“A 的破产如何影响 B”“哪些服务依赖 X”）→ 图谱补强；C 全局聚合（“top 5 themes”）→ GraphRAG global / 社区摘要（可用 LazyGraphRAG 降本）；D 类型不确定 → 混合 + 路由；E 需 agent 自决“检索够不够” → Agentic RAG，图谱作结构化记忆底座（GA-RAG）。一句话：不问“要不要上图谱”，先问“我的 query 里 B/C/E 类占多少”，占少数就先别动架构。</p>
+<h3 id="评测标准行业怎么量化图谱增益">评测标准（行业怎么量化图谱增益）</h3>3
+<ul>
+<li>GraphRAG 自带评测：LLM-as-judge 头对头，三主标 <strong>Comprehensiveness / Diversity / Empowerment</strong> + 一对照 <strong>Directness</strong>（防"长答案赢一切"）；客观替代按可验证 factual claim 计数。</li>
+<li>检索层：<strong>Evidence Recall</strong> + <strong>Context Relevance</strong>，按 Level 1/2/3 复杂度分层；通用指标 Recall@k / MRR / nDCG / MAP。</li>
+<li>多跳 benchmark 构造：MultiHop-RAG = 知识库 + 多跳 query + ground-truth + supporting evidence 四件套；GraphRAG-Bench = 1018 道题、16 学科、9 个 SOTA，且<strong>同时测建图耗时 / token 成本 / 非孤立节点比例</strong>。</li>
+<li>方法论共识：检索与生成分开测；成本与质量并列报告；图本身也要评（非孤立节点比例、平均度、聚类系数）。</li>
+<li>据[一手源]：RAG图谱行业标准调研-20261009（§6.1–6.2）补充细节：GraphRAG 论文评测集为 Podcast（约 100 万 token）+ News/VIINA，每集 125 个 LLM 生成的 global sensemaking 问题；Directness 是防“长答案赢一切”的对照标，不是主指标。Recall@k 的 k 常取 {1,2,5,10} 或 {1,3,5,10,20}。主流多跳集：MultiHop-RAG、HotpotQA、2WikiMultiHopQA、MuSiQue，复杂长链用 MoNaCo（1315 题）。大规模自动化评测：RAGBench（10 万例、TRACe 框架），其结论是微调 RoBERTa 在 RAG 评估任务上胜过 LLM-judge；RAGAS 走 reference-free（faithfulness / answer relevancy / context relevance）。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">独立验证发现（可信度 A-）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>指定核对的 5 大类关键论断中 17 项一致、0 项冲突、2 项瑕疵 / 未覆盖；未发现编造数字或张冠李戴的官方引文</li><li>瑕疵 2（低）：Obs.4 的 "Level-1 向量 RAG 达 83.2% Evidence Recall" 原文限定为 novel 数据集；转述时省略限定，被当作普适结论使用，泛化略超原文</li><li>同一 83.2% 在两处引用方式也不一致，建议统一为"novel 数据集 Level-1 实测"</li></ul></div>3
+<ul>
+<li>指定核对的 5 大类关键论断中 <strong>17 项一致、0 项冲突、2 项瑕疵 / 未覆盖</strong>；未发现编造数字或张冠李戴的官方引文。</li>
+<li><strong>瑕疵 1（中）</strong>：决策树 A 分支把某句直接引语归给 [6]（arXiv:2502.11371），但独立验证指出该句在报告他处归给 [69]（arXiv:2604.09666）——<strong>引文归属存疑，定标前须补核 [6] 原文</strong>。</li>
+<li><strong>瑕疵 2（低）</strong>：Obs.4 的 "Level-1 向量 RAG 达 83.2% Evidence Recall" 原文限定为 <strong>novel 数据集</strong>；转述时省略限定，被当作普适结论使用，泛化略超原文。同一 83.2% 在两处引用方式也不一致，建议统一为"novel 数据集 Level-1 实测"。</li>
+<li>未覆盖项：GraphRAG 早期版本日期、13.4%/2.3× 的最源头（Han et al. 2025 / Zhou et al. 2025，本就是二手转引）本次未展开。</li>
+<li>据[一手源]：RAG图谱调研-独立验证报告-20261009——<strong>验证是怎么做的</strong>（可抄成调研验收模板）：逐条抽论断 → 抓官方原文（Anthropic 博客、arXiv PDF 正文、GitHub API/README、官方 docs）→ 三方比对，判定分“一致/不一致/部分一致/无法验证”四档。分项结果：Contextual Retrieval 4/4 一致（35% 5.7→3.7、49% →2.9、67% →1.9，口径是 top-20 的 1−recall@20）；GraphRAG 论文 7/7 一致（281 分钟、26,657 token、8,564/20,691 等逐字吻合，论文确实没有美元成本）；LightRAG 5/5 一致（610,000 = 610 社区 × 1,000 token vs &lt;100 token）。star 数差 1（40,023 vs 实测 40,024）属时点涨落，<strong>不计为错误</strong>。</li>
+<li>同上，<strong>三类瑕疵的共性</strong>：数字都对，错在“限定语被丢”或“引文挂错人”。(1) 引号引文归属偏差（[6] vs [69]）；(2) 83.2% 丢了 “on the novel dataset”；(3) 同一 83.2% 在 §6.3（标一手）与决策树 A（无引号）两处引用方式不一，形成交叉编号的连锁风险。口径提示：该报告总评写“17 项一致、0 冲突、2 项部分瑕疵/未覆盖”，正文另列 3 项瑕疵（第 3 项为引用方式不一致），两个计数并不矛盾，是总评与展开的粒度差。<strong>定标前两个动作</strong>：补核 2502.11371 原文确认引文归属；把 83.2% 改写为“novel 数据集 Level-1 实测”。另外，13.4% / 2.3× 是 2506.05690 转引 Han et al. / Zhou et al.，只验证到转引这一层，对外引用须写“转引”。</li>
+</ul>
+<h3 id="谓词分族与纵向分解图谱怎么表达层层拆解">谓词分族与纵向分解（图谱怎么表达“层层拆解”）</h3>3
+<ul>
+<li><strong>三族互斥</strong>（据[一手源]：RAG图谱重构设计定稿v2-20261016，依 W3C SKOS + ISO 25964-1）：层级族 <code>broader/narrower</code>、关联族 <code>related</code>、映射族 <code>exactMatch/closeMatch/broadMatch/narrowMatch</code>，都挂在顶层属性 <code>skos:semanticRelation</code> 之下，平级与纵向在 TBox 层就分开，纵向关系才不会被平级边淹没。</li>
+<li><strong>纵向谓词别自造，用带编码的现成件</strong>（同上）：<code>part_of</code> = BFO:0000050，互逆 <code>has_part</code> = BFO:0000051；<code>has_component</code> = RO:0002180（has_part 更严格的子属性，部件语义）；<code>is_a</code> = iso-thes:broaderGeneric（类-类）；组成关系 = iso-thes:broaderPartitive（整体-部分）。唯一要自建的是先修关系 <code>prerequisites_for</code>，schema.org 官方没有这个属性。</li>
+<li><strong>文档↔代码的边</strong>（同上）：官方谓词叫 <code>documents</code>（Google Kythe：A 用自然语言描述语义节点 B），纵向分解叫 <code>childof</code>；源码锚点用 Software Heritage SWHID（<code>swh:1:cnt:&lt;hash&gt;</code> + path/lines 限定），可校验可复现；分块用 cAST 结构感知切分（按 AST 递归下钻，以非空白字符数度量），RepoEval Recall@5 +4.3。courseware 2.6 万文件<strong>不用 LLM 抽</strong>：<code>LSP documentSymbol</code> 拿层级树、<code>tree-sitter tags</code> 批量产 def/ref。</li>
+<li><strong>纵向层次靠社区分层，不靠 part-of 谓词硬凑</strong>（据[一手源]：RAG知识组织对标-一手源-20261016 Q1）：GraphRAG 数据模型里层次字段是 COMMUNITY_ID / COMMUNITY_LEVEL / COMMUNITY_PARENT / COMMUNITY_CHILDREN，外加社区报告表（summary / findings / rank / full_content），“塔尖 = 高层社区报告，塔基 = 底层实体与文本单元”。关系谓词的形态是“自然语言描述 + STRENGTH 数值强度”，实体类型由调用方传入；<code>prompt_tune</code> 能按语料自动调出领域 entity_types，相当于现成的本体模板生成器。</li>
+<li><strong>合法边矩阵</strong>（同上，LlamaIndex SchemaLLMPathExtractor 官方指南）：<code>kg_validation_schema={"PERSON":["PART_OF","HAS","IS_A"],...}</code> + <code>strict=True</code>，规定哪类实体允许连哪类关系，可直接抄进 ontology；宽松版 DynamicLLMPathExtractor 只引导不强制。谓词命名规范：大写 + 下划线（<code>PART_OF</code> / <code>IS_A</code>）。本库 <code>ontology-triples.csv</code> 里 <code>PART_OF</code>（5 条）与 <code>part-of</code>（4 条）是同一关系的命名分裂（2026-11-02 复测仍未归一），按此规范合并。</li>
+<li><strong>代码图与知识图分立</strong>（同上，Q2；该条为 OC 对两篇论文的归纳推断，非论文原话）：RepoGraph（arXiv 2410.14684）把仓库级依赖图做成独立插件层；CodexGraph（arXiv 2408.03910）让 LLM 对 code graph 数据库直接发查询，论证相似度检索在复杂任务上 recall 低。知识节点 metadata 只放 <code>file_path + symbol_name + 依赖版本</code> 引用，不把源码复制进知识节点；定位类问题（“哪个文件实现了 X”）走图查询比 embedding 准。AST 分块底座是 tree-sitter（增量解析、容错、可嵌入）。</li>
+<li><strong>先修图</strong>（据[一手源]：RAG图谱重构设计定稿v2-20261016）：先修边只存一条有向边，反向由工具推导（Wikidata P155/P156 机制），避免两份数组不同步；先修图必须无环且闭合（KST 理论要求）；每条边带 evidence citation（教材原文句子）。</li>
+<li><strong>业界没有标准的三处，不许二手猜填</strong>（同上）：没有任何官方 schema 把 markdown 知识节点和源码符号节点合进一张图（Kythe 的 <code>documents</code> 最接近，但是编译器索引协议）；没有“图谱层级加多少边导致 Recall 变化”的对照实验，收益验证只能自建评测集；schema.org 没有 prerequisite 属性。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">图谱层的知识组织：分层范式、实体归一、时效、元数据</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>chunk 级去重参考 SemDeDup（arXiv 2303.09540，去 50% 数据几乎不掉性能）与 PUFFER（arXiv 2608.28622，MinHash-LSH 增量去重、带 provenance 可撤回）</li><li>arXiv 2606.01435 的结论更尖锐：新鲜度与冲突判定别交给 LLM，确定性 「max(serial)」 聚合比 LLM 判定高 10.8pp，而该基准里 Zep/Graphiti（bi-temporal KG）反而最差，仅 7.0%</li><li>清理派生物（图谱三元组）必须带“收据”：arXiv 2610.17719 显示没有收据时，retraction 后的污染率只从 32.2% 降到 28.0%，几乎没用</li></ul></div>3
+<ul>
+<li><strong>分层范式的共识是“上层 = 融合提炼的答案层”</strong>（据[一手源]：RAG知识组织一手源对标-20261022 §二）：HiRAG（arXiv 2503.10150，EMNLP 2025 Findings）、TreeRAG（ACL 2025 Findings，根→叶 + 叶→根双向检索）、RAPTOR（arXiv 2401.18059，递归聚类摘要）、GraphRAG 社区摘要、Ψ-RAG（arXiv 2605.00529，跨文档多跳 QA 超 RAPTOR 25.9%）上层都是被检索算法实际使用的摘要节点，不是下层文件的链接清单。该调研 10-22 实测本库三层为 raw 89.0% / wiki 10.7% / ontology 0.3%（总 18952 chunk），ontology 层几乎不参与检索；10-14 的知识网盘点口径是 raw 93.8% / wiki 5% / ontology 1.2%（总 33975 chunk），两个口径是不同日期的快照，引用以最新实测为准。</li>
+<li><strong>实体归一是图谱质量的前置</strong>（据[一手源]：RAG知识组织一手源对标-20261022 §五）：arXiv 2510.14271 指出 LLM / llms / 大小写 / 多语别名会让图谱碎片化，需 entity resolution + triple reflection（LLM-as-judge 删低质三元组）；arXiv 2607.28662 的生产级抽取层用 6 种免模型去重算法加 embedding 解析子系统，设“冲突守卫”（任何相似度分数都不能覆盖），检索 recall 70% → 95%、零错误合并。chunk 级去重参考 SemDeDup（arXiv 2303.09540，去 50% 数据几乎不掉性能）与 PUFFER（arXiv 2608.28622，MinHash-LSH 增量去重、带 provenance 可撤回）。</li>
+<li><strong>过期内容是投毒，不只是旧</strong>（同上 §5.2）：arXiv 2609.31342——单条过期文档把 83 道医学题翻错 74 道；arXiv 2609.16073 证明 append-only 库有“多数表决陷阱”，新旧矛盾事实并存时注意力偏向旧的多数，需在生成前移除逻辑矛盾；arXiv 2606.26511（MemStrata）用确定性 supersession 规则把 RAG 的 stale-fact 错误率从 15–40% 降到约 0。arXiv 2606.01435 的结论更尖锐：新鲜度与冲突判定别交给 LLM，确定性 <code>max(serial)</code> 聚合比 LLM 判定高 10.8pp，而该基准里 Zep/Graphiti（bi-temporal KG）反而最差，仅 7.0%。<strong>口诀：时间字段拿来存，裁决用确定性规则，不让图谱或 LLM 当新鲜度裁判。</strong></li>
+<li><strong>时序图谱的标准做法</strong>（据[一手源]：RAG知识组织对标-一手源-20261016 Q3）：Graphiti（Zep 开源）把 Facts 定义为“带时间有效性窗口的三元组”，Episodes 是原始入库流（ground truth），每条派生事实可溯源回 episode。对应本库做法：三元组加 <code>valid_at / invalid_at / source_episode</code> 三字段。该源明确声明：freshness 度量指标与淘汰策略没找到可直接复用的成熟定义，衰减打分是设计推断。TG-RAG（arXiv 2510.13590）补充：增量更新只需为新叶节点及其祖先重新生成摘要。</li>
+<li><strong>新鲜度打分公式与过期判定</strong>（据[一手源]：RAG图谱重构设计定稿v2-20261016 L5）：<code>score = α·cos(q,d) + (1−α)·0.5^(age_days/h)</code>，α = 0.7，h = 14 天；HALO 式过期 <code>V = V0·e^(−λΔ)</code>，λ = ln2 / t_HF，V &lt; θ 判 outdated；门禁形态照 dbt 的 <code>warn_after</code> / <code>error_after</code> 双阈值（ttl 在本库只是字段，业界是能阻断下游的门禁）；淘汰不删除，双时间线 <code>t_valid / t_invalid</code>，过期 = 失效标记 + 归档降权。<strong>数字冲突提示</strong>：设计定稿写该公式在 arXiv 2509.19376 上 Latest@10 从 0.00 提到 1.00，而知识组织对标调研（10-22）引同一论文写“最新相关项从 0.00 提到 0.60”，两份本地调研口径不一，引用前回溯论文原文，别直接抄任何一个。</li>
+<li><strong>元数据不是越多越好</strong>（据[一手源]：RAG知识组织一手源对标-20261022 §四，arXiv 2606.29645，ECML-PKDD 2026，24k+ 受控实验）：大多数元数据增强会降低准确率；四类质量元数据里，模型会用 temporal validity（利用率 50–55%），却几乎用不上 provenance（0–6%），confidence 14–49%、conflict 0–15%；无关元数据抢注意力，多跳 QA 反降 5–8%；最优配置只留 plain-text temporal。清理派生物（图谱三元组）必须带“收据”：arXiv 2610.17719 显示没有收据时，retraction 后的污染率只从 32.2% 降到 28.0%，几乎没用。落地：三元组带 source chunk 链接，不另堆元数据字段。（该调研对本库的 valid_from / conflict 字段建议均标【自研·待验证】，尚无本地 A/B。）</li>
+</ul>
+<h3 id="踩坑雷点">踩坑雷点</h3>3
+<p><strong>图谱专属雷点</strong>：</p>
+<ul>
+<li><strong>先清洗再建图</strong>：SEC 10-K 实验里 tab 字符 / 空白符污染导致图抽取近乎为零，加 ontology 也无用——<strong>ontology 救不了上游坏掉的实体抽取</strong>。落地前先做 ingestion 文本清洗审计（去 tab/空白/页眉页脚）。</li>
+<li><strong>schema / ontology 先行</strong>：无 schema 约束的抽取会产噪图；ontology 的真实作用是实体归一化 / 消歧（rerank 须用原始文本）。</li>
+<li><strong>原文纠偏</strong>：坊间"GraphRAG 2.0"是二手媒体自拟词（实指官方博客的 dynamic community selection），与 PyPI 真实版本号无关；微软 GraphRAG 已进维护期，只修 bug/CVE 不接新功能。</li>
+<li><strong>成本失控</strong>：抽取占 ~75%，必须用便宜模型 + 600-token 窗口 + 增量索引（LightRAG 只重抽 T_extract，不重建全图）。</li>
+<li><strong>图谱条目无条件置顶会吃掉 R@1</strong>（据[一手源]：RAG图谱重构设计定稿v2-20261016 §3，2026-10-16 实测）：当时 <code>query.py</code> 把图谱 hit 直接拼在结果最前（<code>(graph_hits + hits)[:top_k]</code>）并豁免 rerank，51 条正样本里 13 条真答案被顶到第 2 位，含图谱槽 R@1 = 19.6%、剔除后 45.1%，图谱槽吃掉 25.5 个点。修法是取消置顶，让图谱条目回到正常 rerank 竞争，与图谱设计解耦、可先修。现在对应的开关是 <code>retrieval.graph_slot_mode</code> 与 <code>graph_taxonomy_only</code>（见 GraphRAG最小示例“怎么用”）。<strong>口诀：图谱是候选来源，不是特权位。</strong></li>
+<li><strong>GraphRAG 抽取模板是“类型 + 自由描述 + 强度”</strong>（据[一手源]：RAG知识组织对标-一手源-20261016 Q1）：官方 <code>extract_graph</code> 模板格式为 <code>("entity"&lt;|&gt;NAME&lt;|&gt;TYPE&lt;|&gt;DESCRIPTION)</code> 与 <code>("relationship"&lt;|&gt;source&lt;|&gt;target&lt;|&gt;DESCRIPTION&lt;|&gt;STRENGTH)</code>，别指望抽出固定谓词表；要固定谓词就用上面的合法边矩阵（strict 模式）约束。</li>
+</ul>
+<p><strong>工程通用雷点（图谱抽取 / 索引落地时同样命中）</strong>：</p>
+<ul>
+<li><strong>LLM 配额与 fallback</strong>：抽取是 token 大户，429 / 配额耗尽必须<strong>错误分级</strong>——配额 / 限流类允许跨渠道 fallback（honor <code>Retry-After</code> + full jitter + 渠道 cooldown），请求本身错误禁止 fallback；fallback 链耗尽要有显式终态。</li>
+<li><strong>子进程静默死亡</strong>：长任务索引要"进程组级超时 kill（SIGTERM→宽限→SIGKILL）+ 无输出停滞 watchdog + 退出码非零必显式失败"；<code>communicate(timeout)</code> 自身也可能挂死，需外层独立看门狗。</li>
+<li><strong>并发写竞态</strong>：图库 / 配置写入走"独占 lockfile → 临时文件 → fsync → rename 原子替换"统一封装，读-改-写加版本号乐观校验；Unix 文件锁仅是 advisory，锁不住未合作的写者。</li>
+<li><strong>验收断言可重放</strong>：进门禁的断言不得依赖墙钟 / 上次运行残留 / 共享可变状态；时间快照断言只许进 smoke 并标注"仅当场有效"；失败先判可复现再处置，禁止盲目重跑去洗绿。</li>
+<li><strong>配置单真源 + 漂移检测</strong>：desired state 只有一份，定期 refresh→diff→<strong>显式二选一</strong>（回滚或改 baseline），禁止静默把现实当默认。</li>
+</ul>
+<h1 id="how从只读构图检查到同题对照与来源复核">HOW：从只读构图检查到同题对照与来源复核</h1>
+</div></details></div></details><h2 id="可执行的三道验收门">可执行的三道验收门</h2>2
+<ol>
+<li>先检查候选图与当前策略，不落盘：</li>
+</ol>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+PYTHONDONTWRITEBYTECODE=1 /home/wuyafang/ai-stack/bin/python rag/build_wiki_graph.py --dry-run
+rg -n 'graph_slot_mode:|graph_taxonomy_only:|linked_chunk:|graph_expand:' rag/config.yaml
+</code></pre>
+<p>验收：有实体/关系统计且输出 <code>[dry-run] 未写文件</code>；抽看每类边的端点、方向与来源，别名冲突列入待审清单。统计多不等于边正确，dry-run 也不证明现有磁盘图已刷新。</p>
+<ol start="2">
+<li>检查标注，然后只切图一个变量：</li>
+</ol>
+<pre><code class="language-bash">env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --check-golden
+env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --mode hybrid --json-out /tmp/l4-kg-on.json
+env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --mode hybrid --no-graph --json-out /tmp/l4-kg-off.json
+</code></pre>
+<p>验收：同题集、同索引、同检索模式；简单事实不下降，且多跳题的必要证据逐条可追溯。不是把快评 R@5 叫答案正确率。没有多跳充分标注时，先报告覆盖不足，不能用几个示例成功代替验收。</p>
+<ol start="3">
+<li>复核论断与来源，不把论文数字贴成本库阈值：</li>
+</ol>
+<pre><code class="language-bash">rg -n 'novel|83.2|部分|未覆盖|2502.11371' raw/rag-arch/RAG图谱调研-独立验证报告-20261009.md
+rg -n 'valid_at|invalid_at|strict|COMMUNITY_LEVEL' raw/sources/RAG知识组织对标-一手源-20261016.md
+</code></pre>
+<p>验收：每项论断记录“本地来源位置、指标定义、适用数据集、验证层级”；论文没有美元成本就不反推成官方报价。原有 17 项论断核验、阶段性双闸门与成本护栏完整保留在 HOW 后文，作为进一步执行清单；本次未构图写库、未跑 RAG 模型评测，Jev 文档评分也不代替图检索质量实验。</p>
+<h2 id="怎么用">怎么用</h2>2
+<ul>
+<li><strong>按“先 Contextual → 再图谱+ontology → 最后 agentic”的顺序补</strong>：第一步核对规则版前缀现状 <code>grep -n "build_context_prefix" rag/ingest.py</code>（source_name+heading_path 拼接，零 LLM 成本）；第二步跑 <code>python3 rag/build_wiki_graph.py --dry-run</code> 看图谱覆盖率；每步之间跑评测留基线，不许跳步。</li>
+<li><strong>图谱双闸门 + 止损线的执行命令</strong>（试点无提升即停、简单事实不能变差）：<br />
+<code>bash
+  python3 rag/eval/eval_recall_fast.py --mode hybrid          # 含图谱
+  python3 rag/eval/eval_recall_fast.py --mode hybrid --no-graph   # 剔图谱对照</code><br />
+  两组 Recall@1 对比即“简单事实变差”判据；本库实测含图谱槽 R@1=19.6% vs 剔除 45.1%（51 条正样本 e2e），触线就回退 <code>graph_slot_mode</code> 或关 <code>linked_chunk.enabled</code>。</li>
+<li><strong>验证口径对齐本文的“17 项论断”类调研</strong>：用 <code>rag/eval/golden-q.jsonl</code>（56 条，含 <code>relevant_source</code> 与 <code>answer_keywords</code>）做关键词判定版 Recall，生成层另跑 <code>cd rag &amp;&amp; ~/ai-stack/bin/python eval_ragas.py</code>（context_precision/context_recall/faithfulness/answer_relevancy）。</li>
+<li><strong>图谱工程质量硬边界落到脚本</strong>：抽取/构图长任务用进程组超时 kill + 无输出 watchdog（参考 <code>rag/build_wiki_graph.py</code> 的 <code>--dry-run</code> 先行习惯）；<code>graph/</code> 写出走临时文件+rename（entities.json/relations.json/graph_stats.json 一次落盘），迁移校验见 <code>rag/migrate_graph_to_neo4j.py</code> 的 sha256 比对逻辑。</li>
+<li><strong>分阶段落地的验收口径</strong>（据[一手源]：RAG图谱行业标准调研-20261009 §5）：阶段 0 Contextual Retrieval（约 1–3 天，成本≈0，验收对比 5.7% 失败率基线；官方三档为 Contextual Embeddings −35%、+Contextual BM25 −49%（→2.9%）、+reranking −67%（→1.9%））；阶段 1 图谱试点（约 1–2 周）优先 LightRAG，备选 nano-graphrag（约 1100 行、自带无 key 离线示例），<strong>不建议首选 microsoft/graphrag standard</strong>，先只对几十篇核心文档建图，构造 10–20 条多跳 + 5 条全局 query，用 LLM-judge 头对头 + Recall@k 双指标对比纯向量基线；阶段 2 先写 10–15 个 competency questions 再定 schema（arXiv 2511.05991 实证 ontology 引导的 KG 显著超向量基线，且一次性 ontology 学习大幅降低 LLM 用量），存储属性图优先、规模大再上 Neo4j，ttl/OWL/RDF 仅在需要形式化推理或跨组织互操作时引入（Neo4j 官方的 RDF vs 属性图对比有厂商立场，需与中立来源交叉看）；阶段 3 agentic 化（约 1 个月以上），验收看多跳 benchmark + agentic 多轮成功率。每阶段独立可验收、可随时停。证据等级提示：GA-RAG survey 是 ResearchGate 预印本，非 arXiv、未经同行评审，证据等级低于 arXiv 一手论文。</li>
+<li><strong>图谱改动的评测红线</strong>（据[一手源]：RAG图谱重构设计定稿v2-20261016 L4.5）：golden-q 扩标后对比必须同尺同版本；RAGAS 三指标当时现状 P=.65 / R=.40 / Rel=.41，评测模型须用云端（本地小模型 Faithfulness 会假完成）；badcase 回流分两档，机械档（缺 chunk → 增量 ingest）可自动，语义档（wiki 错 / 过期）必须人审；e2e 验收红线：掉分 ≤1pp 允许调参 1 轮，&gt;1pp 直接回滚，调参后仍降必回滚。</li>
+<li><strong>按知识网缺口自检图谱与 ontology 接入</strong>（据[一手源]：RAG知识网-WHY-WHAT-HOW-20261014）：该知识网把库拆成 13 模块 × WHY/WHAT/HOW 三层，M7（GraphRAG）当时的缺口是“LightRAG 可运行模板”和“多跳评测集”（golden-q 仅 4 条浅层两实体对比），M10 的缺口是“ontology 术语表被当普通 chunk，检索代码不感知”。前者的模板已由 GraphRAG最小示例补上，后者由 <code>link_ontology_chunks.py</code> + <code>retrieval.linked_chunk</code> 接入，但多跳评测集仍是最该先补的缺口。业内对照里图谱选型一行的判定是：LightRAG（成本约 MS GraphRAG 的 1/100）“双闸门过了再做”，不当保票。该盘点还发现 26 篇 wiki 中 14 篇集中在 Agent 体系与 FDE 流程，RAG 核心链路（切片→检索→重排→融合→GraphRAG）仅 5 篇，是提炼层密度不足的结构性信号。</li>
+<li><strong>成本护栏</strong>：抽取约占索引 75%，本库直接用人工审校三元组（<code>ontology/ontology-triples.csv</code>）替代 LLM 抽取；若必须 LLM 抽取，参考 <code>scripts/distill_pipeline.py</code> 的 <code>call_llm</code>（temperature=0.2、retries=3、timeout=300）并先算 token 账再全量。</li>
+</ul>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">来源</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>「raw/rag-arch/RAG图谱行业标准调研-20261009.md」（六方案横评、GraphRAG 四步、成本口径、增益与反面证据、评测标准、技术栈全景）</li><li>「raw/rag-arch/RAG图谱调研-独立验证报告-20261009.md」（A- 可信度、17 项一致、3 项瑕疵、未覆盖声明）</li><li>「raw/rag-arch/外部调研-雷点知识学习-20260925.md」（六类工程雷点：配额 fallback、配置漂移、会话绑定、子进程静默死亡、验收断言、并发写竞态）</li></ul></div>2
+<ul>
+<li><code>raw/rag-arch/RAG图谱行业标准调研-20261009.md</code>（六方案横评、GraphRAG 四步、成本口径、增益与反面证据、评测标准、技术栈全景）</li>
+<li><code>raw/rag-arch/RAG图谱调研-独立验证报告-20261009.md</code>（A- 可信度、17 项一致、3 项瑕疵、未覆盖声明）</li>
+<li><code>raw/rag-arch/外部调研-雷点知识学习-20260925.md</code>（六类工程雷点：配额 fallback、配置漂移、会话绑定、子进程静默死亡、验收断言、并发写竞态）</li>
+<li><code>raw/rag-arch/RAG图谱重构设计定稿v2-20261016.md</code>（谓词三族、六层设计、新鲜度公式、图谱槽 R@1 实测、业界无标准三处）</li>
+<li><code>raw/rag-arch/RAG知识组织一手源对标-20261022.md</code>（分层范式、实体归一、过期投毒、元数据利用率实验）</li>
+<li><code>raw/rag-arch/RAG知识网-WHY-WHAT-HOW-20261014.md</code>（13 模块知识网、M7/M10 缺口、业内主流对照）</li>
+<li><code>raw/sources/RAG知识组织对标-一手源-20261016.md</code>（社区分层、合法边矩阵、双图分立、Graphiti 时间窗）</li>
+</ul>
+<h2 id="相关术语">相关术语</h2>2
+<ul>
+<li><a href="../ontology/%E6%9C%AF%E8%AF%AD%E8%A1%A8-RAG%E6%9E%B6%E6%9E%84.html">Graph RAG / Agentic RAG（检索范式选型）</a></li>
+<li><a href="../ontology/%E6%9C%AF%E8%AF%AD%E8%A1%A8-RAG%E6%9E%B6%E6%9E%84.html">评测闭环 (Evaluation Loop)</a></li>
+<li><a href="../ontology/%E6%9C%AF%E8%AF%AD%E8%A1%A8-RAG%E6%9E%B6%E6%9E%84.html">Contextual Retrieval 上下文检索</a></li>
+<li><a href="../ontology/%E6%9C%AF%E8%AF%AD%E8%A1%A8-RAG%E6%9E%B6%E6%9E%84.html">Source Tier 来源分级</a></li>
+<li><a href="../ontology/Agent%E8%AE%B0%E5%BF%86%E6%9C%AF%E8%AF%AD%E8%A1%A8.html">自适应停止 / 预算分级路由</a></li>
+</ul>
+<blockquote>
+<p>三段结构补齐 2026-11-03</p>
+</blockquote>
+</div></details><h2 id="本库真实落地">本库真实落地</h2>2
+<blockquote>
+<p>本节 2026-11-05 补写，逐条核验路径与函数名（可 grep 复核），不复述正文标准条目。</p>
+</blockquote>
+<ul>
+<li><strong>图谱构建侧真实落点是 <code>rag/build_wiki_graph.py</code>（1003 行）</strong>：<code>load_triples()</code>（L130）读人工审校三元组（<code>ontology-triples.csv</code>），<code>norm_key()</code>（L102）/<code>display_name()</code>（L121）做实体归一，<code>resolve_aliases()</code>（L606）把关系端点严格对齐到实体表（找不到就丢边，防孤立节点），<code>write_graphml()</code>（L672）导出标准 GraphML——正文"实体归一/合法边矩阵"的可执行版本。</li>
+<li><strong>验证侧对应 <code>rag/link_ontology_chunks.py</code> 与 <code>rag/migrate_graph_to_neo4j.py</code></strong>：前者 <code>stems_of()</code>（L36，括注先剥再拆词干）+ <code>build_patterns()</code>（L52）产出 <code>graph/entity_chunk_links.json</code> 并打印覆盖统计（<code>main()</code> L66 末尾 <code>[link] ontology chunk 覆盖 x/y</code>）；后者 <code>rel_type()</code>（L48）校验关系类型合法（非法直接 <code>die()</code> 非零退出）、<code>edge_uid()</code>（L56）保证幂等 MERGE 与迁移前后计数比对——这就是"图谱标准"的落地验收动作。</li>
+<li><strong>和课件/行业讲法的差异</strong>：行业标准（Graphiti 时间窗、双图分立）本库未全量实现，只落了"实体归一 + 合法边 + 悬空节点收口"三件（<code>resolve_aliases()</code> docstring 记录了 2026-10-14/10-27 两次修复）；GraphML/Neo4j 是可选导出，主检索仍走 Chroma。</li>
+</ul></div></body></html>

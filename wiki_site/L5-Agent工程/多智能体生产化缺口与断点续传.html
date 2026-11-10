@@ -1,0 +1,203 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>多智能体生产化缺口与断点续传</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/多智能体生产化缺口与断点续传</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="_1">多智能体生产化缺口：断点续传 · 上下文治理 · 工具层验证</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="file:///C:/MyData/Documents/wuyafang-l/wiki_site/raw/multi-agent/%E5%A4%9AAgent%E5%8D%8F%E4%BD%9C%E8%B0%83%E7%A0%94-5%E6%96%B9%E5%90%91-20260928.html">多Agent协作调研-5方向-20260928</a></p>
+<p><a href="../index.html">← 返回总入口</a>
+相关：<a href="多智能体协作工作流调研.html">多智能体协作工作流调研</a> · <a href="多智能体协作流程.html">多智能体协作流程</a> · <a href="Agent生产化要注意什么.html">Agent生产化要注意什么</a> · <a href="生产级Agent与Evals实操.html">生产级Agent与Evals实操</a></p>
+</blockquote>
+<h2 id="_2">核心结论</h2>
+<p><a href="多智能体协作工作流调研.html">协作工作流调研</a> 已收录编排范式与失败模式；本篇补上那份调研中没展开的<strong>生产化三道防线</strong>，每条都有硬数字：①<strong>断点续传</strong>——checkpoint 的语义是"每次 LLM 调用恰好付一次 token"，无 checkpoint 的 naive retry 在 3 小时 50 分任务第 29 分钟崩溃时要损失 3.9 小时，有 checkpoint 则分钟级续跑；②<strong>上下文治理</strong>——上下文失效四型里 <strong>clash（互相矛盾）是多 agent 高发</strong>，防线 = 隔离 + 状态字段化，且子 agent 产物必须落文件、只回传轻引用（防传话游戏）；③<strong>工具层验证</strong>——最反直觉的一条：<strong>模型不能当验证层</strong>，工具返回 <code>success:true</code> 只代表"系统接受了命令"，<code>{"status":"queued"}</code> 比 <code>success:true</code> 诚实，验证必须是位于模型之下的 harness 层确定性读回。配套给出 MAST 十类失败模式对照表与 10 条优化点清单。</p>
+<h2 id="_3">关键细节</h2>
+<h3 id="durable-execution-checkpoint-resume">一、断点续传（durable execution / checkpoint-resume）</h3>
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>做法</th>
+<th>关键依据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>checkpoint 语义</td>
+<td>持久化"已完成的执行边界"，恢复时跳过已完成步骤、只重跑失败的那个</td>
+<td>Temporal 不可变 event history / Restate journal / Inngest <code>step.run</code></td>
+</tr>
+<tr>
+<td>exactly-once</td>
+<td>LLM 工具调用不天然幂等（订两张机票/发两封邮件）；重试必须挂在<strong>幂等键 + 已验证失败</strong>上，不能挂在未验证的成功信号上</td>
+<td>5 步×99%=95%、10 步=90%，真实 agent 几十步</td>
+</tr>
+<tr>
+<td>HITL 挂起原语</td>
+<td>人审等待可长达小时/天，工作流在检查点挂起、持久化全部状态、审批信号到达后从原点恢复（<code>waitForEvent</code> / awakeable），不空转轮询</td>
+<td>Inngest/Restate</td>
+</tr>
+<tr>
+<td>派单卡状态机</td>
+<td>每卡机器可读状态 <code>pending / running / awaiting-review / blocked / done</code> + 产物路径 + 已完成步骤清单 + 幂等键；崩溃后按状态文件续跑而非靠回忆</td>
+<td>5方向调研方向 3</td>
+</tr>
+<tr>
+<td>预算硬上限</td>
+<td>派单模板加 <code>budget_tokens</code> 字段，默认 2k/8k/30k 三档；超预算自动 kill + 写 error-ledger</td>
+<td>5方向调研方向 4</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>状态文件级状态机即可起步，不必引入 Temporal 重基建。LangGraph 路线见 <a href="生产级Agent与Evals实操.html">生产级Agent与Evals实操</a>（必须配 checkpointer 是红线，&gt;60% 生产事故源于状态管理）。</p>
+</blockquote>
+<h3 id="context-engineering">二、上下文治理（context engineering）</h3>
+<ul>
+<li><strong>LangChain 四策略</strong>：write（scratchpad/Memory 落窗口外）/ select（按需取回）/ compress（只留必要 token）/ <strong>isolate（切分给子 agent/沙箱/state 字段隔离）</strong>。LangGraph 可把工具回包隔离在非暴露字段，需要时才给模型。</li>
+<li><strong>上下文失效四型</strong>（Breunig，经 LangChain 引用）：poisoning（幻觉进上下文）、distraction（上下文淹没训练知识）、confusion（冗余干扰作答）、<strong>clash（互相矛盾——多 agent 高发型）</strong>。</li>
+<li><strong>防传话游戏</strong>（Anthropic 附录）：结构化产物（代码/报告/图表）让子 agent 直接写外部系统，回 lead 只给轻量 reference；plan 必须先写入 Memory 再开干（防 200k 截断丢计划）；上下文逼近上限时开 fresh subagent + 精心交接，而非硬撑。</li>
+<li><strong>反方（Cognition）</strong>：隔离的代价是信息衰减——只传单条消息而非完整 trace，子 agent 各自隐式决策 → 产物互相冲突。折中形态：<strong>隔离执行过程，共享决策与产物</strong>。</li>
+<li><strong>回传契约五字段</strong>（机械防线）：交付了什么 / 证据路径 / 做了哪些关键取舍 / 未解决的不确定性 / 被卡外拒绝的动作。</li>
+<li><strong>Code-as-MCP</strong>（5方向调研方向 5）：子 Agent 用 <code>search_file / read_file / run_test / apply_patch</code> 工具四件套操作代码，而非把文件内容贴进上下文——比"整个 repo 塞 prompt"省 <strong>95% token</strong>。</li>
+</ul>
+<h3 id="post-condition-successtrue">三、工具层验证（post-condition，防 <code>success:true</code> 假成功）</h3>
+<p><strong>核心论断（TianPan）</strong>：工具返回 <code>{"success": true}</code> 只代表"系统接受了命令"，不代表"世界按要求变了"（200=请求被接收、邮件=进了队列、DB=写到未同步副本）。让模型"更怀疑地核对"是错误层级——prompt 里的怀疑论只产生表演式怀疑。验证必须是<strong>确定性的、位于模型之下的 harness 层</strong>，以证据形式喂给模型。</p>
+<p><strong>post-condition 四件套</strong>：</p>
+<ol>
+<li>调用点<strong>幂等键</strong>（Stripe 式，重试安全的前提）</li>
+<li><strong>写后确定性读回</strong>（按 key 读回校验存在与字段）</li>
+<li>契约区分 <strong>accepted vs completed</strong>（<code>{status:"queued", message_id}</code> 比较诚实）</li>
+<li><strong>按后果分级验证预算</strong>（营销邮件不验、退款三重验）；对应派单卡"验证档"：V0=读类自查 / V1=预埋 check 复跑 / V2=写后读回+独立审查 / V3=读回+人工确认（钱、配置、对外发布）</li>
+</ol>
+<p><strong>分层验证（Anthropic）</strong>：约 20 条真实 query 小样本立即开测 → LLM-as-judge 按 rubric 打分（<strong>单一 judge 单 prompt 输出 0-1 分最稳定，多 judge 反而一致性差</strong>）→ 人工评测抓自动化漏的边缘案例 → 改状态的长程 agent 用 <strong>end-state evaluation</strong>（看终态 + 切成离散检查点）。审查者需 gold set 校准，业界 kappa≈0.797 算 substantial——<strong>未经 kappa 验证的"judge 说不行"只是 vibe</strong>。</p>
+<h3 id="mast-vs">四、MAST 失败模式对照表（业界实证 vs 现有防线）</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>业界失败模式（实证占比）</th>
+<th>现有防线</th>
+<th>缺口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>step repetition / 死循环（MAST 最高频 15.7%）</td>
+<td>同错 3 次停手</td>
+<td>只防"同错"，不防<strong>同步骤换皮重复</strong>；无动作相似度检测</td>
+</tr>
+<tr>
+<td>2</td>
+<td>不知何时停（premature 6.2%）</td>
+<td>绿即停、验收四门</td>
+<td>依赖验收方认真</td>
+</tr>
+<tr>
+<td>3</td>
+<td>验证缺失/错误（合计 23.5%）</td>
+<td>自报不采信、G0-G9</td>
+<td>工具层假成功无读回验证；judge 无一致性校准</td>
+</tr>
+<tr>
+<td>4</td>
+<td>规格空泛（specification 41.8% 最大类）</td>
+<td>白名单、六要素</td>
+<td>委派契约缺"输出格式/工具指引"显式字段</td>
+</tr>
+<tr>
+<td>5</td>
+<td>agent 间错位（32.3%）</td>
+<td>配置全局串行、审查只读</td>
+<td>审查者上下文过窄易误判；回传消息无 schema</td>
+</tr>
+<tr>
+<td>6</td>
+<td>重复劳动 / fan-out 撞车</td>
+<td>batch≤3</td>
+<td>拆卡无<strong>工作域声明</strong>，事前发现不了撞车</td>
+</tr>
+<tr>
+<td>7</td>
+<td>过度协商 / 多数暴政（correct→incorrect 翻转压过反向）</td>
+<td>审查轮≤2、分歧升用户不投票</td>
+<td>已基本覆盖</td>
+</tr>
+<tr>
+<td>8</td>
+<td>错误传播（0.95^10=59.9%）</td>
+<td>停手三线、fallback</td>
+<td>多卡串联无"链长×成功率"提示</td>
+</tr>
+<tr>
+<td>9</td>
+<td>任务漂移（semantic/coordination/behavioral 三型）</td>
+<td>白名单、回边 A 重计划</td>
+<td>复计划无"新任务清单 vs 原目标"显式 diff</td>
+</tr>
+<tr>
+<td>10</td>
+<td>说做不符（13.2%，MAST 第二高频）</td>
+<td>凭据标注 + receipt 对账</td>
+<td><strong>免凭据卡</strong>无外部对账，是残留敞口</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_4">五、全局优化点清单（按动作分类）</h3>
+<ul>
+<li><strong>【新增】</strong>：拆卡前三问（真独立？只读无写冲突？价值配得上 fan-out 放大？）；工具层 post-condition 读回；派单卡状态机 + 断点续传；验证档 V0–V3；并行卡工作域声明。</li>
+<li><strong>【补充】</strong>：委派契约补"输出格式/工具指引"两字段；token 台账加"vs 单 agent 放大倍数"列（对照单 agent ≈4×、多 agent ≈15× chat 基准）；judge 抽样 10–20 条人工 gold set 校准。</li>
+<li><strong>【冲突需裁决】</strong>：C1 审查者上下文——"只给产物路径"与 Cognition "share full traces" 正面冲突，折中 = 产物路径 + 执行侧决策摘要（不含过程日志）；C2 并行写串行边界是否从"配置类"扩展到"同仓并行写"；C3 三阶评审+三级审的累计轮次是否计入"审查轮≤2"。</li>
+</ul>
+<h2 id="_5">来源</h2>
+<ul>
+<li><code>raw/multi-agent/外部调研-多智能体协作工作流-20260925.md</code></li>
+<li><code>raw/multi-agent/多Agent协作调研-5方向-20260928.md</code></li>
+</ul>
+<h2 id="_6">相关术语</h2>
+<ul>
+<li>Durable Execution / Checkpoint：ontology/术语表-Agent框架.md</li>
+<li>Context Engineering（write/select/compress/isolate）：ontology/术语表-Agent框架.md</li>
+<li>Post-condition Verification：ontology/术语表-Agent框架.md</li>
+</ul></div></body></html>

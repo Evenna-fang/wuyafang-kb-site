@@ -1,0 +1,1739 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L4-RAG工程-课件实操</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L4-RAG工程-课件实操</span></div><div class="wrap"><h1 id="l4-rag-工程-课件实操代码库">L4 RAG 工程 · 课件实操代码库</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+<strong>本篇为「课件实操代码模板库」专题分支</strong>（2026-10-26 去重梳理定位），RAG 全景主线（10 大模块可执行命令+源码结构解读+全缺口清单+评测尺子重建）详见 <strong><a href="RAG%E4%BD%9C%E6%88%98%E6%89%8B%E5%86%8C-%E5%85%A8%E6%99%AF%E5%9B%BE-20261021.html">RAG作战手册-全景图-20261021</a></strong>；域总纲/导航级权威入口见 <a href="L4-RAG%E5%B7%A5%E7%A8%8B-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L4-RAG工程-最佳答案</a>。<br />
+相关（域内 5 篇主线/分支导航）：<a href="RAG%E4%BD%9C%E6%88%98%E6%89%8B%E5%86%8C-%E5%85%A8%E6%99%AF%E5%9B%BE-20261021.html">RAG作战手册-全景图-20261021</a>（实操主线） · <a href="L4-RAG%E5%B7%A5%E7%A8%8B-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L4-RAG工程-最佳答案</a>（全域主线） · <a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践-2026</a>（专题分支·生产架构） · <a href="%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E6%90%AD%E5%BB%BA%E5%85%A8%E6%B5%81%E7%A8%8B.html">企业级RAG搭建全流程</a>（专题分支·搭建流程）<br />
+这是L4章的实操部分，配合<a href="L4-RAG%E5%B7%A5%E7%A8%8B-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L4-RAG工程-最佳答案.md</a>（原理部分）一起看。<br />
+本章节代码全部来自飞书2603期柏汌老师RAG应用开发篇（day01–day14）真实课件，按"基础→框架→进阶→知识图谱→评估→实战项目"路径组织，每个片段都标注了来源day号、关键参数调优建议和常见坑。<br />
+<strong>分工提示</strong>：本篇只管"抄实现"（课件真实代码片段+参数调优+坑）；要判断"这套参数为什么是这个值/这条命令在生产库怎么跑"，去 <a href="RAG%E4%BD%9C%E6%88%98%E6%89%8B%E5%86%8C-%E5%85%A8%E6%99%AF%E5%9B%BE-20261021.html">RAG作战手册-全景图-20261021</a>（实操主线）或 <a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践-2026</a>（决策手册），不要在这里找答案。</p>
+</blockquote>
+<hr />
+<h1 id="why把课件练习转成能验证的工程能力">WHY：把课件练习转成能验证的工程能力</h1>
+<h2 id="学习目标业务价值与边界">学习目标、业务价值与边界</h2>2
+<p>课件实操的价值不是复制一个聊天页面，而是亲手证明“数据能解析、证据能找回、回答有来源、更新可回归”。不建立这条证据链，day02 Demo 看似能聊天，day14 接数据库和界面后仍可能漏文档、串用户历史或引用错误父块。</p>
+<p>来源：<a href="../../raw/courseware/RAG%E7%AF%87/1-RAG%E5%9F%BA%E7%A1%80-2025-10-8-%E6%9F%8F%E6%B1%8C__day01%281%29__01-RAG%E5%9F%BA%E7%A1%80.md">RAG 基础课件</a>把索引、检索、生成分为三个阶段；<a href="../books/%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E6%9E%84%E5%BB%BA%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E7%B3%BB%E7%BB%9F.html">《企业级RAG系统》第 3/8 章提炼</a>补上数据与评测验收。适用于已有 Python 基础、需要把课程机制映射到真实仓库的读者；不把教学账号、D 盘模型路径和未配置的 MySQL/Neo4j 当本机默认，也不把课件的文档选择过滤当完整多租户授权。</p>
+<p>最小质量合同：同一问题能追到原文；有答案题不误拒，无答案题不硬答；child 命中后能还原 parent；依赖、模型、索引、评测版本有记录。本次保留全部课件代码，未执行安装、启动服务、写库或外部模型调用。</p>
+<h2 id="核心论点">核心论点</h2>2
+<p><strong>课件代码的价值不在"能跑"，而在参数与坑是课程踩过一遍的——实操代码库要保留参数调优建议和踩坑记录才有复用价值。</strong> 本库按"基础→框架→进阶→知识图谱→评估→实战项目"组织飞书 2603 期 day01–day14 真实课件代码，每段标注来源 day 号；把它当模板抄时，真正要抄的是三样东西：统一的前置环境约定（依赖包版本）、每步的关键参数（chunk_size/top_k 等）、以及课件标注的常见坑——裸抄代码而丢掉这三样，等于把别人的踩坑重新踩一遍。</p>
+<h1 id="whyt课程组件与本库生产链的协同和差异">WHYT：课程组件与本库生产链的协同和差异</h1>
+<h2 id="一张图区分课程机制与本库实现">一张图区分“课程机制”与“本库实现”</h2>2
+<pre><code class="language-text">课件：加载器 → 分割器 → Embedding → Chroma/父文档存储
+                                  → Retriever → LCEL/会话 → 生成
+                                  → RAGAS → 回归
+本库：ingest.py → registry/chunks/索引
+      query.py → 路由 → dense+sparse/RRF → CRAG → rerank/gate → 生成
+      eval/    → 检索、生成与最终排序分别度量
+</code></pre>
+<p>数据协同依靠 source、chunk/parent 关联、heading_path 与模型版本，不依赖“类名恰好一致”。LangChain 的 Retriever/LCEL 适合学习可组合链，LlamaIndex 的 Node/StorageContext 适合理解节点与存储解耦；GraphRAG/Neo4j 只为关系查询服务，Streamlit/MySQL 是演示应用外壳，不是每个文本 RAG 的必装件。<a href="../../raw/sources/RAG%E7%9F%A5%E8%AF%86%E7%BB%84%E7%BB%87%E5%AF%B9%E6%A0%87-%E4%B8%80%E6%89%8B%E6%BA%90-20261016.md">知识组织对标</a>要求知识图与代码图分立，也意味着源码应通过路径和符号定位，而不是把框架名称混作知识结构。</p>
+<p>参数选择要先确认单位：课程的 <code>SentenceSplitter</code> 按 token，本库递归字符分割器默认按字符，1000/200 与 384/80 不能只比较数字。RRF 是排名融合，Cross-Encoder 才是精排；本库词法路是 BGE-M3 学习型 sparse，不是独立第三路经典 BM25。</p>
+<p>原课件代码保留但需理解其教学限制：day14 的简化上传流程只演示父块 metadata 回写，完整实现还要核对 child 的 document_id；界面选择的 filename 也需映射真实 document_id；父子 ID 必须跨文档唯一。下文 <code>datetime.now()</code> 列默认值、客户端重复初始化等也应在实际项目复用前审查，不能仅凭片段就宣称生产可用。原导航中的已合并页面链接作为历史正文保留，当前域主线可从 <a href="01-RAG%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E4%B8%8E%E7%94%9F%E4%BA%A7%E8%90%BD%E5%9C%B0.html">系统架构样板</a>继续读。</p>
+<h2 id="七课件核心经验总结day06-day08-笔记精华">七、课件核心经验总结（day06 / day08 笔记精华）</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">7.1 RAG 失败的常见诊断表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>根因</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>答非所问</td>
+<td>检索的上下文和问题不相关</td>
+<td>换 embedding / 调 chunk_size / 加 BM25 混合</td>
+</tr>
+<tr>
+<td>胡编乱造</td>
+<td>上下文里没答案但 LLM 硬答</td>
+<td>Prompt 加"不足以回答就说不知道" / 降 temperature</td>
+</tr>
+<tr>
+<td>答案不完整</td>
+<td>长文档被切丢了关键信息</td>
+<td>父子索引 / 加大 chunk_size / 上下文压缩</td>
+</tr>
+<tr>
+<td>遗漏排名靠前的文档</td>
+<td>top-k 太小</td>
+<td>召回 8 个 + RRF 重排取前 3</td>
+</tr>
+<tr>
+<td>多跳问题不会答</td>
+<td>向量 RAG 不擅长关系推理</td>
+<td>上 GraphRAG / LightRAG</td>
+</tr>
+<tr>
+<td>专业术语检索不到</td>
+<td>语义模型不认识黑话</td>
+<td>加 BM25 / 自定义同义词典</td>
+</tr>
+</tbody>
+</table>
+<h3 id="72-高级-rag-分类课件-day06-笔记">7.2 高级 RAG 分类（课件 day06 笔记）</h3>3
+<ul>
+<li><strong>预索引（查询优化）</strong>：</li>
+<li>查询重写：LLM 把问题改写成更适合检索的版本</li>
+<li>查询转换：拆分子问题</li>
+<li>查询拓展：MultiQueryRetriever</li>
+<li><strong>索引优化</strong>：</li>
+<li>父子文档索引</li>
+<li>假设性问题索引（HyDE）</li>
+<li>元数据索引</li>
+<li>混合索引（向量 + BM25）</li>
+<li><strong>后索引（检索后处理）</strong>：</li>
+<li>重排（RRF / CrossEncoder）</li>
+<li>上下文压缩（LLMChainExtractor）</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7.3 RAG vs 微调选型（day07 笔记）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>RAG：数据经常变、需要引用来源、冷启动快 → 选 RAG</li><li>微调：数据稳定、需要风格/格式统一、数据量大且准确 → 选微调</li><li>两者结合：微调让模型"懂业务语言"，RAG 让模型"不瞎编事实"</li></ul></div>3
+<ul>
+<li><strong>RAG</strong>：数据经常变、需要引用来源、冷启动快 → 选 RAG</li>
+<li><strong>微调</strong>：数据稳定、需要风格/格式统一、数据量大且准确 → 选微调</li>
+<li><strong>两者结合</strong>：微调让模型"懂业务语言"，RAG 让模型"不瞎编事实"</li>
+</ul>
+<hr />
+<h1 id="how从最小检索闭环到分阶段复用课件代码">HOW：从最小检索闭环到分阶段复用课件代码</h1>
+<h2 id="先在真实仓库跑最小闭环再逐段学课件">先在真实仓库跑最小闭环，再逐段学课件</h2>2
+<ol>
+<li>不先安装课件依赖全集；先检查当前入口和环境，确认题库可用。</li>
+</ol>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+ls -l rag/query.py rag/ingest.py rag/config.yaml rag/eval/golden-q.jsonl
+env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/query.py --help
+env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --check-golden
+</code></pre>
+<p>验收：真实入口存在，参数帮助能显示，尺子退出 0；否则先定位环境/标签，不改代码掩盖问题。</p>
+<ol start="2">
+<li>在已授权的模型环境运行一条文本问题，只看证据与门禁，不先生成：</li>
+</ol>
+<pre><code class="language-bash">env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/query.py &quot;父子分块怎样兼顾检索精度和上下文完整性？&quot; --no-gen --scope all
+rg -n 'top_k:|rrf_k:|top_n:|threshold:|dense_threshold:' rag/config.yaml
+</code></pre>
+<p>验收：能指出返回来源、候选与最终 top-k、主/降级门禁使用的分数；<code>--no-gen</code> 仍可能触发 Adaptive/CRAG 的模型调用，不能把它当纯离线命令。</p>
+<ol start="3">
+<li>课件按 day02 文本闭环 → day07 父子索引 → day08 混合/融合 → day12 评测 → day14 应用的依赖顺序阅读。每引入一种组件就重复同一题集回归，而非把所有代码粘到一个 app.py。</li>
+</ol>
+<pre><code class="language-bash">env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --mode hybrid --json-out /tmp/l4-course-recall.json
+</code></pre>
+<p>验收：检索结果不低于同版本基线；生成需另跑答案/引用验证，不能把“RAGAS 四项统一 ≥0.7”当普适标准。下面的课件环境、完整代码与原 Checklist 全部保留，读者只有确认模型数据边界和数据库前置后，才在自己的隔离项目执行。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">〇、前置环境约定</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<p>课件统一使用以下配置，后续所有代码默认假设这些已就绪：</p>
+<pre><code class="language-bash"># 必需的 Python 包（按 day 顺序实际用到的合集）
+pip install langchain langchain-openai langchain-community langchain-chroma \
+    langchain-huggingface langchain-neo4j langchain-classic \
+    chromadb sentence-transformers pdfminer.six \
+    pypdf python-docx docx2txt unstructured \
+    rank_bm25 datasets ragas \
+    pymysql sqlalchemy streamlit python-dotenv
+</code></pre>
+<pre><code class="language-python"># base_llm.py —— 全局复用的 LLM/Embedding 客户端（day02/day06/day07 反复出现）
+from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
+from langchain_huggingface import HuggingFaceEmbeddings
+import os
+
+load_dotenv()
+
+# 通义千问（OpenAI 兼容协议）
+llm = ChatOpenAI(
+    api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+    base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;),
+    model_name=&quot;qwen-plus&quot;,
+    temperature=0.7,
+)
+
+# 本地 BGE 中文向量模型（离线、稳定、免费）
+embedding_model_path = r&quot;D:\LLM\Local_model\BAAI\bge-large-zh-v1___5&quot;
+embeddings_model = HuggingFaceEmbeddings(model_name=embedding_model_path)
+</code></pre>
+<p><strong>关键参数约定</strong>（后续不再重复解释）：<br />
+- <code>DASHSCOPE_API_KEY</code> / <code>DASHSCOPE_BASE_URL</code>：阿里云百炼通义千问的密钥和网关<br />
+- <code>bge-large-zh-v1.5</code>：1024 维中文 embedding，语义检索的事实标准<br />
+- <code>qwen-plus</code> / <code>qwen3-max</code>：课件主力生成模型</p>
+<hr />
+<h2 id="一rag-基础day01day02">一、RAG 基础（day01–day02）</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1.1 文档切分：RecursiveCharacterTextSplitter （day01）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>RAG 第一步永远是把长文档切成小块（chunk）</li></ul></div>3
+<p>RAG 第一步永远是把长文档切成小块（chunk）。课件从"按字符切 → 滑动窗口 → 递归切"三步演进，最终推荐递归分割器：</p>
+<pre><code class="language-python"># 来源：day01/源码/01-文档分割.py
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+text = &quot;自然语言处理（NLP），作为计算机科学、人工智能与语言学的交融之地……&quot;
+
+# chunk_overlap 防止语义冲突：相邻 chunk 重叠一部分，避免关键句被切两半
+split = RecursiveCharacterTextSplitter(
+    chunk_size=100,
+    chunk_overlap=10,
+    separators=[&quot;\n&quot;, &quot;&quot;],
+)
+chunks = split.split_text(text)
+for i, chunk in enumerate(chunks):
+    print(f&quot;块 {i + 1}: {len(chunk)}: {chunk}&quot;)
+</code></pre>
+<p><strong>参数怎么调（day06 笔记总结）</strong>：<br />
+- <code>chunk_size</code>：256–512 是甜点区。医疗/法律/生物等严格场景要切大一点（1024+），社媒/短文本切小（200）<br />
+- <code>chunk_overlap</code>：通常设为 <code>chunk_size</code> 的 10%–20%（如 256 的块设 25–50）<br />
+- <code>separators</code>：优先级从高到低排列，先按段落切、再按句号、再按空格，是"递归"含义所在</p>
+<p><strong>常见坑</strong>：<br />
+- 不要用固定字符硬切（如每 250 字一刀），会把句子切烂导致 embedding 语义断裂<br />
+- 表格、代码块要单独处理（用 <code>MarkdownHeaderTextSplitter</code> 或 <code>HTMLHeaderTextSplitter</code>），不能走通用分割</p>
+<hr />
+<h3 id="12-embedding在线-api-vs-本地模型-day01">1.2 Embedding：在线 API vs 本地模型 （day01）</h3>3
+<p>课件展示了两种 embedding 路线，业务中常混用：</p>
+<pre><code class="language-python"># 来源：day01/源码/03-在线向量模型使用.py
+from openai import OpenAI
+from dotenv import load_dotenv
+import os
+load_dotenv()
+
+client = OpenAI(
+    api_key=os.getenv('DASHSCOPE_API_KEY'),
+    base_url=&quot;https://dashscope.aliyuncs.com/compatible-mode/v1&quot;,
+)
+
+def get_embedding(text):
+    data = client.embeddings.create(input=text, model='text-embedding-v3')
+    return [i.embedding for i in data.data]
+
+vec = get_embedding(['我爱你', '你好'])
+print(len(vec[0]))  # text-embedding-v1 是 1536 维；v3 是 1024 维
+</code></pre>
+<pre><code class="language-python"># 来源：day01/源码/04-离线模型.py  —— 本地 BGE
+from sentence_transformers import SentenceTransformer
+model = SentenceTransformer(r&quot;D:\LLM\Local_model\BAAI\bge-large-zh-v1___5&quot;)
+embeddings = model.encode([&quot;你好&quot;, &quot;你&quot;])
+print(embeddings.shape)  # (2, 1024)
+</code></pre>
+<p><strong>关键坑（课件原话）</strong>：构建知识库用的 embedding 模型 <strong>必须</strong> 和查询时用的是同一个。v1（1536维）建库、v3（1024维）查询，向量维度对不上直接报错；即使维度能对上，不同模型的语义空间也不同，检索结果会塌掉。</p>
+<hr />
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1.3 相似度计算：余弦 vs 欧氏 （day01）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-python"># 来源：day01/源码/05-向量维度计算.py
+import numpy as np
+from numpy import dot
+from numpy.linalg import norm
+
+def cos_sim(a, b):
+    '''余弦相似度 —— 越大越相似（0~1）'''
+    return dot(a, b) / (norm(a) * norm(b))
+
+def l2(a, b):
+    '''欧氏距离 —— 越小越相似'''
+    x = np.asarray(a) - np.asarray(b)
+    return norm(x)
+
+# 实际使用：对 query_vecs 和 doc_vecs 逐个打分，取 top-k
+# 余弦相似度：适合场景复杂、长短文本混合
+# 欧氏距离：适合向量已经归一化的场景
+</code></pre>
+<p><strong>经验</strong>：生产环境默认用余弦相似度。向量数据库里 Chroma 的默认是 L2（欧氏），但可通过 <code>metadata={"hnsw:space": "cosine"}</code> 切换，见下文。</p>
+<hr />
+<h3 id="14-向量数据库chroma-最小可用-day02">1.4 向量数据库：Chroma 最小可用 （day02）</h3>3
+<pre><code class="language-python"># 来源：day02/源码/01-向量数据库使用.py
+import chromadb
+
+# 内存模式（重启即丢）
+client = chromadb.Client()
+# 持久化模式（生产用这个）
+# client = chromadb.PersistentClient(path=&quot;./chroma_db&quot;)
+
+# get_or_create_collection: 有则返回，无则创建
+cll = client.get_or_create_collection(name='test')
+
+# 增
+cll.add(
+    documents=[&quot;Article by john&quot;, &quot;Article by Jack&quot;, &quot;Article by Jill&quot;],
+    embeddings=[[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+    ids=[&quot;1&quot;, &quot;2&quot;, &quot;3&quot;],
+)
+
+# 改（覆盖）
+cll.update(
+    documents=[&quot;Article by john&quot;],
+    embeddings=[[10, 2, 3]],
+    ids=[&quot;1&quot;],
+)
+
+# 删
+# cll.delete(ids=['1'])
+
+# 查
+# cll.query(query_texts=[&quot;john&quot;], n_results=2)
+</code></pre>
+<hr />
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1.5 手写 RAG 最小项目（day02 核心）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<p>这是课件第一个完整 RAG，没有用 LangChain，纯裸写，理解原理必备：</p>
+<pre><code class="language-python"># 来源：day02/源码/04-实现rag项目.py
+import chromadb
+from pdfminer.high_level import extract_pages
+from pdfminer.layout import LTTextContainer
+from base_llm import client  # OpenAI client
+
+# ① 切分：固定字符 + 滑动窗口
+def sliding_window_chunks(text, chunk_size, stride):
+    return [text[i:i + chunk_size] for i in range(0, len(text), stride)]
+
+# ② PDF 提取
+def extract_text_from_pdf(filename, page_numbers=None):
+    full_text = ''
+    for i, page_layout in enumerate(extract_pages(filename)):
+        if page_numbers is not None and i not in page_numbers:
+            continue
+        for element in page_layout:
+            if isinstance(element, LTTextContainer):
+                # 去掉换行和空格（中文 PDF 常见换行垃圾）
+                full_text += element.get_text().replace(&quot;\n&quot;, &quot;&quot;).replace(&quot; &quot;, &quot;&quot;)
+    return sliding_window_chunks(full_text, 250, 100)
+
+# ③ 向量库封装
+class MyVectorDBConnector:
+    def __init__(self, collection_name):
+        chroma_client = chromadb.Client()
+        self.collection = chroma_client.get_or_create_collection(
+            name=collection_name,
+            metadata={&quot;hnsw:space&quot;: &quot;cosine&quot;},  # 关键：切到余弦相似度
+        )
+
+    def get_embeddings(self, texts):
+        data = client.embeddings.create(input=texts, model=&quot;text-embedding-v2&quot;)
+        return [x.embedding for x in data.data]
+
+    def add_documents(self, data):
+        emb = self.get_embeddings(data)
+        self.collection.add(
+            embeddings=emb,
+            documents=data,
+            ids=[f&quot;id{i}&quot; for i in range(len(data))],
+        )
+
+    def search(self, query, n_results):
+        return self.collection.query(
+            query_embeddings=self.get_embeddings([query]),
+            n_results=n_results,
+        )
+
+# ④ RAG 机器人
+class RAG_Bot:
+    def __init__(self, vector_db, n_results=2):
+        self.vector_db = vector_db
+        self.n_results = n_results
+
+    def get_llm(self, prompt):
+        messages = [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: prompt}]
+        response = client.chat.completions.create(model='qwen3-max', messages=messages)
+        return response.choices[0].message.content
+
+    def chat(self, user_query):
+        # 检索
+        search_res = self.vector_db.search(user_query, n_results=self.n_results)
+        # 拼接 prompt（模板里两个占位符）
+        prompt = prompt_template.replace('__INFO__', '\n'.join(search_res['documents'][0])) \
+                                .replace('__QUERY__', user_query)
+        # 生成
+        print(self.get_llm(prompt))
+
+# ⑤ 运行
+if __name__ == '__main__':
+    prompt_template = &quot;&quot;&quot;
+        你是一个问答机器人。
+        你的任务是根据下述给定的已知信息回答用户问题。
+        确保你的回复完全依据下述已知信息。不要编造答案。
+        如果下述已知信息不足以回答用户的问题，请直接回复&quot;我无法回答您的问题&quot;。
+
+        已知信息:
+        __INFO__
+
+        用户问:
+        __QUERY__
+
+        请用中文回答用户问题。
+    &quot;&quot;&quot;
+    data = extract_text_from_pdf('财务管理文档.pdf', page_numbers=[0, 1, 2])
+    vect = MyVectorDBConnector('test')
+    vect.add_documents(data)
+
+    rag = RAG_Bot(vect)
+    rag.chat(&quot;财务管理权限划分?&quot;)
+</code></pre>
+<p><strong>这个最小版的三个核心设计</strong>（也是所有 RAG 的骨架）：<br />
+1. <strong>索引期</strong>：PDF → 文本 → 滑动窗口切 250 字 → embedding → Chroma<br />
+2. <strong>检索期</strong>：用户问题 → embedding → Chroma top-k=2 → 拿到 docs<br />
+3. <strong>生成期</strong>：docs + 问题 → 填 prompt 模板 → LLM</p>
+<p><strong>Prompt 模板的"反幻觉三句话"</strong>：<em>"完全依据已知信息 / 不要编造 / 不足以回答就说无法回答"</em> —— 这是最经济的防幻觉手段，生产环境务必保留。</p>
+<hr />
+<h2 id="二langchain-框架day03day06">二、LangChain 框架（day03–day06）</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.1 LCEL 链式调用（day06）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>LangChain Expression Language（LCEL）用 「|」 把组件串起来，是 1.0 版本的标准范式</li></ul></div>3
+<p>LangChain Expression Language（LCEL）用 <code>|</code> 把组件串起来，是 1.0 版本的标准范式。课件从"无记忆单次调用"演进到"带历史的会话链"：</p>
+<pre><code class="language-python"># 来源：day06/源码/01-记忆测试.py
+from base_llm import llm
+
+# 无记忆：LLM 不知道上一句说过什么
+response = llm.invoke(&quot;你好我是柏汌&quot;)
+print(response.content)
+
+response = llm.invoke(&quot;我是谁?&quot;)
+print(response.content)  # 必然回答&quot;我不知道&quot; —— 因为 LLM 本身无状态
+</code></pre>
+<p><strong>关键认知</strong>：ChatGPT 能记住上下文，不是 LLM 模型记住了，而是每次请求都把历史 messages 一起塞进 prompt。LangChain 的 Memory 就是帮你自动干这件事。</p>
+<hr />
+<h3 id="22-带历史的会话链day06-核心">2.2 带历史的会话链（day06 核心）</h3>3
+<pre><code class="language-python"># 来源：day06/源码/03-实现记忆功能.py
+import json
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import messages_from_dict, messages_to_dict
+from base_llm import llm
+
+# ① Prompt 模板：占位符 {history} 是给历史消息留的位置
+prompt = ChatPromptTemplate.from_messages([
+    (&quot;system&quot;, &quot;你是一个友好的助手&quot;),
+    MessagesPlaceholder(variable_name=&quot;history&quot;),   # 历史消息槽
+    (&quot;user&quot;, &quot;{input}&quot;),                            # 当前用户输入槽
+])
+
+# ② 基础链：prompt | llm
+base_chain = prompt | llm
+
+# ③ 内存里的会话字典：{session_id: ChatMessageHistory}
+store = {}
+def get_session_history(session_id):
+    if session_id not in store:
+        store[session_id] = ChatMessageHistory()
+    return store[session_id]
+
+# ④ 用 RunnableWithMessageHistory 包一层：自动读/写历史
+conv = RunnableWithMessageHistory(
+    base_chain,
+    get_session_history=get_session_history,
+    input_messages_key='input',
+    history_messages_key='history',
+)
+
+def predict(input_text, session_id=&quot;default&quot;):
+    return conv.invoke(
+        {&quot;input&quot;: input_text},
+        config={&quot;configurable&quot;: {&quot;session_id&quot;: session_id}},  # 关键：session_id 关联历史
+    ).content
+
+# ⑤ 持久化：把历史 dump 成 JSON
+def save_memory(filepath, session_id):
+    history = get_session_history(session_id)
+    dicts = messages_to_dict(history.messages)
+    with open(filepath, &quot;w&quot;, encoding='utf-8') as f:
+        json.dump(dicts, f, ensure_ascii=False)
+
+def load_memory(filepath, session_id):
+    with open(filepath, &quot;r&quot;, encoding='utf-8') as f:
+        dicts = json.load(f)
+    messages = messages_from_dict(dicts)
+    store[session_id] = ChatMessageHistory(messages=messages)
+
+# ⑥ 测试
+predict(&quot;你好,我是柏汌&quot;)
+predict(&quot;我叫什么名字?&quot;)  # 能正确回答&quot;柏汌&quot;
+save_memory(&quot;history.json&quot;, &quot;default&quot;)
+
+load_memory(&quot;history.json&quot;, &quot;default&quot;)
+print(predict(&quot;我回来了，我们之前都聊了一些什么?&quot;))
+</code></pre>
+<p><strong>关键参数</strong>：<br />
+- <code>input_messages_key='input'</code>：告诉链"用户当前输入"在哪个变量<br />
+- <code>history_messages_key='history'</code>：对应 prompt 里 MessagesPlaceholder 的 variable_name<br />
+- <code>session_id</code>：多会话隔离的钥匙，同一 session_id 才共享历史</p>
+<p><strong>常见坑</strong>：<br />
+- 历史太长会爆 token（课件笔记：10–30 轮就该压缩或截断）<br />
+- 生产用 <code>RedisChatMessageHistory</code> / <code>SQLChatMessageHistory</code>，不要用内存字典，重启就丢</p>
+<hr />
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.3 LangSmith Prompt 拉取（day06）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-python"># 来源：day06/源码/04-langsmith测试.py
+from langchain_core.prompts import PromptTemplate
+from langchain_openai import ChatOpenAI
+from langsmith import Client
+from dotenv import load_dotenv
+import os
+load_dotenv()
+
+client = Client(api_key=os.getenv(&quot;LANGSMITH_API_KEY&quot;))
+prompt = client.pull_prompt(&quot;test&quot;)  # 从 LangSmith 平台拉远程 prompt
+
+llm = ChatOpenAI(
+    api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+    base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;),
+    model='qwen-plus',
+)
+chain = prompt | llm
+response = chain.invoke({
+    &quot;product&quot;: &quot;无线耳机&quot;,
+    &quot;features&quot;: &quot;音质清晰、佩戴舒适、续航长&quot;,
+    &quot;emotion&quot;: &quot;科技感、轻松&quot;,
+    &quot;action&quot;: &quot;分享体验&quot;,
+})
+print(response.content)
+</code></pre>
+<p><strong>价值</strong>：Prompt 版本管理和代码解耦，运营/产品可以在 LangSmith 平台直接改 prompt 不用发版。</p>
+<hr />
+<h2 id="三rag-进阶day07day08">三、RAG 进阶（day07–day08）</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.1 摘要索引（Summary Index）（day07）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>思路：长文档切完后，先让 LLM 生成"摘要"，把摘要向量化进库，检索时命中摘要 → 再从 docstore 取回原文给 LLM 生成答案</li></ul></div>3
+<p><strong>思路</strong>：长文档切完后，先让 LLM 生成"摘要"，把摘要向量化进库，检索时命中摘要 → 再从 docstore 取回原文给 LLM 生成答案。解决"长 chunk 语义稀释"问题。</p>
+<pre><code class="language-python"># 来源：day07/源码/01-摘要索引.py
+from base_llm import llm, embeddings_model
+from langchain_core.stores import InMemoryByteStore
+from langchain_chroma import Chroma
+from langchain_community.document_loaders import UnstructuredWordDocumentLoader, WebBaseLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_classic.retrievers import MultiVectorRetriever
+from langchain_core.documents import Document
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+import uuid
+
+# ① 加载：Word 文档 + 网页
+loaders = [
+    UnstructuredWordDocumentLoader(&quot;人事管理流程.docx&quot;),
+    WebBaseLoader(&quot;https://news.pku.edu.cn/mtbdnew/15ac0b3e79244efa88b03a570cbcbcaa.htm&quot;),
+]
+docs = []
+for loader in loaders:
+    docs.extend(loader.load())
+
+# ② 切分
+text_split = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=100)
+docs = text_split.split_documents(docs)
+
+# ③ 批量生成摘要（并发 5）
+chain = (
+    {&quot;doc&quot;: lambda x: x.page_content}
+    | ChatPromptTemplate.from_template(&quot;总结下面的文档:\n\n{doc}&quot;)
+    | llm
+    | StrOutputParser()
+)
+summ = chain.batch(docs, {'max_concurrency': 5})
+
+# ④ 双存储：向量库存摘要 + ByteStore 存原文
+vector = Chroma(collection_name='summ', embedding_function=embeddings_model)
+store = InMemoryByteStore()
+id_key = 'doc_id'
+
+retriever = MultiVectorRetriever(
+    vectorstore=vector,
+    byte_store=store,
+    id_key=id_key,
+)
+
+# ⑤ 给每个原文档一个 uuid，把摘要和 id 一起入向量库
+doc_ids = [str(uuid.uuid4()) for _ in docs]
+summary_docs = [
+    Document(page_content=s, metadata={id_key: doc_ids[i]})
+    for i, s in enumerate(summ)
+]
+retriever.vectorstore.add_documents(summary_docs)
+retriever.docstore.mset(list(zip(doc_ids, docs)))
+
+# ⑥ 使用：向量库命中摘要 → 自动通过 metadata 的 doc_id 拿回原文
+sub_docs = retriever.vectorstore.similarity_search(&quot;病假的请假流程?&quot;)
+orig_doc = retriever.docstore.mget([sub_docs[0].metadata[id_key]])
+print(orig_doc)
+</code></pre>
+<p><strong>为什么不直接把原文向量化？</strong> 课件笔记原话：<em>"摘要语义聚焦，向量空间更集中，召回率高；原文太长 embedding 会被稀释，短查询命中不准。"</em></p>
+<hr />
+<h3 id="32-父子文档索引parent-childday07">3.2 父子文档索引（Parent-Child）（day07）</h3>3
+<p><strong>思路</strong>：子文档小（200–400字），向量化、做语义匹配；父文档大（800–1000字），命中子文档后把对应父文档喂给 LLM。兼顾"检索精度"和"上下文完整性"。</p>
+<pre><code class="language-python"># 来源：day07/源码/02-父子索引.py
+from base_llm import llm, embeddings_model
+from langchain_community.document_loaders import WebBaseLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_chroma import Chroma
+from langchain_classic.retrievers import ParentDocumentRetriever
+from langchain_core.stores import InMemoryByteStore
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableMap
+from langchain_core.output_parsers import StrOutputParser
+
+# ① 加载
+docs = WebBaseLoader(&quot;https://news.pku.edu.cn/mtbdnew/15ac0b3e79244efa88b03a570cbcbcaa.htm&quot;).load()
+
+# ② 两级分割器
+parent_splitter = RecursiveCharacterTextSplitter(chunk_size=1000)   # 父：大块
+child_splitter  = RecursiveCharacterTextSplitter(chunk_size=400)   # 子：小块
+
+# ③ 向量库（只存子文档）
+vectorstore = Chroma(collection_name=&quot;split_parents&quot;, embedding_function=embeddings_model)
+
+# ④ docstore：存父文档（生产用 MySQL/Redis，课件演示用内存）
+store = InMemoryByteStore()
+
+# ⑤ ParentDocumentRetriever 自动完成&quot;子文档检索→父文档返回&quot;
+retriever = ParentDocumentRetriever(
+    vectorstore=vectorstore,
+    docstore=store,
+    child_splitter=child_splitter,
+    parent_splitter=parent_splitter,
+    search_kwargs={&quot;k&quot;: 1},
+)
+retriever.add_documents(docs)
+
+# ⑥ 组装 RAG 链
+template = &quot;请根据下面给出的上下文来回答问题:\n{context}\n问题: {question}\n&quot;
+prompt = ChatPromptTemplate.from_template(template)
+
+chain = RunnableMap({
+    &quot;context&quot;: lambda x: retriever.invoke(x[&quot;question&quot;]),
+    &quot;question&quot;: lambda x: x[&quot;question&quot;],
+}) | prompt | llm | StrOutputParser()
+
+print(chain.invoke({&quot;question&quot;: &quot;天才AI少女是谁？&quot;}))
+</code></pre>
+<p><strong>生产化提示</strong>：课件同时给了一个 <code>MySQLStore</code> 自定义实现（实现 <code>mget/mset/mdelete/yield_keys</code> 四个方法即可），生产环境父文档量级大时务必用 MySQL 而不是 <code>InMemoryByteStore</code>。</p>
+<hr />
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.3 假设性问题索引（HyDE / Hypothetical Document Embeddings）（day08）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>思路：每个 chunk 入库前，让 LLM 生成 3–5 个"用户可能问这个 chunk 的问题"，把问题向量化而不是把原文向量化</li></ul></div>3
+<p><strong>思路</strong>：每个 chunk 入库前，让 LLM 生成 3–5 个"用户可能问这个 chunk 的问题"，把问题向量化而不是把原文向量化。查询时问题对问题，语义空间更匹配。</p>
+<pre><code class="language-python"># 来源：day08/源码/01-假设性问题索引.py
+from base_llm import llm, embeddings_model
+from typing import List
+from langchain_core.stores import InMemoryByteStore
+from langchain_chroma import Chroma
+from langchain_community.document_loaders import TextLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_classic.retrievers import MultiVectorRetriever
+from langchain_core.documents import Document
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableMap
+from pydantic import BaseModel, Field
+import uuid
+
+# ① 加载切分
+docs = TextLoader(&quot;deepseek介绍.txt&quot;, encoding=&quot;utf-8&quot;).load()
+docs = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=100).split_documents(docs)
+
+# ② 用 Pydantic 约束 LLM 输出为结构化 JSON
+class HypotheticalQuestions(BaseModel):
+    questions: List[str] = Field(..., description=&quot;假设性问题列表&quot;)
+
+prompt = ChatPromptTemplate.from_template(&quot;&quot;&quot;
+请基于以下文档生成3个假设性问题（必须使用JSON格式）:
+{doc}
+
+要求：
+1. 输出必须为合法JSON格式，包含questions字段
+2. questions字段的值是包含3个问题的数组
+3. 使用中文提问
+示例格式：
+{{&quot;questions&quot;: [&quot;问题1&quot;, &quot;问题2&quot;, &quot;问题3&quot;]}}
+&quot;&quot;&quot;)
+
+chain = (
+    {&quot;doc&quot;: lambda x: x.page_content}
+    | prompt
+    | llm.with_structured_output(HypotheticalQuestions)  # 强约束输出
+    | (lambda x: x.questions)
+)
+
+# ③ 批量生成（并发 5）
+hypothetical_questions = chain.batch(docs, {&quot;max_concurrency&quot;: 5})
+
+# ④ 入库：向量库存&quot;问题&quot;，docstore 存&quot;原文&quot;
+vectorstore = Chroma(collection_name=&quot;hypo-questions&quot;, embedding_function=embeddings_model)
+store = InMemoryByteStore()
+id_key = &quot;doc_id&quot;
+
+retriever = MultiVectorRetriever(vectorstore=vectorstore, byte_store=store, id_key=id_key)
+doc_ids = [str(uuid.uuid4()) for _ in docs]
+
+question_docs = []
+for i, q_list in enumerate(hypothetical_questions):
+    question_docs.extend(
+        [Document(page_content=q, metadata={id_key: doc_ids[i]}) for q in q_list]
+    )
+retriever.vectorstore.add_documents(question_docs)
+retriever.docstore.mset(list(zip(doc_ids, docs)))
+
+# ⑤ 检索 + 生成
+query = &quot;deepseek受到哪些攻击？&quot;
+prompt1 = ChatPromptTemplate.from_template(&quot;根据下面的文档回答问题:\n\n{doc}\n\n问题: {question}&quot;)
+chain = RunnableMap({
+    &quot;doc&quot;: lambda x: retriever.invoke(x[&quot;question&quot;]),
+    &quot;question&quot;: lambda x: x[&quot;question&quot;],
+}) | prompt1 | llm | StrOutputParser()
+
+print(chain.invoke({'question': query}))
+</code></pre>
+<p><strong>关键设计</strong>：<code>llm.with_structured_output(HypotheticalQuestions)</code> 是 LangChain 1.0 强约束输出的标准做法，比手写 JSON 解析稳定得多。</p>
+<hr />
+<h3 id="34-元数据索引self-queryday08">3.4 元数据索引（Self-Query）（day08）</h3>3
+<p><strong>思路</strong>：让 LLM 把用户问题拆成"语义查询 + 元数据过滤条件"，先按 metadata 过滤再做向量搜索。适合"作者A在2025年发的AI类论文"这种带属性的问题。</p>
+<pre><code class="language-python"># 来源：day08/源码/02-元数据索引.py + meta_data.py
+from langchain_chroma import Chroma
+from meta_data import docs, metadata_field_info  # 见下方自定义数据
+from base_llm import llm, embeddings_model
+from langchain_classic.retrievers.self_query.base import SelfQueryRetriever
+
+document_content_description = &quot;Brief description of technical articles&quot;
+vectorstore = Chroma.from_documents(docs, embeddings_model)
+
+# SelfQueryRetriever 三步：
+# 1. 把&quot;作者A发布的论文2025&quot;发给 LLM → 拆成 {query: &quot;发布的论文&quot;, filter: {year:2025, author:&quot;A&quot;}}
+# 2. 元数据过滤（本地条件判断）
+# 3. 在过滤后的数据集中做语义相似度
+retriever = SelfQueryRetriever.from_llm(
+    llm,
+    vectorstore,
+    document_content_description,
+    metadata_field_info,
+    enable_limit=True,
+)
+
+print(retriever.invoke('作者A发布的一篇论文'))
+</code></pre>
+<p>配套的 <code>meta_data.py</code>：</p>
+<pre><code class="language-python">from langchain_core.documents import Document
+from langchain_classic.chains.query_constructor.schema import AttributeInfo
+
+docs = [
+    Document(page_content=&quot;作者A团队开发出基于深度学习的图像识别系统……&quot;,
+             metadata={&quot;year&quot;: 2025, &quot;rating&quot;: 9.3, &quot;genre&quot;: &quot;AI&quot;, &quot;author&quot;: &quot;A&quot;}),
+    Document(page_content=&quot;物联网技术成功应用于智能农业监控……&quot;,
+             metadata={&quot;year&quot;: 2024, &quot;rating&quot;: 9.5, &quot;genre&quot;: &quot;IoT&quot;, &quot;author&quot;: &quot;B&quot;}),
+    # ...
+]
+
+# 告诉 LLM 有哪些字段可过滤、分别是什么类型
+metadata_field_info = [
+    AttributeInfo(name=&quot;genre&quot;, description=&quot;Technical domain of the article&quot;, type=&quot;string&quot;),
+    AttributeInfo(name=&quot;year&quot;, description=&quot;Publication year&quot;, type=&quot;integer&quot;),
+    AttributeInfo(name=&quot;author&quot;, description=&quot;Author's name&quot;, type=&quot;string&quot;),
+    AttributeInfo(name=&quot;rating&quot;, description=&quot;Score 1-10&quot;, type=&quot;float&quot;),
+]
+</code></pre>
+<hr />
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.5 混合检索（BM25 + 向量）（day08）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>思路：向量检索擅长语义，BM25（关键词倒排）擅长精确匹配专有名词/数字</li></ul></div>3
+<p><strong>思路</strong>：向量检索擅长语义，BM25（关键词倒排）擅长精确匹配专有名词/数字。两者加权融合，是生产 RAG 的标配。</p>
+<pre><code class="language-python"># 来源：day08/源码/03-混合索引.py
+from base_llm import llm, embeddings_model
+from langchain_community.document_loaders import TextLoader
+from langchain_chroma import Chroma
+from langchain_community.retrievers import BM25Retriever
+from langchain_classic.retrievers import EnsembleRetriever
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableMap
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+# ① 加载切分
+docs = TextLoader(&quot;deepseek介绍.txt&quot;, encoding=&quot;utf-8&quot;).load()
+split_docs = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=50).split_documents(docs)
+
+vectorstore = Chroma.from_documents(documents=split_docs, embedding=embeddings_model)
+
+# ② 向量检索器
+vector_retriever = vectorstore.as_retriever(search_kwargs={&quot;k&quot;: 3})
+
+# ③ BM25 关键词检索器
+BM25_retriever = BM25Retriever.from_documents(split_docs, k=3)
+
+# ④ 融合：权重各 0.5
+retriever = EnsembleRetriever(
+    retrievers=[BM25_retriever, vector_retriever],
+    weights=[0.5, 0.5],
+)
+
+# ⑤ 对比测试
+question = &quot;社会影响&quot;
+print(&quot;向量检索:&quot;, vector_retriever.invoke(question))
+print(&quot;BM25:&quot;, BM25_retriever.invoke(question))
+print(&quot;混合:&quot;, retriever.invoke(question))
+
+# ⑥ 组装生成链
+prompt = ChatPromptTemplate.from_template(&quot;请根据下面给出的上下文来回答问题:\n{context}\n问题: {question}\n&quot;)
+chain = RunnableMap({
+    &quot;context&quot;: lambda x: retriever.invoke(x[&quot;question&quot;]),
+    &quot;question&quot;: lambda x: x[&quot;question&quot;],
+}) | prompt | llm | StrOutputParser()
+
+print(chain.invoke({&quot;question&quot;: question}))
+</code></pre>
+<p><strong>调权经验</strong>：<br />
+- 通用知识库：向量 0.6 / BM25 0.4（语义为主、关键词兜底）<br />
+- 代码/法律/医疗：BM25 权重调高（精确术语重要）<br />
+- 不要用 1.0/0.0，完全放弃任一路都会丢召回</p>
+<hr />
+<h3 id="36-查询拓展multi-query-retrieverday08">3.6 查询拓展（Multi-Query Retriever）（day08）</h3>3
+<p><strong>思路</strong>：用户一句"天才AI少女是谁"，LLM 自动改写成 3–5 个同义/相关查询，每个都检索一次，结果去重后喂给生成。解决"用户提问和文档措辞不一致"导致的漏召。</p>
+<pre><code class="language-python"># 来源：day08/源码/04-查询拓展.py
+from base_llm import llm, embeddings_model
+from langchain_community.document_loaders import WebBaseLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import Chroma
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableMap
+from langchain_classic.retrievers import MultiQueryRetriever
+import logging
+
+# ① 加载切分建库
+docs = WebBaseLoader(&quot;https://news.pku.edu.cn/mtbdnew/15ac0b3e79244efa88b03a570cbcbcaa.htm&quot;).load()
+splits = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=100).split_documents(docs)
+vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings_model)
+retriever = vectorstore.as_retriever()
+
+# ② MultiQueryRetriever：用 LLM 自动生成多个版本的查询
+logging.basicConfig(level=logging.INFO)  # 打开日志能看到 LLM 实际生成了哪些改写
+retrieval_from_llm = MultiQueryRetriever.from_llm(
+    retriever=retriever,
+    llm=llm,
+)
+
+# ③ 调用：返回的是多个查询结果去重后的合集
+unique_docs = retrieval_from_llm.invoke(&quot;天才AI少女是谁&quot;)
+print(len(unique_docs))  # 通常是原始结果的 2-3 倍
+
+# ④ 组装链
+prompt = ChatPromptTemplate.from_template(&quot;请根据下面给出的上下文来回答问题:\n{context}\n问题: {question}\n&quot;)
+chain = RunnableMap({
+    &quot;context&quot;: lambda x: retrieval_from_llm.invoke(input=x[&quot;question&quot;]),
+    &quot;question&quot;: lambda x: x[&quot;question&quot;],
+}) | prompt | llm | StrOutputParser()
+
+print(chain.invoke({&quot;question&quot;: &quot;天才AI少女是谁&quot;}))
+</code></pre>
+<p><strong>代价</strong>：每次查询多发 1 次 LLM 调用（生成改写查询），延迟 +1s，token 成本 +20%。但召回率提升显著，生产值得。</p>
+<hr />
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.7 RAG-Fusion + RRF 重排（day08）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>思路：比 MultiQuery 更进一步：生成多个查询 → 各自检索 → 用 RRF（Reciprocal Rank Fusion） 融合多个排序列表，而不是简单去重</li></ul></div>3
+<p><strong>思路</strong>：比 MultiQuery 更进一步：生成多个查询 → 各自检索 → 用 <strong>RRF（Reciprocal Rank Fusion）</strong> 融合多个排序列表，而不是简单去重。</p>
+<pre><code class="language-python"># 来源：day08/源码/05-检索融合.py
+import os
+from langchain_chroma import Chroma
+from base_llm import llm, embeddings_model
+from langchain_core.output_parsers import StrOutputParser
+from langchain_classic import hub
+from langchain_core.load import dumps, loads
+
+texts = [
+    &quot;人工智能在医疗诊断中的应用。&quot;,
+    &quot;人工智能如何提升供应链效率。&quot;,
+    &quot;NBA季后赛最新赛况分析。&quot;,
+    &quot;传统法式烘焙的五大技巧。&quot;,
+    &quot;人工智能在金融风险管理中的应用。&quot;,
+    &quot;人工智能如何影响未来就业市场。&quot;,
+]
+vectorstore = Chroma.from_texts(texts=texts, embedding=embeddings_model)
+retriever = vectorstore.as_retriever()
+
+# ① 从 LangChain Hub 拉一个&quot;RAG-Fusion&quot;专用 prompt
+prompt = hub.pull(&quot;langchain-ai/rag-fusion-query-generation&quot;)
+
+# ② 生成多个查询，按换行切分
+generate_queries = (
+    prompt | llm | StrOutputParser() | (lambda x: x.split(&quot;\n&quot;))
+)
+
+original_query = &quot;人工智能的应用&quot;
+queries = generate_queries.invoke({&quot;original_query&quot;: original_query})
+print(queries)  # ['人工智能医疗应用', 'AI在金融领域', ...]
+
+# ③ RRF 算法核心：对多个排序列表，按&quot;1/(rank+k)&quot;累加分数
+def reciprocal_rank_fusion(results: list[list], k=60):
+    fused_scores = {}
+    for docs in results:
+        for rank, doc in enumerate(docs):
+            doc_str = dumps(doc)  # 序列化做唯一标识
+            if doc_str not in fused_scores:
+                fused_scores[doc_str] = 0
+            fused_scores[doc_str] += 1 / (rank + k)  # k=60 平滑参数
+
+    sorted_data = sorted(fused_scores.items(), key=lambda x: x[1], reverse=True)
+    return [(loads(doc), score) for doc, score in sorted_data]
+
+# ④ 组装：生成查询 → 并行检索 → RRF 融合
+chain = generate_queries | retriever.map() | reciprocal_rank_fusion
+result_list = chain.invoke({&quot;original_query&quot;: original_query})
+
+for doc, score in result_list:
+    print(doc.page_content, score)
+</code></pre>
+<p><strong>RRF 为什么用 <code>k=60</code></strong>：经验值。文档排名越靠前加分越多，但排名第 1 的文档不会因为出现在多个列表里就无脑霸榜（<code>1/(0+60)</code> vs <code>1/(1+60)</code> 差距很小）。这让结果更鲁棒。</p>
+<hr />
+<h2 id="四知识图谱-ragday10">四、知识图谱 RAG（day10）</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.1 Neo4j 连接 （day10）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-python"># 来源：day10 课件 / GraphRAG 章节
+from langchain_neo4j import Neo4jGraph
+
+NEO4J_URI = &quot;bolt://localhost:7687&quot;
+NEO4J_USERNAME = &quot;neo4j&quot;
+NEO4J_PASSWORD = &quot;12345678&quot;
+
+graph = Neo4jGraph(
+    url=NEO4J_URI,
+    username=NEO4J_USERNAME,
+    password=NEO4J_PASSWORD,
+)
+</code></pre>
+<p><strong>部署坑</strong>：<br />
+- Neo4j 5.x 需要 JDK 17；3.x 对应 JDK 8<br />
+- 浏览器访问 <code>http://localhost:7474</code>，代码用 <code>bolt://localhost:7687</code><br />
+- 报 <code>Could not use APOC procedures</code> 错：需要下载 <code>apoc-5.4.0-extended.jar</code> 放到 <code>plugins/</code> 目录，并在 <code>neo4j.conf</code> 里加：<br />
+<code>dbms.security.procedures.unrestricted=apoc.*
+  dbms.security.procedures.allowlist=apoc.*</code></p>
+<hr />
+<h3 id="42-graphrag-完整链路llm-抽实体-neo4j-cypher-qaday10-核心">4.2 GraphRAG 完整链路（LLM 抽实体 → Neo4j → Cypher QA）（day10 核心）</h3>3
+<pre><code class="language-python"># 来源：day10 课件 / 提示词实现 GRAPHRAG 章节
+import os
+from typing import List
+from langchain_openai import ChatOpenAI
+from langchain_neo4j import Neo4jGraph, GraphCypherQAChain
+from langchain_core.documents import Document
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.graphs.graph_document import (
+    GraphDocument, Node as LCNode, Relationship as LCRel,
+)
+from dotenv import load_dotenv
+load_dotenv()
+
+# ① 初始化 LLM + Neo4j
+llm = ChatOpenAI(
+    model=&quot;qwen-plus&quot;,
+    api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+    base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;),
+    temperature=0.15,  # 抽取任务温度要低，减少幻觉
+)
+graph = Neo4jGraph(url=&quot;bolt://localhost:7687&quot;, username=&quot;neo4j&quot;, password=&quot;12345678&quot;)
+
+# ② 抽取 Prompt：定义实体类型、关系类型、JSON 输出格式
+extraction_prompt = ChatPromptTemplate.from_messages([
+    (&quot;system&quot;, &quot;&quot;&quot;你是一个擅长从中文古典小说中提取知识图谱的专家。
+请严格从以下文本中提取主要**实体**和**关系**。
+
+实体类型建议：Person、Place、Item、Event、Group
+关系类型建议：MASTER_OF, DISCIPLE_OF, LOCATED_IN, OWNS, ENEMY_OF, BATTLE_WITH
+
+规则：
+1. 只提取文本中明确出现的信息，不要脑补
+2. 同一个实体在不同 chunk 中保持名称一致
+3. 输出必须是合法 JSON，不要 markdown
+
+输出格式：
+{&quot;nodes&quot;: [{&quot;id&quot;: &quot;孙悟空&quot;, &quot;type&quot;: &quot;Person&quot;}],
+ &quot;relationships&quot;: [{&quot;source&quot;: &quot;孙悟空&quot;, &quot;target&quot;: &quot;菩提祖师&quot;, &quot;type&quot;: &quot;DISCIPLE_OF&quot;}]}
+&quot;&quot;&quot;),
+    (&quot;human&quot;, &quot;文本：\n{text}\n请提取。&quot;)
+])
+
+json_parser = JsonOutputParser()
+extract_chain = extraction_prompt | llm | json_parser
+
+# ③ 单 chunk 抽取 → GraphDocument 对象
+def extract_one_document(doc: Document) -&gt; GraphDocument:
+    raw = extract_chain.invoke({&quot;text&quot;: doc.page_content})
+    if not isinstance(raw, dict):
+        return GraphDocument(nodes=[], relationships=[], source=doc)
+
+    nodes, node_map = [], {}
+    for n in raw.get(&quot;nodes&quot;, []):
+        nid = n.get(&quot;id&quot;)
+        if not nid or nid in node_map:
+            continue
+        node = LCNode(id=nid, type=n.get(&quot;type&quot;, &quot;Entity&quot;), properties=n.get(&quot;properties&quot;, {}))
+        node_map[nid] = node
+        nodes.append(node)
+
+    relationships = []
+    for r in raw.get(&quot;relationships&quot;, []):
+        s, t, rt = r.get(&quot;source&quot;), r.get(&quot;target&quot;), r.get(&quot;type&quot;)
+        if not (s and t and rt) or s not in node_map or t not in node_map:
+            continue
+        relationships.append(LCRel(
+            source=node_map[s], target=node_map[t],
+            type=rt, properties=r.get(&quot;properties&quot;, {}),
+        ))
+
+    return GraphDocument(nodes=nodes, relationships=relationships, source=doc)
+
+# ④ 全量建图
+def ingest_data(file_path: str):
+    with open(file_path, &quot;r&quot;, encoding=&quot;utf-8&quot;) as f:
+        text = f.read()
+    chunks = RecursiveCharacterTextSplitter(
+        chunk_size=1200, chunk_overlap=200,
+        separators=[&quot;\n\n&quot;, &quot;\n&quot;, &quot;。&quot;, &quot;，&quot;, &quot; &quot;, &quot;&quot;],
+    ).split_text(text)
+    documents = [Document(page_content=c) for c in chunks]
+
+    graph_documents = []
+    for i, doc in enumerate(documents, 1):
+        gd = extract_one_document(doc)
+        if gd.nodes or gd.relationships:
+            graph_documents.append(gd)
+
+    # ⑤ 写入 Neo4j
+    graph.add_graph_documents(
+        graph_documents,
+        baseEntityLabel=True,   # 每个实体打 __Entity__ 标签
+        include_source=True,   # 把原始 chunk 也存成节点，用 MENTIONS 关系连实体
+    )
+
+# ⑥ 查询：GraphCypherQAChain 把自然语言翻译成 Cypher
+def get_graph_rag_chain():
+    graph.refresh_schema()
+    chain = GraphCypherQAChain.from_llm(
+        llm=llm,
+        graph=graph,
+        verbose=True,
+        allow_dangerous_requests=True,
+        top_k=30,
+    )
+    return chain
+
+# ⑦ 使用
+rag_chain = get_graph_rag_chain()
+for q in [&quot;孙悟空的师父是谁？他在哪里学艺？&quot;, &quot;花果山在哪里？&quot;]:
+    response = rag_chain.invoke({&quot;query&quot;: q})
+    print(f&quot;问: {q}\n答: {response['result']}&quot;)
+</code></pre>
+<p><strong>这个链路的本质</strong>：<br />
+- <strong>建图</strong>：文档 → LLM 抽 (实体, 关系, 实体) 三元组 → 写入 Neo4j 节点和边<br />
+- <strong>查询</strong>：用户自然语言问题 → LLM 翻译成 Cypher → Neo4j 执行 → 结果转回自然语言</p>
+<p><strong>GraphRAG vs 向量 RAG</strong>：<br />
+- 向量 RAG：擅长"某段文字讲了什么"（语义匹配）<br />
+- GraphRAG：擅长"实体之间的关系是什么"（多跳推理，如 A 的师父的师父是谁）<br />
+- 据[一手源]：RAG图谱行业标准调研-20261009（§3）——课件只讲了 GraphRAG 的长处，反面实测要补上：简单事实上 GraphRAG 比 vanilla RAG 低 13.4%（Natural Questions，转引 Han et al. 2025）；HotpotQA 多跳仅 +4.5% 但延迟 2.3×。跑下面 Neo4j 链路前先问：真实 query 里多跳占多少，单点事实为主就别上图谱。<br />
+- 据[一手源]：RAG知识组织对标-一手源-20261016（Q1）——下面“LLM 翻译 Cypher”的链路里，抽取提示词的实体类型由调用方传入，并可用 LlamaIndex <code>kg_validation_schema</code> 式合法边矩阵（<code>strict=True</code>）约束哪类实体能连哪类关系；谓词统一大写下划线（<code>PART_OF / IS_A</code>），否则会像本库 <code>PART_OF</code> 与 <code>part-of</code> 一样分裂。</p>
+<hr />
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.3 LightRAG 快速上手（day10）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>据[一手源]：RAG图谱行业标准调研-20261009（§2.4）——“便宜”有论文依据：LightRAG 论文（arXiv 2410.05779）实测检索 token <100，GraphRAG 为 610 社区 × 1,000 token，且增量更新只重抽新增文本（T_extract）</li><li>这是检索期对比，别和索引期的成本倍数混说</li></ul></div>3
+<p>LightRAG 是 HKUDS 出的开源项目，比微软 GraphRAG 便宜两个数量级，支持增量更新：</p>
+<blockquote>
+<p>据[一手源]：RAG图谱行业标准调研-20261009（§2.4）——“便宜”有论文依据：LightRAG 论文（arXiv 2410.05779）实测检索 token &lt;100，GraphRAG 为 610 社区 × 1,000 token，且增量更新只重抽新增文本（T_extract）。这是检索期对比，别和索引期的成本倍数混说。</p>
+</blockquote>
+<pre><code class="language-bash">pip install lightrag-hku
+</code></pre>
+<pre><code class="language-python"># 来源：day10 课件 / LightRAG 章节（精简版）
+import asyncio
+import os
+from lightrag import LightRAG, QueryParam
+from lightrag.llm.openai import openai_complete_if_cache, openai_embed
+from lightrag.utils import EmbeddingFunc
+from dotenv import load_dotenv
+from sentence_transformers import SentenceTransformer
+load_dotenv()
+
+WORKING_DIR = 'light_test'
+os.makedirs(WORKING_DIR, exist_ok=True)
+
+# 嵌入模型（本地 BGE）
+model = SentenceTransformer(r&quot;D:\LLM\Local_model\BAAI\bge-large-zh-v1___5&quot;)
+
+async def llm_func(prompt, system_prompt=None, history_messages=[], **kwargs):
+    return await openai_complete_if_cache(
+        model=&quot;qwen-plus-latest&quot;,
+        prompt=prompt,
+        system_prompt=system_prompt,
+        api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+        base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;),
+        history_messages=history_messages,
+        **kwargs,
+    )
+
+async def embed_func(texts):
+    return model.encode(texts).tolist()
+
+rag = LightRAG(
+    working_dir=WORKING_DIR,
+    llm_model_func=llm_func,
+    embedding_func=EmbeddingFunc(
+        embedding_dim=1024,
+        max_token_size=5000,
+        func=embed_func,
+    ),
+)
+
+# 插入文本
+with open(&quot;西游记.txt&quot;, &quot;r&quot;, encoding=&quot;utf-8&quot;) as f:
+    rag.insert(f.read())
+
+# 双层检索：low-level（精确实体）vs high-level（全局主题）
+print(rag.query(&quot;孙悟空的师父是谁？&quot;, param=QueryParam(mode=&quot;low_level&quot;)))
+print(rag.query(&quot;西游记讲的是什么样的故事？&quot;, param=QueryParam(mode=&quot;high_level&quot;)))
+</code></pre>
+<p><strong>双层检索的核心价值</strong>：<br />
+- <code>low_level</code>：命中具体实体，回答"谁是谁"的精确问题<br />
+- <code>high_level</code>：走图的 2–3 跳邻居，回答"整体讲了什么"的全局问题</p>
+<hr />
+<h2 id="五rag-评估day11day12">五、RAG 评估（day11–day12）</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.1 RAGAS 最小评估脚本（day12 核心）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>RAGAS 是 RAG 社区事实标准的评估框架，自动算四个指标：上下文精确率/召回率 + 答案忠诚度/相关性</li></ul></div>3
+<p>RAGAS 是 RAG 社区事实标准的评估框架，自动算四个指标：<strong>上下文精确率/召回率 + 答案忠诚度/相关性</strong>。</p>
+<pre><code class="language-python"># 来源：day12/源码/01-ragas评估.py
+import os
+from datasets import Dataset
+from dotenv import load_dotenv
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.document_loaders import WebBaseLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_classic.retrievers import ParentDocumentRetriever
+from langchain_core.stores import InMemoryStore
+from langchain_chroma import Chroma
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableMap
+from langchain_core.output_parsers import StrOutputParser
+from langchain_openai import ChatOpenAI
+load_dotenv()
+
+# ① 准备 RAG 系统（父子索引 + 百度百科恐龙词条）
+bge = HuggingFaceEmbeddings(model_name=r&quot;D:\LLM\Local_model\BAAI\bge-large-zh-v1___5&quot;)
+
+loader = WebBaseLoader(
+    &quot;https://baike.baidu.com/item/%E6%81%90%E9%BE%99/139019&quot;,
+    header_template={&quot;User-Agent&quot;: &quot;Mozilla/5.0 ... Chrome/145.0.0.0 Safari/537.36&quot;},
+)
+docs = loader.load()
+
+parent_splitter = RecursiveCharacterTextSplitter(chunk_size=1000)
+child_splitter  = RecursiveCharacterTextSplitter(chunk_size=400)
+vectorstore = Chroma(collection_name=&quot;split_parents&quot;, embedding_function=bge)
+retriever = ParentDocumentRetriever(
+    vectorstore=vectorstore,
+    docstore=InMemoryStore(),
+    child_splitter=child_splitter,
+    parent_splitter=parent_splitter,
+    search_kwargs={&quot;k&quot;: 2},
+)
+retriever.add_documents(docs)
+
+chat = ChatOpenAI(
+    model=&quot;qwen-plus&quot;,
+    api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+    base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;),
+)
+
+prompt = ChatPromptTemplate.from_template(
+    &quot;你是负责回答问题的助手。使用以下检索到的上下文片段来回答问题。&quot;
+    &quot;如果你不知道答案，就说你不知道。最多用两句话，回答要简明扼要。\n&quot;
+    &quot;Question: {question}\nContext: {context}\nAnswer:&quot;
+)
+chain = RunnableMap({
+    &quot;context&quot;: lambda x: retriever.invoke(x[&quot;question&quot;]),
+    &quot;question&quot;: lambda x: x[&quot;question&quot;],
+}) | prompt | chat | StrOutputParser()
+
+# ② 准备评测集：10 个问题 + 人工标注的 ground_truth
+questions = [
+    &quot;恐龙是怎么被命名的？&quot;,
+    &quot;恐龙怎么分类的？&quot;,
+    &quot;体型最大的是哪种恐龙?&quot;,
+    &quot;体型最长的是哪种恐龙？它在哪里被发现？&quot;,
+    &quot;恐龙采样什么样的方式繁殖？&quot;,
+    &quot;恐龙是冷血动物吗？&quot;,
+    &quot;陨石撞击是导致恐龙灭绝的原因吗？&quot;,
+    &quot;恐龙是在什么时候灭绝的？&quot;,
+    &quot;鳄鱼是恐龙的近亲吗？&quot;,
+    &quot;恐龙在英语中叫什么？&quot;,
+]
+ground_truths = [
+    &quot;1841年，英国科学家理查德·欧文在研究几块样子像蜥蜴骨头化石时，认为它们是某种史前动物留下来的，并命名为恐龙，意思是'恐怖的蜥蜴'。&quot;,
+    &quot;恐龙可分为鸟类和非鸟恐龙。&quot;,
+    &quot;以恐龙作为标准来看，蜥脚下目是其中的巨无霸。&quot;,
+    &quot;最长的恐龙是27米长的梁龙，是在1907年发现于美国怀俄明州。&quot;,
+    &quot;恐龙采样产卵、孵蛋的方式繁殖。&quot;,
+    &quot;恐龙是介于冷血和温血之间的动物。&quot;,
+    &quot;真实灭绝原因是当时恐龙处于较脆弱的生态系统中，环境剧变易导致灭绝。&quot;,
+    &quot;恐龙灭绝的时间是在距今约6500万年前。&quot;,
+    &quot;鳄鱼是另一群恐龙的现代近亲，但两者关系较非鸟恐龙与鸟类远。&quot;,
+    &quot;1842年，英国古生物学家理查德·欧文创建了'dinosaur'这一名词。&quot;,
+]
+
+# ③ 跑 RAG，收集 answer 和 contexts
+answers, contexts = [], []
+for q in questions:
+    answers.append(chain.invoke({&quot;question&quot;: q}))
+    contexts.append([d.page_content for d in retriever.invoke(q)])
+
+# ④ 组装成 RAGAS Dataset
+data_samples = {
+    &quot;question&quot;: questions,
+    &quot;answer&quot;: answers,
+    &quot;contexts&quot;: contexts,
+    &quot;ground_truth&quot;: ground_truths,
+}
+dataset = Dataset.from_dict(data_samples)
+
+# ⑤ 评估
+from ragas import evaluate
+from ragas.metrics import (
+    faithfulness, answer_relevancy, context_recall, context_precision,
+)
+result = evaluate(
+    dataset,
+    metrics=[context_precision, context_recall, faithfulness, answer_relevancy],
+    llm=chat,
+    embeddings=bge,
+)
+df = result.to_pandas()
+print(df)
+df.to_csv('ragas_reval.csv', index=True)
+</code></pre>
+<p><strong>四个指标的含义</strong>（这是 RAG 调优的诊断罗盘）：</p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>衡量什么</th>
+<th>低了怎么办</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>context_precision</strong></td>
+<td>检索回来的上下文里，相关的排前面没有</td>
+<td>调 top-k、换 embedding、加 RRF 重排</td>
+</tr>
+<tr>
+<td><strong>context_recall</strong></td>
+<td>答案需要的上下文有没有都被检索回来</td>
+<td>加 chunk_overlap、用父子索引、MultiQuery</td>
+</tr>
+<tr>
+<td><strong>faithfulness</strong></td>
+<td>答案是不是都基于上下文（不胡编）</td>
+<td>Prompt 加"不要编造"、降 temperature</td>
+</tr>
+<tr>
+<td><strong>answer_relevancy</strong></td>
+<td>答案是不是切题（没答非所问）</td>
+<td>换更强 LLM、优化 prompt</td>
+</tr>
+</tbody>
+</table>
+<p><strong>工作流</strong>：改一个环节 → 跑一次 RAGAS → 看哪个指标变了 → 定位问题。不要凭感觉调。</p>
+<hr />
+<h2 id="六实战项目智能文档检索助手day13day14">六、实战项目：智能文档检索助手（day13–day14）</h2>2
+<p>完整的生产级 RAG 应用，Streamlit 前端 + MySQL 元数据 + Chroma 双向量库（父/子分离）+ 上下文压缩。项目结构：</p>
+<pre><code>rag_objec/
+├── app.py                      # Streamlit 前端（557 行）
+├── config/config.py            # 环境配置
+└── core/
+    ├── database.py             # MySQL ORM（documents/parent_chunks/child_chunks/chat_history）
+    ├── document_processor.py   # 文档加载 + 父子切分
+    ├── vector_store.py         # Chroma 双库 + 上下文压缩
+    └── rag_system.py           # RAG 主链 + 普通对话
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.1 配置模块 （day14）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-python"># 来源：day14/源码/rag_objec/config/config.py
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+class Config:
+    OPENAI_API_KEY = os.getenv(&quot;DASHSCOPE_API_KEY&quot;)
+    OPENAI_BASE_URL = os.getenv(&quot;DASHSCOPE_BASE_URL&quot;)
+
+    MYSQL_HOST = os.getenv(&quot;MYSQL_HOST&quot;, &quot;localhost&quot;)
+    MYSQL_PORT = int(os.getenv(&quot;MYSQL_PORT&quot;, 3306))
+    MYSQL_USER = os.getenv(&quot;MYSQL_USER&quot;, &quot;root&quot;)
+    MYSQL_PASSWORD = os.getenv(&quot;MYSQL_PASSWORD&quot;, &quot;root&quot;)
+    MYSQL_DATABASE = os.getenv(&quot;MYSQL_DATABASE&quot;, &quot;rag&quot;)
+
+    CHROMA_PERSIST_DIR = os.getenv(&quot;CHROMA_PERSIST_DIR&quot;, &quot;./chroma_db&quot;)
+
+    CHUNK_SIZE = int(os.getenv(&quot;CHUNK_SIZE&quot;, 1000))
+    CHUNK_OVERLAP = int(os.getenv(&quot;CHUNK_OVERLAP&quot;, 200))
+    TOP_K = int(os.getenv(&quot;TOP_K&quot;, 5))
+</code></pre>
+<hr />
+<h3 id="62-文档加载-父子切分day14">6.2 文档加载 + 父子切分（day14）</h3>3
+<pre><code class="language-python"># 来源：day14/源码/rag_objec/core/document_processor.py
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
+import os, tempfile
+
+class DocumentProcessor:
+    def __init__(self, config):
+        self.config = config
+
+        # 父分割器：大块（2倍 chunk_size），保留语义完整性
+        self.parent_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=config.CHUNK_SIZE * 2,
+            chunk_overlap=config.CHUNK_OVERLAP,
+            separators=[&quot;\n\n&quot;, &quot;\n&quot;, &quot;。&quot;, &quot;！&quot;, &quot;？&quot;],
+        )
+        # 子分割器：小块（1/2 chunk_size），用于精确向量匹配
+        self.child_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=config.CHUNK_SIZE // 2,
+            chunk_overlap=config.CHUNK_OVERLAP // 2,
+            separators=[&quot;\n&quot;, &quot;。&quot;, &quot;！&quot;, &quot;？&quot;, &quot;.&quot;, &quot;!&quot;, &quot;?&quot;, &quot; &quot;],
+        )
+
+    def load_document(self, uploaded_file):
+        # Streamlit 上传的文件先落到临时盘
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f&quot;.{uploaded_file.name.split('.')[-1]}&quot;) as tmp:
+            tmp.write(uploaded_file.getvalue())
+            tmp_path = tmp.name
+        try:
+            if uploaded_file.name.endswith('.pdf'):
+                loader = PyPDFLoader(tmp_path)
+            elif uploaded_file.name.endswith('.docx'):
+                loader = Docx2txtLoader(tmp_path)
+            elif uploaded_file.name.endswith('.txt'):
+                loader = TextLoader(tmp_path, encoding='utf-8')
+            else:
+                raise ValueError(f&quot;不支持的文件类型: {uploaded_file.name}&quot;)
+            return loader.load()
+        finally:
+            os.unlink(tmp_path)
+
+    def create_parent_child_chunks(self, documents, fileName):
+        parent_docs = self.parent_splitter.split_documents(documents)
+        child_docs = []
+        for i, parent_doc in enumerate(parent_docs):
+            parent_id = f&quot;{fileName}_parent_{i}&quot;
+            parent_doc.metadata['parent_id'] = parent_id
+            parent_doc.metadata['doc_type'] = 'parent'
+
+            # 从每个父文档再切出子文档
+            child_chunks = self.child_splitter.split_documents([parent_doc])
+            for j, child_doc in enumerate(child_chunks):
+                child_doc.metadata['parent_id'] = parent_id
+                child_doc.metadata['child_id'] = f&quot;child_{i}_{j}&quot;
+                child_doc.metadata['doc_type'] = 'child'
+                child_docs.append(child_doc)
+        return parent_docs, child_docs
+</code></pre>
+<p><strong>设计要点</strong>：<br />
+- 父分割器 separator 优先 <code>\n\n</code>（段落），保证父块语义完整<br />
+- 子分割器 separator 到句子级，保证子块向量聚焦<br />
+- 每个 chunk 带 <code>parent_id</code> 元数据，后续可双向追溯</p>
+<hr />
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.3 双向量库 + 上下文压缩（day14）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-python"># 来源：day14/源码/rag_objec/core/vector_store.py
+import chromadb
+from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_classic.retrievers import ContextualCompressionRetriever
+from langchain_classic.retrievers.document_compressors import LLMChainExtractor
+from langchain_openai import ChatOpenAI
+
+class VectorStore:
+    def __init__(self, config):
+        self.config = config
+        self.embeddings = HuggingFaceEmbeddings(
+            model_name=r&quot;D:\llm\Local_model\BAAI\bge-large-zh-v1___5&quot;
+        )
+        self.chroma_client = chromadb.PersistentClient(path=config.CHROMA_PERSIST_DIR)
+
+        # 双集合：父、子分开存
+        self.parent_vectorstore = Chroma(
+            client=self.chroma_client, collection_name=&quot;parent_documents&quot;,
+            embedding_function=self.embeddings,
+        )
+        self.child_vectorstore = Chroma(
+            client=self.chroma_client, collection_name=&quot;child_documents&quot;,
+            embedding_function=self.embeddings,
+        )
+
+        # 上下文压缩器：检索后让 LLM 从每个 chunk 里只抽取相关句子
+        self.llm = ChatOpenAI(
+            api_key=config.OPENAI_API_KEY,
+            base_url=config.OPENAI_BASE_URL,
+            model=&quot;qwen-plus-2025-04-28&quot;,
+            temperature=0,
+        )
+        self.compressor = LLMChainExtractor.from_llm(self.llm)
+
+    def add_documents(self, parent_docs, child_docs, document_id):
+        for doc in parent_docs + child_docs:
+            doc.metadata['document_id'] = str(document_id)
+        parent_ids = self.parent_vectorstore.add_documents(parent_docs)
+        child_ids = self.child_vectorstore.add_documents(child_docs)
+        return parent_ids, child_ids
+
+    def create_retriever(self, use_compression=True, document_ids=None):
+        search_kwargs = {&quot;k&quot;: self.config.TOP_K * 2}
+        # 按用户勾选的文档过滤（多文档隔离）
+        if document_ids:
+            search_kwargs[&quot;filter&quot;] = {&quot;document_id&quot;: {&quot;$in&quot;: [str(id) for id in document_ids]}}
+
+        child_retriever = self.child_vectorstore.as_retriever(search_kwargs=search_kwargs)
+
+        if use_compression:
+            return ContextualCompressionRetriever(
+                base_compressor=self.compressor,
+                base_retriever=child_retriever,
+            )
+        return child_retriever
+
+    def get_parent_documents(self, child_docs):
+        # 用子文档的 parent_id 元数据，回父向量库取对应父块
+        parent_ids = {doc.metadata['parent_id'] for doc in child_docs if 'parent_id' in doc.metadata}
+        if not parent_ids:
+            return []
+        parent_docs = []
+        for pid in parent_ids:
+            results = self.parent_vectorstore.get(where={&quot;parent_id&quot;: pid})
+            if results['documents']:
+                parent_docs.append(results['documents'][0])
+        return parent_docs
+</code></pre>
+<p><strong>生产级设计要点</strong>：<br />
+1. <strong>父子双库</strong>：子库做精确匹配（k=10），父库提供完整上下文<br />
+2. <strong><code>document_id</code> 过滤</strong>：用户勾选哪些文档就只在哪些文档里检索，多租户隔离<br />
+3. <strong>ContextualCompressionRetriever</strong>：先召回 10 个 child chunk，让 LLM 从每个 chunk 里抽相关句，再喂给生成模型。token 消耗降 60%，答案更聚焦</p>
+<hr />
+<h3 id="64-rag-主链day14">6.4 RAG 主链（day14）</h3>3
+<pre><code class="language-python"># 来源：day14/源码/rag_objec/core/rag_system.py
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import PromptTemplate
+import uuid
+
+class RAGSystem:
+    def __init__(self, config, db_manager, vector_store):
+        self.config = config
+        self.db_manager = db_manager
+        self.vector_store = vector_store
+
+        self.llm = ChatOpenAI(
+            api_key=config.OPENAI_API_KEY,
+            base_url=config.OPENAI_BASE_URL,
+            model=&quot;qwen-plus-2025-04-28&quot;,
+            temperature=0.7,
+            streaming=True,
+        )
+
+        # RAG Prompt：三件套（上下文 + 历史 + 问题）
+        self.rag_prompt = PromptTemplate(
+            template=&quot;&quot;&quot;你是一个智能助手。请基于以下上下文信息回答用户的问题。如果上下文中没有相关信息，请诚实地说明。
+
+上下文信息:
+{context}
+
+历史对话:
+{chat_history}
+
+用户问题: {question}
+
+请提供准确、有帮助的回答:&quot;&quot;&quot;,
+            input_variables=[&quot;context&quot;, &quot;chat_history&quot;, &quot;question&quot;],
+        )
+
+    def generate_session_id(self):
+        return str(uuid.uuid4())
+
+    def chat_with_documents(self, question, document_ids, session_id):
+        try:
+            # ① 检索（带子文档压缩）
+            retriever = self.vector_store.create_retriever(
+                use_compression=True, document_ids=document_ids,
+            )
+            retrieved_docs = retriever.invoke(question)
+
+            # ② 用子文档的 parent_id 拿回父文档（提供完整上下文）
+            parent_docs = self.vector_store.get_parent_documents(retrieved_docs)
+            context = &quot;\n\n&quot;.join(parent_docs)
+
+            # ③ 历史只取最近 3 轮（控 token）
+            chat_history = self.db_manager.get_chat_history(session_id)
+            history_text = &quot;\n&quot;.join([
+                f&quot;用户: {c.user_message}\n助手: {c.assistant_message}&quot;
+                for c in chat_history[-3:]
+            ])
+
+            # ④ 填 prompt 生成
+            full_prompt = self.rag_prompt.format(
+                context=context, chat_history=history_text, question=question,
+            )
+            answer = self.llm.invoke(full_prompt).content
+
+            # ⑤ 存历史
+            self.db_manager.save_chat_history(
+                session_id=session_id,
+                user_message=question,
+                assistant_message=answer,
+                document_ids=&quot;,&quot;.join(map(str, document_ids)),
+            )
+            return answer, retrieved_docs
+
+        except Exception as e:
+            return f&quot;RAG对话出错: {e}&quot;, []
+
+    def normal_chat(self, question, session_id):
+        # 无文档的纯对话，历史取最近 5 轮
+        chat_history = self.db_manager.get_chat_history(session_id)
+        messages = []
+        for c in chat_history[-5:]:
+            messages.append(f&quot;Human: {c.user_message}&quot;)
+            messages.append(f&quot;Assistant: {c.assistant_message}&quot;)
+        messages.append(f&quot;Human: {question}&quot;)
+        response = self.llm.invoke(&quot;\n&quot;.join(messages) + &quot;\nAssistant:&quot;)
+        self.db_manager.save_chat_history(session_id, question, response.content)
+        return response.content
+</code></pre>
+<hr />
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.5 MySQL 表结构（day14）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-python"># 来源：day14/源码/rag_objec/core/database.py（精简）
+from sqlalchemy import (create_engine, Column, Integer, String, DateTime,
+                        Boolean, ForeignKey, Index, Text)
+from sqlalchemy.dialects.mysql import MEDIUMTEXT
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+from datetime import datetime
+
+Base = declarative_base()
+
+class Document(Base):
+    __tablename__ = 'documents'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    filename = Column(String(255), nullable=False)
+    content = Column(MEDIUMTEXT, nullable=False)
+    chunk_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.now())
+    is_active = Column(Boolean, default=True)
+
+    parent_chunks = relationship(&quot;ParentChunk&quot;, back_populates=&quot;document&quot;,
+                                  cascade=&quot;all, delete-orphan&quot;)
+    child_chunks = relationship(&quot;ChildChunk&quot;, back_populates=&quot;document&quot;,
+                                 cascade=&quot;all, delete-orphan&quot;)
+
+class ParentChunk(Base):
+    __tablename__ = 'parent_chunks'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    document_id = Column(Integer, ForeignKey('documents.id'))
+    parent_id = Column(String(100), unique=True)
+    content = Column(Text, nullable=False)
+    vector_id = Column(String(100))   # 对应 Chroma 中的向量 ID
+
+    document = relationship(&quot;Document&quot;, back_populates=&quot;parent_chunks&quot;)
+    child_chunks = relationship(&quot;ChildChunk&quot;, back_populates=&quot;parent_chunk&quot;,
+                                cascade=&quot;all, delete-orphan&quot;)
+
+    __table_args__ = (
+        Index('idx_parent_document_id', 'document_id'),
+        Index('idx_parent_id', 'parent_id'),
+    )
+
+class ChildChunk(Base):
+    __tablename__ = 'child_chunks'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    document_id = Column(Integer, ForeignKey('documents.id'))
+    parent_chunk_id = Column(Integer, ForeignKey('parent_chunks.id'))
+    child_id = Column(String(100))
+    content = Column(Text)
+    vector_id = Column(String(100))
+
+    document = relationship(&quot;Document&quot;, back_populates=&quot;child_chunks&quot;)
+    parent_chunk = relationship(&quot;ParentChunk&quot;, back_populates=&quot;child_chunks&quot;)
+
+class ChatHistory(Base):
+    __tablename__ = 'chat_history'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(64), index=True)
+    user_message = Column(Text)
+    assistant_message = Column(Text)
+    document_ids = Column(String(255))
+    created_at = Column(DateTime, default=datetime.now())
+</code></pre>
+<p><strong>设计核心</strong>：MySQL 存结构化元数据（哪个文档、哪个 chunk、对应 Chroma 的 vector_id），Chroma 存向量本身。两边通过 <code>vector_id</code> 和 <code>document_id</code> 互相对齐。</p>
+<hr />
+<h3 id="66-streamlit-前端入口day14精简">6.6 Streamlit 前端入口（day14，精简）</h3>3
+<pre><code class="language-python"># 来源：day14/源码/rag_objec/app.py（精简关键逻辑）
+import streamlit as st
+from config.config import Config
+from core.database import DatabaseManager
+from core.document_processor import DocumentProcessor
+from core.vector_store import VectorStore
+from core.rag_system import RAGSystem
+
+@st.cache_resource  # 关键：系统组件只初始化一次（类似单例）
+def init_system():
+    config = Config()
+    return (config, DatabaseManager(config), DocumentProcessor(config),
+            VectorStore(config), RAGSystem(config, DatabaseManager(config), VectorStore(config)))
+
+def upload_and_process(uploaded_file, doc_processor, vector_store, db_manager):
+    documents = doc_processor.load_document(uploaded_file)
+    parent_docs, child_docs = doc_processor.create_parent_child_chunks(documents, uploaded_file.name)
+    parent_ids, child_ids = vector_store.add_documents(parent_docs, child_docs, 0)
+
+    doc_id = db_manager.save_document_with_chunks(
+        filename=uploaded_file.name,
+        content=&quot;\n&quot;.join(d.page_content for d in documents),
+        parent_docs=parent_docs, child_docs=child_docs,
+        parent_vector_ids=parent_ids, child_vector_ids=child_ids,
+    )
+    # 回写 document_id 元数据到 Chroma
+    for doc, vid in zip(parent_docs, parent_ids):
+        doc.metadata['document_id'] = str(doc_id)
+    vector_store.parent_vectorstore.update_documents(ids=parent_ids, documents=parent_docs)
+
+def main():
+    config, db, doc_pro, vs, rag = init_system()
+
+    with st.sidebar:
+        uploaded = st.file_uploader(&quot;上传文档&quot;, type=['pdf', 'docx', 'txt'],
+                                     accept_multiple_files=True)
+        # 文档列表 + 多选过滤
+        docs = db.get_all_documents()
+        selected = st.multiselect(&quot;选择知识源&quot;, options=[d.filename for d in docs])
+
+    if prompt := st.chat_input(&quot;输入你的问题...&quot;):
+        st.chat_message(&quot;user&quot;).write(prompt)
+        with st.chat_message(&quot;assistant&quot;):
+            if selected:
+                answer, retrieved = rag.chat_with_documents(prompt, selected, &quot;session_1&quot;)
+                st.write(answer)
+                with st.expander(&quot;📚 参考来源&quot;):
+                    for d in retrieved:
+                        st.write(d.page_content[:200])
+            else:
+                st.write(rag.normal_chat(prompt, &quot;session_1&quot;))
+
+if __name__ == '__main__':
+    main()
+</code></pre>
+<p>启动：<code>streamlit run app.py</code></p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">八、运行验证 Checklist</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>2. ✅ 本地 BGE 模型路径：「D:\LLM\Local_model\BAAI\bge-large-zh-v1___5」（或换成线上 「text-embedding-v3」）</li><li>3. ✅ Neo4j 5.x 已启动，APOC 插件装好（用 GraphRAG 章节才需要）</li><li>6. ✅ 跑 day02 最小版 → day07 父子索引 → day14 实战项目，逐个验证</li></ul></div>2
+<p>按本章节代码从 0 跑通一个生产级 RAG，需要：</p>
+<ol>
+<li>✅ <code>.env</code> 配齐：<code>DASHSCOPE_API_KEY</code> / <code>DASHSCOPE_BASE_URL</code> / <code>MYSQL_*</code> / <code>LANGSMITH_API_KEY</code></li>
+<li>✅ 本地 BGE 模型路径：<code>D:\LLM\Local_model\BAAI\bge-large-zh-v1___5</code>（或换成线上 <code>text-embedding-v3</code>）</li>
+<li>✅ Neo4j 5.x 已启动，APOC 插件装好（用 GraphRAG 章节才需要）</li>
+<li>✅ MySQL 建好库：<code>CREATE DATABASE rag DEFAULT CHARSET utf8mb4;</code></li>
+<li>✅ Chroma 持久化目录可写</li>
+<li>✅ 跑 day02 最小版 → day07 父子索引 → day14 实战项目，逐个验证</li>
+<li>✅ 用 day12 RAGAS 脚本跑一遍，四个指标都在 0.7+ 才算合格</li>
+</ol>
+<hr />
+<blockquote>
+<p>本章节代码均来自飞书 2603 期柏汌老师 RAG 应用开发篇课件（day01–day14），按知识图谱导航整理成 L4 章实操库。每个代码块标注了原始 day 号和文件路径，方便回溯。</p>
+</blockquote>
+<h2 id="九llamaindex-实操补缺2605-期-day04">九、LlamaIndex 实操补缺（2605 期 day04）</h2>2
+<p>以上 day01–day14 是 LangChain 路线。LlamaIndex 路线（节点、分割器、存储、索引）来自另一期课件，完整代码、实测结论和坑见专页 <strong><a href="LlamaIndex%E5%AE%9E%E6%93%8D-%E8%8A%82%E7%82%B9%E5%88%86%E5%89%B2%E5%99%A8%E5%AD%98%E5%82%A8%E7%B4%A2%E5%BC%95.html">LlamaIndex实操-节点分割器存储索引</a></strong>。要点速览：</p>
+<ul>
+<li>据[课件]：2605期llama_index（01/03/test.py）：<code>SentenceSplitter</code> 默认 <code>chunk_size=1024, chunk_overlap=200</code>，单位是 <strong>token</strong> 不是字符；本页 §1.1 的 <code>RecursiveCharacterTextSplitter(chunk_size=100)</code> 是字符，两边参数不能照搬。</li>
+<li>据[课件]：2605期llama_index（05–10）：<code>StorageContext</code> 把存储拆成 docstore / vector_store / index_store 三块，课件分别演示内存、Mongo、Chroma、Redis 后端和 <code>persist</code> / <code>load_index_from_storage</code>。</li>
+<li>据[课件]：2605期llama_index（08/10，本机实测补充）：向量库用 Chroma 时 docstore 默认为空，依赖 docstore 的功能要加 <code>store_nodes_override=True</code>。</li>
+<li>据[课件]：2605期llama_index（笔记.md）：选分割尺寸的流程是 先看文档结构和知识单元 → 候选 384/512/768/1024、重叠 10%–20% → 100 问题只改尺寸对比准确率/召回/token/耗时，与上文 §1.1 的"参数怎么调"互补。</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">怎么用（源码框架与技术栈）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<p>课件代码（day01–day14，LangChain/LlamaIndex/Neo4j/Streamlit/MySQL）是学习样本；落到本库生产管线时对照这张"课件 → 真实实现"映射表：</p>
+<table>
+<thead>
+<tr>
+<th>课件章节</th>
+<th>课件技术栈</th>
+<th>本库真实实现（<code>rag/</code>）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>day01–02 文档切分/向量库</td>
+<td><code>RecursiveCharacterTextSplitter(1000,200)</code>、Chroma <code>PersistentClient</code></td>
+<td><code>ingest.py::split_file()</code>（MarkdownHeaderTextSplitter H1–H3 + <code>_md_fine_splitter</code> 800/100）+ <code>chromadb.PersistentClient(path=CONFIG["index"]["dir"])</code>，collection <code>wuyafang_kb</code></td>
+</tr>
+<tr>
+<td>day01 Embedding</td>
+<td>在线 API vs 本地 BGE</td>
+<td><code>ingest.py::encode_with_sparse()</code>（BGEM3FlagModel，dense 1024 维 + sparse，<code>RAG_EMBED_BATCH=4</code>）；查询侧 <code>query.py::_get_m3_model()</code> 单实例</td>
+</tr>
+<tr>
+<td>day02 手写 RAG</td>
+<td>固定字符滑窗 + 余弦 top-k</td>
+<td><code>query.py::retrieve()</code>（<code>col.query(query_embeddings=[qvec], n_results=...)</code>）+ <code>retrieve_hybrid()</code>（RRF）</td>
+</tr>
+<tr>
+<td>day07 父子索引</td>
+<td><code>ParentDocumentRetriever</code></td>
+<td><code>split_parent_chunks()</code> 800/100 + metadata <code>parent_text</code>（生成侧回灌，检索侧用子块）</td>
+</tr>
+<tr>
+<td>day08 混合检索/RAG-Fusion</td>
+<td>BM25+向量、<code>1/(rank+k)</code> RRF</td>
+<td><code>query.py::rrf_fuse(rank_lists, k=CONFIG["retrieval"]["rrf_k"])</code>（<code>rrf_k: 60</code>）+ bge-m3 sparse（<code>sparse_score()</code>）</td>
+</tr>
+<tr>
+<td>day10 GraphRAG</td>
+<td>Neo4j + <code>GraphCypherQAChain</code></td>
+<td><code>query.py::_build_graph_context()</code>/<code>_load_wiki_graph()</code>/<code>_linked_chunk_hits()</code>（<code>rag/graph/entities.json</code>+<code>relations.json</code>+<code>entity_chunk_links.json</code>，由 <code>build_wiki_graph.py</code>/<code>link_ontology_chunks.py</code> 产出）</td>
+</tr>
+<tr>
+<td>day12 RAGAS 评估</td>
+<td>ragas 四指标</td>
+<td><code>rag/eval_ragas.py</code>（<code>import query</code> 复用生产管线，产出 <code>eval_ragas_report.csv</code>）</td>
+</tr>
+<tr>
+<td>2605 期 day04 LlamaIndex（节点/分割器/Chroma 存储）</td>
+<td><code>SentenceSplitter</code>、<code>ChromaVectorStore</code> + <code>VectorStoreIndex.from_vector_store</code></td>
+<td><code>rag/query_llamaindex.py</code>（读 <code>wuyafang_kb</code>，只读）；详见 <a href="LlamaIndex%E5%AE%9E%E6%93%8D-%E8%8A%82%E7%82%B9%E5%88%86%E5%89%B2%E5%99%A8%E5%AD%98%E5%82%A8%E7%B4%A2%E5%BC%95.html">LlamaIndex实操</a> §四</td>
+</tr>
+<tr>
+<td>day14 实战项目</td>
+<td>Streamlit + MySQL + 双向量库</td>
+<td><code>rag/serve.py</code>（FastAPI+uvicorn，OpenAI 兼容端点）+ <code>rag/mcp_server.py</code>（stdio MCP，<code>query_knowledge</code>）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>运行验证</strong>（对照课件 Checklist 的本库版本）：</p>
+<pre><code class="language-bash">source ~/ai-stack/bin/activate
+cd /mnt/c/MyData/Documents/wuyafang-l
+python rag/query.py &quot;chunk大小怎么选&quot; --no-gen --explain   # 看五段链路日志
+python3 rag/eval/eval_recall_fast.py --check-golden         # exit=0
+python3 rag/eval_ragas.py                                   # 四指标 ≥ 基线
+</code></pre>
+<p>课件教法与本库的已知差异（实测）：课件主力 <code>RecursiveCharacterTextSplitter(1000,200)</code>，本库 <code>.md</code> 主路径按标题切（chunk 数约纯递归切法 45%）；<code>MarkdownHeaderTextSplitter</code> 不识别代码围栏，代码密集课件会切出以代码片段开头的块——对齐课件可把 <code>split_file()</code> 的 <code>.md</code> 分支换成课件参数，<code>split_parent_chunks()</code> 保持不动。</p>
+<blockquote>
+<p>三段结构补齐 2026-11-03</p>
+</blockquote>
+<h2 id="本库真实落地">本库真实落地</h2>2
+<blockquote>
+<p>本节 2026-11-05 补写，逐条核验路径与函数名（可 grep 复核），不复述正文课件代码。</p>
+</blockquote>
+<ul>
+<li><strong>课件每段实操在本库的对应入口（正文表格已列，这里给函数级落点）</strong>：</li>
+<li>切分/embedding/写入：<code>rag/ingest.py</code> <code>split_file()</code>（L587，<code>.md</code> 走标题原子切 <code>_atomic_split()</code> L497）、<code>encode_with_sparse()</code>（L286，bge-m3 同时出 dense+sparse）、<code>main()</code>（L1100，registry sha256+bge_version 双条件 skip）。</li>
+<li>检索/生成：<code>rag/query.py</code> <code>retrieve_hybrid()</code>（L867）→ <code>rrf_fuse()</code>（L428）→ <code>rerank()</code>（L890）→ <code>gate_node()</code>（L2245）→ <code>generate_node()</code>（L2378）；LlamaIndex 版对照实现是 <code>rag/query_llamaindex.py</code> <code>build_llama_index()</code>（L73，按课件 day06 的 Settings+ChromaVectorStore 姿势）。</li>
+<li>服务化：<code>rag/serve.py</code> <code>chat_completions()</code>（L323，OpenAI 兼容端点）、<code>rag/mcp_server.py</code> <code>query_knowledge()</code>（L167，stdio MCP 工具）。</li>
+<li>评测：<code>rag/eval_ragas.py</code> <code>build_dataset()</code>（L58）、<code>rag/eval/eval_recall_fast.py</code>（<code>check_golden()</code> L70 先验尺子）。</li>
+<li><strong>和课件教法的差异（正文已述，此处固化为落点）</strong>：课件主力 <code>RecursiveCharacterTextSplitter(1000,200)</code>，本库 <code>.md</code> 主路径按标题切（<code>split_file()</code> 的 <code>.md</code> 分支），chunk 数约纯递归切法 45%；对齐课件只换 <code>split_file()</code> 参数，<code>split_parent_chunks()</code>（L645）不动。</li>
+</ul></div></details></div></body></html>

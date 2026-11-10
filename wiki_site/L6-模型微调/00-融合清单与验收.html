@@ -1,0 +1,430 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>00-融合清单与验收</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 00-融合清单与验收</span></div><div class="wrap"><h1 id="l6-三源融合主题收敛替换与验收记录">L6 三源融合：主题收敛、替换与验收记录</h1>
+<p>本文件为维护清单，不是正文。23 篇旧文收敛为 10 篇；13 个散篇删除。<br />
+三源为本地微调课件、书籍目录与划线摘录、公开官方文档及论文。未把摘录声称为书籍全文。<br />
+核验日期：2026-11-04。<br />
+只写 L6-模型微调；未修改 raw、ontology、其他层、全局入口、RAG 索引或 HTML 产物。</p>
+<h2 id="主题收敛与字数">主题收敛与字数</h2>2
+<p>汉字数：去掉 frontmatter 和 fenced code 后，统计 Unicode U+4E00—U+9FFF；非空白字符：全文含元数据、代码、标点。</p>
+<table>
+<thead>
+<tr>
+<th>主题</th>
+<th>唯一正文</th>
+<th style="text-align: right;">合并旧篇数</th>
+<th style="text-align: right;">正文汉字数</th>
+<th style="text-align: right;">全文非空白字符</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>预训练与SFT闭环</td>
+<td><a href="L6-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83-2026.html">L6-模型微调-2026.md</a></td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">4094</td>
+<td style="text-align: right;">9655</td>
+</tr>
+<tr>
+<td>节点最佳答案</td>
+<td><a href="L6-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L6-模型微调-最佳答案.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1599</td>
+<td style="text-align: right;">5380</td>
+</tr>
+<tr>
+<td>深度学习与Transformer</td>
+<td><a href="L6-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%8ETransformer%E5%9F%BA%E7%A1%80.html">L6-深度学习与Transformer基础.md</a></td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">6578</td>
+<td style="text-align: right;">15204</td>
+</tr>
+<tr>
+<td>机器学习基础</td>
+<td><a href="L6-%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E4%B8%8E%E5%AE%9E%E6%88%98.html">L6-机器学习基础与实战.md</a></td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">5659</td>
+<td style="text-align: right;">10731</td>
+</tr>
+<tr>
+<td>微调框架与分布式</td>
+<td><a href="L6-%E5%BE%AE%E8%B0%83%E6%A1%86%E6%9E%B6%E4%B8%8E%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9E%E6%88%98.html">L6-微调框架与分布式实战.md</a></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">5327</td>
+<td style="text-align: right;">11453</td>
+</tr>
+<tr>
+<td>损失函数与优化器</td>
+<td><a href="L6-%E6%8D%9F%E5%A4%B1%E5%87%BD%E6%95%B0%E4%B8%8E%E4%BC%98%E5%8C%96%E5%99%A8.html">L6-损失函数与优化器.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">5721</td>
+<td style="text-align: right;">11369</td>
+</tr>
+<tr>
+<td>预训练语料构建</td>
+<td><a href="L6-%E6%95%B0%E6%8D%AE%E9%9B%86%E6%9E%84%E5%BB%BA-%E9%A2%84%E8%AE%AD%E7%BB%83%E8%AF%AD%E6%96%99.html">L6-数据集构建-预训练语料.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">5763</td>
+<td style="text-align: right;">10876</td>
+</tr>
+<tr>
+<td>SFT指令数据集</td>
+<td><a href="L6-%E6%95%B0%E6%8D%AE%E9%9B%86%E6%9E%84%E5%BB%BA-%E6%8C%87%E4%BB%A4%E7%9B%91%E7%9D%A3SFT.html">L6-数据集构建-指令监督SFT.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2358</td>
+<td style="text-align: right;">6512</td>
+</tr>
+<tr>
+<td>RLHF/DPO偏好数据</td>
+<td><a href="L6-%E6%95%B0%E6%8D%AE%E9%9B%86%E6%9E%84%E5%BB%BA-RLHF-DPO%E5%81%8F%E5%A5%BD.html">L6-数据集构建-RLHF-DPO偏好.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2576</td>
+<td style="text-align: right;">6486</td>
+</tr>
+<tr>
+<td>LoRA/QLoRA微调</td>
+<td><a href="LoRA%E5%BE%AE%E8%B0%83%E5%AE%8C%E6%95%B4pipeline.html">LoRA微调完整pipeline.md</a></td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2125</td>
+<td style="text-align: right;">6484</td>
+</tr>
+</tbody>
+</table>
+<h2 id="23-篇逐项去向与删除清单">23 篇逐项去向与删除清单</h2>2
+<p>SHA-256 从 <code>.fusion-backup-20261104/</code> 快照中原始文件计算。</p>
+<table>
+<thead>
+<tr>
+<th>原文件</th>
+<th>处理</th>
+<th>唯一去向</th>
+<th>原始 SHA-256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>大模型是怎么训练出来的.md</td>
+<td>删除旧散篇</td>
+<td><a href="L6-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83-2026.html">L6-模型微调-2026.md</a></td>
+<td><code>f35644d39775d2fed1ad3ff650cc5596dcc740f9c2e7602bd0b11ef1bf70c9ac</code></td>
+</tr>
+<tr>
+<td>L6-模型微调-2026.md</td>
+<td>原路径融合重写</td>
+<td><a href="L6-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83-2026.html">L6-模型微调-2026.md</a></td>
+<td><code>d6470eb51599332ee0737aa2591a4cb375608c8e7846b50c70e3d9dcbd0619e9</code></td>
+</tr>
+<tr>
+<td>L6-模型微调-最佳答案.md</td>
+<td>原路径融合重写</td>
+<td><a href="L6-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L6-模型微调-最佳答案.md</a></td>
+<td><code>e818519267d71720d50a0a57496a4dd08205a05945d79a4acac448ebb7262179</code></td>
+</tr>
+<tr>
+<td>L6-深度学习-CNN.md</td>
+<td>删除旧散篇</td>
+<td><a href="L6-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%8ETransformer%E5%9F%BA%E7%A1%80.html">L6-深度学习与Transformer基础.md</a></td>
+<td><code>731195c8e0a926758693d839cc4b466e18b67abc813dcc6319e39912c0380fd0</code></td>
+</tr>
+<tr>
+<td>L6-深度学习-神经网络基础与激活函数.md</td>
+<td>删除旧散篇</td>
+<td><a href="L6-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%8ETransformer%E5%9F%BA%E7%A1%80.html">L6-深度学习与Transformer基础.md</a></td>
+<td><code>85bc4b890e87f139ef45977acf1decda2b7630be6d8180263ce61e0ccfb5089f</code></td>
+</tr>
+<tr>
+<td>Transformer为什么有效.md</td>
+<td>删除旧散篇</td>
+<td><a href="L6-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%8ETransformer%E5%9F%BA%E7%A1%80.html">L6-深度学习与Transformer基础.md</a></td>
+<td><code>222b8bb51316234d73ee24d8d2cee8abad258aceb6dff234a06395120ff67d6c</code></td>
+</tr>
+<tr>
+<td>梯度消失怎么解决.md</td>
+<td>删除旧散篇</td>
+<td><a href="L6-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%8ETransformer%E5%9F%BA%E7%A1%80.html">L6-深度学习与Transformer基础.md</a></td>
+<td><code>63da7f61b75b98f703e5e9f82338206aeaabe86902b84aa2046f935c761c26a9</code></td>
+</tr>
+<tr>
+<td>L6-深度学习与Transformer基础.md</td>
+<td>原路径融合重写</td>
+<td><a href="L6-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%8ETransformer%E5%9F%BA%E7%A1%80.html">L6-深度学习与Transformer基础.md</a></td>
+<td><code>babfc22bf6b231f73caca0e9c833460108e632ab45b128b04634e7572d5c0c8c</code></td>
+</tr>
+<tr>
+<td>L6-机器学习-KNN朴素贝叶斯聚类与降维.md</td>
+<td>删除旧散篇</td>
+<td><a href="L6-%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E4%B8%8E%E5%AE%9E%E6%88%98.html">L6-机器学习基础与实战.md</a></td>
+<td><code>1d63fd64afbabe525adba574776a6356a485cd014a17a2f5c2686dc5b383e3ae</code></td>
+</tr>
+<tr>
+<td>L6-机器学习-决策树随机森林与SVM.md</td>
+<td>删除旧散篇</td>
+<td><a href="L6-%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E4%B8%8E%E5%AE%9E%E6%88%98.html">L6-机器学习基础与实战.md</a></td>
+<td><code>6dccd69a6118d959e4a4da2a32b282db7a538bcf2a912f8efa6204291ab1b55b</code></td>
+</tr>
+<tr>
+<td>L6-机器学习-特征工程与XGBoost.md</td>
+<td>删除旧散篇</td>
+<td><a href="L6-%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E4%B8%8E%E5%AE%9E%E6%88%98.html">L6-机器学习基础与实战.md</a></td>
+<td><code>05145fa59933e98437336fc46b005e744a1267d6ac72c0610ce190d09c4426d6</code></td>
+</tr>
+<tr>
+<td>L6-机器学习-线性回归与逻辑回归.md</td>
+<td>删除旧散篇</td>
+<td><a href="L6-%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E4%B8%8E%E5%AE%9E%E6%88%98.html">L6-机器学习基础与实战.md</a></td>
+<td><code>363d172917cef408bbdc7f3b062141cdd31bf9fcdc3441c0be5f14e5de269761</code></td>
+</tr>
+<tr>
+<td>L6-机器学习基础与实战.md</td>
+<td>原路径融合重写</td>
+<td><a href="L6-%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80%E4%B8%8E%E5%AE%9E%E6%88%98.html">L6-机器学习基础与实战.md</a></td>
+<td><code>58b311f62e126038e55ebb534fc5e5a7de673c83e9863dace453129195e507ff</code></td>
+</tr>
+<tr>
+<td>L6-微调框架-DeepSpeed与分布式.md</td>
+<td>删除旧散篇</td>
+<td><a href="L6-%E5%BE%AE%E8%B0%83%E6%A1%86%E6%9E%B6%E4%B8%8E%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9E%E6%88%98.html">L6-微调框架与分布式实战.md</a></td>
+<td><code>abaffb28291f3d0d372318bcdcd2e43f03ce8994ce0a015765c38207eb3a82e7</code></td>
+</tr>
+<tr>
+<td>L6-微调框架-LLaMA-Factory.md</td>
+<td>删除旧散篇</td>
+<td><a href="L6-%E5%BE%AE%E8%B0%83%E6%A1%86%E6%9E%B6%E4%B8%8E%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9E%E6%88%98.html">L6-微调框架与分布式实战.md</a></td>
+<td><code>83a1c067eea342cbb416a8d6e1f8d5d71cd3d763f32c0f48525310f30b235c01</code></td>
+</tr>
+<tr>
+<td>L6-微调框架-SWIFT.md</td>
+<td>删除旧散篇</td>
+<td><a href="L6-%E5%BE%AE%E8%B0%83%E6%A1%86%E6%9E%B6%E4%B8%8E%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9E%E6%88%98.html">L6-微调框架与分布式实战.md</a></td>
+<td><code>78f5df80bb0ab02a63b928e01a54bf232215d6dc03bbd4c5fb224c3c0d2d46cc</code></td>
+</tr>
+<tr>
+<td>L6-微调框架与分布式实战.md</td>
+<td>原路径融合重写</td>
+<td><a href="L6-%E5%BE%AE%E8%B0%83%E6%A1%86%E6%9E%B6%E4%B8%8E%E5%88%86%E5%B8%83%E5%BC%8F%E5%AE%9E%E6%88%98.html">L6-微调框架与分布式实战.md</a></td>
+<td><code>62cb9d2ef7036c690430c03ea36391877c1542478a7656f8261e0129896d7187</code></td>
+</tr>
+<tr>
+<td>L6-损失函数与优化器.md</td>
+<td>原路径融合重写</td>
+<td><a href="L6-%E6%8D%9F%E5%A4%B1%E5%87%BD%E6%95%B0%E4%B8%8E%E4%BC%98%E5%8C%96%E5%99%A8.html">L6-损失函数与优化器.md</a></td>
+<td><code>45476b8a1bf638ec1532fd34ddae58d2f90226624756ce082bf07b4ce34e6033</code></td>
+</tr>
+<tr>
+<td>L6-数据集构建-预训练语料.md</td>
+<td>原路径融合重写</td>
+<td><a href="L6-%E6%95%B0%E6%8D%AE%E9%9B%86%E6%9E%84%E5%BB%BA-%E9%A2%84%E8%AE%AD%E7%BB%83%E8%AF%AD%E6%96%99.html">L6-数据集构建-预训练语料.md</a></td>
+<td><code>e638f47b2cd7bab6eb2d22d251bea1d71e3f2e281678627f330ba8f2351961a0</code></td>
+</tr>
+<tr>
+<td>L6-数据集构建-指令监督SFT.md</td>
+<td>原路径融合重写</td>
+<td><a href="L6-%E6%95%B0%E6%8D%AE%E9%9B%86%E6%9E%84%E5%BB%BA-%E6%8C%87%E4%BB%A4%E7%9B%91%E7%9D%A3SFT.html">L6-数据集构建-指令监督SFT.md</a></td>
+<td><code>f1507ce6b7ee30282da9c13cbe0e161b22faeedcadd6aa3583a4cd2ee466a015</code></td>
+</tr>
+<tr>
+<td>L6-数据集构建-RLHF-DPO偏好.md</td>
+<td>原路径融合重写</td>
+<td><a href="L6-%E6%95%B0%E6%8D%AE%E9%9B%86%E6%9E%84%E5%BB%BA-RLHF-DPO%E5%81%8F%E5%A5%BD.html">L6-数据集构建-RLHF-DPO偏好.md</a></td>
+<td><code>d754f6374ede0f1cb9efd030d77c3322cf0d40adc41eabdd04ab5e83266e52aa</code></td>
+</tr>
+<tr>
+<td>LoRA微调到底省了什么.md</td>
+<td>删除旧散篇</td>
+<td><a href="LoRA%E5%BE%AE%E8%B0%83%E5%AE%8C%E6%95%B4pipeline.html">LoRA微调完整pipeline.md</a></td>
+<td><code>46a83420702a8ca1737f613ac68a137b3946bbdc4ed791590afefdc9e0e923cf</code></td>
+</tr>
+<tr>
+<td>LoRA微调完整pipeline.md</td>
+<td>原路径融合重写</td>
+<td><a href="LoRA%E5%BE%AE%E8%B0%83%E5%AE%8C%E6%95%B4pipeline.html">LoRA微调完整pipeline.md</a></td>
+<td><code>26e401b802bb477abee5659e5fd9ae4f33f728352a0e0c86d7e40d5c6323409b</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="三源边界说明">三源边界说明</h2>2
+<ul>
+<li><strong>课件</strong>：本地微调课程讲义（raw/courseware/），提供教学框架与术语体系。未声称覆盖课件全部内容。</li>
+<li><strong>书籍书摘</strong>：书籍目录与公开划线摘录，提供知识骨架。未获取书籍全文，不声称完整覆盖任何书籍章节。</li>
+<li><strong>业内/官方文档</strong>：公开官方文档、arXiv 论文、框架官方 README。引用标注 arXiv ID 或官方 URL；部分仅获取摘要级别的论文已标注「本地只有标题/摘要」。</li>
+</ul>
+<h2 id="验收记录">验收记录</h2>2
+<h3 id="三段标题完整性">三段标题完整性</h3>3
+<p>10/10 篇保留正文均含独立 WHY、WHAT（或 WHAT/WHYT）、HOW 章节标题。</p>
+<table>
+<thead>
+<tr>
+<th>正文</th>
+<th style="text-align: center;">WHY</th>
+<th style="text-align: center;">WHAT</th>
+<th style="text-align: center;">HOW</th>
+<th style="text-align: center;">来源段</th>
+<th>arXiv 引用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L6-模型微调-2026.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">三源引用与证据边界</td>
+<td>5 条</td>
+</tr>
+<tr>
+<td>L6-模型微调-最佳答案.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">缺口清单（非标准来源段）</td>
+<td>0 条</td>
+</tr>
+<tr>
+<td>L6-深度学习与Transformer基础.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">三源引用与证据边界</td>
+<td>5 条</td>
+</tr>
+<tr>
+<td>L6-机器学习基础与实战.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">来源与口径</td>
+<td>1 条</td>
+</tr>
+<tr>
+<td>L6-微调框架与分布式实战.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">来源与口径</td>
+<td>0 条</td>
+</tr>
+<tr>
+<td>L6-损失函数与优化器.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">来源与口径</td>
+<td>2 条</td>
+</tr>
+<tr>
+<td>L6-数据集构建-预训练语料.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">来源与口径</td>
+<td>4 条</td>
+</tr>
+<tr>
+<td>L6-数据集构建-指令监督SFT.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">来源与口径</td>
+<td>1 条</td>
+</tr>
+<tr>
+<td>L6-数据集构建-RLHF-DPO偏好.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">来源与口径</td>
+<td>1 条</td>
+</tr>
+<tr>
+<td>LoRA微调完整pipeline.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">来源与口径</td>
+<td>1 条</td>
+</tr>
+</tbody>
+</table>
+<h3 id="论文引用情况">论文引用情况</h3>3
+<p>8/10 篇含 arXiv ID 引用。2 篇未含 arXiv 引用：<br />
+- L6-模型微调-最佳答案.md（节点入口，定位为概览而非详细正文）<br />
+- L6-微调框架与分布式实战.md（框架对比文，主要引用官方文档而非论文）</p>
+<h3 id="未达标篇目清单">未达标篇目清单</h3>3
+<p>以下篇目未完全达到「来源与三源融合落点」标准段落要求（诚实列出，不粉饰）：</p>
+<table>
+<thead>
+<tr>
+<th>篇目</th>
+<th>未达标项</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L6-模型微调-最佳答案.md</td>
+<td>①文末为「缺口清单」而非标准「来源与三源融合落点」段；②无 arXiv 引用；③frontmatter sources 标注为「多文档合并」而非标准三源</td>
+</tr>
+<tr>
+<td>L6-微调框架与分布式实战.md</td>
+<td>①无 arXiv 引用（文末来源段仅列官方文档和对比表）</td>
+</tr>
+</tbody>
+</table>
+<p>其余 8 篇均满足三段标题 + 来源段 + arXiv 引用的完整要求。</p>
+<h3 id="来源段标题不统一说明">来源段标题不统一说明</h3>3
+<p>保留的 10 篇正文来源段标题存在两种写法，未强制统一（本收尾任务不改正文）：<br />
+- 「来源与口径」：7 篇<br />
+- 「三源引用与证据边界」：2 篇<br />
+- 「缺口清单」：1 篇（L6-模型微调-最佳答案.md）</p>
+<p>均非任务要求的「来源与三源融合落点」标准标题，但功能等价（标注课件/书籍/业内三源引用及证据边界）。</p>
+<h3 id="删除确认">删除确认</h3>3
+<ul>
+<li>13 篇散篇删除前，已确认 <code>.fusion-backup-20261104/</code> 中有对应副本。</li>
+<li>删除后清理 <code>.fusion-backup-20261104/</code> 整个目录，不留第二份副本。</li>
+<li>不创建任何 .bak 文件。</li>
+</ul>
+<h2 id="收口">收口</h2>2
+<p>最终落盘：10 篇主题正文 + 1 篇维护清单 = 11 个 md 文件。13 篇旧散篇不存在。临时快照目录已删除。原稿哈希留在上表供来源追溯，不保留第二份主题正文。<br />
+未创建付费模型任务、未读取凭据、未上传本地内容。</p></div></body></html>

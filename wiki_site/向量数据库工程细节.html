@@ -1,0 +1,84 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>向量数据库工程细节</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="index.html">🏠 总入口</a><a href="graph.html">🕸 关联图谱</a><a href="ontology/index.html">📖 术语表</a><span class="cur">/ 向量数据库工程细节</span></div><div class="wrap"><h1 id="向量数据库工程细节distilljson">向量数据库工程细节.distill.json</h1>
+<ul>
+<li>source_file: raw/distill/向量数据库工程细节.distill.json</li>
+<li>format: json</li>
+</ul>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">内容</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>base: 向量数据库工程细节</li><li>[数据:性能指标] 单节点pgvector在100万以内向量表现良好，5000万向量是单节点上限；超过1000万需要考虑分区或专用向量库 ｜依据:核心结论</li><li>[机制:索引构建] HNSW索引构建时间随m线性增长（100万1536维约需60分钟），这是运维瓶颈信号 ｜依据:核心结论</li></ul></div>2
+<ul>
+<li><strong>base</strong>: 向量数据库工程细节</li>
+<li><strong>source_file</strong>: raw/sources/向量数据库工程细节-调研-20261012.md</li>
+<li><strong>model</strong>: deepseek-ai/DeepSeek-V3</li>
+<li><strong>generated_at</strong>: 2026-10-26 14:47:38</li>
+<li><strong>level1_excerpts</strong>: - <strong>[机制:参数调优]</strong> <code>ef_search=40</code>是默认值但只能召回约50%，生产环境建议设为100-200（无需重建索引），<code>m=16, ef_construction=64</code>保持默认即可 ｜依据:核心结论</li>
+<li><strong>[数据:性能指标]</strong> 单节点pgvector在100万以内向量表现良好，5000万向量是单节点上限；超过1000万需要考虑分区或专用向量库 ｜依据:核心结论</li>
+<li><strong>[机制:索引构建]</strong> HNSW索引构建时间随m线性增长（100万1536维约需60分钟），这是运维瓶颈信号 ｜依据:核心结论</li>
+<li><strong>[原则:选型建议]</strong> 2026年pgvector（含pgvectorscale）是大多数RAG系统的最优默认选择——运行在Postgres内部、零额外运维、200万向量以内无需特殊调优 ｜依据:核心结论</li>
+<li><strong>[机制:压缩优化]</strong> 使用<code>halfvec</code>类型减半索引大小（3072维HNSW限2000维是已知问题），配合pgvectorscale的DiskANN（SBQ压缩）可把索引从193MB压到21MB ｜依据:核心结论</li>
+<li><strong>[数据:查询性能]</strong> ef_search=100 → 召回约80%，查询约1.5ms；ef_search=200 → 召回约100%，查询约2.3ms。超过200反而可能触发Seq Scan降级 ｜依据:可落地的实操步骤</li>
+<li><strong>[原则:重建索引]</strong> 如果ef_search调到200仍召回不足95%，才考虑重建。否则不值得 ｜依据:可落地的实操步骤</li>
+<li><strong>[原则:分片决策]</strong> &lt;100万向量：单节点；100万-1000万：调优ef_search+halfvec；&gt;1000万：考虑分布式方案；&gt;5000万：必须用专用向量库 ｜依据:可落地的实操步骤</li>
+<li><strong>level2_summary</strong>: <code>``markdown
+**参数调优机制**</code>ef_search`默认40仅召回50%，建议生产环境设为100-200（无需重建索引），此时召回80-100%且查询1.5-2.3ms。超过200可能触发Seq Scan降级，若仍召回不足95%才需重建索引。</li>
+</ul>
+<p><strong>性能与规模关系</strong><br />
+单节点pgvector在100万向量内表现良好，5000万是上限。100万-1000万需调优参数，超过1000万需分区或专用向量库，5000万以上必须专用方案。</p>
+<p><strong>索引构建特性</strong><br />
+HNSW索引构建时间与参数<code>m</code>线性相关（如100万1536维约60分钟），成为运维瓶颈。默认<code>m=16, ef_construction=64</code>通常无需调整。</p>
+<p><strong>存储压缩方案</strong><br />
+<code>halfvec</code>类型可减半索引大小（解决3072维HNSW限2000维问题），配合pgvectorscale的DiskANN（SBQ压缩）能将193MB索引压缩至21MB。</p>
+<p><strong>选型核心原则</strong><br />
+2026年前pgvector（含pgvectorscale）是RAG系统默认选择，优势在于零额外运维、200万向量内免调优。决策时需结合向量规模选择单节点/分布式方案。</p>
+<pre><code>- **level3_digest**: ```markdown
+1. **参数调优**：`ef_search=100-200`实现80-100%召回率且保持1.5-2.3ms查询性能，避免盲目重建索引  
+2. **规模阈值**：单节点pgvector的100万向量为性能拐点，5000万是硬上限，超限需专用方案  
+3. **索引瓶颈**：HNSW构建时间与`m`参数线性正比，100万1536维数据约需60分钟  
+4. **存储优化**：`halfvec`+DiskANN组合可压缩索引90%（193MB→21MB），突破维度限制  
+5. **选型策略**：200万向量内优先pgvector（零运维成本），2026年前仍是RAG默认选择  
+
+**核心问题**：如何基于向量规模和数据特征选择最优的pgvector部署与调优策略？
+</code></pre></div></details></div></body></html>

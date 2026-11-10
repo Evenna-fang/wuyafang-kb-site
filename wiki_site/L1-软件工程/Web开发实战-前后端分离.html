@@ -1,0 +1,122 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Web开发实战-前后端分离</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ Web开发实战-前后端分离</span></div><div class="wrap"><h1 id="web-开发实战前后端分离架构">Web 开发实战：前后端分离架构</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+<strong>能力域</strong>：L1-软件工程<br />
+<strong>关键词</strong>：Web开发、前后端分离、RESTful API、Vue、React<br />
+<strong>来源</strong>：博学谷+黑马课程大纲提取</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心论点</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>前后端分离是现代 Web 开发的标准架构——前端负责展示与交互，后端负责数据与逻辑，通过 RESTful API 通信</li><li>这种架构让团队协作更高效、系统更易扩展、维护成本更低</li></ul></div>2
+<p><strong>前后端分离是现代 Web 开发的标准架构</strong>——前端负责展示与交互，后端负责数据与逻辑，通过 RESTful API 通信。这种架构让团队协作更高效、系统更易扩展、维护成本更低。</p>
+<h2 id="why-为什么这个知识重要">WHY 为什么这个知识重要</h2>2
+<p><strong>1. 团队协作效率提升</strong>：前端和后端可以并行开发，互不阻塞。</p>
+<p><strong>2. 系统可扩展性强</strong>：前端可以是 Web、移动端、小程序，后端只需提供统一 API。</p>
+<p><strong>3. 技术栈灵活</strong>：前端可以用 Vue/React，后端可以用 Node.js/Python/Java，互不影响。</p>
+<p><strong>4. 部署独立</strong>：前端静态资源可以放 CDN，后端可以水平扩展。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">WHAT 知识地图</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="核心组件">核心组件</h3>3
+<ol>
+<li>
+<p><strong>前端（Frontend）</strong><br />
+   - 用户界面（UI）<br />
+   - 用户交互（UX）<br />
+   - 数据展示</p>
+</li>
+<li>
+<p><strong>后端（Backend）</strong><br />
+   - 业务逻辑<br />
+   - 数据处理<br />
+   - API 接口</p>
+</li>
+<li>
+<p><strong>API（应用程序接口）</strong><br />
+   - RESTful API<br />
+   - GraphQL<br />
+   - WebSocket</p>
+</li>
+</ol>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">HOW 怎么用（实操步骤）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="步骤-1设计-api-接口">步骤 1：设计 API 接口</h3>3
+<pre><code class="language-bash"># RESTful API 设计原则
+GET    /api/users      # 获取用户列表
+POST   /api/users      # 创建用户
+GET    /api/users/:id  # 获取单个用户
+PUT    /api/users/:id  # 更新用户
+DELETE /api/users/:id  # 删除用户
+</code></pre>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">步骤 2：实现后端 API</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-python"># Flask 示例
+from flask import Flask, jsonify, request
+
+app = Flask(__name__)
+
+@app.route('/api/users', methods=['GET'])
+def get_users():
+    return jsonify({'users': [...]})
+</code></pre>
+<h3 id="步骤-3前端调用-api">步骤 3：前端调用 API</h3>3
+<pre><code class="language-javascript">// Vue/React 示例
+fetch('/api/users')
+  .then(response =&gt; response.json())
+  .then(data =&gt; console.log(data));
+</code></pre>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">常见问题与解答</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Q1：前后端分离和传统 MVC 有什么区别</li><li>A1：传统 MVC 中，前端页面由后端渲染（如 JSP、PHP）；前后端分离中，前端独立渲染，后端只提供数据（JSON）</li><li>Q2：什么时候用 RESTful API，什么时候用 GraphQL</li></ul></div>2
+<p><strong>Q1：前后端分离和传统 MVC 有什么区别？</strong></p>
+<p>A1：传统 MVC 中，前端页面由后端渲染（如 JSP、PHP）；前后端分离中，前端独立渲染，后端只提供数据（JSON）。</p>
+<p><strong>Q2：什么时候用 RESTful API，什么时候用 GraphQL？</strong></p>
+<p>A2：简单场景用 RESTful，复杂查询（如移动端需要灵活字段）用 GraphQL。</p>
+<p><strong>Q3：跨域问题怎么解决？</strong></p>
+<p>A3：后端设置 CORS 头，或使用 Nginx 反向代理。</p>
+<h2 id="相关文档">相关文档</h2>2
+<ul>
+<li><a href="../index.html">总入口导航</a></li>
+<li><a href="../L4-RAG%E5%B7%A5%E7%A8%8B/L4-RAG%E5%B7%A5%E7%A8%8B-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L4-RAG工程-最佳答案</a></li>
+<li><a href="../L5-Agent%E5%B7%A5%E7%A8%8B/06-Agent%E7%94%9F%E4%BA%A7%E7%BA%A7%E9%83%A8%E7%BD%B2.html">Agent 生产级部署</a></li>
+</ul>
+<hr />
+<p><strong>最后更新</strong>：2026-10-26<br />
+<strong>维护者</strong>：Hermes Agent</p></div></details></div></body></html>

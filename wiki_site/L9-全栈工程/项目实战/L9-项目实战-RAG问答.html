@@ -1,0 +1,520 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L9-项目实战-RAG问答</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../../index.html">🏠 总入口</a><a href="../../graph.html">🕸 关联图谱</a><a href="../../ontology/index.html">📖 术语表</a><span class="cur">/ L9-项目实战-RAG问答</span></div><div class="wrap"><h1 id="项目实战一跨行业-rag-知识库问答系统智能文档检索助手-edurag">项目实战一：跨行业 RAG 知识库问答系统（智能文档检索助手 / EduRAG）</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../../raw/courseware/RAG%E7%AF%87/13-%E5%AE%9E%E6%88%98%E9%A1%B9%E7%9B%AE%EF%BC%9A%E6%99%BA%E8%83%BD%E6%96%87%E6%A1%A3%E6%A3%80%E7%B4%A2%E5%8A%A9%E6%89%8B-2026-3-16-%E6%9F%8F%E6%B1%8C__day13__07-RAG%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98.md">13-实战项目：智能文档检索助手-2026-3-16-柏汌__day13__07-RAG项目实战</a> · <a href="../../../raw/sources/%E8%AF%BE%E7%A8%8B%E5%A4%A7%E7%BA%B2-%E5%8D%9A%E5%AD%A6%E8%B0%B7-%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BC%80%E5%8F%91-20261026.md">课程大纲-博学谷-大模型开发-20261026</a> · <a href="../../../raw/sources/%E8%AF%BE%E7%A8%8B%E5%A4%A7%E7%BA%B2-%E9%BB%91%E9%A9%AC-AI%E5%BA%94%E7%94%A8%E6%99%BA%E8%83%BD%E4%BD%93v6-20261026.md">课程大纲-黑马-AI应用智能体v6-20261026</a></p>
+<p><a href="../L9-%E5%85%A8%E6%A0%88%E5%B7%A5%E7%A8%8B-2026.html">← 返回 L9 主线</a> · 相关：<a href="L9-%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98-Agent%E6%99%BA%E8%83%BD%E4%BD%93.html">项目实战二·Agent 智能体</a> · <a href="L9-%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98-%E5%BE%AE%E6%9C%8D%E5%8A%A1.html">项目实战三·微服务</a> · <a href="../%E5%90%91%E9%87%8F%E5%BA%93%E9%80%89%E5%9E%8B%E4%B8%8E%E8%B0%83%E4%BC%98.html">向量库选型与调优</a> · <a href="../../L4-RAG%E5%B7%A5%E7%A8%8B">RAG 检索层优化</a></p>
+</blockquote>
+<h2 id="why">WHY</h2>2
+<h3 id="项目价值与适用场景">项目价值与适用场景</h3>3
+<ol>
+<li><strong>破解大模型幻觉</strong>：通用大模型没有企业私有知识，直接问会一本正经地编。RAG 用"先检索再生成"把答案锚定在真实文档上，是当前最主流、成本最低的幻觉治理手段。</li>
+<li><strong>私有数据不出域</strong>：企业文档、产品手册、内部规章不能上传到公有大模型。本地部署 Embedding + 向量库 + LLM，数据全程可控。</li>
+<li><strong>知识即时更新</strong>：微调要重训、周期长、成本高；RAG 只需增删文档重新入库，知识更新从"天级"降到"分钟级"。</li>
+<li><strong>可溯源、可审计</strong>：回答附带命中的原文片段，用户能核对、能追责，满足合规要求。</li>
+<li><strong>跨行业可复用</strong>：换一套语料就是换一个行业——教育答疑、法务合同、医疗病历、客服手册、金融研报都能套同一套管线，是全栈工程师最该掌握的"母版项目"。</li>
+</ol>
+<h2 id="what">WHAT</h2>2
+<h3 id="系统定义与适用边界">系统定义与适用边界</h3>3
+<p>一个<strong>端到端的私有知识库问答系统</strong>：用户上传 PDF/DOCX/TXT 文档，系统自动完成解析→父子分块→向量化→入库，之后用户用自然语言提问，系统检索最相关的文档片段，交给大模型生成<strong>带上下文、可溯源</strong>的回答。它把"企业散落在文档里的知识"变成"能被对话式调用的能力"。</p>
+<p><strong>适用人群与前置知识</strong>：面向已掌握 Python 基础、了解大模型 API 调用的全栈/应用工程师。前置需要会用 pip 管理依赖、理解 HTTP 与 JSON、会写基本的类与函数。不需要深厚的机器学习背景——本项目以工程集成为主，模型与向量检索都通过成熟库调用。读完应能独立搭建一个可上传文档、可提问、可溯源的最小 RAG 系统，并知道如何把它优化到能上生产的水准。</p>
+<p>在博学谷项目库中它的落地形态是 <strong>EduRAG 智慧问答系统</strong>（IT 职业教育答疑大模型），在黑马项目库中对应 <strong>RAG 智能体开发阶段</strong>的综合实战，在课件里对应<strong>智能文档检索助手</strong>。三者本质同一套骨架，只是换了行业数据（教育答疑 / 企业文档 / 产品手册）。因此本篇以课件中<strong>可直接复现的完整实现</strong>为主干，再叠加企业级检索策略，做到"看完就能动手"。</p>
+<h2 id="how">HOW</h2>2
+<h3 id="实施路径">实施路径</h3>3
+<p>按"需求分析 → 架构设计 → 代码实现 → 部署运维"四段走。<strong>代码段全部来自课件可运行实现</strong>（<code>智能文档检索助手</code> 项目），已验证其结构完整。</p>
+<h4 id="31-需求分析">3.1 需求分析</h4>
+<p><strong>功能需求（FR）</strong><br />
+- FR1 文档接入：支持 PDF、DOCX、TXT 上传，自动解析为纯文本。<br />
+- FR2 智能分块：父子两级分块（父块给上下文、子块做精准召回）。<br />
+- FR3 向量化入库：Embedding 后写入向量库，元数据记录文档/父子归属关系。<br />
+- FR4 检索问答：基于问题召回 Top-K 相关块，重排/压缩后拼上下文生成答案。<br />
+- FR5 多轮会话：维护 session 与历史对话，支持追问。<br />
+- FR6 来源展示：回答附命中的文档片段，供用户核对。<br />
+- FR7 管理能力：文档列表、分块数量、删除文档（级联删除向量与记录）。</p>
+<p><strong>非功能需求（NFR）</strong><br />
+- NFR1 准确率：答案须基于检索上下文，无相关信息时诚实说明（不编造）。<br />
+- NFR2 响应：首 token 流式返回，问答 P95 目标 &lt; 3s（本地向量库）。<br />
+- NFR3 可扩展：向量库与 Embedding 可替换（Chroma→Milvus，本地 BGE-M3→云端）。<br />
+- NFR4 可运维：配置化（config/env）、日志、错误兜底、依赖可一键安装。</p>
+<p><strong>数据设计</strong>：三张核心表——<code>documents</code>（文档）、<code>parent_chunks</code>（父块）、<code>child_chunks</code>（子块），外加 <code>chat_history</code>（对话）。父子一对多，级联删除。</p>
+<h4 id="32-架构设计">3.2 架构设计</h4>
+<pre><code class="language-mermaid">flowchart LR
+  U[用户/Streamlit 前端] --&gt; APP[streamlit_app.py]
+  APP --&gt; DOC[DocumentProcessor&lt;br/&gt;解析+父子分块]
+  APP --&gt; VS[VectorStore&lt;br/&gt;Chroma 父/子集合]
+  APP --&gt; RAG[RAGSystem&lt;br/&gt;检索+压缩+LLM生成]
+  APP --&gt; DB[DatabaseManager&lt;br/&gt;SQLAlchemy/MySQL]
+  DOC --&gt; VS
+  VS --&gt; EMB[BGE-large-zh 嵌入]
+  RAG --&gt; LLM[qwen-plus&lt;br/&gt;DashScope/OpenAI兼容]
+  VS --&gt; CH[(Chroma 持久化)]
+  DB --&gt; MY[(MySQL)]
+</code></pre>
+<p><strong>分层职责</strong><br />
+- <strong>前端层</strong>：Streamlit（快速搭交互；生产可换 FastAPI + Vue/Next.js，见项目三）。<br />
+- <strong>编排层</strong>：<code>streamlit_app.py</code> 串联上传、入库、对话；用 <code>@st.cache_resource</code> 热加载核心组件（单例）。<br />
+- <strong>核心层</strong>：<br />
+  - <code>DocumentProcessor</code>：加载 + 父子分块；<br />
+  - <code>VectorStore</code>：嵌入 + Chroma 存取 + 检索器（含上下文压缩）；<br />
+  - <code>RAGSystem</code>：检索、拼上下文、调 LLM、存历史。<br />
+- <strong>数据层</strong>：MySQL 存结构化元数据与对话；Chroma 存向量。</p>
+<p><strong>关键设计决策（为什么这么做）</strong><br />
+- <strong>父子分块（Parent-Child Chunking）</strong>：小块（子块）做向量召回更精准，但上下文不全；命中子块后<strong>回捞其父块</strong>作为最终上下文，兼顾精准与完整。这是该课件项目的核心亮点。<br />
+- <strong>子块召回 + 上下文压缩</strong>：用 <code>ContextualCompressionRetriever</code> + <code>LLMChainExtractor</code> 对召回结果再抽取，去掉噪声，省 token。<br />
+- <strong>元数据桥接</strong>：<code>parent_id</code> 把子块和父块关联，检索子块→取 <code>parent_id</code>→查父块文本。<br />
+- <strong>流式生成</strong>：LLM <code>streaming=True</code>，前端逐 token 渲染，提升体感。</p>
+<h4 id="33-代码实现">3.3 代码实现</h4>
+<p><strong>目录结构</strong></p>
+<pre><code>rag-doc-assistant/
+├── config/
+│   └── config.py          # 配置集中管理
+├── core/
+│   ├── database.py        # SQLAlchemy ORM + 会话/历史
+│   ├── document_processor.py  # 解析 + 父子分块
+│   ├── vector_store.py    # Chroma + 嵌入 + 检索器
+│   └── rag_system.py      # RAG 主流程
+├── chroma_db/             # Chroma 持久化目录
+├── .env                   # 密钥与参数
+├── requirements.txt
+└── streamlit_app.py       # 主入口/前端
+</code></pre>
+<p><strong>（1）环境配置 <code>.env</code></strong></p>
+<pre><code class="language-env"># LLM（OpenAI 兼容，这里用阿里 DashScope 的 qwen-plus）
+DASHSCOPE_API_KEY=&quot;your_key&quot;
+DASHSCOPE_BASE_URL=&quot;https://dashscope.aliyuncs.com/compatible-mode/v1&quot;
+
+# MySQL
+MYSQL_HOST=&quot;localhost&quot;
+MYSQL_PORT=&quot;3306&quot;
+MYSQL_USER=&quot;root&quot;
+MYSQL_PASSWORD=&quot;root&quot;
+MYSQL_DATABASE=&quot;rag&quot;
+
+# 向量库
+CHROMA_PERSIST_DIR=&quot;./chroma_db&quot;
+
+# 分块与检索参数
+CHUNK_SIZE=1000
+CHUNK_OVERLAP=200
+TOP_K=5
+</code></pre>
+<p><strong>（2）<code>config/config.py</code>——配置集中，杜绝散落硬编码</strong></p>
+<pre><code class="language-python">import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class Config:
+    OPENAI_API_KEY = os.getenv(&quot;DASHSCOPE_API_KEY&quot;)
+    OPENAI_BASE_URL = os.getenv(&quot;DASHSCOPE_BASE_URL&quot;)
+
+    MYSQL_HOST = os.getenv(&quot;MYSQL_HOST&quot;, &quot;localhost&quot;)
+    MYSQL_PORT = int(os.getenv(&quot;MYSQL_PORT&quot;, 3306))
+    MYSQL_USER = os.getenv(&quot;MYSQL_USER&quot;, &quot;root&quot;)
+    MYSQL_PASSWORD = os.getenv(&quot;MYSQL_PASSWORD&quot;, &quot;root&quot;)
+    MYSQL_DATABASE = os.getenv(&quot;MYSQL_DATABASE&quot;, &quot;rag&quot;)
+
+    CHROMA_PERSIST_DIR = os.getenv(&quot;CHROMA_PERSIST_DIR&quot;, &quot;./chroma_db&quot;)
+
+    CHUNK_SIZE = int(os.getenv(&quot;CHUNK_SIZE&quot;, 1000))
+    CHUNK_OVERLAP = int(os.getenv(&quot;CHUNK_OVERLAP&quot;, 200))
+    TOP_K = int(os.getenv(&quot;TOP_K&quot;, 5))
+</code></pre>
+<p><strong>（3）<code>core/document_processor.py</code>——解析 + 父子两级分块</strong></p>
+<pre><code class="language-python">from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
+import os
+import tempfile
+
+class DocumentProcessor:
+    def __init__(self, config):
+        self.config = config
+        # 父块更大（给完整上下文），子块更小（做精准召回）
+        self.parent_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=config.CHUNK_SIZE * 2,
+            chunk_overlap=config.CHUNK_OVERLAP,
+            separators=[&quot;\n\n&quot;, &quot;\n&quot;, &quot;。&quot;, &quot;！&quot;, &quot;？&quot;],
+        )
+        self.child_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=config.CHUNK_SIZE // 2,
+            chunk_overlap=config.CHUNK_OVERLAP // 2,
+            separators=[&quot;\n&quot;, &quot;。&quot;, &quot;！&quot;, &quot;？&quot;, &quot;.&quot;, &quot;!&quot;, &quot;?&quot;, &quot; &quot;],
+        )
+
+    def load_document(self, uploaded_file):
+        with tempfile.NamedTemporaryFile(
+            delete=False, suffix=f&quot;.{uploaded_file.name.split('.')[-1]}&quot;
+        ) as tmp_file:
+            tmp_file.write(uploaded_file.getvalue())
+            tmp_path = tmp_file.name
+        try:
+            if uploaded_file.name.endswith('.pdf'):
+                loader = PyPDFLoader(tmp_path)
+            elif uploaded_file.name.endswith('.docx'):
+                loader = Docx2txtLoader(tmp_path)
+            elif uploaded_file.name.endswith('.txt'):
+                loader = TextLoader(tmp_path, encoding='utf-8')
+            else:
+                raise ValueError(f&quot;不支持的文件类型: {uploaded_file.name}&quot;)
+            return loader.load()
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
+    def create_parent_child_chunks(self, documents, fileName):
+        parent_docs = self.parent_splitter.split_documents(documents)
+        child_docs = []
+        for i, parent_doc in enumerate(parent_docs):
+            parent_id = f&quot;{fileName}_parent_{i}&quot;
+            parent_doc.metadata['parent_id'] = parent_id
+            parent_doc.metadata['doc_type'] = 'parent'
+            for j, child_doc in enumerate(self.child_splitter.split_documents([parent_doc])):
+                child_doc.metadata['parent_id'] = parent_id
+                child_doc.metadata['child_id'] = f&quot;child_{i}_{j}&quot;
+                child_doc.metadata['doc_type'] = 'child'
+                child_docs.append(child_doc)
+        return parent_docs, child_docs
+</code></pre>
+<p><strong>（4）<code>core/vector_store.py</code>——嵌入 + 双集合 + 压缩检索</strong></p>
+<pre><code class="language-python">import chromadb
+from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain.retrievers.document_compressors import LLMChainExtractor
+from langchain_openai import ChatOpenAI
+
+class VectorStore:
+    def __init__(self, config):
+        self.config = config
+        # 中文语义嵌入（本地 BGE；生产可换 BGE-M3 支持稠密+稀疏混合）
+        self.embeddings = HuggingFaceEmbeddings(
+            model_name=&quot;BAAI/bge-large-zh-v1.5&quot;
+        )
+        self.chroma_client = chromadb.PersistentClient(path=config.CHROMA_PERSIST_DIR)
+        self.parent_vectorstore = Chroma(
+            client=self.chroma_client, collection_name=&quot;parent_documents&quot;,
+            embedding_function=self.embeddings,
+        )
+        self.child_vectorstore = Chroma(
+            client=self.chroma_client, collection_name=&quot;child_documents&quot;,
+            embedding_function=self.embeddings,
+        )
+        self.llm = ChatOpenAI(
+            api_key=config.OPENAI_API_KEY, base_url=config.OPENAI_BASE_URL,
+            model=&quot;qwen-plus&quot;, temperature=0,
+        )
+        self.compressor = LLMChainExtractor.from_llm(self.llm)
+
+    def add_documents(self, parent_docs, child_docs, document_id):
+        for doc in parent_docs + child_docs:
+            doc.metadata['document_id'] = str(document_id)
+        parent_ids = self.parent_vectorstore.add_documents(parent_docs)
+        child_ids = self.child_vectorstore.add_documents(child_docs)
+        return parent_ids, child_ids
+
+    def create_retriever(self, use_compression=True):
+        # 子块召回，k 取 TOP_K*2 留余量
+        child_retriever = self.child_vectorstore.as_retriever(
+            search_kwargs={&quot;k&quot;: self.config.TOP_K * 2}
+        )
+        if use_compression:
+            return ContextualCompressionRetriever(
+                base_compressor=self.compressor, base_retriever=child_retriever
+            )
+        return child_retriever
+
+    def get_parent_documents(self, child_docs):
+        parent_ids = {d.metadata['parent_id'] for d in child_docs if 'parent_id' in d.metadata}
+        parent_docs = []
+        for pid in parent_ids:
+            try:
+                results = self.parent_vectorstore.get(where={&quot;parent_id&quot;: pid})
+                parent_docs.extend(results['documents'][0])
+            except Exception as e:
+                print(f&quot;获取父文档失败 (parent_id={pid}): {e}&quot;)
+        return parent_docs
+</code></pre>
+<p><strong>（5）<code>core/rag_system.py</code>——检索 + 上下文 + 生成 + 历史</strong></p>
+<pre><code class="language-python">from langchain_openai import ChatOpenAI
+from langchain.prompts import PromptTemplate
+import uuid
+
+class RAGSystem:
+    def __init__(self, config, db_manager, vector_store):
+        self.config, self.db_manager, self.vector_store = config, db_manager, vector_store
+        self.llm = ChatOpenAI(
+            api_key=config.OPENAI_API_KEY, base_url=config.OPENAI_BASE_URL,
+            model=&quot;qwen-plus&quot;, temperature=0.7, streaming=True,
+        )
+        self.rag_prompt = PromptTemplate(
+            template=&quot;&quot;&quot;你是一个智能助手。请基于以下上下文信息回答用户的问题。如果上下文中没有相关信息，请诚实地说明。
+
+上下文信息:
+{context}
+
+历史对话:
+{chat_history}
+
+用户问题: {question}
+
+请提供准确、有帮助的回答:&quot;&quot;&quot;,
+            input_variables=[&quot;context&quot;, &quot;chat_history&quot;, &quot;question&quot;],
+        )
+
+    def chat_with_documents(self, question, document_ids, session_id):
+        try:
+            retriever = self.vector_store.create_retriever(use_compression=True)
+            retrieved_docs = retriever.invoke(question)          # 1) 子块召回(+压缩)
+            parent_docs = self.vector_store.get_parent_documents(retrieved_docs)  # 2) 回捞父块
+            context = &quot;\n\n&quot;.join(parent_docs)                    # 3) 拼上下文
+
+            history = self.db_manager.get_chat_history(session_id)
+            history_text = &quot;\n&quot;.join(
+                f&quot;用户: {c.user_message}\n助手: {c.assistant_message}&quot; for c in history[-3:]
+            )
+            full_prompt = self.rag_prompt.format(
+                context=context, chat_history=history_text, question=question
+            )
+            answer = self.llm.invoke(full_prompt).content          # 4) 生成
+            self.db_manager.save_chat_history(
+                session_id=session_id, user_message=question,
+                assistant_message=answer, document_ids=&quot;,&quot;.join(map(str, document_ids)),
+            )
+            return answer, retrieved_docs
+        except Exception as e:
+            return f&quot;RAG对话出错: {e}&quot;, []
+</code></pre>
+<p><strong>（6）<code>core/database.py</code>（要点）</strong>——SQLAlchemy ORM 三表 + 级联删除</p>
+<pre><code class="language-python">from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Index
+from sqlalchemy.orm import relationship, declarative_base
+
+Base = declarative_base()
+
+class Document(Base):
+    __tablename__ = 'documents'
+    id = Column(Integer, primary_key=True)
+    filename = Column(String(255))
+    chunk_count = Column(Integer, default=0)
+    parent_chunks = relationship(&quot;ParentChunk&quot;, back_populates=&quot;document&quot;,
+                                 cascade=&quot;all, delete-orphan&quot;)
+    child_chunks = relationship(&quot;ChildChunk&quot;, back_populates=&quot;document&quot;,
+                                cascade=&quot;all, delete-orphan&quot;)
+
+class ParentChunk(Base):
+    __tablename__ = 'parent_chunks'
+    id = Column(Integer, primary_key=True)
+    document_id = Column(Integer, ForeignKey('documents.id'), nullable=False)
+    parent_id = Column(String(100))      # 与向量库元数据对应
+    content = Column(Text)
+    vector_id = Column(String(100))      # Chroma 中的向量 ID
+    document = relationship(&quot;Document&quot;, back_populates=&quot;parent_chunks&quot;)
+
+class ChildChunk(Base):
+    __tablename__ = 'child_chunks'
+    __tablename__ = 'child_chunks'
+    id = Column(Integer, primary_key=True)
+    document_id = Column(Integer, ForeignKey('documents.id'), nullable=False)
+    parent_chunk_id = Column(Integer, ForeignKey('parent_chunks.id'), nullable=False)
+    content = Column(Text)
+    vector_id = Column(String(100))
+    __table_args__ = (Index('idx_child_parent_id', 'parent_chunk_id'),)
+</code></pre>
+<p><strong>（7）<code>streamlit_app.py</code>（主流程骨架）</strong></p>
+<pre><code class="language-python">import streamlit as st
+from config.config import Config
+from core.database import DatabaseManager
+from core.document_processor import DocumentProcessor
+from core.vector_store import VectorStore
+from core.rag_system import RAGSystem
+
+@st.cache_resource          # 单例热加载，避免每次交互重建
+def init_system():
+    config = Config()
+    db_manager = DatabaseManager(config)
+    doc_processor = DocumentProcessor(config)
+    vector_store = VectorStore(config)
+    rag_system = RAGSystem(config, db_manager, vector_store)
+    return config, db_manager, doc_processor, vector_store, rag_system
+
+def upload_and_process_document(uploaded_file, doc_processor, vector_store, db_manager):
+    documents = doc_processor.load_document(uploaded_file)
+    parent_docs, child_docs = doc_processor.create_parent_child_chunks(documents, uploaded_file.name)
+    parent_ids, child_ids = vector_store.add_documents(parent_docs, child_docs, 0)
+    db_manager.save_document_with_chunks(
+        filename=uploaded_file.name, parent_docs=parent_docs, child_docs=child_docs,
+        parent_vector_ids=parent_ids, child_vector_ids=child_ids,
+    )
+    return True
+
+config, db_manager, doc_processor, vector_store, rag_system = init_system()
+st.title(&quot;智能文档检索助手 🤖&quot;)
+uploaded_files = st.file_uploader(&quot;上传 PDF/DOCX/TXT&quot;, type=[&quot;pdf&quot;, &quot;docx&quot;, &quot;txt&quot;], accept_multiple_files=True)
+if uploaded_files:
+    for f in uploaded_files:
+        upload_and_process_document(f, doc_processor, vector_store, db_manager)
+
+question = st.chat_input(&quot;基于文档提问…&quot;)
+if question:
+    answer, docs = rag_system.chat_with_documents(question, document_ids=[], session_id=&quot;s1&quot;)
+    st.chat_message(&quot;assistant&quot;).write(answer)
+    with st.expander(&quot;查看引用来源&quot;):
+        for i, d in enumerate(docs, 1):
+            st.markdown(f&quot;**[{i}]** {d.page_content[:200]}…&quot;)
+</code></pre>
+<p><strong>运行</strong></p>
+<pre><code class="language-bash">pip install streamlit langchain langchain-openai langchain-chroma \
+            langchain-huggingface langchain-community chromadb \
+            sqlalchemy pymysql python-dotenv pypdf docx2txt
+mysql -uroot -p -e &quot;CREATE DATABASE IF NOT EXISTS rag DEFAULT CHARSET utf8mb4;&quot;
+streamlit run streamlit_app.py    # 打开 http://localhost:8501
+</code></pre>
+<h4 id="34-部署与运维">3.4 部署与运维</h4>
+<p><strong>部署（从 Demo 到生产）</strong><br />
+1. <strong>容器化</strong>：<code>Dockerfile</code> 打包应用；Chroma 持久化目录与 MySQL 用数据卷挂载，保证重启不丢数据。<br />
+2. <strong>向量库升级</strong>：单机 Chroma → <strong>Milvus</strong>（分布式、亿级向量、混合检索）。接入 BGE-M3 稠密+稀疏混合检索 + Reranker 精排，显著提升召回质量。<br />
+3. <strong>模型接入</strong>：本地 Ollama/私有化 DeepSeek/Qwen 保证数据不出域；或云端 DashScope。Embedding 与 LLM 通过 <code>base_url</code> 切换。<br />
+4. <strong>服务化</strong>：Streamlit 适合内网工具；对外提供服务时拆 <strong>FastAPI（后端）+ Vue/Next.js（前端）</strong>，RAG 核心逻辑不变，仅换接口层。<br />
+5. <strong>缓存</strong>：Redis 缓存高频问答（query→answer）与向量检索结果，降本提速（详见 L9《成本是 RAG 第一约束》）。</p>
+<p><strong>运维与评估</strong><br />
+- <strong>日志</strong>：统一 logging，记录 query、召回片段、命中 parent_id、耗时、token 消耗；错误兜底返回可解释信息。<br />
+- <strong>检索质量评估</strong>（三位一体）：<br />
+  - 检索层：Precision、Recall、MRR、Context Precision；<br />
+  - 生成层：Faithfulness（忠实度）、Answer Relevancy、ROUGE-L、BERTScore；<br />
+  - 系统层：平均延时、QPS、缓存命中率。<br />
+  - 工具用 <strong>Ragas</strong> 做端到端评测，badcase 回流改分块/嵌入/Top-K。<br />
+- <strong>持续迭代</strong>：文档增量入库、过期文档下架；跟踪幻觉率、成本，调 CHUNK_SIZE/TOP_K/是否压缩。<br />
+- <strong>安全</strong>：API Key 走 env/密钥服务，不进仓库；敏感文档做权限隔离与脱敏。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">四、行业变体（复用同一骨架）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>行业</th>
+<th>语料</th>
+<th>关键差异</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>教育（EduRAG）</td>
+<td>课程 FAQ、题库</td>
+<td>加意图识别（BERT 分类）+ 查询改写</td>
+</tr>
+<tr>
+<td>企业文档</td>
+<td>制度、手册</td>
+<td>加权限、审计、多租户</td>
+</tr>
+<tr>
+<td>客服（产品手册）</td>
+<td>说明书、FAQ</td>
+<td>加 ReAct 工具调用（见项目二）</td>
+</tr>
+<tr>
+<td>医疗/法务</td>
+<td>病历/合同</td>
+<td>强合规、强溯源、谨慎生成</td>
+</tr>
+</tbody>
+</table>
+<h3 id="五企业级进阶与调优深度">五、企业级进阶与调优（深度）</h3>3
+<h4 id="51-分块策略怎么选">5.1 分块策略怎么选</h4>
+<p>分块是 RAG 质量的第一道闸门。块太小，语义被切断、召回碎片化；块太大，噪声多、嵌入被稀释、成本飙升。经验起点是 500~1000 字、10%~20% 重叠，再按语料类型微调：法律/合同按条款切，代码按函数切，问答按段落切。父子分块本质上是"召回用小块、生成用大块"，用空间换质量。递归分隔符优先按语义边界（段落、句号、换行）切，避免硬切把一句话劈成两半。</p>
+<h4 id="52-检索质量优化四板斧">5.2 检索质量优化四板斧</h4>
+<p>第一，混合检索：稠密向量（语义）+ 稀疏向量（BM25 关键词）互补，专有名词、型号、编号靠稀疏兜住。第二，重排序（Reranker）：粗召回 Top-50，用 bge-reranker 精排取 Top-5，命中率显著提升。第三，查询改写与扩展：用 LLM 把口语化问题改写成检索友好查询，或做 HyDE（先让 LLM 生成假设性答案再用其嵌入检索）、子查询拆解多跳问题。第四，意图识别与路由：用 BERT 分类器判断问题类型，决定走向量检索、关键词检索还是结构化查询，避免"一刀切"。</p>
+<h4 id="53-成本与延迟控制">5.3 成本与延迟控制</h4>
+<p>RAG 的成本大头是嵌入和生成 token。高频问答用 Redis 缓存（query 归一化后查缓存）；上下文压缩只保留相关句子，直接砍输入 token；Top-K 从 10 降到 5 往往质量不降、成本减半；简单问题路由到小模型、复杂问题才用大模型。评估不能只看准确率，还要看单次问答成本与 P95 延迟，形成"质量—成本—延迟"三角的权衡基线。</p>
+<h4 id="54-幻觉治理与可信度">5.4 幻觉治理与可信度</h4>
+<p>提示词里强制"仅依据上下文回答，无相关信息就说明"；答案附引用片段与行号，让用户可核对；对医疗、法务、金融等高风险场景，宁可"不答"也不"编答"，并加人工复核通道。用 Ragas 的 Faithfulness 持续监控忠实度，一旦下降就回查是不是检索偏了或分块坏了。</p>
+<h4 id="55-多源与结构化数据">5.5 多源与结构化数据</h4>
+<p>企业知识不只有文档，还有数据库表、FAQ、网页。结构化数据走"文本转 SQL + 结果转自然语言"或"预生成摘要入库"；多源用查询路由分发到不同检索器，结果统一融合重排。增量入库用文档哈希去重、版本管理，过期文档下架并清理向量，避免"僵尸知识"污染答案。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">六、常见踩坑与排错</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>入不了库/查不到：多半是嵌入模型与查询不一致（入库用 A、查询也必须用 A），或元数据 「parent_id」 没写全导致回捞父块失败</li><li>Streamlit 每次交互都重建组件：核心组件务必用 「@st.cache_resource」 装饰成单例</li><li>检查 「add_documents」 是否给每块都打了 「document_id」、「parent_id」</li></ul></div>3
+<p><strong>入不了库/查不到</strong>：多半是嵌入模型与查询不一致（入库用 A、查询也必须用 A），或元数据 <code>parent_id</code> 没写全导致回捞父块失败。检查 <code>add_documents</code> 是否给每块都打了 <code>document_id</code>、<code>parent_id</code>。<strong>召回对但答案错</strong>：上下文没拼对、Top-K 太少、或没回捞父块导致上下文残缺，先打印 <code>get_parent_documents</code> 的结果核对。<strong>答案跑题/编造</strong>：提示词没约束"仅依据上下文"，或上下文里根本没相关内容却硬答——加"无相关信息请诚实说明"。<strong>中文乱码</strong>：<code>TextLoader</code> 记得 <code>encoding='utf-8'</code>，Windows 路径与临时文件注意清理。<strong>Streamlit 每次交互都重建组件</strong>：核心组件务必用 <code>@st.cache_resource</code> 装饰成单例。<strong>Chroma 报错/丢数据</strong>：持久化目录要固定并挂载数据卷，不要用临时目录。</p>
+<h3 id="七复现清单dod">七、复现清单（DoD）</h3>3
+<ul>
+<li>[ ] 能上传 PDF/DOCX/TXT 并完成父子分块入库</li>
+<li>[ ] 提问能召回相关片段并回捞父块作为上下文</li>
+<li>[ ] 回答基于上下文、无相关时诚实说明、附引用来源</li>
+<li>[ ] 多轮会话可用，历史被拼入上下文</li>
+<li>[ ] 删除文档级联删除向量与数据库记录</li>
+<li>[ ] （进阶）Chroma→Milvus + 混合检索 + Reranker</li>
+<li>[ ] （进阶）Ragas 评测跑出 Faithfulness/Context Precision 基线</li>
+</ul>
+<blockquote>
+<p>一句话：RAG 项目 = <strong>解析 → 父子分块 → 嵌入入库 → 子块召回+回捞父块 → 压缩 → LLM 生成 → 溯源展示</strong>。掌握这条链，换语料即换行业。</p>
+</blockquote>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库这个「RAG 问答项目」不是教学 demo，是真在跑的：本次实跑一个问题走完整链，耗时约 3 分钟、exit 0（<code>rag/query.py</code>）</strong>：<br />
+  | 阶段 | 代码位置 | 本次输出 |<br />
+  |---|---|---|<br />
+  | 路由 | <code>route_question</code> / <code>_classify_query</code>（L1089） | <code>route=complex_reasoning</code> |<br />
+  | 混合检索 | <code>_do_retrieve</code> / <code>retrieve_hybrid</code> | <code>merged top-435</code> |<br />
+  | 重排 | <code>rerank</code>（L890） | <code>熔断: 回退排序 top-3</code> |<br />
+  | 门禁 | <code>gate_node</code>（L2245） | <code>best_dist=0.2720 dense_gate_threshold=0.5</code>（放行） |<br />
+  | 相关过滤 | <code>jev_filter_chunks</code>（L2083） | <code>前 3 条 -&gt; 后 2 条</code> |<br />
+  | 生成+引用校验 | <code>generate_node</code> / <code>_validate_citations</code>（L2304） | 1 句被标「未标注来源」拒答 |</li>
+<li><strong>项目里最值得抄的设计：每条失败路径都有对应代码，不是「理论上会处理」</strong>——rerank 超时熔断、检索不到拒答（<code>_build_refusal_answer</code>，文案固定为「知识库无此内容: 检索质量未达及格线, 不作答(不编造)。」）、引用无据整句标⚠️。</li>
+<li><strong>入口不止一个</strong>：命令行 <code>python query.py "问题" --topk 3</code>（本次用）、API <code>python serve.py --port 6400</code>、MCP <code>rag/mcp_server.py</code>（<code>query_knowledge</code> 工具）。<strong>同一套检索核心三处复用</strong>。</li>
+<li><strong>和课件讲法的差异</strong>：课件的 RAG 项目通常「检索→拼 prompt→生成」三步；本库多出「路由 / 门禁 / 熔断 / 引用校验」四段，代码量 2727 行里大部分是这四段。</li>
+<li><strong>本库暂无</strong>：没有前端页面（借 OpenWebUI）、没有多轮对话记忆、没有答案级的人工反馈闭环落库（<code>data/feedback.jsonl</code> 有写但未回灌评测）。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库 RAG 问答项目的真实入口是 <code>rag/query.py main()</code>（L2555）与 <code>rag/serve.py</code>（OpenAI 兼容服务），本次实跑走的是前者：一个问题 → 路由 → 混合检索 → 熔断回退 → 门禁 → 生成 → 引用校验，全程 3 分钟左右。</li>
+<li><strong>读源码</strong>：项目分层；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+</div></details><h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] <strong>课件</strong>：<a href="../../../raw/courseware/RAG%E7%AF%87/13-%E5%AE%9E%E6%88%98%E9%A1%B9%E7%9B%AE%EF%BC%9A%E6%99%BA%E8%83%BD%E6%96%87%E6%A1%A3%E6%A3%80%E7%B4%A2%E5%8A%A9%E6%89%8B-2026-3-16-%E6%9F%8F%E6%B1%8C__day13__07-RAG%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98.md">智能文档检索助手项目实战</a>，落在解析、父子分块、向量入库、检索问答与引用展示。</li>
+<li>[课2] <strong>课程项目大纲</strong>：<a href="../../../raw/sources/%E8%AF%BE%E7%A8%8B%E5%A4%A7%E7%BA%B2-%E5%8D%9A%E5%AD%A6%E8%B0%B7-%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BC%80%E5%8F%91-20261026.md">博学谷大模型开发</a> 与 <a href="../../../raw/sources/%E8%AF%BE%E7%A8%8B%E5%A4%A7%E7%BA%B2-%E9%BB%91%E9%A9%AC-AI%E5%BA%94%E7%94%A8%E6%99%BA%E8%83%BD%E4%BD%93v6-20261026.md">黑马 AI 应用智能体</a>，落在 EduRAG 与跨行业项目形态。</li>
+<li>[业1] <strong>业内官方与论文</strong>：<a href="https://python.langchain.com/docs/concepts/retrieval/">LangChain Retrieval</a>，落在检索器与上下文构建；<a href="https://arxiv.org/abs/2309.15217">RAGAS，arXiv:2309.15217</a>，落在 Faithfulness、Context Precision 等评估口径。</li>
+</ul>
+<h3 id="参考">参考</h3>3
+<ul>
+<li>课件原文：<code>raw/courseware/RAG篇/13-实战项目：智能文档检索助手-2026-3-16-柏汌__day13__07-RAG项目实战.md</code></li>
+<li>博学谷项目库（EduRAG）：<code>raw/sources/课程大纲-博学谷-大模型开发-20261026.md</code></li>
+<li>黑马 RAG 智能体阶段：<code>raw/sources/课程大纲-黑马-AI应用智能体v6-20261026.md</code></li>
+</ul></div></body></html>

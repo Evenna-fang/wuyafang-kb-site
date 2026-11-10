@@ -1,0 +1,109 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>FDE落地方法论提炼</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ FDE落地方法论提炼</span></div><div class="wrap"><h1 id="书章节重点-fde落地方法论提炼9个标杆案例关键知识">书章节重点 · FDE落地方法论提炼（9个标杆案例关键知识）</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>这篇文档是从B站收集的9个FDE标杆案例中提炼出的可复用方法论，而非案例复述</li><li>同时，文档从生产级Agent案例中总结出了几条容易被忽略的工程原则：消息优先级队列、上下文生命周期管理、防循环回复机制、长连接稳定性，这些都是"能跑demo"和"能7×24小时在真实业务里跑"之间的鸿沟</li><li>最后，三个垂直行业案例给出了可对照的ROI数字——数据查询从天级降到分钟级、装载率提升12%、素材产出效率提升4倍——为FDE项目的价值测算提供了真实参照</li></ul></div>2
+<p>这篇文档是从B站收集的9个FDE标杆案例中提炼出的可复用方法论，而非案例复述。案例覆盖了三类对象：真正做FDE交付的行业实践（制造业老师傅经验沉淀、OpenAI会计师事务所报税、律所案件处理）、生产级Agent工程架构（bili-bot直播间场控、黑湖科技工业Agent、Lumine 3D游戏智能体）、以及垂直行业落地的ROI实证（B站大会员NL2SQL、跨境物流装载优化、鞋服电商素材生产）。所有案例共同指向一个核心公式：FDE = 驻场深入业务流程 + 把AI拆进每个工作节点 + 建立持续迭代飞轮。</p>
+<p>文档最有价值的判断是：FDE的价值从来不是"做一个AI工具"，而是把个人脑子里的隐性经验、把企业SOP里的重复性节点，固化为组织可复用的能力。制造业老师傅的工艺经验不再随退休流失，会计师事务所的报税流程不再依赖个别熟手，律师的卷宗整理不再占用新人大量时间——这些价值都不是靠一个通用聊天框能交付的，必须由驻场工程师把AI拆进每个具体工作节点，明确哪些节点AI初算、哪些节点人工终审。</p>
+<p>同时，文档从生产级Agent案例中总结出了几条容易被忽略的工程原则：消息优先级队列、上下文生命周期管理、防循环回复机制、长连接稳定性，这些都是"能跑demo"和"能7×24小时在真实业务里跑"之间的鸿沟。最后，三个垂直行业案例给出了可对照的ROI数字——数据查询从天级降到分钟级、装载率提升12%、素材产出效率提升4倍——为FDE项目的价值测算提供了真实参照。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">FDE核心方法论三案例提炼</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>制造业老师傅经验沉淀范式：把隐性工艺经验先结构化进RAG知识库，再嵌入新人培训、工序问答、质量验收全流程</li><li>核心认知是FDE的价值不是"做一个AI"，而是把个人经验固化为组织能力，让老师傅退休后工艺标准不会断崖式下降</li><li>上线第一年错误率下降45%，这是流程重构而非单点工具的价值</li></ul></div>3
+<ul>
+<li><strong>制造业老师傅经验沉淀范式</strong>：把隐性工艺经验先结构化进RAG知识库，再嵌入新人培训、工序问答、质量验收全流程。核心认知是FDE的价值不是"做一个AI"，而是把个人经验固化为组织能力，让老师傅退休后工艺标准不会断崖式下降。</li>
+<li><strong>会计师事务所报税全链路</strong>：梳理出120多个SOP节点，每个节点都设计为"AI初算+人工复核"，同时建立错误样本自动收集机制，反过来驱动提示词持续迭代，形成越用越准的飞轮。上线第一年错误率下降45%，这是流程重构而非单点工具的价值。</li>
+<li><strong>律所案件处理嵌入全流程</strong>：把卷宗整理、法条检索、文书初稿、案例对比四个AI能力，直接嵌入案件受理、准备、开庭的每一个工作节点，而不是给律师一个通用聊天框让他们自己摸索用法——后者的采用率几乎为零。</li>
+<li><strong>FDE通用三步法</strong>：第一步流程拆解（占60%工作量），梳理全流程SOP节点、识别重复性规则性节点交给AI、识别需要经验判断的节点留给人工；第二步人机协同设计，坚持"AI初算+人工终审"而不是"AI替代人"；第三步持续迭代飞轮，错误样本自动收集、提示词自动迭代，系统随使用时间越来越准。</li>
+</ul>
+<h3 id="生产级agent工程架构三案例">生产级Agent工程架构三案例</h3>3
+<ul>
+<li><strong>bili-bot直播间场控的设计细节</strong>：采用三级优先级消息队列——弹幕普通互动优先级最低、礼物高价值感谢次之、新人进场欢迎优先级最高，不同优先级匹配不同提示词模板；同时做上下文生命周期管理，防止直播间人来人往导致上下文爆炸，老用户上下文保留、新用户快速建立画像。</li>
+<li><strong>防循环回复与长连接保障</strong>：生产级Agent必须解决防循环回复问题，避免AI反复输出同样的话术；通信层不走HTTP短轮询，而是WebSocket长连接，兼顾实时体验与服务器性能。这两个细节是demo和上线产品的核心分水岭。</li>
+<li><strong>黑湖科技工业Agent全链路贯通</strong>：打通订单→物料→生产→质量全链路数据，Agent自主跟单、异常预警、原因分析、输出优化建议，车间管理者直接用自然语言提问"现在生产到哪了""为什么异常了"，不需要写SQL。最终服务3万+工厂，功能开发周期缩短70%，生产运营效率提升30%，能做到0.01mm级加工工序AI全程跟单。</li>
+<li><strong>Lumine 3D游戏智能体通用范式</strong>：完整实现感知-决策-行动闭环——感知理解3D游戏画面，决策拆解任务规划路径，行动持续执行操作。其四大核心能力是多模态理解、任务规划、工具调用、长期记忆，这四项可以作为判断一个通用Agent是否具备生产级潜力的检查清单。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">垂直行业落地ROI三案例</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>企业内部NL2SQL数据自助：范式是自然语言→SQL→查询→分析结果，数据查询从2天压缩到分钟级，业务人员自助查询覆盖率达85%，数据分析师的重复需求减少60%</li><li>传统行业经验数字化（跨境物流装载）：把老员工的配载经验交给AI优化，替代经验式配载决策，最终单车装载率提升12%，配载时间从40分钟压缩到5分钟，新人上手即可达到老员工80%的水平</li><li>最终素材产出效率提升4倍，单张素材成本降低65%，大促交付周期从7天压缩到2天</li></ul></div>3
+<ul>
+<li><strong>企业内部NL2SQL数据自助</strong>：范式是自然语言→SQL→查询→分析结果，数据查询从2天压缩到分钟级，业务人员自助查询覆盖率达85%，数据分析师的重复需求减少60%。可复用场景是任何有大量数据分析需求、但数据分析师人手不足的企业。</li>
+<li><strong>传统行业经验数字化（跨境物流装载）</strong>：把老员工的配载经验交给AI优化，替代经验式配载决策，最终单车装载率提升12%，配载时间从40分钟压缩到5分钟，新人上手即可达到老员工80%的水平。可复用场景覆盖任何依赖老师傅经验的传统行业，包括制造业、物流、医疗。</li>
+<li><strong>业务流程重构（鞋服电商素材生产）</strong>：不是单点AI生图，而是全链路重构——AI负责主图生成、多尺寸适配、文案搭配、合规校验四个环节，人工只做终审和创意调整。最终素材产出效率提升4倍，单张素材成本降低65%，大促交付周期从7天压缩到2天。</li>
+<li><strong>ROI测算的参照意义</strong>：三个行业案例共同证明，FDE类项目的回报不是"省了多少token"，而是直接体现在核心业务指标——查询时效、装载率、素材产出效率——这些业务部门能直接感知的数字上，价值沟通必须用业务语言而非技术语言。</li>
+</ul>
+<h3 id="给hermes自身的三条直接启示">给Hermes自身的三条直接启示</h3>3
+<ul>
+<li><strong>派单必须拆进工作节点</strong>：过去派单经常是"调研XXX"这类宽泛指令，子Agent接到后往往不知道从何下手。正确做法是像FDE一样拆成"第一步做什么、第二步做什么、哪个环节需要人工复核"，把任务节点化，执行结果的确定性会大幅提升。</li>
+<li><strong>建立错误样本自动收集飞轮</strong>：目前踩坑只记录错误台账，没有形成"越用越准"的迭代机制。应该做到每次踩坑后自动分析根因、自动更新提示词或规则，让系统在使用过程中持续进化，而不是靠人工定期回头补。</li>
+<li><strong>生产级多智能体必须防循环</strong>：bili-bot的防循环回复机制提醒我们，做多智能体协作时必须设计对话终止条件和循环检测逻辑，否则多个Agent之间会无限来回对话，浪费token且永远达不成结论。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">FDE交付的反模式提醒</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>"做一个AI工具交给业务自己用"是最大反模式：会计师事务所、律所、制造业老师傅三个案例共同证明，只有把AI嵌入具体工作节点、明确人机分工，业务才会真正用起来；通用聊天框放在那里，三个月后采用率趋近于零</li><li>跳过流程拆解直接做模型：流程拆解占FDE工作量的60%，跳过这一步直接调模型、写代码，做出来的东西一定和真实业务需求错位，返工成本远高于前期调研</li><li>不建错误收集机制：没有错误样本自动回流的系统，上线后准确率会停滞在初始水平，永远无法实现"越用越准"的飞轮效应，客户续约率会随新鲜感消退而下降</li></ul></div>3
+<ul>
+<li><strong>"做一个AI工具交给业务自己用"是最大反模式</strong>：会计师事务所、律所、制造业老师傅三个案例共同证明，只有把AI嵌入具体工作节点、明确人机分工，业务才会真正用起来；通用聊天框放在那里，三个月后采用率趋近于零。</li>
+<li><strong>跳过流程拆解直接做模型</strong>：流程拆解占FDE工作量的60%，跳过这一步直接调模型、写代码，做出来的东西一定和真实业务需求错位，返工成本远高于前期调研。</li>
+<li><strong>不建错误收集机制</strong>：没有错误样本自动回流的系统，上线后准确率会停滞在初始水平，永远无法实现"越用越准"的飞轮效应，客户续约率会随新鲜感消退而下降。</li>
+<li><strong>把ROI说成"技术进步"而非"业务收益"</strong>：业务部门不关心你们用了多大参数的模型，只关心查询快了多少、装载率涨了多少、素材产出翻了几倍。所有价值沟通必须翻译成本部门能直接算的业务数字，否则项目预算很难批。</li>
+<li><strong>一次性全量上线</strong>：所有案例都是从小范围试点起步——客服是两个班组、知识库是一个区域、代码助手是两个服务，小范围跑通采纳率和准确率后再扩，全量上线一旦出问题，业务信任崩塌后很难再拉回来。</li>
+</ul>
+<h2 id="适用场景标签">适用场景标签</h2>2
+<ul>
+<li>FDE交付方法论</li>
+<li>业务流程拆解</li>
+<li>生产级Agent架构</li>
+<li>人机协同设计</li>
+<li>持续迭代飞轮</li>
+<li>行业ROI测算</li>
+<li>多智能体协作设计</li>
+<li>老师傅经验数字化</li>
+<li>直播场控Agent</li>
+<li>工业全链路Agent</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">落地执行检查清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>进场前调研清单：先用一周时间完整走完目标流程的每一个节点，不要只听业务负责人讲——要跟着一线员工从上班到下班走一遍，把每个重复性节点、每个需要经验判断的节点都标出来，这是后续AI嵌入设计的基础</li><li>指标验收清单：每个项目启动前和业务方约定好核心业务指标——客服看采纳率、查询看自助率、代码看首PR时间、素材看产出效率，上线前冻结基线，上线后按周对比，不用"调用量"这类技术指标自我安慰</li><li>调研阶段最容易犯的错误是只坐在会议室里听管理层描述流程，实际一线员工的真实工作流往往和SOP文档写的完全不一样</li></ul></div>2
+<ul>
+<li><strong>进场前调研清单</strong>：先用一周时间完整走完目标流程的每一个节点，不要只听业务负责人讲——要跟着一线员工从上班到下班走一遍，把每个重复性节点、每个需要经验判断的节点都标出来，这是后续AI嵌入设计的基础。调研阶段最容易犯的错误是只坐在会议室里听管理层描述流程，实际一线员工的真实工作流往往和SOP文档写的完全不一样。</li>
+<li><strong>人机分工清单</strong>：每个节点明确标注"AI初算""人工复核""人工终审"三档，没有明确分工的节点宁可先不上AI，也不要模糊地带让员工不知道该信AI还是信自己的判断。分工越清晰，员工的采用率越高——怕就怕AI给了一个结果，员工还得花同样多的时间验证对错，那不如不用。</li>
+<li><strong>错误回流清单</strong>：系统上线前就搭好错误样本自动收集管道——坐席点"没用"的按钮、人工复核改掉的输出、客户投诉的错误答案，全部自动入样本库，每周自动跑一次提示词迭代实验。没有这个管道，系统上线三个月后准确率还是初始水平，完全没有"越用越准"的复利效应。</li>
+<li><strong>指标验收清单</strong>：每个项目启动前和业务方约定好核心业务指标——客服看采纳率、查询看自助率、代码看首PR时间、素材看产出效率，上线前冻结基线，上线后按周对比，不用"调用量"这类技术指标自我安慰。指标约定一定要在项目启动时写进交付合同，不能上线后再谈。</li>
+<li><strong>防循环设计清单</strong>：多Agent协作或长链路Agent必须设置最大轮次、终止条件、重复回复检测，避免直播间AI来回说同样的话、多Agent无限互相追问不收敛。bili-bot能稳定跑直播间，很大程度上靠的就是这些不起眼的工程细节。</li>
+</ul>
+<h2 id="一句话推荐">一句话推荐</h2>2
+<p>所有想做AI落地、却还在"给业务配一个聊天框"的团队，先读这篇——FDE的价值从来不在工具本身，而在把AI拆进每一个业务节点的深度，在流程重构里创造出可量化的业务收益。</p></div></details></div></body></html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>运维脚本四件套</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 运维脚本四件套</span></div><div class="wrap"><h1 id="运维脚本四件套">运维脚本四件套</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/practice/%E8%BF%90%E7%BB%B4%E8%84%9A%E6%9C%AC%E6%B8%85%E5%8D%95-20260929.md">运维脚本清单-20260929</a></p>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<p><code>~/.hermes/scripts/</code> 下 4 个生产运维脚本是<a href="%E8%BF%90%E7%BB%B4%E7%BA%AA%E5%BE%8B%E4%B8%8E%E5%A4%8D%E7%9B%98%E6%A1%88%E4%BE%8B.html">运维纪律</a>的执行层：通道探活、子任务失败检测、secrets 门禁、receipt 凭据闭环，各管一段，出事时按脚本名定位责任边界。</p>
+<blockquote>
+<p>相关：<a href="%E8%BF%90%E7%BB%B4%E7%BA%AA%E5%BE%8B%E4%B8%8E%E5%A4%8D%E7%9B%98%E6%A1%88%E4%BE%8B.html">运维纪律与复盘案例</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">四件套速查表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>脚本</th>
+<th>职责</th>
+<th>关键参数与阈值</th>
+<th>输出物</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>channel-health-monitor.py</td>
+<td>FDE 通道健康探活（30 分钟一次）</td>
+<td>5 通道；max_tokens=20；健康=HTTP 200 + reasoning/content 非空 + latency&lt;15s；连续失败 2 次才推送（防抖）</td>
+<td>telegram 告警/恢复通知；状态文件 <code>.channel-health-state.json</code>；日志 <code>fde-failover.log</code></td>
+</tr>
+<tr>
+<td>check-subtask-failure.py</td>
+<td>扫描子单失败且未登记台账的情况</td>
+<td>默认窗口 1 小时（<code>--window</code> 秒可调）；命中 status=failed/timed out/interrupted 且 error-ledger 无对应指纹 → exit 1</td>
+<td>警告输出 + 退出码（0=干净，1=有未登记失败）</td>
+</tr>
+<tr>
+<td>check-secrets-guard.py</td>
+<td>防「密钥被脱敏占位符写回」事故</td>
+<td>检出占位符/空值/未展开引用/非 ASCII；退出码 0=通过 1=检出问题 2=用法错误</td>
+<td>只打印变量名+问题类型，绝不打印密钥值</td>
+</tr>
+<tr>
+<td>receipt.py</td>
+<td>完成凭据双点门禁：declare 前闸 + verify 后验</td>
+<td>G1~G9 九道门（台账/审查/来源/新鲜度/范围绑定/时间戳反证等）</td>
+<td>三值 verdict 状态机；audit 滚动留痕</td>
+</tr>
+</tbody>
+</table>
+<h2 id="各脚本展开">各脚本展开</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">channel-health-monitor.py</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>触发：定时任务每 30 分钟探一次火山/小米/百炼/deepseek/ollama-cloud 五通道</li><li>判定：HTTP 200 且 content、reasoning_content、reasoning 任一非空，且延迟 <15s</li><li>失败处理：连续失败 2 次才推 telegram（防抖）；异常→正常切换时也推一次「已恢复」</li></ul></div>3
+<ul>
+<li>触发：定时任务每 30 分钟探一次火山/小米/百炼/deepseek/ollama-cloud 五通道。</li>
+<li>判定：HTTP 200 且 content、reasoning_content、reasoning 任一非空，且延迟 &lt;15s。max_tokens=20 是刻意压到"短但够推理模型吐出非空 reasoning"。</li>
+<li>失败处理：连续失败 2 次才推 telegram（防抖）；异常→正常切换时也推一次「已恢复」。<strong>只告警，不自动改 config.yaml、不自动切主模型</strong>。</li>
+<li>Telegram 凭据优先取环境变量，其次 <code>~/.hermes/secrets.env</code>；两者都没有则只写日志不推、不报错。</li>
+</ul>
+<h3 id="check-subtask-failurepy">check-subtask-failure.py</h3>3
+<ul>
+<li>触发：扫描 <code>~/.hermes/cache/delegation/live/*/task-*.log</code> 里最近 1 小时的子单 transcript（<code>--window</code> 可自定义）。</li>
+<li>判定：发现 failed/timed out/interrupted，且 error-ledger 台账中没有对应指纹 → 输出警告并 exit 1。</li>
+<li>失败处理：exit 1 时<strong>不允许标完成</strong>——它必须在 receipt.py verify 之前调用，是"子单炸了没记账还想结单"的最后一道拦截。处理方式是先补台账再重跑。</li>
+<li><code>--self-test</code> 造假 failed transcript 自验证，改动后必跑。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">check-secrets-guard.py</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>触发：背景是真实事故（2026-09-23 四个 key、2026-09-29 五个 key 被覆盖成 「«red…»」 占位符）：用会对密钥脱敏的 read_file/write_file 类工具读改写 .env，真值写回即丢</li><li>判定：逐个检查值——占位符、空值、未展开引用、含非 ASCII 均算问题</li><li>「looks_like_secret()」 区分真密钥与英文散文；「--docs」 额外扫 markdown 文档里的明文密钥</li></ul></div>3
+<ul>
+<li>触发：背景是真实事故（2026-09-23 四个 key、2026-09-29 五个 key 被覆盖成 <code>«red…»</code> 占位符）：用会对密钥脱敏的 read_file/write_file 类工具读改写 .env，真值写回即丢。现在作为门禁例行跑。</li>
+<li>判定：逐个检查值——占位符、空值、未展开引用、含非 ASCII 均算问题。<code>looks_like_secret()</code> 区分真密钥与英文散文；<code>--docs</code> 额外扫 markdown 文档里的明文密钥。</li>
+<li>失败处理：exit 1 时先恢复真值（从备份/密管），再排查是哪个工具做了脱敏写回。<code>--selftest</code> 在临时目录造坏样本验证检出能力，不碰真实文件。</li>
+<li>设计铁律：<strong>只打印变量名和问题类型，绝不打印任何密钥值</strong>。</li>
+</ul>
+<h3 id="receiptpy">receipt.py</h3>3
+<ul>
+<li>触发：declare（改动前登记）与 verify（完成后验收）两个节点，构成双点门禁。</li>
+<li>判定要点（九道门 G1~G9 中最常碰到的）：</li>
+<li>G3 来源：审查证据必须是 PLANS_DIR 下已存在文件、含结论符号且 ≥80 字；</li>
+<li>G4 新鲜度：证据 mtime 必须晚于 declare（防拿旧存证复用）；</li>
+<li>G5 范围：证据文本须包含本次 <code>--files</code> 的每个 basename；</li>
+<li>G6 反证（Claude）：证据 mtime 早于改动 mtime 才绿——先审后改，先改后审即红；</li>
+<li>G9 豁免：monitor 类高 churn 文件（state.db/wal/日志）只记录不判红，防 verify 自锁。</li>
+<li>失败处理：判红即不进 VERIFIED；worker 与 verifier 的 invocation 必须分离（同 inv 必被拒）。amend 走 S1 流程（备份→改→重锚→audit），每次尝试都留痕，无法静默。</li>
+<li>历史自由串 <code>--review</code> 已废弃：declare 阶段直接拒绝但不崩溃，按提示换新用法。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">使用注意事项</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>2. check-subtask-failure 的 exit 1 不是错误，是流程信号：先补 error-ledger 台账指纹，再重跑直到 exit 0</li><li>3. 三个脚本都带自测（「--self-test」/「--selftest」、receipt 的回归/E2E/篡改探针/沙箱断言/回滚演练五项），改脚本后先跑自测再上生产</li><li>4. receipt 沙箱限制是刻意的：测试用 「RECEIPT_DIR/AUDIT_DIR/PLANS_DIR」 覆盖仅 /tmp 下生效，生产路径不得借 env 跳门禁</li></ul></div>2
+<ol>
+<li><strong>secrets 门禁的凭据标注要求</strong>：channel-health-monitor 的 telegram 凭据要么放环境变量、要么放 <code>~/.hermes/secrets.env</code>，别写进任何会被脱敏工具碰到的文件；.env 的读改写一律避开 read_file/write_file 类脱敏工具，用 sed/专用脚本。</li>
+<li>check-subtask-failure 的 exit 1 不是错误，是流程信号：先补 error-ledger 台账指纹，再重跑直到 exit 0。</li>
+<li>三个脚本都带自测（<code>--self-test</code>/<code>--selftest</code>、receipt 的回归/E2E/篡改探针/沙箱断言/回滚演练五项），改脚本后先跑自测再上生产。</li>
+<li>receipt 沙箱限制是刻意的：测试用 <code>RECEIPT_DIR/AUDIT_DIR/PLANS_DIR</code> 覆盖仅 /tmp 下生效，生产路径不得借 env 跳门禁。</li>
+<li>探活脚本定位是"告警不处置"：收到 telegram 后人工决定是否切模型，不做自动 failover。</li>
+</ol></div></details></div></body></html>

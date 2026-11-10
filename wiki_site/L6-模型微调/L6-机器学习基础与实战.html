@@ -1,0 +1,379 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L6-机器学习基础与实战</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L6-机器学习基础与实战</span></div><div class="wrap"><h1 id="l6-机器学习基础与实战">L6 机器学习基础与实战</h1>
+<blockquote>
+<p>本文不按算法名词逐篇堆叠，而按“问题定义—数据切分—特征处理—基线—候选模型—诊断—交付”组织。它在 L6 中有两个用途：一是为分类、回归、聚类等下游任务建立可复现的传统基线；二是把数据泄漏、错误指标和预处理错配挡在大模型微调之前。所有代码与实验均为<strong>示例，未实跑</strong>，不沿用旧稿的本机分数、耗时或固定阈值。</p>
+<p>大模型训练入口见《L6-模型微调-2026.md》，神经网络训练稳定性见《L6-损失优化与训练稳定性.md》。</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>大模型微调并不消除机器学习的基本问题</li><li>标签是否有噪声、同一用户是否同时出现在训练集和验证集、评分是否被多数类主导、预测时点是否真的能获得某字段，这些问题在逻辑回归、XGBoost 和 LoRA 中同样存在</li><li>模型越大，越可能把数据中的偶然相关和泄漏学得很熟；训练 loss 下降不能替代泛化验证</li></ul></div>2
+<p>大模型微调并不消除机器学习的基本问题。标签是否有噪声、同一用户是否同时出现在训练集和验证集、评分是否被多数类主导、预测时点是否真的能获得某字段，这些问题在逻辑回归、XGBoost 和 LoRA 中同样存在。模型越大，越可能把数据中的偶然相关和泄漏学得很熟；训练 loss 下降不能替代泛化验证。</p>
+<p>传统机器学习对 L6 的直接价值有三层：</p>
+<ol>
+<li><strong>建立下界与对照</strong>：如果一个正则化线性模型已经解决表格分类，就没有必要默认微调 LLM。反之，传统基线失败也要先区分是表示不足、数据不足还是切分错误，不能据此直接证明“必须上大模型”。</li>
+<li><strong>复用实验纪律</strong>：训练/验证/测试分工、按时间或实体切分、预处理只在训练折拟合、指标服从业务代价，这些规则可直接迁移到 SFT 和偏好优化。</li>
+<li><strong>承担辅助任务</strong>：微调数据去重前可做聚类与降维，标注质量可做噪声诊断，推理日志可训练轻量分类器，线上路由可比较传统模型与生成模型的成本和效果。</li>
+</ol>
+<p>本篇因此不追求算法百科全书，而要求能回答四个问题：预测对象是什么，评估是否可信，哪个模型假设与数据匹配，失败后如何回退。</p>
+<h2 id="what">WHAT</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 先按问题选模型，而不是先背算法</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>输出连续数值，是回归；输出离散类别，是分类；没有标签、希望发现结构，才考虑聚类；希望压缩或可视化表示，才考虑降维</li><li>排序、异常检测、推荐、时间序列预测不能只靠改一个 estimator 名称完成，还需专用目标、切分和指标</li><li>“输入一段文本”并不自动等于要微调 LLM</li></ul></div>3
+<p>第一步看输出和监督信号：</p>
+<ul>
+<li>输出连续数值，是<strong>回归</strong>；输出离散类别，是<strong>分类</strong>；没有标签、希望发现结构，才考虑<strong>聚类</strong>；希望压缩或可视化表示，才考虑<strong>降维</strong>。</li>
+<li>排序、异常检测、推荐、时间序列预测不能只靠改一个 estimator 名称完成，还需专用目标、切分和指标。</li>
+<li>“输入一段文本”并不自动等于要微调 LLM。短文本分类可先用 TF-IDF 加线性模型或朴素贝叶斯；生成、开放域指令遵循和复杂上下文任务才更直接指向生成模型。</li>
+</ul>
+<p>第二步检查数据结构：样本是否独立，是否有时间顺序，是否按用户/患者/设备分组，特征是否稀疏，标签是否不平衡，线上是否需要概率和解释。第三步才建立简单基线，再让复杂模型在同一数据和同一切分上证明收益。</p>
+<p>一个稳健的顺序通常是：</p>
+<ol>
+<li>多数类、均值或业务规则等朴素基线；</li>
+<li>正则化线性回归/逻辑回归，或适合文本的朴素贝叶斯；</li>
+<li>随机森林或梯度提升树作为表格强基线；</li>
+<li>有明确理由时再试核 SVM、KNN、深度模型或大模型微调。</li>
+</ol>
+<p>“通常”不是排行榜。最终选择要看验证集表现、数据假设、训练与推理成本、校准、可维护性和失败代价。</p>
+<h3 id="2-线性回归与逻辑回归可解释的基线">2. 线性回归与逻辑回归：可解释的基线</h3>3
+<p><strong>线性回归</strong>用 <code>ŷ = wᵀx + b</code> 拟合连续标签，最小二乘目标最小化平方误差。它适合关系近似线性、需要快速基线和系数解释的场景。MSE 对大误差敏感，异常值可能显著改变系数；共线特征会使系数方向和大小不稳定。Ridge 加 L2 收缩，Lasso 加 L1 惩罚并可能产生稀疏系数，Elastic Net 组合两者。</p>
+<p>系数解释必须带单位与条件：原始系数表示其他列不变时，某列增加一个单位对应的预测变化；标准化后的系数表示特征变化一个训练集标准差时的变化。不能把相关模型的系数直接说成因果效应，也不能跨不同量纲比较原始系数绝对值来宣布“最重要特征”。</p>
+<p><strong>逻辑回归</strong>虽名为回归，实质是分类器。二分类时先算线性 logit，再经 sigmoid 得到正类概率：</p>
+<p>[<br />
+p(y=1\mid x)=\sigma(w^Tx+b),\qquad \sigma(z)=\frac{1}{1+e^{-z}}<br />
+]</p>
+<p>训练通常最小化对数损失。它适合需要快速、可解释、可输出分数的分类基线。多分类可由具体 solver 与多类策略支持，使用前应查当前 scikit-learn 文档，不沿用旧版本参数记忆。</p>
+<p>逻辑回归的默认决策阈值不是不可更改的自然常数。阈值应按验证集上的误报/漏报代价选择，并作为模型配置一起版本化。ROC-AUC 衡量排序，概率是否反映真实频率则要另看校准；高 AUC 不保证某个阈值下的业务表现，也不保证概率校准良好。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 决策树、随机森林与 XGBoost：三种不同的树范式</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>决策树递归选择特征和切分点，让子节点更纯</li><li>原论文的核心之一是对损失做二阶近似并加入正则化</li><li>固定树结构时，一个叶子的最优权重可写成 「-G/(H+λ)」，体现二阶项与 L2 正则对更新步长的共同约束</li></ul></div>3
+<p><strong>决策树</strong>递归选择特征和切分点，让子节点更纯。分类可用基尼不纯度或熵，回归常看节点内平方误差。树能表达非线性和特征交互，单棵树可导出规则，但不受约束时容易把噪声切进叶节点。<code>max_depth</code>、<code>min_samples_leaf</code> 等用于控制容量，具体值由交叉验证而非通用阈值决定。树模型按阈值分裂，通常不要求标准化；这不代表它们不需要处理缺失、类别编码和泄漏。</p>
+<p><strong>随机森林</strong>对样本做 bootstrap，并在分裂时引入特征随机性，训练多棵较去相关的树，再投票或平均。它主要通过集成降低方差，常是表格数据的实用基线。袋外估计可提供辅助诊断，但不能在时间、分组或泄漏要求下机械替代正确的独立验证。</p>
+<p>树的不纯度重要性可能偏向可切分点多的特征，也会受相关特征影响。置换重要性更接近“打乱该列后性能损失”，但仍不是因果解释，且相关特征之间会分摊或掩盖效果。</p>
+<p><strong>XGBoost</strong>属于梯度提升树：新树逐步修正当前集成的损失，而不是像随机森林那样独立种树。原论文的核心之一是对损失做二阶近似并加入正则化。对第 <code>t</code> 棵树，可概念化为：</p>
+<p>[<br />
+Obj^{(t)}\approx\sum_i\left[g_i f_t(x_i)+\frac12h_i f_t(x_i)^2\right]+\Omega(f_t)<br />
+]</p>
+<p>其中 <code>g_i、h_i</code> 是当前预测处的一阶、二阶导数，正则项包含叶节点数量与叶权重惩罚。固定树结构时，一个叶子的最优权重可写成 <code>-G/(H+λ)</code>，体现二阶项与 L2 正则对更新步长的共同约束。</p>
+<p>工程上调参要理解耦合：学习率和树数量共同决定拟合程度，树深、子节点约束、行/列采样和正则共同影响容量。early stopping 使用的数据也参与模型选择，不能再把同一数据当完全未见测试集。XGBoost 适合结构化表格，不代表在原始文本、图像或所有稀疏任务上必然优于其他方法。</p>
+<h3 id="4-svmknn-与朴素贝叶斯假设决定适用边界">4. SVM、KNN 与朴素贝叶斯：假设决定适用边界</h3>3
+<p><strong>支持向量机</strong>寻找间隔较大的分类边界。软间隔用 <code>C</code> 控制间隔与训练违例之间的权衡；核方法通过内积隐式表达非线性特征映射，RBF 核可拟合弯曲边界。SVM 可在中小规模、高维或边界复杂的任务上表现良好，但核 SVM 的训练和存储成本随样本增长可能成为瓶颈。距离与内积受量纲影响，预处理和模型应放进同一 Pipeline。需要概率时，不能直接把 decision function 当概率，应使用有独立验证的校准流程。</p>
+<p><strong>KNN</strong>是惰性学习：训练时主要保存数据，预测时找最近邻，分类投票、回归平均。它适合低维、距离确有语义、需要局部方法基线的问题。k 小会更敏感，k 大会更平滑，应交叉验证选择。高维空间中距离对比可能减弱，大量样本又会增加预测成本，因此“训练很快”不等于“线上便宜”。KNN、KMeans 和 RBF-SVM 都应重点检查缩放。</p>
+<p><strong>朴素贝叶斯</strong>由贝叶斯公式和特征条件独立假设得到：</p>
+<p>[<br />
+P(y\mid x)\propto P(y)\prod_jP(x_j\mid y)<br />
+]</p>
+<p>它训练快、参数少，适合文本计数等基线。MultinomialNB 面向计数型特征，BernoulliNB 面向二值出现/不出现，GaussianNB 面向连续特征并采用高斯假设。拉普拉斯等平滑用于避免未见特征导致零概率。条件独立不成立时，相关或重复特征可能重复计证，使概率过度自信；分类仍可能可用，但概率不能直接当真。要精确概率时另做校准评估。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5. KMeans 与 PCA：无监督不等于无需验证</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>KMeans最小化簇内平方距离，交替执行“分配到最近质心”和“用簇均值更新质心”</li><li>它隐含依赖欧氏距离与均值，较适合尺度协调、近似凸且分离的簇</li><li>k 需预先给定，初始化可能影响局部解；可用多次初始化、簇内误差曲线、轮廓系数和稳定性辅助选 k，但不存在脱离业务语义的“最佳簇数”</li></ul></div>3
+<p><strong>KMeans</strong>最小化簇内平方距离，交替执行“分配到最近质心”和“用簇均值更新质心”。它隐含依赖欧氏距离与均值，较适合尺度协调、近似凸且分离的簇。k 需预先给定，初始化可能影响局部解；可用多次初始化、簇内误差曲线、轮廓系数和稳定性辅助选 k，但不存在脱离业务语义的“最佳簇数”。非凸簇、密度差异大或噪声明显时，应考虑密度、层次或谱聚类等其他假设。</p>
+<p>聚类结果不能直接用分类 accuracy 评价。没有外部标签时可看 silhouette 等内部指标、不同抽样下稳定性和业务可解释性；有可信标签时才可辅以 ARI 等外部一致性指标。内部指标高不等于簇有业务价值。</p>
+<p><strong>PCA</strong>对中心化数据寻找方差最大的正交方向，可用 SVD 计算。它用于压缩、去相关、可视化和某些模型的前置降维。解释方差比说明保留了多少原始线性方差，不说明保留了多少标签判别信息；小方差方向也可能恰好区分类别。因此，监督任务中 PCA 必须和后续模型一起放进交叉验证 Pipeline，以最终任务指标选择维数，不能只看累计解释方差。稀疏高维数据还要考虑稠密化成本，可评估 TruncatedSVD 等适用工具。</p>
+<h3 id="6-特征工程让信息可用同时挡住未来信息">6. 特征工程：让信息可用，同时挡住未来信息</h3>3
+<p><strong>数值特征</strong>：先查分布、异常值和单位，再决定变换。标准化把训练集均值和标准差用于缩放，适合许多距离或梯度模型；MinMax 缩放到固定区间，但会受极值影响；右偏非负变量可评估 <code>log1p</code>，分箱可表达分段效应。树模型通常不需要标准化，但 log、比值等有业务含义的变换仍可能帮助表达。任何统计量都只从训练折估计。</p>
+<p><strong>类别特征</strong>：无序类别常用 one-hot，避免虚构数值顺序；有序类别可按真实顺序编码，但间距是否有意义仍需说明。高基数类别会造成维度与稀疏性问题，可考虑合并稀有类、哈希、嵌入或目标编码。目标编码使用标签，必须采用严格的折外/时间安全策略，不能拿全量标签均值填训练与测试。</p>
+<p><strong>缺失值</strong>：先问为什么缺失，再选删除、均值/中位数/众数填充或增加缺失指示。完全随机缺失、与已观测变量相关缺失、与未观测因素相关缺失的影响不同，不能用一个缺失率阈值决定所有项目。线上预测时必须能执行同样策略，训练时“删掉缺失行”并不意味着线上也能删掉请求。</p>
+<p><strong>交互与构造</strong>：比值、时间差、滚动统计和领域规则往往比无脑全量多项式更可解释。构造前写清“预测时点是否可得”：事后处理结果、未来聚合、由标签生成的字段都属于高风险。滚动特征只使用当前时点之前的数据，窗口计算也要防止跨边界污染。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7. Pipeline 与数据切分：防泄漏要靠结构</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>scikit-learn 的 Pipeline 把预处理和估计器串为一个对象；ColumnTransformer 可对不同列施加不同工序</li><li>调用 「fit」 时，每一步只从传入的训练数据学习统计量；在交叉验证中，应把整个 Pipeline 交给 CV，使每个训练折独立 fit，再 transform 对应验证折</li><li>独立同分布样本：可用随机切分；分类且类别不平衡时考虑分层切分</li></ul></div>3
+<p>scikit-learn 的 Pipeline 把预处理和估计器串为一个对象；ColumnTransformer 可对不同列施加不同工序。调用 <code>fit</code> 时，每一步只从传入的训练数据学习统计量；在交叉验证中，应把整个 Pipeline 交给 CV，使每个训练折独立 fit，再 transform 对应验证折。</p>
+<p>切分方式服从样本生成过程：</p>
+<ul>
+<li><strong>独立同分布样本</strong>：可用随机切分；分类且类别不平衡时考虑分层切分。</li>
+<li><strong>时间任务</strong>：训练集早于验证/测试集，可用时间顺序切分或 TimeSeriesSplit；随机 shuffle 会把未来信息带入训练。</li>
+<li><strong>同实体多条记录</strong>：用 GroupKFold 等保证同一用户、患者或设备不跨训练与验证，避免模型靠识别实体得分。</li>
+<li><strong>既有时间又有分组</strong>：只满足一个条件不够，需设计同时尊重时间和实体的切分，并核对每个折的覆盖与标签分布。</li>
+</ul>
+<p>测试集应尽量只用于最终评估。反复根据测试分数选模型、阈值或特征，会把测试集变成训练过程的一部分。交叉验证的均值也要结合折间波动、数据规模和业务切片理解，不能把一个均值当确定保证。</p>
+<h3 id="8-指标从错误代价出发">8. 指标：从错误代价出发</h3>3
+<p><strong>分类</strong>先给混淆矩阵，再看指标：</p>
+<ul>
+<li>precision 关注预测为正的样本中有多少正确，recall 关注真实正例找回多少，F1 平衡二者；</li>
+<li>macro 平均让各类权重更均衡，weighted 按支持度加权，类别不平衡时 accuracy 可能掩盖少数类失败；</li>
+<li>ROC-AUC 看排序，PR 曲线/PR-AUC 在正例稀少时常更贴近正类表现；</li>
+<li>log loss、Brier score 和校准图评价概率质量，不能只靠 argmax 指标替代。</li>
+</ul>
+<p><strong>回归</strong>中，MAE 与标签同单位且较直观；RMSE 更重罚大误差；R² 相对均值基线描述解释程度，在分布变化或数据范围很窄时需谨慎解释。含零或近零标签时，MAPE 可能失真。必要时应按业务区间、时间和实体分组报告，而不是只报全量平均。</p>
+<p><strong>聚类</strong>没有统一 accuracy。内部指标、外部标签一致性、重采样稳定性和下游业务价值分别回答不同问题。降维则同时看重构/解释方差和最终下游任务，不能将二者混为一谈。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">HOW</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="1-混合特征分类的最小-pipeline">1. 混合特征分类的最小 Pipeline</h3>3
+<p><strong>目标</strong>：演示“先切分，预处理只在训练集 fit，模型与预处理作为同一产物保存”的最小闭环。<br />
+<strong>输入</strong>：含数值、类别、缺失值的合成表格，标签为二分类。<br />
+<strong>产物</strong>：拟合后的 Pipeline、验证指标、特征名和可选模型文件。<br />
+<strong>代码状态</strong>：示例，未实跑。</p>
+<pre><code class="language-python">import numpy as np
+import pandas as pd
+
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+rng = np.random.default_rng(42)
+n = 120
+df = pd.DataFrame({
+    &quot;age&quot;: rng.integers(18, 70, n).astype(float),
+    &quot;usage_days&quot;: rng.integers(0, 365, n).astype(float),
+    &quot;monthly_fee&quot;: rng.normal(100, 30, n),
+    &quot;region&quot;: rng.choice([&quot;north&quot;, &quot;south&quot;, &quot;east&quot;, &quot;west&quot;], n),
+    &quot;plan&quot;: rng.choice([&quot;basic&quot;, &quot;pro&quot;], n),
+})
+logit = 0.03 * (df[&quot;usage_days&quot;] - 180) - 0.02 * (df[&quot;monthly_fee&quot;] - 100)
+prob = 1 / (1 + np.exp(-logit))
+df[&quot;target&quot;] = rng.binomial(1, prob)
+
+# 人为制造输入缺失；标签不制造缺失
+for col in [&quot;age&quot;, &quot;monthly_fee&quot;, &quot;region&quot;]:
+    df.loc[rng.choice(n, size=8, replace=False), col] = np.nan
+
+X = df.drop(columns=&quot;target&quot;)
+y = df[&quot;target&quot;]
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.25, random_state=42, stratify=y
+)
+
+numeric = [&quot;age&quot;, &quot;usage_days&quot;, &quot;monthly_fee&quot;]
+categorical = [&quot;region&quot;, &quot;plan&quot;]
+num_pipe = Pipeline([
+    (&quot;imputer&quot;, SimpleImputer(strategy=&quot;median&quot;)),
+    (&quot;scaler&quot;, StandardScaler()),
+])
+cat_pipe = Pipeline([
+    (&quot;imputer&quot;, SimpleImputer(strategy=&quot;most_frequent&quot;)),
+    (&quot;onehot&quot;, OneHotEncoder(handle_unknown=&quot;ignore&quot;)),
+])
+preprocess = ColumnTransformer([
+    (&quot;num&quot;, num_pipe, numeric),
+    (&quot;cat&quot;, cat_pipe, categorical),
+])
+model = Pipeline([
+    (&quot;preprocess&quot;, preprocess),
+    (&quot;classifier&quot;, LogisticRegression(max_iter=1000)),
+])
+
+# fit 只接触训练集；测试集统计量不参与预处理学习
+model.fit(X_train, y_train)
+pred = model.predict(X_test)
+prob_test = model.predict_proba(X_test)[:, 1]
+
+print(confusion_matrix(y_test, pred))
+print(classification_report(y_test, pred, zero_division=0))
+print(&quot;ROC-AUC:&quot;, roc_auc_score(y_test, prob_test))
+print(&quot;输出特征:&quot;, model.named_steps[&quot;preprocess&quot;].get_feature_names_out())
+
+# 需要交付时再保存整个 Pipeline；只加载可信来源的序列化文件
+# import joblib
+# joblib.dump(model, &quot;baseline_pipeline.joblib&quot;)
+</code></pre>
+<p><strong>验证点</strong>：</p>
+<ol>
+<li>确认缺失列、列名和类别值符合预期，训练/测试标签均覆盖目标类别。</li>
+<li>检查 <code>fit</code> 只调用在 <code>X_train/y_train</code>，没有把全量数据先 <code>fit_transform</code> 再切分。</li>
+<li>查看混淆矩阵和各类指标，不只复制 accuracy；ROC-AUC 只作排序补充。</li>
+<li>将 Pipeline 整体保存和重载，用同一条原始记录对拍预测；模型文件只从可信来源加载。</li>
+<li>该随机切分只适用于独立同分布演示。换成时间或分组数据时，必须先改切分，不可只换模型。</li>
+</ol>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2. 模型选择诊断表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>问题与信号</th>
+<th>首选基线或候选</th>
+<th>为什么先试</th>
+<th>重点诊断与替代</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>连续标签、关系近线性、需解释</td>
+<td>LinearRegression / Ridge</td>
+<td>简单、快，可暴露单位和共线问题</td>
+<td>非线性明显时加有依据的特征或试树模型；异常值影响大时评估稳健损失</td>
+</tr>
+<tr>
+<td>二分类、需分数与快速基线</td>
+<td>LogisticRegression</td>
+<td>线性 log-odds、易部署、可做概率检查</td>
+<td>查共线、校准和阈值；复杂交互再试树或核方法</td>
+</tr>
+<tr>
+<td>表格数据、非线性和交互较强</td>
+<td>RandomForest / XGBoost</td>
+<td>不强依赖线性边界，常是强基线</td>
+<td>RF 偏集成降方差，XGBoost 串行提升；比较验证表现、调参和推理成本</td>
+</tr>
+<tr>
+<td>中小样本、高维或弯曲边界</td>
+<td>Linear/RBF SVM</td>
+<td>最大间隔与核映射可匹配复杂边界</td>
+<td>必须检查缩放与训练成本；大样本先试线性模型或其他可扩展方案</td>
+</tr>
+<tr>
+<td>低维、局部相似性明确</td>
+<td>KNN</td>
+<td>无需复杂参数训练，能检验邻域假设</td>
+<td>高维距离失真、预测慢时改特征/降维或换模型</td>
+</tr>
+<tr>
+<td>文本词频/二值计数、小样本基线</td>
+<td>Multinomial/Bernoulli NB</td>
+<td>计数估计快、参数少</td>
+<td>查平滑与过度自信；相关特征和精确概率需求下考虑线性模型与校准</td>
+</tr>
+<tr>
+<td>无标签、希望探索近似凸簇</td>
+<td>KMeans</td>
+<td>目标清晰、易检查质心和簇内误差</td>
+<td>非凸/噪声/密度差异时换聚类假设；做抽样稳定性和业务审查</td>
+</tr>
+<tr>
+<td>特征相关、需压缩或可视化</td>
+<td>PCA</td>
+<td>线性去相关、可用解释方差与重构诊断</td>
+<td>监督任务看最终指标；判别方向可能在小方差成分中</td>
+</tr>
+</tbody>
+</table>
+<h3 id="3-一次可复现选模实验">3. 一次可复现选模实验</h3>3
+<p><strong>输入</strong>：原始数据、字段字典、预测时点、标签定义、业务错误代价、时间与实体列。<br />
+<strong>步骤</strong>：</p>
+<ol>
+<li><strong>写任务卡</strong>：明确一行数据代表什么、何时预测、标签何时产生、哪些字段线上可得。</li>
+<li><strong>冻结切分</strong>：先按时间/实体规则生成训练、验证、测试清单，再做任何用全量统计的特征工程。</li>
+<li><strong>跑朴素基线</strong>：多数类、均值或现有业务规则，给复杂模型一个比较下界。</li>
+<li><strong>跑简单 Pipeline</strong>：线性/逻辑回归；文本增加 TF-IDF+NB 或线性模型；表格增加 RF/XGBoost 候选。</li>
+<li><strong>同尺比较</strong>：所有模型复用相同折与主指标，同时记录训练/推理成本、概率、解释和失败切片。</li>
+<li><strong>只调有希望的候选</strong>：控制搜索预算，把整个 Pipeline 放进 CV；保存参数、折号、数据版本和随机种子。</li>
+<li><strong>最终测试与交付</strong>：选定后只在测试集做最终评估，保存完整 Pipeline、阈值、特征顺序、模型卡和回退版本。</li>
+</ol>
+<p><strong>产物</strong>：切分清单、基线表、每折结果、主辅指标、错误样本、最终 Pipeline、配置快照和回退说明。<br />
+<strong>验证</strong>：随机种子变化时结果是否稳定；分组是否跨折；时间是否倒置；线上特征是否与训练同口径；固定样例重载后是否一致。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4. 常见坑与回退</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>优先排查</th>
+<th>回退与修复</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CV 很高、时间外验证明显下降</td>
+<td>随机切分、未来字段、滚动窗口越界</td>
+<td>回到时间切分，删除预测时点不可得字段</td>
+</tr>
+<tr>
+<td>同用户样本表现好、新用户明显差</td>
+<td>实体跨训练与验证</td>
+<td>改 GroupKFold/按实体留出，重估泛化</td>
+</tr>
+<tr>
+<td>准确率高但少数类几乎全漏</td>
+<td>类别不平衡、指标与阈值错配</td>
+<td>看混淆矩阵、PR 和逐类召回，按验证集代价调阈值/权重</td>
+</tr>
+<tr>
+<td>Pipeline 外预处理时分数更好</td>
+<td>全量 fit 造成统计量或标签泄漏</td>
+<td>把 imputer、scaler、PCA、编码和模型全部放入折内 Pipeline</td>
+</tr>
+<tr>
+<td>线性模型训练差、验证也差</td>
+<td>欠拟合、特征不足、标签噪声</td>
+<td>回到基线与数据审计，增加有依据特征或换归纳偏置</td>
+</tr>
+<tr>
+<td>训练好、验证差</td>
+<td>过拟合、切分过易、数据量不足</td>
+<td>降低容量/增加正则，检查泄漏，保留较早且验证稳定的版本</td>
+</tr>
+<tr>
+<td>KNN/SVM/KMeans 被单一大数值列主导</td>
+<td>未缩放或异常值影响</td>
+<td>在 Pipeline 内做合适缩放，比较变换前后验证结果</td>
+</tr>
+<tr>
+<td>PCA 后分类下降</td>
+<td>方差方向不等于判别方向</td>
+<td>减少降维强度或不用 PCA，以下游 CV 指标选择</td>
+</tr>
+<tr>
+<td>XGBoost 调参后测试持续“变好”</td>
+<td>测试集被反复用于选择</td>
+<td>重建独立测试集，恢复严格 train/validation/test 流程</td>
+</tr>
+<tr>
+<td>保存后线上线下预测不同</td>
+<td>只保存模型未保存预处理、版本或列序变化</td>
+<td>保存完整 Pipeline 和特征契约，固定样例对拍后回退旧版本</td>
+</tr>
+</tbody>
+</table>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>数据质量校验在本库的真实存在（<code>rag/ingest.py</code> L649 <code>chunk_fingerprint()</code>，grep 可验）</strong>：<br />
+<code>python
+  def chunk_fingerprint(text: str) -&gt; str:
+      """正文指纹: 去代码围栏 + 去所有空白/标点, 只留实义字符。
+    [2026-10-14 体检修复] 与 rag/_audit4.py 的口径一致, 用于 chunk 级内容去重。
+      if not text:
+          return ""
+      t = re.sub(r"</code>.*?<code>", " ", text, flags=re.S)
+      return re.sub(r"[\s\W_]+", "", t)</code><br />
+  先剔除代码围栏再取指纹：同一段正文夹在不同代码块里会被判成同一条——避免"模板重复"污染训练/检索数据（对应 EDA 里"重复率"这一问）。</li>
+<li><strong>缺失值/异常值的真实处理先例（<code>rag/ingest.py</code> L684 <code>extract_date</code>）</strong>：三级回退"frontmatter <code>date:</code> → 文件名里的 <code>YYYYMMDD</code> → 正文首个 <code>YYYY-MM-DD</code>"，全失败返回空串（而不是 <code>None</code> 或 0）——下游 <code>_parse_date()</code> 再统一判空，避免把 0 当合法日期。</li>
+<li><strong>和课件讲法的差异</strong>：课件用 <code>df.describe()</code> + <code>df.isna().sum()</code> + 箱线图做 EDA，特征是数值型的；本库处理的是<strong>文本语料</strong>，EDA 落在"重复率/低信息占比/来源 tier 分布"三个统计上。<code>rag/gap_stats.py</code> 是现有的小而全的统计脚本（缺口统计）。<strong>本库暂无 sklearn 建模/特征工程代码</strong>，本库这一层对应物是"检索 + 阈值门禁"，不是分类器。</li>
+</ul>
+<h2 id="来源与口径">来源与口径</h2>2
+<ul>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/wiki/L6-模型微调/L6-机器学习-线性回归与逻辑回归.md</code>：合并线性/逻辑回归、正则化、缩放和分类指标；旧稿实跑分数、阈值和版本特定参数结论未沿用。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/wiki/L6-模型微调/L6-机器学习-决策树随机森林与SVM.md</code>：合并树、随机森林、Boosting 对照、最大间隔与核方法，改为选型与诊断主线。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/wiki/L6-模型微调/L6-机器学习-特征工程与XGBoost.md</code>：合并类别、缺失、缩放、泄漏、Pipeline 和 XGBoost 二阶正则目标；不保留旧稿无通用依据的阈值。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/wiki/L6-模型微调/L6-机器学习-KNN朴素贝叶斯聚类与降维.md</code>：合并距离假设、条件独立、KMeans、PCA 及其失效形态，删除重复实验叙事。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/courseware/微调篇/day01微调101__课件__大模型微调-1-101-250815.md</code>：只用于定位微调中的任务、基座、数据准备与评估链路，不据此声称课件详讲传统机器学习。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/weread/深度学习详解.md</code>：仅按目录与高亮参考机器学习基础、损失、训练/验证集和实践方法论的知识框架，不冒充完整原书。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/weread/Happy-LLM：从零开始构建大模型.md</code>：仅按目录与高亮参考传统监督学习到 PLM/LLM 的衔接，以及文本表示和任务类型。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/weread/从零构建大模型.md</code>：仅按目录与公开热门划线参考预训练、微调、文本表示和分类微调的学习位置。</li>
+<li>scikit-learn User Guide, https://scikit-learn.org/stable/user_guide.html ：用于 Pipeline、预处理、模型评估、交叉验证与各估计器的官方口径；实际使用时应继续核对当前版本的 API 页面。</li>
+<li>Chen and Guestrin, <em>XGBoost: A Scalable Tree Boosting System</em>, https://arxiv.org/abs/1603.02754 ：用于梯度提升的二阶近似、正则化目标和叶权重核心公式，不引用未核对的性能数字。</li>
+<li>代码与实验均为<strong>示例，未实跑</strong>；本文没有新增实验指标。给定官方文档与论文 URL 本次未在线复核，因联网检索返回 403，仅采用有把握的核心理论和 API 结构。</li>
+</ul></div></details></div></details></div></body></html>

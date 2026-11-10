@@ -1,0 +1,175 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI Agent智能体零基础搭建：Coze+Dify+LangChain（零基础入门AI Agent工作流程搭建）</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ AI Agent智能体零基础搭建：Coze+Dify+LangChain（零基础入门AI Agent工作流程搭建）</span></div><div class="wrap"><h1 id="书章节重点-ai-agent智能体零基础搭建cozedifylangchain零基础入门ai-agent工作流程搭建">书章节重点 · AI Agent智能体零基础搭建：Coze+Dify+LangChain（零基础入门AI Agent工作流程搭建）</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书系统梳理AI智能体的基础概念与核心构成模块（提示词、插件、知识库、记忆系统、工作流），并以Coze、Dify、LangChain三大平台为载体，帮助零基础读者建立完整的智能体设计思维并完成从理论到实战的落地</li><li>全书后半部分通过发票识别、标书阅读、知识问答、模拟面试、英语陪练、旅游助手、文案仿写等七个实战项目，覆盖企业效率与个人生活两大场景</li></ul></div>2
+<p>本书系统梳理AI智能体的基础概念与核心构成模块（提示词、插件、知识库、记忆系统、工作流），并以Coze、Dify、LangChain三大平台为载体，帮助零基础读者建立完整的智能体设计思维并完成从理论到实战的落地。全书后半部分通过发票识别、标书阅读、知识问答、模拟面试、英语陪练、旅游助手、文案仿写等七个实战项目，覆盖企业效率与个人生活两大场景。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 为什么人人都能搭建AI智能体</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：AI智能体的本质是“大模型+决策模块+执行模块+记忆模块”的组合体，能通过任务分解将庞大复杂的工作拆解为可执行的小步骤，再对接外部工具完成——这是单纯大语言模型无法做到的</li><li>核心观点2：智能体的搭建逻辑可拆解为“感知输入→决策规划→调用工具执行→记忆存储”的闭环，理解这一流程是后续使用任何平台的前提</li><li>核心观点3：智能体的价值在于同时改变个人与企业的工作方式——个人获得低门槛的自动化能力，企业获得可规模化部署的数字员工</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：AI智能体的本质是“大模型+决策模块+执行模块+记忆模块”的组合体，能通过任务分解将庞大复杂的工作拆解为可执行的小步骤，再对接外部工具完成——这是单纯大语言模型无法做到的。</li>
+<li><strong>核心观点2</strong>：智能体的搭建逻辑可拆解为“感知输入→决策规划→调用工具执行→记忆存储”的闭环，理解这一流程是后续使用任何平台的前提。</li>
+<li><strong>核心观点3</strong>：智能体的价值在于同时改变个人与企业的工作方式——个人获得低门槛的自动化能力，企业获得可规模化部署的数字员工。<blockquote>
+<p>《比如，如果只使用常规AI大语言模型，很难直接完成百万字级别的小说创作，但智能体可以通过决策模块将庞大的任务分解为可执行的小步骤……最终出色地完成了对应的任务。》</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第2章-如何设计ai智能体的关键部分">第2章 如何设计AI智能体的关键部分</h3>3
+<ul>
+<li><strong>核心观点1</strong>：提示词是智能体的“指令说明书”，决定其行为边界与输出质量，是设计智能体的第一优先级。</li>
+<li><strong>核心观点2</strong>：插件采用“即插即用”的模块化设计思路——把独立功能拆成小模块，想用就安装，不用就卸载，不影响智能体核心系统。</li>
+<li><strong>核心观点3</strong>：知识库检索节点专门解决大模型在专业领域（医疗、法律、企业内部知识）回答不准确、信息滞后的问题，是专业场景落地的关键组件。</li>
+<li><strong>核心观点4</strong>：记忆系统分层设计——感官记忆短暂捕捉文字/语音/图片的原始信息用于当下理解意图，长期记忆则存储任务推进中的关键细节。</li>
+<li><strong>核心观点5</strong>：工作流是智能体的行动路线图，将各组件按业务逻辑串联为可自动执行的流程。<blockquote>
+<p>《我们都知道，大模型虽然智能，但在专业领域（如医疗、法律、企业内部知识）可能会出现回答不准确、信息滞后的问题，而知识库检索节点就能有效解决这个问题。》<br />
+《它的设计思路很简单，就是把独立的功能拆成一个个“小模块”，想用就安装，不用就卸载，不会影响智能体的核心系统。》<br />
+《感官记忆就像智能体对用户输入的第一印象，能捕捉文字、语音、图片的原始信息，只短暂停留，用于当下理解意图。》</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 AI智能体的局限性</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：多模态适配仍不完善，图像、语音等场景存在明显短板，听觉输入需依赖音频处理模型库将信号转化为频谱图后解码</li><li>核心观点2：AI在数字识别与数学逻辑上存在结构性缺陷，这是大模型概率生成机制决定的，而非简单的“不够聪明”</li><li>核心观点3：图像识别存在视觉陷阱——偏差与误区源于训练数据的分布偏差，在关键业务场景中需人工复核兜底</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：多模态适配仍不完善，图像、语音等场景存在明显短板，听觉输入需依赖音频处理模型库将信号转化为频谱图后解码。</li>
+<li><strong>核心观点2</strong>：AI在数字识别与数学逻辑上存在结构性缺陷，这是大模型概率生成机制决定的，而非简单的“不够聪明”。</li>
+<li><strong>核心观点3</strong>：图像识别存在视觉陷阱——偏差与误区源于训练数据的分布偏差，在关键业务场景中需人工复核兜底。</li>
+<li><strong>核心观点4</strong>：了解局限性是设计智能体的必要前提——知道哪里会出错，才能在架构中用知识库、工作流校验等机制弥补。<blockquote>
+<p>《(3)听觉输入：依靠大模型调用音频处理模型库，将音频信号转化为频谱图后解码，提取语音内容、环境声音等关键信息，实现“听懂”声音的能力。》</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第4章-coze零代码快速搭建智能体的平台">第4章 Coze：零代码快速搭建智能体的平台</h3>3
+<ul>
+<li><strong>核心观点1</strong>：Coze以可视化、低门槛为核心定位，是零基础用户快速落地智能体的首选平台。</li>
+<li><strong>核心观点2</strong>：插件与卡片机制是Coze解锁智能体“超能力”的关键——插件扩展能力边界，卡片优化输出呈现形式（如将纯文本新闻输出转化为结构化卡片）。</li>
+<li><strong>核心观点3</strong>：Coze工作流与图像流支持自动化与多模态实战，常见节点按功能分为数据组件、识别组件、输出组件等类别，按“获取→识别→输出”的逻辑编排。</li>
+<li><strong>核心观点4</strong>：工作流节点的变量传递是搭建核心技能，需明确上游节点的输出如何映射为下游节点的输入变量。<blockquote>
+<p>《比如，搭建一个新闻播报智能体，通过插件获取新闻后，直接输出就是“标题+正文+链接”的纯文本形式，枯燥且不易阅读。》<br />
+《比如，执行“获取数据”的是数据组件，执行“识别信息”的是识别组件，执行“输出结果”的是输出组件。》</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 Dify：开源可控的AI智能体搭建平台</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：Dify以开源与私有化部署为核心优势，兼顾灵活性与数据安全性，适合对数据合规有要求的企业场景</li><li>核心观点2：Dify主页面提供5种应用类型，覆盖从简单对话到复杂工作流的不同搭建需求，用户可按场景选择应用形态</li><li>核心观点3：Dify工作流节点是数据处理的核心环节，节点间的数据流转设计决定了智能体的处理能力上限</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：Dify以开源与私有化部署为核心优势，兼顾灵活性与数据安全性，适合对数据合规有要求的企业场景。</li>
+<li><strong>核心观点2</strong>：Dify主页面提供5种应用类型，覆盖从简单对话到复杂工作流的不同搭建需求，用户可按场景选择应用形态。</li>
+<li><strong>核心观点3</strong>：Dify工作流节点是数据处理的核心环节，节点间的数据流转设计决定了智能体的处理能力上限。</li>
+<li><strong>核心观点4</strong>：相比Coze的零代码快速落地，Dify的定位是在低门槛与可控性之间取得平衡——可私有化、可深度配置。</li>
+</ul>
+<h3 id="第6章-langchain模块化定制ai智能体平台">第6章 LangChain：模块化定制AI智能体平台</h3>3
+<ul>
+<li><strong>核心观点1</strong>：LangChain是面向专业开发者的模块化框架，“链”就像串起组件的绳子——把“读取文档→提取关键信息→调用模型生成回答”等组件串成一条链，即可实现文档问答等功能。</li>
+<li><strong>核心观点2</strong>：核心组件采用积木式架构，开发者按需组合，多功能智能助手链是复杂程度最高、灵活性最强的链，能集成信息检索、数据分析、实时计算并分解多步骤复杂任务。</li>
+<li><strong>核心观点3</strong>：回调机制是工程化落地的关键——回调处理器本质是实现了特定接口的类，包含多个事件方法，每个方法对应组件运行的一个特定阶段，触发时自动执行；可用于日志记录与问题定位。</li>
+<li><strong>核心观点4</strong>：Python是LangChain的主要开发语言，其简洁易读、语法灵活的特点使非专业开发者也能快速上手。<blockquote>
+<p>《“链”就像串起组件的绳子，如把“读取文档→提取关键信息→调用模型生成回答”这几个组件串成一条链，就能实现文档问答功能。》<br />
+《使用回调功能的核心是“回调处理器”，它本质上是一个实现了特定接口的类，其中包含了多个事件方法，每个方法对应组件运行的一个特定阶段，当该阶段触发时，对应的方法就会自动执行。》<br />
+《日志记录则是项目运行维护的关键……若出现用户反馈“回复异常”，就能通过日志快速定位问题所在。》</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 发票识别Agent：告别手动录入，效率提升数倍</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：传统发票处理的痛点是手动录入效率低、易出错，增值税发票的关键字段（购买方名称、纳税人识别号、地址电话、开户行及账户等）结构化提取是核心需求</li><li>核心观点2：发票识别Agent的开发流程围绕“图像输入→OCR/识别节点提取字段→结构化输出”展开，是工作流+识别组件的典型组合应用</li><li>核心观点3：该案例展示了智能体在企业财务场景中替代重复性人工劳动的直接价值——效率提升数倍且降低录入错误率</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：传统发票处理的痛点是手动录入效率低、易出错，增值税发票的关键字段（购买方名称、纳税人识别号、地址电话、开户行及账户等）结构化提取是核心需求。</li>
+<li><strong>核心观点2</strong>：发票识别Agent的开发流程围绕“图像输入→OCR/识别节点提取字段→结构化输出”展开，是工作流+识别组件的典型组合应用。</li>
+<li><strong>核心观点3</strong>：该案例展示了智能体在企业财务场景中替代重复性人工劳动的直接价值——效率提升数倍且降低录入错误率。<blockquote>
+<p>《购买方：名称、纳税人识别号、地址电话、开户行及账户。》</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第8章-标书阅读agent减少标书违规">第8章 标书阅读Agent：减少标书违规</h3>3
+<ul>
+<li><strong>核心观点1</strong>：标书阅读的核心痛点在于人工审阅量大、易遗漏违规条款，智能体可对招标文件进行系统性检查。</li>
+<li><strong>核心观点2</strong>：开发流程以知识库+工作流为核心——将标书规范与检查规则沉淀为知识库，通过工作流逐项比对标书内容，标记风险点。</li>
+<li><strong>核心观点3</strong>：该案例体现了智能体在合规审查类场景中的价值：不是替代人做判断，而是把人从海量文本比对中解放出来，聚焦关键决策。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第9章 知识问答Agent：让企业知识库“活起来”</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：企业知识库建设的质量直接决定问答Agent的效果——知识库检索节点是解决大模型专业领域回答不准确、信息滞后问题的核心手段</li><li>核心观点2：知识问答Agent的开发流程为“知识库构建→检索节点配置→大模型生成回答”，是RAG思路的典型落地</li><li>核心观点3：该案例是企业内部知识管理的高频刚需场景，智能体让静态文档转化为可对话的知识服务</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：企业知识库建设的质量直接决定问答Agent的效果——知识库检索节点是解决大模型专业领域回答不准确、信息滞后问题的核心手段。</li>
+<li><strong>核心观点2</strong>：知识问答Agent的开发流程为“知识库构建→检索节点配置→大模型生成回答”，是RAG思路的典型落地。</li>
+<li><strong>核心观点3</strong>：该案例是企业内部知识管理的高频刚需场景，智能体让静态文档转化为可对话的知识服务。</li>
+</ul>
+<h3 id="第10章-模拟面试官agent告别主观偏见精准选人">第10章 模拟面试官Agent：告别主观偏见，精准选人</h3>3
+<ul>
+<li><strong>核心观点1</strong>：企业需要模拟面试官的核心原因是降低面试中的主观偏见，实现标准化、可复用的初筛流程。</li>
+<li><strong>核心观点2</strong>：人才招聘数字员工的开发流程围绕“岗位要求结构化→提问逻辑设计→回答评估反馈”展开，提示词设计是决定评估质量的关键。</li>
+<li><strong>核心观点3</strong>：该案例展示了智能体在HR场景中的定位——承担标准化初筛与练习陪练，而非替代最终录用决策。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第11章 小学生英语陪练Agent：在家也能有专属外教</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：面向儿童的智能体设计需特别关注交互设计与引导逻辑——贴合小学生的认知水平与注意力特点，而非照搬成人对话模式</li><li>核心观点2：开发流程涉及提示词的角色设定、对话节奏控制与鼓励式反馈机制，是提示词工程在垂直人群中的精细化应用</li><li>核心观点3：该案例证明智能体可低成本覆盖家庭教育场景，弥补优质外教资源的不均衡</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：面向儿童的智能体设计需特别关注交互设计与引导逻辑——贴合小学生的认知水平与注意力特点，而非照搬成人对话模式。</li>
+<li><strong>核心观点2</strong>：开发流程涉及提示词的角色设定、对话节奏控制与鼓励式反馈机制，是提示词工程在垂直人群中的精细化应用。</li>
+<li><strong>核心观点3</strong>：该案例证明智能体可低成本覆盖家庭教育场景，弥补优质外教资源的不均衡。</li>
+</ul>
+<h3 id="第12章-旅游助手agent一键完成旅游前的准备工作">第12章 旅游助手Agent：一键完成旅游前的准备工作</h3>3
+<ul>
+<li><strong>核心观点1</strong>：旅行准备涉及信息检索、行程规划、预订对接等多步骤任务，是工作流编排与插件调用的综合演练场景。</li>
+<li><strong>核心观点2</strong>：智能体简化旅行准备的核心思路是将“查攻略→定行程→备清单”等分散动作整合为一条自动化工作流。</li>
+<li><strong>核心观点3</strong>：该案例展示了智能体在个人生活场景中的实用价值——把多工具、多步骤的准备工作一键完成。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第13章 抖音/小红书文案提取与仿写Agent：秒获爆款</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：文案提取与仿写的思路是“先解析爆款结构，再按结构生成新内容”，而非简单复制——提取的是文案框架与风格特征</li><li>核心观点2：搭建流程在Coze的“扣子编程”界面中完成：在输入栏上方工具中选择“工作流”，点击右下角“工作流开发”进入创建工作流页面</li><li>核心观点3：该案例是内容创作者的高频需求场景，体现了智能体在自媒体运营中的提效价值——从爆款拆解到批量仿写的自动化链路</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：文案提取与仿写的思路是“先解析爆款结构，再按结构生成新内容”，而非简单复制——提取的是文案框架与风格特征。</li>
+<li><strong>核心观点2</strong>：搭建流程在Coze的“扣子编程”界面中完成：在输入栏上方工具中选择“工作流”，点击右下角“工作流开发”进入创建工作流页面。</li>
+<li><strong>核心观点3</strong>：该案例是内容创作者的高频需求场景，体现了智能体在自媒体运营中的提效价值——从爆款拆解到批量仿写的自动化链路。<blockquote>
+<p>《进入“扣子编程”界面后，在输入栏上方工具中选择“工作流”，然后点击右下角的“工作流开发”，进入创建工作流页面。》</p>
+</blockquote>
+</li>
+</ul>
+<h2 id="适用场景标签">适用场景标签</h2>2
+<ul>
+<li>Agent开发入门</li>
+<li>提示工程与工作流编排</li>
+<li>RAG与知识库问答</li>
+<li>低代码/零代码平台选型（Coze/Dify）</li>
+<li>LangChain模块化开发</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">一句话推荐</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>零基础想动手搭智能体的人</li></ul></div>2
+<p>零基础想动手搭智能体的人。</p>
+<h2 id="注意事项">注意事项</h2>2
+<ol>
+<li>第3章（局限性）与第6章（LangChain回调/日志）的内容在划线中着墨较多，但章节目录本身较简，提炼时已结合划线金句补充具体信息，未超出材料范围。</li>
+<li>第7–13章为实战案例章，材料中划线信息有限，核心观点主要依据章节标题与少量划线（如发票字段、扣子编程入口）归纳，未编造具体开发步骤细节。</li>
+<li>热门划线中涉及图灵测试、达特茅斯会议等AI历史背景的内容，属于第1章铺垫性知识，未单列为核心观点，因其对智能体搭建实践的指导价值有限。</li>
+</ol></div></details></div></body></html>

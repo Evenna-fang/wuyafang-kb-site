@@ -1,0 +1,364 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L6-数据集构建-预训练语料</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L6-数据集构建-预训练语料</span></div><div class="wrap"><h1 id="预训练与继续预训练语料从原始文档到可训练快照">预训练与继续预训练语料：从原始文档到可训练快照</h1>
+<blockquote>
+<p>适用范围：从零预训练与在既有基座上做继续预训练（CPT）。本文不把 SFT 指令格式混入 CPT；指令、对话和偏好数据应走各自的数据管线。</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY：原始文本不等于可训练语料</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>结论先行：预训练数据工程的目标不是“把网页洗成文本”，而是交付一组权利来源清楚、隐私风险受控、内容可读、重复与污染可追踪、配比可复现的连续文档</li><li>对 CPT 还要增加两项约束：与基座分词器和训练目标兼容，以及用通用回归集监测领域适配是否造成遗忘</li><li>一个网页、PDF 或业务文档即使能读出文字，也可能含有无权限内容、个人信息、导航模板、乱码、机器生成垃圾、评测题或上千份转载</li></ul></div>2
+<p><strong>结论先行：预训练数据工程的目标不是“把网页洗成文本”，而是交付一组权利来源清楚、隐私风险受控、内容可读、重复与污染可追踪、配比可复现的连续文档。</strong> 对 CPT 还要增加两项约束：与基座分词器和训练目标兼容，以及用通用回归集监测领域适配是否造成遗忘。</p>
+<p>一个网页、PDF 或业务文档即使能读出文字，也可能含有无权限内容、个人信息、导航模板、乱码、机器生成垃圾、评测题或上千份转载。直接拼接后训练，会让“文档数量”和“token 数量”掩盖有效信息量、合规风险与分布偏移。清洗不是一次性脚本，而是带来源台账、规则版本、抽检证据和回滚点的数据生产流程。</p>
+<h3 id="1-先分清预训练cpt-与-sft">1. 先分清预训练、CPT 与 SFT</h3>3
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>从零预训练</th>
+<th>继续预训练（CPT）</th>
+<th>指令监督微调（SFT）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>起点</td>
+<td>随机初始化或新建模型</td>
+<td>已有 base，特定场景也可评估其他起点</td>
+<td>已有 base 或 instruct</td>
+</tr>
+<tr>
+<td>核心样本</td>
+<td>连续文档 token 流</td>
+<td>通用与领域连续文档 token 流</td>
+<td>指令/上下文与目标回答</td>
+</tr>
+<tr>
+<td>主要目的</td>
+<td>学习通用语言、知识与表示</td>
+<td>调整语言、领域和文体分布</td>
+<td>学习任务执行与对话行为</td>
+</tr>
+<tr>
+<td>数据验收</td>
+<td>规模、质量、覆盖、许可、污染与训练稳定性</td>
+<td>另加基座兼容和通用能力保留</td>
+<td>另加答案正确、模板与 label mask</td>
+</tr>
+<tr>
+<td>直接产物</td>
+<td>基座模型</td>
+<td>领域适配基座</td>
+<td>指令模型</td>
+</tr>
+</tbody>
+</table>
+<p>CPT 不是把领域文档改成问答，也不是 SFT 的“大号版本”。如果目标只是让模型按格式回答，优先评估 SFT；如果目标是最新内部知识问答，优先评估 RAG。只有连续文本分布适配确有必要、且小实验显示收益时，才承担 CPT 的成本。训练路线选择见 <a href="L6-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83-2026.html">大模型训练与微调总览</a>。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2. 质量、许可与隐私是并列门禁</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>“质量高”不能抵消“无权训练”，“公开可访问”也不自动等于“允许任意再分发或训练”</li><li>每个来源都应记录获取方式、许可或合同依据、允许用途、署名/再分发限制、保留期限和责任人；无法确认的来源进入隔离区，不随主数据集默认放行</li><li>涉及个人信息时，还要区分删除、掩码、泛化与保留的必要性，并由适用的法律与组织制度决定，不用单一正则宣称“已匿名”</li></ul></div>3
+<p>“质量高”不能抵消“无权训练”，“公开可访问”也不自动等于“允许任意再分发或训练”。每个来源都应记录获取方式、许可或合同依据、允许用途、署名/再分发限制、保留期限和责任人；无法确认的来源进入隔离区，不随主数据集默认放行。涉及个人信息时，还要区分删除、掩码、泛化与保留的必要性，并由适用的法律与组织制度决定，不用单一正则宣称“已匿名”。</p>
+<p>质量门槛同样不能照抄统一数值。技术文档中的 URL、代码和公式可能是有效内容，在普通网页规则里却会被误判；中英混排、繁体与少数民族语言也可能被单语言阈值误杀。每条规则都要按来源和语言切片观察保留率、误杀样本与下游小实验，再确定是否启用。</p>
+<h2 id="what可训练语料的九个组成面">WHAT：可训练语料的九个组成面</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 来源台账与许可证据</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>先建立“来源级”清单，再处理正文</li><li>一个来源可以是某次网页快照、一个代码仓库版本、一批内部文档或一份开放数据集</li><li>处置决定：「approved / restricted / quarantined / rejected」 及审批证据</li></ul></div>3
+<p>先建立“来源级”清单，再处理正文。一个来源可以是某次网页快照、一个代码仓库版本、一批内部文档或一份开放数据集。最少记录：</p>
+<ul>
+<li><code>source_id</code>、原始定位、获取时间、内容类型、语言与预期用途；</li>
+<li>许可证/合同/授权依据及其适用范围，是否允许训练、修改、再分发和商业使用；</li>
+<li>原始文件哈希、采集或导出版本、负责人、保留与删除要求；</li>
+<li>已知风险：个人信息、机密、 copyrighted 内容、恶意提示文本、成人内容、评测题、重复转载；</li>
+<li>处置决定：<code>approved / restricted / quarantined / rejected</code> 及审批证据。</li>
+</ul>
+<p>公开数据集也有自己的模型卡、数据卡和许可，不因被二次打包就自动获得上游全部权利。内部数据还需检查员工、客户和用户的授权边界。训练快照只引用已批准版本，来源被撤回时应能定位受影响文档、派生分片及模型训练记录。</p>
+<h3 id="2-文档抽取规范化与语言识别">2. 文档抽取、规范化与语言识别</h3>3
+<p>抽取阶段尽量保留标题、段落、列表、代码块、公式和文档边界，避免把页眉页脚、菜单、推荐链接与正文无差别拼接。扫描件 OCR 要保留置信度与页码，低质量页进入复核，不用“看着像文字”作为可训练证明。</p>
+<p>规范化只做有明确收益且可逆记录的操作，例如 Unicode 归一化、换行与空白统一、可识别乱码修复。NFKC 等操作可能改变代码、数学符号、兼容字符和精确匹配结果，因此应保留原文哈希与处理规则，按内容类型决定是否启用。简繁转换也不应默认全覆盖；若产品需要繁体能力，就应把语言变体作为独立切片评估。</p>
+<p>语言识别输出应是信号而非真相。保存主语言、次语言、置信度和混合比例，技术中文中大量英文术语不应因此被删除。语言门槛按切片抽检误杀与漏放后设定，不把某个固定概率当跨领域标准。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. PII、机密与敏感内容处理</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 用规则、词典、NER 或专用检测器发现邮箱、电话、证件号、账号、地址等候选；高召回与高精度模式分开使用</li><li>2. 根据上下文和用途选择删除整篇、删除片段、稳定占位符替换或泛化</li><li>稳定占位符可保留句法，但映射表本身属于敏感资产，不进入训练快照</li></ul></div>3
+<p>PII 处理应形成“检测—决策—复核—审计”闭环：</p>
+<ol>
+<li>用规则、词典、NER 或专用检测器发现邮箱、电话、证件号、账号、地址等候选；高召回与高精度模式分开使用。</li>
+<li>根据上下文和用途选择删除整篇、删除片段、稳定占位符替换或泛化。稳定占位符可保留句法，但映射表本身属于敏感资产，不进入训练快照。</li>
+<li>对密钥、访问令牌、内部域名、客户机密等使用独立检测与处置流程；发现真实凭据时应按安全流程处理，而不是只替换文本后继续训练。</li>
+<li>分语言、来源和实体类型抽检漏检/误检。无法证明匿名化的内容按受限数据处理，限制访问与导出。</li>
+</ol>
+<p>成人、暴力、仇恨或其他敏感内容是否过滤，取决于模型目标、法律政策和安全策略。要记录分类器版本与人工复核口径，避免过滤器把医学、法律或安全教育文本无差别清除。</p>
+<h3 id="4-质量过滤规则与模型都要校准">4. 质量过滤：规则与模型都要校准</h3>3
+<p>质量信号可分为四组：</p>
+<ul>
+<li><strong>可读性</strong>：乱码、异常字符、极端重复、断裂句子、模板残留；</li>
+<li><strong>信息性</strong>：正文密度、段落结构、事实或技术内容的完整性；</li>
+<li><strong>来源信誉</strong>：域名、作者、版本、审核流程等可用元数据；</li>
+<li><strong>学习型质量</strong>：分类器或人工标注定义的教育性、专业性、领域适配度。</li>
+</ul>
+<p>启发式规则适合解释和粗筛，分类器适合学习复杂分布，但会继承正负例偏差。把“百科/书籍”为正例、“随机网页”为负例，可能把口语、论坛和新颖文体都判低质。因此，模型打分必须与人工分层抽检、来源切片和训练消融共同使用。质量分不应直接等同于事实正确；事实核查、安全和可读性仍是不同维度。</p>
+<p>过滤与去重的先后顺序没有脱离数据的唯一答案。先粗过滤可降低去重成本，先去重可减少质量计算量；高转载来源还要决定保留哪个 canonical 版本。无论采用哪种顺序，都应在小样本上比较误删、计算成本与最终训练效果，并保存各阶段输入输出统计。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5. 精确与近重复去重</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 文件/文档精确重复：基于规范化正文哈希合并，保留所有来源引用</li><li>适度重复可能承担采样权重，关键是不能让无意转载隐性支配配比</li><li>2. 文档内重复：识别重复段落、导航行、模板和异常 n-gram，区分有意重复与采集故障</li></ul></div>3
+<p>去重至少覆盖三个层级：</p>
+<ol>
+<li><strong>文件/文档精确重复</strong>：基于规范化正文哈希合并，保留所有来源引用。</li>
+<li><strong>文档内重复</strong>：识别重复段落、导航行、模板和异常 n-gram，区分有意重复与采集故障。</li>
+<li><strong>跨文档近重复</strong>：用 shingles/n-gram 与 MinHash+LSH 等候选生成方法，再按确认的相似度规则合并或删除。</li>
+</ol>
+<p>MinHash 的排列数、band/row、n-gram 大小与确认阈值共同决定召回、精度和成本，不能单独复制某个“常用值”。中文按字、词或 subword 构造 shingles 会改变结果；代码、表格和短文档也需单独校准。候选对要抽样查看，尤其检查“同一法规的不同版本”“同一文章的更新版”“模板相同但实体不同”等不应简单删除的情况。</p>
+<p>去重不是盲目追求零重复。适度重复可能承担采样权重，关键是不能让无意转载隐性支配配比。应分别报告原始文档数、唯一文档数、唯一 token 估计和跨来源重复簇，避免把重复 epoch 当成新增数据。</p>
+<h3 id="6-语言领域与来源配比">6. 语言、领域与来源配比</h3>3
+<p>配比应按<strong>进入训练的有效 token</strong>计算，而不是只按文件数或磁盘大小。至少保留来源、语言、领域、质量层和时间层的分布表，并回答：</p>
+<ul>
+<li>通用与领域数据分别承担什么目标？</li>
+<li>多语言是否按能力目标采样，还是被高资源语言天然主导？</li>
+<li>同一小来源是否因重复 epoch 被过度放大？</li>
+<li>高质量子集被提高权重后，是否降低了文体和人群覆盖？</li>
+<li>CPT 是否保留足够通用 replay 以监测和缓解遗忘？</li>
+</ul>
+<p>不要沿用固定 Web/Code/领域百分比。先提出少量可解释的候选配比，在相同模型、训练预算和解码条件下做对照，以领域测试、通用回归、损失曲线和资源成本共同选择。若某来源被上采样，报告实际曝光 token 与唯一 token，不只报告采样比例。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7. 分词、文档边界与 packing</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>从零训练可训练新分词器；CPT 通常应复用基座分词器和特殊 token，除非有充分理由并承担替换嵌入/词表的复杂度</li><li>每个文档末尾是否添加 EOS、文档间是否允许跨注意力、position id 是否重置，都要与训练框架和模型目标一致</li><li>分词器验收包括：各语言与领域的压缩/膨胀情况、未登录或异常 byte、代码与数字表现、特殊 token 冲突，以及与基座词表和模型配置的一致性</li></ul></div>3
+<p>从零训练可训练新分词器；CPT 通常应复用基座分词器和特殊 token，除非有充分理由并承担替换嵌入/词表的复杂度。分词器验收包括：各语言与领域的压缩/膨胀情况、未登录或异常 byte、代码与数字表现、特殊 token 冲突，以及与基座词表和模型配置的一致性。</p>
+<p>清洗后的数据仍以文档为单位；训练前才编码并拼接为 token 流。每个文档末尾是否添加 EOS、文档间是否允许跨注意力、position id 是否重置，都要与训练框架和模型目标一致。Packing 能提高固定长度序列的填充利用率，但朴素跨文档拼接和带文档边界隔离的实现并不等价，需通过小实验和框架配置核对。</p>
+<p>长文档可以按结构切块、保留重叠或按长度分桶；切块时记录 <code>parent_doc_id</code> 与片段序号。不能为凑满序列而跨训练/验证边界拼接。短文本、表格和代码的分桶也应避免形成“某个长度桶几乎只有一种来源”的隐性偏差。</p>
+<h3 id="8-评测污染与数据泄漏防控">8. 评测污染与数据泄漏防控</h3>3
+<p>污染控制必须在训练前做，而不是报告阶段补一句“可能有小部分重合”。冻结预训练/CPT 的通用与领域评测集后：</p>
+<ul>
+<li>对题面、答案、参考文档及可公开获取的变体建立禁止匹配库；</li>
+<li>用规范化精确匹配、n-gram 重叠和近重复检索发现候选，再人工判断语义等价；</li>
+<li>按来源与时间切片报告命中、删除和保留理由；</li>
+<li>对 CPT 特别检查业务测试题是否来自同一批内部文档；</li>
+<li>将评测库及其密钥/访问权限与训练数据生产隔离，记录每次规则版本。</li>
+</ul>
+<p>过强过滤也可能删掉正常知识，使评测变成“避开训练集后的偏题”。因此应同时保留污染审计和正常文本误删抽检。发现污染后，旧模型分数不能与清理后模型的分数直接比较，应明确作废旧报告或重建对照。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">9. 不可变快照与数据血缘</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>每次训练只引用不可变数据快照</li><li>快照包括文档分片、采样索引、tokenizer 配置、packing 参数、来源台账、清洗规则、代码版本、统计报告和文件哈希</li><li>任何规则、配比或评测禁止库变化都产生新版本，不原地覆盖旧版本</li></ul></div>3
+<p>每次训练只引用不可变数据快照。快照包括文档分片、采样索引、tokenizer 配置、packing 参数、来源台账、清洗规则、代码版本、统计报告和文件哈希。任何规则、配比或评测禁止库变化都产生新版本，不原地覆盖旧版本。</p>
+<p>数据血缘要支持两类反向追踪：某条问题样本能追到来源与处理步骤；某个来源撤回时能定位所有派生分片和训练 run。正文可分权存储，训练清单与审计报告不应包含不必要的 PII 正文或秘密。</p>
+<h2 id="how可落地的清洗验收与回退流程">HOW：可落地的清洗、验收与回退流程</h2>2
+<p>以下流程适合先做小规模样例，再扩大到完整 CPT 或预训练。所有配置和示例均为<strong>示例，未实跑</strong>；字段是项目自定义交换格式，不冒充某个框架的固定接口。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 输入与前置</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>明确目标是从零预训练还是 CPT，列出领域、语言、上下文长度与通用回归目标</li><li>准备隔离的原始区、处理区、批准区和评测禁止库；限制私有数据访问与外传</li><li>指定许可、隐私、安全和领域质量负责人，定义需要人工升级处置的来源类型</li></ul></div>3
+<ul>
+<li>明确目标是从零预训练还是 CPT，列出领域、语言、上下文长度与通用回归目标。</li>
+<li>准备隔离的原始区、处理区、批准区和评测禁止库；限制私有数据访问与外传。</li>
+<li>指定许可、隐私、安全和领域质量负责人，定义需要人工升级处置的来源类型。</li>
+<li>固定基座模型与 tokenizer（CPT），确定训练框架对 EOS、packing 和 attention mask 的要求。</li>
+<li>预留人工抽检预算与小训练对照预算，再确定过滤和配比阈值。</li>
+</ul>
+<h3 id="2-文档级清洗-schema">2. 文档级清洗 schema</h3>3
+<p>一行是一篇文档或一个有父文档标识的结构化片段，<code>text</code> 始终是连续正文，不包含 <code>instruction</code>、<code>output</code>、<code>chosen</code> 或 <code>rejected</code>。</p>
+<pre><code class="language-jsonl">{&quot;doc_id&quot;:&quot;doc-demo-0001&quot;,&quot;parent_doc_id&quot;:null,&quot;segment_index&quot;:0,&quot;text&quot;:&quot;这里是一段已经获得处理授权的连续正文。&quot;,&quot;source&quot;:{&quot;source_id&quot;:&quot;internal-manual&quot;,&quot;snapshot&quot;:&quot;2026-10-01&quot;,&quot;locator&quot;:&quot;restricted://example/doc-1&quot;},&quot;rights&quot;:{&quot;status&quot;:&quot;approved&quot;,&quot;basis_ref&quot;:&quot;rights-record-001&quot;},&quot;language&quot;:{&quot;primary&quot;:&quot;zh&quot;,&quot;confidence&quot;:0.0,&quot;mixed&quot;:false},&quot;processing&quot;:{&quot;raw_sha256&quot;:&quot;&lt;原始文件哈希&gt;&quot;,&quot;pipeline_version&quot;:&quot;clean-v001&quot;,&quot;rules&quot;:[&quot;extract-main-text&quot;,&quot;normalize-whitespace&quot;]},&quot;privacy&quot;:{&quot;status&quot;:&quot;reviewed&quot;,&quot;actions&quot;:[],&quot;detector_version&quot;:&quot;pii-v001&quot;},&quot;quality&quot;:{&quot;status&quot;:&quot;passed&quot;,&quot;signals&quot;:{&quot;ocr_confidence&quot;:null},&quot;review_batch&quot;:&quot;sample-v001&quot;},&quot;dedup&quot;:{&quot;exact_group&quot;:&quot;&lt;组哈希&gt;&quot;,&quot;near_duplicate_group&quot;:null,&quot;canonical&quot;:true},&quot;contamination&quot;:{&quot;status&quot;:&quot;clear&quot;,&quot;blocklist_version&quot;:&quot;eval-v001&quot;},&quot;tokenizer&quot;:{&quot;name&quot;:&quot;&lt;基座分词器&gt;&quot;,&quot;revision&quot;:&quot;&lt;固定修订&gt;&quot;}}
+</code></pre>
+<p>注意：示例中的 <code>confidence: 0.0</code> 只是占位，不是合格样例；真实流水线必须写入检测器实际输出或 <code>null</code> 并进入复核。<code>locator</code> 也是示意，不要求把内部路径暴露到训练环境。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 分阶段执行</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>在跑全量前写明必需字段、许可状态、隐私处置、污染规则、抽检方案、配比比较指标和快照格式</li><li>未确认许可、含未授权机密或无法追溯来源的数据进入隔离区</li><li>保存原始文件只读副本与哈希，后续处理不修改原始区</li></ul></div>3
+<p><strong>阶段 0：建立验收合同。</strong> 在跑全量前写明必需字段、许可状态、隐私处置、污染规则、抽检方案、配比比较指标和快照格式。阈值先留空，通过小样校准后填入并版本化。</p>
+<p><strong>阶段 1：来源准入。</strong> 每个来源先登记再抽样。未确认许可、含未授权机密或无法追溯来源的数据进入隔离区。保存原始文件只读副本与哈希，后续处理不修改原始区。</p>
+<p><strong>阶段 2：小样剖析。</strong> 按来源、语言、长度和内容类型分层抽样，人工查看正文与误删候选。统计抽取失败、乱码、模板、语言混合、PII 候选、重复簇和长度分布。根据这些证据选择规则，而不是先抄一套英文网页阈值。</p>
+<p><strong>阶段 3：抽取与规范化。</strong> 保留文档结构和原文哈希，运行正文抽取、编码处理、空白规范化与语言识别。为每条规则输出命中计数和前后样例；对代码、公式、表格等切片单独验收。</p>
+<p><strong>阶段 4：隐私与安全处置。</strong> 先运行检测，再按策略掩码、删除或隔离。对漏检和误检分别抽检；高风险命中由人工升级。只有通过隐私门禁的文档才能进入批准区。</p>
+<p><strong>阶段 5：质量与去重。</strong> 运行可解释粗筛和必要的质量模型，保留分数及版本。再做文档内、快照内和跨来源去重，保留 canonical 选择依据。调整顺序时生成新快照并比较误删，不覆盖已有结果。</p>
+<p><strong>阶段 6：污染阻断。</strong> 使用冻结评测禁止库扫描，人工确认高影响命中。命中记录写入审计报告，训练正文不复制评测答案。数据切分在去重族或父文档层级进行，防止近重复跨 split。</p>
+<p><strong>阶段 7：配比小样与训练对照。</strong> 生成少量候选采样计划，按有效 token、唯一 token、来源曝光和语言/领域切片报告差异。用相同训练预算做小实验，比较领域指标、通用回归和稳定性，再选择放大方案。</p>
+<p><strong>阶段 8：编码与 packing。</strong> 固定 tokenizer 后编码，检查特殊 token 与文档边界。生成长序列分片、采样索引和长度/来源统计；从分片解码少量样本，验证没有错位、意外拼接或 split 泄漏。</p>
+<p><strong>阶段 9：冻结发布。</strong> 对文档分片和索引计算哈希，写入 manifest 与验收报告，将快照转为只读。训练 run 只引用快照 ID；发现缺陷时新建修复版，并按血缘评估旧 run 是否作废。</p>
+<h3 id="4-示例管线配置">4. 示例管线配置</h3>3
+<pre><code class="language-yaml"># 示例，未实跑：corpus-plan.yaml；项目自定义计划，不是现成工具命令参数
+snapshot_id: cpt-zh-domain-v001
+mode: cpt
+inputs:
+  source_registry: &lt;来源台账路径&gt;
+  approved_sources_only: true
+processing:
+  preserve_raw: true
+  normalization_profile: &lt;按文本/代码分别定义&gt;
+  language_policy: &lt;按切片校准&gt;
+  pii_policy: &lt;脱敏/删除/隔离策略版本&gt;
+  quality_policy: &lt;规则与模型版本&gt;
+  dedup_policy: &lt;精确/近重复与canonical策略版本&gt;
+  contamination_blocklist: &lt;冻结评测禁止库版本&gt;
+mixture:
+  unit: effective_tokens
+  candidates: &lt;小规模对照的候选配比&gt;
+  report_unique_tokens: true
+tokenization:
+  tokenizer_id: &lt;基座分词器&gt;
+  revision: &lt;固定修订&gt;
+  document_boundary: &lt;EOS与position/mask约定&gt;
+  packing: &lt;与训练框架核对后的模式&gt;
+acceptance:
+  thresholds: &lt;小样校准后写入的发布门槛&gt;
+  manual_strata: [来源, 语言, 长度, 质量层, PII命中, 去重簇]
+  general_regression_required: true
+output:
+  immutable: true
+  include: [documents, sampling_index, manifests, stats, review_report]
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5. 产物布局</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>corpus/cpt-zh-domain-v001/</li><li>└── RELEASE.json 快照 ID、验收结论、已知限制与回滚点</li><li>├── source-registry.jsonl 来源与许可/授权记录引用</li></ul></div>3
+<pre><code class="language-text">corpus/cpt-zh-domain-v001/
+├── source-registry.jsonl      # 来源与许可/授权记录引用
+├── documents/                 # 批准后的文档级分片
+├── sampling-index/            # 实际训练采样与配比索引
+├── tokenized/                 # 可选：固定 tokenizer 的训练分片
+├── manifests/
+│   ├── files.sha256           # 文件完整性
+│   ├── pipeline.json          # 规则、代码、模型和依赖版本
+│   └── mixture.json           # 有效/唯一 token 与实际曝光
+├── reports/
+│   ├── stage-counts.json      # 各阶段留存与失败原因
+│   ├── slice-quality.md       # 分层人工抽检
+│   ├── privacy-review.md      # 隐私验收，不复制敏感正文
+│   ├── dedup-review.md        # 去重簇与误删检查
+│   └── contamination.md       # 污染命中与处置
+└── RELEASE.json               # 快照 ID、验收结论、已知限制与回滚点
+</code></pre>
+<h3 id="6-验收清单">6. 验收清单</h3>3
+<p>发布门槛由项目在小样上定义，以下项目必须逐项有证据，不能用总文档数代替。</p>
+<ul>
+<li>[ ] 所有放行来源均有许可/授权依据、责任人、获取版本和撤回定位方式。</li>
+<li>[ ] 原始区只读，任一输出文档可追到原文哈希与处理版本。</li>
+<li>[ ] 文本、代码、表格、OCR 和各语言切片分别抽检，无未解释的系统性乱码或正文错切。</li>
+<li>[ ] PII/机密检测报告包含漏检、误检和人工复核；受限内容未进入批准区。</li>
+<li>[ ] 质量过滤规则有命中样例与误杀检查，分类器有版本和偏差说明。</li>
+<li>[ ] 精确/近重复去重覆盖跨来源与跨快照，canonical 选择可解释，重复族未跨 split。</li>
+<li>[ ] 配比报告同时给出文档数、有效 token、唯一 token、实际上采样曝光和关键切片。</li>
+<li>[ ] 评测禁止库已冻结，污染候选有人工处置记录，旧评估是否可比已明确。</li>
+<li>[ ] CPT 的 tokenizer、特殊 token 和模型配置与基座一致；长文档切块和 packing 可解码复核。</li>
+<li>[ ] 小规模训练对照同时报告领域收益与通用回归，不仅报告训练 loss。</li>
+<li>[ ] manifest、文件哈希、验收报告与已知限制齐全，快照不可变且能回滚到上一版。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7. 常见坑与回退</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>影响</th>
+<th>回退与修复</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>把公开可访问当成可训练授权</td>
+<td>许可与撤回风险</td>
+<td>隔离来源，回到最近合规快照；定位受影响 run 并升级审查</td>
+</tr>
+<tr>
+<td>只做 PII 正则替换就宣称匿名</td>
+<td>漏检、重识别与机密泄漏</td>
+<td>停止发布该快照，恢复受限区，按类型复检并保留审计</td>
+</tr>
+<tr>
+<td>英文网页规则直接套中文/代码</td>
+<td>高价值文本被系统性误删</td>
+<td>回退规则版本，按语言与内容类型分层校准</td>
+</tr>
+<tr>
+<td>跨快照不去重或重复 epoch 当新数据</td>
+<td>有效规模虚高、配比失真</td>
+<td>回到去重前分片，构建跨来源重复族并重算 token 报告</td>
+</tr>
+<tr>
+<td>近重复阈值过强</td>
+<td>删除不同版本、不同实体的合法内容</td>
+<td>恢复候选对，按内容类型调整 shingles/确认规则并人工抽检</td>
+</tr>
+<tr>
+<td>质量分类器分数当事实正确性</td>
+<td>流畅错误、偏差被放大</td>
+<td>保留质量分但撤销单独放行权，增加事实与来源审查</td>
+</tr>
+<tr>
+<td>领域数据占比凭经验一次定死</td>
+<td>CPT 遗忘或领域适配不足</td>
+<td>回滚基座与上一配比，使用同预算候选对照后重训</td>
+</tr>
+<tr>
+<td>更换基座却沿用旧 tokenized 分片</td>
+<td>token ID 与词表错位</td>
+<td>作废旧编码分片，固定新 tokenizer 后重新编码和抽验</td>
+</tr>
+<tr>
+<td>Packing 未核对 EOS/attention 边界</td>
+<td>文档串扰、停止行为异常</td>
+<td>回到文档级快照，按框架约定重打包并解码核对</td>
+</tr>
+<tr>
+<td>测试集或答案进入训练</td>
+<td>评估虚高且不可比</td>
+<td>作废旧评估，清除污染并重建快照；必要时从受影响检查点之前重训</td>
+</tr>
+<tr>
+<td>原地修改“同一版”数据</td>
+<td>结果不可复现、无法撤回</td>
+<td>恢复只读快照，所有修复生成新 ID 并更新训练清单</td>
+</tr>
+</tbody>
+</table>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li>
+<p><strong>语料"来源权威级"打分：source_tier 解析（<code>rag/ingest.py</code> L881 <code>parse_source_tier()</code>，grep 可验）</strong>：<br />
+  ```python<br />
+  def parse_source_tier(text: str) -&gt; int:<br />
+      """从 raw/*.md 头部抽取 source_tier 标注。</p>
+<p>匹配形如:<br />
+    source_tier: 1 (一手论文)<br />
+  没标注默认 2 (保守, 不惩罚也不优待)。<br />
+  """<br />
+  m = re.search(r"source_tier[:=]\s*(\d)", text[:2000])<br />
+  if not m:<br />
+      return 2<br />
+<code>``
+  预训练语料同理要有"来源级"：一手源/二手/生成内容混在一起训练，模型学到的就是混合分布；本库用 tier 把 1=一手、2=二手、3=三手分开，未标注保守取 2。
+- **去重（</code>rag/ingest.py<code>L649</code>chunk_fingerprint<code>+</code>DEDUP_MIN_CHARS=40<code>）**：按文本指纹去重，短于 40 字符的片段不参与判重（避免误杀"RAG""LoRA"这类短术语）。预训练语料里的模板重复/网页镜像重复，是同一类问题。
+- **入库前最低信息量过滤（</code>rag/ingest.py<code>L532</code>MIN_CHUNK_CHARS = 30<code>）**：占位符、纯符号、极短无语义片段不入选——语料清洗的第一道闸。
+- **和课件讲法的差异**：课件用</code>datasets<code>+</code>DataCollatorForLanguageModeling(mlm=False)<code>打包成定长块，并用</code>data.clean<code>/</code>simhash<code>做近重复去重；本库是**字符级指纹精确去重**，不做 MinHash 近似去重（语料规模还没到需要近似去重的量级）。**本库暂无预训练语料构造代码**，512/1024 定长块拼接与</code>attention_mask` 构造需按课件补。</p>
+</li>
+</ul>
+<h2 id="来源与口径">来源与口径</h2>2
+<ol>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/courseware/微调篇/day01微调101__课件__大模型微调-1-101-250815.md</code>：用于原始文本对应 CPT、指令/对话对应 SFT 的分类，以及数据获取、脱敏、去重、人工抽样、统计与小规模测试的流程骨架；未采用其固定数据量分档。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/courseware/微调篇/day02微调之PEFT__课件__大模型微调-2-PEFT.md</code>：用于复核 CPT 与 SFT/反馈数据的边界，避免将偏好或指令结构混入连续语料。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/courseware/微调篇/day06微调之最佳实践__课件__大模型微调-6-最佳实践.md</code>：用于版权、脱敏、爬虫和跨境风险提示，以及基座模型卡、人工评测和基准回归的验收思路。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/weread/从零构建大模型.md</code>：仅使用公开热门划线与目录，支撑自监督下一 token 预测、BPE、特殊 token、滑动窗口和预训练数据处理的原理线索，不视为完整原书。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/weread/大语言模型：原理、应用与优化.md</code>：仅使用公开高亮与目录，支撑词元化、数据归一化、C4 来源、预训练/微调和数据质量的主题线索。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/weread/Happy-LLM：从零开始构建大模型.md</code>：仅使用公开高亮与目录，支撑中文分词挑战、BPE、<code>input_ids</code>/<code>attention_mask</code> 和 CLM packing 的学习线索；未沿用其中硬件或规模说法。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/fullstack/微调实战-2026.md</code>：仅用于“数据质量需验证、训练前后对照和通用回归”的经验提醒；本文未采用其 SFT 格式、宣传性数字或框架结论。</li>
+<li>T5 论文，Raffel et al., <em>Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer</em>：https://arxiv.org/abs/1910.10683 ，用于 C4 与网页清洗背景，不把其规则当作所有语言/CPT 的固定阈值。</li>
+<li>Lee et al., <em>Deduplicating Training Data Makes Language Models Better</em>：https://arxiv.org/abs/2107.06499 ，用于训练数据重复与去重研究线索；具体去重策略仍需在本数据上抽检。</li>
+<li>Hoffmann et al., <em>Training Compute-Optimal Large Language Models</em>：https://arxiv.org/abs/2203.15556 ，用于理解计算、参数与 token 的联合预算；本文不把“计算最优”换算成通用数据量门槛。</li>
+<li>Penedo et al., <em>The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale</em>：https://arxiv.org/abs/2406.17557 ，用于网页过滤、去重与消融驱动的数据管线参考，不直接复制其配比或阈值。</li>
+<li>Hugging Face Datasets 官方文档：https://huggingface.co/docs/datasets/index ；DataTrove 官方仓库：https://github.com/huggingface/datatrove ，用于后续核对数据处理与流水线工具接口。本文 schema 和 YAML 是项目示例，未实跑，不是这些工具的固定配置格式。</li>
+</ol>
+<p><strong>修订口径</strong>：旧稿中的固定来源百分比、固定 token 规模、固定抽检阈值、显存/工期和“某规则必然更好”等说法已移除；SFT 指令/对话示例已从 CPT 数据格式中删除。本文将许可、PII、去重、质量、配比、分词、污染与快照统一为可审计流程。撰写时公开检索接口返回 403，以上 URL 为论文与官方固定入口，本轮未在线复核页面内容；书摘只按目录与公开划线使用。</p></div></details></div></details></div></body></html>

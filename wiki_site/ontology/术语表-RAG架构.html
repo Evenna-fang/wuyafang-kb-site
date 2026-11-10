@@ -1,0 +1,126 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>术语表-RAG架构</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 术语表-RAG架构</span></div><div class="wrap"><h1 id="rag-架构术语表-ontology">RAG 架构术语表 (ontology)</h1>
+<blockquote>
+<p>入库: 2026-09-29 | 项目: wuyafang-l<br />
+每个术语 = 定义 + 我们的落地口径 + <strong>conflict_status</strong><br />
+conflict_status 取值含义见 ontology/Agent记忆术语表.md</p>
+</blockquote>
+<hr />
+<h2 id="hybrid-retrieval-混合检索">Hybrid Retrieval (混合检索)</h2>2
+<ul>
+<li><strong>定义</strong>: 同时用 dense（语义向量近邻，bge-m3 dense）和 sparse（关键词/稀疏向量，bge-m3 sparse / BM25）两路召回，再融合排序。dense 抓"语义相近但字面不同"，sparse 抓"专有名词/术语精确命中"。</li>
+<li><strong>我们的口径</strong>: bge-m3 同时出 dense+sparse。当前管线两路均已启用 —— dense 召回 top-1000（DENSE_TOP_N=1000，2026-10-14 B005-fix 从20扩大）+ sparse 召回 top-100（SPARSE_TOP_N=100，从20扩大），经 RRF 融合。向量库实测 14510 条 chunks（2026-10-14）。基准实测（2026-10-14）：dense-only Recall@5=0.587 / MRR@3=0.433；hybrid-only Recall@5=0.695（+18.4%）；<strong>hybrid+rerank Recall@5=0.816 / MRR@3=0.605（+39%）</strong>。cosine 距离阈值 dist_threshold=0.60（2026-10-14 B005-fix-2 从0.75放宽，让 G-Memory 等中文短 query 过门）。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 RRF — <strong>complementary</strong>: hybrid 是"两路召回"，RRF 是"两路结果怎么融合"，二者配套使用。</li>
+</ul>
+<hr />
+<h2 id="rrf-reciprocal-rank-fusion">RRF (Reciprocal Rank Fusion)</h2>2
+<ul>
+<li><strong>定义</strong>: 一种免权重的多路结果融合算法：对每路召回的排名 r，给每条文档打分 Σ 1/(k+r)（k 通常=60），按融合分重排。不需要预先标定各路分数权重，对分数尺度差异鲁棒。</li>
+<li><strong>适用场景</strong>: dense 和 sparse 两路分数不可比时，用 RRF 融合而非加权求和。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 Hybrid Retrieval — <strong>complementary</strong>（见上）。</li>
+</ul>
+<hr />
+<h2 id="hierarchical-chunking-分层分块">Hierarchical Chunking (分层分块)</h2>2
+<ul>
+<li><strong>定义</strong>: 不按固定字数一刀切，而是按文档结构（标题→章节→段落）切块，保留父子层级：小块进向量库做精确召回，命中后带上其所属的大块/父块上下文喂给 LLM，平衡"检索精确"与"上下文完整"。</li>
+<li><strong>我们的口径</strong>: CHUNK_SIZE=384、CHUNK_OVERLAP=80（可被 RAG_CHUNK_SIZE / RAG_CHUNK_OVERLAP 环境变量覆盖）。生产环境最优解是父子分块：小 chunk（256–384 token）做检索找位置，父 chunk（≤1024 token）喂给 LLM 做生成。metadata 已有 parent_text 字段 —— ingest.py 写入、query.py 读取并用于 rerank 与生成上下文（见 rag/query.py 第 440-446、484、536-538 行），代码链路已通；分层收益已端到端量化（2026-10-14）：hybrid+rerank 后 Recall@5=0.816。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+</ul>
+<hr />
+<h2 id="reranker-精排重排器">Reranker (精排/重排器)</h2>2
+<ul>
+<li><strong>定义</strong>: 对初筛召回的 top-N（如 top-30）候选，用交叉编码器（cross-encoder）逐对"query-document"打分精排，取 top-k 进上下文。比纯向量近邻准，但贵、慢，所以只对小候选集用。</li>
+<li><strong>我们的口径</strong>: bge-reranker-v2-m3 本地跑，对初筛 top-10 精排（RERANK_TOP_N=10，可被 RAG_RERANK_TOP_N 覆盖）；过滤阈值 RERANK_THRESHOLD=0.45（见 notes/benchmark/阈值标定记录）。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+</ul>
+<hr />
+<h2 id="hyde-hypothetical-document-embeddings">HyDE (Hypothetical Document Embeddings)</h2>2
+<ul>
+<li><strong>定义</strong>: 让 LLM 先"假想"写出一个可能的答案段落（hypothetical document），用这个假段落而非原始 query 去做向量检索——因为假段落更接近真实文档的分布形态，提升小 query 的召回率。</li>
+<li><strong>我们的口径</strong>: 基准题 Q8 验证过 HyDE 在低置信 query 下触发；当前 query 改写/HyDE 阶段（P3）仍禁用 —— query.py 的 rewrite_query() 直接 return None 直通原始 query（见 rag/query.py 第 236-245 行），常量 REWRITE_TIMEOUT / REWRITE_DAILY_LIMIT / REWRITE_CACHE_DIR 仍在但开关未开启，等异步预改写方案。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 Quality Gating / 质量门控 — <strong>complementary</strong>: 低置信（confidence&lt;τ）时才触发 HyDE 或升级 System-2，不是每 query 都改写。</li>
+</ul>
+<hr />
+<h2 id="contextual-retrieval-上下文检索">Contextual Retrieval (上下文检索)</h2>2
+<ul>
+<li><strong>定义</strong>: 给每个 chunk 注入它在原文档中的上下文（标题、摘要、前后文）后再 embedding，解决"孤立 chunk 语义漂移"（chunk 脱离上下文后向量含义变了）。Microsoft 2024 提出，实测显著降检索失败率。</li>
+<li><strong>适用场景</strong>: chunk 较短、容易脱离语境时。常与 hierarchical chunking 叠加。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+</ul>
+<hr />
+<h2 id="source-tier-来源分级">Source Tier (来源分级)</h2>2
+<ul>
+<li><strong>定义</strong>: 给语料标重要等级（tier=1 一手决策 / tier=2 二手调研 / tier=3 转述），检索时按 tier 降权或加权，避免"二手转述"压过"一手裁决"。</li>
+<li><strong>我们的口径</strong>: raw 文件头标 source_tier；source_tier 字段在 metadata 里存在，但当前填充率 0%（chroma 库 6033 条 embedding 的 source_tier 值全为空），降权系数未落地。基准 Q9 暴露"source_tier 降权系数"未落地（MISS）。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+</ul>
+<hr />
+<h2 id="quality-gating-质量门控-rag-侧">Quality Gating (质量门控) — RAG 侧</h2>2
+<ul>
+<li><strong>定义</strong>: RAG 查询期的元认知路由器（见 Agent记忆术语表）：按置信度/证据稀疏度/查询复杂度判定"这次够不够直接答"，低于阈值 τ 才升级到重排/HyDE/System-2 深推理。我们的落地：85% 走 System-1 快检索，15% 走深推理，τ=0.5 起步（notes/benchmark/记忆查询质量门控）。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 HyDE — <strong>complementary</strong>（见上）；与 Budget-Tiered Routing — <strong>complementary</strong>（门控决定"走哪条路"，预算档决定"给多少检索预算"，可串联）。</li>
+</ul>
+<hr />
+<h2 id="评测闭环-evaluation-loop">评测闭环 (Evaluation Loop)</h2>2
+<ul>
+<li><strong>定义</strong>: RAG 上线后持续量化检索/生成质量的闭环，三件套分工：DeepEval = pytest-based CI gate 拦 PR 回归（golden-question 套件）；RAGAS = scheduled job 采样生产流量算 RAG 专属指标（faithfulness / answer relevancy / context precision / context recall / context utilization / noise sensitivity / answer correctness / answer similarity）；Langfuse = 捕获生产 trace（question/retrieved context/answer/metadata）。</li>
+<li><strong>关键指标</strong>: <strong>faithfulness</strong> = reference-free（claim-decomposition，不需 ground-truth），适合个人库冷启动；生产阈值 faithfulness &lt; 0.80 触发告警。</li>
+<li><strong>我们的口径</strong>: 当前<strong>从 0 到 1 的最大缺口</strong>——无 golden-question 套件（计划 20 条）、无 faithfulness/context precision baseline、无 trace 记录。来源: <code>raw/sources/RAG优化-外部调研-20260929.md</code> 方向 4（genai.qa 2026 / Langfuse guides）。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+</ul>
+<hr />
+<h2 id="graph-rag-agentic-rag检索范式选型">Graph RAG / Agentic RAG（检索范式选型）</h2>2
+<ul>
+<li><strong>定义</strong>: 两种进阶检索范式。Graph RAG = 把知识抽成图（节点=实体/决策，边=dependency/cause/reference），适合"追关系"类问题（法律/合规/生物医学）；<strong>LazyGraphRAG（Microsoft 2025）</strong>把全图索引成本降到 vector RAG 的 0.1%。Agentic RAG = 让 Agent 多步推理、自我纠错、判断"何时该检索/查哪个文件"，代价慢、贵、难调试。</li>
+<li><strong>选型决策树</strong>: 答案在文档里+速度重要 → 标准 RAG；结构化知识追关系 → Graph RAG；多步推理+自我纠错 → Agentic RAG。</li>
+<li><strong>我们的口径</strong>: 162 chunks 个人库<strong>明确暂不做</strong>（ADR），直到 chunk &gt; 5000 或出现"追关系"类 query。来源: <code>raw/sources/RAG优化-外部调研-20260929.md</code> 方向 5（ByteByteGo / k-ai.ai 2026）。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+</ul></div></body></html>

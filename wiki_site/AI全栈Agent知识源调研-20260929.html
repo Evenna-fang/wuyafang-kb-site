@@ -1,0 +1,89 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI全栈Agent知识源调研-20260929</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="index.html">🏠 总入口</a><a href="graph.html">🕸 关联图谱</a><a href="ontology/index.html">📖 术语表</a><span class="cur">/ AI全栈Agent知识源调研-20260929</span></div><div class="wrap"><h1 id="ai全栈agent知识源调研-20260929distilljson">AI全栈Agent知识源调研-20260929.distill.json</h1>
+<ul>
+<li>source_file: raw/distill/AI全栈Agent知识源调研-20260929.distill.json</li>
+<li>format: json</li>
+</ul>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">内容</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>base: AI全栈Agent知识源调研-20260929</li><li>[原则] 结构化输出契约是硬约束：绝不依赖 free-text 解析</li><li>2. LLM生产化：结构化输出契约（JSON/Pydantic）和标准化的Agent提示词结构是可靠生产部署的核心保障</li></ul></div>2
+<ul>
+<li><strong>base</strong>: AI全栈Agent知识源调研-20260929</li>
+<li><strong>source_file</strong>: raw/sources/AI全栈Agent知识源调研-20260929.md</li>
+<li><strong>model</strong>: deepseek-ai/DeepSeek-V3</li>
+<li><strong>generated_at</strong>: 2026-10-21 19:22:04</li>
+<li><strong>level1_excerpts</strong>: - <strong>[机制]</strong> LangGraph 是 2026 年 stateful/auditable 工作流的生产标准（PyPI 月下载 3450 万，~400 家企业用 LangGraph Platform）；CrewAI 是最快多智能体原型路径（2-4 小时出 demo，GitHub 44.6k stars）｜依据:方向 1：Agent 框架对比</li>
+<li><strong>[数据]</strong> 框架选择影响高达 30 个百分点：同一模型下，框架本身对 benchmark 性能影响显著。CrewAI 在简单单工具调用流上 token 开销约为其他三家 3 倍；LangChain 最省 token｜依据:方向 1：Agent 框架对比</li>
+<li><strong>[机制]</strong> State/Memory 是分水岭：LangGraph 的 checkpointing 最完整（每个节点序列化 state，支持 pause/resume、time-travel debugging）｜依据:方向 1：Agent 框架对比</li>
+<li><strong>[原则]</strong> 结构化输出契约是硬约束：绝不依赖 free-text 解析。用 JSON schema / Pydantic 定义输出契约；校验失败时把错误作为"correction instruction"回喂模型做 self-correction loop｜依据:方向 2：LLM 应用生产化</li>
+<li><strong>[机制]</strong> Agent system prompt 的标准结构：role &amp; scope → hard constraints → tool usage rules → output contract → failure behavior（按此顺序）｜依据:方向 2：LLM 应用生产化</li>
+<li><strong>[数据]</strong> 多协议共存是终局：MCP（Anthropic）= 工具接入层；A2A（Google）= 智能体协调层；ACP（IBM）2025-08 并入 A2A；ANP = 去中心化 marketplace｜依据:方向 3：MCP / A2A / Agent 协议生态</li>
+<li><strong>[机制]</strong> 选型三分：vLLM = 数据中心 GPU 高吞吐生产；llama.cpp = 消费级硬件/CPU/边缘；Ollama = llama.cpp 之上的本地开发封装｜依据:方向 4：模型部署与推理优化</li>
+<li><strong>[案例]</strong> 2026 默认 AI 创业栈：Next.js 16 前端 + Supabase（PostgreSQL + pgvector）+ Vercel AI SDK（流式 chat hooks）｜依据:方向 5：AI 全栈技术栈</li>
+<li><strong>[原则]</strong> FDE vs Solutions Engineer 的本质：FDE 是写生产代码、拥有 data-to-decision loop 的工程师；SE 是演示产品、扔给 professional services 的销售｜依据:方向 6：FDE（Forward Deployed Engineer）实战方法论</li>
+<li><strong>[机制]</strong> 三阶段方法论（OpenAI 语音案例）：早期 scoping → validation → research collaboration｜依据:方向 6：FDE（Forward Deployed Engineer）实战方法论</li>
+<li><strong>level2_summary</strong>: ```markdown<br />
+<strong>1. Agent框架选型标准</strong><br />
+LangGraph是生产级工作流首选（3450万月下载量），提供完整状态检查点；CrewAI适合快速原型开发（44.6k GitHub stars）。框架性能差异显著，LangChain最省token，CrewAI单工具调用开销高3倍。</li>
+</ul>
+<p><strong>2. LLM生产化核心原则</strong><br />
+必须使用JSON/Pydantic定义结构化输出契约，失败时自动纠错。Agent系统提示词需按固定结构：角色→硬约束→工具规则→输出契约→失败处理。</p>
+<p><strong>3. 协议生态演进趋势</strong><br />
+多协议共存：MCP处理工具层，A2A协调智能体层（2025年并入ACP），ANP实现去中心化市场。协议选择直接影响系统扩展性。</p>
+<p><strong>4. 模型部署三分法则</strong><br />
+vLLM适合数据中心GPU生产，llama.cpp面向消费硬件/边缘计算，Ollama是其本地开发封装。选型需匹配硬件场景。</p>
+<p><strong>5. AI全栈技术栈</strong><br />
+2026年主流方案：Next.js 16前端 + Supabase（含pgvector） + Vercel AI SDK流式交互。该组合平衡开发效率与生产需求。</p>
+<p><strong>6. FDE实战方法论</strong><br />
+FDE需直接编写生产代码并闭环数据决策，区别于销售导向的SE。OpenAI案例展示三阶段：需求界定→验证→研究协作。</p>
+<pre><code>- **level3_digest**: ```markdown
+1. **框架选型**：LangGraph是生产级Agent工作流首选，CrewAI更适合快速原型开发，性能差异显著影响token消耗。
+2. **LLM生产化**：结构化输出契约（JSON/Pydantic）和标准化的Agent提示词结构是可靠生产部署的核心保障。
+3. **协议演进**：多协议分层架构（MCP/A2A/ANP）将成为Agent系统扩展性的关键设计维度。
+4. **模型部署**：vLLM/llama.cpp/Ollama三分法则揭示模型部署必须严格匹配硬件场景特性。
+5. **全栈架构**：Next.js 16 + Supabase + Vercel AI SDK构成2026年AI应用的标准技术栈组合。
+
+**核心问题**：如何构建面向生产环境的AI Agent全栈技术体系？
+</code></pre></div></details></div></body></html>

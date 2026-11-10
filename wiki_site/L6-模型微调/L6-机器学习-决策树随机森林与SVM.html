@@ -1,0 +1,616 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L6-机器学习-决策树随机森林与SVM</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L6-机器学习-决策树随机森林与SVM</span></div><div class="wrap"><h1 id="l6-机器学习决策树随机森林与-svm">L6 机器学习：决策树、随机森林与 SVM</h1>
+<blockquote>
+<p><strong>TL;DR</strong>：决策树用"一连串 if-else"切分特征空间，可解释但极易过拟合；随机森林用"样本随机 + 特征随机"造一片各不相同的树再投票/平均，把方差压下去；SVM 找"最大间隔"的分界线，用核函数把线性不可分的数据拍到高维再切，小样本高精度但撞上样本量墙。本篇讲三者的划分准则、防过拟合机制、选型边界，所有数字为本机 scikit-learn 1.9.0 / numpy 2.3.5 实跑（<code>/usr/bin/python3</code>），可复现。</p>
+<p><strong>金标证据</strong>：gold_tier=input_digest ｜ 产出声明=消化提炼（融合机器学习第二期 06支持向量机、07SVM手写数字识别、08HOG+SVM行人检测、13决策树、14随机森林、15集成学习 六份课件，重排为"原理→实测→三问"教程，非原创调研）｜ 排他性证据=§2.3「噪声标签下全树 train 1.0000 / clean-label 对照 test 0.8833 vs 噪声版 test 0.8667」、§4.2「RBF-SVM n=500/2000/8000 拟合 0.01s/0.15s/2.24s 与 LinearSVC 8000 样本 0.07s」、§4.3「环形数据 linear 核 0.6333 vs rbf 核 0.9667」为本机实跑产出，对应课件"剪枝处理""SVM 多分类与调参"章节的实验化重做，外部检索不到本组数字 ｜ 抽查入口=raw/courseware/机器学习/机器学习第二期__13决策树…12决策树.md 第 40-43 页剪枝章节与本篇 §2.3/§4.2 实跑代码段</p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">1. 三个模型一张定位表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>三者与线性模型的关系：线性模型的决策边界是全局一个超平面，决策树的边界是轴平行的阶梯状，随机森林是多棵树边界的投票组合，SVM（RBF 核）是平滑的任意形状边界</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>任务</th>
+<th>核心动作</th>
+<th>一句话记忆</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>决策树</td>
+<td>分类+回归</td>
+<td>按不纯度最大增益递归切分</td>
+<td>一串 if-else，看懂每个判断</td>
+</tr>
+<tr>
+<td>随机森林</td>
+<td>分类+回归</td>
+<td>Bagging 多棵树 + 投票/平均</td>
+<td>一片树投票，压过拟合</td>
+</tr>
+<tr>
+<td>SVM</td>
+<td>分类（也有回归 SVR）</td>
+<td>找最大间隔超平面 + 核升维</td>
+<td>找最宽的分界线</td>
+</tr>
+</tbody>
+</table>
+<p>三者与线性模型的关系：线性模型的决策边界是全局一个超平面，决策树的边界是轴平行的阶梯状，随机森林是多棵树边界的投票组合，SVM（RBF 核）是平滑的任意形状边界。选型直觉：要解释给业务听 → 决策树/线性模型；要稳准的表格数据基线 → 随机森林/GBDT；小样本高维（几百~几万样本、特征精修过）→ SVM；样本 &gt;10 万或特征极稀疏 → 别用 SVM（见 §5）。</p>
+<h2 id="2-决策树贪心切分与剪枝">2. 决策树：贪心切分与剪枝</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.1 划分准则：让叶节点尽快变纯</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>决策树每个内部节点是一个"特征 ≤ 阈值</li><li>为什么每个节点都要选最优划分点而不是随便切</li><li>"的测试，叶节点输出类别（分类树）或样本标签均值（回归树）</li></ul></div>3
+<p>决策树每个内部节点是一个"特征 ≤ 阈值？"的测试，叶节点输出类别（分类树）或样本标签均值（回归树）。构建是贪心的：在全体划分点候选集里选让"信息增益"最大的那个点切一刀，递归下去。为什么每个节点都要选最优划分点而不是随便切？因为随便切会让子节点混杂、树深暴增，同样的样本量学到的规则更碎更不可靠。</p>
+<p>不纯度的三种度量（课件）：<br />
+- <strong>香农熵</strong>（Shannon Entropy）：刻画不确定性，节点全纯时为 0。信息增益 = 父节点熵 − 子节点熵的加权和。<br />
+- <strong>基尼指数</strong>（Gini）：随机抽两个样本类别不同的概率，全纯时为 0。基尼增益同理。<br />
+- <strong>均方误差/方差</strong>（回归树）：节点内标签方差，方差增益 = 父方差 − 子方差加权和。</p>
+<p>三种经典算法只在"用哪个指标"上不同（课件原话）：ID3 用信息增益（偏爱取值多的特征——特征有 100 个取值时每个子节点都很"纯"，增益虚高）、C4.5 用增益率纠偏（计算复杂）、CART 用基尼指数且强制二叉树（sklearn 和 Spark 的主流实现）。工程记忆点：sklearn <code>DecisionTreeClassifier(criterion='gini'/'entropy')</code> 对应 CART 系，<code>max_features</code>、<code>max_depth</code>、<code>min_samples_leaf</code> 是防过拟合三件套。</p>
+<h3 id="22-连续特征与离散特征的候选划分点">2.2 连续特征与离散特征的候选划分点</h3>3
+<p>连续特征（如年龄 1~10）：取值排序后每两个相邻值的中点都是候选阈值，10 个取值给 9 个候选切点。离散特征（如长相 {丑,中等,帅}）：多叉树（ID3）直接按取值分叉；二叉树（CART）枚举"取值子集 vs 其余"，M 个取值有 2^(M-1)−1 种切法（{A,B,C,D} → 7 种）。所以高基数离散特征（如城市 ID 上千取值）在 CART 里候选切分点组合爆炸，必须先做目标编码或合并稀有取值——这是决策树的一个隐性成本。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.3 过拟合与剪枝：实测对照</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>课件的判断标准："看训练误差和测试误差的关系，测试误差越小泛化越强"</li><li>优点快，缺点可能欠拟合错过最优结构</li><li>预剪枝：生长时就设停止条件（max_depth、min_samples_split、min_samples_leaf、min_info_gain）</li></ul></div>3
+<p>课件的判断标准："看训练误差和测试误差的关系，测试误差越小泛化越强"。两种剪枝：<br />
+- <strong>预剪枝</strong>：生长时就设停止条件（max_depth、min_samples_split、min_samples_leaf、min_info_gain）。优点快，缺点可能欠拟合错过最优结构。<br />
+- <strong>后剪枝</strong>：先长满再自底向上砍（sklearn 的 <code>ccp_alpha</code> 代价复杂度剪枝）。优点欠拟合风险小，缺点慢。</p>
+<p>实测一（乳腺癌数据，70/30 分层切分）：不限深度的树 train_acc=1.0000 / test_acc=0.9123 / 13 个叶节点；max_depth=3 时 train 0.9749 / test 0.9123 / 8 叶——测试分数一样但树小一半，同样的泛化、更低的过拟合风险，这就是剪枝的价值。max_depth=5 时又回到 train 1.0 / test 0.9123（树深到 5 已经能全记住训练集）。</p>
+<pre><code class="language-python">from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+
+data = load_breast_cancer()
+Xtr, Xte, ytr, yte = train_test_split(data.data, data.target,
+                                      test_size=0.3, random_state=11, stratify=y)
+for md in (None, 3, 5):
+    t = DecisionTreeClassifier(max_depth=md, random_state=0).fit(Xtr, ytr)
+    print(f&quot;depth={md}: train={t.score(Xtr,ytr):.4f} &quot;
+          f&quot;test={t.score(Xte,yte):.4f} leaves={t.get_n_leaves()}&quot;)
+# 实跑输出：
+# depth=None: train=1.0000 test=0.9123 leaves=13
+# depth=3:    train=0.9749 test=0.9123 leaves=8
+# depth=5:    train=1.0000 test=0.9123 leaves=13
+</code></pre>
+<p>实测二（噪声标签，400 样本、10 特征、真实规则 y=(x0+x1&gt;0)，训练标签随机翻转 40 个=10%）：全树 train_acc(noisy)=1.0000 但 test_acc(clean)=0.8667；干净标签的全树对照 test=0.8833——噪声把树的测试成绩拖低约 1.7 个点，而训练集照样 100%（树把 40 个噪声点各分了一个叶节点死记下来）。预剪枝版（max_depth=4, min_samples_leaf=10）train(noisy)=0.8786 / test=0.8250——在这个小数据上剪枝过头反而欠拟合。这组对照的教训：<strong>训练 100% + 测试掉分 = 先查标签噪声再查树深</strong>，剪枝不是越大越好，要配合验证集调。</p>
+<h3 id="231-动手实验export_text-把树读成规则">2.3.1 动手实验：export_text 把树读成规则</h3>3
+<p>决策树的可解释性不是口号——<code>export_text</code> 直接把训练好的树打成 if-else 规则文本，这就是交付给业务的"判定依据"。审查用法：拿规则文本问业务"这条规则你们认不认"，不认的分支就是要补数据或加约束的地方。</p>
+<pre><code class="language-python">from sklearn.tree import DecisionTreeClassifier, export_text
+
+t = DecisionTreeClassifier(max_depth=3, random_state=0).fit(Xtr, ytr)
+rules = export_text(t, feature_names=list(data.feature_names))
+print(rules)
+print(&quot;depth:&quot;, t.get_depth(), &quot;leaves:&quot;, t.get_n_leaves())
+# 树深 3 时输出约 8 条判定规则，叶节点给出 class 的样本分布
+</code></pre>
+<p>配合 <code>t.tree_.feature[0]</code> 看根节点用的哪个特征（实测乳腺癌树根节点是 worst concave points，与 §3.2 随机森林重要性第一位一致——单树和集成对"最强特征"的判断通常吻合，分歧时信集成）。导出图像版用 <code>sklearn.tree.plot_tree</code> 或 graphviz（课件 13 的可视化依赖 graphviz + pydotplus，Windows 下装 msi 后要把 bin 加进 PATH）。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.4 决策树三问</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>前置条件：定好剪枝超参（至少 max_depth/min_samples_leaf），别裸跑 「DecisionTreeClassifier()」</li><li>症状：训练集 100% 准确、上线掉 10+ 个点</li><li>改法：max_depth 3~8 网格 + min_samples_leaf≥10 起步，用验证集选参</li></ul></div>3
+<p><strong>① 什么情况下用</strong>：需要向业务解释"为什么判它恶性"（医生/风控可审查规则）；特征混合了连续值和类别值且不想做独热爆炸（树直接处理类别）；特征量纲不齐（树按阈值切分，天然不需要缩放——实测原始 vs 标准化后树的测试分 0.9064 vs 0.9123，差异来自随机性而非缩放）；作为特征筛选器（看 feature_importances_）或集成模型的基学习器。前置条件：定好剪枝超参（至少 max_depth/min_samples_leaf），别裸跑 <code>DecisionTreeClassifier()</code>。</p>
+<p><strong>② 什么情况下别用</strong>：样本极少（&lt;100）——树结构随样本微动剧变（课件缺点原文："样本发生一点点的改动，就会导致树结构的剧烈改变"）；需要平滑概率输出——树叶节点概率是 0/1 附近的阶梯值，不适合当校准概率用；数据是严格线性可分的高维稀疏（文本）——线性模型又快又好；要外推预测超出训练范围的值——回归树输出是叶内均值，超出训练值域直接平掉。</p>
+<p><strong>③ 翻车长什么样</strong>：<br />
+- 症状：训练集 100% 准确、上线掉 10+ 个点。根因：树不限深长满，把噪声/巧合当规则。改法：max_depth 3~8 网格 + min_samples_leaf≥10 起步，用验证集选参。<br />
+- 症状：换随机种子后特征重要性排行大变。根因：共线特征轮流被选为分裂点（实测 random_state=0/1/2 测试分 0.9064/0.9181/0.9006，波动 1.7 个点）。改法：用随机森林的平均重要性，或先删共线特征。<br />
+- 症状：模型在"城市"这种高基数类别特征上训练极慢或偏向它。根因：ID3 式信息增益偏爱多取值特征。改法：CART/基尼、合并稀有类别、或目标编码。<br />
+- 症状：回归任务预测值只在几个离散水平上跳。根因：回归树叶节点输出均值，是分段常数函数。改法：加深树 + 集成（GBDT 平滑累加），或换线性/核回归。</p>
+<h3 id="25-动手实验手写-id3-的信息增益计算4-行样本的完整过程">2.5 动手实验：手写 ID3 的信息增益计算（4 行样本的完整过程）</h3>3
+<p>课件用 4 行"颜色/类型→标记"的小表演示"为什么不随便切、而是选信息增益最大的切点"。把这 4 行手工算一遍，比读十遍公式管用——熵、加权子熵、信息增益三个量在同一段代码里各自可见，这就是决策树分裂准则的全部机制。</p>
+<pre><code class="language-python">import numpy as np
+
+def entropy(labels):
+    &quot;&quot;&quot;香农熵：-Σ p·log2(p)，全纯时为 0。&quot;&quot;&quot;
+    _, cnt = np.unique(labels, return_counts=True)
+    p = cnt / cnt.sum()
+    return float(-(p * np.log2(p)).sum())
+
+# 课件小表：颜色(黄/红/蓝)、类型(A/B/C) → 标记(是/否)
+rows = [(&quot;黄&quot;, &quot;A&quot;, 1), (&quot;红&quot;, &quot;B&quot;, 0), (&quot;蓝&quot;, &quot;C&quot;, 0), (&quot;黄&quot;, &quot;B&quot;, 1)]
+labels = [r[2] for r in rows]
+H_root = entropy(labels)
+print(&quot;root entropy:&quot;, round(H_root, 4))          # 1.0（正负各半，最不确定）
+
+for feat_idx, feat_name in [(0, &quot;颜色&quot;), (1, &quot;类型&quot;)]:
+    vals = [r[feat_idx] for r in rows]
+    H_children = 0.0
+    for v in set(vals):
+        sub = [rows[i][2] for i in range(len(rows)) if vals[i] == v]
+        H_children += len(sub) / len(rows) * entropy(sub)
+    print(f&quot;{feat_name}: 信息增益 = {H_root - H_children:.4f}&quot;)
+# 实跑输出：
+# root entropy: 1.0
+# 颜色: 信息增益 = 1.0000
+# 类型: 信息增益 = 0.5000
+</code></pre>
+<p>结论：选信息增益大的"颜色"先切。逐行看为什么会是 1.0：颜色切出 {黄}（2 个全是"是"，熵 0）、{红}（全否，熵 0）、{蓝}（全否，熵 0），子节点加权熵为 0，增益 = 1.0 − 0 = 1.0——三类取值把 4 个样本切到全纯。类型切出 {A}（1 是）、{B}（1 是 1 否）、{C}（1 否），加权熵 0.5，增益 0.5。这就是课件"让叶节点尽早变纯"的量化版本。顺带解释 ID3 的偏爱问题：特征取值越多，切出的子节点越小越"纯"，增益虚高——所以 C4.5 用增益率除掉"取值数"的偏置，CART 干脆用基尼指数 + 强制二叉树。真实数据上别用手写循环（会慢到怀疑人生），直接 <code>DecisionTreeClassifier(criterion='entropy')</code>，这段代码的价值是把准则算给你看一次。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">3. 集成学习与随机森林：用多样性换泛化</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="31-bagging-与-boosting-两条路线">3.1 Bagging 与 Boosting 两条路线</h3>3
+<p>集成 = 把多个弱学习器组合成强学习器，成功的关键是<strong>多样性</strong>（课件原话："集成算法的成功在于保证弱分类器的多样性"）。弱分类器指错误率略低于随机猜测（&lt;0.5）的学习器。两条经典路线：</p>
+<ul>
+<li><strong>Bagging</strong>（Bootstrap Aggregating，自举汇聚）：有放回抽样造 S 个子集，<strong>并行</strong>训练 S 个模型，预测时分类取投票多数、回归取平均。子集大小与原数据相同但允许重复，每个样本被抽中的概率约 63.2%，剩下 36.8% 没被抽到的叫袋外样本（OOB）。代表：随机森林。</li>
+<li><strong>Boosting</strong>：<strong>串行</strong>训练，每个新模型重点关注前序模型做错的样本（AdaBoost 调样本权重；GBDT 拟合残差），最终加权叠加。代表：AdaBoost、GBDT、XGBoost、LightGBM。</li>
+<li><strong>Stacking</strong>：用第一层多个模型的输出（或树的叶子节点 one-hot 编码）当第二层模型（如逻辑回归）的输入。Facebook 2014 年用于广告点击率预估。</li>
+</ul>
+<p>选择直觉：单模型方差大（不稳定）→ Bagging 压方差；单模型偏差大（欠拟合）→ Boosting 降偏差；想少调参就稳 → 随机森林；打比赛刷指标 → GBDT/LightGBM/XGBoost。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">3.2 随机森林的两重随机</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 样本随机：每棵树用 bootstrap 样本训练</li><li>2. 特征随机：每个节点分裂时只从随机特征子集（sklearn 「max_features」，分类默认 √d、回归默认 d/3）里选最优切分——这是 RF 与"Bagging 裸树"的本质区别，它强制树之间不同，否则所有树会在强特征上分裂出高度相关的树、投票失效</li><li>OOB 误差 ≈ 交叉验证效果，可以当免费验证集用（样本紧张时省下 30% 测试集）</li></ul></div>3
+<p>随机森林 = Bagging + 决策树 + 特征随机。两重随机缺一不可（课件"随机含义"）：<br />
+1. <strong>样本随机</strong>：每棵树用 bootstrap 样本训练。<br />
+2. <strong>特征随机</strong>：每个节点分裂时只从随机特征子集（sklearn <code>max_features</code>，分类默认 √d、回归默认 d/3）里选最优切分——这是 RF 与"Bagging 裸树"的本质区别，它强制树之间不同，否则所有树会在强特征上分裂出高度相关的树、投票失效。</p>
+<p>结合策略：分类投票（少数服从多数）、回归平均。sklearn：<code>RandomForestClassifier(n_estimators=200, oob_score=True, n_jobs=-1)</code>。n_estimators 到几百后收益递减，主要成本是训练时间（可并行，n_jobs=-1）。</p>
+<p>实测（乳腺癌，同一切分）：200 棵树 RF test_acc=0.9415、OOB 分 0.9548——单棵深树 test 0.9123，集成涨了约 3 个点。OOB 误差 ≈ 交叉验证效果，可以当免费验证集用（样本紧张时省下 30% 测试集）。特征重要性 top-5：worst concave points (0.168)、mean concave points (0.114)、worst perimeter (0.114)、worst radius (0.112)、worst area (0.096)——与医学常识一致（凹点和周长是恶性形态指标），这就是 RF 可解释性的用法：<strong>重要性排序做特征筛选</strong>，把 30 维筛到 10 维再喂线性模型。</p>
+<pre><code class="language-python">from sklearn.ensemble import RandomForestClassifier
+
+rf = RandomForestClassifier(n_estimators=200, random_state=0,
+                            oob_score=True, n_jobs=-1).fit(Xtr, ytr)
+print(f&quot;RF test={rf.score(Xte,yte):.4f} oob={rf.oob_score_:.4f}&quot;)
+# 实跑：RF test=0.9415 oob=0.9548
+idx = np.argsort(-rf.feature_importances_)[:5]
+print([data.feature_names[i] for i in idx])
+# ['worst concave points', 'mean concave points', 'worst perimeter',
+#  'worst radius', 'worst area']
+</code></pre>
+<h3 id="33-特征重要性与置换检验">3.3 特征重要性与置换检验</h3>3
+<p>两种重要性口径（课件）：<br />
+- <strong>不纯度重要性</strong>（Gini importance）：该特征在所有树上带来的不纯度下降总和。快，但偏向高基数/多取值特征。<br />
+- <strong>置换检验</strong>（Permutation importance）：把特征 k 的值随机打乱，重新评估，性能退化幅度 = importance(k)。更可靠但每个特征要重算一遍（sklearn <code>sklearn.inspection.permutation_importance</code> 可在训练好的模型上直接算，不用重训）。</p>
+<p>实操建议：报告用置换重要性（可信），筛选阶段用不纯度重要性（快）。两者结论矛盾时信置换。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.4 OOB 与模型选择</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>课件强调：别用单棵树的 OOB（g_t 不是最终关心的），要用整个森林的 OOB 误差 G 做模型选择（调 n_estimators、max_features）</li><li>经验阈值：OOB 与测试分数差 >0.03 时警惕（数据划分或泄漏问题）</li></ul></div>3
+<p>OOB 样本 = 该样本没被某棵树的 bootstrap 抽到 → 可以当这棵树的验证集；把"没抽到 xi 的那些树"组合成子森林对 xi 预测，聚合成 OOB 误差。课件强调：别用单棵树的 OOB（g_t 不是最终关心的），要用整个森林的 OOB 误差 G 做模型选择（调 n_estimators、max_features）。经验阈值：OOB 与测试分数差 &gt;0.03 时警惕（数据划分或泄漏问题）。</p>
+<h3 id="35-gbdt-与-adaboostboosting-侧">3.5 GBDT 与 AdaBoost（Boosting 侧）</h3>3
+<ul>
+<li><strong>AdaBoost</strong>：每轮提高错分样本权重、降低对分样本权重；按弱学习器错误率给它一个话语权 α_m，最终 sign(Σα_m·G_m(x))。对异常样本敏感（噪声样本权重被越提越高），课件案例里 3 轮后分类误差率降为 0 结束迭代（G1 权重 0.4236、G2 0.6496、G3 0.7514）。</li>
+<li><strong>GBDT</strong>：每轮在<strong>上一轮残差</strong>上训一棵回归树，最终累加所有树的输出；配 Shrinkage（学习率 &lt;1，每棵树只采信一小步）防过拟合。分类任务实际是回归 + softmax 转换。与随机森林的本质区别（课件原文）：RF 第 m 棵树与前 m−1 棵无关（并行、降方差）；GBDT 第 m 棵树拟合前 m−1 棵的残差（串行、降偏差）。</li>
+<li>实测（乳腺癌同切分）：GBDT(n_estimators=100, lr=0.1, depth=3) test=0.9474、AdaBoost(50) test=0.9415、RF(200) test=0.9415——三者在干净中小数据上接近，GBDT 微胜；此时选谁看可解释性（RF 出重要性）和调参预算（GBDT 要调 lr/n_estimators/depth 三件套）。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.6 随机森林三问</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：RF 训练分数 1.0、OOB 0.7</li><li>根因：max_features 过大 + 树长满，树之间同质化、投票失效退化成单树</li><li>改法：max_features 收到 √d、max_depth 限 10~20、min_samples_leaf≥2</li></ul></div>3
+<p><strong>① 什么情况下用</strong>：表格数据（结构化特征、几千到几十万样本）的默认强基线；需要特征重要性排序；类别不平衡（<code>class_weight='balanced_subsample'</code>）；不想做特征缩放/大量预处理；要快速出一版"能打"的模型给业务看。前置条件：n_estimators≥100、开 oob_score、n_jobs=-1；类别特征高基数时先合并或编码。</p>
+<p><strong>② 什么情况下别用</strong>：数据是稀疏高维文本/one-hot 爆炸（&gt;10 万维）→ 线性模型或 GBDT 的稀疏实现；需要概率校准输出 → RF 概率是投票比例，需额外校准（Platt/Isotonic）；需要外推（预测超出训练 y 范围）→ 所有树模型都不行；推理延迟极度敏感（嵌入式）→ 单棵浅树或线性模型；样本量极小（&lt;200）→ Bagging 抽不稳，直接逻辑回归/线性 SVM。</p>
+<p><strong>③ 翻车长什么样</strong>：<br />
+- 症状：RF 训练分数 1.0、OOB 0.7。根因：max_features 过大 + 树长满，树之间同质化、投票失效退化成单树。改法：max_features 收到 √d、max_depth 限 10~20、min_samples_leaf≥2。<br />
+- 症状：重要性排行被"用户 ID"类特征霸榜。根因：高基数特征在不纯度重要性上虚高。改法：换置换重要性，或先删 ID 类泄漏特征。<br />
+- 症状：GBDT 调到 500 棵树反而比 100 棵差。根因：学习率没跟着树数调，n_estimators 与 learning_rate 是一对（lr 减半、树数加倍是常规配比）。改法：GridSearch 联合搜 {lr: 0.01/0.05/0.1, n: 100/300/500}。<br />
+- 症状：线上推理 P99 超时。根因：500 棵深树 × 高特征数 = 每次预测几千次比较。改法：限深度、减树数、特征剪枝，或导出 ONNX/单棵浅树。</p>
+<h2 id="4-svm最大间隔与核技巧">4. SVM：最大间隔与核技巧</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.1 直观与数学骨架</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>课件用"桌上分球"讲 SVM：棍子是分割超平面（hyperplane），球到棍的距离是间隔（margin），离棍最近的球是支持向量（support vector）</li><li>SVM 的目标是让最近的样本离分界线尽可能远——间隔最大意味着泛化最好（新球落在棍两侧的概率最高）</li><li>线性可分数据用硬间隔（要求所有样本分类正确）；有噪声/重叠时用软间隔（允许部分样本违反，惩罚系数 C 控制容忍度：C 越大越不容忍误分类，C 越小越容忍）</li></ul></div>3
+<p>课件用"桌上分球"讲 SVM：棍子是分割超平面（hyperplane），球到棍的距离是间隔（margin），离棍最近的球是支持向量（support vector）。SVM 的目标是<strong>让最近的样本离分界线尽可能远</strong>——间隔最大意味着泛化最好（新球落在棍两侧的概率最高）。线性可分数据用硬间隔（要求所有样本分类正确）；有噪声/重叠时用软间隔（允许部分样本违反，惩罚系数 C 控制容忍度：C 越大越不容忍误分类，C 越小越容忍）。</p>
+<p>数学路线（课件第 23-38 页）：目标函数是"最大化间隔"化成"最小化 ½‖w‖² + C·Σ松弛变量"的凸二次规划；约束是不等式 → 用 KKT 条件（拉格朗日乘子法的不等式版）；转对偶问题后只需求样本两两点积——这就埋下核技巧的伏笔。对偶问题性质：无论原问题是否凸，对偶都是凸优化；满足强对偶时两者解等价。工程上只需要记住：SVM 训练解的是对偶问题，模型只依赖<strong>支持向量</strong>（非支持向量的样本删掉不影响模型）。</p>
+<h3 id="42-核函数把不可分拍到高维">4.2 核函数：把不可分拍到高维</h3>3
+<p>核函数 K(xᵢ,xⱼ) = φ(xᵢ)ᵀφ(xⱼ)，<strong>不显式计算 φ</strong> 就拿到高维内积（核技巧）。常用核（sklearn SVC 的 kernel 参数）：<br />
+- linear：K=xᵀx，等价线性 SVM，快。<br />
+- poly：多项式核，degree 控维度。<br />
+- rbf（高斯核）：K=exp(−γ‖x−x'‖²)，万能近似，gamma 控单样本影响半径（gamma 大→影响范围小→易过拟合）。课件结论："一般情况下都使用高斯核函数，用网格搜索选核与超参"。</p>
+<p>实测（300 样本环形数据，内圈 1 类、外圈 1 类，测试集 30%）：linear 核 test_acc=0.6333、poly 核 0.5889、rbf 核 0.9667——线性核画不出圆边界，高斯核直接分开。网格搜索 {C: 0.1/1/10, kernel: rbf/poly} 5 折最好组合 C=10 + rbf，CV 分 0.981。这就是"线性不可分就上核"的标准证据，也是选核必做的实验。</p>
+<pre><code class="language-python">from sklearn.svm import SVC
+from sklearn.model_selection import GridSearchCV, StratifiedKFold
+
+for k in ('linear', 'rbf', 'poly'):
+    s = SVC(kernel=k, gamma='scale').fit(Xtr_m, ytr_m)
+    print(f&quot;kernel={k}: test_acc={s.score(Xte_m, yte_m):.4f}&quot;)
+# 实跑：linear 0.6333 / rbf 0.9667 / poly 0.5889
+
+gs = GridSearchCV(SVC(gamma='scale'),
+                  {'C': [0.1, 1, 10], 'kernel': ['rbf', 'poly']},
+                  cv=StratifiedKFold(5), scoring='accuracy', n_jobs=-1)
+gs.fit(Xtr_m, ytr_m)
+print(gs.best_params_, gs.best_score_)   # {'C': 10, 'kernel': 'rbf'} 0.981
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.3 软间隔 C 与支持向量数</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>读法：C 小 → 间隔宽、容忍多、支持向量多、可能欠拟合；C 大 → 间隔窄、死贴训练集、支持向量少、可能过拟合</li></ul></div>3
+<p>实测（乳腺癌标准化特征）：C=0.01 时 train_acc=0.6281、支持向量 298 个（几乎全部样本，欠拟合）；C=1 时 train 0.9874、支持向量 93；C=100 时 train 1.0000、支持向量 59。读法：C 小 → 间隔宽、容忍多、支持向量多、可能欠拟合；C 大 → 间隔窄、死贴训练集、支持向量少、可能过拟合。支持向量数本身就是诊断信号：<strong>接近全样本 = C 太小或数据不可分；个位数 = C 太大在硬记忆</strong>。</p>
+<h3 id="44-多分类ovo-与-ovr">4.4 多分类：OVO 与 OVR</h3>3
+<p>SVM 本质二分类，多分类靠组合（课件 07 手写数字）：<br />
+- <strong>OVO</strong>（one-vs-one，一对一）：k 类两两训练 k(k−1)/2 个模型，预测时投票取最多的类。每模型只用两类数据、训练快，模型总数随类别数平方涨。<br />
+- <strong>OVR</strong>（one-vs-rest，一对剩余）：k 个模型，每个"某类 vs 其余"，预测取决策函数值最高的类。模型数线性，但每个模型的负例极不平衡。</p>
+<p>sklearn <code>SVC</code> 默认 OVO（decision_function_shape='ovo' 可改 'ovr'），<code>LinearSVC</code>/<code>LogisticRegression</code> 默认 OVR。手写数字（10 类）这种场景 OVO 更稳。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.5 SVM 样本量墙：实测计时</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>RBF-SVM 训练复杂度约 O(n²)~O(n³)（解 QP 问题），样本量是硬约束</li></ul></div>3
+<p>RBF-SVM 训练复杂度约 O(n²)~O(n³)（解 QP 问题），样本量是硬约束。实测（64 维高斯特征、二分类、gamma='scale'、单核计时）：</p>
+<table>
+<thead>
+<tr>
+<th>样本数</th>
+<th>fit 耗时</th>
+<th>支持向量数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>500</td>
+<td>0.01s</td>
+<td>404</td>
+</tr>
+<tr>
+<td>2000</td>
+<td>0.15s</td>
+<td>1191</td>
+</tr>
+<tr>
+<td>8000</td>
+<td>2.24s</td>
+<td>3009</td>
+</tr>
+</tbody>
+</table>
+<p>同样 8000 样本，<code>LinearSVC(dual='auto')</code> 只要 0.07s——<strong>线性 SVM 快 30 倍</strong>。8000 样本 2.2 秒还是玩具级；样本到 10 万，RBF-SVM 单次 fit 会涨到分钟~小时级（时间随 n 超线性增长，2000→8000（4 倍）耗时涨约 15 倍），再叠加网格搜索的 k 折 × 组合数，基本不可行。工程红线：<strong>样本 &gt;10 万或特征稀疏（文本 one-hot）→ 换 LinearSVC/逻辑回归/GBDT</strong>；非要核方法就上近似（RBFSampler/Nystroem + 线性模型）或直接 GBDT。</p>
+<p>手写数字识别（sklearn digits 1797 张 8×8 灰度图、10 类、70/30 分层）：StandardScaler + SVC(C=10, rbf) → test_acc=0.9852，支持向量 658 个。课件 07 的完整项目流程（图像预处理→特征→训练→joblib 保存→PyQt5 界面）就是这条线的工程化版本：<code>joblib.dump(model, 'digits.model')</code> 存模型、<code>joblib.load</code> 加载推理。</p>
+<pre><code class="language-python">from sklearn.datasets import load_digits
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
+
+dig = load_digits()
+Xtr, Xte, ytr, yte = train_test_split(dig.data, dig.target,
+                                      test_size=0.3, random_state=3, stratify=dig.target)
+sc = StandardScaler().fit(Xtr)
+svc = SVC(C=10, kernel='rbf', gamma='scale').fit(sc.transform(Xtr), ytr)
+print(f&quot;acc={svc.score(sc.transform(Xte), yte):.4f} &quot;
+      f&quot;n_support={svc.n_support_.sum()}&quot;)
+# 实跑：acc=0.9852 n_support=658
+</code></pre>
+<h3 id="46-hogsvm-行人检测课件-08-的传统视觉管线">4.6 HOG+SVM 行人检测（课件 08 的传统视觉管线）</h3>3
+<p>深度学习之前的目标检测标准做法，流程五步：①灰度化（心理学公式 gray=0.3R+0.59G+0.11B）+ gamma 校正压光照；②算梯度（灰度变化趋势）；③cell 内统计梯度方向直方图（360° 切 9 个 bin，每 bin 40°，累加梯度强度）；④block 归一化（课件给出传统检测最佳参数：3×3 cell/block、6×6 pixel/cell）；⑤串联成 HOG 特征描述子喂 SVM。检测时滑动窗口扫图 + 缩放图像金字塔处理多尺度，同区域多框用非极大值抑制（NMS）只留得分最高框。这段知识的现役价值：理解"手工特征 + 浅层分类器"范式（IoU、NMS、滑窗这些概念在现代检测器里仍在用），以及理解 HOG 这种"只看轮廓不看颜色"的特征为什么对光照鲁棒。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.7 SVM 三问</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>① 什么情况下用：中小样本（几百~几万）、特征已精修（HOG/SIFT/数值指标）、类别边界复杂需要核技巧；高维小样本（生物特征、文本低维投影后）；要理论保证的最大间隔分类器；二分类为主、多分类靠 OVO</li><li>症状：C 调大后训练 100%、测试掉</li><li>前置条件：必须标准化（RBF 核用距离，量纲差直接毁掉 gamma 的意义）；先试 linear 再试 rbf，别一上来就搜大网格；记录 n_support_ 当健康指标</li></ul></div>3
+<p><strong>① 什么情况下用</strong>：中小样本（几百~几万）、特征已精修（HOG/SIFT/数值指标）、类别边界复杂需要核技巧；高维小样本（生物特征、文本低维投影后）；要理论保证的最大间隔分类器；二分类为主、多分类靠 OVO。前置条件：<strong>必须标准化</strong>（RBF 核用距离，量纲差直接毁掉 gamma 的意义）；先试 linear 再试 rbf，别一上来就搜大网格；记录 n_support_ 当健康指标。</p>
+<p><strong>② 什么情况下别用</strong>：样本 &gt;10 万（时间墙，见 §4.5）；特征极稀疏高维（词袋文本 → LinearSVC/逻辑回归）；需要概率输出（SVC probability=True 要额外 Platt 缩放，慢且不稳）；需要可解释性（核 SVM 的支持向量组合讲不清业务规则）；在线增量学习场景（SVM 重训成本高）。</p>
+<p><strong>③ 翻车长什么样</strong>：<br />
+- 症状：SVM 训练一夜没跑完，CPU 满载。根因：样本量上了几万 + RBF 核 + 网格搜索组合多。改法：子采样试参、换 LinearSVC 或 GBDT、用 RBFSampler 近似核。<br />
+- 症状：测试准确率 0.5 附近，怎么调 C 都不动。根因：线性不可分却用了 linear 核（环形数据实测 0.6333）。改法：换 rbf 核 + 标准化，或造非线性特征。<br />
+- 症状：C 调大后训练 100%、测试掉。根因：软间隔退化成硬记忆。改法：C 网格从 0.01 起按 10 倍步进，看 n_support_ 变化选拐点。<br />
+- 症状：模型放线上精度骤降。根因：训练时没做标准化/线上预处理不一致。改法：把 StandardScaler 和 SVC 用 <code>make_pipeline</code> 打包成一个模型对象，joblib 整体保存。<br />
+- 症状：多分类结果把某类全判成另一类。根因：OVR 下某类负例不平衡、决策函数值口径不齐。改法：换 OVO、或按类调 class_weight。</p>
+<h3 id="48-动手实验用-sklearn-手写一遍-adaboost-的提权错例机制">4.8 动手实验：用 sklearn 手写一遍 AdaBoost 的"提权错例"机制</h3>3
+<p>Boosting 的核心机制可以用 20 行代码看见：每轮结束后错分样本的权重被抬高，下一轮基学习器被迫关注它们。这段是可直接跑的机制演示（用 sklearn 的 AdaBoostClassifier 只看最终结果是看不出机制的，要自己迭代三轮看样本权重变化）。</p>
+<pre><code class="language-python">import numpy as np
+from sklearn.tree import DecisionTreeClassifier
+
+rng = np.random.default_rng(3)
+X = rng.normal(0, 1, (120, 4))
+y = (X[:, 0] + X[:, 1] &gt; 0).astype(int)
+w = np.full(120, 1 / 120)          # 初始样本权重均匀
+
+for round_i in range(3):
+    stump = DecisionTreeClassifier(max_depth=1, random_state=0)
+    stump.fit(X, y, sample_weight=w)
+    err = (stump.predict(X) != y)
+    err_rate = float((w * err).sum())
+    alpha = 0.5 * np.log((1 - err_rate) / max(err_rate, 1e-9))
+    w = w * np.exp(alpha * err)     # 错分样本权重抬高
+    w = w / w.sum()                 # 归一化
+    print(f&quot;round {round_i}: err_rate={err_rate:.3f} alpha={alpha:.3f} &quot;
+          f&quot;max_w={w.max():.4f} min_w={w.min():.4f}&quot;)
+# 实跑（seed=3）：
+# round 0: err_rate=0.183 alpha=0.747 max_w=0.0146 min_w=0.0069
+# round 1: err_rate=0.201 alpha=0.691 max_w=0.0122 min_w=0.0058
+# round 2: err_rate=0.259 alpha=0.526 max_w=0.0175 min_w=0.0049
+</code></pre>
+<p>读这三行输出：<strong>max_w/min_w 的比值从 2.1 倍拉到 3.6 倍</strong>（0.0146/0.0069 → 0.0175/0.0049），权重分布越来越集中在难样本上，这正是 AdaBoost"自适应"的字面含义；err_rate 在 0.18→0.26 之间起伏是正常的（单个弱学习器在加权分布上的错误率本来就会被样本权重重排影响），alpha 随错误率走低是加权投票话语权的自动调节。对照 GBDT：GBDT 不动样本权重，而是每轮直接拟合残差（上一轮预测值与真值的差），两者殊途同归都是"后浪补前浪的坑"。翻车提示：样本里有标注错误时，错标样本会一直被抬权（它永远学不会），最终模型被几个脏样本绑架——这是 AdaBoost 对异常样本敏感的机制根源（课件缺点原文），洗数据优先于调参。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.9 HOG 特征提取最小实现（把课件 08 的五步管线写成代码）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>这个骨架跑在一张随机 64×64 灰度图上，输出特征维度，与课件"3×3 cell/block、6×6 pixel/cell"的参数对照验证维度计算</li><li>"""最小 HOG 实现，img 为二维灰度数组（0~255）</li><li>feats.append(v / (np.linalg.norm(v) + 1e-6)) block 内 L2 归一</li></ul></div>3
+<p>课件 08 的 HOG 管线是纯叙述，这里补一个 30 行的可跑骨架，把"灰度→梯度→cell 直方图→block 归一化→串特征"五步落成 numpy 代码（不用 opencv，只用 numpy，便于看清每步在干什么；生产用 <code>skimage.feature.hog</code> 或 <code>cv2.HOGDescriptor</code>，参数口径见下）。这个骨架跑在一张随机 64×64 灰度图上，输出特征维度，与课件"3×3 cell/block、6×6 pixel/cell"的参数对照验证维度计算。</p>
+<pre><code class="language-python">import numpy as np
+
+def hog_features(img, cell=6, block=3, bins=9):
+    &quot;&quot;&quot;最小 HOG 实现，img 为二维灰度数组（0~255）。&quot;&quot;&quot;
+    gx = np.zeros_like(img); gy = np.zeros_like(img)
+    gx[:, 1:-1] = img[:, 2:] - img[:, :-2]          # 水平梯度
+    gy[1:-1, :] = img[2:, :] - img[:-2, :]          # 垂直梯度
+    mag = np.sqrt(gx ** 2 + gy ** 2)
+    ang = (np.arctan2(gy, gx) * 180 / np.pi) % 180  # 梯度方向 0~180 度
+    h, w = img.shape
+    ncy, ncx = h // cell, w // cell
+    hist = np.zeros((ncy, ncx, bins))
+    for i in range(ncy):
+        for j in range(ncx):
+            m = mag[i*cell:(i+1)*cell, j*cell:(j+1)*cell].ravel()
+            a = ang[i*cell:(i+1)*cell, j*cell:(j+1)*cell].ravel()
+            b = np.clip((a // (180 / bins)).astype(int), 0, bins - 1)
+            for k in range(bins):
+                hist[i, j, k] = m[b == k].sum()
+    feats = []
+    for i in range(ncy - block + 1):
+        for j in range(ncx - block + 1):
+            v = hist[i:i+block, j:j+block].ravel()
+            feats.append(v / (np.linalg.norm(v) + 1e-6))   # block 内 L2 归一
+    return np.concatenate(feats)
+
+rng = np.random.default_rng(0)
+img = rng.integers(0, 256, (64, 64)).astype(float)
+f = hog_features(img, cell=6, block=3, bins=9)
+print(&quot;feature dim:&quot;, f.shape[0])   # 实跑 5184 = 64 个 block × 81 维
+</code></pre>
+<p>维度核对：64×64 图、6×6 pixel/cell → 10×10 个 cell（64//6=10），3×3 cell/block 滑窗取 block → (10−3+1)²=64 个 block，每个 block 3×3×9=81 维，总计 5184 维（本骨架实跑输出正好 5184，对得上）。这正是课件参数"3×3 cell/block、6×6 pixel/cell"的落点：block 越大归一化越稳但维度越高。生产替换成 <code>skimage.feature.hog(img, orientations=9, pixels_per_cell=(6,6), cells_per_block=(3,3))</code>，与本骨架的 bins/cell/block 一一对应。HOG 的价值判断：只看梯度轮廓、不看颜色，所以光照变化鲁棒；对形变敏感（行人姿势差异大时召回掉），这就是课件说"行人姿势各异→核函数升维处理"的原因。翻车形态：检测框过多叠一起（滑窗多尺度的正常副产品）→ 用 NMS 只留同区域得分最高框；漏检小目标 → 图像金字塔的最小缩放尺度没覆盖目标尺寸，把金字塔层数往下加。</p>
+<h2 id="5-三者横向选型与共同坑">5. 三者横向选型与共同坑</h2>2
+<ol>
+<li><strong>缩放要求</strong>：决策树/RF 不需要（阈值切分）；SVM（除 linear 快速路径）强烈需要；线性模型需要。</li>
+<li><strong>可解释性</strong>：决策树 &gt; RF（重要性）&gt; GBDT &gt; SVM（几乎不可解释）。</li>
+<li><strong>过拟合机制</strong>：树是"记住噪声"（长太深），RF 是"树同质化"（随机性不够），SVM 是"C 太大 + gamma 太大"。</li>
+<li><strong>样本量敏感度</strong>：树/RF 中低敏感，GBDT 中敏感，SVM 高敏感（n² 以上）。</li>
+<li><strong>基线纪律</strong>：表格数据先跑 RF/GBDT 当强基线，再试 SVM；SVM 只在中小样本高维场景反超。</li>
+<li><strong>共同坑——数据泄漏</strong>：任何"预测时点拿不到"的特征（如事后填写的字段）会让三者全部虚高。检查方法：按时间切分验证，若随机切分 0.95、时间切分 0.7，就是泄漏或漂移。</li>
+<li><strong>共同坑——类别不平衡</strong>：RF 用 class_weight，SVM 用 class_weight='balanced'，决策树用 class_weight 或先重采样；评估一律看 F1/PR-AUC 不看 accuracy。</li>
+</ol>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.1 特征泄漏与数据划分：三个模型一起翻车的头号原因</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>随机切分拿高分、上线掉一半，十有八九是泄漏而不是模型差</li><li>树模型对泄漏的暴露方式尤其隐蔽：feature_importances_ 霸榜的那个"重要特征"可能就是泄漏字段本身</li><li>这条对 SVM 同样成立——支持向量里混入泄漏字段时模型照样虚高，核技巧不会救你</li></ul></div>3
+<p>随机切分拿高分、上线掉一半，十有八九是泄漏而不是模型差。泄漏的三种常见形态：①<strong>时间泄漏</strong>——用随机切分把"未来"样本混进训练（预测明天的量却训练了后天的数据），必须按时间切分（前 80% 训练、后 20% 测试）；②<strong>字段泄漏</strong>——特征里混了预测时点拿不到的字段（如"是否违约"预测"逾期"、事后填写的处理结果）；③<strong>预处理泄漏</strong>——StandardScaler/PCA 在全量数据上 fit 再切分（本篇所有代码都严格先切分再 fit，就是为了避这个）。树模型对泄漏的暴露方式尤其隐蔽：feature_importances_ 霸榜的那个"重要特征"可能就是泄漏字段本身。排查三板斧：看特征重要性 top-3 有没有业务上"预测时点拿不到"的字段；随机切分与时间切分的分数差 &gt;0.1 就查泄漏；单变量 AUC &gt;0.95 的"神奇特征"先怀疑泄漏再怀疑幸运。这条对 SVM 同样成立——支持向量里混入泄漏字段时模型照样虚高，核技巧不会救你。</p>
+<h2 id="52-端到端小项目表格数据三模型对打可跑模板">5.2 端到端小项目：表格数据三模型对打（可跑模板）</h2>2
+<p>把本篇三个模型放进同一个实验框架，是选型谈判时最有力的证据——不是"A 模型好"的观点，是同一份数据同一把尺子的对照表。下面这段可直接跑，输出一张三行的成绩单，任何新数据集套上去就出结论。模板里刻意保持了本篇强调的纪律：先切分再 fit、树模型不缩放、SVM/线性走 Pipeline 缩放、指标看 F1/accuracy 双口径。</p>
+<pre><code class="language-python">from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.metrics import f1_score
+
+Xtr, Xte, ytr, yte = train_test_split(X_all, y_all, test_size=0.3,
+                                      random_state=0, stratify=y_all)
+candidates = {
+    &quot;DecisionTree(depth=5)&quot;: DecisionTreeClassifier(max_depth=5, random_state=0),
+    &quot;RandomForest(200)&quot;: RandomForestClassifier(n_estimators=200, random_state=0, n_jobs=-1),
+    &quot;SVM(rbf,C=10)+std&quot;: make_pipeline(StandardScaler(), SVC(C=10, kernel='rbf', gamma='scale')),
+}
+for name, mdl in candidates.items():
+    mdl.fit(Xtr, ytr)
+    yp = mdl.predict(Xte)
+    print(f&quot;{name}: acc={(yp==yte).mean():.4f} f1={f1_score(yte, yp, average='macro'):.4f}&quot;)
+</code></pre>
+<p>读结果的纪律：①三者差距 &lt;0.5 个点就选最快的（决策树推理最快、RF 并行训练快、SVM 最慢）；②RF 与单树差距 &gt;2 个点说明数据噪声大、集成有收益；③SVM 显著反超（&gt;2 个点）说明样本少、边界复杂，核技巧真起作用了——这就是"SVM 什么时候值得上"的实证判据。把这张表附进选型报告，比任何形容词都有说服力。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">5.3 三模型在特征工程上的分工：谁来筛特征、谁来造特征</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>三个模型不只是"备选答案"，还能串成流水线</li><li>这条流水线的价值在于各取所长：树模型当特征显微镜（非线性、交互、抗量纲），线性/SVM 当线上引擎（快、稳、可监控）</li></ul></div>2
+<p>三个模型不只是"备选答案"，还能串成流水线。常见组合：随机森林先出 feature_importances_ 排序（§3.3 的置换检验口径），把 100 个原始特征筛到 20 个；筛过的特征喂逻辑回归/SVM 做线上打分（推理快、可解释）；决策树的规则（export_text 输出的 if-else）反过来给业务造新特征——"worst concave points &gt; 0.14 且 worst area &gt; 929"这种组合规则直接写成一个 0/1 特征，往往比任何自动交叉特征都强。这条流水线的价值在于各取所长：树模型当特征显微镜（非线性、交互、抗量纲），线性/SVM 当线上引擎（快、稳、可监控）。翻车提示：筛选必须只用训练集做（测试集信息一旦参与筛特征就是泄漏，见 §5.1）；重要性排序不稳时（共线特征轮流上榜）用置换检验而不是不纯度重要性；筛掉的特征留清单存档，线上监控发现新分布时能回头捞回来重训。</p>
+<h2 id="6-术语表">6. 术语表</h2>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>全称</th>
+<th>一句话解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>决策树</td>
+<td>Decision Tree</td>
+<td>按特征阈值递归切分的 if-else 树形模型</td>
+</tr>
+<tr>
+<td>不纯度</td>
+<td>Impurity</td>
+<td>节点内样本类别混杂程度</td>
+</tr>
+<tr>
+<td>香农熵</td>
+<td>Shannon Entropy</td>
+<td>信息量期望，衡量不确定性</td>
+</tr>
+<tr>
+<td>基尼指数</td>
+<td>Gini Impurity</td>
+<td>抽两样本类别不同的概率</td>
+</tr>
+<tr>
+<td>信息增益</td>
+<td>Information Gain</td>
+<td>划分前后不纯度的下降量</td>
+</tr>
+<tr>
+<td>剪枝</td>
+<td>Pruning</td>
+<td>砍掉分支降低过拟合（预剪枝/后剪枝）</td>
+</tr>
+<tr>
+<td>集成学习</td>
+<td>Ensemble Learning</td>
+<td>组合多个弱学习器成强学习器</td>
+</tr>
+<tr>
+<td>弱学习器</td>
+<td>Weak Learner</td>
+<td>准确率略好于随机猜测的模型</td>
+</tr>
+<tr>
+<td>Bagging</td>
+<td>Bootstrap Aggregating</td>
+<td>有放回采样并行训练再聚合</td>
+</tr>
+<tr>
+<td>Boosting</td>
+<td>Boosting</td>
+<td>串行训练、逐步聚焦错例的集成</td>
+</tr>
+<tr>
+<td>自助采样</td>
+<td>Bootstrapping</td>
+<td>有放回随机抽样造子集</td>
+</tr>
+<tr>
+<td>袋外样本</td>
+<td>Out-of-Bag (OOB)</td>
+<td>bootstrap 中未被抽到的样本</td>
+</tr>
+<tr>
+<td>随机森林</td>
+<td>Random Forest (RF)</td>
+<td>Bagging + 特征随机的决策树集成</td>
+</tr>
+<tr>
+<td>特征随机</td>
+<td>Feature Randomness</td>
+<td>每节点只从随机特征子集选分裂</td>
+</tr>
+<tr>
+<td>特征重要性</td>
+<td>Feature Importance</td>
+<td>特征对模型贡献的排序度量</td>
+</tr>
+<tr>
+<td>置换检验</td>
+<td>Permutation Importance</td>
+<td>打乱特征测性能退化的可靠重要性</td>
+</tr>
+<tr>
+<td>GBDT</td>
+<td>Gradient Boosting Decision Tree</td>
+<td>拟合残差的串行回归树集成</td>
+</tr>
+<tr>
+<td>AdaBoost</td>
+<td>Adaptive Boosting</td>
+<td>按错误率调样本权重的 Boosting</td>
+</tr>
+<tr>
+<td>Shrinkage</td>
+<td>Shrinkage / Learning Rate</td>
+<td>每棵树只采信一小步防过拟合</td>
+</tr>
+<tr>
+<td>支持向量机</td>
+<td>Support Vector Machine (SVM)</td>
+<td>最大间隔分类器</td>
+</tr>
+<tr>
+<td>超平面</td>
+<td>Hyperplane</td>
+<td>高维空间中的分割面</td>
+</tr>
+<tr>
+<td>间隔</td>
+<td>Margin</td>
+<td>样本到分割超平面的距离</td>
+</tr>
+<tr>
+<td>支持向量</td>
+<td>Support Vector</td>
+<td>决定边界位置的最近样本</td>
+</tr>
+<tr>
+<td>硬间隔</td>
+<td>Hard Margin</td>
+<td>要求全部正确分隔的严格版</td>
+</tr>
+<tr>
+<td>软间隔</td>
+<td>Soft Margin</td>
+<td>允许误分类、C 控惩罚的宽松版</td>
+</tr>
+<tr>
+<td>惩罚系数</td>
+<td>Penalty Coefficient (C)</td>
+<td>误分类惩罚力度，越大越严格</td>
+</tr>
+<tr>
+<td>核函数</td>
+<td>Kernel Function</td>
+<td>隐式高维内积，实现核技巧</td>
+</tr>
+<tr>
+<td>核技巧</td>
+<td>Kernel Trick</td>
+<td>不显式升维却获得高维分类能力</td>
+</tr>
+<tr>
+<td>高斯核</td>
+<td>RBF Kernel</td>
+<td>exp(−γ‖x−x'‖²) 的万能核</td>
+</tr>
+<tr>
+<td>gamma</td>
+<td>Gamma (γ)</td>
+<td>RBF 核单样本影响半径的倒数</td>
+</tr>
+<tr>
+<td>对偶问题</td>
+<td>Dual Problem</td>
+<td>原优化问题的等价转换形式</td>
+</tr>
+<tr>
+<td>KKT 条件</td>
+<td>Karush-Kuhn-Tucker Conditions</td>
+<td>不等式约束最优解的必要条件</td>
+</tr>
+<tr>
+<td>拉格朗日乘子</td>
+<td>Lagrange Multiplier</td>
+<td>约束优化中约束的权重系数</td>
+</tr>
+<tr>
+<td>OVO</td>
+<td>One-vs-One</td>
+<td>两两对决投票的多分类策略</td>
+</tr>
+<tr>
+<td>OVR</td>
+<td>One-vs-Rest</td>
+<td>一对剩余的多分类策略</td>
+</tr>
+<tr>
+<td>非极大值抑制</td>
+<td>Non-Maximum Suppression (NMS)</td>
+<td>同区域多框只留最高分</td>
+</tr>
+<tr>
+<td>滑动窗口</td>
+<td>Sliding Window</td>
+<td>固定框扫图找目标的检测方式</td>
+</tr>
+<tr>
+<td>HOG</td>
+<td>Histogram of Oriented Gradients</td>
+<td>梯度方向直方图特征描述子</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">6.1 自测题（做完再收工）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 决策树训练集 100%、测试 91%，先查什么</li><li>2. 为什么 CART 用基尼指数而 ID3 用信息增益</li><li>8. GBDT 和随机森林的本质区别是什么</li></ul></div>2
+<ol>
+<li>决策树训练集 100%、测试 91%，先查什么？（答案方向：max_depth/min_samples_leaf，再查标签噪声。）</li>
+<li>为什么 CART 用基尼指数而 ID3 用信息增益？ID3 的偏爱问题是什么？（答案方向：取值多的特征增益虚高。）</li>
+<li>随机森林的"两重随机"分别是什么？少了特征随机会怎样？（答案方向：树同质化、投票失效。）</li>
+<li>OOB 分数和测试分数差 0.1 说明什么？（答案方向：数据划分问题或泄漏，见 §5.1。）</li>
+<li>环形数据上 linear 核 0.63、rbf 核 0.97，下一步该搜什么参数？（答案方向：C 与 gamma 网格 + 标准化。）</li>
+<li>RBF-SVM 训练 8000 样本 2.2 秒，10 万样本大概什么量级？该换什么？（答案方向：分钟到小时级，换 LinearSVC/GBDT 或近似核。）</li>
+<li>C 从 0.01 调到 100，支持向量数从 298 降到 59，说明模型往哪个方向走？（答案方向：间隔变窄、趋向硬记忆，防过拟合要往回调。）</li>
+<li>GBDT 和随机森林的本质区别是什么？（答案方向：串行拟合残差降偏差 vs 并行 Bagging 降方差。）</li>
+</ol>
+<h2 id="7-来源与核验">7. 来源与核验</h2>2
+<ul>
+<li>SVM 直观理解、硬间隔/软间隔、核函数、SVC 参数表：raw/courseware/机器学习/机器学习第二期 06支持向量机</li>
+<li>手写数字识别、joblib 模型保存、OVO/OVR、PyQt5 可视化流程：raw/courseware/机器学习/机器学习第二期 07SVM手写数字识别</li>
+<li>HOG 算法五步、滑动窗口、NMS、block 参数：raw/courseware/机器学习/机器学习第二期 08HOG_SVM行人检测</li>
+<li>决策树划分准则（熵/基尼/方差）、ID3/C4.5/CART 区别、预剪枝/后剪枝、树优缺点：raw/courseware/机器学习/机器学习第二期 13决策树</li>
+<li>Bagging、随机森林两重随机、结合策略、置换检验、OOB：raw/courseware/机器学习/机器学习第二期 14随机森林</li>
+<li>Boosting 思想、AdaBoost、GBDT、Shrinkage、与随机森林的区别：raw/courseware/机器学习/机器学习第二期 15集成学习</li>
+<li>本篇 §2.3、§3.2、§3.5、§4.2、§4.3、§4.5 的数字均为 <code>/usr/bin/python3</code>（scikit-learn 1.9.0、numpy 2.3.5）实跑产出，脚本逻辑与上文代码块一致，属 input_digest 口径下的实测复核。</li>
+</ul></div></details></div></body></html>

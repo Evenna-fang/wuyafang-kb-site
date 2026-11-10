@@ -1,0 +1,310 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RAG评估怎么跑</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ RAG评估怎么跑</span></div><div class="wrap"><h1 id="rag评估怎么跑量化检索质量和生成质量的方法论">RAG评估怎么跑：量化检索质量和生成质量的方法论</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="RAG%E6%A3%80%E7%B4%A2%E4%B8%8D%E5%87%86%E6%80%8E%E4%B9%88%E6%8E%92%E6%9F%A5.html">RAG检索不准怎么排查</a> · <a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构</a></p>
+</blockquote>
+<h1 id="why把找到排好答对拆开验避免修错层">WHY：把找到、排好、答对拆开验，避免修错层</h1>
+<h2 id="业务价值与评测合同">业务价值与评测合同</h2>2
+<p>评测的价值是回答“这次改动修好了谁，又伤害了谁”。不分层就会把错误标注算成召回故障，把生成误用旧值算成 embedding 弱；没有无答案题还会把放宽门禁后的幻觉误记成召回进步。本篇 sources 的<a href="../../raw/rag-arch/RAG%E5%9F%BA%E7%BA%BF%E8%AF%84%E6%B5%8B-20261013.md">10-14 基线</a>中 B010 是标签错、不是分数低，正是先校尺子的具体证据。</p>
+<p>适用于能保留问题、源证据和答案参照的离线回归及生产抽样；不把公开榜单替代自己的任务集，不用 5 条样本承诺整个业务可靠，也不因没有人工预算就让同一生成模型自评通过。原文“30 条下限”“不用人工也能跑”是成本启发，不是统计定理：关键事实和引用仍要人工核验，裁判只能辅助扩展覆盖。</p>
+<p>质量合同先写有效分母、正负例分开、题型覆盖、版本与阈值依据；同题同配置下比较前后变化。下文 0.787、70%、51/56 题和 RAGAS 历史分数均保留原采样范围，不能混为一组新基线。只看到进程退出 0 也不够，还要检查每题是否真的有结果、是否回退和缺项。</p>
+<h2 id="核心论点">核心论点</h2>2
+<p><strong>RAG 评估必须分层拆开：检索质量和生成质量是两个独立变量，混在一起测必然误诊。</strong> 7 本书共识是检索层看 Recall@K/MRR/NDCG、生成层看 faithfulness/answer relevance，且"没有评测集就没有优化方向"——本库实测也证明了这一点（检索 Recall@5=100% 时端到端 answer_correctness 只有 0.787，同题差 20 个百分点）。评测集必须来自真实 query、覆盖事实/对比/开放三类、每季度回补 badcase，30 条是能出统计信号的下限；LLM-as-judge 可以替代标注预算，但关键指标（Recall@K）不能让 LLM 评 LLM。</p>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">为什么要分层评估（动机与代价）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>动机（WHY）：RAG 是"检索 + 生成"两步串联系统，端到端答案差有两种完全不同的病因——检索没召回到正确文档（检索层问题），或召回到了但生成时被旧值/幻觉带偏（生成层问题）</li><li>代价换来的是"每次改 pipeline 都知道改对了还是改坏了"的回归能力——没有评测集时所有"我觉得变好了"都是自欺欺人，chunk 大小反复试错（坑 5）就是没有基线的直接后果</li><li>关键指标（Recall@K）不能让 LLM 评 LLM（judge 偏差），必须人工标注，这是不可省的成本</li></ul></div>2
+<ul>
+<li><strong>动机（WHY）</strong>：RAG 是"检索 + 生成"两步串联系统，端到端答案差有两种完全不同的病因——检索没召回到正确文档（检索层问题），或召回到了但生成时被旧值/幻觉带偏（生成层问题）。混在一起测必然误诊：本库实测"检索 Recall@5=100% 时端到端 answer_correctness 只有 0.787"，若只看端到端分数会把生成层 bug 算到检索头上，修错方向。分层评估的动机就是<strong>把两个独立变量拆开测，定位病因再修</strong>。</li>
+<li><strong>代价与权衡</strong>：分层评测要维护评测集（30 条是能出统计信号的下限，建一次 1-2 天，每季度回补 badcase）+ LLM-as-judge 跑批成本。代价换来的是"每次改 pipeline 都知道改对了还是改坏了"的回归能力——没有评测集时所有"我觉得变好了"都是自欺欺人，chunk 大小反复试错（坑 5）就是没有基线的直接后果。关键指标（Recall@K）不能让 LLM 评 LLM（judge 偏差），必须人工标注，这是不可省的成本。</li>
+</ul>
+<h1 id="whyt评测集指标裁判与生产链路如何协同">WHYT：评测集、指标、裁判与生产链路如何协同</h1>
+<h2 id="指标与执行入口的对应关系">指标与执行入口的对应关系</h2>2
+<pre><code class="language-text">真实问题 → 人工核对 relevant_source/答案 → 尺子完整性
+                                            ↓
+检索快评 → 生产 retrieve/rerank 排序 → 生成 → 忠实/切题/正确/引用
+     └───────── 分层报告 + badcase + 负例拒答 ──────────┘
+</code></pre>
+<p>Recall/MRR/NDCG 依赖相关性标签；faithfulness 检查“依据给定上下文是否受支持”，不等于上下文事实本身最新且正确。Context Precision/Recall 的职责属于检索证据评价，不因由 LLM 算就变成生成质量。RAGAS、DeepEval 与 TruLens 是工具载体，不是固定业务达标线，按本地来源给出的 PR 回归/漂移监控分工选用。</p>
+<p>本库真实契约是 <code>rag/eval/golden-q.jsonl</code>，字段和负例约定以文件及加载器为准；旧建议 <code>eval/rag_eval_30.json</code> 保留为当时计划，不是当前主入口。<code>eval_recall_fast.py</code> 是检索快评，<code>_e2e_eval.py</code> 只调用 retrieve→rerank，生成侧另由 <code>eval_gen_5metrics.py</code> 或既有 RAGAS 入口检查。最终 top_k=4 时，“R@10”等标签不能当作真的拿到了十条独立候选，须确认输出截断阶段。</p>
+<p>裁判与被评系统要分别记录模型、提示词版本、输入范围和失败处理；对外模型调用需独立的数据授权。本次只上传到获授权的 Jev 文档审计服务，不把下文历史“GPT/Claude 当裁判”建议当作新增外传许可。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">这个问题的答案是什么</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>RAG 评估必须分两层：检索质量 + 生成质量，不能混在一起</li><li>一句话版本：检索层用 Recall@K / MRR / NDCG，生成层用 faithfulness / answer relevance / context precision</li><li>没有评测集就没有优化方向，所有"我觉得变好了"都是自欺欺人</li></ul></div>2
+<p><strong>RAG 评估必须分两层：检索质量 + 生成质量，不能混在一起。</strong> 7 本书（黄佳第 9 章、李多多第 8 章、Denis 第 2 章）的共识是：</p>
+<p><strong>一句话版本</strong>：检索层用 Recall@K / MRR / NDCG，生成层用 faithfulness / answer relevance / context precision。<strong>没有评测集就没有优化方向，所有"我觉得变好了"都是自欺欺人。</strong></p>
+<hr />
+<h2 id="是什么定义与边界">是什么（定义与边界）</h2>2
+<p><strong>定义</strong>：RAG 评估 = 用量化指标分层度量"检索质量"（Recall@K / MRR / NDCG / Context Precision，衡量找得全不准、排得好不好）与"生成质量"（faithfulness / answer relevance / answer correctness，衡量答得忠不忠、切不切题）；配套评测集（真实 query + 标注 ground truth chunk/答案）与 LLM-as-judge 自动化跑分。</p>
+<p><strong>边界</strong>：<br />
+- ✅ 管：检索层与生成层的量化质量度量、评测集建设方法、评估时机（上线前/每次改 pipeline/生产监控）。<br />
+- ❌ 不管：检索不准时的排查步骤（<a href="RAG%E6%A3%80%E7%B4%A2%E4%B8%8D%E5%87%86%E6%80%8E%E4%B9%88%E6%8E%92%E6%9F%A5.html">RAG检索不准怎么排查</a>）、阈值标定（<a href="../L8-5-%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB/RAG%E7%AE%A1%E7%BA%BF%E7%8E%B0%E7%8A%B6%E4%B8%8E%E9%98%88%E5%80%BC%E6%A0%87%E5%AE%9A.html">RAG管线现状与阈值标定</a>）、具体指标的深度机制（<a href="../L8-5-%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB/RAG%E8%AF%84%E6%B5%8B%E4%B8%89%E5%B1%82%E6%96%B9%E6%B3%95%E8%AE%BA-20261009.html">RAG评测三层方法论</a>）。<br />
+- ⚠️ 检索层 Recall@K 必须人工标注 ground truth，LLM-as-judge 只用于生成层——这是"不能让 LLM 评 LLM"的边界所在。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">详细方法</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="一评估体系总览">一、评估体系总览</h3>3
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>指标</th>
+<th>衡量什么</th>
+<th>怎么算</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>检索层</strong></td>
+<td>Recall@K</td>
+<td>正确 chunk 有没有进 top-K</td>
+<td>人工标注 ground truth</td>
+</tr>
+<tr>
+<td><strong>检索层</strong></td>
+<td>MRR (Mean Reciprocal Rank)</td>
+<td>正确 chunk 排第几</td>
+<td>1 / rank_of_first_correct</td>
+</tr>
+<tr>
+<td><strong>检索层</strong></td>
+<td>NDCG@K</td>
+<td>排序质量（考虑相关度分级）</td>
+<td>标准公式</td>
+</tr>
+<tr>
+<td><strong>检索层</strong></td>
+<td>Context Precision@K</td>
+<td>检索到的 chunk 里有多少是真相关</td>
+<td>相关 chunk 数 / K</td>
+</tr>
+<tr>
+<td><strong>生成层</strong></td>
+<td>Faithfulness</td>
+<td>答案是不是只基于检索到的内容（不幻觉）</td>
+<td>LLM-as-judge 或 NLI 模型</td>
+</tr>
+<tr>
+<td><strong>生成层</strong></td>
+<td>Answer Relevance</td>
+<td>答案有没有回答用户的问题</td>
+<td>LLM-as-judge</td>
+</tr>
+<tr>
+<td><strong>生成层</strong></td>
+<td>Answer Correctness</td>
+<td>答案和 ground truth 一致度</td>
+<td>人工 + LLM 对比</td>
+</tr>
+</tbody>
+</table>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">二、怎么建评测集（最关键的一步）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>不要用公开 benchmark，要建自己的领域评测集</li><li>1. 从真实用户日志里采样 100-300 条 query（不要自己编）</li><li>2. 每条 query 人工标注：正确答案 + 哪些 chunk 是相关的</li></ul></div>3
+<p><strong>不要用公开 benchmark，要建自己的领域评测集。</strong> 黄佳《RAG实战课》和李多多《企业级RAG系统》都强调：</p>
+<ol>
+<li><strong>从真实用户日志里采样 100-300 条 query</strong>（不要自己编）</li>
+<li><strong>每条 query 人工标注</strong>：正确答案 + 哪些 chunk 是相关的</li>
+<li><strong>覆盖三类</strong>：事实型（"X 是什么"）、对比型（"A 和 B 区别"）、开放型（"总结一下X"）</li>
+<li><strong>更新频率</strong>：每季度补充新 bad case 进评测集</li>
+</ol>
+<p><strong>最低成本版本</strong>：30 条 query 就能看出问题——够你判断"是不是要加 rerank"。</p>
+<p>据[一手源]：raw/rag-arch/RAG业内对标与工程化改造-20261013.md（改造路线 Step 3）：业内工程化改造把评测落地排在 Step 3，<code>ragas</code> 依赖列 P1，先建 <strong>50-100 条黄金测试集</strong>再接 RAGAS（faithfulness / answer relevance / context precision）。本库对标表里"RAGAS 评测"一栏当时是 ❌ 无，现在已落地（见"怎么用"节）。</p>
+<p>据[一手源]：raw/rag-arch/RAG基线评测-20261013.md：黄金集的<strong>标注本身会错</strong>，建完要先过一遍。10 条 golden 基线里 B010（FastAPI 依赖注入）top1 score 最高（0.7572）却判 miss，因为 golden 指定的术语表根本没有 FastAPI 章节，是标注错误造成的假阴性，应修 golden 而不是改检索。口诀：top1 分数最高却 miss，先怀疑尺子。</p>
+<h3 id="三llm-as-judge不用人工也能跑评估">三、LLM-as-Judge：不用人工也能跑评估</h3>3
+<p>没有标注预算怎么办？用 GPT-4 / Claude 当评判员：</p>
+<pre><code>Prompt 模板（faithfulness 评估）：
+给定上下文和答案，判断答案中的每个陈述是否能从上下文中推出。
+- 能推出：得分 1
+- 不能推出：得分 0
+输出 JSON: {&quot;faithfulness&quot;: 0.8}
+</code></pre>
+<p><strong>注意</strong>：<br />
+- LLM-as-judge 有偏差，GPT-4 评 GPT-4 会偏高评<br />
+- 关键指标（Recall@K）必须人工标注，不能让 LLM 评 LLM<br />
+- 用 RAGAS / TruLens / DeepEval 等开源框架可以一键跑这些指标</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">四、什么时候评估</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>评估什么</th>
+<th>频率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>上线前</td>
+<td>全量指标基线</td>
+<td>一次性</td>
+</tr>
+<tr>
+<td>每次改 pipeline（chunking/embedding/rerank）</td>
+<td>Recall@5 / MRR / faithfulness</td>
+<td>每次改动后</td>
+</tr>
+<tr>
+<td>生产环境</td>
+<td>用户点赞/点踩 + 抽样评估</td>
+<td>每周</td>
+</tr>
+<tr>
+<td>模型升级 / 换 embedding</td>
+<td>全量指标对比</td>
+<td>升级前后各跑一次</td>
+</tr>
+</tbody>
+</table>
+<h3 id="五常见误区">五、常见误区</h3>3
+<ol>
+<li><strong>只评生成不评检索</strong>：答案烂是因为检索烂，不是因为 LLM 烂</li>
+<li><strong>评测集太小（&lt; 30 条）</strong>：统计上看不出显著差异</li>
+<li><strong>只看 top-1 准确率</strong>：漏掉了"正确答案排第 3"这种可优化的信号</li>
+<li><strong>不记录 bad case</strong>：每次优化都从头试，不积累</li>
+<li><strong>不跑回归测试</strong>：改了 chunking 提升了法律文档的召回，却降了技术文档的召回——没回归就不知道</li>
+<li><strong>把 Anthropic 官方的 35/49/67% 当 Recall 目标</strong>：据[一手源]：raw/rag-arch/RAG标准落位方案-20261009.md（修订1）与 raw/rag-arch/RAG业内最高标准-20261009.md：这组数字是 top-20 检索<strong>失败率</strong>的相对降幅（基线 5.7% → Contextual Embeddings 3.7% 降 35% → +Hybrid 2.9% 降 49% → +Cohere rerank 1.9% 降 67%），不是 Recall 达标线；验收要写成本库同一 golden set 前后对比。同一方案把"评测补三层"立为标准-0b 硬前置，先有标尺再动库。</li>
+<li><strong>自报通过、只测正例</strong>：据[一手源]：raw/rag-arch/反面教材-踩坑Top10-20260928.md（Top3）：Agent 自称"我测过了"没有外部凭据，或只测正例没测负例，都属无效验收；验收三件套是正例 + 负例误报 + 文档与实测一致。本库 golden-q 的 5 条域外负样本（拒答题）就是负例。</li>
+<li><strong>CI 回归和线上漂移用同一套工具、没有参照线</strong>：据[一手源]：raw/sources/RAG优化-外部调研-20260929.md（方向 4）：DeepEval 在 PR 阶段拦回归，RAGAS 做长期漂移监控（"DeepEval catches regressions at PR time, RAGAS monitors drift over time"），faithfulness &lt; 0.80 触发告警；检索侧 arXiv 2604.01733 实测 hybrid+rerank Recall@5=0.816、dense-only 0.587，可当 Recall 参照线。</li>
+</ol>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">来自哪些书的哪些观点</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>黄佳《RAG实战课》：第 9 章完整评估体系，1336 人划线——"RAG系统的评估体系必须分检索评估和响应评估两套指标"</li><li>冲突点：黄佳推荐用 RAGAS 做自动化评估，李多多偏人工评估 + 用户反馈（点赞点踩）</li><li>最佳实践是人工建核心评测集 + LLM-as-judge 跑全量 + 用户反馈做持续监控，三者结合</li></ul></div>2
+<ul>
+<li><strong>黄佳《RAG实战课》</strong>：第 9 章完整评估体系，1336 人划线——"RAG系统的评估体系必须分检索评估和响应评估两套指标"。推荐 RAGAS 框架。</li>
+<li><strong>李多多《企业级RAG系统》</strong>：第 8 章专门讲评估方法——20 条高亮笔记中最后一条直接说："此指标衡量生成的答案是否忠实于提供的上下文信息，不添加额外的、可能不准确的信息"（faithfulness 定义）。</li>
+<li><strong>郑天民《从零实现RAG与Agent系统》</strong>：CRAG 思路——把评估组件嵌入到 RAG 流程里，运行时自动判断检索质量，质量低就触发 web 搜索 fallback。</li>
+<li><strong>Denis Rothman《RAG-Driven Generative AI》</strong>：第 2 章——"Evaluating the output with cosine similarity"，用余弦相似度做轻量评估，但强调这只是起点。</li>
+<li><strong>凌峰《构建智能生成系统》</strong>：169 人划线——"问答系统流程：先检索后生成"，评估也要按这个顺序拆。</li>
+</ul>
+<p><strong>冲突点</strong>：黄佳推荐用 RAGAS 做自动化评估，李多多偏人工评估 + 用户反馈（点赞点踩）。最佳实践是<strong>人工建核心评测集 + LLM-as-judge 跑全量 + 用户反馈做持续监控</strong>，三者结合。</p>
+<hr />
+<h1 id="how从检查黄金集到三层报告的最小闭环">HOW：从检查黄金集到三层报告的最小闭环</h1>
+<h2 id="可复制执行顺序与逐步验收">可复制执行顺序与逐步验收</h2>2
+<ol>
+<li>从仓库根执行，先检查路径/标签：</li>
+</ol>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --check-golden
+</code></pre>
+<p>验收：退出 0 才继续；退出 2 时逐条核对 source 是否真实存在、标注是否对应内容，不能调检索阈值把尺子错误洗绿。</p>
+<ol start="2">
+<li>同一题集留一份 hybrid 检索报告，消融实验只关一个变量：</li>
+</ol>
+<pre><code class="language-bash">env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --mode hybrid --json-out /tmp/l4-eval-hybrid.json
+env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --mode hybrid --no-sparse --json-out /tmp/l4-eval-no-sparse.json
+</code></pre>
+<p>验收：相同索引/题库，报告有效题数、R@1/@5、miss 清单与耗时；无答案题单独验拒答，不掺进 Recall 分母。没有 NDCG 输出就不编造“全指标已跑”。</p>
+<ol start="3">
+<li>再检查生产排序和生成，输出名称区分层级：</li>
+</ol>
+<pre><code class="language-bash">env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/_e2e_eval.py --json-out /tmp/l4-eval-ranked.json
+env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_gen_5metrics.py --limit 5 --out /tmp/l4-eval-generation.json
+</code></pre>
+<p>验收：排序报告不能替代完整回答评估；生成报告需确认实际模型、cache/fallback、逐题完整结果。<code>--fresh</code> 会忽略生成缓存并重新调用模型，不为“分数更绿”重复抽样；小样本通过后再按预算扩大。</p>
+<ol start="4">
+<li>放行时把同版本前后报告与 badcase 对齐，检索不降、生成受支持、负例不误答均须有证据；发生退化先定位责任层，不能同时改 chunk、模型与 threshold。以上是读者可执行工作流，本次未运行生产 RAG 评测，真实执行的结构/Jev 文档审核在本次交付说明中单列。</li>
+</ol>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">我们库当前的落地点</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>我们当前没有任何量化评估——这是最大的短板</li><li>10 条样本偏小，只能当方向判断，别和 51 条 e2e（R@5 47.1%，含 rerank 与 CRAG 全链路）混比</li><li>（本句是书籍提炼时的初始判断，已过时：2026-10-14 起本库有量化基线，见下条与"怎么用"节</li></ul></div>2
+<p>我们当前<strong>没有任何量化评估</strong>——这是最大的短板。（本句是书籍提炼时的初始判断，已过时：2026-10-14 起本库有量化基线，见下条与"怎么用"节。）</p>
+<p>据[一手源]：raw/rag-arch/RAG基线评测-20261013.md（2026-10-14，DSH，10 条 golden，纯净检索 <code>--no-gen --no-rerank --no-crag</code>）：灌库完整后 <strong>R@1=3/10=30%、R@5=7/10=70%、R@10=70%</strong>，旧基线 R@5=32%，刚好踩在本节下面"Recall@5 &gt; 0.7"目标线上（70% 未严格超过）。3 个 miss 的根因各不相同：B002 阈值 0.75 过严（仅 1 个 chunk 过门禁）加向量数组脏 chunk；B005 中文论文名 G-Memory 让 bge-m3 匹配弱；B010 golden 标注错。10 条样本偏小，只能当方向判断，别和 51 条 e2e（R@5 47.1%，含 rerank 与 CRAG 全链路）混比。</p>
+<p><strong>落地方案</strong>：<br />
+1. <strong>第一步（本周）</strong>：从我们的知识库文档里出 30 条标准问答对（人工标注正确 chunk）<br />
+2. <strong>第二步</strong>：用 RAGAS 跑一遍基线：Recall@5、MRR、faithfulness、answer_relevance<br />
+3. <strong>第三步</strong>：把评测集存到 <code>eval/rag_eval_30.json</code>，每次改 pipeline 都跑一遍<br />
+4. <strong>目标基线</strong>：Recall@5 &gt; 0.7，faithfulness &gt; 0.85（低于这个值就说明有硬伤）</p>
+<h2 id="怎么用源码框架与技术栈">怎么用（源码框架与技术栈）</h2>2
+<p>评测不是"出 30 条问答对从零建"——本库已有完整评测栈，直接跑（<code>rag/eval/</code> 与 <code>rag/eval_ragas.py</code>）：</p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>真实脚本</th>
+<th>命令</th>
+<th>产出</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>尺子完整性</td>
+<td><code>rag/eval/eval_recall_fast.py</code>（<code>--check-golden</code>）</td>
+<td><code>python3 eval_recall_fast.py --check-golden</code></td>
+<td>exit=0；exit=2 = golden 标签指向不存在文件</td>
+</tr>
+<tr>
+<td>检索召回</td>
+<td><code>rag/eval/eval_recall_fast.py</code>（<code>--mode dense/hybrid/multi_hop</code>、<code>--no-sparse</code>、<code>--no-graph</code>、<code>--json-out</code>）</td>
+<td><code>python3 eval_recall_fast.py --no-sparse --json-out before.json</code></td>
+<td>Recall@1/@5/@10</td>
+</tr>
+<tr>
+<td>生产保真端到端</td>
+<td><code>rag/eval/_e2e_eval.py</code>（直调 <code>retrieve_node</code>→<code>rerank_node</code>）</td>
+<td><code>python3 _e2e_eval.py --json-out e2e.json</code></td>
+<td>R@1/R@5 + 分路由拆解（约 31 分钟）</td>
+</tr>
+<tr>
+<td>生成侧四指标</td>
+<td><code>rag/eval_ragas.py</code>（<code>import query</code> 复用生产管线；ragas 0.4.3）</td>
+<td><code>python rag/eval_ragas.py</code></td>
+<td><code>eval_ragas_report.csv</code>：context_precision / context_recall / faithfulness / answer_relevancy</td>
+</tr>
+</tbody>
+</table>
+<p><strong>评测集现状</strong>：<code>rag/eval/golden-q.jsonl</code> 共 56 题（51 正 + 5 域外负 <code>relevant_source: []</code>，A简单/B多跳/C全局三类）。负样本不进召回分母（考"该不该拒答"），<code>eval_recall_fast.py</code> 自动剔除并打印剔除名单。</p>
+<p><strong>改 pipeline 后的固定动作</strong>（每次只改一个变量）：</p>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l/rag/eval
+python3 eval_recall_fast.py --check-golden                       # ① 尺子先绿
+python3 eval_recall_fast.py --no-sparse --json-out after.json    # ② 同口径对比 before.json 的 Recall@5
+python3 _e2e_eval.py --json-out e2e_after.json                   # ③ 生产保真双跑不降才放行
+</code></pre>
+<p>R@10 在 <code>retrieval.top_k=4</code> 下恒等于 R@5（结构性假象），看指标先认清口径；RAGAS 目标线参考 <code>eval_ragas_report.csv</code> 基线（P 0.65 / R 0.40 / F 1.00 / Rel 0.41）。</p>
+<blockquote>
+<p>三段结构补齐 2026-11-03</p>
+</blockquote>
+</div></details><h2 id="本库真实落地">本库真实落地</h2>2
+<blockquote>
+<p>本节 2026-11-05 补写，逐条核验路径与函数名（可 grep 复核），不复述正文命令。</p>
+</blockquote>
+<ul>
+<li><strong>三层评测各对应真脚本（正文命令即这三个）</strong>：</li>
+<li>检索层：<code>rag/eval/eval_recall_fast.py</code> <code>load_golden()</code>（L38）+ <code>check_golden()</code>（L70，golden 守卫：校验 <code>relevant_source</code> 仍指向可检索文件）+ <code>dedup_sources()</code>（L108，同 source 只算一次命中位次）。</li>
+<li>端到端层：<code>rag/eval/_e2e_eval.py</code> <code>main()</code>（L86，直接调 <code>query.retrieve_node/rerank_node</code>，复用已缓存 route 防 429）+ <code>append_badcase()</code>（L30，失败题进 badcase.jsonl 回流）。</li>
+<li>生成层：<code>rag/eval/eval_gen_5metrics.py</code> <code>m_faithfulness()</code>（L149）/<code>m_answer_relevancy()</code>（L170）/<code>m_answer_correctness()</code>（L186）/<code>m_context_precision()</code>（L196）/<code>m_context_relevance()</code>（L218），外加 <code>rag/eval_ragas.py</code>。</li>
+<li><strong>基线与消融也有落点</strong>：<code>rag/eval/run_baseline.py</code> <code>verify_all_claims()</code>（L38，一次性判全部 claims）、<code>rag/eval/_sweep_boost.py</code> <code>rank_with()</code>（L45，path_boost/tier_weight 扫参）、<code>rag/eval/ab_contextual_test.py</code> <code>generate_ab_prefixes()</code>（L61，规则版 vs LLM 版前缀 A/B）。</li>
+<li><strong>和课件讲法的差异</strong>：课件评测多跑 RAGAS 官方 harness；本库自建轻量五指标（同一份 (answer, contexts) 缓存跑五指标省生成成本），并把"改 pipeline 后三步固定动作"（尺子先绿→同口径 before/after→生产保真双跑）固化成正文流程。</li>
+</ul></div></body></html>

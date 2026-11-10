@@ -1,0 +1,438 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L8-6-失败案例库-最佳答案</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L8-6-失败案例库-最佳答案</span></div><div class="wrap"><h1 id="l8-6-失败案例库-最佳答案">L8-6 失败案例库 · 最佳答案</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/fde/FDE%E4%BA%A4%E4%BB%98%E5%A4%B1%E8%B4%A5%E6%A1%88%E4%BE%8B-2026.md">FDE交付失败案例-2026</a><br />
+真实案例与失败复盘：<a href="L8-%E5%A4%B1%E8%B4%A5%E6%A1%88%E4%BE%8B%E6%B7%B1%E6%8B%86-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">失败案例深拆</a>（标杆案例的证据边界、反模式与最早检出点） · <a href="L8-%E5%AE%A2%E6%88%B7%E5%9C%BA%E6%99%AF%E6%A8%A1%E5%BC%8F%E5%BA%93-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">NL2SQL 等客户场景模式</a>（按场景做失败预演）</p>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>行业里流传一个数字：95% 的企业 AI 项目没有产生实际价值</li><li>FDE 最值钱的能力不是"我会用什么模型"，而是"我知道哪些坑会让人掉进去、怎么绕开"</li><li>失败案例库的价值在于——把别人付过学费的坑，变成你交付前的检查清单</li></ul></div>2
+<p>行业里流传一个数字：<strong>95% 的企业 AI 项目没有产生实际价值</strong>。失败的原因从来不是模型不行，而是业务、流程、数据、人的问题。FDE 最值钱的能力不是"我会用什么模型"，而是"我知道哪些坑会让人掉进去、怎么绕开"。失败案例库的价值在于——把别人付过学费的坑，变成你交付前的检查清单。</p>
+<h2 id="what这个节点的最佳答案是什么">WHAT：这个节点的最佳答案是什么</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">五大类典型失败模式（按死亡阶段排序）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>坑 1：目标从立项那天就是错的</li><li>避坑：宁可把效果往保守说——"先做到把物流查询这类问题自动化 70%，复杂的还是人工处理"</li><li>避坑：项目启动时问清楚——这个项目要解决哪个业务环节的具体问题</li></ul></div>3
+<h4 id="坑-1目标从立项那天就是错的">坑 1：目标从立项那天就是错的</h4>
+<p><strong>症状</strong>："项目从立项那天起，目标就是三个月后的那场汇报。"真实目的不是解决业务问题，而是给老板的老板看、给董事会汇报、给行业会议讲案例。成功标准是"有没有汇报出去"，不是"有没有人用"。<br />
+- 高层引进 AI 时预期往往很笼统——"提高效率、压一压成本"。这种模糊预期如果 FDE 不帮忙翻译成具体目标，最后就会变成"花了很多钱、做了很多 Demo、没人真用"。<br />
+- <strong>避坑</strong>：项目启动时问清楚——这个项目要解决哪个业务环节的具体问题？解决完了哪个指标会变好？谁的工作会变轻松还是变快？答不出来的项目宁可不做。</p>
+<h4 id="坑-2数据是乱的ai-再强也救不了">坑 2：数据是乱的，AI 再强也救不了</h4>
+<p><strong>症状</strong>：客户想用 AI 整理设备维修记录，结果连设备编码和故障分类都没统一，AI 根本读不懂这些记录。<br />
+- Demo 用的是你精选的 100 条数据，上线面对的是企业里真实的、混乱的、几十年积累的数据——这中间的差距就是项目失败的距离。<br />
+- <strong>避坑</strong>：做任何 AI 应用之前先做"数据体检"——数据存在哪里？格式统一吗？谁维护？多久更新一次？数据本身脏，FDE 第一件事不是搭模型，是帮客户梳理数据（统一编码、提炼标准知识条目、规定提问格式和答案验收标准）。</p>
+<h4 id="坑-3只加了-ai没改流程">坑 3：只加了 AI，没改流程</h4>
+<p><strong>症状</strong>：在现有流程上"加一个 AI 工具"其他都不变，结果员工还是按老习惯工作，AI 工具放在那里没人打开。<br />
+- 流程落地最大挑战就是克服惯性。<br />
+- 正确姿势：远洋保险案例里，AI 预读环节插入流程后，理赔员从"打开三个系统逐项核对"变成"看一眼 AI 提取的结果、重点复核标黄项"——这才叫真落地，不是加工具，是改流程。<br />
+- 用户每天在某个系统里工作八小时，你的工具就应该出现在那个系统里，而不是要求他们再开一个网页、再记一个密码。<br />
+- <strong>避坑</strong>：FDE 的工作不是"把 AI 塞进去"，而是"重新设计这个环节的工作方式"——哪些动作 AI 做、哪些人做、顺序怎么排、系统怎么串。如果最后员工的工作流程一点没变，这个项目就是失败的。</p>
+<h4 id="坑-4demo-效果很好一上线就崩">坑 4：Demo 效果很好，一上线就崩</h4>
+<p><strong>症状</strong>：Demo 用精选数据、特定场景、亲自调的提示词；一到生产环境——数据量上来各种边角情况、不同用户问法五花八门、系统要实时稳定接订单/物流/会员系统。<br />
+- <strong>避坑</strong>：Demo 只用来证明"这个方向可行"，不要用 Demo 效果直接对客户承诺生产效果。预留足够时间做从 Demo 到生产的工程化——这往往比 Demo 本身还费时。</p>
+<h4 id="坑-5期望管理失控承诺过度">坑 5：期望管理失控，承诺过度</h4>
+<p><strong>症状</strong>：为了签单把效果吹上天，说"准确率能到 99%"，上线到 85%，客户觉得你失败了。<br />
+- Klarna 血的教训：一开始说 AI 能替代多少客服，结果做得过了头，服务质量下降，又重新招人工，转向"AI 处理常规、人工处理复杂"的混合模式。<br />
+- <strong>期望值越高满意度越低，胡乱承诺会导致满意度下降</strong>。<br />
+- <strong>避坑</strong>：宁可把效果往保守说——“先做到把物流查询这类问题自动化 70%，复杂的还是人工处理”只能作为分阶段沟通示例，不是通用目标。70%、80%、83% 等数字都必须替换为本项目冻结 Eval 与人工容量实测后的阶段门槛，不能用“超预期”话术替代真实达标。</p>
+<h3 id="方法论层面的失败模式dddr-视角">方法论层面的失败模式（DDDR 视角）</h3>3
+<p>结合 FDE 交付方法论，最常见的翻车是两种：<br />
+- <strong>Discover 没做完就 Deploy</strong>：业务方真实工作流没摸清、硬点没识别、一线没旁看过，就开始写代码。<br />
+- <strong>没有 Eval 计划就不算 Design 完成</strong>（原文红线）：AI 项目特别容易在 Deploy 前假装 Design 完成——"PPT 讲得很顺、架构图画得很美"，但没有 golden set、没有量规、没有验收线，上线后效果好坏凭感觉。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">组织层面的失败归因</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>只有 IT 牵头，没有业务 owner：IT 可以推动系统上线，但没人对业务指标背责</li><li>责任模型没跟上："我可以用 AI，但我不敢信 AI"——最后所有判断还是人担，AI 成了冗余的一道流程</li><li>没有内部 Champion：FDE 一走工具就没人用</li></ul></div>3
+<ul>
+<li><strong>只有 IT 牵头，没有业务 owner</strong>：IT 可以推动系统上线，但没人对业务指标背责。</li>
+<li><strong>责任模型没跟上</strong>："我可以用 AI，但我不敢信 AI"——最后所有判断还是人担，AI 成了冗余的一道流程。</li>
+<li><strong>没有内部 Champion</strong>：FDE 一走工具就没人用。</li>
+</ul>
+<h3 id="外部实战失败案例拆解有数据可对账">外部实战失败案例拆解（有数据可对账）</h3>3
+<blockquote>
+<p><strong>据[一手源]：FDE案例+LLM安全+GraphRAG调研-20261026 §一（案例 3/4/5）</strong>。源文均为技术社区/博客复盘（tier 2），数字未经第二来源核验，对客引用前要再核；下面每个案例都标了它落在上面哪个"坑"。</p>
+</blockquote>
+<p><strong>案例 A：连锁零售 AI 客服，上线即翻车→6 个月重构</strong>（对应坑 1、坑 3、坑 4；jimo.studio 复盘）<br />
+- 背景：500+ 门店 / 500 万会员，CEO 目标"6 个月降本 40%"。<br />
+- 翻车曲线：上线头两周数据亮眼（日均 12000 通、自助解决率 75%）；6 月底客户投诉录音上热搜（播放量 50 万+）；投诉量 500→2100（<strong>+320%</strong>，源文未写统计口径与单位），满意度 87%→71%，公司反而增员 3 人处理舆情。<br />
+- 根因（源文称"三层"，实列四点）：训练数据是 3 年前的 FAQ，和现在的业务错配；情感识别准确率 &lt;60%；流程与 KPI 没有同步重构；决策初衷是"减员"而不是"体验"。<br />
+- 修复：投诉场景 50 个关键词强制转人工 → 重新标注 2 万条数据 → "AI 班/专家班"分离 → 立伦理红线（<strong>投诉永不让 AI 独立处理</strong>）。<br />
+- 结果：自助率降到 48%，但满意度升到 94%，投诉降到 580，人员从 200 人优化到 135 人，客单价 +8%。<br />
+- <strong>可迁移判断</strong>：前两周的漂亮指标是虚荣指标；KPI 定成"降本减员"本身就是坑 1。降自助率换满意度反而更赚钱，说明验收指标要同时盯成本和体验两端。</p>
+<p><strong>案例 B：3 个团队的 AI 项目死在生产环境</strong>（对应坑 4；53ai 复盘，含银行 AI 机器人）<br />
+- 教训 1：<strong>意图识别不该用大模型</strong>。银行机器人把板球赛的问题塞进利率知识库，自信地胡答 → 用小型分类器做意图识别和拒答。<br />
+- 教训 2：<strong>缓存的核心是语义匹配，不是键值对</strong>（与 <a href="L8-FDE%E4%BA%A4%E4%BB%98%E6%96%B9%E6%B3%95%E8%AE%BA%E5%85%A8%E6%99%AF-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">FDE 交付方法论全景</a> 的语义缓存讨论同向）。<br />
+- 教训 3：<strong>AI 应作兜底，不是核心决策者</strong>。<br />
+- 核心画面：<strong>Demo 只要 4 个方框，上线要 12+ 个组件，而且没有一个是 AI</strong>（源文未列举这 12+ 个组件；鉴权、限流、监控、降级、审计是常见例子，属自研补充）。这就是坑 4 "从 Demo 到生产往往比 Demo 本身还费时"的具体形状。</p>
+<p><strong>案例 C：共享财务智能审核，历史数据只有"通过单据"</strong>（对应坑 2；Fabarta 化工/制造业链主现场交付两年复盘，成功但踩坑）<br />
+- 客户要"AI 自学习审核，替代人工"，坑在历史数据<strong>只有正样本</strong>（通过的单据），没有退单、人工意见、修改痕迹，AI 无法倒推出"什么不通过"。<br />
+- 调整路径：制度规则打底 → 用通过单据做合规画像 → 人工补典型负样本 → AI 生成候选规则 → 人工确认 → 反馈闭环。验收用<strong>混淆矩阵（误拦 vs 漏拦）</strong>，早期宁可谨慎。<br />
+- 经验：场景不能从技术热词里选；AI 要嵌进原工作流，不另开入口；<strong>AI-ready = 流程留痕 + 专家参与 + 反馈闭环</strong>。</p>
+<p><strong>待读的失败模式线索</strong>（源文只给了链接与标题，本库尚未读正文，不据此下结论）：fde.name「7 种 FDE 失败模式复盘」（引 Gartner/毕马威数据）；中国 FDE 实践大会踩坑复盘（16 个项目、19 位实践者，qq.com 2026-09-14）；FDE 项目踩坑与交付经验（需求变更/待确认管理/PoC 沉淀）。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">行业失败率数据（口径各异，勿混用）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>失败不随机，高度集中在少数模式</li><li>共同指向：排名第一的根因不是模型，是业务领导层对问题理解/传达错误（RAND）——这也解释了为什么坑 1「目标从立项就是错的」是最大杀手</li></ul></div>3
+<p>失败不随机，高度集中在少数模式。主流调研口径：</p>
+<table>
+<thead>
+<tr>
+<th>数据</th>
+<th>口径</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&gt;40% agentic AI 项目 2027 年底前被取消</td>
+<td>预测值；三因：成本攀升、业务价值不清、风控不足</td>
+<td>Gartner 2025</td>
+</tr>
+<tr>
+<td>42% 企业放弃大部分 AI 项目；平均 46% 的 PoC 进生产前被砍</td>
+<td>1,006 名 IT+业务负责人实测</td>
+<td>S&amp;P Global 2025</td>
+</tr>
+<tr>
+<td>&gt;80% AI 项目失败（IT 项目两倍）</td>
+<td>根因访谈 65 名资深从业者</td>
+<td>RAND 2024</td>
+</tr>
+<tr>
+<td>88% 企业在用 AI，仅 39% 报告对利润可测影响</td>
+<td>1,993 家组织</td>
+<td>McKinsey 2025</td>
+</tr>
+<tr>
+<td>约 95% GenAI 试点对 P&amp;L 几乎无可测影响</td>
+<td>⚠️ 方法论有争议，宜当信号看</td>
+<td>MIT NANDA 2025</td>
+</tr>
+</tbody>
+</table>
+<p><strong>共同指向</strong>：<strong>排名第一的根因不是模型，是业务领导层对问题理解/传达错误（RAND）</strong>——这也解释了为什么坑 1「目标从立项就是错的」是最大杀手。</p>
+<h3 id="反模式速查症状-根因-纠正vangong1999fde-原文">反模式速查：症状 → 根因 → 纠正（VanGong1999/FDE 原文）</h3>3
+<table>
+<thead>
+<tr>
+<th>分类</th>
+<th>反模式</th>
+<th>症状</th>
+<th>纠正</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>问题定义</td>
+<td>方案先行</td>
+<td>一上来选模型/框架</td>
+<td>先写问题陈述与指标</td>
+</tr>
+<tr>
+<td>问题定义</td>
+<td>万能机器人</td>
+<td>开放域什么都答</td>
+<td>收窄任务与知识边界</td>
+</tr>
+<tr>
+<td>问题定义</td>
+<td>指标漂移</td>
+<td>每周重新定义成功</td>
+<td>冻结试点指标</td>
+</tr>
+<tr>
+<td>问题定义</td>
+<td>只听管理层</td>
+<td>一线不用</td>
+<td>强制一线访谈与旁听</td>
+</tr>
+<tr>
+<td>技术/AI</td>
+<td>Demo 驱动开发</td>
+<td>只优化演示路径</td>
+<td>Eval 含困难例与安全例</td>
+</tr>
+<tr>
+<td>技术/AI</td>
+<td>无检索的「知识库」</td>
+<td>幻觉当事实</td>
+<td>RAG + 强制引用 + 拒答</td>
+</tr>
+<tr>
+<td>技术/AI</td>
+<td>Agent 无限工具</td>
+<td>越权、不可控</td>
+<td>最小权限、HITL、允许列表</td>
+</tr>
+<tr>
+<td>技术/AI</td>
+<td>微调崇拜</td>
+<td>未试 prompt/RAG 就训</td>
+<td>走 RAG vs 微调决策树</td>
+</tr>
+<tr>
+<td>技术/AI</td>
+<td>日志裸奔</td>
+<td>PII 进第三方</td>
+<td>脱敏、保留策略、私有部署</td>
+</tr>
+<tr>
+<td>组织/交付</td>
+<td>永久 PoC</td>
+<td>环境永远是特例</td>
+<td>门禁卡「目标环境」</td>
+</tr>
+<tr>
+<td>组织/交付</td>
+<td>英雄交付</td>
+<td>只有你会</td>
+<td>Runbook 与配对</td>
+</tr>
+<tr>
+<td>组织/交付</td>
+<td>无客户 owner</td>
+<td>你走即停</td>
+<td>RACI</td>
+</tr>
+<tr>
+<td>组织/交付</td>
+<td>销售过度承诺</td>
+<td>工程背锅</td>
+<td>对外口径审批</td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">POC → 生产的五种失败模式（VanGong1999《POC到生产》原文）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>最危险的一句话是「这只是临时的」——按会跑 18 个月来交付；交付前自问：6 个月后凌晨两点会不会因它被叫起来</li><li>另有一个反向坑：过早通用化——先拿通用能力去找企业问题，常变成「高概念、无清晰痛点」的部署；相反，超级深入一个具体问题，可通用的东西几乎总会自己冒出来（引 OpenAI FDE 访谈）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>失败</th>
+<th>表现</th>
+<th>缓解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Demo 绑架</td>
+<td>管理层要下周全员</td>
+<td>门禁书面化</td>
+</tr>
+<tr>
+<td>永久 PoC</td>
+<td>环境永远是特例</td>
+<td>门禁 1 卡「目标环境」</td>
+</tr>
+<tr>
+<td>无 owner</td>
+<td>你走了就停</td>
+<td>指定客户 owner</td>
+</tr>
+<tr>
+<td>指标漂移</td>
+<td>不断改「什么叫成功」</td>
+<td>冻结试点指标</td>
+</tr>
+<tr>
+<td>阴影 IT</td>
+<td>绕过安全</td>
+<td>早拉安全，给替代方案</td>
+</tr>
+</tbody>
+</table>
+<p><strong>最危险的一句话是「这只是临时的」</strong>——按会跑 18 个月来交付；交付前自问：6 个月后凌晨两点会不会因它被叫起来？另有一个反向坑：<strong>过早通用化</strong>——先拿通用能力去找企业问题，常变成「高概念、无清晰痛点」的部署；相反，超级深入一个具体问题，可通用的东西几乎总会自己冒出来（引 OpenAI FDE 访谈）。</p>
+<h3 id="失败信号-早期修复动作补缺口清单①②">失败信号 → 早期修复动作（补缺口清单①②）</h3>3
+<table>
+<thead>
+<tr>
+<th>红旗信号（早期就能看到）</th>
+<th>通常出现时机</th>
+<th>早期修复动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>成功标准是「有没有汇报出去」</td>
+<td>立项</td>
+<td>追问「哪个业务指标会变好」，答不出就不接</td>
+</tr>
+<tr>
+<td>只有 IT 牵头、无业务 owner</td>
+<td>立项–Discover</td>
+<td>要求指定用业务指标背责的 owner</td>
+</tr>
+<tr>
+<td>「数据两周后才好」/编码分类未统一</td>
+<td>Discover</td>
+<td>先做数据体检；不承诺指标，先做数据战役</td>
+</tr>
+<tr>
+<td>只被安排听管理层转述</td>
+<td>Discover</td>
+<td>强制旁看一线真实工作流</td>
+</tr>
+<tr>
+<td>「先上再补权限/文档」</td>
+<td>Design</td>
+<td>权限是 Day 0；书面 No-Go 或缩范围</td>
+</tr>
+<tr>
+<td>POC 数字来自 10 个精选问题</td>
+<td>POC 验收</td>
+<td>冻结 100+ 条分层抽样集，必须含负例</td>
+</tr>
+<tr>
+<td>用管理员万能账号跑通 Pilot</td>
+<td>Pilot</td>
+<td>立即补文档级 ACL，否则门禁 2 必挂</td>
+</tr>
+<tr>
+<td>上线后只报调用量/截图</td>
+<td>Review</td>
+<td>上线前记基线，做前后对照归因</td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">失败归因四层 + FDE 特有组织级陷阱</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>别停在「用户不愿意用」——「用户使用意愿不足」是结果不是原因，必须追到腾讯云原文的四层之一：场景选错 / 施工问题（产品或工程没做好）/ AI 能力真不够（要求 99% 而模型只稳 85%，硬上必翻，「AI 干一次人再干一次」反成多一道流程）/ 组织没跟着系统变（责任还是他的，「可以用 AI 但不敢信 AI」）</li></ul></div>3
+<p>别停在「用户不愿意用」——<strong>「用户使用意愿不足」是结果不是原因</strong>，必须追到腾讯云原文的四层之一：场景选错 / 施工问题（产品或工程没做好）/ <strong>AI 能力真不够</strong>（要求 99% 而模型只稳 85%，硬上必翻，「AI 干一次人再干一次」反成多一道流程）/ 组织没跟着系统变（责任还是他的，「可以用 AI 但不敢信 AI」）。</p>
+<table>
+<thead>
+<tr>
+<th>FDE 特有陷阱</th>
+<th>症状</th>
+<th>纠正</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>服务收入像毒品</td>
+<td>不断卖更大定制，做成了咨询公司</td>
+<td>权力中心放产品/研究；问「经常性价值 vs 一次性人工」</td>
+</tr>
+<tr>
+<td>客户对 FDE 上瘾</td>
+<td>撤人就被炒，把你当顾问编制</td>
+<td>卖结果不卖「人在场」；明确轮换窗（有的用 6 周规则）</td>
+</tr>
+<tr>
+<td>一人深度绑死单客户</td>
+<td>注意力被需求淹没</td>
+<td>「摊薄」：一人数客户，制造正确激励</td>
+</tr>
+<tr>
+<td>Token maxing</td>
+<td>KPI = 烧 token</td>
+<td>改衡量可验证结果（工程小时、周期压缩、PR 质量）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>据[一手源]：全球FDE对标-Palantir与AI巨头方法论-20260930 §四/§七 + Anthropic-FDE与Palantir-Ontology一手-20260930 §二</strong> 补两条防线：<br />
+- <strong>Gravel→Paved 反馈环断掉</strong>：FDE 给单客户建的粗糙快速方案（碎石路），总部不提炼成跨客户标准功能（高速公路），每个客户就从头做一遍，退化成"难规模化的纯定制"，这是上表"服务收入像毒品"的机制来源。纠正：每个方案交付后强制回答"哪部分能产品化"。<br />
+- <strong>受监管场景的失败是"可报告事故"</strong>：Anthropic 的判断是营销文案里的幻觉只是烦扰，而信用备忘、临床记录里的幻觉是可报告事故，所以 eval 要绑定模型风险管理。金融/医疗/法律/政务类项目的失败预防清单要把 eval 门槛放在立项阶段，而不是上线前补。</p>
+</blockquote>
+<h2 id="how交付前的失败预防清单">HOW：交付前的失败预防清单</h2>2
+<ol>
+<li><strong>立项前</strong>：答不出"解决哪个业务环节的哪个指标"的项目不接。</li>
+<li><strong>Discover 阶段</strong>：<br />
+   - 必须旁看一线真实工作流（不能只听管理层转述）<br />
+   - 必须做数据体检（编码/分类/更新频率）<br />
+   - 必须找到业务 owner（不是 IT 牵头人）</li>
+<li><strong>Design 阶段</strong>：<br />
+   - 方案至少 2 个，<strong>含"不做 LLM"选项</strong><br />
+   - 必须有 golden set + 量规 + 验收线，否则不算 Design 完成<br />
+   - 明确非目标与时间盒<br />
+   - 明确"什么必须转人工"的边界</li>
+<li><strong>Deploy 阶段</strong>：<br />
+   - 分阶段 rollout（影子模式 → 建议模式 → 自动模式），不要一步到位<br />
+   - 工具必须嵌进员工已在用的系统（微信/钉钉/企业微信），不要要求开新网页记新密码<br />
+   - 找一个内部代言人（老板自己或愿意尝试的员工）先用起来</li>
+<li><strong>沟通阶段</strong>：<br />
+   - 对高层讲"省多少钱/风险多大/多久见效"，不讲 RAG 召回率<br />
+   - 对业务负责人讲"原来 2 小时现在 5 分钟"，不讲 Agent 架构<br />
+   - 承诺保守、留有余量、分阶段报指标</li>
+<li><strong>复盘阶段</strong>：<br />
+   - 每个项目结束必须写"我们踩了什么坑、什么信号早出现过"——回流到这个失败案例库<br />
+   - 知识不独享在个人笔记本</li>
+</ol>
+</div></details><h3 id="三源论文与可重放复盘">三源、论文与可重放复盘</h3>3
+<ul>
+<li><strong>课件</strong>：<code>raw/courseware/2603期AI大模型rag应用开发篇__2603期AI大模型rag应用开发篇__12-RAG评估和应用平台-2-2026-3-13-柏汌__day12/_代码课件汇总.md</code> 提供 RAG 评估工程素材；失败复盘必须保留任务、检索、答案和版本信息，不能只保存最终分数。</li>
+<li><strong>书籍/摘录</strong>：<code>raw/weread/FDE/FDE-AI落地实战指南.md</code> 第 18—21 章目录与划线把 Demo 上线差距、数据治理、可靠性和组织采用串成一条链；对应复盘时同时检查技术退化与真实工作流，不把书中案例数字当本库实测。</li>
+<li><strong>业内一手材料</strong>：<code>raw/sources/Anthropic-FDE与Palantir-Ontology一手-20260930.md</code> 的 Palantir/Anthropic 材料支持“反馈进入产品/Eval”和受监管领域前置风险门槛；<code>raw/sources/全球FDE对标-Palantir与AI巨头方法论-20260930.md</code> 只按其实际证据级别引用。</li>
+<li><strong>论文落地</strong>：arXiv:2610.31606（<code>raw/sources/arxiv-daily/2026-10-22-2610.31606.md</code>）的小规模临床 RAG 评估显示，证据标注从 25 增至 37 个 span 会改变可接受 chunk 的目标集合，即使排名不变，指标也会变化；其混合检索与 cross-encoder 结论不能外推为所有项目最优。我们复盘指标波动时先对齐证据标注版本、覆盖范围、分母与分层，再比较模型/检索版本，禁止把分母变化包装成模型提升或退化。</li>
+</ul>
+<p>以下脚本演示“同排名、不同证据标注版本不得直接比分”的确定性检查，使用合成数据，不调用模型；真实复盘还需逐题人工核对。</p>
+<pre><code class="language-bash">python -I - &lt;&lt;'PY'
+def recall_at_k(ranked, evidence, k=2):
+    return len(set(ranked[:k]) &amp; set(evidence)) / len(evidence)
+ranked = [&quot;chunk-A&quot;, &quot;chunk-B&quot;]
+annotation_v1 = [&quot;chunk-A&quot;]
+annotation_v2 = [&quot;chunk-A&quot;, &quot;chunk-C&quot;]
+r1, r2 = recall_at_k(ranked, annotation_v1), recall_at_k(ranked, annotation_v2)
+assert ranked == [&quot;chunk-A&quot;, &quot;chunk-B&quot;] and (r1, r2) == (1.0, 0.5)
+print(f&quot;同排名不同标注版本：v1={r1:.2f}, v2={r2:.2f}；不得直接归因于模型&quot;)
+PY
+</code></pre>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>"死的案例库进化成活的可查库"：错误台账指纹检索（<code>/home/wuyafang/.hermes/skills/software-development/error-ledger/scripts/lookup_error.py</code>，grep 可验）</strong>：<br />
+<code>python
+  from fingerprints import normalize  # noqa: E402
+  ...
+  def fuzzy_match(text, rows, min_overlap=2):
+  ...
+              mark = "✅" if hit["status"] == "fixed" else "⚠️"
+              print(f"  状态    : {hit['status']}  (累计 {hit['count']} 次)")</code><br />
+  台账 <code>ledger.tsv</code> 的列是 <code>指纹 / 首次发生 / 最近发生 / 次数 / 根因 / 修复方案 / 状态</code>——<strong>同一个坑第二次出现时先查台账、命中即直接套用修法</strong>。这就是"失败案例库"从故事集变成可检索资产的样子。</li>
+<li><strong>"证明做完了"的凭据要求（<code>/home/wuyafang/.hermes/scripts/dispatch-guard.py</code> L641 附近）</strong>：<br />
+<code>python
+  # [2026-11-04] 中文任务书传参坑(治"派出去了没干活"):
+  # claude -p "$(cat task.md)" 把中文展开进命令行参数会报 invalid UTF-8 并直接拒收退出,
+  # 实测两单都是这样"已结束但没干活"。机械拦掉该形态,强制走 stdin 或让 CLI 自己读文件。
+  BAD_UTF8_SHAPE = re.compile(
+      r'((claude|codex|dsh|openclaw|qwen)[^\n]{0,40}?"\$\()')</code><br />
+  这条注释本身就是一条失败案例<strong>已被编码成门禁</strong>：搞崩两次之后不再是"下次注意"，而是正则拦截。</li>
+<li><strong>和课件讲法的差异</strong>：课件失败案例库是"阅读型"（案例 → 教训）；本库要求案例<strong>落成脚本负例或台账行</strong>，并能被下次任务直接命中（<code>python3 ~/.hermes/scripts/batch_audit.py</code> 会扫 wiki 层把问题篇目列出来）。本库暂无客户现场失败案例（脱敏）的专门库。</li>
+</ul>
+<h2 id="缺口清单">缺口清单</h2>2
+<ul>
+<li>缺按行业（金融/制造/政务/电商）分类的失败案例库</li>
+<li>缺"立项劝退"的标准话术（怎么礼貌拒绝一个目标错的项目）</li>
+<li>~~缺失败案例的信号表（哪些红旗早期出现，比如"只要 IT 牵头""没人对业务指标背责"）~~ ✅ 已补（见上「失败信号 → 早期修复动作」）</li>
+<li>~~缺每个坑的"早期预警 + 早期修复动作"对照表~~ ✅ 已补（同上）</li>
+<li>缺「反模式 → 本文坑编号」的映射索引表（把 13 条反模式钉到坑 1–5 与归因四层）</li>
+</ul></div></details></div></body></html>

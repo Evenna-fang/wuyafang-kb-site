@@ -1,0 +1,131 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>FDE交付构造示例-成功与失败</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ FDE交付构造示例-成功与失败</span></div><div class="wrap"><h1 id="书章节重点-fde交付构造示例成功与失败">书章节重点 · FDE交付构造示例—成功与失败</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>这份文档通过一成功一失败两个构造案例（非真实客户项目），展示FDE交付方法论的应用与典型成败模式</li><li>成功案例是制造业知识库问答从POC到生产的完整路径，失败案例是金融合同审查POC炫技但交付崩盘的典型踩坑</li><li>文档核心教训：交付失败极少是技术不行，多是需求挖错+POC炫技+指标失真+合规后置</li></ul></div>2
+<p>这份文档通过一成功一失败两个构造案例（非真实客户项目），展示FDE交付方法论的应用与典型成败模式。入库于2026年9月30日，来源标注为source_tier 3（构造案例），明确声明"以下两个案例是按FDE岗职与典型工作任务构造的示例（杜撰），非真实客户项目"。之所以用构造案例而非真实案例，是因为真实客户项目受NDA保护难以获得公开资料（详见FDE交付失败案例篇的说明）。但构造案例的价值在于：它不是随机编造的，而是按照FDE岗职的真实工作任务和典型痛点设计的，因此具有方法论上的代表性。</p>
+<p>文档参考方法论为FDE交付四阶段框架：Discover（需求发现）→Design（方案设计）→Deploy（部署交付）→Review（复盘移交），以及B站一手框架（九天Hector《10分钟搞懂FDE》三大核心能力+8阶段工作流）。成功案例是制造业知识库问答从POC到生产的完整路径，失败案例是金融合同审查POC炫技但交付崩盘的典型踩坑。两个案例的设计对照使得读者可以直接看到同一方法论在不同执行质量下的结果差异。</p>
+<p>文档核心教训：交付失败极少是技术不行，多是需求挖错+POC炫技+指标失真+合规后置。一成一败的对照设计让读者直接看到：成功案例在Discover阶段访谈了15个一线维修工发现"经验流失"真痛点，失败案例在Discover阶段只访谈了IT没访谈法务的"零容忍"标准；成功案例在Design阶段先定验收指标再选型，失败案例在Design阶段用通用大模型+浅RAG挑好看样例演示；成功案例在Deploy阶段分两期小步快跑，失败案例在Deploy阶段直接上生产面对真实分布准确率暴跌。这种对照不是偶然的——每个成功的决策都对应一个失败的踩坑。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">成功案例：制造业知识库问答（Discover阶段）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>客户与任务：某中型装备制造企业售后部门，任务是把20年积累的设备维修手册/工单/FAQ做成智能问答助手，供一线维修工查询</li><li>Discover阶段关键动作：访谈一线维修工15人，发现真痛点是"老师傅离职、经验流失"，而非客户表面说的"要个问答机器人"</li><li>成功要点是挖到真问题而非表面需求——这是FDE与普通AI开发者的核心区别</li></ul></div>3
+<ul>
+<li>
+<p><strong>客户与任务</strong>：某中型装备制造企业售后部门，任务是把20年积累的设备维修手册/工单/FAQ做成智能问答助手，供一线维修工查询。FDE角色为驻场主导交付，对接IT负责人+一线使用者+采购。这个客户画像非常典型：有长期积累的文档资产（20年手册/工单/FAQ）、有真实的一线使用场景（维修工查手册）、有明确的业务痛点（老师傅退休经验流失）。这三个条件是FDE项目成功的前提——有数据、有场景、有痛点。</p>
+</li>
+<li>
+<p><strong>Discover阶段关键动作</strong>：访谈一线维修工15人，发现真痛点是"老师傅离职、经验流失"，而非客户表面说的"要个问答机器人"。成功要点是挖到真问题而非表面需求——这是FDE与普通AI开发者的核心区别。普通开发者会直接做"文档问答系统"，FDE会先搞清楚用户为什么需要问答：是查手册慢？还是老师傅走了没人问了？后者才是真问题，前者只是表象。15人访谈的样本量选择有讲究——少了不够代表性，多了成本高，15人覆盖不同工龄/不同设备类型/不同班次，可以快速摸清真实使用场景和痛点分布。</p>
+</li>
+<li>
+<p><strong>Discover阶段的方法论意义</strong>：如果只访谈管理层或IT负责人，得到的会是"我们想做个AI问答"这种没有锚点的需求。Discover阶段的核心方法论是"访谈真实使用者，而非访谈使用者的转述者"——管理层说"工人需要问答"是转述，工人自己说"老师傅走了我不知道怎么调这个阀门"才是真需求。这个区别决定了后续Design阶段的方向：如果只听管理层，会做一个通用问答框；如果听一线工人，会做一个嵌入维修流程的经验查询系统。</p>
+</li>
+</ul>
+<h3 id="成功案例制造业知识库问答designdeployreview阶段">成功案例：制造业知识库问答（Design/Deploy/Review阶段）</h3>3
+<ul>
+<li>
+<p><strong>Design阶段关键决策</strong>：不上通用大模型，选RAG+本地部署（客户数据不能出厂）；定验收指标=查到准确答案比例、单次响应&lt;3s。成功要点：先写验收指标再选型；锁死数据合规约束。这个顺序非常关键——先定"什么算成功"再选工具，而不是反过来。本地部署的决策来自Discover阶段发现的"军工级设备数据不能出厂"约束，如果后期才发现就会推倒重来。验收指标的设定也有讲究："查到准确答案比例"比"问答准确率"更具体——前者意味着"从文档中查到并给出准确答案"，后者可能被理解为"模型生成正确答案"。</p>
+</li>
+<li>
+<p><strong>Deploy阶段分期策略</strong>：分两期交付——一期只做结构化手册问答（见效快、建立信任），二期再接非结构化工单；每期小范围试点→扩量。成功要点是小步快跑，用一期成果换客户继续投入。这种分期策略降低了一次性失败的风险，也让客户在过程中建立对AI能力的现实预期——不会因为"一期只有手册问答"就觉得被骗了，反而因为确实好用而愿意投入二期。一期只做结构化手册是因为结构化文档的RAG效果最好（查准率高、响应快），容易出成果建立信心；二期再接非结构化工单（难度高、需要更多调优）。</p>
+</li>
+<li>
+<p><strong>Review阶段能力移交</strong>：交付后建"错误答案反馈闭环"，一线反馈的坏答案回流优化；培训客户内部管理员接手。成功要点是能力移交客户，不是交完就走。这是FDE与"外包开发"的本质区别——FDE交付的是"客户能自己运营的系统"，不是"一次性软件"。反馈闭环让系统越用越准（一线工人用得越多，坏答案收集越多，优化越多），管理员培训让客户在FDE离开后能持续维护（不依赖FDE的远程支持）。</p>
+</li>
+<li>
+<p><strong>成功成果数据</strong>：查准率从通用方案的~55%提到~85%（结构化手册场景）；一线使用率稳步上升，客户续签二期。四个成功关键：①挖真问题（经验流失vs查手册）②合规约束前置（本地部署）③分期交付建立信任④能力移交。55%到85%的提升幅度说明：同样的RAG技术，用对场景（结构化手册）和用错场景（通用方案）效果差异巨大——不是技术不行，是用的方式不同。</p>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">失败案例：金融合同审查（Discover与Design阶段）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>客户与任务：某区域性银行法务部，任务是AI自动审查贷款合同风险条款输出风险提示</li><li>Discover阶段踩坑：只访谈了IT，没深挖法务的"误判容忍度"——法务对错误提示零容忍，但当时以为可接受~90%准确率</li><li>这是AI项目最常见的踩坑——演示时用精选样例（短合同、标准条款），生产时面对真实分布的长尾问题（长合同、歧义条款、跨条款引用），准确率从90%暴跌到70%</li></ul></div>3
+<ul>
+<li>
+<p><strong>客户与任务</strong>：某区域性银行法务部，任务是AI自动审查贷款合同风险条款输出风险提示。FDE角色为售前主导POC，交付转实施。这个客户画像的风险点在于：法务对错误提示零容忍（银行监管环境，错误提示可能导致法律风险），但POC阶段没深挖这个严苛标准。同时，"售前主导POC，交付转实施"的角色设计本身就有问题——售前和实施是两个不同的角色，售前倾向于"做出来给客户看"，实施倾向于"跑稳交给客户用"，两者的关注点不同。</p>
+</li>
+<li>
+<p><strong>Discover阶段踩坑</strong>：只访谈了IT，没深挖法务的"误判容忍度"——法务对错误提示零容忍，但当时以为可接受~90%准确率。失败模式是需求挖掘不透：只对接了技术方，漏了真实使用者的严苛标准。这与成功案例的Discover形成鲜明对比——成功案例访谈了15个一线维修工，失败案例只访谈了IT，没访谈真正用系统的法务。IT说"90%准确率够了"是IT的判断，法务说"90%不够，10%的错误提示可能导致法律纠纷"才是真实标准。</p>
+</li>
+<li>
+<p><strong>Design阶段踩坑</strong>：POC用通用大模型+浅RAG，演示效果惊艳（挑了几个好看的样例），但没测边界/长合同/歧义条款。失败模式是POC炫技：选易样例演示，没建立真实分布的评测集。这是AI项目最常见的踩坑——演示时用精选样例（短合同、标准条款），生产时面对真实分布的长尾问题（长合同、歧义条款、跨条款引用），准确率从90%暴跌到70%。POC炫技的根因不是FDE故意骗人，而是没有意识到"精选样例"和"真实分布"的差距——这需要在Design阶段就建立真实分布的评测集。</p>
+</li>
+</ul>
+<h3 id="失败案例金融合同审查deploy与review阶段">失败案例：金融合同审查（Deploy与Review阶段）</h3>3
+<ul>
+<li>
+<p><strong>Deploy阶段踩坑</strong>：上生产后准确率掉到~70%，法务不敢用；合同长文本超出上下文、专业条款模型理解错；返工补评测、换模型、加规则。失败模式是POC→生产落差：没把演示指标和生产指标分开。POC的90%是精选样例上的数字，生产的70%是真实分布上的数字——两者根本不是同一个指标。长合同超出上下文窗口是技术层面的问题（可以通过分块解决），但"专业条款模型理解错"是更深层的问题——模型对金融法律术语的理解不够精确，这不是换模型能解决的，需要领域知识的RAG或规则引擎。</p>
+</li>
+<li>
+<p><strong>Review阶段踩坑</strong>：交付延期2个月，客户信任受损，最终靠人工补审兜底才勉强上线。失败模式是验收失守：没有清晰的"达不到就止损"的门槛。如果早期就定"准确率低于80%就不进生产"，就不会走到延期2个月才发现不行的地步。"靠人工补审兜底"意味着系统实际上没有真正上线——法务还是在做人工审查，AI只是一个辅助工具，而这个辅助工具的可靠性不足以让人放心使用。</p>
+</li>
+<li>
+<p><strong>失败后果</strong>：项目延期、客户不满、法务团队弃用率高。四个失败根因：①需求挖掘漏真实使用者（法务零容忍）②POC选易样例炫技、无真实评测集③POC指标当生产指标④无止损验收门槛。这四个根因不是独立的——它们之间有因果关系：因为没访谈法务（根因1），所以不知道误判零容忍；因为不知道零容忍，所以POC选易样例炫技（根因2）；因为炫技，所以指标失真（根因3）；因为指标失真，所以没有止损门槛（根因4）。一个环节的失误会传导到后续所有环节。</p>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">一成一败对照与核心教训</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>需求挖掘维度对照：成功案例深挖真实使用者+真问题（15人访谈发现"经验流失"真痛点）；失败案例只对接技术方，漏使用者严苛标准（只访谈IT没访谈法务的零容忍）</li><li>15个一线维修工 vs 0个法务——这个样本量的差异不是偶然的，而是FDE对"谁是真实使用者"的理解不同</li><li>指标管理维度对照：成功案例生产指标前置、分期验收（先定"查到准确答案比例+响应<3s"再选型）；失败案例POC指标当生产指标（演示的90%≠生产的70%）</li></ul></div>3
+<ul>
+<li>
+<p><strong>需求挖掘维度对照</strong>：成功案例深挖真实使用者+真问题（15人访谈发现"经验流失"真痛点）；失败案例只对接技术方，漏使用者严苛标准（只访谈IT没访谈法务的零容忍）。教训：Discover阶段的样本量和对象选择直接决定了需求质量——不访谈真正用系统的人，等于盲人摸象。15个一线维修工 vs 0个法务——这个样本量的差异不是偶然的，而是FDE对"谁是真实使用者"的理解不同。</p>
+</li>
+<li>
+<p><strong>POC策略维度对照</strong>：成功案例小步快跑、真实场景（一期只做结构化手册，见效快建信任）；失败案例易样例炫技、无真实评测集（挑好看样例演示，没测边界长合同歧义）。教训：POC的目的是验证可行性，不是炫技——用精选样例做POC等于自欺欺人。成功案例的一期策略（结构化手册）本身就是真实场景，不存在"炫技"问题；失败案例的POC从一开始就偏了。</p>
+</li>
+<li>
+<p><strong>指标管理维度对照</strong>：成功案例生产指标前置、分期验收（先定"查到准确答案比例+响应&lt;3s"再选型）；失败案例POC指标当生产指标（演示的90%≠生产的70%）。教训：必须冻结一套真实分布的评测集，POC和生产用同一套指标。90% vs 70%的差距说明：没有真实分布的评测集，指标数字没有任何意义——它只反映了你选的样例有多好看。</p>
+</li>
+<li>
+<p><strong>合规约束维度对照</strong>：成功案例数据不出厂前置锁死（Discover阶段就发现"军工数据不能出厂"，Design阶段就选本地部署）；失败案例后期才撞合规墙（生产时发现长合同超出上下文，返工补评测换模型加规则）。教训：合规约束必须在Discover阶段就摸清，不能等Design甚至Deploy阶段才发现。本地部署 vs 上下文超限——前者是架构级约束（提前定了就不返工），后者是实现级问题（后期发现就返工），两者的修复成本差一个数量级。</p>
+</li>
+<li>
+<p><strong>交付闭环维度对照</strong>：成功案例能力移交+反馈回流（建错误答案反馈闭环+培训客户管理员）；失败案例交完即走、无兜底（靠人工补审才勉强上线，没有持续运营机制）。教训：FDE交付的终点是"客户能自己运营"，不是"系统上线"。反馈闭环+管理员培训 vs 人工补审——前者是可持续的交付，后者是不可持续的兜底。</p>
+</li>
+</ul>
+<h2 id="适用场景标签">适用场景标签</h2>2
+<ul>
+<li>FDE方法论正反教材（一成一败对照）</li>
+<li>Discover阶段访谈对象选择（15人一线 vs 0个法务）</li>
+<li>POC评测集设计（真实分布 vs 精选样例）</li>
+<li>合规约束前置检查（本地部署 vs 后期返工）</li>
+<li>分期交付策略（一期结构化手册 vs 直接上生产）</li>
+<li>止损验收门槛设计（准确率低于80%不进生产）</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">一句话推荐</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>一成功一失败的构造案例，直接展示同一方法论在不同执行质量下的结果差异——失败极少是技术不行，多是需求挖错+POC炫技+指标失真+合规后置</li></ul></div>2
+<p>一成功一失败的构造案例，直接展示同一方法论在不同执行质量下的结果差异——失败极少是技术不行，多是需求挖错+POC炫技+指标失真+合规后置。</p></div></details></div></body></html>

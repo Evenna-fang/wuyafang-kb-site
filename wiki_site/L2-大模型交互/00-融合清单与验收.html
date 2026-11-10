@@ -1,0 +1,376 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>00-融合清单与验收</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 00-融合清单与验收</span></div><div class="wrap"><h1 id="l2-三源融合主题收敛替换与验收记录">L2 三源融合：主题收敛、替换与验收记录</h1>
+<p>本文件为维护清单，不是新增主题正文，挂总地图 <strong>N5 验收／四之一知识层 L2</strong>。<br />
+原有 11 篇文稿按 5 个主题确定唯一正文目标。本单删除 4 篇已被主题级取代的散篇；《L2-大模型交互-最佳答案》与《System Prompt怎么写才好》因仍有实质 HOW 未被完整承接而暂留。最终目录为 <strong>5 篇目标唯一正文、2 篇暂留散篇、1 篇维护清单</strong>。<br />
+本单没有重写或修改任何已有正文；只新增本清单，删除上述 4 篇散篇、9 个 <code>.bak-whythree-20261104-091453</code> 备份及整个 <code>.fusion-work</code>。未修改 raw、ontology、其他层、RAG 索引或 HTML 产物。<br />
+核验日期：2026-11-04。<strong>清理动作完成不等于内容验收全部通过；未达标项见下文。</strong></p>
+<h2 id="主题收敛与字数">主题收敛与字数</h2>2
+<p>汉字数：去掉 frontmatter 和 fenced code 后，统计 Unicode U+4E00—U+9FFF；非空白字符：全文含元数据、代码、标点。<br />
+“合并旧篇数”按唯一正文的素材主去向统计，跨主题部分引用不重复计数，<strong>不等于本单删除数</strong>。《最佳答案》与《System Prompt》虽被提示词正文部分吸收，但因覆盖不完整而暂留。</p>
+<table>
+<thead>
+<tr>
+<th>主题</th>
+<th>唯一正文</th>
+<th style="text-align: right;">合并旧篇数</th>
+<th style="text-align: right;">正文汉字数</th>
+<th style="text-align: right;">全文非空白字符</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>提示词工程</td>
+<td><a href="L2-%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L2-提示词工程-深挖整合.md</a></td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">8667</td>
+<td style="text-align: right;">16497</td>
+</tr>
+<tr>
+<td>大模型交互模式</td>
+<td><a href="L2-%E5%A4%A7%E6%A8%A1%E5%9E%8B%E4%BA%A4%E4%BA%92%E6%A8%A1%E5%BC%8F-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L2-大模型交互模式-深挖整合.md</a></td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">6008</td>
+<td style="text-align: right;">12531</td>
+</tr>
+<tr>
+<td>上下文工程</td>
+<td><a href="L2-%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L2-上下文工程-深挖整合.md</a></td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">6187</td>
+<td style="text-align: right;">12863</td>
+</tr>
+<tr>
+<td>缓存与工具上下文成本侧</td>
+<td><a href="%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B-%E7%BC%93%E5%AD%98%E4%B8%8E%E5%B7%A5%E5%85%B7%E4%B8%8A%E4%B8%8B%E6%96%87-%E6%88%90%E6%9C%AC%E4%BE%A7%E5%AE%9E%E6%88%98.html">上下文工程-缓存与工具上下文-成本侧实战.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">5629</td>
+<td style="text-align: right;">10672</td>
+</tr>
+<tr>
+<td>长程 Agent 与多 Agent</td>
+<td><a href="%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B-%E9%95%BF%E7%A8%8BAgent%E7%9A%84%E4%B8%8A%E4%B8%8B%E6%96%87%E6%8C%81%E4%B9%85%E5%8C%96%E4%B8%8E%E5%A4%9AAgent%E4%B9%8B%E4%BA%89.html">上下文工程-长程Agent的上下文持久化与多Agent之争.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">6316</td>
+<td style="text-align: right;">13241</td>
+</tr>
+</tbody>
+</table>
+<h2 id="11-篇逐项去向与原始-sha-256">11 篇逐项去向与原始 SHA-256</h2>2
+<p>原始 SHA-256 均在删除前从 <code>.fusion-work/originals/</code> 实际计算。“暂留散篇”的唯一去向表示后续收口目标，不表示该文件已经删除或内容已经无损合并。</p>
+<table>
+<thead>
+<tr>
+<th>原文件</th>
+<th>处理</th>
+<th>唯一去向</th>
+<th>原始 SHA-256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Few-shot和Zero-shot怎么选.md</td>
+<td>删除旧散篇；主题级取代，维护细则缺口见验收</td>
+<td><a href="L2-%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L2-提示词工程-深挖整合.md</a></td>
+<td><code>34bcc2041ebfe0db331f013e71fccbbededc8c317c4c321b5116a121fac87ce0</code></td>
+</tr>
+<tr>
+<td>L2-上下文工程-深挖整合.md</td>
+<td>保留唯一正文；本单未改</td>
+<td><a href="L2-%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L2-上下文工程-深挖整合.md</a></td>
+<td><code>1b94d56da52da380d4fbbbf07f0c8594dd4b817868eea700a577ffd449d005dd</code></td>
+</tr>
+<tr>
+<td>L2-大模型交互-最佳答案.md</td>
+<td><strong>暂留散篇</strong>：完整历史治理函数未被承接</td>
+<td><a href="L2-%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L2-提示词工程-深挖整合.md</a></td>
+<td><code>72f953e1bb5127644aecf567cc80fb138742004472381315c069a8bc179352b5</code></td>
+</tr>
+<tr>
+<td>L2-大模型交互模式-深挖整合.md</td>
+<td>原路径融合正文保留；本单未改</td>
+<td><a href="L2-%E5%A4%A7%E6%A8%A1%E5%9E%8B%E4%BA%A4%E4%BA%92%E6%A8%A1%E5%BC%8F-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L2-大模型交互模式-深挖整合.md</a></td>
+<td><code>2a72f95332dd29f36d47b4ec22ef8a665a653e6ec5d45ce393176c212b20463b</code></td>
+</tr>
+<tr>
+<td>L2-提示词工程-2026.md</td>
+<td>删除旧散篇</td>
+<td><a href="L2-%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L2-提示词工程-深挖整合.md</a></td>
+<td><code>98bfc5247af4917f5d76e003af72b591e4169c94d78c7d5b6f5bae37118ddc7e</code></td>
+</tr>
+<tr>
+<td>L2-提示词工程-深挖整合.md</td>
+<td>原路径融合正文保留；本单未改</td>
+<td><a href="L2-%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L2-提示词工程-深挖整合.md</a></td>
+<td><code>a92512cef041d87e5ffb899fa84a9d2ae9292eee4367ef144774e542a9cee82b</code></td>
+</tr>
+<tr>
+<td>System Prompt怎么写才好.md</td>
+<td><strong>暂留散篇</strong>：四类护栏及专用回归脚本未被完整承接</td>
+<td><a href="L2-%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L2-提示词工程-深挖整合.md</a></td>
+<td><code>3f39eab5d31cc4fbe2532d2f1f77caa52f931b981008e910a0e1aee0e10fde26</code></td>
+</tr>
+<tr>
+<td>上下文工程-Context-Engineering.md</td>
+<td>删除旧散篇</td>
+<td><a href="L2-%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L2-上下文工程-深挖整合.md</a></td>
+<td><code>7b07e519958a376d59d8ab6b0edd5984c5ccd59cfc07820931a136e56c03894d</code></td>
+</tr>
+<tr>
+<td>上下文工程-缓存与工具上下文-成本侧实战.md</td>
+<td>保留唯一正文；本单未改</td>
+<td><a href="%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B-%E7%BC%93%E5%AD%98%E4%B8%8E%E5%B7%A5%E5%85%B7%E4%B8%8A%E4%B8%8B%E6%96%87-%E6%88%90%E6%9C%AC%E4%BE%A7%E5%AE%9E%E6%88%98.html">上下文工程-缓存与工具上下文-成本侧实战.md</a></td>
+<td><code>98528d09a70de3fbc1ade50fa7cc8d0d16ef67659527bebe1d4ee70a989e918f</code></td>
+</tr>
+<tr>
+<td>上下文工程-长程Agent的上下文持久化与多Agent之争.md</td>
+<td>保留唯一正文；本单未改</td>
+<td><a href="%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B-%E9%95%BF%E7%A8%8BAgent%E7%9A%84%E4%B8%8A%E4%B8%8B%E6%96%87%E6%8C%81%E4%B9%85%E5%8C%96%E4%B8%8E%E5%A4%9AAgent%E4%B9%8B%E4%BA%89.html">上下文工程-长程Agent的上下文持久化与多Agent之争.md</a></td>
+<td><code>96b0ba2b34d29562c0335af22a9b616fe3481a12715701e3f10cdcf2604c0a2f</code></td>
+</tr>
+<tr>
+<td>前沿精读笔记（Prompt与LangChain与vLLM）.md</td>
+<td>删除旧散篇；LangChain/vLLM 主线归入交互模式篇</td>
+<td><a href="L2-%E5%A4%A7%E6%A8%A1%E5%9E%8B%E4%BA%A4%E4%BA%92%E6%A8%A1%E5%BC%8F-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L2-大模型交互模式-深挖整合.md</a></td>
+<td><code>29bc951c6a2515069f95933e5e3c8f6b3e354d3510909bf96fb91bb50f2d91bb</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="三源边界说明">三源边界说明</h2>2
+<ul>
+<li>三源指本地课件、书籍目录与公开热门划线摘录、业内官方文档或论文。<strong>书籍材料不等于阅读全文</strong>，本单未把摘录升级为书籍全文证据。</li>
+<li>11 篇中，只有《L2-提示词工程-深挖整合》在文末设置“来源与三源融合落点”，逐项标明课件、书籍摘录、业内文档与论文落点。</li>
+<li>其他文章即使另有“来源”“来自哪些书”或正文论文编号，只要没有指定的文末三源融合段，本单均判为未达标；frontmatter 中单独出现 arXiv ID 也不算融合落点通过。</li>
+<li>本单只做现状核对，没有新增外部取证、没有补写或修改正文，也没有声称论文中的数值已经本机复现。</li>
+</ul>
+<h2 id="逐篇结构与论文引用核对">逐篇结构与论文引用核对</h2>2
+<p>判定口径：代码围栏外的独立 WHY、WHAT 或 WHYT、HOW 标题；文末须有“来源与三源融合落点”段，并包含课件、书籍、业内及 arXiv ID 的实际落点。</p>
+<table>
+<thead>
+<tr>
+<th>篇目</th>
+<th style="text-align: center;">WHY</th>
+<th style="text-align: center;">WHAT / WHYT</th>
+<th style="text-align: center;">HOW</th>
+<th>指定三源融合段</th>
+<th>arXiv 引用核对</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Few-shot和Zero-shot怎么选.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td>缺失；仅有书籍来源段</td>
+<td>无</td>
+</tr>
+<tr>
+<td>L2-上下文工程-深挖整合.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td>缺失</td>
+<td>2307.03172、2502.05167；未进入指定三源段</td>
+</tr>
+<tr>
+<td>L2-大模型交互-最佳答案.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td>缺失</td>
+<td>无</td>
+</tr>
+<tr>
+<td>L2-大模型交互模式-深挖整合.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td>缺失；文末只有旧散篇来源说明</td>
+<td>2610.42054 仅见 frontmatter，正文无实际落点</td>
+</tr>
+<tr>
+<td>L2-提示词工程-2026.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td>缺失</td>
+<td>2301.07085；未进入指定三源段</td>
+</tr>
+<tr>
+<td>L2-提示词工程-深挖整合.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td><strong>通过</strong></td>
+<td>2610.22160、2610.37657，均有正文与来源落点</td>
+</tr>
+<tr>
+<td>System Prompt怎么写才好.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td>缺失；仅有书籍来源段</td>
+<td>无</td>
+</tr>
+<tr>
+<td>上下文工程-Context-Engineering.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td>缺失；另有普通“来源”段但不满足指定口径</td>
+<td>2307.03172、2502.05167、2507.13334</td>
+</tr>
+<tr>
+<td>上下文工程-缓存与工具上下文-成本侧实战.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td>缺失；另有普通“来源”段</td>
+<td>无</td>
+</tr>
+<tr>
+<td>上下文工程-长程Agent的上下文持久化与多Agent之争.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td>缺失；另有普通“来源”段</td>
+<td>无</td>
+</tr>
+<tr>
+<td>前沿精读笔记（Prompt与LangChain与vLLM）.md</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td>缺失；另有普通“来源”段</td>
+<td>无</td>
+</tr>
+</tbody>
+</table>
+<p>汇总：三段标题 <strong>11/11 通过</strong>；指定三源融合段 <strong>1/11 通过</strong>；论文与三源落点联合验收 <strong>1/11 通过</strong>。</p>
+<h2 id="未达标篇目与内容缺口">未达标篇目与内容缺口</h2>2
+<h3 id="指定三源段未达标10-篇">指定三源段未达标：10 篇</h3>3
+<p>以下篇目不满足“文末来源与三源融合落点段（课件／书籍／业内，含 arXiv ID）”要求；本单遵守边界，未自行补写：</p>
+<ol>
+<li><code>Few-shot和Zero-shot怎么选.md</code></li>
+<li><code>L2-上下文工程-深挖整合.md</code></li>
+<li><code>L2-大模型交互-最佳答案.md</code></li>
+<li><code>L2-大模型交互模式-深挖整合.md</code></li>
+<li><code>L2-提示词工程-2026.md</code></li>
+<li><code>System Prompt怎么写才好.md</code></li>
+<li><code>上下文工程-Context-Engineering.md</code></li>
+<li><code>上下文工程-缓存与工具上下文-成本侧实战.md</code></li>
+<li><code>上下文工程-长程Agent的上下文持久化与多Agent之争.md</code></li>
+<li><code>前沿精读笔记（Prompt与LangChain与vLLM）.md</code></li>
+</ol>
+<p>其中 1、3、5、6、7、10 为删除前核对记录；2、4、8、9 为最终目录仍存在的未达标正文。</p>
+<h3 id="取代完整性未达标">取代完整性未达标</h3>3
+<ul>
+<li><strong>《L2-大模型交互-最佳答案》暂留</strong>：第 194—214 行的完整 <code>trim_history</code> 三段式历史治理函数仍被《L2-上下文工程-深挖整合》引用，目标唯一正文没有完整承接该函数。</li>
+<li><strong>《System Prompt怎么写才好》暂留</strong>：四类“触发条件＋固定动作＋固定话术”护栏及 <code>prompt_regression.py</code> 专用正负例回归实现没有完整进入目标唯一正文。</li>
+<li><strong>《Few-shot和Zero-shot怎么选》按主题级收敛删除</strong>：核心选型已由提示词唯一正文覆盖，但“每个示例只证明一件事、必配反例、长度对齐、示例顺序影响、版本化”五项维护细则未完整承接。此项是有损细节收敛，不宣称逐字无损。</li>
+</ul>
+<h2 id="链接与目录外引用影响">链接与目录外引用影响</h2>2
+<p>本单禁止修改已有正文和目录外文件，因此以下引用残留不静默修复，也不判为链接通过。</p>
+<h3 id="最终目录内已知断链9-处">最终目录内已知断链：9 处</h3>3
+<table>
+<thead>
+<tr>
+<th>保留正文</th>
+<th style="text-align: right;">行号</th>
+<th>已删除目标</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L2-大模型交互-最佳答案.md</td>
+<td style="text-align: right;">196</td>
+<td>上下文工程-Context-Engineering.md</td>
+</tr>
+<tr>
+<td>L2-大模型交互-最佳答案.md</td>
+<td style="text-align: right;">227</td>
+<td>L2-提示词工程-2026.md</td>
+</tr>
+<tr>
+<td>L2-大模型交互-最佳答案.md</td>
+<td style="text-align: right;">236、241</td>
+<td>Few-shot和Zero-shot怎么选.md</td>
+</tr>
+<tr>
+<td>System Prompt怎么写才好.md</td>
+<td style="text-align: right;">106</td>
+<td>前沿精读笔记（Prompt与LangChain与vLLM）.md</td>
+</tr>
+<tr>
+<td>System Prompt怎么写才好.md</td>
+<td style="text-align: right;">182、201</td>
+<td>上下文工程-Context-Engineering.md</td>
+</tr>
+<tr>
+<td>上下文工程-缓存与工具上下文-成本侧实战.md</td>
+<td style="text-align: right;">16</td>
+<td>上下文工程-Context-Engineering.md</td>
+</tr>
+<tr>
+<td>上下文工程-长程Agent的上下文持久化与多Agent之争.md</td>
+<td style="text-align: right;">16</td>
+<td>上下文工程-Context-Engineering.md</td>
+</tr>
+</tbody>
+</table>
+<h3 id="目录外文件名引用">目录外文件名引用</h3>3
+<p>只读扫描发现 <code>wiki/00-知识库总入口.md</code>、<code>wiki/AI应用工程师能力知识图谱-终版-20261014.md</code> 仍引用本单删除的 4 个文件名；<code>wiki/L3-AI协同编程/00-融合清单与验收.md</code> 另有历史维护记录引用。此项是文件名引用检出，不是全站渲染测试。遵守本单边界，未修改这些文件。</p>
+<h2 id="删除与收口记录">删除与收口记录</h2>2
+<ul>
+<li>删除前确认 <code>.fusion-work/originals/</code> 恰好有 11 份快照，11 个原始 SHA-256 全部实算并写入上表。</li>
+<li>实际删除 4 篇散篇：<code>L2-提示词工程-2026.md</code>、<code>Few-shot和Zero-shot怎么选.md</code>、<code>上下文工程-Context-Engineering.md</code>、<code>前沿精读笔记（Prompt与LangChain与vLLM）.md</code>；删除时逐一确认当前稿与原始快照一致。</li>
+<li>独立只读复审后，保留 <code>L2-大模型交互-最佳答案.md</code> 与 <code>System Prompt怎么写才好.md</code>，避免在“不改正文”约束下丢失仍被引用或未被承接的实现。</li>
+<li>实际删除 9 个 <code>.bak-whythree-20261104-091453</code> 文件；未创建新的 <code>.bak</code> 或其他备份副本。</li>
+<li>已删除整个 <code>.fusion-work</code>，包括 <code>originals/</code> 的 11 份临时快照；原始哈希只保留在本清单，不保留第二份正文。</li>
+<li>原有 <code>.claude/logs/tool_audit.log</code> 不属于本次文稿，未作清理。</li>
+<li><strong>最终结论：清理动作已执行；三源段、论文落点、取代完整性与链接验收未全绿。</strong> 后续若继续收口，需另行授权修改正文及入口链接，本单未越界处理。</li>
+</ul></div></body></html>

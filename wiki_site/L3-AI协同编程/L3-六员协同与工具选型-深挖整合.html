@@ -1,0 +1,423 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L3-六员协同与工具选型-深挖整合</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L3-六员协同与工具选型-深挖整合</span></div><div class="wrap"><h1 id="六员协作与-codex按契约分工按证据交接">六员协作与 Codex：按契约分工、按证据交接</h1>
+<blockquote>
+<p>本主题合并六员工具教程和渠道候选管理。Claude Code 的项目内用法见<a href="L3-ClaudeCode%E4%B8%8EVibeCoding-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">编程篇</a>，token 分档与计费见<a href="L3-Harness%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">性能篇</a>。核验日：2026-11-03。</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY：协作的价值是减少遗漏和冲突</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>多开几个会话不会自动提高交付质量</li><li>Agent课件将子代理用于复杂研究、独立上下文和专门工具，并明确不推荐用于单步极简任务、主代理必须查看所有中间数据的任务</li><li>旧稿用“10 分钟内只能 Codex、超过 10 分钟只能 Claude”“Qwen 没有独立规划能力”描述角色，证据不足以推广；本篇保留岗位偏好，撤下固定时长推断能力的结论</li></ul></div>2
+<p>多开几个会话不会自动提高交付质量。每个执行者都需要目标、允许写入的路径、输入版本、验收标准和退出条件。如果两个会话改同一文件，或审查者只读执行者写的“已通过”，增加角色反而增加误判。协作首先是一套责任和证据协议，然后才是模型选择。</p>
+<p>Agent课件将子代理用于复杂研究、独立上下文和专门工具，并明确不推荐用于单步极简任务、主代理必须查看所有中间数据的任务。书籍《Harness工程》讨论感知、规划、执行、反思；《Codex提效手册》强调先列计划、知识库规则和人工核验。Codex 当前官方接口提供非交互执行、沙箱选项和事件流，这些能力可承载上述协议，但不能替代协议本身。[课1][书1][书2][业1]</p>
+<p>六员是本地团队约定，不是产品的能力上限。旧稿用“10 分钟内只能 Codex、超过 10 分钟只能 Claude”“Qwen 没有独立规划能力”描述角色，证据不足以推广；本篇保留岗位偏好，撤下固定时长推断能力的结论。[本1]</p>
+<h2 id="what-whyt角色产品模型与权限四件事">WHAT / WHYT：角色、产品、模型与权限四件事</h2>2
+<table>
+<thead>
+<tr>
+<th>本地角色</th>
+<th>典型交付</th>
+<th>权限边界</th>
+<th>合格交接</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hermes</td>
+<td>计划、拆卡、验收结论</td>
+<td>以本地调度规则为准</td>
+<td>明确任务、范围和验收标准</td>
+</tr>
+<tr>
+<td>DSH</td>
+<td>批量执行、确定步骤的本地作业</td>
+<td>只写任务工作区</td>
+<td>文件清单、失败项与原始检查结果</td>
+</tr>
+<tr>
+<td>Claude Code</td>
+<td>跨模块工程、重构</td>
+<td>限定仓库和修改文件</td>
+<td>补丁、兼容性说明、测试</td>
+</tr>
+<tr>
+<td>Codex</td>
+<td>代码实现、脚本、原型</td>
+<td>限定工作区及审批策略</td>
+<td>可复验命令、产物与限制</td>
+</tr>
+<tr>
+<td>OpenClaw</td>
+<td>独立审查、公开资料核验</td>
+<td>审查只读；外联另受授权约束</td>
+<td>具体问题、证据、影响</td>
+</tr>
+<tr>
+<td>QwenCode</td>
+<td>小运维、核对、收口</td>
+<td>仅任务点名范围</td>
+<td>清理前后清单和实测结果</td>
+</tr>
+</tbody>
+</table>
+<p>同一个产品可以换模型，但更换模型不意味着运行时、工具权限或角色责任也被替换。不同供应商提供“兼容接口”也不保证工具调用、事件流、错误协议全部兼容。渠道评估至少区分四层：是否可用、协议是否兼容、任务质量是否达标、成本是否可接受。</p>
+<p>本地总网规定配置类操作串行、实现与审查分离；这些属于团队制度，引用时保留适用范围。书籍把“高配规划、低配执行”作为可用策略，并不要求把所有成员改成同一模型。任务路由选择承担者，运行时模型切换是另一个配置动作，不能偷偷合并。[本1][书2]</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">输入输出契约</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>有效输入至少包含目标、允许文件、基线版本、成功标准、预算或时限、失败返回方式</li><li>有效输出包含状态、修改清单、检查结果、未完成事项和证据位置</li><li>“已完成”没有文件或命令支撑，不应推动状态机进入完成态</li></ul></div>3
+<p>有效输入至少包含目标、允许文件、基线版本、成功标准、预算或时限、失败返回方式。有效输出包含状态、修改清单、检查结果、未完成事项和证据位置。“已完成”没有文件或命令支撑，不应推动状态机进入完成态。</p>
+<p>状态可采用 <code>planned → running → review → done</code>，出现失败则进入 <code>failed</code>。这是本篇教学契约，不是某产品内置 schema。业务批准应绑定具体产物版本；审批后产物改了，需要重新判断批准是否仍适用。退出码 0、出现最后一条消息、收到一个文件，三者都不能单独证明任务通过验收。</p>
+<h2 id="how把一个-codex-任务接入协作流程">HOW：把一个 Codex 任务接入协作流程</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 在运行前检查目录和 CLI</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>codex --version</li><li>这些只检查环境；不读取凭据、不输出完整配置</li><li>本次官方 CLI reference 确认了 「exec」、「review」、沙箱档位、「--skip-git-repo-check」 和 JSONL 输出相关接口</li></ul></div>3
+<pre><code class="language-bash">pwd
+git status --short
+codex --version
+codex exec --help
+codex review --help
+</code></pre>
+<p>这些只检查环境；不读取凭据、不输出完整配置。本次官方 CLI reference 确认了 <code>exec</code>、<code>review</code>、沙箱档位、<code>--skip-git-repo-check</code> 和 JSONL 输出相关接口。实际参数组合应再以本机帮助为准。旧稿把 <code>~/.codex/config.json</code> 当通用主配置、把 <code>danger-full-access</code> 当“总闸任务默认”，本篇不沿用。[业1]</p>
+<p>先读从项目根到当前目录的 AGENTS 指令链。不要为了省 token 删除安全边界，也不要把数百个 Skill 正文一次放进任务卡。索引应帮助找到相关材料，不能假定未加载的 Skill 已经执行。[业2][书1]</p>
+<h3 id="2-使用无凭据任务卡">2. 使用无凭据任务卡</h3>3
+<pre><code class="language-text">【免凭据】子智能体执行：normalize-tags
+目标：实现标签规范化，稳定去重并保留首次顺序。
+输入：已确认版本的 tags.py、test_tags.py、项目指令。
+写白名单：tags.py、test_tags.py、handoff.md。
+验收：python3 -m unittest -v test_tags.py；检查输入不变与非法类型。
+交付：修改清单、运行命令与退出码、失败项、未验证事项。
+停止：最多重试 2 次；范围外需求返回说明。
+边界：不读凭据、不外传本地内容、不修改其他文件。
+</code></pre>
+<p>这里的免凭据指任务处理内容不需要秘密；若 CLI 自身需要已有登录，凭据仍由既有环境提供，不进入任务卡。工具调用若会把本地资料发送到远端，必须符合当前会话授权。本次知识库融合仅使用公开 GET，不执行任何模型 CLI 网络请求。</p>
+<p>下面是已获得相应环境授权时的终端用法示意，<code>task.txt</code> 存上述卡片，位于专用练习仓库：</p>
+<pre><code class="language-bash">codex exec --sandbox read-only &quot;读取项目规则并说明修改计划，暂不改文件。&quot;
+codex exec --sandbox workspace-write --json - &lt; task.txt
+</code></pre>
+<p><code>read-only</code> 是沙箱选择；<code>workspace-write</code> 不等于“只写卡片中的三个文件”，更细的边界仍需工具策略或外部验证。沙箱具体覆盖范围依赖宿主系统。非 Git 目录只有确实需要、且信任路径已核实才使用 <code>--skip-git-repo-check</code>；它跳过仓库检查，不能增加权限或解决所有路径错误。[业1]</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 用离线检查验证交接格式</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>把下列程序保存为 「check_handoff.py」</li><li>它验证的是已汇总的交接记录，字段不是直接照搬 Codex 原始事件；生产接入应从实际事件和独立检查填充，不能让模型随意写一个 「passed: true」</li><li>and isinstance(files, list)</li></ul></div>3
+<p>把下列程序保存为 <code>check_handoff.py</code>。它验证的是已汇总的交接记录，字段不是直接照搬 Codex 原始事件；生产接入应从实际事件和独立检查填充，不能让模型随意写一个 <code>passed: true</code>。</p>
+<pre><code class="language-python">def accepted(receipt, allowed_paths):
+    checks = receipt.get(&quot;checks&quot;, [])
+    files = receipt.get(&quot;files&quot;, [])
+    return (
+        receipt.get(&quot;status&quot;) == &quot;review&quot;
+        and isinstance(files, list)
+        and bool(files)
+        and set(files) &lt;= set(allowed_paths)
+        and bool(checks)
+        and all(check.get(&quot;exit_code&quot;) == 0 for check in checks)
+        and receipt.get(&quot;remaining&quot;) == []
+    )
+
+if __name__ == &quot;__main__&quot;:
+    good = {&quot;status&quot;: &quot;review&quot;, &quot;files&quot;: [&quot;tags.py&quot;],
+            &quot;checks&quot;: [{&quot;name&quot;: &quot;unit&quot;, &quot;exit_code&quot;: 0}], &quot;remaining&quot;: []}
+    paths = [&quot;tags.py&quot;, &quot;test_tags.py&quot;]
+    assert accepted(good, paths)
+    assert not accepted({**good, &quot;checks&quot;: []}, paths)
+    assert not accepted({**good, &quot;files&quot;: [&quot;outside.py&quot;]}, paths)
+    assert not accepted({**good, &quot;status&quot;: &quot;running&quot;}, paths)
+    assert not accepted({**good, &quot;checks&quot;: [{&quot;exit_code&quot;: 1}]}, paths)
+    assert not accepted({**good, &quot;remaining&quot;: [&quot;未验&quot;]}, paths)
+    print(&quot;handoff: 6 checks passed&quot;)
+</code></pre>
+<pre><code class="language-bash">python3 check_handoff.py
+</code></pre>
+<p>它用于防止空测试集、越界路径、仍在运行、失败检查、未完成事项被当完成，不提供安全认证。真实验收还要独立读取文件，验证实际路径归属，重跑测试，并对照基线 diff；如果交接人能改记录和产物，单独附一个 SHA-256 也不能证明过程没有被篡改。</p>
+<h3 id="4-多任务如何划分">4. 多任务如何划分</h3>3
+<p>先把接口设计统一完成，再分配独立模块。例如解析器、展示层和文档可以在接口约定后独立处理；两个任务都需要修改同一个路由表时，由一个负责人串行整合。每个任务必须知道其依赖产物的版本，不能读到另一个任务尚未完成的一半文件。</p>
+<p>课件自定义子代理包含 <code>name</code>、<code>description</code>、<code>system_prompt</code>、<code>tools</code>、<code>model</code>；这说明角色既有提示也有工具边界。迁移到六员时，任务描述不能替代工具限制，角色名称也不能替代实际能力探测。[课1]</p>
+<p>如果并行结果冲突，停止合并，保留各自的差异，回到接口契约；不要让后来者覆盖前一人的未验收修改。重复运行含外部副作用的任务前先检查已有结果，避免“失败重试”造成重复付款、重复发消息或重复发布。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5. 监督与故障归因</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>本地历史规则曾采用 5/10/15 分钟监督节奏；这是可调整的团队约定</li><li>Qwen 非交互审批、DSH cwd、OpenClaw timeout 等旧稿记录只作为排查线索；本篇没有核验其当前 CLI，所以不推荐一律 「-y」、关闭沙箱或输出完整配置</li><li>短任务不必等 15 分钟才看错误，长工具也不能仅凭没有输出就判死</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>先核对的事实</th>
+<th>下一步</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>文件没生成</td>
+<td>进程状态、退出码、任务 cwd</td>
+<td>路径错就改启动位置，不先放宽整机权限</td>
+</tr>
+<tr>
+<td>无新输出</td>
+<td>等待批准、工具耗时、最后事件</td>
+<td>依据证据决定等待、拆分或终止</td>
+</tr>
+<tr>
+<td>CLI 200 但结果空</td>
+<td>最终消息和产物是否存在</td>
+<td>HTTP 成功不能替代任务成功</td>
+</tr>
+<tr>
+<td>同一任务重试仍错</td>
+<td>失败原因是否改变</td>
+<td>达两次上限后重新规划</td>
+</tr>
+<tr>
+<td>provider 变更后失败</td>
+<td>当前协议与工具调用支持</td>
+<td>限定具名恢复范围，不批量切模型</td>
+</tr>
+</tbody>
+</table>
+<p>本地历史规则曾采用 5/10/15 分钟监督节奏；这是可调整的团队约定。短任务不必等 15 分钟才看错误，长工具也不能仅凭没有输出就判死。Qwen 非交互审批、DSH cwd、OpenClaw timeout 等旧稿记录只作为排查线索；本篇没有核验其当前 CLI，所以不推荐一律 <code>-y</code>、关闭沙箱或输出完整配置。[本1]</p>
+<h3 id="6-渠道情报从新闻变成证据条目">6. 渠道情报从“新闻”变成证据条目</h3>3
+<p>旧 E4 稿包含 GPT-6 上架 GCP、Kimi K3.1 参数及发布日期、TPU 扩容、DeepSeek 融资四项叙述。本次没有核验它们的原始报道，故全部退出“事实清单”，仅在融合清单中登记待证历史条目。读取当前官方文档时出现某模型名字，也不能倒推某个渠道新闻为真。</p>
+<p>候选条目应记录：原始 URL、发布与核验日期、地区及账号限制、接口版本、是否只是预告、任务样本结果、价格单位和未知项。融资、算力采购、模型发布、账号能调用，属于不同事实；前两者不能直接证明配额稳定或接入成功。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">增量：多智能体前端展示选型</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>[行业调研·一手源] 本节并入 2026-11-02 前端工具供料</li><li>工具能力与开源情况按供料所引项目一手源整理，链接保留在表内；本次只作文档融合，未安装或运行这些工具，也未重新核验其当前版本，不能据此宣称已经完成六员接入</li></ul></div>2
+<blockquote>
+<p>[行业调研·一手源] 本节并入 2026-11-02 前端工具供料。工具能力与开源情况按供料所引项目一手源整理，链接保留在表内；本次只作文档融合，未安装或运行这些工具，也未重新核验其当前版本，不能据此宣称已经完成六员接入。</p>
+</blockquote>
+<h3 id="why为什么聊天流之外还要进度看板">WHY：为什么聊天流之外还要进度看板</h3>3
+<p>前文的责任与交接契约解决了“谁执行、拿什么证据交接”，却没有解决人如何看见协作过程。只有聊天流，难以回答任务处于 N1—N6 哪个节点、哪个子单阻塞、验收为何退回；只有看板，又看不到产生状态变化的消息与工具事件。前端因此需要同源的两种视图：<strong>对话/事件流解释过程，DAG 或 Kanban 展示进度，trace 与 receipt 提供下钻证据</strong>。</p>
+<p>展示层不能直接成为第二套执行状态。若浏览器自行推断完成度、回写 checkpoint 或把“最后一条消息到了”当作完成，前端就会与 LangGraph 状态机耦合，甚至显示假完成。Cato 的单向数据流适合作为约束：执行层产生事实，投影层转换成视图，展示层只读；用户输入或审批若需要回写，应走独立、受权且幂等的命令接口，而不是让看板组件直接改任务状态。[业3]</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">WHAT / WHYT：四档工具分别解决什么问题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>档 A/B 面向人的任务展示，档 C 提供集成控制台或 LangGraph 前端参考，档 D 面向 trace/评估；trace 面板不能自动替代任务看板，静态配置图也不能替代实时状态</li><li>是 LangGraph 原生交付栈的直接对照</li><li>用于下钻观测，不替代 N1—N6 业务看板</li></ul></div>3
+<p>下表保留供料的四档清单。档 A/B 面向人的任务展示，档 C 提供集成控制台或 LangGraph 前端参考，档 D 面向 trace/评估；<strong>trace 面板不能自动替代任务看板，静态配置图也不能替代实时状态</strong>。[行业调研·一手源]</p>
+<table>
+<thead>
+<tr>
+<th>档位</th>
+<th>工具与一手源</th>
+<th>供料所列能力、开源情况与适用边界</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>档 A：Agent 监控/可视化</td>
+<td><a href="https://github.com/justinchuby/flightdeck">Flightdeck</a></td>
+<td>MIT；Lead Dashboard、Timeline 回放、DAG/Kanban/Gantt、Token 成本、DecisionLog 审批、AlertEngine 卡住检测；以 ACP 接 Copilot/Claude/Gemini/Codex 等。供料清单中功能最全。</td>
+</tr>
+<tr>
+<td>档 A</td>
+<td><a href="https://github.com/lwgray/cato">Cato</a></td>
+<td>开源；Network Graph、泳道甘特、Kanban、Conversation 审计流、Health Check；FastAPI+React+D3，采用单向数据流，适合作为展示层解耦参照。</td>
+</tr>
+<tr>
+<td>档 A</td>
+<td><a href="https://github.com/TranHuuHoang/agentpeek">AgentPeek</a></td>
+<td>开源；Claude Code 子 Agent 团队的 spawn 拓扑、卡住检测、Token 归属、文件追踪、Session 回放；pipx 安装。</td>
+</tr>
+<tr>
+<td>档 A</td>
+<td><a href="https://github.com/clawprowl/clawprowl">ClawProwl</a></td>
+<td>开源；以 3D 虚拟办公室呈现 Agent 状态，侧栏展示 Token、成本与 SubAgent 关系。</td>
+</tr>
+<tr>
+<td>档 A</td>
+<td><a href="https://github.com/Smilkoski/agent-swarm-dashboard">Agent Swarm Dashboard</a></td>
+<td>开源；Django+SSE 实时任务流，CrewAI+Groq 驱动，含 Mermaid 图与任务历史。</td>
+</tr>
+<tr>
+<td>档 B：任务进度看板</td>
+<td><a href="https://github.com/DahunHan/lattice">Lattice</a></td>
+<td>MIT；扫描项目目录并解析 AGENTS.md/CLAUDE.md/agents.yaml 等配置，生成 DAG 与团队分组，导出 Mermaid/PNG/Markdown；零 API Key、本地运行。适合静态全景图，不等同实时执行看板。</td>
+</tr>
+<tr>
+<td>档 B</td>
+<td><a href="https://github.com/insightflo/simple-claude-board">simple-claude-board</a></td>
+<td>MIT；Rust TUI，根据 TASKS.md 变化刷新甘特图与 Agent 活动面板，含错误分析与重试。</td>
+</tr>
+<tr>
+<td>档 C：平台级 Agent IDE</td>
+<td><a href="https://docs.langchain.com/oss/python/langgraph/studio">LangSmith Studio + Agent Chat UI</a></td>
+<td>Studio 为闭源 SaaS，供料列出图模式执行链、状态编辑、时间旅行调试；Agent Chat UI 为开源 Next.js，展示 tool call、中断与状态分叉，对接 LangGraph Server。是 LangGraph 原生交付栈的直接对照。</td>
+</tr>
+<tr>
+<td>档 C</td>
+<td><a href="https://openhands.dev/product/canvas">OpenHands Agent Canvas</a></td>
+<td>开源；对话、文件、终端、模型配置、后端与自动化控制台；Apps 可扩展自定义 Kanban；供料列出以 ACP 接 Claude Code/Codex/Gemini CLI，架构开放。</td>
+</tr>
+<tr>
+<td>档 D：观测/trace</td>
+<td><a href="https://langfuse.com">Langfuse</a></td>
+<td>供料记为 MIT 核心；OpenTelemetry 接入、trace、评估、prompt 管理、自托管、Agent graph、会话分组与成本分析。用于下钻观测，不替代 N1—N6 业务看板。</td>
+</tr>
+<tr>
+<td>档 D</td>
+<td><a href="https://langchain.com/langsmith">LangSmith</a></td>
+<td>闭源 SaaS；与 LangChain 生态深度集成，供料注明自托管仅企业版。适合作为 LangGraph trace 层。</td>
+</tr>
+<tr>
+<td>档 D</td>
+<td><a href="https://mlflow.org">MLflow</a></td>
+<td>Apache 2.0；供料列出多框架 OpenTelemetry 接入及 trace、评估、治理能力，定位仍是观测层。</td>
+</tr>
+</tbody>
+</table>
+<p><strong>选型结论</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>当前目标</th>
+<th>优先候选或原则</th>
+<th>决策理由与限制</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>尽快覆盖聊天展示、进度、回放、审批和成本</td>
+<td><strong>Flightdeck</strong></td>
+<td>在本次供料清单中覆盖最全面，先做多 Agent 与 ACP 适配 spike，不把功能表当作已集成。</td>
+</tr>
+<tr>
+<td>需要开放控制台、自定义 Kanban 与较深前端改造</td>
+<td><strong>OpenHands Agent Canvas</strong></td>
+<td>一体控制台与 Apps 机制更开放；同样必须实测 ACP、扩展接口与六员进程适配。</td>
+</tr>
+<tr>
+<td>防止前端反向耦合执行逻辑</td>
+<td><strong>Cato 单向数据流</strong></td>
+<td>作为两种候选共同遵守的架构约束，不要求必须采用 Cato 产品。</td>
+</tr>
+<tr>
+<td>短期把现有配置/Markdown 变成静态全景图</td>
+<td><strong>Lattice</strong></td>
+<td>成本低、适合文档化展示；不能据此宣称拥有实时 N1—N6 状态。</td>
+</tr>
+<tr>
+<td>LangGraph Server 原生对话、调试与状态分叉</td>
+<td><strong>LangSmith Studio + Agent Chat UI</strong></td>
+<td>与 LangGraph 方向最贴近，应纳入对照；其 Studio/Chat UI 的开源与部署边界不同。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="how接入-langgraph-前端交付栈并展示-n1n6">HOW：接入 LangGraph 前端交付栈并展示 N1—N6</h3>3
+<ol>
+<li>
+<p><strong>用同一场景做两候选 spike，再定唯一前端。</strong> 将 Flightdeck 与 OpenHands Agent Canvas 作为实现候选，准备同一份离线任务夹具：两个 Agent、一次 N5 验收失败退回 N4、一次断线重连。分别记录 ACP 实际接入方式、支持的事件字段、聊天与看板同步、扩展点、所需改动、资源占用和许可证复核结果。供料只证明候选方向，不证明六员已经提供 ACP 接口；若某成员没有对应适配器，应先补协议适配，不能在前端伪造事件。完成对照后只保留一套主前端，避免双看板成为新的状态分叉。</p>
+</li>
+<li>
+<p><strong>从权威状态生成只读投影。</strong> LangGraph 总网改造已经规定 N1—N6 映射为显式 state graph，并以 durable execution、结构化 trace、任务状态契约作为地基。[本1] 前端不复刻这套状态机，建议采用以下单向链路：</p>
+</li>
+</ol>
+<p><code>text
+   LangGraph state/checkpoint + tasks/inbox + trace/receipt
+       → 只读投影接口
+       → 前端事件适配器（ACP 只承担多 Agent 接入适配）
+       → 聊天流 + N1—N6 DAG/Kanban + 证据下钻</code></p>
+<p>投影是本地集成设计，不是上述产品的现成字段。最小字段可定为 <code>task_id</code>、<code>node</code>、<code>node_state</code>、<code>owner</code>、<code>last_event_seq</code>、<code>artifact_ref</code>、<code>receipt_ref</code>、<code>trace_ref</code>、<code>updated_at</code>。<code>node_state</code> 必须由图事件或任务状态转换而来，禁止前端用计时器猜进度；<code>receipt_ref</code> 未通过时不得显示 <code>done</code>。聊天与看板使用同一 <code>task_id + last_event_seq</code> 排序和去重，trace/receipt 只保存引用，不把敏感正文复制进浏览器。</p>
+<ol start="3">
+<li><strong>把六个节点映射成可验收的视图。</strong> 不只画六个静态方框，而要为每个节点绑定真实状态和证据：</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>看板节点</th>
+<th>主要展示内容</th>
+<th>完成/回流的依据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>N1 分诊</td>
+<td>任务、A/B/C 档、路由结果</td>
+<td>档位已写入任务状态；越权或不可逆任务升 C</td>
+</tr>
+<tr>
+<td>N2 规划</td>
+<td>全景图、方案与待澄清项</td>
+<td>信息不足回到澄清，不进入派单</td>
+</tr>
+<tr>
+<td>N3 派单</td>
+<td>子单、执行者、写集、门禁结果</td>
+<td>guard 未通过不能显示已派出</td>
+</tr>
+<tr>
+<td>N4 执行</td>
+<td>Agent 对话/工具摘要、心跳、当前产物</td>
+<td>子单失败或验收回流时保持非完成态</td>
+</tr>
+<tr>
+<td>N5 验收</td>
+<td>检查命令、退出码、receipt、失败项</td>
+<td>未全绿不得显示 done；失败显示返回 N4 的边</td>
+</tr>
+<tr>
+<td>N6 收口</td>
+<td>最终产物、沉淀去向、清理结果</td>
+<td>收口完成后归档，并保留证据链接</td>
+</tr>
+</tbody>
+</table>
+<ol start="4">
+<li>
+<p><strong>将展示与命令通道分开。</strong> 默认页面只读，通过投影接口取数，不直连数据库修改任务或 checkpoint。确需从聊天框发新任务、批准中断或重试时，另走带鉴权、任务版本和幂等键的命令 API；命令结果仍由 LangGraph 状态与事件回流到页面。这样既能保留 OpenHands/Agent Chat UI 的交互能力，也不破坏 Cato 式单向展示原则。</p>
+</li>
+<li>
+<p><strong>用正例和反例验收集成。</strong> 正例跑通 N1→N6，核对聊天、看板、trace 指向同一任务；反例至少覆盖 N5 失败回流 N4、重复事件不重复渲染、断线重连不漏事件、receipt 未绿不出现 done、静态 Lattice 图不被标成实时状态。最终交付栈保持为 <strong>LangGraph 权威状态 + 只读投影 + Flightdeck 或 OpenHands 主前端 + LangSmith/Langfuse 等 trace 下钻</strong>，而不是另建一个与总网竞争的前端状态库。</p>
+</li>
+</ol>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库六员协同靠的不是对话，而是一张带约束的任务表（<code>scripts/sql/shared_task_bus_ddl.sql</code>，本次读源码）</strong>：<br />
+<code>sql
+  owner         TEXT NOT NULL CHECK (length(trim(owner)) &gt; 0),      -- 执行人(被派单方, 六员之一)
+  closer        TEXT NOT NULL CHECK (length(trim(closer)) &gt; 0),     -- 收口人(必填: 无收口人不得建单)
+  state         TEXT NOT NULL DEFAULT 'pending'
+                CHECK (state IN ('pending','claimed','done','failed')),</code><br />
+<strong>「无收口人不得建单」是数据库层约束</strong>——协同中最常见的失败不是执行失败，是「没人收口」，本库把它写成了 schema 检查。</li>
+<li><strong>防双抢用 fencing token</strong>：<code>scripts/task_bus.py</code> <code>task_claim()</code>（L133）抢单返回 <code>claim_token</code>，后续 <code>task_heartbeat()</code>/<code>task_complete()</code> 都要验 token；心跳超 TTL 由 <code>sweep()</code>（L434）回收。<strong>多 Agent 协作的并发问题，本质是分布式锁问题</strong>。</li>
+<li><strong>结果回传是 append-only</strong>：<code>inbox</code> 表 <code>state IN ('unread','read','acked')</code>，执行人回写结果、收口人 <code>inbox_take → inbox_ack</code> 逐级确认——避免「结果被吞」和「谁看过了说不清」。</li>
+<li><strong>工具选型在本库是「按岗职派」</strong>：执行/批量 → DSH，开发/写码 → Codex，验/审 → Claude，测试/审查 → OC，小运维 → Qwen，规划 → Hermes；<code>dispatch-guard.py</code> 会给路由建议，但要与岗职表<strong>双重核对</strong>。</li>
+<li><strong>和课件讲法的差异</strong>：课件讲 A2A 协议（Agent Card / Task 生命周期）；本库用的是<strong>同一套语义的简化版</strong>（tasks 表 + inbox），没有标准协议栈，但字段名与 A2A 对齐（<code>task_id</code>/<code>state</code>/<code>owner</code>）。</li>
+<li><strong>本库暂无</strong>：六员之间没有实时消息总线（靠库轮询），也没有标准 Agent Card 交换。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库六员协同的真实总线是 SQLite 任务表：<code>~/.hermes/shared-state.db</code> 的 <code>tasks</code>（<code>owner</code>/<code>closer</code> 双必填、<code>state IN (pending,claimed,done,failed)</code>）+ <code>inbox</code>（append-only 结果回传），DDL 见 <code>scripts/sql/shared_task_bus_ddl.sql</code>。</li>
+<li><strong>读源码</strong>：六员分工；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">来源与三源融合落点</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>[课1] 课件：DeepAgent框架，子代理适用/不推荐场景、字典式 SubAgent 与主代理示例，转化为拆卡与交接条件</li><li>[书1] 书籍摘录：Codex提效手册，划线 3、8、12、18，支持项目指令、人工核验、数据类型风险与计划先行</li><li>[书2] 书籍摘录：Harness工程：从上下文管理到Agent系统构建，划线 4、15、20，支持异构模型策略、上下文污染与规划执行反思</li></ul></div>2
+<ul>
+<li><strong>[课1] 课件</strong>：<a href="../../raw/courseware/%E9%A3%9E%E4%B9%A6%E6%96%B0%E7%A9%BA%E9%97%B4/DeepAgent%E6%A1%86%E6%9E%B6.md">DeepAgent框架</a>，子代理适用/不推荐场景、字典式 SubAgent 与主代理示例，转化为拆卡与交接条件。</li>
+<li><strong>[书1] 书籍摘录</strong>：<a href="../../raw/weread/Codex%E6%8F%90%E6%95%88%E6%89%8B%E5%86%8C.md">Codex提效手册</a>，划线 3、8、12、18，支持项目指令、人工核验、数据类型风险与计划先行。</li>
+<li><strong>[书2] 书籍摘录</strong>：<a href="../../raw/weread/Harness%E5%B7%A5%E7%A8%8B%EF%BC%9A%E4%BB%8E%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%88%B0Agent%E7%B3%BB%E7%BB%9F%E6%9E%84%E5%BB%BA.md">Harness工程：从上下文管理到Agent系统构建</a>，划线 4、15、20，支持异构模型策略、上下文污染与规划执行反思。</li>
+<li><strong>[业1] 官方</strong>：<a href="https://developers.openai.com/codex/cli/reference">Codex CLI reference</a>，2026-11-03 GET 200；说明 CLI 接口，不证明本机当前可用模型或授权。</li>
+<li><strong>[业2] 官方</strong>：<a href="https://developers.openai.com/codex/guides/agents-md">AGENTS.md discovery</a>，2026-11-03 GET 200，支持目录发现与覆盖顺序。</li>
+<li><strong>[业3] 行业调研·一手源</strong>：<a href="../../raw/sources/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%8D%8F%E5%90%8C%E5%89%8D%E7%AB%AF-%E4%B8%9A%E5%86%85%E5%B7%A5%E5%85%B7%E5%AF%B9%E6%AF%94-20261102.md">多智能体协同前端聊天展示系统—业内工具对比</a>，2026-11-02 供料；四档清单、Flightdeck/OpenHands/Cato/Lattice 选型与 ACP 描述按其中所列一手源融合，工具原始链接见本节表格。本次未独立运行工具或重新 GET，未验证六员适配。</li>
+<li><strong>[本1] 本地制度</strong>：<a href="../../raw/_task_orders/%E6%80%BB%E5%9C%B0%E5%9B%BE.md">总地图</a>，N1—N6、LangGraph 显式状态图、N3—N6、角色表、配置串行与凭据边界。本地约定不是产品官方能力排名。</li>
+</ul>
+<p>交接程序为原创离线示例；未启动六员模型任务、未读取配置或凭据。实际验证见<a href="00-%E8%9E%8D%E5%90%88%E6%B8%85%E5%8D%95%E4%B8%8E%E9%AA%8C%E6%94%B6.html">融合清单</a>。</p></div></details></div></body></html>

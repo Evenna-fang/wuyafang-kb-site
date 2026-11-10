@@ -1,0 +1,321 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>00-融合清单与验收</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 00-融合清单与验收</span></div><div class="wrap"><h1 id="l8-fde-三源融合主题收敛替换与验收记录">L8-FDE 三源融合：主题收敛、替换与验收记录</h1>
+<p>本文件为维护清单，不是第十四篇主题正文。17 篇旧文规划收敛为 13 篇；13 个现有路径已完成融合，4 个散篇已完成 <code>cp</code> 备份与 SHA-256 比对，但原路径删除被环境安全 hook 拦截，<strong>尚未完成最终收敛</strong>。<br />
+三源为本地 Agent/RAG/私有化/多模态课件、书籍目录与热门划线摘录、公开官方文档及业内作者原文；未把摘录声称为书籍全文。《The Mom Test》仍只按既有二手摘要使用。<br />
+核验日期：2026-11-04。只写 L8-FDE交付 wiki Markdown 和任务要求的目录外备份；未修改 raw、ontology、其他层、RAG 索引或 HTML 产物。</p>
+<h2 id="主题收敛与字数">主题收敛与字数</h2>2
+<p>汉字数：去掉 frontmatter 和 fenced code 后，统计 Unicode U+4E00—U+9FFF；非空白字符：全文含元数据、代码、标点。下表统计的是删除前已完成融合的 13 篇唯一正文。</p>
+<table>
+<thead>
+<tr>
+<th>主题</th>
+<th>唯一正文</th>
+<th style="text-align: right;">合并旧篇数</th>
+<th style="text-align: right;">正文汉字数</th>
+<th style="text-align: right;">全文非空白字符</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FDE交付总纲与DDDR</td>
+<td><a href="FDE%E4%BA%A4%E4%BB%98%E6%80%BB%E7%BA%B2-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">FDE交付总纲-最佳答案.md</a></td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">2136</td>
+<td style="text-align: right;">4943</td>
+</tr>
+<tr>
+<td>需求挖掘与立项评估</td>
+<td><a href="L8-1-%E9%9C%80%E6%B1%82%E6%8C%96%E6%8E%98-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L8-1-需求挖掘-最佳答案.md</a></td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">3065</td>
+<td style="text-align: right;">5613</td>
+</tr>
+<tr>
+<td>Ontology构建</td>
+<td><a href="L8-2-Ontology%E6%9E%84%E5%BB%BA-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L8-2-Ontology构建-最佳答案.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2035</td>
+<td style="text-align: right;">6607</td>
+</tr>
+<tr>
+<td>私有化离线部署</td>
+<td><a href="L8-3-%E7%A7%81%E6%9C%89%E5%8C%96%E9%83%A8%E7%BD%B2-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L8-3-私有化部署-最佳答案.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1530</td>
+<td style="text-align: right;">6483</td>
+</tr>
+<tr>
+<td>多模态交付</td>
+<td><a href="L8-4-%E5%A4%9A%E6%A8%A1%E6%80%81%E4%BA%A4%E4%BB%98-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L8-4-多模态交付-最佳答案.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1454</td>
+<td style="text-align: right;">5823</td>
+</tr>
+<tr>
+<td>失败预防与案例库</td>
+<td><a href="L8-6-%E5%A4%B1%E8%B4%A5%E6%A1%88%E4%BE%8B%E5%BA%93-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L8-6-失败案例库-最佳答案.md</a></td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">4461</td>
+<td style="text-align: right;">7957</td>
+</tr>
+<tr>
+<td>Discover现场执行</td>
+<td><a href="L8-Discover%E6%89%A7%E8%A1%8C-%E4%BB%8E%E7%8E%B0%E5%9C%BA%E5%8F%91%E7%8E%B0%E5%88%B0%E5%8F%AF%E8%AF%81%E4%BC%AA%E8%AF%95%E7%82%B9-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L8-Discover执行-从现场发现到可证伪试点-深挖整合.md</a></td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">7958</td>
+<td style="text-align: right;">12507</td>
+</tr>
+<tr>
+<td>FDE交付方法论全景</td>
+<td><a href="L8-FDE%E4%BA%A4%E4%BB%98%E6%96%B9%E6%B3%95%E8%AE%BA%E5%85%A8%E6%99%AF-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L8-FDE交付方法论全景-深挖整合.md</a></td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">14379</td>
+<td style="text-align: right;">24383</td>
+</tr>
+<tr>
+<td>交付模板与门禁</td>
+<td><a href="L8-%E4%BA%A4%E4%BB%98%E6%A8%A1%E6%9D%BF%E5%BA%93%E4%B8%8E%E9%97%A8%E7%A6%81-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L8-交付模板库与门禁-深挖整合.md</a></td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">13263</td>
+<td style="text-align: right;">20495</td>
+</tr>
+<tr>
+<td>失败案例深拆</td>
+<td><a href="L8-%E5%A4%B1%E8%B4%A5%E6%A1%88%E4%BE%8B%E6%B7%B1%E6%8B%86-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L8-失败案例深拆-深挖整合.md</a></td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">14509</td>
+<td style="text-align: right;">23590</td>
+</tr>
+<tr>
+<td>客户场景模式库</td>
+<td><a href="L8-%E5%AE%A2%E6%88%B7%E5%9C%BA%E6%99%AF%E6%A8%A1%E5%BC%8F%E5%BA%93-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L8-客户场景模式库-深挖整合.md</a></td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">12850</td>
+<td style="text-align: right;">16641</td>
+</tr>
+<tr>
+<td>Ontology/私有化/多模态技术专项</td>
+<td><a href="L8-%E6%8A%80%E6%9C%AF%E4%B8%93%E9%A1%B9-Ontology%E7%A7%81%E6%9C%89%E5%8C%96%E5%A4%9A%E6%A8%A1%E6%80%81-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L8-技术专项-Ontology私有化多模态-深挖整合.md</a></td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">13692</td>
+<td style="text-align: right;">24069</td>
+</tr>
+<tr>
+<td>需求挖掘与客户访谈</td>
+<td><a href="L8-%E9%9C%80%E6%B1%82%E6%8C%96%E6%8E%98%E4%B8%8E%E5%AE%A2%E6%88%B7%E8%AE%BF%E8%B0%88-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L8-需求挖掘与客户访谈-深挖整合.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">13405</td>
+<td style="text-align: right;">18233</td>
+</tr>
+</tbody>
+</table>
+<h2 id="17-篇逐项去向与删除清单">17 篇逐项去向与删除清单</h2>2
+<p>备份目录：<code>wiki/_merge_backups/L8-FDE交付-20261104/</code>。该目录在 L8 正文目录之外，不计为现役正文；4 个备份均与下表原始 SHA-256 一致。</p>
+<table>
+<thead>
+<tr>
+<th>原文件</th>
+<th>处理</th>
+<th>唯一去向</th>
+<th>原始 SHA-256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FDE交付总纲-最佳答案.md</td>
+<td>原路径融合重写</td>
+<td><a href="FDE%E4%BA%A4%E4%BB%98%E6%80%BB%E7%BA%B2-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">FDE交付总纲-最佳答案.md</a></td>
+<td><code>bd06e22203e17d8b1bae871eed867c9d5fa027637aae96fa3ee0395f3c3e2582</code></td>
+</tr>
+<tr>
+<td>L8-1-需求挖掘-最佳答案.md</td>
+<td>原路径融合重写</td>
+<td><a href="L8-1-%E9%9C%80%E6%B1%82%E6%8C%96%E6%8E%98-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L8-1-需求挖掘-最佳答案.md</a></td>
+<td><code>953c4c0f1b726b54de623b82c34622891bb4d4a34e76ea94373371dd275286c6</code></td>
+</tr>
+<tr>
+<td>L8-2-Ontology构建-2026.md</td>
+<td>已备份；删除受 hook 阻塞，待处理</td>
+<td><a href="L8-2-Ontology%E6%9E%84%E5%BB%BA-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L8-2-Ontology构建-最佳答案.md</a></td>
+<td><code>984a6088ad2c17fbf2b7d68fa644f21d1774f217e4c5beadb8b9b74c5fbf3f78</code></td>
+</tr>
+<tr>
+<td>L8-2-Ontology构建-最佳答案.md</td>
+<td>原路径融合重写</td>
+<td><a href="L8-2-Ontology%E6%9E%84%E5%BB%BA-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L8-2-Ontology构建-最佳答案.md</a></td>
+<td><code>adab49b9b29a86169eaa6e3e3cfad8d15ec1ca5be75d79d134c502269ead9e9b</code></td>
+</tr>
+<tr>
+<td>L8-3-私有化部署-2026.md</td>
+<td>已备份；删除受 hook 阻塞，待处理</td>
+<td><a href="L8-3-%E7%A7%81%E6%9C%89%E5%8C%96%E9%83%A8%E7%BD%B2-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L8-3-私有化部署-最佳答案.md</a></td>
+<td><code>b4861049610f94f4654d677e9489f56fd438e0c718bd1b19ea48579765ab733d</code></td>
+</tr>
+<tr>
+<td>L8-3-私有化部署-最佳答案.md</td>
+<td>原路径融合重写</td>
+<td><a href="L8-3-%E7%A7%81%E6%9C%89%E5%8C%96%E9%83%A8%E7%BD%B2-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L8-3-私有化部署-最佳答案.md</a></td>
+<td><code>08ca0180a286d8315d7d65b260d29dd1fa4fef26cf50e3e48cf907fc0221e10f</code></td>
+</tr>
+<tr>
+<td>L8-4-多模态交付-2026.md</td>
+<td>已备份；删除受 hook 阻塞，待处理</td>
+<td><a href="L8-4-%E5%A4%9A%E6%A8%A1%E6%80%81%E4%BA%A4%E4%BB%98-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L8-4-多模态交付-最佳答案.md</a></td>
+<td><code>a1becca5a90a6ab7761b50b3f21b6380cb24801b5a5c19bb21443da4f804c1ff</code></td>
+</tr>
+<tr>
+<td>L8-4-多模态交付-最佳答案.md</td>
+<td>原路径融合重写</td>
+<td><a href="L8-4-%E5%A4%9A%E6%A8%A1%E6%80%81%E4%BA%A4%E4%BB%98-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L8-4-多模态交付-最佳答案.md</a></td>
+<td><code>7e287bd35840b7e1f8003044336f868e2ef8241585d457494c18ef6d1aba2dd2</code></td>
+</tr>
+<tr>
+<td>L8-6-失败案例库-最佳答案.md</td>
+<td>原路径融合重写</td>
+<td><a href="L8-6-%E5%A4%B1%E8%B4%A5%E6%A1%88%E4%BE%8B%E5%BA%93-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L8-6-失败案例库-最佳答案.md</a></td>
+<td><code>5b0e67d1510b770764e6caea0a672a7075371a924bc3e319a55a53cc8cf11e33</code></td>
+</tr>
+<tr>
+<td>L8-Discover执行-从现场发现到可证伪试点-深挖整合.md</td>
+<td>原路径融合重写</td>
+<td><a href="L8-Discover%E6%89%A7%E8%A1%8C-%E4%BB%8E%E7%8E%B0%E5%9C%BA%E5%8F%91%E7%8E%B0%E5%88%B0%E5%8F%AF%E8%AF%81%E4%BC%AA%E8%AF%95%E7%82%B9-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L8-Discover执行-从现场发现到可证伪试点-深挖整合.md</a></td>
+<td><code>ba2ec0db21e98e0e7182598fa3779d4978d796bf1ae5e934767a40f6d1d7f1f0</code></td>
+</tr>
+<tr>
+<td>L8-FDE交付方法论全景-深挖整合.md</td>
+<td>原路径融合重写</td>
+<td><a href="L8-FDE%E4%BA%A4%E4%BB%98%E6%96%B9%E6%B3%95%E8%AE%BA%E5%85%A8%E6%99%AF-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L8-FDE交付方法论全景-深挖整合.md</a></td>
+<td><code>d272621ceecc80320b677f726b48ed5e424592fe9cab585113158f8022e7fa2c</code></td>
+</tr>
+<tr>
+<td>L8-交付模板库与门禁-深挖整合.md</td>
+<td>原路径融合重写</td>
+<td><a href="L8-%E4%BA%A4%E4%BB%98%E6%A8%A1%E6%9D%BF%E5%BA%93%E4%B8%8E%E9%97%A8%E7%A6%81-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L8-交付模板库与门禁-深挖整合.md</a></td>
+<td><code>ca169ac67ec60513e1597162e29e3dff8e749ac11f86cf3e0980cde0dd33b643</code></td>
+</tr>
+<tr>
+<td>L8-失败案例深拆-深挖整合.md</td>
+<td>原路径融合重写</td>
+<td><a href="L8-%E5%A4%B1%E8%B4%A5%E6%A1%88%E4%BE%8B%E6%B7%B1%E6%8B%86-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L8-失败案例深拆-深挖整合.md</a></td>
+<td><code>f5468c3520811d5512945af789f5c4633f77a8b257ed9c9dd0318b758e7b1244</code></td>
+</tr>
+<tr>
+<td>L8-客户场景模式库-深挖整合.md</td>
+<td>原路径融合重写</td>
+<td><a href="L8-%E5%AE%A2%E6%88%B7%E5%9C%BA%E6%99%AF%E6%A8%A1%E5%BC%8F%E5%BA%93-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L8-客户场景模式库-深挖整合.md</a></td>
+<td><code>284f81c3dc4d4ffea26aa7f8484c996836e23b614a10a1e18b7781b74085fcbc</code></td>
+</tr>
+<tr>
+<td>L8-技术专项-Ontology私有化多模态-深挖整合.md</td>
+<td>原路径融合重写</td>
+<td><a href="L8-%E6%8A%80%E6%9C%AF%E4%B8%93%E9%A1%B9-Ontology%E7%A7%81%E6%9C%89%E5%8C%96%E5%A4%9A%E6%A8%A1%E6%80%81-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L8-技术专项-Ontology私有化多模态-深挖整合.md</a></td>
+<td><code>890adb2d449c410caa263a3cf3adad38971dfc146330d50969b354b128fcbaaa</code></td>
+</tr>
+<tr>
+<td>L8-需求挖掘与客户访谈-深挖整合.md</td>
+<td>原路径融合重写</td>
+<td><a href="L8-%E9%9C%80%E6%B1%82%E6%8C%96%E6%8E%98%E4%B8%8E%E5%AE%A2%E6%88%B7%E8%AE%BF%E8%B0%88-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L8-需求挖掘与客户访谈-深挖整合.md</a></td>
+<td><code>492fd2e297b47e3d7d3f852d3bb7f41a472a28f9849df4ecf711de140ba0ece0</code></td>
+</tr>
+<tr>
+<td>中小微企业AI改造怎么做.md</td>
+<td>已备份；删除受 hook 阻塞，待处理</td>
+<td><a href="L8-%E9%9C%80%E6%B1%82%E6%8C%96%E6%8E%98%E4%B8%8E%E5%AE%A2%E6%88%B7%E8%AE%BF%E8%B0%88-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L8-需求挖掘与客户访谈-深挖整合.md</a></td>
+<td><code>3a3241743d4b3d6dc460e134cf6fd9dde37c038362827b1e3514d0b43dd5c235</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="内容纠偏与证据边界">内容纠偏与证据边界</h2>2
+<ul>
+<li>每篇均新增明确的“课件 / 书籍或摘录 / 业内 / 论文结论→执行动作”落点；引用本地 raw 路径逐一核实存在，没有声称阅读书籍全文。</li>
+<li>使用 arXiv-daily 的 7 篇论文：arXiv:2610.31606、2610.31636、2610.31657、2610.20576、2610.20578、2610.31385、2610.37657；分别落到证据标注版本、语料审计转测试、成本敏感转人工、接口扰动、只读镜像、多模态证据充分性和注入负例。</li>
+<li>9360→2400 元、75% 小模型、74% 节省、80% 幻觉根因、制造业一年省 200 万等口径均标为单项目或素材转述，未独立复测，不能外推为收益承诺。</li>
+<li>私有化首 token、吞吐、冷启动、P95 与多模态 ASR/TTS/延迟数字改为项目目标，须固定版本、样本、并发和统计口径实测；未写成通用通过结果。</li>
+<li>Ontology Action 是依赖客户事务的接口骨架，未实跑；多模态旧模型调用片段不是完整可运行管线。不得混用 ColPali/ColQwen2 与其他编码器向量空间，也不得混用单向量与多向量集合配置。</li>
+<li>新增五个标准库脚本只验证 DDDR 字段、访谈结构、Ontology 接口归一化、多模态证据定位和标注版本对指标的影响；均使用合成数据，不证明真实业务收益或模型质量。</li>
+<li>原失效链接已改指保留正文；三篇 2026 旧文中的错误包名、向量协议和“完整可跑”表述没有作为新操作步骤扩散。</li>
+</ul>
+<h2 id="预埋-check-与原始验证输出">预埋 check 与原始验证输出</h2>2
+<ul>
+<li>17 个原始文件均有唯一映射和原始 SHA-256；13 个主题各有唯一正文。4 篇旧文备份完成，但原路径尚存在，删除验收未通过。</li>
+<li>13/13 含独立 WHY、WHAT / WHYT、HOW；13/13 含课件、书籍、业内来源及 arXiv-daily 论文落点。</li>
+<li>65 个 fenced code 块围栏配对；5 个 Python 块 AST 通过；21 个 Bash 块语法通过。Bash 语法检查不等于部署或模型管线实跑。</li>
+<li>5 个新增离线标准库脚本实跑退出码均为 0；私有化 4 个 Bash 块仅做语法检查，未在客户硬件执行。</li>
+<li>13 篇保留正文的 17 个本地 Markdown 链接目标存在；新增反引号 raw 路径缺失数为 0。</li>
+<li>内容采用 substantial 级别；13 篇正文汉字数为 1454—14509，不以统一 8000 字 tutorial 标准冒充要求。</li>
+<li>未创建付费模型任务、未读取凭据、未上传本地内容；本轮未进行外部网络取证。</li>
+</ul>
+<h3 id="新增离线脚本实跑">新增离线脚本实跑</h3>3
+<pre><code class="language-text">[FDE交付总纲-最佳答案.md] bash-n=0 run=0
+DDDR 出口字段检查：PASS（仅检查结构，不证明业务收益）
+[L8-1-需求挖掘-最佳答案.md] bash-n=0 run=0
+访谈出口结构：PASS；baseline/owner 仍须补证，不得进入自动上线
+[L8-2-Ontology构建-最佳答案.md] bash-n=0 run=0
+Ontology 接口扰动契约：PASS（未执行真实 Action）
+[L8-4-多模态交付-最佳答案.md] bash-n=0 run=0
+多模态证据定位结构：PASS；证据充分性与答案正确性仍需人工评分
+[L8-6-失败案例库-最佳答案.md] bash-n=0 run=0
+同排名不同标注版本：v1=1.00, v2=0.50；不得直接归因于模型
+[私有化 bash 块 1—4] bash-n=0
+RESULT PASS：5 个标准库脚本实跑通过，私有化 Bash 块语法通过（未做客户环境部署）
+</code></pre>
+<h3 id="备份与删除状态">备份与删除状态</h3>3
+<pre><code class="language-text">BACKUP_OK  L8-2-Ontology构建-2026.md  984a6088ad2c17fbf2b7d68fa644f21d1774f217e4c5beadb8b9b74c5fbf3f78
+BACKUP_OK  L8-3-私有化部署-2026.md  b4861049610f94f4654d677e9489f56fd438e0c718bd1b19ea48579765ab733d
+BACKUP_OK  L8-4-多模态交付-2026.md  a1becca5a90a6ab7761b50b3f21b6380cb24801b5a5c19bb21443da4f804c1ff
+BACKUP_OK  中小微企业AI改造怎么做.md  3a3241743d4b3d6dc460e134cf6fd9dde37c038362827b1e3514d0b43dd5c235
+ORIGINAL_ABSENT 0/4（删除命令被 PreToolUse 安全 hook 拦截；未绕过）
+</code></pre>
+<h2 id="目录外引用影响">目录外引用影响</h2>2
+<p>只读扫描 wiki 目录，2 个目录外 Markdown 文件含待删除文件名引用。遵守本单边界未修改这些文件，也未重建总入口、RAG 或图谱；删除后需按下表唯一去向另行同步。</p>
+<ul>
+<li><code>wiki/AI应用工程师能力知识图谱-终版-20261014.md</code>：L8-2-Ontology构建-2026.md、L8-3-私有化部署-2026.md、L8-4-多模态交付-2026.md、中小微企业AI改造怎么做.md。</li>
+<li><code>wiki/.bak-linksources-20261030/L9-全栈工程/轻量微调与部署实操.md</code>：L8-3-私有化部署-2026.md。</li>
+</ul>
+<h2 id="收口">收口</h2>2
+<p><strong>当前未收口。</strong> 已落盘 13 篇融合正文和 1 篇维护清单；三源、论文、三段、代码语法、5 个离线脚本和正文链接检查通过。4 篇旧散篇已备份且哈希一致，但原路径仍存在，根目录当前为 17 篇旧/正文加本清单，尚未达到“13 篇正文 + 1 篇清单”。</p>
+<p>剩余唯一动作是经环境允许的方式删除上述 4 个已备份原路径，再复跑删除与目录计数检查并更新本节；在此之前不得声称融合任务全部完成或验收全绿。</p></div></body></html>

@@ -1,0 +1,1165 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L5-Agent工程-课件实操</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/L5-Agent工程-课件实操</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="l5-agent">L5 Agent 工程 · 课件实操代码库</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a>
+这是 L5 章的实操部分，配合 <a href="L5-Agent工程-最佳答案.html">L5-Agent工程-最佳答案.md</a>（原理部分）一起看。
+本文代码全部来自飞书课件 2603 期 Agent 篇 17 个 day 的真实授课代码，保留关键骨架并补充参数说明与常见坑。代码以"能跑"为目标，删除了部分冗余注释与被注释掉的旧实现，只留最有代表性的片段。</p>
+</blockquote>
+<hr />
+<h2 id="fastapiday01-day02">一、后端基础：FastAPI（day01-day02）</h2>
+<blockquote>
+<p>飞书课件定位：用 FastAPI 给后面的 RAG / Agent 应用做一层 HTTP 壳。这部分代码量不大，但<strong>参数校验、异步模型、文件上传</strong>这三件事是后面所有 Agent API 服务要反复复用的。</p>
+</blockquote>
+<h3 id="11-fastapi-day01">1.1 FastAPI 最小示例 + 路径/查询参数（来源：day01）</h3>
+<pre><code class="language-python">from enum import Enum
+from typing import Annotated
+import uvicorn
+from fastapi import FastAPI, Path, Query
+
+class ModelName(str, Enum):
+    English = &quot;英语&quot;
+    Chinese = &quot;中文&quot;
+    French  = &quot;法语&quot;
+
+app = FastAPI()
+
+# 1) 路径参数 + 枚举校验：?model_name=xxx 不在枚举里直接 422
+@app.get(&quot;/models/{model_name}&quot;)
+async def get_model(model_name: ModelName):
+    if model_name is ModelName.English:
+        return {&quot;model_name&quot;: model_name, &quot;message&quot;: &quot;这是英文&quot;}
+    if model_name.value == &quot;中文&quot;:
+        return {&quot;model_name&quot;: model_name, &quot;message&quot;: &quot;这是中文&quot;}
+    return {&quot;model_name&quot;: model_name, &quot;message&quot;: &quot;这是法语&quot;}
+
+# 2) 路径参数 + 元数据（Swagger 里会显示 description）
+@app.get(&quot;/users/{id}&quot;)
+async def get_user(id: Annotated[int, Path(description=&quot;用户id&quot;)]):
+    return {&quot;id&quot;: id, &quot;message&quot;: f&quot;这是用户id为{id}的人&quot;}
+
+# 3) 查询参数：有默认值 = Query 参数（?skip=0&amp;limit=5）
+fake_items = [{&quot;item_name&quot;: n} for n in
+              [&quot;苹果&quot;,&quot;香蕉&quot;,&quot;橙子&quot;,&quot;笔记本电脑&quot;,&quot;无线鼠标&quot;]]
+
+@app.get(&quot;/items/&quot;)
+async def read_item(skip: int = 0,
+                    limit: Annotated[int, Query(description=&quot;条数&quot;)] = 5):
+    return fake_items[skip: skip + limit]
+
+if __name__ == &quot;__main__&quot;:
+    uvicorn.run(app)
+</code></pre>
+<p><strong>关键坑</strong>：
+- 接口匹配是按"从上往下"的顺序。<code>/root/{id}</code> 必须写在 <code>/root/test</code> 后面，否则 test 会被当成 id 匹配掉。
+- <code>Annotated[int, Path()]</code> 的第一个位置参数必须是类型，后面才是元数据；不要把类型省略。
+- 启动后访问 <code>http://127.0.0.1:8000/docs</code> 自动拿到 Swagger UI，这是 FastAPI 免费送的。</p>
+<h3 id="12-pydantic-day01">1.2 Pydantic 请求体校验（来源：day01）</h3>
+<pre><code class="language-python">from typing import Annotated
+import uvicorn
+from fastapi import FastAPI, Body
+from pydantic import BaseModel, Field
+
+class Item(BaseModel):
+    name: str = Field(description=&quot;商品名称&quot;)
+    # 字符串长度约束用 max_length；数值约束用 ge / le / lt / gt
+    description: str | None = Field(default=None, description=&quot;商品描述&quot;, max_length=100)
+    price: float = Field(description=&quot;商品价格&quot;, ge=0, le=5000)
+    tax: float | None = None
+
+app = FastAPI()
+
+@app.post(&quot;/items/&quot;)
+async def create_item(item: Annotated[list[Item], Body(embed=True)]):
+    item_dict = item[0].model_dump()
+    if item[0].tax is not None:
+        item_dict[&quot;price_with_tax&quot;] = item[0].price + item[0].tax
+    return item_dict
+
+if __name__ == &quot;__main__&quot;:
+    uvicorn.run(app, host=&quot;127.0.0.1&quot;, port=8000)
+</code></pre>
+<p><strong>参数怎么调</strong>：
+- <code>ge=0, le=5000</code> 是数值范围；字符串要用 <code>max_length=100</code>、<code>min_length=2</code>，不要混用。
+- <code>Body(embed=True)</code> 表示请求体长这样：<code>{"item": {...}}</code>，不加 embed 则直接是 <code>{...}</code>。批量接收列表时经常踩这个坑。
+- <code>model_dump()</code> 把 Pydantic 对象转 dict，是新版本写法（<code>dict()</code> 已 deprecated）。</p>
+<h3 id="13-day01">1.3 文件上传接口（来源：day01）</h3>
+<pre><code class="language-python">import uvicorn
+from fastapi import FastAPI, File, UploadFile
+
+app = FastAPI()
+
+# 方式 A：bytes 一次性读进内存（小文件用）
+@app.post(&quot;/uploadfile/&quot;)
+def create_upload_file(file: bytes = File(description=&quot;以字节形式读取&quot;)):
+    return {&quot;file_size&quot;: len(file)}
+
+# 方式 B：UploadFile 流式（大文件、要拿元数据用这个）
+@app.post(&quot;/uploadfile1/&quot;)
+async def create_upload_file(file: UploadFile = File(description=&quot;流式读取&quot;)):
+    return {&quot;filename&quot;: file.filename,
+            &quot;content_type&quot;: file.content_type,
+            &quot;size&quot;: file.size}
+
+if __name__ == &quot;__main__&quot;:
+    uvicorn.run(app, host=&quot;127.0.0.1&quot;, port=8000)
+</code></pre>
+<p><strong>常见坑</strong>：
+- RAG 场景下传 PDF / 文档建议用 <code>UploadFile</code>，它是 SpooledTemporaryFile（超阈值自动落盘），不会把几百 MB 文件全读进内存。
+- <code>async def</code> + <code>UploadFile</code> 才会享受异步 IO；普通 <code>def</code> 会被丢到线程池。</p>
+<h3 id="14-day02">1.4 前后端分离项目骨架（来源：day02）</h3>
+<p>day02 是一个 FastAPI + Vue 的完整项目，目录结构大致如下，是后面"Agent 产品化"的参考骨架：</p>
+<pre><code>fastapi项目案例/
+├── app/
+│   ├── main.py               # FastAPI 入口
+│   ├── api/v1/                # 路由层：/chat /upload /agent
+│   ├── core/                  # 配置：settings.py、安全
+│   ├── models/                # Pydantic 请求/响应模型
+│   ├── services/              # 业务逻辑（LLM 调用、向量库）
+│   └── utils/
+├── web/                       # Vue 前端（独立 dev server）
+├── requirements.txt
+└── .env                       # DASHSCOPE_API_KEY 等
+</code></pre>
+<p>后端核心约定：
+- 所有路由在 <code>api/v1/</code> 下按资源拆分（<code>chat.py</code> / <code>agent.py</code>），<code>main.py</code> 只 include_router。
+- LLM 客户端在 <code>services/</code> 单例化，避免每个请求都 new 一个 client。
+- 前端通过 <code>VITE_API_BASE=http://127.0.0.1:8000</code> 跨域访问，后端加 CORS middleware。</p>
+<blockquote>
+<p>这部分代码量较大且和业务耦合，课程中没有一个"能独立跑"的最小后端片段，建议直接参考 day02 项目案例的 main.py + chat.py。</p>
+</blockquote>
+<hr />
+<h2 id="llamaindex-day03-day06">二、LlamaIndex 实操（day03-day06）</h2>
+<blockquote>
+<p>飞书课件定位：LlamaIndex = RAG 的"瑞士军刀"。和 LangChain 比，它更偏向数据管道 + 索引引擎。day03 入门，day04 文本切分，day05 摄取管道 + 路由，day06 自定义查询/检索/合成。</p>
+</blockquote>
+<h3 id="21-llmembedding-day03">2.1 索引构建 + 默认 LLM/Embedding 配置（来源：day03）</h3>
+<pre><code class="language-python">from dotenv import load_dotenv
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.llms.dashscope import DashScope
+import os
+
+load_dotenv()
+
+model = &quot;qwen3-max&quot;
+api_key = os.getenv(&quot;DASHSCOPE_API_KEY&quot;)
+api_base = os.getenv(&quot;DASHSCOPE_BASE_URL&quot;)
+
+# LlamaIndex 全局默认配置：以后所有节点/查询引擎都用它
+Settings.llm = DashScope(model_name=model,
+                        api_key=api_key,
+                        api_base_url=api_base)
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=r&quot;D:\llm\Local_model\BAAI\bge-small-zh-v1___5&quot;
+)
+
+# 1) 加载文档（自动按后缀选择 reader）
+documents = SimpleDirectoryReader(input_files=[&quot;../data/公司规章制度.txt&quot;]).load_data()
+# 2) 构建向量索引（内存版；生产上换 Qdrant/Chroma）
+index = VectorStoreIndex.from_documents(documents)
+# 3) 查询引擎 + 提问
+query_engine = index.as_query_engine()
+print(query_engine.query(&quot;公司的上下班时间？&quot;))
+</code></pre>
+<p><strong>关键参数</strong>：
+- <code>Settings.llm</code> / <code>Settings.embed_model</code> 是<strong>全局单例</strong>，改一次全工程生效；不要在每个文件里 new 一个 LLM，会重复加载 embedding 模型。
+- <code>bge-small-zh-v1.5</code> 适合中文，本地加载快；生产建议 <code>bge-large-zh-v1.5</code> 或 <code>bge-m3</code>。
+- <code>VectorStoreIndex.from_documents</code> 内部默认 <code>chunk_size=1024</code>，中文文档建议通过 <code>Settings.chunk_size=512</code> 调小。</p>
+<h3 id="22-functionagent-day03">2.2 FunctionAgent 最小示例（来源：day03）</h3>
+<pre><code class="language-python">import asyncio
+from dotenv import load_dotenv
+from llama_index.core.agent.workflow import FunctionAgent
+from llama_index.llms.dashscope import DashScope
+import os
+
+load_dotenv()
+llm = DashScope(model_name=&quot;qwen3-max&quot;,
+                api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+                api_base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;))
+
+def multiply(a: float, b: float) -&gt; float:
+    &quot;&quot;&quot;两个数相乘并返回乘积&quot;&quot;&quot;
+    return a * b
+
+def add(a: float, b: float) -&gt; float:
+    &quot;&quot;&quot;两个数相加并返回和&quot;&quot;&quot;
+    return a + b
+
+# FunctionAgent = 函数自动被识别为工具，docstring 就是工具描述
+workflow = FunctionAgent(
+    tools=[multiply, add],
+    llm=llm,
+    system_prompt=&quot;你是一个可以使用工具执行基本数学运算的代理。请用中文回答&quot;,
+)
+
+async def main():
+    response = await workflow.run(user_msg=&quot;请计算 20+(2*4)?&quot;)
+    print(response)
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+<p><strong>关键点</strong>：
+- LlamaIndex 的 <code>FunctionAgent</code> 会自动读取函数签名和 docstring 生成工具 schema，<strong>docstring 写得越清楚，模型 tool call 越准</strong>。
+- 千问模型在 LlamaIndex agent 里对某些 tool calling 兼容不好，课件备注建议换 DeepSeek；这是真实踩过的坑。
+- 流式输出用 <code>workflow.stream_events()</code> + <code>AgentStream</code> 事件，不要用 <code>print(response)</code> 阻塞等待。</p>
+<h3 id="23-day04">2.3 文本切分器（来源：day04）</h3>
+<pre><code class="language-python">from llama_index.core.node_parser import CodeSplitter, HierarchicalNodeParser
+from llama_index.core import SimpleDirectoryReader
+
+# 1) 代码切分器：按语言 AST 切，比字符串切分更准
+documents = SimpleDirectoryReader(input_files=[&quot;./03-MarkdownElement解析器.py&quot;]).load_data()
+splitter = CodeSplitter(
+    language=&quot;python&quot;,
+    chunk_lines=50,          # 每块目标行数
+    chunk_lines_overlap=10,  # 块之间重叠行数
+    max_chars=300,          # 单块最大字符
+)
+nodes = splitter.get_nodes_from_documents(documents)
+
+# 2) 层次节点解析器：生成&quot;粗块-细块&quot;两级，配合 AutoMergingRetriever
+node_parser = HierarchicalNodeParser.from_defaults(
+    chunk_sizes=[512, 300],  # 从粗到细的 token 数
+    chunk_overlap=70,
+)
+hier_nodes = node_parser.get_nodes_from_documents(documents)
+</code></pre>
+<p><strong>什么时候用哪个</strong>：
+- 普通中文文档 → <code>SentenceSplitter(chunk_size=512, chunk_overlap=50)</code>（day05 用的就是这个）。
+- 代码仓库 → <code>CodeSplitter</code>。
+- 长文档/制度手册 → <code>HierarchicalNodeParser</code> + <code>AutoMergingRetriever</code>：检索到叶节点后，自动合并回父节点一起喂给 LLM，避免"切太碎导致上下文丢失"。</p>
+<h3 id="24-ingestionpipelineday05">2.4 摄取管道 IngestionPipeline（来源：day05）</h3>
+<pre><code class="language-python">from llama_index.core import SimpleDirectoryReader
+from llama_index.core.ingestion import IngestionPipeline
+from llama_index.core.text_splitter import SentenceSplitter
+from llama_index.core.extractors import TitleExtractor
+
+documents = SimpleDirectoryReader(input_files=[&quot;../data/小说.txt&quot;]).load_data()
+
+# 1) 切分器
+text_splitter = SentenceSplitter(chunk_size=256, chunk_overlap=30)
+# 2) 自动标题抽取器（用 LLM 给每个 chunk 起标题，存进 metadata）
+title_extractor = TitleExtractor(
+    nodes=5,
+    node_template=&quot;请为以下文档生成一个简洁的标题: {context_str}&quot;,
+    num_workers=5,
+)
+
+# 3) 管道 = 切分 → 向量化 → 抽取标题，一次跑完
+pipeline = IngestionPipeline(
+    transformations=[text_splitter, embed_model, title_extractor]
+)
+nodes = pipeline.run(documents=documents)
+for node in nodes:
+    print(node.metadata)
+</code></pre>
+<p><strong>为什么用管道</strong>：
+- 普通 <code>VectorStoreIndex.from_documents</code> 背后就是默认管道；一旦你要加自定义抽取器、 embedding、去重、缓存，就得自己写 <code>IngestionPipeline</code>。
+- <code>num_workers=5</code> 是并行调用 LLM 抽标题的并发数，文档多时显著加速，但不要超过 API QPS 上限。</p>
+<h3 id="25-routerqueryengineday05">2.5 路由索引 RouterQueryEngine（来源：day05）</h3>
+<pre><code class="language-python">from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+from llama_index.core.query_engine import RouterQueryEngine
+from llama_index.core.selectors import LLMSingleSelector
+from llama_index.core.tools import QueryEngineTool, ToolMetadata
+
+# 1) 多个独立文档各自建索引
+tech_docs = SimpleDirectoryReader(input_files=[&quot;../data/java_basics_manual.md&quot;]).load_data()
+product_docs = SimpleDirectoryReader(input_files=[&quot;../data/DeepSeek15天指导手册.pdf&quot;]).load_data()
+tech_index = VectorStoreIndex.from_documents(tech_docs)
+product_index = VectorStoreIndex.from_documents(product_docs)
+
+# 2) 每个索引配一个 query engine，参数不同
+tech_engine = tech_index.as_query_engine(similarity_top_k=3, response_mode=&quot;compact&quot;)
+product_engine = product_index.as_query_engine(similarity_top_k=5, response_mode=&quot;tree_summarize&quot;)
+
+# 3) 包装成&quot;工具&quot;，用 ToolMetadata 描述适用场景
+query_tools = [
+    QueryEngineTool(query_engine=tech_engine,
+                    metadata=ToolMetadata(name=&quot;technical_docs&quot;,
+                                          description=&quot;java 基础技术文档库...&quot;)),
+    QueryEngineTool(query_engine=product_engine,
+                    metadata=ToolMetadata(name=&quot;product_manual&quot;,
+                                          description=&quot;deepseek 使用手册...&quot;)),
+]
+
+# 4) RouterQueryEngine 用 LLM 自动选引擎
+router = RouterQueryEngine(
+    selector=LLMSingleSelector.from_defaults(),
+    query_engine_tools=query_tools,
+)
+print(router.query(&quot;怎么在 Java 里写一个单例？&quot;))
+</code></pre>
+<p><strong>关键点</strong>：
+- <code>response_mode</code>：<code>compact</code> 适合快问快答，<code>tree_summarize</code> 适合长文综述，<code>refine</code> 会逐 chunk 迭代修改答案（慢但准）。
+- <code>ToolMetadata.description</code> 写得好不好，直接决定 router 能不能选对引擎——这和 agent 工具描述是同一个原理。</p>
+<h3 id="26-day06">2.6 聊天引擎 + 存储持久化（来源：day06）</h3>
+<pre><code class="language-python">from llama_index.core import (
+    VectorStoreIndex, SimpleDirectoryReader, StorageContext, load_index_from_storage
+)
+
+# 1) 首次：建索引并持久化到磁盘
+documents = SimpleDirectoryReader(input_files=[&quot;../data/公司规章制度.txt&quot;]).load_data()
+index = VectorStoreIndex.from_documents(documents)
+index.storage_context.persist(persist_dir=&quot;./storage&quot;)
+
+# 2) 之后：直接从磁盘加载，跳过 embedding 计算
+storage_context = StorageContext.from_defaults(persist_dir=&quot;./storage&quot;)
+index = load_index_from_storage(storage_context)
+
+# 3) 聊天引擎（带 memory）
+chat_engine = index.as_chat_engine(chat_mode=&quot;context&quot;, verbose=True)
+print(chat_engine.chat(&quot;公司请假流程是什么？&quot;))
+print(chat_engine.chat(&quot;那年假呢？&quot;))  # 自动带上下文
+</code></pre>
+<p><strong>常见坑</strong>：
+- 不持久化 = 每次启动都重新算 embedding，几百块钱的 API 费就没了。<strong>生产环境必须 persist</strong>。
+- <code>chat_mode</code> 选 <code>context</code>（把检索结果作为系统上下文）或 <code>react</code>（把检索结果当工具用）；前者适合单库，后者适合多库。</p>
+<hr />
+<h2 id="agent-day07-day09">三、Agent 基础与推理模式（day07-day09）</h2>
+<blockquote>
+<p>飞书课件定位：从 LlamaIndex 转到 LangChain <code>create_agent</code>，重点讲 ReAct / Plan-Execute / Self-ASK / Reflection 四种推理模式和中间件。</p>
+</blockquote>
+<h3 id="31-summarizationmiddlewareday08">3.1 中间件：SummarizationMiddleware（来源：day08）</h3>
+<pre><code class="language-python">import os
+from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
+from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware
+from langchain_tavily import TavilySearch
+from langgraph.checkpoint.memory import InMemorySaver
+
+load_dotenv()
+llm = ChatOpenAI(model=&quot;qwen3.5-flash-2026-02-23&quot;,
+                 api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+                 base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;),
+                 temperature=0.1)
+
+SHORT_SUMMARY_PROMPT = &quot;&quot;&quot;你是一个记忆压缩专家。请将下方的对话历史压缩成一段简洁的背景摘要，
+保留：1) 用户最终目标  2) 已执行的关键步骤  3) 待办事项。
+待压缩的对话：{messages}&quot;&quot;&quot;
+
+agent = create_agent(
+    model=llm,
+    tools=[TavilySearch(max_results=1)],
+    checkpointer=InMemorySaver(),           # 短期记忆：按 thread_id 存历史
+    middleware=[SummarizationMiddleware(    # 中间件：超长自动摘要
+        model=llm,
+        trigger=[(&quot;tokens&quot;, 4000), (&quot;messages&quot;, 10)],  # 或关系
+        keep=(&quot;messages&quot;, 5),               # 保留最近 5 条，其余做摘要
+    )],
+)
+
+config = {&quot;configurable&quot;: {&quot;thread_id&quot;: &quot;user-001&quot;}}
+agent.invoke({&quot;messages&quot;: [{&quot;role&quot;: &quot;user&quot;,
+                             &quot;content&quot;: &quot;2026年3月最新的AI大模型技术趋势？&quot;}]}, config)
+</code></pre>
+<p><strong>关键参数</strong>：
+- <code>trigger</code> 三种触发：<code>("tokens", 4000)</code>、<code>("fraction", 0.5)</code>、<code>("messages", 10)</code>；多个条件是 OR。
+- <code>keep=("messages", 5)</code> = 最近 5 条原文保留，更早的全部塞给 LLM 做摘要。
+- <code>checkpointer=InMemorySaver()</code> 是内存版；生产换 <code>SqliteSaver</code> / <code>PostgresSaver</code>。
+- <code>thread_id</code> 是会话隔离的 key，不同用户必须传不同值，否则会串台。</p>
+<h3 id="32-before_agent-day08">3.2 自定义中间件：@before_agent 做权限/敏感词拦截（来源：day08）</h3>
+<pre><code class="language-python">from langchain.agents import create_agent, AgentState
+from langchain.agents.middleware import before_agent
+from langchain.messages import HumanMessage, AIMessage
+from langchain_openai import ChatOpenAI
+from langgraph.runtime import Runtime
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class Context:           # 通过 runtime 注入的运行时上下文
+    user_id: str
+    user_permissions: str
+
+@before_agent(can_jump_to=&quot;end&quot;)
+def guard_middleware(state: AgentState, runtime: Runtime[Context]):
+    # 1) 找到最新用户问题
+    user_msg = &quot;&quot;
+    for m in reversed(state[&quot;messages&quot;]):
+        if isinstance(m, HumanMessage):
+            user_msg = m.content
+            break
+    # 2) 敏感词拦截
+    sensitive = [&quot;TM&quot;, &quot;TMD&quot;, &quot;CNM&quot;, &quot;垃圾&quot;]
+    if any(w in user_msg.upper() for w in sensitive):
+        return {&quot;messages&quot;: [AIMessage(content=&quot;检测到不当言论，请文明交流&quot;)],
+                &quot;jump_to&quot;: &quot;end&quot;}     # 直接结束 agent
+    # 3) 权限控制
+    if runtime.context.user_permissions != &quot;Vip&quot;:
+        print(&quot;非 VIP，限制可用工具&quot;)
+    return None
+
+agent = create_agent(model=llm, tools=[...], middleware=[guard_middleware])
+</code></pre>
+<p><strong>中间件钩子全家桶</strong>（来自 day08）：
+- <code>@before_agent</code>：Agent 启动前（权限、敏感词、注入上下文）
+- <code>@before_model</code>：每次调 LLM 前（动态系统提示词、压缩上下文）
+- <code>@after_model</code>：LLM 输出后（日志、审计）
+- <code>@wrap_model_call</code>：包一层 LLM 调用（重试、fallback）
+- <code>@wrap_tool_call</code>：包一层工具调用（权限、参数清洗）</p>
+<h3 id="33-function-calling-day09">3.3 Function Calling 真实代码（来源：day09）</h3>
+<pre><code class="language-python">import os
+from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
+from langchain_core.tools import tool
+from langchain.agents import create_agent
+
+load_dotenv()
+llm = ChatOpenAI(model=&quot;qwen3.5-flash&quot;,
+                 api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+                 base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;))
+
+@tool
+def calculator(expression: str) -&gt; str:
+    &quot;&quot;&quot;支持多个表达式的数学计算器（使用 numexpr），用分号分隔多个表达式&quot;&quot;&quot;
+    import numexpr, math
+    local = {&quot;pi&quot;: math.pi, &quot;e&quot;: math.e}
+    exprs = [e.strip() for e in expression.split(&quot;;&quot;) if e.strip()]
+    return &quot;\n&quot;.join(f&quot;{e} = {numexpr.evaluate(e, local_dict=local)}&quot;
+                      for e in exprs)
+
+@tool
+def get_weather(city: str) -&gt; str:
+    &quot;&quot;&quot;获取指定城市的实时天气&quot;&quot;&quot;
+    return f&quot;{city} 今天晴朗，24-28°C&quot;
+
+agent = create_agent(model=llm, tools=[calculator, get_weather])
+resp = agent.invoke({&quot;messages&quot;: [{&quot;role&quot;: &quot;user&quot;,
+        &quot;content&quot;: &quot;北京天气怎么样？另外帮我算一下 (52+18)*2/pi&quot;}]})
+print(resp[&quot;messages&quot;][-1].content)
+</code></pre>
+<p><strong>关键点</strong>：
+- <code>@tool</code> 装饰器自动把函数签名 + docstring 转成 OpenAI function schema；<strong>docstring 第一行 = 工具描述</strong>，必须写得让模型看懂"什么时候该用"。
+- <code>create_agent</code> 内部自动处理 tool_call 循环（模型返回 tool_calls → 执行函数 → 把结果塞回 messages → 再调 LLM），你不用手写 while 循环。
+- 千问/DashScope 兼容 OpenAI 协议，直接 <code>ChatOpenAI(base_url=...)</code> 就能用。</p>
+<hr />
+<h2 id="day10">四、推理模式与多智能体（day10）</h2>
+<blockquote>
+<p>day10 是课件里最"花"的一天：Plan-and-Execute、Self-ASK、Reflection、AutoGen、CrewAI 五个框架连讲。下面挑每个框架的最小可跑示例。</p>
+</blockquote>
+<h3 id="41-plan-and-execute-day10">4.1 Plan-and-Execute 推理框架（来源：day10）</h3>
+<pre><code class="language-python">import os, math, numexpr
+from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
+from langchain_experimental.plan_and_execute import (
+    PlanAndExecute, load_agent_executor, load_chat_planner
+)
+from langchain_tavily import TavilySearch
+from langchain_core.tools import tool
+
+load_dotenv()
+llm = ChatOpenAI(model=&quot;MiniMax-M2.1&quot;,
+                 api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+                 base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;))
+
+@tool
+def calculator(expression: str) -&gt; str:
+    &quot;&quot;&quot;数学计算器，支持分号分隔多个表达式&quot;&quot;&quot;
+    local = {&quot;pi&quot;: math.pi, &quot;e&quot;: math.e}
+    return &quot;\n&quot;.join(f&quot;{e} = {numexpr.evaluate(e.strip(), local_dict=local)}&quot;
+                     for e in expression.split(&quot;;&quot;) if e.strip())
+
+tools = [TavilySearch(), calculator]
+
+# Planner = 先写计划（一串步骤）
+planner  = load_chat_planner(llm)
+# Executor = 每一步用 ReAct 执行
+executor = load_agent_executor(llm, tools, verbose=True)
+
+agent = PlanAndExecute(planner=planner, executor=executor, verbose=True)
+result = agent.invoke(
+    &quot;我有5000人民币预算，想去日本旅行5天。按当前汇率在东京能住几晚中等价位酒店？&quot;
+)
+print(result)
+</code></pre>
+<p><strong>和 ReAct 的区别</strong>：
+- ReAct = 走一步看一步，容易"走偏"或"绕圈"。
+- Plan-Execute = LLM 先一次性产出 N 步计划，然后逐步执行；每步失败还能 replan。
+- 适合任务<strong>可分解</strong>、<strong>步骤明确</strong>的场景（旅行规划、数据处理流水线）；不适合开放式对话。</p>
+<h3 id="42-self-ask-day10">4.2 Self-ASK 推理模式（来源：day10）</h3>
+<p>Self-ASK 的核心是：模型输出 <code>Follow up: xxx</code> → 暂停 → 外部搜索工具填 <code>Intermediate answer: xxx</code> → 模型继续问下一个。课件通过自定义 stop words + 中间件实现：</p>
+<pre><code class="language-python">from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(model=&quot;deepseek-chat&quot;, ...)
+# 关键：让模型在&quot;Intermediate answer:&quot; 处停下来，把控制权交给外部搜索
+llm_with_stop = llm.bind(stop=[
+    &quot;\nIntermediate answer:&quot;, &quot;Intermediate answer:&quot;,
+    &quot;\nIntermediate answer：&quot;, &quot;Intermediate answer：&quot;,
+])
+
+SELF_ASK_SYSTEM_PROMPT = &quot;&quot;&quot;你是搜索链推理专家。
+规则：
+1. 每次只输出一个 &quot;Follow up:&quot; 问题，输出后立即停止。
+2. 禁止自己生成 &quot;Intermediate answer:&quot;，那是外部工具填的。
+3. 格式：
+   Question: [用户输入]
+   Are follow up questions needed here: [Yes/No]
+   Follow up: [具体搜索问题]
+   Intermediate answer: (等待工具)
+   So the final answer is: [结论]
+&quot;&quot;&quot;
+</code></pre>
+<p><strong>什么时候用</strong>：多跳问题（"马斯克第二家公司的现任 CEO 是谁"需要先搜"第二家公司是什么"再搜"现任 CEO"）。比纯 ReAct 省 token，因为每一步只问一个问题。</p>
+<h3 id="43-reflection-day10">4.3 Reflection / 自我反思（来源：day10）</h3>
+<p>课件里的 <code>thinking_and_self-Refection</code> 用两个 LLM 节点串联：一个写草稿，一个挑毛病，挑完再写。本质是：</p>
+<pre><code>draft_node:    LLM 生成答案
+review_node:   LLM 读草稿 → 指出问题
+revise_node:   LLM 读草稿+批评 → 改一版
+</code></pre>
+<p>LangGraph 里可以直接用三个节点 + 条件边实现：review 觉得没问题就 END，否则回到 revise。这是 day16 "自定义主管架构"的雏形。</p>
+<h3 id="44-autogen-day10">4.4 AutoGen 最小示例（来源：day10）</h3>
+<pre><code class="language-python">import autogen
+
+# LLM 配置（OpenAI 兼容协议）
+llm_config = {
+    &quot;config_list&quot;: [{
+        &quot;model&quot;: &quot;qwen3-max&quot;,
+        &quot;api_key&quot;: os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+        &quot;base_url&quot;: os.getenv(&quot;DASHSCOPE_BASE_URL&quot;),
+    }],
+    &quot;temperature&quot;: 0.1,
+}
+
+# 1) 用户代理（可以代人执行代码、也可以自动回复）
+user_proxy = autogen.UserProxyAgent(
+    name=&quot;user_proxy&quot;,
+    human_input_mode=&quot;NEVER&quot;,           # 全自动，不等人
+    max_consecutive_auto_reply=10,
+    code_execution_config={&quot;work_dir&quot;: &quot;coding_output&quot;},
+    llm_config=llm_config,
+)
+
+# 2) 助手代理（纯 LLM，不执行代码）
+assistant = autogen.AssistantAgent(
+    name=&quot;assistant&quot;,
+    system_message=&quot;你是 Python 专家。写代码时先给用户代理执行，再根据结果调试。&quot;,
+    llm_config=llm_config,
+)
+
+# 3) 两人对话：用户代理发任务 → 助手写代码 → 用户代理执行 → 看结果
+user_proxy.initiate_chat(
+    assistant,
+    message=&quot;写一个 Python 脚本，读取 city.json 并统计每个省的城市数量。&quot;,
+)
+</code></pre>
+<p><strong>AutoGen 的核心概念</strong>：
+- <code>UserProxyAgent</code> = "人"的代理，能执行代码、能让人介入。
+- <code>AssistantAgent</code> = "AI"的代理，只负责想和写。
+- <code>GroupChat</code> + <code>speaker_selection</code> = 多智能体轮询，课件里就是用这个做"开发-测试-监督"三方对话。
+- <code>human_input_mode</code>：<code>ALWAYS</code>/<code>TERMINATE</code>/<code>NEVER</code> 三档，生产自动化用 NEVER。</p>
+<h3 id="45-crewai-day10">4.5 CrewAI 最小示例（来源：day10）</h3>
+<pre><code class="language-python">import os
+from dotenv import load_dotenv
+from crewai import Agent, Task, Crew, Process, LLM
+from crewai_tools import TavilySearchTool
+
+load_dotenv()
+llm = LLM(api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+          base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;),
+          model=&quot;MiniMax-M2.1&quot;, temperature=0.7)
+search = TavilySearchTool(max_results=2)
+
+# 1) Agent = 角色 + 目标 + 背景故事
+researcher = Agent(role=&quot;技术情报员&quot;,
+                   goal=&quot;搜索最新技术资讯&quot;,
+                   backstory=&quot;你是专业的技术记者&quot;,
+                   tools=[search], llm=llm, verbose=True, max_iter=1)
+
+analyst = Agent(role=&quot;数据分析师&quot;,
+                goal=&quot;分析技术趋势&quot;,
+                backstory=&quot;你能从信息中发现趋势&quot;,
+                llm=llm, verbose=True, max_iter=1)
+
+writer = Agent(role=&quot;科技作者&quot;,
+               goal=&quot;写出高质量技术文章&quot;,
+               backstory=&quot;资深科技记者&quot;,
+               llm=llm, verbose=True, max_iter=1)
+
+# 2) Task = 具体任务 + 期望输出 + 依赖哪些上游 task
+t1 = Task(description=&quot;搜索 'AI Agent 框架' 最新信息&quot;,
+          agent=researcher,
+          expected_output=&quot;原始信息摘要&quot;)
+t2 = Task(description=&quot;分析关键趋势&quot;,
+          agent=analyst, context=[t1],
+          expected_output=&quot;分析报告&quot;)
+t3 = Task(description=&quot;基于分析写一篇 800 字文章&quot;,
+          agent=writer, context=[t1, t2],
+          expected_output=&quot;完整文章&quot;)
+
+# 3) Crew = 把 agent + task 组装成流水线
+crew = Crew(agents=[researcher, analyst, writer],
+            tasks=[t1, t2, t3],
+            process=Process.sequential,    # 顺序执行
+            verbose=True)
+result = crew.kickoff()
+print(result)
+</code></pre>
+<p><strong>CrewAI vs AutoGen</strong>：
+- CrewAI 是"流水线"思维：Task 有明确依赖（<code>context=[t1, t2]</code>），跑完就结束。
+- AutoGen 是"对话"思维：Agent 之间自由聊天，直到满足终止条件。
+- 生产上<strong>确定性流水线用 CrewAI，开放式协作（调试代码、头脑风暴）用 AutoGen</strong>。</p>
+<hr />
+<h2 id="langgraph-day11-day16">五、LangGraph 实操（day11-day16）</h2>
+<blockquote>
+<p>LangGraph 是课件后半段的主角。核心模型：<strong>StateGraph = 节点(函数) + 边(路由) + 状态(TypedDict)</strong>。day11 讲基础，day12 父子图/重试，day13 持久化记忆，day14 流式输出，day15 消息修剪/工具记忆，day16 多智能体交接。</p>
+</blockquote>
+<h3 id="51-day11">5.1 入门案例：节点 + 边（来源：day11）</h3>
+<pre><code class="language-python">from typing import TypedDict
+from langgraph.graph import StateGraph
+
+# 状态：TypedDict 定义图中流动的数据结构
+class InputState(TypedDict):
+    question: str
+
+class OutputState(TypedDict):
+    final_answer: str
+
+class MyState(TypedDict):
+    question: str
+    answer: str
+    final_answer: str
+
+# 节点：输入 state，返回要更新的字段 dict
+def search_node(state: MyState):
+    print(f&quot;搜索: {state['question']}&quot;)
+    return {&quot;answer&quot;: &quot;搜索到的资料片段&quot;}
+
+def llm_result(state: MyState):
+    return {&quot;final_answer&quot;: f&quot;基于[{state['answer']}]总结的答案&quot;}
+
+# 组装图
+g = StateGraph(state_schema=MyState,
+               input_schema=InputState,
+               output_schema=OutputState)
+g.add_node(&quot;search_node&quot;, search_node)
+g.add_node(&quot;llm_result&quot;, llm_result)
+g.set_entry_point(&quot;search_node&quot;)     # 入口
+g.add_edge(&quot;search_node&quot;, &quot;llm_result&quot;)
+g.add_edge(&quot;llm_result&quot;, &quot;__end__&quot;)   # 等价 END
+graph = g.compile()
+
+print(graph.invoke({&quot;question&quot;: &quot;什么是 LangGraph？&quot;}))
+</code></pre>
+<p><strong>关键约定</strong>：
+- 节点函数<strong>必须返回 dict</strong>（要更新的字段），不能直接改 state。
+- <code>input_schema</code> / <code>output_schema</code> 是可选的"视图"：对外暴露的字段 ≠ 内部状态字段。
+- <code>compile()</code> 之后才是可执行的图；可以 <code>graph.get_graph().draw_mermaid_png()</code> 可视化。</p>
+<h3 id="52-annotated-add_messagesday11">5.2 归并函数：Annotated + add_messages（来源：day11）</h3>
+<pre><code class="language-python">from typing import Annotated, TypedDict
+from langgraph.graph import StateGraph
+from langgraph.graph.message import add_messages
+from langgraph.graph import MessagesState
+
+# 不写归并函数：每个节点返回 messages 会**覆盖**之前的
+# 写了 Annotated[..., add_messages]：自动**追加**到列表末尾
+
+class ChatState(MessagesState):           # MessagesState 已经内置 messages: Annotated[list, add_messages]
+    pass
+
+def user_input_node(state: ChatState):
+    return {&quot;messages&quot;: [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;什么是 LangGraph？&quot;}]}
+
+def assistant_node(state: ChatState):
+    return {&quot;messages&quot;: [{&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: &quot;有状态的图编排框架。&quot;}]}
+
+builder = StateGraph(ChatState)
+builder.add_node(&quot;user_input&quot;, user_input_node)
+builder.add_node(&quot;assistant_reply&quot;, assistant_node)
+builder.set_entry_point(&quot;user_input&quot;)
+builder.add_edge(&quot;user_input&quot;, &quot;assistant_reply&quot;)
+graph = builder.compile()
+
+print(graph.invoke({&quot;messages&quot;: []}))
+</code></pre>
+<p><strong>为什么这东西重要</strong>：
+- 对话系统里，每个节点都要往 messages 列表里加东西。如果没有 <code>add_messages</code>，第二次 invoke 会把第一次的消息覆盖掉，上下文就断了。
+- 普通字段（非 list）默认是"覆盖"；list 字段要追加必须显式 <code>Annotated[list, operator.add]</code> 或 <code>add_messages</code>。</p>
+<h3 id="53-day11">5.3 并行节点（来源：day11）</h3>
+<pre><code class="language-python">import operator
+from typing import Annotated, TypedDict
+from langgraph.graph import StateGraph, START, END
+
+class State(TypedDict):
+    aggregate: Annotated[list, operator.add]   # 并行节点的返回会自动合并
+
+def a(state): return {&quot;aggregate&quot;: [&quot;A&quot;]}
+def b(state): return {&quot;aggregate&quot;: [&quot;B&quot;]}
+def c(state): return {&quot;aggregate&quot;: [&quot;C&quot;]}
+def d(state): return {&quot;aggregate&quot;: [&quot;D&quot;]}
+
+builder = StateGraph(State)
+for n in [a, b, c, d]:
+    builder.add_node(n)
+builder.add_edge(START, &quot;a&quot;)
+builder.add_edge(&quot;a&quot;, &quot;b&quot;)     # a 之后同时去 b 和 c（并行）
+builder.add_edge(&quot;a&quot;, &quot;c&quot;)
+builder.add_edge(&quot;b&quot;, &quot;d&quot;)
+builder.add_edge(&quot;c&quot;, &quot;d&quot;)      # b、c 都完成后才进 d（barrier）
+builder.add_edge(&quot;d&quot;, END)
+graph = builder.compile()
+
+print(graph.invoke({&quot;aggregate&quot;: [&quot;start&quot;]}))
+</code></pre>
+<p><strong>关键</strong>：
+- 一个节点有多个出边 = 并行分叉。
+- 多个节点指向同一个节点 = 等所有上游完成（join/barrier）。
+- 归并函数 <code>operator.add</code> 保证并行节点的 list 结果不会互相覆盖。</p>
+<h3 id="54-add_conditional_edgesday11">5.4 条件边 add_conditional_edges（来源：day11）</h3>
+<pre><code class="language-python">from typing import TypedDict
+from langgraph.graph import StateGraph, END
+
+class MyState(TypedDict):
+    type: str
+    result: str
+
+def route_condition(state: MyState):
+    &quot;&quot;&quot;路由函数：返回字符串，决定下一步去哪个节点&quot;&quot;&quot;
+    if state[&quot;type&quot;] == &quot;a&quot;:    return &quot;A&quot;
+    elif state[&quot;type&quot;] == &quot;b&quot;: return &quot;b&quot;
+    else:                       return &quot;default&quot;
+
+def node_a(state):     return {&quot;result&quot;: &quot;走了 A 分支&quot;}
+def node_b(state):     return {&quot;result&quot;: &quot;走了 B 分支&quot;}
+def node_default(state): return {&quot;result&quot;: &quot;走了默认分支&quot;}
+
+g = StateGraph(MyState)
+g.add_node(&quot;a&quot;, node_a)
+g.add_node(&quot;b&quot;, node_b)
+g.add_node(&quot;default&quot;, node_default)
+g.set_entry_point(&quot;a&quot;)   # 演示：假设入口直接做路由
+# 上面的入口可以换成 judge_node；这里简化
+g.add_conditional_edges(
+    &quot;a&quot;,                   # 从哪个节点出发
+    route_condition,      # 路由函数
+    {&quot;A&quot;: &quot;a&quot;, &quot;b&quot;: &quot;b&quot;, &quot;default&quot;: &quot;default&quot;},  # 路由返回值 → 目标节点
+)
+g.add_edge(&quot;a&quot;, END)
+g.add_edge(&quot;b&quot;, END)
+g.add_edge(&quot;default&quot;, END)
+app = g.compile()
+</code></pre>
+<p><strong>坑</strong>：
+- 路由函数返回的字符串必须出现在映射 dict 的 key 里，否则报错。
+- 路由函数<strong>只做决策</strong>，不要在里面改 state；要改 state 单独写一个 judge_node。</p>
+<h3 id="55-send-map-reduce-day11">5.5 Send 实现 Map-Reduce 并行（来源：day11）</h3>
+<pre><code class="language-python">import operator
+from typing import Annotated, TypedDict, List
+from langgraph.graph import StateGraph, START, END
+from langgraph.types import Send
+
+class State(TypedDict):
+    numbers: List[int]
+    results: Annotated[list[int], operator.add]
+    final_sum: int
+
+def split_numbers(state: State):
+    &quot;&quot;&quot;Map 阶段：每个数字发给一个 worker，带临时状态&quot;&quot;&quot;
+    return [Send(&quot;worker&quot;, {&quot;number&quot;: n}) for n in state[&quot;numbers&quot;]]
+
+def calculate_square(state):
+    &quot;&quot;&quot;每个 worker 只处理一个数字&quot;&quot;&quot;
+    return {&quot;results&quot;: [state[&quot;number&quot;] ** 2]}
+
+def sum_results(state):
+    &quot;&quot;&quot;Reduce 阶段：阻塞等所有 worker 完成&quot;&quot;&quot;
+    return {&quot;final_sum&quot;: sum(state.get(&quot;results&quot;, []))}
+
+g = StateGraph(State)
+g.add_node(&quot;splitter&quot;, lambda s: s)        # 分发器
+g.add_node(&quot;worker&quot;, calculate_square)
+g.add_node(&quot;summer&quot;, sum_results)
+g.add_edge(START, &quot;splitter&quot;)
+g.add_conditional_edges(&quot;splitter&quot;, split_numbers, [&quot;worker&quot;])
+g.add_edge(&quot;worker&quot;, &quot;summer&quot;)
+g.add_edge(&quot;summer&quot;, END)
+app = g.compile()
+
+print(app.invoke({&quot;numbers&quot;: [1, 2, 3, 4, 5], &quot;results&quot;: [], &quot;final_sum&quot;: 0}))
+</code></pre>
+<p><strong>Send vs 普通并行</strong>：
+- 普通并行：你在画图时就知道有几个分支（a→b, a→c）。
+- Send：运行时动态决定分支数（比如"给 100 个文档每个派一个 worker"）。
+- Send 的第二个参数是<strong>临时局部状态</strong>，只发给那个 worker，不污染全局 state。</p>
+<h3 id="56-checkpoint-thread_idday13-day15">5.6 持久化 Checkpoint + thread_id（来源：day13 / day15）</h3>
+<pre><code class="language-python">import os
+from dotenv import load_dotenv
+from langchain.chat_models import init_chat_model
+from langchain_core.messages.utils import trim_messages, count_tokens_approximately
+from langgraph.graph import StateGraph, MessagesState, START, END
+from langgraph.checkpoint.memory import InMemorySaver
+
+load_dotenv()
+llm = init_chat_model(api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+                      base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;),
+                      model_provider=&quot;openai&quot;,
+                      model=&quot;MiniMax-M2.1&quot;)
+
+def call_llm(state: MessagesState):
+    # 调 LLM 前先修剪消息，防止 token 爆掉
+    messages = trim_messages(
+        state[&quot;messages&quot;],
+        strategy=&quot;last&quot;,
+        token_counter=count_tokens_approximately,
+        max_tokens=500,
+        start_on=&quot;human&quot;,
+        end_on=(&quot;ai&quot;, &quot;tools&quot;, &quot;human&quot;),
+    )
+    return {&quot;messages&quot;: [llm.invoke(messages)]}
+
+builder = StateGraph(MessagesState)
+builder.add_node(call_llm)
+builder.add_edge(START, &quot;call_llm&quot;)
+
+# 关键：compile 时传入 checkpointer，自动按 thread_id 持久化
+graph = builder.compile(checkpointer=InMemorySaver())
+
+config = {&quot;configurable&quot;: {&quot;thread_id&quot;: &quot;user-001&quot;}}
+graph.invoke({&quot;messages&quot;: &quot;我叫初见&quot;}, config)
+graph.invoke({&quot;messages&quot;: &quot;帮我家猫写首诗&quot;}, config)
+final = graph.invoke({&quot;messages&quot;: &quot;我叫什么名字？&quot;}, config)
+print(final[&quot;messages&quot;][-1].content)   # 能答出&quot;初见&quot;
+</code></pre>
+<p><strong>关键概念</strong>：
+- <code>checkpointer</code> = 每一步执行完自动把 state 序列化到后端（内存 / SQLite / Postgres / Redis）。
+- <code>thread_id</code> = 会话主键；同一个 thread_id 的多次 invoke 会自动加载上次的 state。
+- <code>trim_messages</code> = 调 LLM 前按 token 数截断历史，<code>start_on="human"</code> 保证截完第一条永远是用户消息（不会从 AI 半截开始）。
+- 生产换 <code>langgraph-checkpoint-sqlite</code> 或 PostgreSQL，重启不丢会话。</p>
+<h3 id="57-inmemorystoreday13">5.7 跨会话长期记忆 InMemoryStore（来源：day13）</h3>
+<pre><code class="language-python">import uuid
+from langgraph.store.memory import InMemoryStore
+from langchain_huggingface import HuggingFaceEmbeddings
+
+# 带向量索引的 store：可以语义搜索记忆
+store = InMemoryStore(
+    index={
+        &quot;embed&quot;: HuggingFaceEmbeddings(model_name=&quot;BAAI/bge-large-zh-v1.5&quot;),
+        &quot;dims&quot;: 1024,
+        &quot;fields&quot;: [&quot;hobby&quot;, &quot;food_preference&quot;],   # 对哪些字段建向量索引
+    }
+)
+
+namespace = (&quot;user-001&quot;, &quot;memories&quot;)   # (user_id, 命名空间)
+
+# 存
+store.put(namespace, str(uuid.uuid4()),
+          {&quot;hobby&quot;: &quot;篮球、音乐、美食、编程&quot;})
+store.put(namespace, str(uuid.uuid4()),
+          {&quot;food_preference&quot;: &quot;臭豆腐、小龙虾、红烧肉&quot;})
+
+# 语义搜：query 是自然语言，自动 embedding 匹配
+results = store.search(namespace, query=&quot;用户喜欢吃什么？&quot;, limit=3)
+for r in results:
+    print(r.dict())
+</code></pre>
+<p><strong>Checkpointer vs Store</strong>：
+- <code>checkpointer</code> = 短期记忆，按 thread_id 存"当前会话的 state"。
+- <code>Store</code> = 长期记忆，按 namespace（user_id）存"跨会话的用户画像"。
+- 真实产品里：checkpointer 用 PG，Store 用 PG 或向量库（Qdrant）。</p>
+<h3 id="58-subgraphday12">5.8 父子图（subgraph）（来源：day12）</h3>
+<pre><code class="language-python">from langgraph.graph import StateGraph, START, END, MessagesState
+from langchain.chat_models import init_chat_model
+from langchain.messages import HumanMessage
+
+llm = init_chat_model(...)
+
+def sub_plot(state: MessagesState):
+    content = state[&quot;messages&quot;][-1].content
+    summary = llm.invoke(f&quot;用一句话总结：{content}&quot;)
+    return {&quot;messages&quot;: [summary]}
+
+# 子图：本身就是一个完整的 StateGraph.compile()
+summary_subgraph = (
+    StateGraph(MessagesState)
+    .add_node(&quot;subplot&quot;, sub_plot)
+    .add_edge(START, &quot;subplot&quot;)
+    .compile()
+)
+
+def llm_answer_node(state):
+    return {&quot;messages&quot;: [llm.invoke(state[&quot;messages&quot;])]}
+
+# 父图：把子图当普通节点用
+parent = (
+    StateGraph(MessagesState)
+    .add_node(&quot;llm_answer&quot;, llm_answer_node)
+    .add_node(&quot;summarize&quot;, summary_subgraph)   # 注意：直接传 compiled subgraph
+    .add_edge(START, &quot;llm_answer&quot;)
+    .add_edge(&quot;llm_answer&quot;, &quot;summarize&quot;)
+    .add_edge(&quot;summarize&quot;, END)
+    .compile()
+)
+
+print(parent.invoke({&quot;messages&quot;: [HumanMessage(content=&quot;LangGraph 是什么？&quot;)]}))
+</code></pre>
+<p><strong>什么时候拆父子图</strong>：
+- 父图和子图共享同一个 state schema → 直接把子图当节点加进去。
+- 子图需要自己独立的 state（字段不同）→ 用 <code>add_node("sub", subgraph, input_schema=..., output_schema=...)</code> 做字段映射。</p>
+<h3 id="59-day16">5.9 多智能体交接（来源：day16）</h3>
+<p>day16 的核心是"主管（supervisor）派单给专家"。核心机制是 LangGraph 的 <code>Command(goto=...)</code>：</p>
+<pre><code class="language-python">from langgraph.types import Command
+
+def supervisor_node(state):
+    &quot;&quot;&quot;根据用户问题决定派给谁&quot;&quot;&quot;
+    q = state[&quot;messages&quot;][-1].content
+    if &quot;代码&quot; in q:
+        return Command(goto=&quot;coder_agent&quot;)
+    elif &quot;写作&quot; in q:
+        return Command(goto=&quot;writer_agent&quot;)
+    else:
+        return Command(goto=&quot;END&quot;)
+
+def coder_agent(state):
+    # 写完代码后回传给主管
+    return {&quot;messages&quot;: [...], &quot;goto&quot;: &quot;supervisor&quot;}
+</code></pre>
+<p>实际课件里 day16 用 <code>transfer_to_xxx</code> 工具的方式让 LLM 自己决定交接（比硬编码 if-else 灵活）。这就是 OpenAI Swarm / LangGraph supervisor 的标准范式：
+- 每个专家 agent 都注册一个 <code>transfer_to_&lt;name&gt;</code> 工具。
+- LLM 调用这个工具 = 控制权切到对应 agent。
+- 专家干完活，再调 <code>transfer_to_supervisor</code> 把控制权还回来。</p>
+<hr />
+<h2 id="mcp-day17">六、MCP 模型上下文协议（day17）</h2>
+<blockquote>
+<p>MCP = Model Context Protocol，Anthropic 推出的"LLM 工具/资源/提示词"标准化协议。核心三件套：<strong>Tools（工具）、Resources（资源）、Prompts（提示词模板）</strong>。</p>
+</blockquote>
+<h3 id="61-mcp-server-fastmcpday17">6.1 MCP Server 最小示例（FastMCP，来源：day17）</h3>
+<pre><code class="language-python">from fastmcp import FastMCP
+from typing import Annotated
+from pydantic import Field
+
+mcp = FastMCP(name=&quot;health_server&quot;)
+
+# 1) Tool：给 LLM 当&quot;手&quot;
+@mcp.tool()
+async def add(a: int, b: int) -&gt; int:
+    &quot;&quot;&quot;计算两数之和&quot;&quot;&quot;
+    return a + b
+
+@mcp.tool()
+async def calculate_bmi(weight_kg: float, height_m: float) -&gt; str:
+    &quot;&quot;&quot;计算 BMI 指数并返回健康建议&quot;&quot;&quot;
+    if height_m &lt;= 0:
+        return &quot;错误：身高必须大于 0&quot;
+    bmi = weight_kg / (height_m ** 2)
+    tip = &quot;偏瘦&quot; if bmi &lt; 18.5 else &quot;正常&quot; if bmi &lt; 24.9 else &quot;偏胖&quot;
+    return f&quot;BMI: {bmi:.2f} ({tip})&quot;
+
+# 2) Resource：给 LLM 当&quot;眼睛&quot;（静态/动态数据）
+@mcp.resource(&quot;resource://health-guidelines&quot;, mime_type=&quot;text/plain&quot;)
+async def get_health_guidelines() -&gt; str:
+    &quot;&quot;&quot;通用健康指南&quot;&quot;&quot;
+    return &quot;1. 每天 8 小时睡眠  2. 多吃蔬菜水果  3. 每周运动 150 分钟&quot;
+
+# 3) Prompt：给 LLM 当&quot;模板&quot;
+@mcp.prompt()
+async def analyze_my_health(
+    name: Annotated[str, Field(description=&quot;用户姓名&quot;)],
+    weight: Annotated[float, Field(description=&quot;体重 kg&quot;)],
+    height: Annotated[float, Field(description=&quot;身高 m&quot;)],
+) -&gt; str:
+    &quot;&quot;&quot;生成健康分析提示词&quot;&quot;&quot;
+    return f&quot;用户 {name}，体重 {weight}kg，身高 {height}m。请计算 BMI 并给出建议。&quot;
+
+if __name__ == &quot;__main__&quot;:
+    mcp.run()   # 默认 stdio 传输；也可以 mcp.run(transport=&quot;http&quot;)
+</code></pre>
+<p><strong>关键点</strong>：
+- <code>@mcp.tool()</code> / <code>@mcp.resource(uri)</code> / <code>@mcp.prompt()</code> 三种装饰器对应 MCP 三种原语。
+- <code>FastMCP</code> 是高层封装，自动生成 JSON Schema；底层写法用 <code>mcp.server.Server</code> + 手动 <code>@server.list_tools()</code>（课件里也讲了，仅在需要动态生成工具时用）。
+- 传输默认 stdio（子进程通信），适合本地工具；HTTP/SSE 适合远程 server。</p>
+<h3 id="62-mcp-client-serverday17">6.2 MCP Client 调用 Server（来源：day17）</h3>
+<pre><code class="language-python">import asyncio
+from fastmcp import Client
+
+async def main():
+    # Client 直接传 server 脚本路径，自动拉起子进程
+    async with Client(&quot;01-first_mcp_server.py&quot;) as client:
+        await client.ping()
+
+        # 1) 列出并调用工具
+        tools = await client.list_tools()
+        print(&quot;可用工具:&quot;, [t.name for t in tools])
+        r = await client.call_tool(&quot;add&quot;, {&quot;a&quot;: 10, &quot;b&quot;: 5})
+        print(&quot;add 结果:&quot;, r.content[0].text)
+
+        # 2) 读资源
+        resources = await client.list_resources()
+        r = await client.read_resource(&quot;resource://health-guidelines&quot;)
+        print(&quot;健康指南:&quot;, r[0].text)
+
+        # 3) 取提示词模板
+        prompt = await client.get_prompt(&quot;analyze_my_health&quot;,
+                                         {&quot;name&quot;: &quot;Alice&quot;, &quot;weight&quot;: &quot;60&quot;, &quot;height&quot;: &quot;1.65&quot;})
+        print(prompt.messages[0].content.text)
+
+asyncio.run(main())
+</code></pre>
+<h3 id="63-langchain-agent-mcpday17">6.3 LangChain Agent 集成 MCP（来源：day17）</h3>
+<pre><code class="language-python">import asyncio, os
+from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
+from langchain.agents import create_agent
+from langchain_mcp_adapters.client import MultiServerMCPClient
+
+load_dotenv()
+llm = ChatOpenAI(model=&quot;kimi-k2.5&quot;,
+                 api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+                 base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;))
+
+async def main():
+    # 一个 client 可以连多个 MCP server
+    client = MultiServerMCPClient({
+        &quot;health_server&quot;: {
+            &quot;transport&quot;: &quot;stdio&quot;,
+            &quot;command&quot;: &quot;python&quot;,
+            &quot;args&quot;: [&quot;./01-first_mcp_server.py&quot;],
+        },
+    })
+    tools = await client.get_tools()    # 自动把所有 server 的 tool 拉成 LangChain Tool
+
+    agent = create_agent(model=llm, tools=tools)
+    r = await agent.ainvoke({&quot;messages&quot;: [
+        {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;我体重 75kg，身高 1.80m，算一下 BMI&quot;}]})
+    print(r[&quot;messages&quot;][-1].content)
+
+asyncio.run(main())
+</code></pre>
+<p><strong>这一步的意义</strong>：
+- MCP 把"工具定义"从你的代码里抽离出来，变成独立的 server 进程。
+- 同一个 MCP server 可以被 Claude Desktop / Cursor / LangChain Agent / 自研 Agent 同时复用。
+- <code>MultiServerMCPClient</code> 让一个 Agent 同时挂 N 个工具 server，是生产架构的标准做法。</p>
+<hr />
+<h2 id="_1">七、依赖清单与环境变量</h2>
+<p>把下面这张表贴到 <code>requirements.txt</code> / <code>.env</code> 里，课程所有代码都能跑：</p>
+<pre><code class="language-text"># requirements.txt
+fastapi          # day01-02 后端
+uvicorn[standard]
+python-multipart # 文件上传
+pydantic&gt;=2
+
+llama-index-core
+llama-index-llms-dashscope
+llama-index-embeddings-huggingface
+llama-index-vector-stores-chroma
+
+langchain
+langchain-openai
+langchain-tavily
+langchain-experimental
+langchain-mcp-adapters
+
+langgraph
+langgraph-checkpoint-sqlite
+
+autogen
+crewai
+crewai-tools
+
+fastmcp
+mcp
+numexpr
+</code></pre>
+<pre><code class="language-bash"># .env
+DASHSCOPE_API_KEY=sk-xxx
+DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+TAVILY_API_KEY=tvly-xxx
+</code></pre>
+<hr />
+<h2 id="_2">八、学习路径建议（基于课件顺序）</h2>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>day</th>
+<th>你应该能做到</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>后端</td>
+<td>01-02</td>
+<td>用 FastAPI 写一个带文件上传、参数校验的 REST 服务</td>
+</tr>
+<tr>
+<td>RAG 基础</td>
+<td>03-06</td>
+<td>用 LlamaIndex 建索引、切分、持久化、做多库路由</td>
+</tr>
+<tr>
+<td>Agent 基础</td>
+<td>07-09</td>
+<td>用 <code>create_agent</code> + 自定义工具 + 中间件做一个带权限控制的对话 Agent</td>
+</tr>
+<tr>
+<td>推理模式</td>
+<td>10</td>
+<td>能说清 ReAct / Plan-Execute / Self-ASK / Reflection 各自适用场景</td>
+</tr>
+<tr>
+<td>多智能体</td>
+<td>10</td>
+<td>用 AutoGen 跑两人对话，用 CrewAI 跑"搜索→分析→写作"流水线</td>
+</tr>
+<tr>
+<td>状态图</td>
+<td>11-12</td>
+<td>手写一个带并行 + 条件边 + 父子图的工作流</td>
+</tr>
+<tr>
+<td>记忆</td>
+<td>13-15</td>
+<td>给 Agent 加 checkpointer（短期）+ Store（长期）+ 消息修剪</td>
+</tr>
+<tr>
+<td>工具协议</td>
+<td>17</td>
+<td>自己写一个 MCP server，并让 LangChain Agent 调用</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>对应原理部分见 <a href="L5-Agent工程-最佳答案.html">L5-Agent工程-最佳答案.md</a>。</p>
+</blockquote></div></body></html>

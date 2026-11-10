@@ -1,0 +1,87 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LLM成本建模</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="index.html">🏠 总入口</a><a href="graph.html">🕸 关联图谱</a><a href="ontology/index.html">📖 术语表</a><span class="cur">/ LLM成本建模</span></div><div class="wrap"><h1 id="llm成本建模distilljson">LLM成本建模.distill.json</h1>
+<ul>
+<li>source_file: raw/distill/LLM成本建模.distill.json</li>
+<li>format: json</li>
+</ul>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">内容</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>base: LLM成本建模</li><li>[机制:成本占比] RAG系统LLM推理成本占总账单60-75% ｜依据:核心结论</li><li>[原则:模型选择] 80%的RAG查询用flash级模型就够了（简单事实问答、摘要），只有20%复杂推理（多跳、代码、数学）才需要pro级模型 ｜依据:核心结论</li></ul></div>2
+<ul>
+<li><strong>base</strong>: LLM成本建模</li>
+<li><strong>source_file</strong>: raw/sources/LLM成本建模-调研-20261012.md</li>
+<li><strong>model</strong>: deepseek-ai/DeepSeek-V3</li>
+<li><strong>generated_at</strong>: 2026-10-26 14:22:20</li>
+<li><strong>level1_excerpts</strong>: - <strong>[数据:价格格局]</strong> DeepSeek V4-Flash（$0.14/M input, $0.28/M output）和小米MiMo V2-Flash（~$0.10/$0.40）是极致低价层；Claude Sonnet 5.5（$2/$10）和GPT-5.4（$5/$8.75）是旗舰层 ｜依据:核心结论  </li>
+<li><strong>[机制:成本占比]</strong> RAG系统LLM推理成本占总账单60-75% ｜依据:核心结论  </li>
+<li><strong>[原则:模型选择]</strong> 80%的RAG查询用flash级模型就够了（简单事实问答、摘要），只有20%复杂推理（多跳、代码、数学）才需要pro级模型 ｜依据:核心结论  </li>
+<li><strong>[机制:成本公式]</strong> 月度推理费 = 查询数 × (context_tokens × input_price + answer_tokens × output_price) ｜依据:核心结论  </li>
+<li><strong>[机制:配置影响]</strong> k值（检索chunk数）从3涨到8，单query成本翻倍——这是最容易失控的配置项 ｜依据:核心结论  </li>
+<li><strong>[机制:缓存杠杆]</strong> DeepSeek的cache hit价格比miss低50-100倍（$0.0028/M vs $0.14/M） ｜依据:核心结论  </li>
+<li><strong>[数据:模型定价]</strong> Gemini 3.8 Flash促销价$0.75/M input, $3.75/M output（2027年1月翻倍） ｜依据:2026年主流模型定价表  </li>
+<li><strong>[案例:成本对照]</strong> 从GPT-5.4换成DeepSeek V4-Flash，15万查询/月成本从$1950降到$59（33倍差距） ｜依据:可落地的实操步骤  </li>
+<li><strong>[机制:路由策略]</strong> 简单任务用Flash模型，置信度低或用户追问时升级到Pro模型 ｜依据:可落地的实操步骤  </li>
+<li><strong>[机制:缓存优化]</strong> system prompt固定不变时，prefix caching命中率80%可省约60%输入费 ｜依据:可落地的实操步骤  </li>
+<li><strong>[机制:检索优化]</strong> 用reranker先取k=20再精排到top-3，比直接检索k=8更省 ｜依据:可落地的实操步骤  </li>
+<li><strong>[差距:现状问题]</strong> 当前RAG系统没有按query统计token消耗，不知道k值、chunk size的实际分布 ｜依据:跟现有RAG的差距  </li>
+<li><strong>[差距:现状问题]</strong> 所有查询可能都走同一个模型，没有按难度分层路由 ｜依据:跟现有RAG的差距</li>
+<li><strong>level2_summary</strong>: ```markdown<br />
+<strong>1. 价格分层与模型选择策略</strong><br />
+当前市场存在明显的价格分层：DeepSeek V4-Flash和小米MiMo V2-Flash构成低价层（$0.1-$0.4/M），Claude Sonnet 5.5和GPT-5.4属于旗舰层（$2-$10/M）。80%的RAG查询只需Flash级模型处理简单任务，仅20%复杂推理需要Pro级模型，这是成本优化的核心原则。</li>
+</ul>
+<p><strong>2. 成本构成与关键影响因素</strong><br />
+LLM推理占RAG总成本的60-75%，其计算公式为：查询数×(context_tokens×输入价+answer_tokens×输出价)。其中k值（检索chunk数）影响最大，从3增至8会使单query成本翻倍，成为最易失控的配置项。</p>
+<p><strong>3. 缓存机制的杠杆效应</strong><br />
+DeepSeek的cache hit价格比miss低50-100倍（$0.0028/M vs $0.14/M）。当system prompt固定时，prefix caching命中率达80%可节省60%输入费用，这是最有效的优化手段之一。</p>
+<p><strong>4. 检索与路由优化技术</strong><br />
+采用reranker先取k=20再精排到top-3比直接检索k=8更经济。实际部署应建立分层路由策略：简单任务用Flash模型，当置信度低或用户追问时升级到Pro模型，案例显示该策略可实现33倍成本差距（$1950→$59/15万查询）。</p>
+<pre><code>- **level3_digest**: ```markdown
+1. **价格分层决定模型选择** - 80%的RAG查询只需低价层Flash模型处理，20%复杂任务才需旗舰Pro模型，这是成本优化的黄金比例。  
+2. **k值是成本控制关键阀门** - 检索chunk数(k)从3增至8会使单query成本翻倍，成为最易失控的配置杠杆点。  
+3. **缓存机制创造指数级节省** - prefix caching命中率达80%可削减60%输入费用，cache hit价格仅为miss的1/100。  
+4. **分层路由实现动态优化** - 先reranker粗筛再精排+置信度路由策略，可创造33倍成本差距的运营效益。  
+
+**核心问题**：如何通过技术选型与系统设计实现RAG架构的极致成本优化？
+</code></pre></div></details></div></body></html>

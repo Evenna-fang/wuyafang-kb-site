@@ -1,0 +1,849 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L6-微调框架-LLaMA-Factory</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L6-微调框架-LLaMA-Factory</span></div><div class="wrap"><h1 id="llama-factory-微调框架实操">LLaMA-Factory 微调框架实操</h1>
+<p>本文以 <strong>LLaMA-Factory v0.9.3、Linux/WSL2、NVIDIA GPU、Python 3.11</strong> 为参考环境，用公开的 Qwen2.5 模型演示完整操作链。版本固定用于复现，不代表推荐永远使用旧版本。升级时应一起核对框架、Transformers、PEFT、TRL 和数据加载器的兼容范围。文中的命令供读者在训练机执行；阅读本文不会自动安装环境、下载模型或启动训练。</p>
+<p>所有相对路径均从克隆后的 <code>LLaMA-Factory</code> 仓库根目录计算。代码上方标明保存位置的 YAML、JSON，请保存后再运行后续命令。全参、LoRA、QLoRA 是三条可选择的训练路线，推理示例统一使用 LoRA 路线的产物；选择其他路线时应相应替换模型目录。微型数据只用于验证链路，正式训练必须换成经过清洗和切分的业务数据。</p>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">1. 框架、架构分层与安装</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>LLaMA-Factory 把模型加载、模板适配、数据转换、训练算法与导出包装成统一命令入口</li><li>使用者主要维护数据注册表和 YAML，无需为每个模型重写训练循环</li><li>框架仍然依赖 Transformers、PEFT、Accelerate 等底层库；遇到兼容问题，应先确定错误发生在哪一层</li></ul></div>2
+<p>LLaMA-Factory 把模型加载、模板适配、数据转换、训练算法与导出包装成统一命令入口。使用者主要维护数据注册表和 YAML，无需为每个模型重写训练循环。框架仍然依赖 Transformers、PEFT、Accelerate 等底层库；遇到兼容问题，应先确定错误发生在哪一层。</p>
+<p>按职责可以理解为 data、model、training、hparams 四层，但 <strong>v0.9.3 的真实训练目录叫 <code>train</code>，不是 <code>training</code></strong>。<code>data</code> 处理数据注册、对话模板和标签构造；<code>model</code> 负责 tokenizer、权重、量化和适配器加载；<code>train</code> 按 SFT、RM、DPO、KTO 等阶段组织训练器；<code>hparams</code> 定义和校验配置参数。排查未知参数找 hparams，排查角色或列名错误找 data，排查量化和适配器错误找 model。</p>
+<pre><code class="language-bash"># 创建独立环境并取得指定版本；这些是读者安装时执行的命令
+python3.11 -m venv .venv-llamafactory
+source .venv-llamafactory/bin/activate
+python -m pip install --upgrade pip setuptools wheel \
+  -i https://pypi.tuna.tsinghua.edu.cn/simple
+git clone --depth 1 --branch v0.9.3 https://github.com/hiyouga/LLaMA-Factory.git
+cd LLaMA-Factory
+# 国内 PyPI 镜像加速 Python 包下载，不会加速 GitHub 克隆
+pip install -e &quot;.[torch,metrics]&quot; -i https://pypi.tuna.tsinghua.edu.cn/simple
+mkdir -p configs data/local outputs
+</code></pre>
+<p>如果默认安装得到 CPU 版 torch，或者已有的 torch 与显卡驱动不匹配，可先单独安装适合驱动的官方 CUDA wheel。下面给出明确的 CUDA 12.4 构建组合；运行前先检查驱动是否支持，不要把机器上的 CUDA Toolkit 小版本当成唯一依据。</p>
+<pre><code class="language-bash"># 可选：安装成套的 CUDA wheel，再重新检查框架依赖
+python -m pip install torch==2.5.1 torchvision==0.20.1 \
+  --index-url https://download.pytorch.org/whl/cu124
+python -m pip install -e &quot;.[torch,metrics]&quot; \
+  -i https://pypi.tuna.tsinghua.edu.cn/simple
+# 按需安装；DeepSpeed 在本参考版本中不能超过 0.16.9
+python -m pip install &quot;deepspeed&gt;=0.10.0,&lt;=0.16.9&quot; &quot;bitsandbytes&gt;=0.43.1&quot; \
+  -i https://pypi.tuna.tsinghua.edu.cn/simple
+python -m pip check
+</code></pre>
+<p>国内模型下载可选择 ModelScope 后端，或者使用自己信任的 Hugging Face 镜像端点。它们解决模型与数据下载问题，不能替代 PyTorch CUDA wheel 仓库。若使用 ModelScope，先验证对应仓库确实存在；数据镜像也不保证与原始仓库完全同步。下面选择 Hugging Face 镜像作为可选方案，不需要时不设置该环境变量。</p>
+<pre><code class="language-bash"># 可选：仅影响当前终端的公开模型、数据下载地址
+export HF_ENDPOINT=https://hf-mirror.com
+# 查看四个职责层的实际文件，避免按概念名称找错目录
+find src/llamafactory/data src/llamafactory/model \
+  src/llamafactory/train src/llamafactory/hparams -maxdepth 1 -type f
+</code></pre>
+<h2 id="2-环境自检与依赖冲突排查">2. 环境自检与依赖冲突排查</h2>2
+<p>先确认命令入口与 Python 解释器属于同一虚拟环境，再检查驱动、torch 构建和实际 CUDA 运算。<code>nvidia-smi</code> 顶部显示的是驱动可支持的 CUDA 版本，<code>torch.version.cuda</code> 是当前 wheel 的构建版本，<code>nvcc --version</code> 是本地编译工具链版本；三者含义不同，不要求字符串完全相同。编译 FlashAttention 或 DeepSpeed 扩展时，才需要额外关注 Toolkit 和编译器。</p>
+<pre><code class="language-bash"># 查看命令归属、框架版本和显卡状态
+command -v python
+command -v llamafactory-cli
+llamafactory-cli version
+llamafactory-cli env
+nvidia-smi
+# 未安装本地 Toolkit 时 nvcc 不存在，不等于 torch 不能使用 CUDA
+if command -v nvcc &gt;/dev/null 2&gt;&amp;1; then nvcc --version; fi
+python - &lt;&lt;'PY'
+import torch
+print(&quot;torch:&quot;, torch.__version__, &quot;CUDA build:&quot;, torch.version.cuda)
+print(&quot;CUDA available:&quot;, torch.cuda.is_available())
+assert torch.cuda.is_available(), &quot;当前环境无法使用 CUDA&quot;
+for i in range(torch.cuda.device_count()):
+    print(i, torch.cuda.get_device_name(i))
+print(&quot;bf16 supported:&quot;, torch.cuda.is_bf16_supported())
+x = torch.randn(256, 256, device=&quot;cuda&quot;)
+print(&quot;CUDA matmul:&quot;, (x @ x).mean().item())
+PY
+</code></pre>
+<p>依赖报错先读冲突约束，不要立刻对所有包执行升级。该版本对 Transformers、TRL、datasets 有上限，尤其不能随意把 datasets 升到移除了本地数据脚本支持的版本。<code>pip check</code> 负责发现声明层面的冲突，实际导入和一次 CUDA 运算负责发现二进制加载问题；二者不能相互替代。</p>
+<pre><code class="language-bash"># 不改动环境的诊断；修复时以仓库 requirements.txt 为准
+python -m pip check
+python -m pip show torch transformers peft trl datasets accelerate bitsandbytes
+python - &lt;&lt;'PY'
+import importlib
+for name in [&quot;llamafactory&quot;, &quot;torch&quot;, &quot;transformers&quot;, &quot;peft&quot;, &quot;trl&quot;, &quot;datasets&quot;]:
+    module = importlib.import_module(name)
+    print(name, getattr(module, &quot;__version__&quot;, &quot;unknown&quot;), module.__file__)
+PY
+# 阅读当前版本真实约束，确认后再决定重装哪个包
+cat requirements.txt
+</code></pre>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">3. 数据准备、注册与截断检查</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="alpaca-与-sharegpt-两种输入">Alpaca 与 ShareGPT 两种输入</h3>3
+<p>Alpaca 适合单轮指令任务。将下列内容保存为 <code>data/local/tech_alpaca.json</code>；文件顶层是数组，<code>input</code> 可以为空字符串，但应保持字段一致。<code>instruction</code> 与 <code>input</code> 共同构成用户输入，<code>output</code> 才是需要监督学习的答案。不要把标准答案混入用户输入，否则离线 loss 会很好看，实际生成却无法复现。</p>
+<pre><code class="language-json">[
+  {
+    &quot;instruction&quot;: &quot;解释梯度累积的用途。&quot;,
+    &quot;input&quot;: &quot;单卡只能容纳一条训练样本。&quot;,
+    &quot;output&quot;: &quot;可以让多个微批次依次完成前向和反向传播，再统一更新参数，从而增大有效批量。&quot;
+  },
+  {
+    &quot;instruction&quot;: &quot;训练显存不足时先检查什么？&quot;,
+    &quot;input&quot;: &quot;&quot;,
+    &quot;output&quot;: &quot;先检查其他进程、序列长度和每卡微批量，再判断模型状态与激活分别占用了多少显存。&quot;
+  }
+]
+</code></pre>
+<p>ShareGPT 适合多轮对话。保存为 <code>data/local/tech_sharegpt.json</code>。这里使用经典的 <code>conversations/from/value</code> 字段以及 <code>human/gpt</code> 角色，不能直接与 OpenAI 风格的 <code>messages/role/content</code> 混用。若业务数据采用后者，必须同时设置注册表中的 columns 和 tags。普通多轮监督数据应按用户、助手交替排列，并以助手答案结束。</p>
+<pre><code class="language-json">[
+  {
+    &quot;conversations&quot;: [
+      {&quot;from&quot;: &quot;human&quot;, &quot;value&quot;: &quot;LoRA 会更新原始模型的全部参数吗？&quot;},
+      {&quot;from&quot;: &quot;gpt&quot;, &quot;value&quot;: &quot;不会。通常冻结原始权重，只更新注入的低秩矩阵。&quot;},
+      {&quot;from&quot;: &quot;human&quot;, &quot;value&quot;: &quot;部署时如何减少额外开销？&quot;},
+      {&quot;from&quot;: &quot;gpt&quot;, &quot;value&quot;: &quot;可以将适配器合并回未量化的基础模型，再导出用于推理的权重。&quot;}
+    ]
+  }
+]
+</code></pre>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">注册自定义数据与内置示例</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>训练参数里的 「dataset」 指向注册名，不是任意 JSON 文件路径</li><li>下面的注册脚本会保留已有条目，并追加自定义数据集；后面的偏好数据也预先在这里注册</li><li>「file_name」 相对 「dataset_dir」 解析，因此配置中使用 「dataset_dir: data」 时，注册项不能再重复加一层 「data/」</li></ul></div>3
+<p>训练参数里的 <code>dataset</code> 指向注册名，不是任意 JSON 文件路径。下面的注册脚本会保留已有条目，并追加自定义数据集；后面的偏好数据也预先在这里注册。保存每个数据文件后，执行脚本即可。<code>file_name</code> 相对 <code>dataset_dir</code> 解析，因此配置中使用 <code>dataset_dir: data</code> 时，注册项不能再重复加一层 <code>data/</code>。</p>
+<pre><code class="language-python"># 在仓库根目录执行；只在读者自己的训练仓库更新注册表
+import json
+from pathlib import Path
+
+path = Path(&quot;data/dataset_info.json&quot;)
+registry = json.loads(path.read_text(encoding=&quot;utf-8&quot;)) if path.exists() else {}
+registry.update({
+    &quot;tech_alpaca&quot;: {
+        &quot;file_name&quot;: &quot;local/tech_alpaca.json&quot;,
+        &quot;columns&quot;: {&quot;prompt&quot;: &quot;instruction&quot;, &quot;query&quot;: &quot;input&quot;, &quot;response&quot;: &quot;output&quot;}
+    },
+    &quot;tech_sharegpt&quot;: {
+        &quot;file_name&quot;: &quot;local/tech_sharegpt.json&quot;, &quot;formatting&quot;: &quot;sharegpt&quot;,
+        &quot;columns&quot;: {&quot;messages&quot;: &quot;conversations&quot;},
+        &quot;tags&quot;: {&quot;role_tag&quot;: &quot;from&quot;, &quot;content_tag&quot;: &quot;value&quot;,
+                 &quot;user_tag&quot;: &quot;human&quot;, &quot;assistant_tag&quot;: &quot;gpt&quot;}
+    },
+    &quot;tech_pref&quot;: {
+        &quot;file_name&quot;: &quot;local/tech_pref.json&quot;, &quot;ranking&quot;: True,
+        &quot;columns&quot;: {&quot;prompt&quot;: &quot;instruction&quot;, &quot;query&quot;: &quot;input&quot;,
+                    &quot;chosen&quot;: &quot;chosen&quot;, &quot;rejected&quot;: &quot;rejected&quot;}
+    },
+    &quot;tech_kto&quot;: {
+        &quot;file_name&quot;: &quot;local/tech_kto.json&quot;,
+        &quot;columns&quot;: {&quot;prompt&quot;: &quot;instruction&quot;, &quot;query&quot;: &quot;input&quot;,
+                    &quot;response&quot;: &quot;output&quot;, &quot;kto_tag&quot;: &quot;label&quot;}
+    }
+})
+path.write_text(json.dumps(registry, ensure_ascii=False, indent=2), encoding=&quot;utf-8&quot;)
+print(&quot;registered:&quot;, &quot;, &quot;.join(k for k in registry if k.startswith(&quot;tech_&quot;)))
+</code></pre>
+<p>常见示例名包括 <code>identity</code>、<code>alpaca_en_demo</code>、<code>alpaca_zh_demo</code> 和偏好数据 demo。<code>identity</code> 用于验证身份问答链路，不是通用能力训练集；示例集不能替代业务验证集。某些教程中的 <code>oaastest</code> 并不是跨版本保证存在的官方注册名，应当查询当前注册表，而不能直接照抄。缺失时选择真实存在的示例或显式注册自己的文件。</p>
+<p>部分源码分发不携带完整数据文件。下面从官方公开数据仓库读取注册表，仅补齐缺失条目，随后打印结果；这一步不会自动下载所有数据，具体训练时仍可能需要联网。若只做本地自定义数据实验，可以跳过补齐，直接检查注册情况。</p>
+<pre><code class="language-bash"># 可选：补齐官方注册信息，保留已有的本地自定义条目
+python - &lt;&lt;'PY'
+import json
+from pathlib import Path
+from huggingface_hub import hf_hub_download
+p = Path(&quot;data/dataset_info.json&quot;)
+local = json.loads(p.read_text(encoding=&quot;utf-8&quot;)) if p.exists() else {}
+remote = hf_hub_download(&quot;llamafactory/demo_data&quot;, &quot;dataset_info.json&quot;, repo_type=&quot;dataset&quot;)
+official = json.loads(Path(remote).read_text(encoding=&quot;utf-8&quot;))
+official.update(local)
+p.write_text(json.dumps(official, ensure_ascii=False, indent=2), encoding=&quot;utf-8&quot;)
+for name in [&quot;identity&quot;, &quot;alpaca_zh_demo&quot;, &quot;oaastest&quot;]:
+    print(name, official.get(name, &quot;当前注册表不存在此名称&quot;))
+PY
+</code></pre>
+<h3 id="tokenizer-长度与数据验收">tokenizer 长度与数据验收</h3>3
+<p><code>cutoff_len</code> 限制的是 token 长度，不是汉字数量。模板控制符、系统消息、多轮历史与答案都需要预算；直接统计文本字符会低估真实长度。下面用同一个模型的聊天模板作长度预检。它是快速筛查，框架正式预处理时还会处理监督掩码与特殊终止符，应继续抽查日志中打印的样本。</p>
+<p>长样本被截断后，可能只剩很少答案 token，甚至完全失去有效监督。先查看长度分布，再选择缩短历史、拆分文档或增大上下文。验证集应按来源或会话拆分，避免同一问题的轻微改写同时落入训练和验证。</p>
+<pre><code class="language-python"># 在仓库根目录执行，检查实际模板下的 token 长度和字段
+import json
+import numpy as np
+from pathlib import Path
+from transformers import AutoTokenizer
+
+tok = AutoTokenizer.from_pretrained(&quot;Qwen/Qwen2.5-1.5B-Instruct&quot;)
+rows = json.loads(Path(&quot;data/local/tech_alpaca.json&quot;).read_text(encoding=&quot;utf-8&quot;))
+lengths = []
+for i, row in enumerate(rows):
+    assert all(isinstance(row[k], str) for k in (&quot;instruction&quot;, &quot;input&quot;, &quot;output&quot;)), i
+    assert row[&quot;output&quot;].strip(), f&quot;第 {i} 条答案为空&quot;
+    user = &quot;\n&quot;.join(x for x in [row[&quot;instruction&quot;], row[&quot;input&quot;]] if x)
+    ids = tok.apply_chat_template([
+        {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: user},
+        {&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: row[&quot;output&quot;]}
+    ], tokenize=True, add_generation_prompt=False)
+    lengths.append(len(ids))
+print(&quot;P50/P95/P99:&quot;, np.percentile(lengths, [50, 95, 99]))
+print(&quot;超过 2048:&quot;, sum(n &gt; 2048 for n in lengths), &quot;/&quot;, len(lengths))
+</code></pre>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">4. 训练方式一：SFT 全参微调</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>全参微调更新全部模型权重，优化器状态和梯度也随参数量增长</li><li>先用较小模型验证数据、保存和恢复流程，再估算大模型资源</li><li>下面保存为 「configs/qwen_full_sft.yaml」</li></ul></div>2
+<p>全参微调更新全部模型权重，优化器状态和梯度也随参数量增长。先用较小模型验证数据、保存和恢复流程，再估算大模型资源。下面保存为 <code>configs/qwen_full_sft.yaml</code>。两条 Alpaca 加一条多轮数据仅供链路检查，演示中不切验证集；真实实验需要独立验证数据，并配置 <code>eval_dataset</code>、<code>eval_strategy</code> 和评测间隔。</p>
+<pre><code class="language-yaml"># configs/qwen_full_sft.yaml：完整配置
+model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct # 基础模型与 tokenizer 来源
+stage: sft # 监督微调阶段
+do_train: true # 启用训练
+finetuning_type: full # 更新全部参数
+dataset_dir: data # 注册表所在目录
+dataset: tech_alpaca,tech_sharegpt # 使用上节注册的两份数据
+template: qwen # 匹配 Qwen2.5 的对话模板
+cutoff_len: 2048 # 模板编码后的最大序列长度
+preprocessing_num_workers: 2 # 数据预处理进程数
+dataloader_num_workers: 0 # 小规模实验采用主进程加载
+output_dir: outputs/qwen-full-sft # 全参模型和检查点输出目录
+logging_steps: 1 # 每个更新步记录日志
+save_steps: 50 # 检查点保存间隔
+save_total_limit: 2 # 限制保留的检查点数量
+per_device_train_batch_size: 1 # 每张卡上的微批量
+gradient_accumulation_steps: 8 # 累积八次后更新参数
+learning_rate: 1.0e-5 # 全参微调采用较小初始学习率
+num_train_epochs: 3.0 # 数据遍历次数
+lr_scheduler_type: cosine # 余弦学习率调度
+warmup_ratio: 0.05 # 预热步数比例
+bf16: true # 要求设备支持 BF16
+gradient_checkpointing: true # 用重复计算减少激活显存
+plot_loss: true # 输出损失曲线
+report_to: none # 不使用外部实验跟踪服务
+seed: 42 # 固定随机种子
+</code></pre>
+<pre><code class="language-bash"># 单卡全参训练；BF16 不支持的卡需同时关闭 bf16 并开启 fp16
+CUDA_VISIBLE_DEVICES=0 llamafactory-cli train configs/qwen_full_sft.yaml
+# 下列是替代启动方式，适用于不支持 BF16 的设备
+CUDA_VISIBLE_DEVICES=0 llamafactory-cli train configs/qwen_full_sft.yaml \
+  bf16=false fp16=true output_dir=outputs/qwen-full-fp16
+</code></pre>
+<p>DeepSpeed ZeRO-2 切分梯度和优化器状态，但每张卡仍持有完整参数。ZeRO-3 继续切分参数，更适合参数本身就放不进单卡的场景，但增加通信和权重聚合成本。将下面两份 JSON 分别保存为 <code>configs/ds_zero2.json</code> 和 <code>configs/ds_zero3.json</code>。<code>auto</code> 让 Trainer 统一传入批量与精度，避免两边重复写死导致不一致。</p>
+<pre><code class="language-json">{
+  &quot;bf16&quot;: {&quot;enabled&quot;: &quot;auto&quot;},
+  &quot;fp16&quot;: {&quot;enabled&quot;: &quot;auto&quot;},
+  &quot;train_batch_size&quot;: &quot;auto&quot;,
+  &quot;train_micro_batch_size_per_gpu&quot;: &quot;auto&quot;,
+  &quot;gradient_accumulation_steps&quot;: &quot;auto&quot;,
+  &quot;gradient_clipping&quot;: &quot;auto&quot;,
+  &quot;zero_optimization&quot;: {
+    &quot;stage&quot;: 2,
+    &quot;overlap_comm&quot;: true,
+    &quot;contiguous_gradients&quot;: true,
+    &quot;reduce_scatter&quot;: true
+  }
+}
+</code></pre>
+<pre><code class="language-json">{
+  &quot;bf16&quot;: {&quot;enabled&quot;: &quot;auto&quot;},
+  &quot;fp16&quot;: {&quot;enabled&quot;: &quot;auto&quot;},
+  &quot;train_batch_size&quot;: &quot;auto&quot;,
+  &quot;train_micro_batch_size_per_gpu&quot;: &quot;auto&quot;,
+  &quot;gradient_accumulation_steps&quot;: &quot;auto&quot;,
+  &quot;gradient_clipping&quot;: &quot;auto&quot;,
+  &quot;zero_optimization&quot;: {
+    &quot;stage&quot;: 3,
+    &quot;overlap_comm&quot;: true,
+    &quot;contiguous_gradients&quot;: true,
+    &quot;stage3_gather_16bit_weights_on_model_save&quot;: true
+  }
+}
+</code></pre>
+<p>ZeRO-3 中的保存聚合选项便于得到可直接加载的权重，但保存瞬间仍有额外开销。CPU offload 可以进一步减少显存，代价是主存、PCIe 通信和训练速度，不能理解为免费扩容。下面的两个命令是替代方案，按硬件与模型选择其中之一。</p>
+<pre><code class="language-bash"># 双卡 ZeRO-2；该版本要求通过分布式启动器启用 DeepSpeed
+FORCE_TORCHRUN=1 CUDA_VISIBLE_DEVICES=0,1 NPROC_PER_NODE=2 \
+  llamafactory-cli train configs/qwen_full_sft.yaml \
+  deepspeed=configs/ds_zero2.json output_dir=outputs/qwen-full-z2
+# 双卡 ZeRO-3
+FORCE_TORCHRUN=1 CUDA_VISIBLE_DEVICES=0,1 NPROC_PER_NODE=2 \
+  llamafactory-cli train configs/qwen_full_sft.yaml \
+  deepspeed=configs/ds_zero3.json output_dir=outputs/qwen-full-z3
+</code></pre>
+<h2 id="5-训练方式二loraqlora-与导出">5. 训练方式二：LoRA、QLoRA 与导出</h2>2
+<p>LoRA 冻结基础权重，只训练低秩增量。QLoRA 在此基础上把冻结的基础模型以低比特表示，适配器计算与梯度并不是全部变成四比特。保存下面配置为 <code>configs/qwen_lora_sft.yaml</code>。它使用同一个较小模型，便于把后续推理链路先跑通；迁移到七十亿参数模型时，先重新做显存测量。</p>
+<p>在 PEFT Python API 中常见的参数名是 <code>target_modules</code>，<strong>在本版本 LLaMA-Factory YAML 中对应 <code>lora_target</code></strong>。直接写 <code>target_modules</code> 会触发未知参数或解析错误。<code>all</code> 覆盖适用的线性层，通常比仅注意力投影有更强适配能力，同时增加可训练参数；自定义模块名应先检查模型结构。</p>
+<pre><code class="language-yaml"># configs/qwen_lora_sft.yaml：完整 LoRA 配置
+model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct # 基础模型
+stage: sft # 监督微调
+do_train: true # 开启训练
+finetuning_type: lora # 冻结主干，训练适配器
+lora_rank: 16 # 低秩矩阵的秩
+lora_alpha: 32 # LoRA 缩放系数
+lora_dropout: 0.05 # LoRA 分支的 dropout
+lora_target: q_proj,k_proj,v_proj,o_proj # 对应 PEFT target_modules
+dataset_dir: data # 数据注册表目录
+dataset: tech_alpaca,tech_sharegpt # 本地训练集
+template: qwen # 模型对话模板
+cutoff_len: 2048 # 上下文预算
+output_dir: outputs/qwen-lora-sft # 适配器保存目录
+per_device_train_batch_size: 1 # 每卡微批量
+gradient_accumulation_steps: 8 # 梯度累积
+learning_rate: 1.0e-4 # LoRA 初始学习率
+num_train_epochs: 3.0 # 训练轮数
+lr_scheduler_type: cosine # 学习率调度
+warmup_ratio: 0.05 # 预热比例
+bf16: true # BF16 计算
+gradient_checkpointing: true # 减少激活显存
+logging_steps: 1 # 日志间隔
+save_steps: 50 # 检查点间隔
+save_total_limit: 2 # 最多保留两个检查点
+plot_loss: true # 绘制损失曲线
+report_to: none # 仅保存本地日志
+seed: 42 # 随机种子
+</code></pre>
+<p>QLoRA 可以通过生成配置的方式复用以上字段，而不用手工维护两份近乎相同的文件。下面使用 bitsandbytes 四比特量化；<code>quantization_bit</code> 控制加载时的基础权重量化，<code>lora_rank</code> 控制适配器大小，二者互相独立。不要将量化训练配置中的参数原样带入合并步骤。</p>
+<pre><code class="language-bash"># 路线 A：常规 LoRA
+CUDA_VISIBLE_DEVICES=0 llamafactory-cli train configs/qwen_lora_sft.yaml
+# 生成路线 B 的完整 QLoRA 配置
+python - &lt;&lt;'PY'
+from pathlib import Path
+import yaml
+cfg = yaml.safe_load(Path(&quot;configs/qwen_lora_sft.yaml&quot;).read_text())
+cfg.update(quantization_bit=4, quantization_method=&quot;bnb&quot;,
+           output_dir=&quot;outputs/qwen-qlora-sft&quot;)
+Path(&quot;configs/qwen_qlora_sft.yaml&quot;).write_text(yaml.safe_dump(cfg, sort_keys=False))
+PY
+# 路线 B：QLoRA，与上面的 LoRA 是两个独立实验
+CUDA_VISIBLE_DEVICES=0 llamafactory-cli train configs/qwen_qlora_sft.yaml
+</code></pre>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">四比特训练显存估算</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>以下为容量规划的粗略区间，假设 dense 模型、单卡、序列长度约两千、微批量为一、rank 为十六、启用梯度检查点，采用 bitsandbytes 四比特基础权重</li><li>它们不是本机实测，也不是能成功启动的保证</li><li>模型架构、词表、目标模块、优化器、内核和序列分布都会改变峰值，建议额外保留约两成余量</li></ul></div>3
+<p>以下为容量规划的粗略区间，假设 dense 模型、单卡、序列长度约两千、微批量为一、rank 为十六、启用梯度检查点，采用 bitsandbytes 四比特基础权重。它们不是本机实测，也不是能成功启动的保证。模型架构、词表、目标模块、优化器、内核和序列分布都会改变峰值，建议额外保留约两成余量。</p>
+<table>
+<thead>
+<tr>
+<th>模型参数规模</th>
+<th style="text-align: right;">纯四比特权重理论下限</th>
+<th style="text-align: right;">QLoRA 训练显存粗估</th>
+<th>规划说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.5B</td>
+<td style="text-align: right;">约 0.70 GiB</td>
+<td style="text-align: right;">约 4–8 GiB</td>
+<td>适合先验证流程</td>
+</tr>
+<tr>
+<td>7B–8B</td>
+<td style="text-align: right;">约 3.26–3.73 GiB</td>
+<td style="text-align: right;">约 10–18 GiB</td>
+<td>二十四 GB 卡通常更有余量</td>
+</tr>
+<tr>
+<td>13B–14B</td>
+<td style="text-align: right;">约 6.05–6.52 GiB</td>
+<td style="text-align: right;">约 18–30 GiB</td>
+<td>二十四 GB 可能需要进一步压缩配置</td>
+</tr>
+<tr>
+<td>32B</td>
+<td style="text-align: right;">约 14.90 GiB</td>
+<td style="text-align: right;">约 30–48 GiB</td>
+<td>优先考虑四十八 GB 或更高容量</td>
+</tr>
+<tr>
+<td>70B</td>
+<td style="text-align: right;">约 32.60 GiB</td>
+<td style="text-align: right;">约 55–90 GiB</td>
+<td>通常需要大显存或专门分片方案</td>
+</tr>
+</tbody>
+</table>
+<p>理论下限只按参数数乘以半字节计算，不包含量化元数据、未量化模块、适配器、梯度、优化器、激活和 CUDA 缓冲。尤其不能据此推断多卡 DDP 会把四比特主干自动平均切分；普通数据并行仍然在各卡保留副本。</p>
+<pre><code class="language-python"># 计算权重理论下限；不是训练峰值预测器
+for billions in [1.5, 7, 8, 14, 32, 70]:
+    gib = billions * 1_000_000_000 * 0.5 / (1024 ** 3)
+    print(f&quot;{billions:g}B: {gib:.2f} GiB，仅四比特权重&quot;)
+</code></pre>
+<h3 id="合并-lora-权重">合并 LoRA 权重</h3>3
+<p>保存为 <code>configs/qwen_export.yaml</code>。合并应重新加载未量化的基础模型，再叠加适配器；不要使用 <code>quantization_bit: 4</code> 来直接执行普通合并。CPU 导出降低显存要求，但需要足够主存容纳基础权重及合并时的中间张量。QLoRA 适配器同样可以这样合并，只需改为它的输出目录。</p>
+<pre><code class="language-yaml"># configs/qwen_export.yaml：完整导出配置
+model_name_or_path: Qwen/Qwen2.5-1.5B-Instruct # 必须与训练时的基础模型一致
+adapter_name_or_path: outputs/qwen-lora-sft # 待合并的适配器
+template: qwen # 保持相同模板
+finetuning_type: lora # 指明输入包含 LoRA
+export_dir: outputs/qwen-merged # 合并后的独立模型目录
+export_size: 2 # 每个分片的目标大小，单位 GB
+export_device: cpu # 在 CPU 上合并
+export_legacy_format: false # 使用 safetensors 格式
+</code></pre>
+<pre><code class="language-bash"># 合并常规 LoRA；后续服务示例加载这个目录
+llamafactory-cli export configs/qwen_export.yaml
+# 如训练的是 QLoRA，则采用下面的替代命令
+llamafactory-cli export configs/qwen_export.yaml \
+  adapter_name_or_path=outputs/qwen-qlora-sft export_dir=outputs/qwen-qlora-merged
+</code></pre>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">6. RLHF：偏好数据、DPO、ORPO、KTO 与奖励模型</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>SFT 教模型输出可接受的答案，偏好优化进一步区分同一输入下哪些回答更好</li><li>DPO、ORPO 不需要先训练独立奖励模型，不能把“RLHF”简单等同于必须串行执行 RM 和 PPO</li><li>奖励模型训练是另一条路径，通常为后续 PPO 提供打分器</li></ul></div>2
+<p>SFT 教模型输出可接受的答案，偏好优化进一步区分同一输入下哪些回答更好。DPO、ORPO 不需要先训练独立奖励模型，不能把“RLHF”简单等同于必须串行执行 RM 和 PPO。奖励模型训练是另一条路径，通常为后续 PPO 提供打分器。各路线的损失含义不同，不能只比较 loss 的绝对数值来判断谁更优。</p>
+<p>把以下配对数据保存为 <code>data/local/tech_pref.json</code>。<code>chosen</code> 和 <code>rejected</code> 必须回答完全相同的提示；不要让优劣标签只由篇幅决定，也不要把错误答案仅做无意义扰动。注册表的 <code>ranking: true</code> 使框架按成对答案处理，这一点对 DPO 和奖励模型都必要。</p>
+<pre><code class="language-json">[
+  {
+    &quot;instruction&quot;: &quot;一张显卡显存不足时，梯度累积能解决哪些问题？&quot;,
+    &quot;input&quot;: &quot;&quot;,
+    &quot;chosen&quot;: &quot;它允许减小微批量并保持有效批量，但不能消除单个样本、模型权重和优化器状态本身的显存需求。&quot;,
+    &quot;rejected&quot;: &quot;开启梯度累积后模型权重就不占显存，可以训练任意大小的模型。&quot;
+  },
+  {
+    &quot;instruction&quot;: &quot;如何检查数据字段是否匹配？&quot;,
+    &quot;input&quot;: &quot;&quot;,
+    &quot;chosen&quot;: &quot;逐项核对原始 JSON 的键与 dataset_info.json 中 columns 的映射，并检查角色 tags。&quot;,
+    &quot;rejected&quot;: &quot;只改文件名即可，框架会自动猜测所有列。&quot;
+  }
+]
+</code></pre>
+<p>下面保存为 <code>configs/qwen_dpo.yaml</code>，基础模型使用前面合并的 SFT 模型，以便所有偏好路线都从同一检查点起步。<code>pref_beta</code> 控制偏好目标的强度，不能理解为数值越大越好；先用保留的偏好验证集观察胜率、长度偏差和通用能力退化。小样本示例只验证配置，不足以产生可靠的偏好能力。</p>
+<pre><code class="language-yaml"># configs/qwen_dpo.yaml：完整 DPO 配置
+model_name_or_path: outputs/qwen-merged # 从 SFT 合并模型继续训练
+stage: dpo # DPO/ORPO 共用此训练入口
+do_train: true # 启用训练
+finetuning_type: lora # 训练新的偏好适配器
+lora_rank: 16 # 低秩维度
+lora_target: all # 覆盖适用线性层
+pref_loss: sigmoid # 标准 DPO 目标
+pref_beta: 0.1 # 偏好目标的强度系数
+dataset_dir: data # 数据目录
+dataset: tech_pref # 成对偏好数据
+template: qwen # 与基础模型一致
+cutoff_len: 2048 # 偏好序列长度预算
+output_dir: outputs/qwen-dpo # 独立实验输出
+per_device_train_batch_size: 1 # 每卡偏好对微批量
+gradient_accumulation_steps: 8 # 梯度累积
+learning_rate: 5.0e-6 # 偏好训练使用较保守学习率
+num_train_epochs: 1.0 # 先进行短实验
+bf16: true # BF16 精度
+gradient_checkpointing: true # 节省激活显存
+logging_steps: 1 # 记录每个更新步
+save_steps: 50 # 检查点间隔
+report_to: none # 本地记录
+</code></pre>
+<p>ORPO 在该版本没有独立的 <code>stage: orpo</code>，而是将 DPO 入口的目标函数换为 <code>orpo</code>。它不需要 DPO 的参考模型分支，目标包含监督与偏好约束；修改目标后应重新调学习率与强度。RM 则使用同一配对数据训练标量奖励头，输出包含奖励模型相关参数，不能直接当普通聊天适配器部署。</p>
+<pre><code class="language-bash"># 三条独立路线，根据实验目标选择；不会自动串联
+llamafactory-cli train configs/qwen_dpo.yaml
+# ORPO：保持 stage=dpo，切换目标函数
+llamafactory-cli train configs/qwen_dpo.yaml \
+  pref_loss=orpo output_dir=outputs/qwen-orpo
+# 奖励模型：沿用成对数据，不需要 pref_loss 参与训练
+llamafactory-cli train configs/qwen_dpo.yaml \
+  stage=rm learning_rate=1e-4 output_dir=outputs/qwen-reward
+</code></pre>
+<p>KTO 使用单条回答的正面或负面反馈，不要求为每个提示提供严格配对。保存为 <code>data/local/tech_kto.json</code>；<code>label</code> 必须是真正的 JSON 布尔值，不能写成字符串 <code>"true"</code>。如果正负反馈比例严重失衡，应核对采样策略，再考虑 <code>kto_chosen_weight</code> 与 <code>kto_rejected_weight</code>，避免简单复制正例掩盖分布问题。</p>
+<pre><code class="language-json">[
+  {
+    &quot;instruction&quot;: &quot;QLoRA 的基础模型参与完整参数更新吗？&quot;,
+    &quot;input&quot;: &quot;&quot;,
+    &quot;output&quot;: &quot;通常不参与，基础权重冻结并量化，主要更新低秩适配器。&quot;,
+    &quot;label&quot;: true
+  },
+  {
+    &quot;instruction&quot;: &quot;训练 OOM 后应该怎么办？&quot;,
+    &quot;input&quot;: &quot;&quot;,
+    &quot;output&quot;: &quot;反复清空缓存就一定能解决所有显存问题。&quot;,
+    &quot;label&quot;: false
+  }
+]
+</code></pre>
+<pre><code class="language-bash"># 从同一份完整配置生成 KTO 配置，移除无关的 DPO 损失字段
+python - &lt;&lt;'PY'
+from pathlib import Path
+import yaml
+cfg = yaml.safe_load(Path(&quot;configs/qwen_dpo.yaml&quot;).read_text())
+cfg.pop(&quot;pref_loss&quot;)
+cfg.update(stage=&quot;kto&quot;, dataset=&quot;tech_kto&quot;, output_dir=&quot;outputs/qwen-kto&quot;,
+           kto_chosen_weight=1.0, kto_rejected_weight=1.0)
+Path(&quot;configs/qwen_kto.yaml&quot;).write_text(yaml.safe_dump(cfg, sort_keys=False))
+PY
+llamafactory-cli train configs/qwen_kto.yaml
+</code></pre>
+<h2 id="7-多卡deepspeedflashattention-与-packing">7. 多卡、DeepSpeed、FlashAttention 与 packing</h2>2
+<p>有效批量等于每卡微批量乘以梯度累积步数，再乘以数据并行进程数。单卡微批量为一、累积八步时有效批量为八；双卡不改其余配置则变成十六。因此多卡加速后要重新检查更新步数、预热步数与学习率。显卡数量增加不等于单卡容量自动增加，尤其是普通 DDP 和 ZeRO-2。</p>
+<pre><code class="language-bash"># 直接使用 torchrun，入口是 launcher.py，不要重复嵌套 CLI 自动启动器
+CUDA_VISIBLE_DEVICES=0,1 torchrun --standalone --nproc_per_node=2 \
+  src/llamafactory/launcher.py configs/qwen_lora_sft.yaml \
+  output_dir=outputs/qwen-lora-ddp
+# 等价的 CLI 启动方式；与上面二选一
+FORCE_TORCHRUN=1 NPROC_PER_NODE=2 CUDA_VISIBLE_DEVICES=0,1 \
+  llamafactory-cli train configs/qwen_full_sft.yaml \
+  deepspeed=configs/ds_zero2.json output_dir=outputs/qwen-full-ddp-z2
+</code></pre>
+<p>FlashAttention-2 需要合适的 GPU 架构、半精度计算，以及与 torch/CUDA 匹配的扩展。安装成功后还要看启动日志是否真正采用该实现。框架参数值是 <code>flash_attn: fa2</code>，不是 <code>flash-attn-2: true</code>。不满足条件时先用 <code>sdpa</code> 跑通，再定位加速内核问题；强行安装不兼容的 wheel 往往导致 undefined symbol。</p>
+<pre><code class="language-bash"># 需要本地编译链；显存较小或 CPU 内存较少时限制编译并行度
+python -m pip install packaging ninja
+MAX_JOBS=2 python -m pip install &quot;flash-attn&gt;=2.6.3,&lt;2.8&quot; --no-build-isolation
+python -c &quot;import flash_attn; print(flash_attn.__version__)&quot;
+# 短样本拼接，并使用 neat_packing 隔离样本之间的注意力
+CUDA_VISIBLE_DEVICES=0 llamafactory-cli train configs/qwen_lora_sft.yaml \
+  flash_attn=fa2 packing=true neat_packing=true \
+  output_dir=outputs/qwen-lora-packed
+# 独立的 SDPA 基线，方便核对加速前后的结果
+CUDA_VISIBLE_DEVICES=0 llamafactory-cli train configs/qwen_lora_sft.yaml \
+  flash_attn=sdpa packing=false output_dir=outputs/qwen-lora-sdpa
+</code></pre>
+<p><code>packing</code> 把多个短样本填入一个长度预算，减少 padding 浪费；普通拼接并不天然保证各样本注意力独立。<code>neat_packing</code> 配合支持的模型和注意力实现进行样本隔离，应在 SFT 中使用。开启后“每条训练记录”可能包含多条原始样本，日志中的样本数和步数口径也会变化。偏好训练不要直接照搬这组开关，先核对当前阶段是否支持。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">8. 推理、聊天界面与 API 服务</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>先用固定输入比较基础模型与微调模型，再发布服务</li><li>下面保存为 「configs/qwen_chat.yaml」，加载前面导出的完整 SFT 模型，因此不再设置 「adapter_name_or_path」</li><li>如果希望直接加载适配器，应将模型改回原始基础模型，同时指定适配器目录和 「finetuning_type: lora」，不要对已经合并的模型再次叠加同一适配器</li></ul></div>2
+<p>先用固定输入比较基础模型与微调模型，再发布服务。下面保存为 <code>configs/qwen_chat.yaml</code>，加载前面导出的完整 SFT 模型，因此不再设置 <code>adapter_name_or_path</code>。如果希望直接加载适配器，应将模型改回原始基础模型，同时指定适配器目录和 <code>finetuning_type: lora</code>，不要对已经合并的模型再次叠加同一适配器。</p>
+<pre><code class="language-yaml"># configs/qwen_chat.yaml：完整推理配置
+model_name_or_path: outputs/qwen-merged # 导出后的完整模型
+template: qwen # 与训练一致的模板
+finetuning_type: full # 输入是完整模型，没有额外适配器
+infer_backend: huggingface # 使用 Transformers 推理后端
+max_new_tokens: 256 # 每轮最多生成的 token 数
+temperature: 0.7 # 随机采样温度
+top_p: 0.9 # 核采样阈值
+</code></pre>
+<p><code>chat</code> 是终端聊天；<code>webchat</code> 是只用于聊天的网页入口；<code>webui</code> 启动 LlamaBoard，可选择模型、配置训练和切换聊天页。三个入口用途不同。以下命令分别启动前台服务或交互进程，应根据需求选一个执行；使用同一张卡同时启动多个模型副本会额外占用显存。</p>
+<pre><code class="language-bash"># 终端聊天
+CUDA_VISIBLE_DEVICES=0 llamafactory-cli chat configs/qwen_chat.yaml
+# 网页聊天，直接读取推理配置
+CUDA_VISIBLE_DEVICES=0 llamafactory-cli webchat configs/qwen_chat.yaml
+# LlamaBoard 综合界面，在界面中选模型并进入聊天页
+CUDA_VISIBLE_DEVICES=0 llamafactory-cli webui
+# OpenAI 兼容 API；默认只绑定本机，端口由 API_PORT 控制
+API_HOST=127.0.0.1 API_PORT=8000 CUDA_VISIBLE_DEVICES=0 \
+  llamafactory-cli api configs/qwen_chat.yaml
+</code></pre>
+<p>客户端另开终端调用。先查询模型列表，再把返回的真实标识传给聊天接口，避免客户端和服务端对模型名的假设不一致。这里调用的是本地服务，输入不包含任何凭据。接入网关或开放到局域网时，应在部署层配置访问控制和并发限制，不能只靠更换端口控制访问。</p>
+<pre><code class="language-bash"># 先确认服务已启动并取得它公布的模型标识
+curl -fsS http://127.0.0.1:8000/v1/models
+MODEL_ID=$(curl -fsS http://127.0.0.1:8000/v1/models | \
+  python -c 'import json,sys; print(json.load(sys.stdin)[&quot;data&quot;][0][&quot;id&quot;])')
+# 生成真实 JSON 请求，调用本地 OpenAI 兼容聊天接口
+python - &quot;$MODEL_ID&quot; &lt;&lt;'PY' | curl -fsS http://127.0.0.1:8000/v1/chat/completions \
+  -H 'Content-Type: application/json' --data-binary @-
+import json, sys
+print(json.dumps({&quot;model&quot;: sys.argv[1], &quot;messages&quot;: [
+    {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;用三句话解释 LoRA 和 QLoRA 的区别。&quot;}
+], &quot;temperature&quot;: 0.2, &quot;max_tokens&quot;: 256, &quot;stream&quot;: False}, ensure_ascii=False))
+PY
+</code></pre>
+<h2 id="9-eval-模式mmlu-与-c-eval">9. eval 模式：MMLU 与 C-Eval</h2>2
+<p>训练中的验证 loss 与知识选择题 benchmark 是不同指标。<code>llamafactory-cli eval</code> 使用专门的评测参数，其中 <code>task</code> 需要包含任务名和切分名，例如 <code>mmlu_test</code>、<code>ceval_validation</code>。C-Eval 本地有答案的验证集适合复现实验，测试集通常用于官方评测流程；不要把无有效答案的测试文件直接用于本地准确率计算。</p>
+<p>该版本的评测依赖本地 <code>evaluation</code> 下的数据脚本、题库压缩包和 <code>mapping.json</code>。如果源码分发未带题库，必须先准备资源。下面从公开原始来源下载 MMLU 和 C-Eval，将 MMLU 原始 tar 转成脚本所需的 zip，并根据题库生成映射。为避免伪造学科归属，映射统一归入 <code>Other</code>，可用于总准确率比较；要看官方大类分数，应换成官方完整分类映射。</p>
+<pre><code class="language-python"># 在训练仓库执行一次：准备公开 benchmark 资源，不使用业务训练数据
+import io
+import json
+import tarfile
+import urllib.request
+import zipfile
+from pathlib import Path
+
+def save_mapping(folder, subjects):
+    mapping = {name: {&quot;name&quot;: name.replace(&quot;_&quot;, &quot; &quot;), &quot;category&quot;: &quot;Other&quot;}
+               for name in sorted(subjects)}
+    (folder / &quot;mapping.json&quot;).write_text(json.dumps(mapping, indent=2), encoding=&quot;utf-8&quot;)
+    print(folder, &quot;subjects:&quot;, len(mapping))
+
+mmlu = Path(&quot;evaluation/mmlu&quot;)
+ceval = Path(&quot;evaluation/ceval&quot;)
+mmlu.mkdir(parents=True, exist_ok=True)
+ceval.mkdir(parents=True, exist_ok=True)
+# 上游发布的是 tar，LLaMA-Factory 的脚本使用名为 mmlu.zip 的文件
+raw = urllib.request.urlopen(&quot;https://people.eecs.berkeley.edu/~hendrycks/data.tar&quot;, timeout=180).read()
+subjects = set()
+with tarfile.open(fileobj=io.BytesIO(raw), mode=&quot;r:*&quot;) as src, \
+     zipfile.ZipFile(mmlu / &quot;mmlu.zip&quot;, &quot;w&quot;, compression=zipfile.ZIP_DEFLATED) as dst:
+    for member in src.getmembers():
+        if member.isfile() and member.name.endswith(&quot;.csv&quot;):
+            name = member.name.removeprefix(&quot;./&quot;)
+            stream = src.extractfile(member)
+            assert stream is not None
+            dst.writestr(name, stream.read())
+            if name.startswith(&quot;data/test/&quot;) and name.endswith(&quot;_test.csv&quot;):
+                subjects.add(Path(name).name.removesuffix(&quot;_test.csv&quot;))
+assert subjects, &quot;MMLU 压缩包结构与预期不符&quot;
+save_mapping(mmlu, subjects)
+url = &quot;https://huggingface.co/datasets/ceval/ceval-exam/resolve/main/ceval.zip&quot;
+urllib.request.urlretrieve(url, ceval / &quot;ceval.zip&quot;)
+with zipfile.ZipFile(ceval / &quot;ceval.zip&quot;) as src:
+    subjects = {Path(name).name.removesuffix(&quot;_val.csv&quot;) for name in src.namelist()
+                if name.startswith(&quot;val/&quot;) and name.endswith(&quot;_val.csv&quot;)}
+assert subjects, &quot;C-Eval 压缩包结构与预期不符&quot;
+save_mapping(ceval, subjects)
+</code></pre>
+<p>保存以下配置为 <code>configs/qwen_eval.yaml</code>。采用 <code>fewshot</code> 模板对齐该版本官方选择题示例；它与部署聊天使用的 <code>qwen</code> 模板不同。比较基础模型与微调模型时必须使用相同模板、题库版本、随机种子和示例数。<code>save_dir</code> 必须尚不存在，框架会拒绝覆盖已有结果，因此每轮评测要用新的结果目录。</p>
+<pre><code class="language-yaml"># configs/qwen_eval.yaml：完整 benchmark 配置
+model_name_or_path: outputs/qwen-merged # 待评测的完整模型
+finetuning_type: full # 无额外适配器
+task: mmlu_test # MMLU 的 test 切分
+task_dir: evaluation # 本地题库脚本与资源目录
+template: fewshot # 与官方 benchmark 示例保持一致
+lang: en # 英文评测提示
+n_shot: 5 # 每个问题的上下文示例数
+batch_size: 1 # 评测批量，显存不足时先保持为一
+seed: 42 # 固定评测随机种子
+trust_remote_code: true # 允许已检查的本地 datasets 加载脚本
+save_dir: outputs/eval-mmlu-sft # 必须是尚不存在的目录
+</code></pre>
+<pre><code class="language-bash"># 相同设置下比较 SFT 与基础模型；每次使用独立输出目录
+CUDA_VISIBLE_DEVICES=0 llamafactory-cli eval configs/qwen_eval.yaml
+CUDA_VISIBLE_DEVICES=0 llamafactory-cli eval configs/qwen_eval.yaml \
+  model_name_or_path=Qwen/Qwen2.5-1.5B-Instruct save_dir=outputs/eval-mmlu-base
+# C-Eval 使用带答案的验证集和中文提示
+CUDA_VISIBLE_DEVICES=0 llamafactory-cli eval configs/qwen_eval.yaml \
+  task=ceval_validation lang=zh save_dir=outputs/eval-ceval-sft
+</code></pre>
+<p>不要仅凭通用 benchmark 提升宣布业务微调有效。还应维护未参加训练的业务题、固定输出规范和人工抽查集，记录正确性、格式合规性、幻觉与拒答情况。偏好优化后尤其要比较答案长度和重复率，防止奖励偏好导致“回答更长”被误判为“回答更好”。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">10. 常见坑与 CUDA OOM 的六种解法</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="显存-oom先定位再按六条路线处理">显存 OOM：先定位，再按六条路线处理</h3>3
+<p>先判断是在模型加载、前向、反向、优化器更新还是保存时失败。加载阶段 OOM 通常与参数副本有关，首次优化器更新时的增长可能来自状态初始化；长样本偶发 OOM 则更接近激活峰值。查看 GPU 上的真实进程，记录失败时的序列长度和配置，不要只截最后一行错误。</p>
+<p>六种常用处理方式如下；每次先改一项并保留独立输出目录，便于确认改善来自哪里。</p>
+<ol>
+<li><strong>减小每卡微批量</strong>，再用梯度累积恢复有效批量；已经为一时不能继续减。</li>
+<li><strong>缩短序列长度并清理异常长样本</strong>，同时确认目标答案仍保留足够监督 token。</li>
+<li><strong>开启梯度检查点</strong>，以额外计算换激活显存；支持时配合 FA2 或 SDPA。</li>
+<li><strong>调整精度或训练方式</strong>，从全参转 LoRA/QLoRA；这会改变实验方法，需要重新记录基线。</li>
+<li><strong>分片模型状态或 offload</strong>，使用 ZeRO-3，必要时将状态卸载到 CPU；提前评估主存与通信成本。</li>
+<li><strong>清理本任务闲置模型进程并处理碎片</strong>，可设置分配器选项；只有实际存在闲置副本或碎片时才有效。</li>
+</ol>
+<pre><code class="language-bash"># 只观察真实进程，不自动终止其他用户的任务
+nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv
+# 解法 1、2、3：微批量为一，缩短序列，开启检查点
+CUDA_VISIBLE_DEVICES=0 llamafactory-cli train configs/qwen_lora_sft.yaml \
+  per_device_train_batch_size=1 gradient_accumulation_steps=16 \
+  cutoff_len=1024 gradient_checkpointing=true output_dir=outputs/oom-short
+# 解法 4：四比特适配器训练
+CUDA_VISIBLE_DEVICES=0 llamafactory-cli train configs/qwen_qlora_sft.yaml \
+  cutoff_len=1024 output_dir=outputs/oom-qlora
+# 解法 6：碎片场景下的可选分配器设置，不会增加物理显存
+PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True CUDA_VISIBLE_DEVICES=0 \
+  llamafactory-cli train configs/qwen_lora_sft.yaml output_dir=outputs/oom-allocator
+</code></pre>
+<p>CPU offload 是第五条路线的具体例子。它把 ZeRO-3 的参数与优化器状态卸载到主存，对机器内存要求很高；当主存不足时可能转而触发系统杀进程。下面生成独立配置，不覆盖前面的 ZeRO 基线。</p>
+<pre><code class="language-bash"># 从现有 ZeRO-3 配置生成 CPU offload 版本
+python - &lt;&lt;'PY'
+import json
+from pathlib import Path
+p = Path(&quot;configs/ds_zero3.json&quot;)
+cfg = json.loads(p.read_text())
+cfg[&quot;zero_optimization&quot;].update({
+    &quot;offload_optimizer&quot;: {&quot;device&quot;: &quot;cpu&quot;, &quot;pin_memory&quot;: True},
+    &quot;offload_param&quot;: {&quot;device&quot;: &quot;cpu&quot;, &quot;pin_memory&quot;: True}
+})
+Path(&quot;configs/ds_zero3_offload.json&quot;).write_text(json.dumps(cfg, indent=2))
+PY
+FORCE_TORCHRUN=1 CUDA_VISIBLE_DEVICES=0,1 NPROC_PER_NODE=2 \
+  llamafactory-cli train configs/qwen_full_sft.yaml \
+  deepspeed=configs/ds_zero3_offload.json output_dir=outputs/oom-offload
+</code></pre>
+<p><code>torch.cuda.empty_cache()</code> 只释放未使用的缓存，不会释放仍被 Python 引用的张量，也不能让单样本超过物理显存的模型突然可训练。评测阶段 OOM 要减评测批量和生成长度，保存阶段 OOM 要关注权重聚合；不要只修改训练批量。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">pad_token 与 tokenizer 不一致</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>框架模板通常会修复 tokenizer 的必要特殊 token</li><li>先检查原始配置、训练日志与导出目录，确认训练和推理使用同一套 tokenizer</li><li>自写推理代码若发现没有 pad token，可以在存在 EOS 的前提下复用 EOS，并明确传入 attention mask；不能据此在训练时把所有等于 EOS 的标签一律屏蔽</li></ul></div>3
+<p>框架模板通常会修复 tokenizer 的必要特殊 token。先检查原始配置、训练日志与导出目录，确认训练和推理使用同一套 tokenizer。自写推理代码若发现没有 pad token，可以在存在 EOS 的前提下复用 EOS，并明确传入 attention mask；不能据此在训练时把所有等于 EOS 的标签一律屏蔽。</p>
+<pre><code class="language-python"># 自写 Transformers 推理的实际处理；不修改已保存的 tokenizer 文件
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+path = &quot;outputs/qwen-merged&quot;
+tok = AutoTokenizer.from_pretrained(path, padding_side=&quot;left&quot;)
+model = AutoModelForCausalLM.from_pretrained(path, torch_dtype=&quot;auto&quot;).to(&quot;cuda&quot;)
+if tok.pad_token_id is None:
+    if tok.eos_token_id is None:
+        raise ValueError(&quot;没有 EOS，需显式新增 PAD 并同步调整词嵌入&quot;)
+    tok.pad_token = tok.eos_token
+model.config.pad_token_id = tok.pad_token_id
+text = tok.apply_chat_template([{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;解释梯度检查点。&quot;}],
+                               tokenize=False, add_generation_prompt=True)
+batch = tok([text], padding=True, return_tensors=&quot;pt&quot;).to(model.device)
+with torch.inference_mode():
+    result = model.generate(**batch, max_new_tokens=128, do_sample=False,
+                            pad_token_id=tok.pad_token_id)
+print(tok.decode(result[0, batch[&quot;input_ids&quot;].shape[1]:], skip_special_tokens=True))
+</code></pre>
+<p>如果新增一个全新的 PAD token，必须让模型词嵌入同步扩容，并在保存与导出时保留相应权重；本版本量化路径不能随意调整 embedding 大小。对现有 Qwen 模型通常应先沿用官方 tokenizer，避免在排查中额外引入词表变化。</p>
+<h3 id="loss-不下降与数据字段错误">loss 不下降与数据字段错误</h3>3
+<p>loss 不下降先检查是否确实存在非空答案、模板是否匹配，以及样本是否被截成只剩提示。接着确认 LoRA 目标模块存在、日志显示有可训练参数，再观察学习率、梯度范数和有限数值。用少量干净样本做短时间过拟合实验，可以验证优化链路是否成立，但不能将过拟合结果当作泛化证明。</p>
+<p>常见的 <code>Undefined dataset</code> 是注册名错误；<code>KeyError</code> 常来自 columns 指向不存在的原始字段；角色警告可能来自 ShareGPT 的顺序和 tags。修改数据或模板后，应使用新缓存路径或覆盖预处理缓存。若已经设置 <code>tokenized_path</code>，缓存优先级会影响重新预处理，必须同步检查，不能只修改 JSON 后假定训练一定读取了新内容。</p>
+<pre><code class="language-bash"># 验证 JSON 语法，不启动训练
+python -m json.tool data/dataset_info.json &gt;/dev/null
+python -m json.tool data/local/tech_alpaca.json &gt;/dev/null
+python -m json.tool data/local/tech_sharegpt.json &gt;/dev/null
+# 少量样本的优化链路诊断；不要用于报告业务效果
+CUDA_VISIBLE_DEVICES=0 llamafactory-cli train configs/qwen_lora_sft.yaml \
+  max_samples=3 max_steps=20 learning_rate=2e-4 overwrite_cache=true \
+  logging_steps=1 output_dir=outputs/diagnose-overfit
+# 检查本实验的学习率和损失记录
+python - &lt;&lt;'PY'
+import json
+from pathlib import Path
+state = json.loads(Path(&quot;outputs/diagnose-overfit/trainer_state.json&quot;).read_text())
+for entry in state[&quot;log_history&quot;]:
+    if &quot;loss&quot; in entry:
+        print({k: entry.get(k) for k in [&quot;step&quot;, &quot;loss&quot;, &quot;learning_rate&quot;, &quot;grad_norm&quot;]})
+PY
+</code></pre>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">11. 一图流：从数据到上线</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>这张流程图把资源验收、数据验收和模型验收放在各自真正有意义的位置</li><li>训练中断后应从与模型、数据及配置相匹配的检查点恢复，不能将任意适配器目录视作可恢复全部优化器状态的检查点</li><li>评测退化时回到数据或配置，保留基础模型作为对照</li></ul></div>2
+<p>这张流程图把资源验收、数据验收和模型验收放在各自真正有意义的位置。训练中断后应从与模型、数据及配置相匹配的检查点恢复，不能将任意适配器目录视作可恢复全部优化器状态的检查点。评测退化时回到数据或配置，保留基础模型作为对照。</p>
+<pre><code class="language-mermaid">flowchart TD
+    A[明确任务与基础模型] --&gt; B[安装固定版本并核对 CUDA]
+    B --&gt; C[清洗 Alpaca 或 ShareGPT 数据]
+    C --&gt; D[注册 dataset_info.json]
+    D --&gt; E[检查模板、字段、长度与验证集泄漏]
+    E --&gt; F{选择训练方式}
+    F --&gt; G[全参 SFT 与 ZeRO 分片]
+    F --&gt; H[LoRA 或 QLoRA SFT]
+    G --&gt; I[检查点与训练指标验收]
+    H --&gt; I
+    I --&gt; J{是否需要偏好优化}
+    J --&gt;|需要| K[DPO、ORPO、KTO 或奖励模型路线]
+    J --&gt;|暂不需要| L[导出完整模型或保留适配器]
+    K --&gt; L
+    L --&gt; M[MMLU、C-Eval 与独立业务评测]
+    M --&gt; N{是否满足验收指标}
+    N --&gt;|未满足| C
+    N --&gt;|满足| O[CLI 与 Web 聊天回归]
+    O --&gt; P[API 部署与并发容量测试]
+</code></pre>
+<h2 id="12-速查表">12. 速查表</h2>2
+<table>
+<thead>
+<tr>
+<th>常用命令</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>llamafactory-cli version</code></td>
+<td>检查框架版本</td>
+</tr>
+<tr>
+<td><code>llamafactory-cli env</code></td>
+<td>输出环境诊断信息</td>
+</tr>
+<tr>
+<td><code>llamafactory-cli train configs/qwen_lora_sft.yaml</code></td>
+<td>按 YAML 训练</td>
+</tr>
+<tr>
+<td><code>llamafactory-cli export configs/qwen_export.yaml</code></td>
+<td>合并并导出 LoRA</td>
+</tr>
+<tr>
+<td><code>llamafactory-cli chat configs/qwen_chat.yaml</code></td>
+<td>终端聊天</td>
+</tr>
+<tr>
+<td><code>llamafactory-cli webchat configs/qwen_chat.yaml</code></td>
+<td>网页聊天</td>
+</tr>
+<tr>
+<td><code>llamafactory-cli webui</code></td>
+<td>打开 LlamaBoard</td>
+</tr>
+<tr>
+<td><code>llamafactory-cli api configs/qwen_chat.yaml</code></td>
+<td>启动兼容 API</td>
+</tr>
+<tr>
+<td><code>llamafactory-cli eval configs/qwen_eval.yaml</code></td>
+<td>运行 benchmark</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>常用参数</th>
+<th>一行说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>stage</code></td>
+<td>阶段：sft、rm、dpo、kto 等</td>
+</tr>
+<tr>
+<td><code>finetuning_type</code></td>
+<td>full、lora 或 freeze</td>
+</tr>
+<tr>
+<td><code>template</code></td>
+<td>模型对话模板，必须与训练目标匹配</td>
+</tr>
+<tr>
+<td><code>dataset</code> / <code>dataset_dir</code></td>
+<td>注册名与注册表目录</td>
+</tr>
+<tr>
+<td><code>cutoff_len</code></td>
+<td>训练序列 token 长度预算</td>
+</tr>
+<tr>
+<td><code>lora_rank</code> / <code>lora_target</code></td>
+<td>低秩维度与目标模块；后者对应 PEFT 的 target_modules</td>
+</tr>
+<tr>
+<td><code>quantization_bit</code></td>
+<td>基础权重加载量化位数，QLoRA 常用四比特</td>
+</tr>
+<tr>
+<td><code>gradient_accumulation_steps</code></td>
+<td>保持小微批量时扩大有效批量</td>
+</tr>
+<tr>
+<td><code>deepspeed</code></td>
+<td>ZeRO 配置 JSON 路径</td>
+</tr>
+<tr>
+<td><code>flash_attn</code></td>
+<td>auto、sdpa 或 fa2 等注意力实现选择</td>
+</tr>
+<tr>
+<td><code>packing</code> / <code>neat_packing</code></td>
+<td>短样本拼接与跨样本注意力隔离</td>
+</tr>
+<tr>
+<td><code>pref_loss</code> / <code>pref_beta</code></td>
+<td>偏好目标类型与强度</td>
+</tr>
+<tr>
+<td><code>resume_from_checkpoint</code></td>
+<td>恢复包含训练状态的检查点</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash"># 保存点必须真实存在；此命令从最近检查点恢复对应实验
+CHECKPOINT=$(python - &lt;&lt;'PY'
+from transformers.trainer_utils import get_last_checkpoint
+path = get_last_checkpoint(&quot;outputs/qwen-lora-sft&quot;)
+if path is None:
+    raise SystemExit(&quot;没有可恢复的 checkpoint，请先完成一次检查点保存&quot;)
+print(path)
+PY
+)
+if [ -n &quot;$CHECKPOINT&quot; ]; then
+  llamafactory-cli train configs/qwen_lora_sft.yaml resume_from_checkpoint=&quot;$CHECKPOINT&quot;
+fi
+</code></pre>
+<p>参考与核查入口：<a href="https://github.com/hiyouga/LLaMA-Factory/blob/v0.9.3/examples/README.md">官方 v0.9.3 示例说明</a>、<a href="https://github.com/hiyouga/LLaMA-Factory/blob/v0.9.3/data/README.md">数据格式与字段映射</a>、<a href="https://github.com/hiyouga/LLaMA-Factory/blob/v0.9.3/src/llamafactory/hparams/finetuning_args.py">微调参数定义</a>、<a href="https://github.com/hiyouga/LLaMA-Factory/blob/v0.9.3/src/llamafactory/hparams/evaluation_args.py">评测参数定义</a>、<a href="https://github.com/hiyouga/LLaMA-Factory/blob/v0.9.3/examples/train_lora/llama3_lora_eval.yaml">官方选择题评测示例</a>。公开数据仓库内容可能独立更新，正式复现实验还应记录其 revision；参数名称和能力范围以固定版本源码为准。</p></div></details></div></body></html>

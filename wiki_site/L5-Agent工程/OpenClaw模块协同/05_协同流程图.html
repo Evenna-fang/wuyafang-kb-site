@@ -1,0 +1,161 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>05_协同流程图</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../../index.html">🏠 总入口</a><a href="../../graph.html">🕸 关联图谱</a><a href="../../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/OpenClaw模块协同/05_协同流程图</span></div><div class="wrap"><blockquote><p><a href="../../index.html">← 返回总入口</a></p></blockquote><h1 id="openclaw">OpenClaw 模块协同流程图</h1>
+<p>本文件通过 <strong>Mermaid</strong> 展示 OpenClaw 四大核心模块的端到端协同路径，涵盖从用户请求到最终结果返回的完整闭环。</p>
+<pre><code class="language-mermaid">flowchart LR
+    %% 节点定义
+    A[用户请求（Task）] --&gt; B[Routing 路由]
+    B --&gt; C{是否需要 RAG?}
+    C --&gt;|是| D[Memory RAG]
+    D --&gt; E[检索向量库 &amp; 时序记忆]
+    E --&gt; F[融合 Prompt]
+    F --&gt; G[Subagent 调度]
+    G --&gt; H[Sandbox 隔离执行]
+    H --&gt; I[子代理（Model/Script）执行]
+    I --&gt; J[结果写回 Memory RAG]
+    J --&gt; K[生成最终答案]
+    K --&gt; L[返回给用户]
+    C --&gt;|否| M[直接 Subagent]
+    M --&gt; H
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style L fill:#bbf,stroke:#333,stroke-width:2px
+    style D fill:#efe,stroke:#333,stroke-width:2px
+    style H fill:#ffe,stroke:#333,stroke-width:2px
+</code></pre>
+<p><strong>图：端到端时序（用户到最终答案）</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant U as 用户
+    participant G as Gateway
+    participant R as Routing
+    participant M as Memory RAG
+    participant S as Subagent Manager
+    participant B as Sandbox
+    participant A as 子代理
+    U-&gt;&gt;G: 提交 Task
+    G-&gt;&gt;R: 拆分为 Job 并选择 Target
+    R-&gt;&gt;M: 需要 RAG 时请求上下文
+    M--&gt;&gt;R: 融合后的 Prompt
+    R-&gt;&gt;S: 下发 Job 与 runtime sandbox priority
+    S-&gt;&gt;B: 申请隔离环境
+    B-&gt;&gt;A: 启动子代理
+    A--&gt;&gt;B: stdout 与退出状态
+    B--&gt;&gt;S: 收集结果与资源用量
+    S-&gt;&gt;M: 写回 subagent_history
+    S--&gt;&gt;G: 汇总结果
+    G--&gt;&gt;U: 返回最终答案
+</code></pre>
+<h2 id="_1">流程说明</h2>
+<ol>
+<li><strong>用户请求</strong> 通过 OpenClaw CLI、API 或 UI 进入系统。</li>
+<li><strong>Routing</strong> 根据任务属性（标签、优先级、是否需要 RAG）决定后续路径。</li>
+<li><strong>Memory RAG</strong>（若需要）进行向量检索与时序记忆融合，生成富上下文 Prompt。</li>
+<li><strong>Subagent 调度</strong> 根据 Prompt 的 <code>runtime</code>（如 Codex、OpenClaw、Custom）创建对应 <strong>Subagent</strong> 实例。</li>
+<li><strong>Sandbox</strong> 为 Subagent 提供 <strong>进程/容器级别的安全隔离</strong>，并限制资源使用与网络访问。</li>
+<li><strong>子代理执行</strong> 完成业务逻辑（代码生成、API 调用、文档摘要等），输出 <code>stdout</code> 与状态。</li>
+<li><strong>结果写回 Memory RAG</strong>，将执行产物、日志、资源使用写入时序记忆，供后续任务或审计使用。</li>
+<li><strong>生成最终答案</strong>（可能再次走 RAG 进行二次检索），并通过 OpenClaw Gateway 返回给用户。</li>
+</ol>
+<p><strong>图：模块职责与数据存储的分层架构（控制面，数据面，执行面）</strong></p>
+<pre><code class="language-mermaid">flowchart LR
+    subgraph CTRL[&quot;控制面&quot;]
+        RT[&quot;Routing&quot;]
+        SM[&quot;Subagent Manager&quot;]
+    end
+    subgraph DATA[&quot;数据面&quot;]
+        VS[&quot;Chroma 向量库&quot;]
+        TS[&quot;SQLite 时序记忆&quot;]
+    end
+    subgraph EXEC[&quot;执行面&quot;]
+        SB[&quot;Sandbox&quot;]
+        AG[&quot;子代理 Model 或 Script&quot;]
+    end
+    RT --&gt;|&quot;rag.enabled&quot;| VS
+    RT --&gt;|&quot;session_id 查询&quot;| TS
+    RT --&gt;|&quot;runtime sandbox 属性&quot;| SM
+    SM --&gt; SB
+    SB --&gt; AG
+    AG --&gt;|&quot;输出与日志&quot;| TS
+    TS --&gt;|&quot;历史结果复用&quot;| RT
+</code></pre>
+<h2 id="prometheus">关键链路指标（Prometheus）</h2>
+<ul>
+<li><code>openclaw_routing_latency_seconds</code></li>
+<li><code>openclaw_rag_fusion_latency_seconds</code></li>
+<li><code>openclaw_subagent_spawn_latency_seconds</code></li>
+<li><code>openclaw_sandbox_execution_seconds</code></li>
+<li><code>openclaw_response_total</code></li>
+</ul>
+<h2 id="_2">故障回退路径</h2>
+<ul>
+<li><strong>Routing 失效</strong> → 使用 <strong>默认本地 Runtime</strong>（OpenClaw）直接执行。</li>
+<li><strong>RAG 检索为空</strong> → 直接跳过 RAG，进入 <strong>Subagent</strong>（纯生成）。</li>
+<li><strong>Sandbox 资源超限</strong> → 降级为 <strong>本地进程</strong>（不启用网络隔离），并记录 <code>SBOX004</code> 错误。</li>
+<li><strong>Subagent 超时</strong> → 触发 <strong>重试</strong>（最多 <code>maxRetries</code>），若仍失败则返回错误给用户并记录 <code>SUB004</code>。</li>
+</ul>
+<p><strong>图：故障回退决策图</strong></p>
+<pre><code class="language-mermaid">flowchart TD
+    S[&quot;请求进入&quot;] --&gt; R{&quot;Routing 可用&quot;}
+    R --&gt;|&quot;否&quot;| L[&quot;回退默认本地 Runtime 直接执行&quot;]
+    R --&gt;|&quot;是&quot;| G{&quot;需要 RAG&quot;}
+    G --&gt;|&quot;是&quot;| Q{&quot;检索结果为空&quot;}
+    Q --&gt;|&quot;是&quot;| SK[&quot;跳过 RAG 纯生成&quot;]
+    Q --&gt;|&quot;否&quot;| SUB[&quot;Subagent 调度&quot;]
+    G --&gt;|&quot;否&quot;| SUB
+    SK --&gt; SUB
+    SUB --&gt; SBX{&quot;Sandbox 资源是否超限&quot;}
+    SBX --&gt;|&quot;是&quot;| DG[&quot;降级为本地进程 记录 SBOX004&quot;]
+    SBX --&gt;|&quot;否&quot;| RUN[&quot;子代理执行&quot;]
+    DG --&gt; RUN
+    RUN --&gt; TO{&quot;是否超时&quot;}
+    TO --&gt;|&quot;是 且未超 maxRetries&quot;| RUN
+    TO --&gt;|&quot;是 重试耗尽&quot;| ERR[&quot;返回错误 记录 SUB004&quot;]
+    TO --&gt;|&quot;否&quot;| DONE[&quot;写回 Memory RAG 并返回&quot;]
+    L --&gt; DONE
+</code></pre>
+<hr />
+<blockquote>
+<p><strong>备注</strong>：在实际部署时，请确保 <strong>Mermaid 渲染插件</strong> 已在 Wiki 平台启用，以便在页面上展示上述图形。若平台不支持，可将此文件另存为 SVG（<code>mermaid -i 05_Flowchart.mmd -o flowchart.svg</code>）后上传。</p>
+</blockquote></div></body></html>

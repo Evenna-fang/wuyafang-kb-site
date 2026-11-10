@@ -1,0 +1,170 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>大模型应用开发 RAG实战课</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 大模型应用开发 RAG实战课</span></div><div class="wrap"><h1 id="书章节重点-大模型应用开发-rag实战课">书章节重点 · 大模型应用开发 RAG实战课</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书围绕RAG（检索增强生成）系统的完整生命周期，系统拆解从数据导入、文本分块、信息嵌入、向量存储到检索优化与响应生成的架构设计与实现路径</li><li>通过“数据—索引—检索—生成—评估”的主线，帮助开发者和企业构建实用、可控且可优化的智能问答系统，并延伸至GraphRAG、Agentic RAG等复杂范式</li><li>全书强调先做可运行的最小闭环，再用评测定位瓶颈：解析错误不能靠调检索解决，召回不足不能只靠提示词掩盖，生成幻觉也不能简单归咎于模型</li></ul></div>2
+<p>本书围绕RAG（检索增强生成）系统的完整生命周期，系统拆解从数据导入、文本分块、信息嵌入、向量存储到检索优化与响应生成的架构设计与实现路径。通过“数据—索引—检索—生成—评估”的主线，帮助开发者和企业构建实用、可控且可优化的智能问答系统，并延伸至GraphRAG、Agentic RAG等复杂范式。全书强调先做可运行的最小闭环，再用评测定位瓶颈：解析错误不能靠调检索解决，召回不足不能只靠提示词掩盖，生成幻觉也不能简单归咎于模型。每一章都对应一类可观测的工程决策。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">开篇 RAG三问</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：RAG是结合信息检索与生成式AI的技术框架，通过从外部知识库检索相关信息来增强大模型生成能力，提高上下文相关性和回答准确性</li><li>核心观点2：学习路径遵循“理解概念—快速搭建—系统优化”三问递进，先跑通最小可用系统再逐步调优</li><li>核心观点3：RAG适合把经常变化、规模较大或不宜写入模型参数的知识放在外部库中，通过查询时注入实现更新</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：RAG是结合信息检索与生成式AI的技术框架，通过从外部知识库检索相关信息来增强大模型生成能力，提高上下文相关性和回答准确性。</li>
+<li><strong>核心观点2</strong>：学习路径遵循“理解概念—快速搭建—系统优化”三问递进，先跑通最小可用系统再逐步调优。</li>
+<li><strong>核心观点3</strong>：RAG适合把经常变化、规模较大或不宜写入模型参数的知识放在外部库中，通过查询时注入实现更新。</li>
+<li><strong>核心观点4</strong>：系统质量由数据、索引、检索、生成和评估共同决定，任何单点优化都要回到端到端问答结果验证。<blockquote>
+<p>这是一种结合信息检索与生成式AI的技术框架，旨在通过从外部知识库中检索相关信息，增强大模型的生成能力，从而提高上下文相关性和回答的准确性。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第1章-数据导入">第1章 数据导入</h3>3
+<ul>
+<li><strong>核心观点1</strong>：针对不同数据源（文本、JSON、CSV、网页、Markdown、PDF、图片）需选用匹配的加载器，解析结果统一为Document对象列表。</li>
+<li><strong>核心观点2</strong>：PDF等复杂文档需处理文本格式、布局识别及表格解析；图文内容可借助大模型整体解析或多模态OCR工具转换。</li>
+<li><strong>核心观点3</strong>：解析出的Document对象存入知识库后，成为RAG系统后续问答引擎可利用的文本信息基础。</li>
+<li><strong>核心观点4</strong>：简单文本可整体载入，长文档、网页和PDF则必须保留标题、页码、表格或来源等元数据，便于追溯和后续分块。</li>
+<li><strong>核心观点5</strong>：数据导入阶段要先抽查解析结果，确认正文没有乱码、页眉污染、表格错序或图片文字丢失，再进入嵌入流程。<blockquote>
+<p>这意味着解析出的内容会被整体存储在一个数据列表中，而该列表仅包含一个Document对象，其page_content属性将包含整个文件的文本内容。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第2章 文本分块</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：分块质量直接影响检索精度与生成质量，需在块大小与上下文完整性之间权衡</li><li>核心观点2：分块策略从固定字符/Token数分块、递归分块，到基于特定格式、文件结构或语义分块逐级进阶</li><li>核心观点3：元数据（示例、页码、时间、类型、文档标题等）可用于标记文档基本属性，辅助后续检索与索引构建</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：分块质量直接影响检索精度与生成质量，需在块大小与上下文完整性之间权衡。</li>
+<li><strong>核心观点2</strong>：分块策略从固定字符/Token数分块、递归分块，到基于特定格式、文件结构或语义分块逐级进阶。</li>
+<li><strong>核心观点3</strong>：元数据（示例、页码、时间、类型、文档标题等）可用于标记文档基本属性，辅助后续检索与索引构建。</li>
+<li><strong>核心观点4</strong>：固定长度便于实现和控制成本，但可能切断定义、步骤或表格；递归与结构化分块则优先保留段落、标题和列表边界。</li>
+<li><strong>核心观点5</strong>：分块应结合查询类型验证，既要测试短事实问题，也要测试需要跨段落理解的复杂问题，不能只凭经验设定块大小。<blockquote>
+<p>例如，在论文、报告或说明书等文档中，段落、标题、表格、列表项都具有特定的语义。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第3章-信息嵌入">第3章 信息嵌入</h3>3
+<ul>
+<li><strong>核心观点1</strong>：嵌入是对外部信息的编码，从早期词嵌入发展到现代大模型嵌入，语义捕捉能力显著提升。</li>
+<li><strong>核心观点2</strong>：嵌入模型分稀疏嵌入、密集嵌入与BM25等类型，OpenAI、Jina、Cohere、Voyage及开源SentenceTransformers模型各有适用场景，选型至关重要。</li>
+<li><strong>核心观点3</strong>：嵌入模型可通过训练与微调持续提升表现，使语义捕捉更精确，从而提升RAG系统整体性能。</li>
+<li><strong>核心观点4</strong>：密集向量擅长语义相似，稀疏检索和BM25擅长关键词、编号及专有名词；混合使用通常比单一路径更稳健。</li>
+<li><strong>核心观点5</strong>：模型选型要同时考虑语言、领域、维度、延迟、费用和部署方式，并用真实问题集比较，而不是只看公开榜单。<blockquote>
+<p>选择一个适合任务的嵌入模型至关重要，目前存在大量的开源模型和商业模型，不同模型在性能和语义捕捉能力上可能存在显著差异。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第4章 向量存储</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：向量数据库通过索引结构实现高效相似度搜索，索引与搜索参数设置直接影响性能</li><li>核心观点2：向量数据库选型需综合考量规模、并发与延迟；PGVector在超大规模或高并发场景下吞吐与延迟可能落后于专用向量数据库</li><li>核心观点3：支持混合检索（如Milvus）与多模态检索，并需配套数据的增删改维护操作</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：向量数据库通过索引结构实现高效相似度搜索，索引与搜索参数设置直接影响性能。</li>
+<li><strong>核心观点2</strong>：向量数据库选型需综合考量规模、并发与延迟；PGVector在超大规模或高并发场景下吞吐与延迟可能落后于专用向量数据库。</li>
+<li><strong>核心观点3</strong>：支持混合检索（如Milvus）与多模态检索，并需配套数据的增删改维护操作。</li>
+<li><strong>核心观点4</strong>：向量只是检索入口，数据库还应保存原文、来源、标题、页码、时间和权限等元数据，才能支持过滤与引用。</li>
+<li><strong>核心观点5</strong>：索引参数要通过召回率、延迟和内存占用的实测平衡；数据更新后还要验证旧索引是否仍与元数据一致。<blockquote>
+<p>虽然PGVector通过索引优化提升了性能，但在超大规模向量数据集（如千万级以上）或高并发场景下，其吞吐量和延迟仍可能落后于专用向量数据库。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第5章-检索前处理">第5章 检索前处理</h3>3
+<ul>
+<li><strong>核心观点1</strong>：查询构建以自然语言提问为起点，查询翻译可更好地阐释用户问题。</li>
+<li><strong>核心观点2</strong>：查询路由负责将问题导向正确的数据源，提升检索针对性。</li>
+<li><strong>核心观点3</strong>：检索前处理是连接用户意图与底层索引的关键桥梁，决定后续检索的命中质量。</li>
+<li><strong>核心观点4</strong>：查询重写可以补充同义词、隐含条件和领域术语，但要保留原问题，避免改写模型误解意图后无法回溯。</li>
+<li><strong>核心观点5</strong>：多数据源场景应先判断问题属于哪类知识，再选择索引、过滤条件或查询方式，不能让所有问题都搜索全库。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第6章 索引优化</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：采用“小块检索、大块生成”策略——先用较小文本块提高检索精度，生成阶段引用更大更完整的文本块提供上下文</li><li>核心观点3：前向/后向扩展可链接相关节点，混合检索兼顾准确性与覆盖范围</li><li>核心观点4：索引设计的核心是让“用于排序的证据”和“用于生成的上下文”分工，避免小块命中却缺少完整语境</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：采用“小块检索、大块生成”策略——先用较小文本块提高检索精度，生成阶段引用更大更完整的文本块提供上下文。</li>
+<li><strong>核心观点2</strong>：通过节点-句子滑动窗口、父子文本块、IndexNode与RecursiveRetriever、HierarchicalNodeParser与RAPTOR等构建从摘要到细节的分层索引。</li>
+<li><strong>核心观点3</strong>：前向/后向扩展可链接相关节点，混合检索兼顾准确性与覆盖范围。</li>
+<li><strong>核心观点4</strong>：索引设计的核心是让“用于排序的证据”和“用于生成的上下文”分工，避免小块命中却缺少完整语境。</li>
+<li><strong>核心观点5</strong>：分层索引、摘要索引和父子关系会增加维护成本，只有在长文档、多跳问题或上下文不足时才值得引入。<blockquote>
+<p>具体来说，就是先使用较小的文本块进行检索（以提高检索精度），然后在生成阶段引用更大、更完整的文本块，从而为模型提供更多上下文信息。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第7章-检索后处理">第7章 检索后处理</h3>3
+<ul>
+<li><strong>核心观点1</strong>：重排对召回结果重新排序，提升相关性靠前的结果质量。</li>
+<li><strong>核心观点2</strong>：压缩精简检索内容，降低噪声与上下文冗余。</li>
+<li><strong>核心观点3</strong>：校正对检索结果进行修正，弥补召回偏差。</li>
+<li><strong>核心观点4</strong>：重排适合从较大的候选集筛出少量高相关片段，但会增加计算时间，应按延迟预算决定候选数量。</li>
+<li><strong>核心观点5</strong>：压缩不能删除回答所需的限定条件、时间范围和出处；后处理结果必须保留可解释的来源标识。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第8章 响应生成</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：通过改进提示词、输出解析控制格式、选择合适大模型三条路径提升输出质量</li><li>核心观点2：检索结果集成方式影响生成效果，需合理组织上下文注入</li><li>核心观点3：Self-RAG实现自我反思式生成，RRR支持动态生成优化</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：通过改进提示词、输出解析控制格式、选择合适大模型三条路径提升输出质量。</li>
+<li><strong>核心观点2</strong>：检索结果集成方式影响生成效果，需合理组织上下文注入。</li>
+<li><strong>核心观点3</strong>：Self-RAG实现自我反思式生成，RRR支持动态生成优化。</li>
+<li><strong>核心观点4</strong>：LlamaIndex在检索后进行响应合成，先召回相关文档再由response_synthesizer处理并生成最终答案。</li>
+<li><strong>核心观点5</strong>：生成提示应明确“只能依据证据回答”、证据不足时如何拒答、如何引用来源以及输出格式，才能降低幻觉并便于验收。<blockquote>
+<p>在执行检索后，LlamaIndex会进行响应合成，即首先召回相关文档，然后利用response_synthesizer处理召回的数据，并使用大模型生成最终答案。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第9章-系统评估">第9章 系统评估</h3>3
+<ul>
+<li><strong>核心观点1</strong>：RAG系统需建立覆盖检索与响应两端的完整评估体系。</li>
+<li><strong>核心观点2</strong>：检索评估指标与响应评估指标分别度量召回质量与生成质量。</li>
+<li><strong>核心观点3</strong>：借助成熟评估框架实现系统化、可复现的效果度量。</li>
+<li><strong>核心观点4</strong>：检索侧要关注命中、排序和覆盖，生成侧要关注事实一致性、相关性、完整性、引用和拒答。</li>
+<li><strong>核心观点5</strong>：评测集应包含简单问题、多跳问题、全局问题和无答案问题，并固定版本后比较每次改动是否退化。评估结果要区分解析、召回、排序和生成责任，避免用一个总分掩盖具体瓶颈。每轮实验都应记录数据版本、分块策略、嵌入模型、候选数量、重排配置和提示模板，保证结论可以复现。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第10章 复杂RAG范式</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：GraphRAG将RAG与知识图谱整合，增强结构化知识利用，适合实体关系、多跳关联和全局摘要问题</li><li>核心观点2：上下文检索突破传统RAG的上下文困境，Modular RAG从固定流程走向灵活架构</li><li>核心观点3：Agentic RAG由自主代理驱动，Multi-Modal RAG支持图像、视频、音频等多模态特征检索并与文本结果融合</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：GraphRAG将RAG与知识图谱整合，增强结构化知识利用，适合实体关系、多跳关联和全局摘要问题。</li>
+<li><strong>核心观点2</strong>：上下文检索突破传统RAG的上下文困境，Modular RAG从固定流程走向灵活架构。</li>
+<li><strong>核心观点3</strong>：Agentic RAG由自主代理驱动，Multi-Modal RAG支持图像、视频、音频等多模态特征检索并与文本结果融合。</li>
+<li><strong>核心观点4</strong>：复杂范式不是默认升级路线，应先确认基础解析、分块、召回和评估已经稳定，再引入图谱、代理或多模态组件。</li>
+<li><strong>核心观点5</strong>：多模态系统需要分别处理文本、图像、视频和音频的特征空间，再在结果层融合，不能假设所有向量天然兼容。工程落地还要为每种模态保留来源、时间戳和权限信息，确保融合结果可解释、可追溯、可回滚。<blockquote>
+<p>这类系统能够从图像中抽取特征向量进行检索，如从视频中选取合适的片段、从音频中提取关键字信息等，并将这些与文本检索结果融合，提供更全面的知识支持。</p>
+</blockquote>
+</li>
+</ul>
+<h2 id="适用场景标签">适用场景标签</h2>2
+<ul>
+<li>RAG系统开发与落地</li>
+<li>大模型应用架构设计</li>
+<li>智能问答系统构建</li>
+<li>向量检索与索引优化</li>
+<li>多模态与Agentic RAG进阶</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">一句话推荐</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>RAG全流程实战指南，从搭建到优化</li></ul></div>2
+<p>RAG全流程实战指南，从搭建到优化。</p></div></details></div></body></html>

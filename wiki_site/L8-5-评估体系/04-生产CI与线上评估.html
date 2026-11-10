@@ -1,0 +1,258 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>04-生产CI与线上评估</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 04-生产CI与线上评估</span></div><div class="wrap"><h1 id="生产-ci-与线上评估同尺子门禁影子评估和-badcase-闭环">生产 CI 与线上评估：同尺子门禁、影子评估和 badcase 闭环</h1>
+<blockquote>
+<p>本篇是本层“生产 CI 与线上评估”的唯一正文。所有流水线与部署示例均未实跑，不提供虚假的通过率。方案只允许读取本地数据、写本地评估产物；未经批准不把私有查询、上下文、日志或答案发送到外部端点。</p>
+</blockquote>
+<h2 id="why为什么离线全绿仍可能上线失败">WHY：为什么离线全绿仍可能上线失败</h2>2
+<p>离线测试集是历史分布的压缩，不可能覆盖所有真实变化：新业务上线、文档更新、用户措辞迁移、检索延迟升高、工具部分失败，都会让“昨天的好系统”在今天退化。反过来，线上一点波动也不必然代表模型变差，可能是样本结构、裁判或数据管道变了。</p>
+<p>没有生产评估闭环，常见后果是：</p>
+<ul>
+<li>PR 只测少量“漂亮样例”，合并后夜间全量才暴露回归。</li>
+<li>候选与基线不在同一批请求上比较，把流量差异误当模型收益。</li>
+<li>裁判大面积故障，分数缺失被过滤，报告仍显示“质量上升”。</li>
+<li>线上只监控平均延迟，不看无答案率、检索空结果和关键业务分桶。</li>
+<li>badcase 散落在聊天记录里，没有回到版本化数据集，同类问题重复出现。</li>
+</ul>
+<p>生产评估的目标不是让所有请求都同步调用昂贵裁判，而是建立一条<strong>便宜检查及时阻断、昂贵评估异步补全、关键变化可复跑、异常样本能回流</strong>的链路。</p>
+<h2 id="what-whyt四层反馈与同尺子比较">WHAT / WHYT：四层反馈与同尺子比较</h2>2
+<h3 id="1-pr-冒烟夜间全量影子评估线上实验各管一件事">1. PR 冒烟、夜间全量、影子评估、线上实验各管一件事</h3>3
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>样本与频率</th>
+<th>适合阻断什么</th>
+<th>不适合声称什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PR 冒烟</td>
+<td>小而稳定的确定性集，每次变更</td>
+<td>接口破坏、格式错误、明显 badcase 回归</td>
+<td>全业务质量提升</td>
+</tr>
+<tr>
+<td>夜间全量</td>
+<td>较大冻结集与分层集，定时运行</td>
+<td>检索/生成/端到端配对回归、覆盖率下降</td>
+<td>真实用户长期收益</td>
+</tr>
+<tr>
+<td>异步影子评估</td>
+<td>脱敏生产样本，异步而非阻塞主链路</td>
+<td>分布漂移、未知失败、裁判与业务偏差</td>
+<td>未完成样本上的确定结论</td>
+</tr>
+<tr>
+<td>线上 A/B</td>
+<td>随机或合理分流的实时流量</td>
+<td>用户结果、业务指标、延迟与成本权衡</td>
+<td>小样本短期噪声的普遍规律</td>
+</tr>
+</tbody>
+</table>
+<p>Hamel 的三级评估在这里形成闭环：Level 1 的确定性断言优先进入 PR；Level 2 的人工/模型评估用于夜间和影子样本；Level 3 的线上 A/B 验证最终用户结果。级别不是“高级替代低级”，而是不同成本与证据强度的组合。</p>
+<h3 id="2-同尺子-paired-delta-是发布门禁的基本单位">2. 同尺子 paired delta 是发布门禁的基本单位</h3>3
+<p>候选与基线必须共享：同一组 <code>query_id</code>、同一数据 manifest、同一检索快照、同一裁判版本和同一有效样本集合。逐题比较后再汇总，才能避免样本构成改变带来的假收益。</p>
+<p>以下情况应判为“门禁无效/需重跑”，不是“候选通过”：</p>
+<ul>
+<li>基线缺失或运行失败。</li>
+<li>候选 ID 集合与基线不一致。</li>
+<li>分数含 <code>NaN</code>、无穷或越界值。</li>
+<li>数据 manifest、裁判版本或指标实现不同。</li>
+<li>有效覆盖率下降超过事先约定的容忍值。</li>
+</ul>
+<p>阻断阈值与观察阈值要分开。确定性关键错误可以直接阻断；模型裁判的小幅均值变化可能需要置信区间、人工复核或扩大样本，不能假装精确。</p>
+<h3 id="3-线上监控必须能解释没分的原因">3. 线上监控必须能解释“没分”的原因</h3>3
+<p>每个指标同时保留：请求总数、可评数、成功评分数、失败数及原因。按业务、语言、输入长度、检索空结果、拒答、延迟桶切片。裁判自身使用固定哨兵样本，防止把裁判漂移误判为产品漂移。</p>
+<h3 id="4-论文怎么说我们怎么用">4. 论文怎么说，我们怎么用</h3>3
+<p><strong>评估意识（arXiv:2610.22333）</strong>。本地摘要显示测试提示会改变拒答行为，并对良性请求也产生影响。我们的用法：离线安全集之外增加生产分布采样，同时监控有害请求漏拒与良性请求误拒；不能用带测试标识的离线行为替代线上结论。</p>
+<p><strong>可复现性与分析稳健性（arXiv:2610.23845）</strong>。本地摘要报告：SEER-Repro 含 20 篇论文；agent 复现了 2190 条原子声明的 77.4%，并把 9.5% 完全复现发现中的潜在关键分析选择交给专家审查。该数字属于原研究设置，不是本库复现率。</p>
+<p>我们的用法：保存可执行基线、环境/manifest 和逐样本产物；对关键结论扰动分析选择（样本过滤、尺度、阈值、聚合方式）后重跑。自动复跑不是免审凭证，影响发布的关键分歧仍需领域专家复核。</p>
+<h2 id="how搭一条可阻断可诊断可回流的评估链路">HOW：搭一条可阻断、可诊断、可回流的评估链路</h2>2
+<h3 id="第一步冻结-manifest-与产物契约">第一步：冻结 manifest 与产物契约</h3>3
+<pre><code class="language-json">{
+  &quot;manifest_id&quot;: &quot;rag-eval-2026-11-04-v1&quot;,
+  &quot;dataset_sha256&quot;: &quot;&lt;数据集文件哈希&gt;&quot;,
+  &quot;retriever_version&quot;: &quot;&lt;本地版本或提交&gt;&quot;,
+  &quot;generator_version&quot;: &quot;&lt;本地版本或提交&gt;&quot;,
+  &quot;judge_version&quot;: &quot;&lt;裁判提示、模型与尺度&gt;&quot;,
+  &quot;metric_version&quot;: &quot;&lt;指标实现版本&gt;&quot;,
+  &quot;protocol&quot;: {&quot;temperature&quot;: 0, &quot;seed&quot;: 42}
+}
+</code></pre>
+<p>每次运行输出逐样本 JSONL，而不是只输出汇总：</p>
+<pre><code class="language-json">{&quot;query_id&quot;:&quot;q-001&quot;,&quot;manifest_id&quot;:&quot;rag-eval-2026-11-04-v1&quot;,&quot;variant&quot;:&quot;baseline&quot;,&quot;status&quot;:&quot;scored&quot;,&quot;metrics&quot;:{&quot;faithfulness&quot;:1.0},&quot;latency_ms&quot;:820,&quot;error&quot;:null}
+</code></pre>
+<p>私有输入和输出只保存在获准的本地目录；公开报告只放样本 ID、指标和经批准的摘要。临时产物在收口前清理，持久产物进入正式目录并登记。</p>
+<h3 id="第二步在-pr-中优先跑确定性检查">第二步：在 PR 中优先跑确定性检查</h3>3
+<p>PR 冒烟至少包括：</p>
+<ol>
+<li>数据 schema 与 golden-q 的 <code>reference_answer</code> 字段检查。</li>
+<li>输出可解析、必需字段、禁止模式和关键 badcase 断言。</li>
+<li>检索 ID 非空、排序位置与最终送模上下文的一致性。</li>
+<li>评分函数对空输入、NaN、异常和越界值的单元测试。</li>
+<li>小样本上的基线/候选 ID、manifest 和覆盖率配对检查。</li>
+</ol>
+<p>配对门禁核心逻辑：</p>
+<pre><code class="language-python">import math
+
+
+def paired_gate(baseline, candidate, max_mean_drop=0.0):
+    base = {row[&quot;query_id&quot;]: row for row in baseline}
+    cand = {row[&quot;query_id&quot;]: row for row in candidate}
+    if set(base) != set(cand) or not base:
+        return {&quot;decision&quot;: &quot;invalid&quot;, &quot;reason&quot;: &quot;样本ID不一致或为空&quot;}
+    if any(row.get(&quot;manifest_id&quot;) != base[qid][&quot;manifest_id&quot;]
+           for qid, row in cand.items()):
+        return {&quot;decision&quot;: &quot;invalid&quot;, &quot;reason&quot;: &quot;manifest不一致&quot;}
+
+    deltas = []
+    for qid in sorted(base):
+        left = base[qid].get(&quot;score&quot;)
+        right = cand[qid].get(&quot;score&quot;)
+        if left is None or right is None:
+            return {&quot;decision&quot;: &quot;invalid&quot;, &quot;reason&quot;: f&quot;缺失分数: {qid}&quot;}
+        if not math.isfinite(left) or not math.isfinite(right):
+            return {&quot;decision&quot;: &quot;invalid&quot;, &quot;reason&quot;: f&quot;非有限分数: {qid}&quot;}
+        deltas.append(right - left)
+
+    mean_delta = sum(deltas) / len(deltas)
+    return {
+        &quot;decision&quot;: &quot;pass&quot; if mean_delta &gt;= -max_mean_drop else &quot;fail&quot;,
+        &quot;mean_delta&quot;: mean_delta,
+        &quot;deltas&quot;: dict(zip(sorted(base), deltas)),
+    }
+</code></pre>
+<p>这段代码只示范一致性门禁，<strong>没有</strong>把任意平均分差当作统计显著性，也没有处理多指标业务权衡。真实系统还应给每对样本的 <code>metric_status</code>、置信区间和关键分桶结果。</p>
+<h3 id="第三步把全量评估放入-ci但不让失败被静默吞掉">第三步：把全量评估放入 CI，但不让失败被静默吞掉</h3>3
+<p>以下 workflow 是设计示例，<strong>未实跑</strong>，本任务没有创建或修改实际 CI 配置：</p>
+<pre><code class="language-yaml"># 未实跑：仅文档示例；脚本路径与项目环境需按真实仓库替换。
+name: rag-nightly-eval
+on:
+  schedule:
+    - cron: &quot;0 18 * * *&quot;
+  workflow_dispatch: {}
+jobs:
+  evaluate:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: 运行冻结集配对评估
+        run: |
+          python eval_pipeline.py \
+            --manifest eval-data/manifest.json \
+            --baseline artifacts/baseline.jsonl \
+            --candidate artifacts/candidate.jsonl \
+            --output artifacts/nightly-report.json
+      - name: 校验报告与覆盖率
+        run: python check_eval_report.py artifacts/nightly-report.json
+</code></pre>
+<p>不在 workflow 中写密钥，也不新增外部上传步骤。若使用自托管 runner，还需按实际权限隔离数据和产物；这里不声称已经具备该基础设施。</p>
+<h3 id="第四步异步影子评估与裁判哨兵">第四步：异步影子评估与裁判哨兵</h3>3
+<ol>
+<li>从获准的本地生产日志按业务分层抽样，主链路只记录样本 ID，不等待裁判。</li>
+<li>异步worker读取冻结的输入快照、最终上下文和输出，写入独立评估结果，避免后续文档更新改变历史样本。</li>
+<li>每批混入人工已标的哨兵样本；哨兵分数漂移时暂停自动门禁并检查裁判。</li>
+<li>报告覆盖率和缺失原因；裁判失败达到预算时结论标为无效，不用剩余样本假装全量通过。</li>
+<li>监控检索空结果、合理/异常拒答、忠实度、正确性、延迟和成本，并按关键桶告警。</li>
+</ol>
+<p>异步任务接口示例，<strong>未实跑</strong>：</p>
+<pre><code class="language-bash"># 未实跑：只处理本地获准样本，不调用外部上传接口。
+python shadow_eval.py \
+  --input ./approved-local-samples.jsonl \
+  --judge-manifest ./eval-data/judge-manifest.json \
+  --output ./eval-artifacts/shadow-results.jsonl
+</code></pre>
+<h3 id="第五步ab复核与-badcase-回流">第五步：A/B、复核与 badcase 回流</h3>3
+<p>线上实验先写假设、主要用户指标、护栏指标、样本量和停止规则。模型质量分只能作为解释变量之一，不能替代真实任务成功率、误拒、延迟和成本。</p>
+<p>badcase 回流按以下字段进入开发集：</p>
+<pre><code class="language-text">原始query_id / 版本化输入快照 / 故障层 / 人工期望 / 严重度 /
+是否含敏感信息 / 修复提交 / 首次通过日期 / 是否晋级冻结回归集
+</code></pre>
+<p>同一问题修复后，先跑原 badcase，再跑同类扰动样本和全量回归，避免只记住一条字面表达。涉及关键分析选择时，改变过滤规则、评分尺度或聚合方式做稳健性重跑；分歧仍影响发布时交专家，而非让门禁替人做价值判断。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li>
+<p><strong>线上评估的第一道闸在生成之前：CRAG 重写环 + 门禁拒答（<code>rag/query.py</code> L2039 <code>should_rewrite()</code>，grep 可验）</strong>：<br />
+  ```python<br />
+  def should_rewrite(state: RAGState) -&gt; str:<br />
+      """条件边: 判断是否需要查询重写"""<br />
+      if not CONFIG["crag"]["enabled"]:<br />
+          return "pass"  # CRAG禁用, 直接过</p>
+<p>relevant_count = len(state.get("relevant_docs", []))<br />
+  min_relevant = CONFIG["crag"]["min_relevant_docs"]<br />
+  max_retries = CONFIG["crag"]["max_rewrite_retries"]</p>
+<p>if relevant_count &lt; min_relevant and state.get("rewrite_count", 0) &lt; max_retries:<br />
+      print(f"[crag] 相关片段仅{relevant_count}条 &lt; {min_relevant}, 触发查询重写 (第{state['rewrite_count']+1}次)")<br />
+      return "rewrite"<br />
+  return "pass"<br />
+<code>``
+  阈值在</code>rag/config.yaml<code>：</code>min_relevant_docs: 2<code>（少于此数触发重写）、</code>max_rewrite_retries: 2<code>（防死循环）。**线上"要不要重试"是配置项，不是玄学**。
+- **不合格就拒答，而不是硬答（</code>rag/query.py<code>L2245</code>gate_node()<code>→</code>_build_refusal_answer()<code>）**：</code>gate<code>不达标返回常量拒答文案，</code>"""CRAG式拒答文案(负例必须命中此文案, 验收断言依赖此常量)。"""<code>——**拒答率、命中率都可以按这个常量做线上断言**。
+- **和课件讲法的差异**：课件生产 CI/线上评估讲"离线回归集进门禁 + 线上采样打分 + 人工抽检 + 漂移告警看板"；本库有离线评测（</code>rag/eval_ragas.py<code>）+ 机械门禁（</code>gate_node`），但<strong>没有线上采样与漂移告警看板，也没有 CI 集成</strong>（评测靠手动跑）。这是本库与课件最大的差距项。</p>
+</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<h3 id="课件用于把指标接入-rag-应用反馈流程">课件：用于把指标接入 RAG 应用反馈流程</h3>3
+<ul>
+<li>[课1] <a href="../../raw/courseware/RAG%E7%AF%87/_merged/06-RAG%E8%AF%84%E4%BC%B0%E4%B8%8E%E5%BA%94%E7%94%A8%E5%B9%B3%E5%8F%B0-%E5%90%88%E5%B9%B6%E7%89%88.md">RAG 评估与应用平台合并课件</a>：用于检索、响应与应用平台联合评估的背景，本篇进一步补成 PR、夜间和线上分层。</li>
+<li>[课2] <a href="../../raw/courseware/RAG%E7%AF%87/day10__%E8%AF%BE%E4%BB%B6__05-RAG%E8%AF%84%E4%BC%B0%E4%B8%8E%E5%BA%94%E7%94%A8%E6%A1%86%E6%9E%B6.md">RAG 评估与应用框架</a>：用于保留评估输入与工具链意识；未把历史示例当成当前生产部署已验证方案。</li>
+</ul>
+<h3 id="书籍只使用目录与热门划线不声称读过全文">书籍：只使用目录与热门划线，不声称读过全文</h3>3
+<ul>
+<li>[书1] <a href="../../raw/weread/%E6%8C%81%E7%BB%AD%E4%BA%A4%E4%BB%982.0%EF%BC%9A%E4%B8%9A%E5%8A%A1%E5%BC%95%E9%A2%86%E7%9A%84DevOps%E7%B2%BE%E8%A6%81%EF%BC%88%E5%A2%9E%E8%AE%A2%E6%9C%AC%EF%BC%89.md">《持续交付2.0》本地目录与热门划线</a>：质量内建、快速反馈和监测决策主题用于 PR—夜间—线上反馈层；“指标变成目标后不再是好指标”的警示用于避免唯门禁分数优化。</li>
+<li>[书2] <a href="../../raw/weread/%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E6%9E%84%E5%BB%BA%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E7%B3%BB%E7%BB%9F.md">《从零开始构建企业级RAG系统》本地简介、大纲与高亮</a>：用户点赞点踩回流主题用于 badcase 进入版本化数据集，而非停留在口头反馈。</li>
+</ul>
+<h3 id="业内与论文用于分级评估线上实验与可复现门禁">业内与论文：用于分级评估、线上实验与可复现门禁</h3>3
+<ul>
+<li>[业1] <a href="https://hamel.dev/blog/posts/evals/index.html">Hamel Hussain：Your AI Product Needs Evals</a>（GET 200，2026-11-04）：用于 Level 1/2/3 与从错误分析到持续评估的闭环。</li>
+<li>[业2] <a href="https://docs.smith.langchain.com/evaluation">LangSmith Evaluation 官方文档</a>（GET 200，2026-11-04）：作为离线/在线评估工程能力的业内参照；本篇未运行 LangSmith，也未向其上传任何本地数据。</li>
+<li>[业3] <a href="https://docs.ragas.io/">RAGAS 官方文档</a>（GET 200，2026-11-04）：用于指标运行入口；生产门禁的状态与同尺子约束由本篇补充，不归称官方强制规范。</li>
+<li>[业4] 评估意识：arXiv:2610.22333；可复现性与分析稳健性：arXiv:2610.23845。只阅读本地摘要，已分别落入生产采样、双端拒答监控、可执行基线和扰动复核步骤。</li>
+</ul></div></body></html>

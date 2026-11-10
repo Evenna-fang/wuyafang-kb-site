@@ -1,0 +1,670 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L5-Agent记忆与自进化-深挖整合</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/L5-Agent记忆与自进化-深挖整合</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="agent">Agent 记忆与自进化：深挖整合</h1>
+<h2 id="_1">导读</h2>
+<p>本篇把 Agent 记忆方面的素材按主题重新排列，涵盖记忆分类、双进程读写范式、多智能体共享记忆、记忆保鲜、冲突治理与信念修订，以及自进化。代码实操放在最后一节。核心结论如下。</p>
+<ol>
+<li>记忆先按两个维度区分。第一个维度是保存时长：checkpointer 管短期记忆，Store 管长期记忆。第二个维度是读写路径：System-1 快路径处理大多数查询，System-2 慢路径处理复杂查询，中间的门控决定这一次要不要慢下来。</li>
+<li>多智能体共享记忆用三层图组织。Insight Graph 存泛化经验，Query Graph 存任务指纹与派单结果，Interaction Graph 存原始轨迹。查询越深，成本越高，所以不同角色查询的层数不同。</li>
+<li>存得住不等于还是真的。记忆的寿命应按内容变化速度设定，过期记忆必须可见地标出。冲突时由代码取最新时间戳决定哪条生效，LLM 只负责判断两条记忆是不是同一件事。</li>
+<li>信念修订保留演化链。新事实通过双向 supersedes 指针接到旧事实上，旧版本不做物理删除，争议发生时可以顺着链回溯。</li>
+<li>自进化需要闸门。快慢双速固化经验，失败当场蒸馏，技能更新后跑回归，记忆带来源标签，外部技能先扫描，自动起草的技能经人审后再发布。</li>
+</ol>
+<h2 id="_2">一、记忆分类：短期与长期</h2>
+<p>Agent 的记忆按保存时长分为短期和长期两类。短期记忆保存单次会话内的状态，长期记忆保存跨会话的信息。LangGraph 为两类记忆各提供一个持久化原语。</p>
+<table>
+<thead>
+<tr>
+<th>原语</th>
+<th>保存什么</th>
+<th>索引键</th>
+<th>对应记忆</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Checkpointer</td>
+<td>每一步执行完后，把图状态序列化到后端（内存、SQLite、Postgres、Redis 均可）</td>
+<td>thread_id</td>
+<td>短期记忆，当前会话的 state</td>
+</tr>
+<tr>
+<td>Store</td>
+<td>应用自定义的 KV 数据，可以挂向量索引做语义搜索</td>
+<td>namespace，如 (user_id, 命名空间)</td>
+<td>长期记忆，跨会话的用户画像</td>
+</tr>
+</tbody>
+</table>
+<p>两者的作用范围不同。Checkpointer 的范围是单个线程（thread_id），Store 的范围是跨线程的 namespace。</p>
+<p>Checkpointer 的存储后端与写法在第七节展开。Checkpointer 带来的断点恢复语义属于 durable execution（断点续传）的范畴，本篇不展开理论，相关内容见 <a href="L5-Agent生产化可靠性与评估-深挖整合.html">L5-Agent生产化可靠性与评估-深挖整合.md</a>。</p>
+<h2 id="system-1-system-2">二、双进程范式：System-1 与 System-2</h2>
+<h3 id="21">2.1 范式定义</h3>
+<p>这一范式借鉴人类快思考与慢思考的双系统模型，把记忆与推理中的高频决策拆成两层。System-1 负责轻量的快速检索和快速路由。System-2 负责重读原始历史和慢速推理。两层之间有一个低开销的门控器，它决定这一次查询要不要升级到 System-2。</p>
+<h3 id="22">2.2 三篇论文的同一结构</h3>
+<p>三篇论文对同一结构的实现各有不同。</p>
+<table>
+<thead>
+<tr>
+<th>论文</th>
+<th>System-1</th>
+<th>System-2</th>
+<th>门控位置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Jev-Mem（写入与查询，arXiv:2609.23986）</td>
+<td>小分类器或规则做类型判定、图视图路由、候选打分、自适应停止</td>
+<td>LLM 做最后的答案合成</td>
+<td>System-One 控制面输出带类型的概率，不生成自然语言</td>
+</tr>
+<tr>
+<td>D-Mem（查询期，arXiv:2603.18631）</td>
+<td>向量近邻检索（embedding top-k）得到摘要事实</td>
+<td>从原始会话或事件历史中重读片段（reraw）</td>
+<td>Quality Gating：置信度、证据稀疏度、查询复杂度共同决定升级概率</td>
+</tr>
+<tr>
+<td>PRIME（推理期，arXiv:2509.22315，源文标注为待精读）</td>
+<td>快推理 Agent 日常运行</td>
+<td>慢思考 Agent 由自省触发</td>
+<td>自省信号：推理步数、矛盾数、假设空间</td>
+</tr>
+</tbody>
+</table>
+<p>Jev-Mem 与 D-Mem 的分工按阶段划分。Jev-Mem 管写入期：把写入时的高频决策（类型判定、冗余过滤、图视图路由、候选打分、自适应停止）从自回归 LLM 中抽出，交给轻量控制面，LLM 只做最后的合成。D-Mem 管查询期。两者分别覆盖写入端和查询端，合起来形成闭环。Jev-Mem 的 canonical node 挂四种 typed edge：semantic、temporal、causal、entity。</p>
+<h3 id="23">2.3 为什么要分成两个进程</h3>
+<p>成本方面，大多数查询不需要翻原始历史或走重推理，硬塞进去只会烧 token。D-Mem 的实测结果是：只付 35.8% 的 token，就能拿到全量重读 96.7% 的效果，LoCoMo F1 为 53.5。</p>
+<p>质量方面，少量查询必须慢下来。时序、因果、矛盾和多跳类问题如果只靠向量召回，结果会"像但不是"。</p>
+<p>两份素材对快路径承担的比例写法不同。双进程范式称 90% 的查询和决策不需要慢路径；D-Mem 条目称 85% 的查询由向量快检索直接出结果。本文保留两个数字并注明来源，不做取舍。</p>
+<p>门控是整个范式的关键。门控本身必须极轻，不能调用 LLM 做自然语言判定，否则省下的 token 会被门控吃掉。</p>
+<h3 id="24">2.4 门控的实现要点</h3>
+<p>Quality Gating 的输入是置信度、证据稀疏度和查询复杂度，输出是升级概率。素材中的起步阈值为 τ=0.5，对应 G-DMem1 质量门控脚本。Jev-Mem 另有自适应停止机制：每轮评估证据是否充分，充分即停止检索。</p>
+<p>门控决定"这次要不要慢下来"。一条记忆是否还值得保存，由衰减机制决定，见第四节。两者相互独立。</p>
+<h3 id="25-prime">2.5 PRIME：慢思考的触发条件</h3>
+<p>PRIME 借鉴《思考，快与慢》：System-1 负责快速回答兜底，System-2 负责规划并集成检索做深度推理，按需唤起。慢思考的产出落盘为结构化记忆，包括规划步骤、检索证据和结论。同类问题再次出现时，直接复用这些记忆。</p>
+<p>素材把 PRIME 的思路映射到本库的三阶评审流程，下表为升级建议。全部条目的状态都是"调研待评估"，尚未落地。</p>
+<table>
+<thead>
+<tr>
+<th>触发条件</th>
+<th>当前做法</th>
+<th>PRIME 升级建议</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DSH 或 Codex 一次通过</td>
+<td>直接交付</td>
+<td>保持（System-1）</td>
+</tr>
+<tr>
+<td>两个 Agent 投票一致且置信度 &gt;0.7</td>
+<td>直接交付</td>
+<td>保持</td>
+</tr>
+<tr>
+<td>两个 Agent 分歧，但置信度都 &gt;0.7</td>
+<td>直接升用户</td>
+<td>先唤起 OC 慢思考归并一轮，仍分歧才升用户</td>
+</tr>
+<tr>
+<td>任一 Agent 自报"我不确定"</td>
+<td>升用户</td>
+<td>自动唤起 System-2，不等用户指令</td>
+</tr>
+<tr>
+<td>同一问题第 3 次出现</td>
+<td>升用户</td>
+<td>直接复用历史慢思考结论</td>
+</tr>
+</tbody>
+</table>
+<p>慢思考有硬终止条件：OC 审查最多 2 轮，每轮必须有独立证据，禁止引用前一轮的结论。</p>
+<h3 id="26">2.6 六员落地映射</h3>
+<p>双进程范式对六员现状的映射如下。</p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>对应六员现状</th>
+<th>升级方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>System-1 快</td>
+<td>fact_store.search、holographic 三层检索、shared-skills grep</td>
+<td>已具备，不需重建</td>
+</tr>
+<tr>
+<td>System-2 慢</td>
+<td>翻 state.db 会话历史、OpenClaw 深度审查、Claude 多跳 debug</td>
+<td>缺少自动触发，目前靠人判断</td>
+</tr>
+<tr>
+<td>门控</td>
+<td>无</td>
+<td>G-DMem1（质量门控脚本，τ=0.5 起步）与 G-PRIME1（自省触发信号）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="27">2.7 双进程的反例</h3>
+<ul>
+<li>每轮都把全量会话历史塞进上下文。这相当于没有 System-1，只剩 System-2，token 开销爆炸。</li>
+<li>只用向量召回，从不重读原文。这相当于只有 System-1，复杂问题答不准。</li>
+<li>门控用 LLM 做自然语言判定。门控本身比省下的 token 还贵。</li>
+</ul>
+<h2 id="g-memory">三、多智能体共享记忆：G-Memory 三层图</h2>
+<h3 id="31">3.1 三层结构</h3>
+<p>G-Memory（arXiv:2506.07398，代码见 github.com/bingreeky/GMemory）把多智能体协作中的记忆按抽象程度分为三层，每层是一张图。</p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>保存什么</th>
+<th>谁用</th>
+<th>成本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Insight Graph（泛化经验层）</td>
+<td>多次任务中抽象出的教训、模式和踩坑经验，例如"flaky 测试不要盲目重跑"</td>
+<td>编排层（Hermes）及其他 Agent 复用经验</td>
+<td>最低，短摘要</td>
+</tr>
+<tr>
+<td>Query Graph（任务指纹层）</td>
+<td>任务指纹、派给哪个 Agent、结果如何，可复用"这类任务该派谁"</td>
+<td>编排层派单时查询</td>
+<td>中</td>
+</tr>
+<tr>
+<td>Interaction Graph（原始轨迹层）</td>
+<td>完整的 Agent 交互记录、对话、代码 diff</td>
+<td>工程层（Claude、Codex）debug 时多跳追溯</td>
+<td>最高，长上下文</td>
+</tr>
+</tbody>
+</table>
+<p>三层相互引用。Interaction 沉淀为 Query，Query 抽象为 Insight。反向也成立，从 Insight 可以下钻到具体的 Query 和原始 Interaction。</p>
+<h3 id="32">3.2 四视图并行检索</h3>
+<p>同一张图上，检索时并行走四种边。</p>
+<ul>
+<li>semantic：语义相似的记忆。</li>
+<li>temporal：时间邻近的记忆，例如上周或昨天发生了什么。</li>
+<li>causal：因果链，例如 A 导致 B。</li>
+<li>entity：共享实体，例如同一个项目或同一个错误码。</li>
+</ul>
+<p>召回顺序是有方向的。Insight 排在前面，先给经验；evidence 排在后面，再给原始证据支撑。</p>
+<h3 id="33">3.3 按角色决定检索深度</h3>
+<p>不同角色的查询深度不同。Hermes 做编排，只查 Insight 层，成本最低。Claude 和 Codex 做工程，查全部三层并多跳追溯。</p>
+<p>这种差异对应 BudgetMem 的查询预算分级（arXiv:2602.06025，ICML 2026）。Low、Mid、High 三档按查询复杂度自动选择检索预算，RL 路由器用 λ 参数化。六员角色天然对应这三档：编排为 Low（千级），执行为 Mid，工程为 High（十万级）。AGENTS.md 的预算档四元组已经体现了这一对应。素材建议先用规则路由器替代 RL，按关键词复杂度分档，该项同样是"调研待评估"。</p>
+<h3 id="34-error-ledger">3.4 对 error-ledger 的改造</h3>
+<p>error-ledger 现在只记录"错误到修复"的单层关系。按照 G-Memory 的模型，可以拆成三层。</p>
+<ul>
+<li>Insight 层：泛化经验，对应 <code>~/shared-skills/insight-log.md</code>，六员共享。</li>
+<li>Query 层：任务指纹到派单对象，再到结果。</li>
+<li>Interaction 层：原始 trace 归档，来源为 state.db 与 cron 输出。</li>
+</ul>
+<p>拆分后有两个收益。其一，各角色可以差异化检索深度。其二，一个 Agent 踩过的坑沉淀到 Insight 层后，其他 Agent 可以直接召回，不用重新踩。这与 error-ledger 台账"同一坑不踩第二次"的要求一致。</p>
+<p>素材中，这一改造标注为"调研待评估"。最佳答案的缺口清单还记录了一项相关缺口：error-ledger 目前只能记录错误，尚不能自动应用已验证的修复方案。</p>
+<h3 id="35">3.5 共享记忆的反例与来源门</h3>
+<ul>
+<li>所有记忆都放进一层长上下文。没有分层，Insight 和原始轨迹混在一起，编排层也要承担高成本。</li>
+<li>只有 Insight，没有原始轨迹。抽象过头，工程 debug 时找不到具体证据。</li>
+<li>只有原始轨迹，没有 Insight。每次都从零推理，多智能体无法复用经验。</li>
+</ul>
+<p>最佳答案总结的四条落地教训中，有一条是共享记忆需要来源 gating。素材称，RAG 无差别收录会让假信念被下游采信 97% 至 99%，因此进库要过来源门。第六节的 authority 标签沿用了同一原则。</p>
+<h2 id="persistence-truth">四、记忆保鲜：persistence 不等于 truth</h2>
+<h3 id="41">4.1 问题的来源</h3>
+<p>存得住不等于还是真的，这是行业通病。Mem0、Letta 和 Zep 都只优化"存加检索"，都没有机制发现记忆已经过期。素材引用的数据如下：TimeQA 上最好模型准确率为 46%，人类为 87%；LongMemEval 上，商业助手在跨会话场景下准确率下降 30%。数据来源为 Kymata Labs 2026 白皮书，<a href="https://kymatalabs.com/research/memory-staleness">https://kymatalabs.com/research/memory-staleness</a>。</p>
+<h3 id="42">4.2 半衰期五档</h3>
+<p>记忆的寿命应按"内容多久变一次"来定，而不是按"内容多重要"来定。</p>
+<table>
+<thead>
+<tr>
+<th>档位</th>
+<th>例子</th>
+<th>半衰期</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>永久</td>
+<td>生日、老家</td>
+<td>几十年</td>
+</tr>
+<tr>
+<td>慢</td>
+<td>住址、雇主</td>
+<td>几年</td>
+</tr>
+<tr>
+<td>中</td>
+<td>当前项目、偏好</td>
+<td>几个月</td>
+</tr>
+<tr>
+<td>快</td>
+<td>今天在干什么</td>
+<td>几小时</td>
+</tr>
+<tr>
+<td>易变</td>
+<td>价格、额度、可用性</td>
+<td>几分钟</td>
+</tr>
+</tbody>
+</table>
+<p>这套分档与知识库保鲜的三分档同源。两者都按内容的变化频率定寿命。</p>
+<h3 id="43">4.3 写入时打标与五个控制项</h3>
+<p>Kymata 提出五个控制项，按性价比排序如下。</p>
+<ol>
+<li>写入时打 <code>last_verified</code> 时间戳和 <code>fact_class</code> 档位标签。这是最便宜的一项，并且解锁其余所有控制项。</li>
+<li>过期记忆可见地标红，不能静默当作新事实输出。这样可以防止模型"自信地撒谎"。</li>
+<li>后台主动重验证"高频被查但久未验证"的记忆。</li>
+<li>保留 contradiction-on-write（写入时的矛盾检测）作为地板，而不是天花板。</li>
+<li>每条记忆保存 provenance（来源）。没有来源的记忆，信任度最低。</li>
+</ol>
+<p>本库的落地现状（2026-10-10 核账）如下。</p>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hindsight 记忆打 fact_class 标签</td>
+<td>8176 条：permanent 1638，medium 4449，volatile 2049</td>
+</tr>
+<tr>
+<td>volatile 类标 is_stale</td>
+<td>1086 条</td>
+</tr>
+<tr>
+<td>记忆保鲜每日扫描 cron</td>
+<td>每天 09:00</td>
+</tr>
+<tr>
+<td>备份位置</td>
+<td><code>~/.hermes/backups/memory-curation/</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="44-ebbinghaus">4.4 Ebbinghaus 衰减模型</h3>
+<p>每条记忆带一个连续的衰减率。记忆被成功召回时，衰减曲线后移，即得到强化。长期不被召回的记忆，按衰减曲线被驱逐。</p>
+<p>素材给出的 TTL_TIERS 示例如下：immutable（衰减率 0）、long（衰减率 0.001，寿命 1 年）、short（衰减率 0.01，寿命 30 天）、session（衰减率 0.1，寿命 1 天）。</p>
+<p>衰减与门控相互正交。门控决定这次查询要不要慢下来，衰减决定这条记忆还值不值得保存。</p>
+<h2 id="_3">五、冲突治理与信念修订</h2>
+<h3 id="51-llm">5.1 冲突判定：LLM 不当裁判</h3>
+<p>这是保鲜主题中最反直觉、也最有价值的一条实证。arXiv:2606.01435 的测试显示，让 LLM 判断"哪条记忆更新"时，Mem0 的准确率只有 18%，Zep 只有 7%。改用代码 <code>max(timestamp / serial)</code> 取最新的一条，准确率达到 78%，提高了 60 个百分点。</p>
+<p>据此定下铁律：LLM 只负责识别"这两条是不是同一件事"，"哪个更新"交给代码，取最新的 timestamp。</p>
+<h3 id="52">5.2 成品实测对比</h3>
+<p>素材列出三家产品的 2026 benchmark 数据。</p>
+<table>
+<thead>
+<tr>
+<th>产品</th>
+<th>架构</th>
+<th>冲突解决率</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Zep</td>
+<td>时序图谱</td>
+<td>95.8%（Recall@5 为 93.6%）</td>
+<td>双时间轴：写入时间加事实为真的时段</td>
+</tr>
+<tr>
+<td>Letta / MemGPT</td>
+<td>类操作系统的分层记忆（core / recall / archival）</td>
+<td>89%</td>
+<td>分层清晰，可解释</td>
+</tr>
+<tr>
+<td>Mem0</td>
+<td>向量加实体图</td>
+<td>76.5%</td>
+<td>起步快，冲突处理最弱</td>
+</tr>
+</tbody>
+</table>
+<p>数据来源为 <a href="https://agentic-pulse.dev/blog/2026-10-02-mem0-vs-letta-vs-zep-ai-agent-long-term-memory-benchmark-2026">https://agentic-pulse.dev/blog/2026-10-02-mem0-vs-letta-vs-zep-ai-agent-long-term-memory-benchmark-2026</a>。</p>
+<p>选型启示：历史事实会被改写的场景（人事、价格、政策）优先用时序图谱。只沉淀偏好的场景，用向量加实体图即可。</p>
+<h3 id="53-dcpm">5.3 信念修订追踪：DCPM</h3>
+<p>DCPM（Dual-Process Cognitive Memory，arXiv:2606.09483）批判现有长期记忆的做法。这些系统把用户说过的话、偏好和行为模式压平成一个检索面，于是丢失了三样东西。</p>
+<table>
+<thead>
+<tr>
+<th>丢失的信息</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>信念的中间状态</td>
+<td>只见最终结论，不知道它从哪个旧结论改过来</td>
+</tr>
+<tr>
+<td>偏好漂移的原因</td>
+<td>知道偏好变了，但不知道为什么变</td>
+</tr>
+<tr>
+<td>跨域行为的潜在链接</td>
+<td>发现不了"A 场景与 B 场景行为矛盾"这类漂移点</td>
+</tr>
+</tbody>
+</table>
+<p>这三样丢失，正是多 Agent 讨论中观点漂移不可追溯的根源。</p>
+<p>DCPM 的解法分为两个进程。</p>
+<table>
+<thead>
+<tr>
+<th>进程</th>
+<th>时机</th>
+<th>做什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>System-1 同步写入</td>
+<td>每次新对话到来</td>
+<td>与向量库已有条目协调。旧信念被新事实取代时，写入双向 supersedes 指针，不做物理删除，保留演化链</td>
+</tr>
+<tr>
+<td>System-2 异步引擎</td>
+<td>夜间批量</td>
+<td>把新鲜事实聚类成域内 schema、潜在意图和跨域核心模式，扫描跨域矛盾</td>
+</tr>
+</tbody>
+</table>
+<p>双向指针（old ⇄ new）是核心机制。新事实取代旧事实时，旧版本保留，两者互相指向。修订过程因此是一条双链，而不是一次覆盖。多 Agent 的观点漂移可以按时间轴展开：同一问题下，不同 Agent 的回答依次排列，共识的形成与破裂都能看到。</p>
+<p>落地时只取双链思想，不引入完整的 DCPM。评审历史按如下模板记录。</p>
+<pre><code>## 条目: &lt;问题指纹&gt;
+- 当前结论: &lt;最新结论&gt;
+- 修订链: [v1 2026-09-22 DSH提出=X] ⇄ [v2 2026-09-23 OC审改=Y, 原因=证据Z] ⇄ [v3 2026-09-28 最终=Y+补R]
+- 漂移原因: &lt;为什么改&gt;
+- 下次命中直接跳到 v3, 不重新推理
+</code></pre>
+<p>下次争议出现时，直接读历史链跳到最新版，不用重新吵一遍。</p>
+<p>DCPM 与其他机制的关系如下。</p>
+<ul>
+<li>与 G-Memory：DCPM 是 G-Memory temporal edge 的 schema 细节指南，两者天然兼容。G-Memory 管记忆怎么分层存放，DCPM 管时间边上挂什么。</li>
+<li>与周复盘 cron：System-2 的夜间异步聚类，对应每周一的 update 钩子。一周内零散的评审结论被聚成 schema，例如"哪类问题总要 OC 审"，并扫描跨域矛盾，例如"配置类操作在 A 场景串行、在 B 场景并发通过"。</li>
+<li>与保鲜：保鲜回答"这条还值不值得信"，DCPM 回答"这个结论是怎么一步步变成现在这样的"。两者互补。</li>
+</ul>
+<p>DCPM 的反例如下。</p>
+<ul>
+<li>覆盖式写入，只留最新结论。观点漂移不可追溯，下次争议要重新吵一遍。</li>
+<li>只存最终立场。OpenClaw 的 Devil's Advocate 角色需要观点演化链才能有效质疑，只存最终立场等于没有质疑材料。</li>
+<li>跨周、跨月的长程任务不带时间指针，会被过时事实误导。</li>
+</ul>
+<h3 id="54">5.4 保鲜与冲突治理的反例</h3>
+<ul>
+<li>只做存加检索，不做过期发现。越用越错。</li>
+<li>让 LLM 判断哪条记忆更新。实测准确率只有 7% 至 18%。</li>
+<li>过期记忆静默返回。模型会自信地撒谎，这比回答"不知道"的危害更大。</li>
+<li>冲突时物理删除旧版本。丢失演化链，无法回溯共识是怎么形成的。</li>
+</ul>
+<h2 id="_4">六、自进化</h2>
+<h3 id="61-experience-funnel">6.1 快慢双速：Experience Funnel</h3>
+<p>Experience Funnel（arXiv 2609.08919，2026-09-08）把交互轨迹分两步处理。快速层是显式的文本状态，即技能或 harness，可修改、可验证。慢速层通过 transition-aware 蒸馏，把跨状态修订后仍然有效的行为固化进模型策略。两层交替循环。</p>
+<p>这样设计的理由是：纯文本技能改起来快，但不可携带；纯参数微调更新太慢。快慢双速是工程上可落地的折中。</p>
+<p>对六员而言，快速层就是现有的技能库和 AGENTS.md。需要补的是慢速层的定期固化，即把反复验证有效的技能沉淀为更强的流程规则。素材说明这一步不需要微调，并且与 task_state 状态机天然衔接。</p>
+<h3 id="62-pilot-supervisor-worker">6.2 实时纠偏：PILOT supervisor-worker</h3>
+<p>PILOT（arXiv 2608.26530，2026-08-27）让独立的 supervisor 在执行中实时重定向或中止 worker，即 live steering。同时，执行中暴露的失败模式被当场蒸馏成可复用的技能与记忆，即 live self-evolution，而不是等任务结束再复盘。</p>
+<p>素材给出的实测数据如下。</p>
+<ul>
+<li>Terminal-Bench 2.0 上最高提升 9.8 个百分点。</li>
+<li>自改进设定下，GLM-5.1 提升 14.6 个百分点，Kimi-K2.6 提升 12.4 个百分点。</li>
+<li>输出 token 分别下降 42.9% 和 47.4%；每百万 token 的成功评测数分别提升 110% 和 134%。</li>
+</ul>
+<p>对六员的落地方式如下。六员分工中，流程硬执行的角色天然就是 supervisor。审查员在第一轮发现问题时，不必打回等下一轮，而是当场给执行者发 steering，改方向或中止，同时把这次失败写入错误台账或技能草案。这是纯 prompt 与流程的改动，不需要新依赖。</p>
+<h3 id="63-evopathbench">6.3 过程级评测与技能回归门禁：EvoPathBench</h3>
+<p>EvoPathBench（arXiv 2609.24663，2026-09-21）固定基座模型和工具，在演化检查点冻结记忆或技能工件，再用留出任务评测三项能力：泛化、保持（retention）、规则适应。</p>
+<p>结论有两条。其一，被选中落地的演化更新，普遍低于候选更新的潜力。其二，候选评估与选择是关键瓶颈。</p>
+<p>对六员的落地方式是：每次 Workshop 技能 update 后，用固定样例集跑一次 verify，防止技能演化悄悄退化。这是 receipt 门禁的自然延伸，也是落地三步中的第一步。</p>
+<h3 id="64">6.4 其他三个方向</h3>
+<table>
+<thead>
+<tr>
+<th>方向</th>
+<th>来源</th>
+<th>落地方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>跨任务模式自动提炼</td>
+<td>AlgoEvo，arXiv 2609.15820</td>
+<td>把搜索轨迹组织成任务级树，跨任务的共性模式固化为技能。每周由一个 agent 扫描本周 receipt 与台账，重复两次及以上的成功模式起草为技能提案，进入 Workshop pending，经人审后 apply</td>
+</tr>
+<tr>
+<td>免训练技能进化</td>
+<td>Reflect, Revise, Reuse，arXiv 2609.17653</td>
+<td>不微调，通过"反思、修订、复用"三步迭代技能文档本身。映射到 skill_workshop 的 revise 与 patch 流，并为技能增加"失败即触发 revise 提案"的机制</td>
+</tr>
+<tr>
+<td>双轨事实记忆</td>
+<td>MemSIF，arXiv 2608.01742</td>
+<td>CoreFact 在写入时固化稳定事实。ActiveFact 按需成形，被多来源历史和反复查询需求支持后晋升为长期事实。落地为 MEMORY.md 的晋升规则：会话记忆先落草稿区，被第二次独立任务复用后再晋升主记忆</td>
+</tr>
+</tbody>
+</table>
+<h3 id="65">6.5 安全护栏：自进化的前置阀门</h3>
+<p>自进化能力越强，越需要先过安全阀门。素材列出两项风险。</p>
+<p>第一项是 Authority 坍缩（AuthMem-Bench，arXiv 2608.01679）。固化记忆时，如果丢掉"这条信息允许被怎么用"的来源约束，记忆就会获得超过其来源的权威。素材称 49 个配置中有 48 个存在此问题。自动标注并持久化 authority 标签后，未授权行动率从 16.9% 降到 0.0%。</p>
+<p>落地方式是：每条记忆或技能都带来源标签，标签取值示例为人下令、已验证 receipt、仅观察。低权威条目禁止被当作指令执行。这一约定只需在 frontmatter 中加一行。</p>
+<p>第二项是自投毒（EvoMal，arXiv 2608.25776）。自己写工具的 coding agent，会把检索到的恶意技能当模板模仿，生成携带载荷的新技能并回写技能库，形成自传播的蠕虫。在 153 个 SWE-bench 任务上，自投毒率为 20.3% 至 41.8%。</p>
+<p>落地方式是：保持"自动起草、人审发布"，不放松。从外部引入的技能，例如 shared-skills 拉取的技能，要加静态扫描步骤。</p>
+<h3 id="66">6.6 落地三步</h3>
+<ol>
+<li>第一步（本周）：技能变更回归门禁。workshop 发布技能前，跑固定 5 条样例集的 verify，防止退化。</li>
+<li>第二步（下月）：supervisor 当场 steering。审查员发现问题后当场发出方向修正，同时写错误台账。</li>
+<li>第三步（长期）：记忆晋升机制与技能来源标签。草稿区的记忆被第二次独立任务复用后晋升主记忆；技能带上来源标签。</li>
+</ol>
+<h2 id="_5">七、代码实操</h2>
+<h3 id="71-summarizationmiddleware">7.1 超长历史自动摘要：SummarizationMiddleware</h3>
+<p>示例来自课件 day08。</p>
+<pre><code class="language-python">import os
+from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
+from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware
+from langchain_tavily import TavilySearch
+from langgraph.checkpoint.memory import InMemorySaver
+
+load_dotenv()
+llm = ChatOpenAI(model=&quot;qwen3.5-flash-2026-02-23&quot;,
+                 api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+                 base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;),
+                 temperature=0.1)
+
+SHORT_SUMMARY_PROMPT = &quot;&quot;&quot;你是一个记忆压缩专家。请将下方的对话历史压缩成一段简洁的背景摘要，
+保留：1) 用户最终目标  2) 已执行的关键步骤  3) 待办事项。
+待压缩的对话：{messages}&quot;&quot;&quot;
+
+agent = create_agent(
+    model=llm,
+    tools=[TavilySearch(max_results=1)],
+    checkpointer=InMemorySaver(),           # 短期记忆：按 thread_id 存历史
+    middleware=[SummarizationMiddleware(    # 中间件：超长自动摘要
+        model=llm,
+        trigger=[(&quot;tokens&quot;, 4000), (&quot;messages&quot;, 10)],  # 或关系
+        keep=(&quot;messages&quot;, 5),               # 保留最近 5 条，其余做摘要
+    )],
+)
+
+config = {&quot;configurable&quot;: {&quot;thread_id&quot;: &quot;user-001&quot;}}
+agent.invoke({&quot;messages&quot;: [{&quot;role&quot;: &quot;user&quot;,
+                             &quot;content&quot;: &quot;2026年3月最新的AI大模型技术趋势？&quot;}]}, config)
+</code></pre>
+<p>关键参数如下。</p>
+<ul>
+<li><code>trigger</code> 有三种触发方式：<code>("tokens", 4000)</code>、<code>("fraction", 0.5)</code>、<code>("messages", 10)</code>。多个条件之间是 OR 关系，任一满足即触发。</li>
+<li><code>keep=("messages", 5)</code> 表示保留最近 5 条原文，更早的全部交给 LLM 做摘要。</li>
+<li>示例中定义的摘要提示词要求保留三项内容：用户最终目标、已执行的关键步骤、待办事项。</li>
+<li><code>checkpointer=InMemorySaver()</code> 是内存版。生产环境换成 SqliteSaver 或 PostgresSaver。</li>
+<li>thread_id 是会话隔离的键。不同用户必须传不同的值，否则会串台。</li>
+</ul>
+<h3 id="72-checkpointer-trim_messages">7.2 短期记忆：Checkpointer 与 trim_messages</h3>
+<p>示例来自课件 day13 与 day15。</p>
+<pre><code class="language-python">import os
+from dotenv import load_dotenv
+from langchain.chat_models import init_chat_model
+from langchain_core.messages.utils import trim_messages, count_tokens_approximately
+from langgraph.graph import StateGraph, MessagesState, START, END
+from langgraph.checkpoint.memory import InMemorySaver
+
+load_dotenv()
+llm = init_chat_model(api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+                      base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;),
+                      model_provider=&quot;openai&quot;,
+                      model=&quot;MiniMax-M2.1&quot;)
+
+def call_llm(state: MessagesState):
+    # 调 LLM 前先修剪消息，防止 token 爆掉
+    messages = trim_messages(
+        state[&quot;messages&quot;],
+        strategy=&quot;last&quot;,
+        token_counter=count_tokens_approximately,
+        max_tokens=500,
+        start_on=&quot;human&quot;,
+        end_on=(&quot;ai&quot;, &quot;tools&quot;, &quot;human&quot;),
+    )
+    return {&quot;messages&quot;: [llm.invoke(messages)]}
+
+builder = StateGraph(MessagesState)
+builder.add_node(call_llm)
+builder.add_edge(START, &quot;call_llm&quot;)
+
+# 关键：compile 时传入 checkpointer，自动按 thread_id 持久化
+graph = builder.compile(checkpointer=InMemorySaver())
+
+config = {&quot;configurable&quot;: {&quot;thread_id&quot;: &quot;user-001&quot;}}
+graph.invoke({&quot;messages&quot;: &quot;我叫初见&quot;}, config)
+graph.invoke({&quot;messages&quot;: &quot;帮我家猫写首诗&quot;}, config)
+final = graph.invoke({&quot;messages&quot;: &quot;我叫什么名字？&quot;}, config)
+print(final[&quot;messages&quot;][-1].content)   # 能答出&quot;初见&quot;
+</code></pre>
+<p>关键概念如下。</p>
+<ul>
+<li>checkpointer 在每一步执行完后，自动把 state 序列化到后端，后端可以是内存、SQLite、Postgres 或 Redis。</li>
+<li>thread_id 是会话主键。同一个 thread_id 的多次 invoke 会自动加载上次的 state。</li>
+<li><code>trim_messages</code> 在调用 LLM 前按 token 数截断历史。<code>start_on="human"</code> 保证截断后第一条永远是用户消息，不会从 AI 的半截回复开始。</li>
+<li>生产环境换成 <code>langgraph-checkpoint-sqlite</code> 或 PostgreSQL，重启后会话不丢失。</li>
+</ul>
+<p><code>trim_messages</code> 只按长度截断，不做压缩。最佳答案的缺口清单中还有一项多轮对话 query rewriting，即当前把全部历史塞进去会导致 token 爆炸，该项尚未实现。</p>
+<h3 id="73-store">7.3 长期记忆：Store 与语义检索</h3>
+<p>示例来自课件 day13。</p>
+<pre><code class="language-python">import uuid
+from langgraph.store.memory import InMemoryStore
+from langchain_huggingface import HuggingFaceEmbeddings
+
+# 带向量索引的 store：可以语义搜索记忆
+store = InMemoryStore(
+    index={
+        &quot;embed&quot;: HuggingFaceEmbeddings(model_name=&quot;BAAI/bge-large-zh-v1.5&quot;),
+        &quot;dims&quot;: 1024,
+        &quot;fields&quot;: [&quot;hobby&quot;, &quot;food_preference&quot;],   # 对哪些字段建向量索引
+    }
+)
+
+namespace = (&quot;user-001&quot;, &quot;memories&quot;)   # (user_id, 命名空间)
+
+# 存
+store.put(namespace, str(uuid.uuid4()),
+          {&quot;hobby&quot;: &quot;篮球、音乐、美食、编程&quot;})
+store.put(namespace, str(uuid.uuid4()),
+          {&quot;food_preference&quot;: &quot;臭豆腐、小龙虾、红烧肉&quot;})
+
+# 语义搜：query 是自然语言，自动 embedding 匹配
+results = store.search(namespace, query=&quot;用户喜欢吃什么？&quot;, limit=3)
+for r in results:
+    print(r.dict())
+</code></pre>
+<p>代码中 <code>fields</code> 指定对哪些字段建向量索引。<code>search</code> 接收自然语言的 query，并自动做 embedding 匹配。</p>
+<p>Checkpointer 与 Store 的分工如下。</p>
+<ul>
+<li>checkpointer 是短期记忆，按 thread_id 保存当前会话的 state。</li>
+<li>Store 是长期记忆，按 namespace（如 user_id）保存跨会话的用户画像。</li>
+<li>真实产品中，checkpointer 用 PG，Store 用 PG 或向量库（如 Qdrant）。</li>
+</ul>
+<h2 id="_6">八、小结</h2>
+<ul>
+<li>记忆分为短期和长期。短期用 checkpointer，按 thread_id 隔离；长期用 Store，按 namespace 隔离。</li>
+<li>双进程范式用门控区分快慢两条路径。多智能体用三层图分层存放经验，检索深度按角色决定。</li>
+<li>记忆的寿命按内容变化速度设定，过期记忆必须可见。冲突更新交给代码取最新时间戳，LLM 只负责识别是不是同一件事。</li>
+<li>信念修订用双向 supersedes 指针保留演化链，不做物理删除。</li>
+<li>自进化靠快慢双速、当场 steering 和技能回归门禁推进，同时用 authority 标签与"自动起草、人审发布"来控制风险。</li>
+</ul>
+<h2 id="_7">来源</h2>
+<ul>
+<li><code>Agent记忆双进程范式.md</code>，一手源为 raw/Agent记忆论文-JevMem-GMem-BudgetMem-DMem-20260928.md</li>
+<li><code>Agent记忆保鲜与冲突治理.md</code>，一手源为 raw/agent-dev/Agent记忆管理标准与性价比调研-20261010.md 与 raw/agent-dev/Agent记忆论文-6篇-20260928.md</li>
+<li><code>DCPM信念修订追踪.md</code>，一手源为 raw/agent-dev/DCPM信念修订追踪-精读-20260928.md</li>
+<li><code>多智能体共享记忆G-Memory.md</code>，一手源为 raw/agent-dev/Agent记忆论文-6篇-20260928.md</li>
+<li><code>自进化Agent-快慢双速与live-steering-2026Q3.md</code>，一手源为 raw/sources/Agent技术动态调研-202609.md</li>
+<li><code>Agent框架与协议进展-2026.md</code>，仅取 PRIME 与记忆范式小节</li>
+<li><code>L5-Agent工程-最佳答案.md</code>，仅取双进程记忆、G-Memory 段，以及落地教训与缺口清单</li>
+<li><code>L5-Agent工程-课件实操.md</code>，仅取 3.1、5.6、5.7 三节</li>
+</ul>
+<h2 id="_8">相关条目</h2>
+<ul>
+<li><a href="L5-Agent核心循环与业务落地-深挖整合.html">L5-Agent核心循环与业务落地-深挖整合.md</a>：Agent 循环与业务落地。</li>
+<li><a href="L5-多Agent协作与编排-深挖整合.html">L5-多Agent协作与编排-深挖整合.md</a>：多智能体协作与编排模式，共享记忆在其中的位置。</li>
+<li><a href="L5-Agent框架选型与平台生态-深挖整合.html">L5-Agent框架选型与平台生态-深挖整合.md</a>：框架选型，LangGraph 的 checkpointer 与 Store 的来源。</li>
+<li><a href="L5-工具层与协议-FC-MCP-A2A-深挖整合.html">L5-工具层与协议-FC-MCP-A2A-深挖整合.md</a>：工具层与协议，MCP 与 A2A 的细节。</li>
+<li><a href="L5-Agent生产化可靠性与评估-深挖整合.html">L5-Agent生产化可靠性与评估-深挖整合.md</a>：断点续传（durable execution）与评估。</li>
+<li><a href="L5-OpenClaw模块协同-深挖整合.html">L5-OpenClaw模块协同-深挖整合.md</a>：OpenClaw 的模块协同，审查角色与记忆的衔接。</li>
+</ul></div></body></html>

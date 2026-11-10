@@ -1,0 +1,130 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent记忆术语表</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ Agent记忆术语表</span></div><div class="wrap"><h1 id="agent-记忆术语表-ontology">Agent 记忆术语表 (ontology)</h1>
+<blockquote>
+<p>入库: 2026-09-28 | 项目: wuyafang-l<br />
+每个术语 = 定义 + 来源论文 + <strong>conflict_status</strong> (2026-09-28 新增)</p>
+</blockquote>
+<hr />
+<h2 id="conflict_status-字段说明">conflict_status 字段说明</h2>2
+<table>
+<thead>
+<tr>
+<th>取值</th>
+<th>含义</th>
+<th>用法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>active</code></td>
+<td>现行有效, 作为标准答案使用</td>
+<td>默认值</td>
+</tr>
+<tr>
+<td><code>superseded</code></td>
+<td>被另一术语取代/覆盖, 保留作历史对比</td>
+<td>标注取代关系: A superseded-by B</td>
+</tr>
+<tr>
+<td><code>complementary</code></td>
+<td>与另一术语互补, 二者不冲突但关注点不同</td>
+<td>标注互补关系: A complement B</td>
+</tr>
+<tr>
+<td><code>conflict</code></td>
+<td>与另一术语矛盾, 需要人审</td>
+<td>标注: A conflicts-with B, 提交周复盘</td>
+</tr>
+</tbody>
+</table>
+<p><strong>作用</strong>: RAG 检索时若 top-k 同时命中 <code>superseded</code> 和 <code>active</code>, 优先取 <code>active</code>; 命中 <code>complementary</code> 应同时返回两条避免单边答案; 命中 <code>conflict</code> 直接给 LLM 标记待仲裁。</p>
+<hr />
+<h2 id="system-1-system-2">System-1 / System-2</h2>2
+<ul>
+<li><strong>定义</strong>: 双进程记忆/推理架构。System-1 = 轻量快系统(向量近邻检索、小分类器、规则路由), 日常 85% 查询直接出答案, 成本低; System-2 = 慢系统(重读原始会话历史、多跳推理、慢思考 Agent), 只在 System-1 不确定时被门控唤起, 成本高但质量高。</li>
+<li><strong>来源论文</strong>: D-Mem(arXiv:2603.18631) 查询期双进程; Jev-Mem(arXiv:2609.23986) 写入期 System-One 控制面; PRIME(arXiv:2509.22315) 推理期慢思考触发。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>:</li>
+<li>Jev-Mem(写入期 System-One 控制面) vs D-Mem(查询期双进程) — <strong>complementary</strong>: 一个管"写时选什么进记忆", 一个管"查时怎么用记忆", 阶段不同不冲突。两者都叫"System-1/2"但作用域不同, RAG 检索命中时必须同时给两条, 标注 <code>写入期</code> vs <code>查询期</code> 以免混淆。</li>
+</ul>
+<hr />
+<h2 id="insight-graph">Insight Graph</h2>2
+<ul>
+<li><strong>定义</strong>: G-Memory 三层图记忆的最上层(泛化经验层), 存从多次任务抽象出的教训/模式(如"flaky 测试不要盲目重跑"), 短摘要、低成本, 供编排层和其他 Agent 复用。下层是 Query Graph(任务指纹→派谁→结果) 和 Interaction Graph(原始轨迹归档)。</li>
+<li><strong>来源论文</strong>: G-Memory(arXiv:2506.07398)。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 BudgetMem(预算分级路由) — <strong>complementary</strong>: G-Memory 讲"经验怎么沉淀复用", BudgetMem 讲"每次查询给多少检索预算", 一个是记忆组织, 一个是查询路由, 不冲突。</li>
+</ul>
+<hr />
+<h2 id="quality-gating">Quality Gating</h2>2
+<ul>
+<li><strong>定义</strong>: D-Mem 里介于 System-1 和 System-2 之间的元认知路由判定器。输入三个标量特征: ①置信度(top-k 向量相似度分布, top-1/top-2 分差小=低置信) ②证据稀疏度(字面关键词命中数) ③查询复杂度(是否含时序/因果/比较信号词), 加权求和输出升级概率, 超过阈值 τ 才唤起 System-2 重读原始历史。门控本身不调 LLM。</li>
+<li><strong>来源论文</strong>: D-Mem(arXiv:2603.18631, LoCoMo F1=53.5, 35.8% token 恢复 96.7% 上限)。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+</ul>
+<hr />
+<h2 id="自适应停止-adaptive-stopping">自适应停止 (Adaptive Stopping)</h2>2
+<ul>
+<li><strong>定义</strong>: Jev-Mem 图检索时的停止策略。每轮图扩展后评估四个标量: 证据充分性 s_d / 继续效用 u_d / 缺失 m_d / 矛盾 c_d, 达标即停; 外加 node/edge/depth/controller/latency 五重硬上限防失控。不等预算耗尽, 证据够了就停。</li>
+<li><strong>来源论文</strong>: Jev-Mem(arXiv:2609.23986)。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+</ul>
+<hr />
+<h2 id="预算分级路由-budget-tiered-routing">预算分级路由 (Budget-Tiered Routing)</h2>2
+<ul>
+<li><strong>定义</strong>: BudgetMem 的 query-aware 三档路由: Low / Mid / High, 按查询复杂度自动选检索预算, 不是固定 top-k。用 RL 路由器学习"什么 query 该给多少预算", λ 参数化调检索深度(服务器端高预算/边缘设备低预算的思想)。六员角色可天然对应三档: 编排=Low, 执行=Mid, 工程深度=High。</li>
+<li><strong>来源论文</strong>: BudgetMem(arXiv:2602.06025, ICML 2026)。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 G-Memory(Insight Graph) — <strong>complementary</strong> (见上条)。与 D-Mem Quality Gating — <strong>complementary</strong>: 两者都用"查询复杂度"做输入, 但 BudgetMem 决定"给多少预算", D-Mem 决定"要不要升级到 System-2", 一个是容量决策, 一个是路径决策, 可以串联使用。</li>
+</ul>
+<hr />
+<h2 id="历时指针-diachronic-pointer">历时指针 (Diachronic Pointer)</h2>2
+<ul>
+<li><strong>定义</strong>: DCPM 里给每条记忆/信念加的版本时间戳指针, 追踪一个 Agent(或多个 Agent) 对同一需求/架构决策的观点随时间的漂移(Draft→Review→Locked), 跨 Agent 对比时能看到"谁在什么时候改了主意", 支撑多 Agent 共识演化与分歧溯源。</li>
+<li><strong>来源论文</strong>: DCPM(arXiv:2606.09483, 待精读, 本批只立项)。</li>
+<li><strong>conflict_status</strong>: <code>active</code> (待精读后复核)</li>
+</ul></div></body></html>

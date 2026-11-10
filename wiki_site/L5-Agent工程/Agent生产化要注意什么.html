@@ -1,0 +1,153 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent生产化要注意什么</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/Agent生产化要注意什么</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="agent">Agent 生产化要注意什么：错误处理、重试、观测、安全</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<h2 id="_1">这个问题的答案是什么</h2>
+<p><strong>一句话</strong>：demo 和生产的差距不在"能不能跑"，在"跑挂了怎么办"——7 本书里只有《Building Agentic AI Systems》系统讲了这件事，其他 6 本基本只教怎么搭，不教怎么修。</p>
+<p>生产化必备 4 件事：
+1. <strong>错误处理 &amp; 重试</strong>：LLM 会幻觉、API 会超时、工具会报错——不处理就是裸奔。
+2. <strong>观测 &amp; 日志</strong>：出问题时能回答"哪一步、哪个 prompt、哪个工具调用出了错"。
+3. <strong>安全 &amp; 权限</strong>：高风险操作必须有人审，不能让 Agent 自己转账自己删库。
+4. <strong>状态检查点</strong>：长任务跑了 30 步挂了，能不能从第 25 步续跑，而不是从头再来。</p>
+<h2 id="_2">详细内容</h2>
+<h3 id="llm">一、错误处理：LLM 不是可靠软件</h3>
+<p><strong>常见错误源</strong>（7 本书汇总）：
+- <strong>幻觉</strong>：模型编造不存在的 API 返回、编造数据库记录。《动手做》划线上有名言："如果你没有这方面的知识，一定不要胡说，要查阅相关的资料"——这是给模型的提示，但人也得防。
+- <strong>数字/数学短板</strong>：《零基础搭建》第 3 章专门讲"为什么 AI 无法准确识别数字、为什么有数学逻辑短板"——涉及金额、数量的必须外挂代码执行，不让模型心算。
+- <strong>工具调用失败</strong>：FC 传错参数、API 返回 500、超时。
+- <strong>循环失控</strong>：ReAct 跑到 max_iterations 还没结束。</p>
+<p><strong>对策</strong>：
+- 每个工具调用包 try/except，失败后让 LLM 决定是"换工具"还是"问用户"。
+- 设 <code>max_iterations</code> 硬上限（一般 10-20 步）。
+- 高风险操作（写库、发邮件、删文件）必须<strong>人工确认</strong>——MCP 原生支持这个弹窗（《MCP 原理与实战》2.4 节）。</p>
+<h3 id="_3">二、观测 &amp; 日志：没有日志就没有生产</h3>
+<p>《零基础搭建》划线上第 15 条（1777 人划）讲得最实在："LangChain 提供了多种内置回调处理器……每次用户提问、链的运行状态、模型的输出结果都被详细记录到日志文件中，若出现用户反馈'回复异常'，就能通过日志快速定位问题所在。"</p>
+<p><strong>生产环境的日志最少要记什么</strong>：
+- 输入 prompt（完整版，含工具描述）。
+- 每一步的工具调用：工具名、参数、返回结果、耗时。
+- 最终输出和用户反馈（好/坏）。
+- 异常堆栈。</p>
+<p>《Building Agentic AI Systems》强调：要能"清晰地解释自身的决策方式"——这是信任的基础，不只是 debug 用。</p>
+<h3 id="agent_1">三、安全 &amp; 权限：Agent 是有权限的程序</h3>
+<p>《MCP 原理与实战》2.4 节是 7 本里讲得最细的：
+- <strong>OAuth 授权</strong>：第三方服务调用走标准 OAuth，不暴露用户名密码。
+- <strong>令牌传递</strong>：通信过程用 token，不用原始凭证。
+- <strong>高风险操作确认弹窗</strong>："大模型想执行删除操作，是否允许？"——用户同意才放行。
+- <strong>工具描述标注影响等级</strong>：只读 vs 写操作必须在 schema 里说清，主机端才能分级管控。</p>
+<p>《Building Agentic AI Systems》从企业视角补充：
+- <strong>数据隐私</strong>：要"超越传统生成式 AI 保障的增强方法"。
+- <strong>偏见</strong>：用有代表性的多样训练数据、定期监控、收集利益相关者反馈。
+- <strong>自主决策的边界</strong>："AI 的自主性涉及系统根据内部程序自主决策的能力"——但企业级场景必须有人类最终否决权。</p>
+<h3 id="_4">四、状态检查点：长任务能断点续跑</h3>
+<p>《Building Agentic AI Systems》明确说："对决策状态进行版本控制，并结合检查点机制，可以在检测到异常或故障时使系统恢复到稳定状态。"</p>
+<p><strong>实操</strong>：
+- 每完成一步，把当前状态（已完成步骤、中间结果、下一步计划）落盘。
+- 崩溃后从最近检查点恢复，而不是从头跑。
+- 长任务（&gt;30 步）必须有这个，否则一次崩溃浪费所有 token。</p>
+<h3 id="_5">五、常见的生产化坑（跨书反推）</h3>
+<ul>
+<li><strong>不设超时</strong>：LLM 调用挂死，整个 Agent 跟着挂。</li>
+<li><strong>不设速率限制</strong>：Agent 循环触发 API 限流，直接被封。</li>
+<li><strong>把 API key 写进 prompt</strong>：MCP 用环境变量、不写进 system prompt。</li>
+<li><strong>多 Agent 之间没有共享状态</strong>：每个 Agent 自己记，最后对不上账。</li>
+<li><strong>不做评估</strong>：上线后只看"能不能跑"，不看"跑对了多少"——《Building Agentic AI Systems》强调"定期监控模型性能"。</li>
+</ul>
+<h2 id="_6">来自哪些书的哪些观点</h2>
+<ul>
+<li><strong>《Building Agentic AI Systems》</strong>：唯一一本系统讲 Trust / Safety / Ethics 的；检查点恢复；偏见多层次治理；自主决策边界。</li>
+<li><strong>《MCP 原理与实战》（李艮基）</strong>：安全机制最具体——OAuth、确认弹窗、工具影响等级标注、凭证环境变量化。</li>
+<li><strong>《一本书讲透 MCP》</strong>：MCP 是"AI Agent 互联网"的基座——安全和互操作性是绑定的。</li>
+<li><strong>《零基础搭建》（徐洋）</strong>：回调处理器 = 日志系统；数学短板必须外挂工具。</li>
+<li><strong>《动手做 AI Agent》（黄佳）</strong>：幻觉问题、"不要胡说要查资料"——给模型的 prompt 也要写这一条。</li>
+<li><strong>《大模型项目实战》（高强文）</strong>：Gradio 回调线程阻塞的坑——UI 要异步、Crew 要异步线程——这是工程化细节。</li>
+</ul>
+<h2 id="_7">我们库当前的落地点（对照六员体系）</h2>
+<table>
+<thead>
+<tr>
+<th>生产化维度</th>
+<th>现状</th>
+<th>对照书</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>错误处理</strong></td>
+<td>Hermes 有 <code>retry</code> 工具、<code>error-ledger</code> 技能</td>
+<td>《动手做》幻觉对策</td>
+</tr>
+<tr>
+<td><strong>观测日志</strong></td>
+<td>Hermes 有 state.db 会话库、<code>hermes-session-analytics</code> 技能</td>
+<td>《零基础》回调处理器</td>
+</tr>
+<tr>
+<td><strong>安全权限</strong></td>
+<td><code>hermes-command-security</code> 技能（三层架构）；<code>receipt-declare-verify</code> 技能（凭据门禁）</td>
+<td>《MCP 原理与实战》2.4</td>
+</tr>
+<tr>
+<td><strong>状态检查点</strong></td>
+<td><code>session-recovery</code> 技能（WSL 重启后找回任务）</td>
+<td>《Building Agentic AI Systems》检查点</td>
+</tr>
+<tr>
+<td><strong>偏见/伦理</strong></td>
+<td>尚未系统化</td>
+<td>《Building Agentic AI Systems》第 9 章</td>
+</tr>
+</tbody>
+</table>
+<p><strong>下一步动作</strong>：
+1. 把 Hermes 的 <code>error-ledger</code> 技能从"记录错误"升级到"自动应用已验证修复方案"——这是生产化闭环。
+2. 给六员系统加统一的"高风险操作确认"——参考 MCP 的弹窗设计，写操作前自动问人类。
+3. 做一份简单的评估集（20-50 个真实 query），每次改 prompt/换模型后跑一遍，看成功率变化——这是《Building Agentic AI Systems》"定期监控"的最小可行版。</p>
+<h2 id="_8">相关条目</h2>
+<ul>
+<li><a href="生产级Agent与Evals实操.html">生产级 Agent 与 Evals 实操</a></li>
+</ul></div></body></html>

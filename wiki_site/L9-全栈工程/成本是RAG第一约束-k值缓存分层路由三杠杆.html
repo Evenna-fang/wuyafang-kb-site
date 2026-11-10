@@ -1,0 +1,106 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>成本是RAG第一约束-k值缓存分层路由三杠杆</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 成本是RAG第一约束-k值缓存分层路由三杠杆</span></div><div class="wrap"><h1 id="成本是rag的第一约束k值-缓存-分层路由三杠杆方法论">成本是RAG的第一约束：k值-缓存-分层路由三杠杆方法论</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/sources/LLM%E6%88%90%E6%9C%AC%E5%BB%BA%E6%A8%A1-%E8%B0%83%E7%A0%94-20261012.md">LLM成本建模-调研-20261012</a> · <a href="../../raw/distill/LLM%E6%88%90%E6%9C%AC%E5%BB%BA%E6%A8%A1.distill.json">LLM成本建模.distill.j</a></p>
+<p>类型:方法论笔记(Evergreen/Zettelkasten原子化) ｜ 生成:CODE Distill 生产线三级渐进摘要(DeepSeek-V3 Pro)<br />
+一手源:<code>raw/sources/LLM成本建模-调研-20261012.md</code>（2026-10-12，2026主流模型定价表/选型规则/RAG token 消耗估算）<br />
+溯源（tier1 一手）:help.aliyun.com/zh/model-studio/model-pricing（百炼官方定价）｜coworker.ai deepseek-api-pricing（DeepSeek cache hit/miss 价）<br />
+二手实测引用源:apifox.com（MiMo V2.5 定价）｜spheron.network（GPT/Claude/Gemini/DeepSeek 2026 价格对比）｜spendark.com（RAG 系统成本模型） ｜ 素材:<code>raw/distill/LLM成本建模.distill.json</code></p>
+</blockquote>
+<h2 id="why为什么成本是-rag-的第一约束">WHY：为什么成本是 RAG 的第一约束</h2>2
+<p><strong>RAG 成本不是"调个便宜模型"就完事，而是三个杠杆的组合优化：80/20 模型分层、k 值控制、prefix caching</strong>——LLM 推理占 RAG 总成本 60-75%，其中 k（检索 chunk 数）从 3 增到 8 单 query 成本就翻倍；cache hit 价格仅为 miss 的 1/50~1/100；分层路由案例做到 33 倍成本差（$1950→$59 / 15 万查询）。</p>
+<h2 id="what-whytk-值缓存与分层路由三个杠杆">WHAT / WHYT：k 值、缓存与分层路由三个杠杆</h2>2
+<ul>
+<li><strong>成本公式</strong>：查询数 × (context_tokens × 输入价 + answer_tokens × 输出价)。输入侧由 k 和 chunk 大小共同决定，是最可控的旋钮。</li>
+<li><strong>价格分层（2026）</strong>：低价层 DeepSeek V4-Flash / MiMo V2-Flash（$0.1-0.4/M）；旗舰层 Claude Sonnet 5.5 / GPT-5.4（$2-10/M）。80% 的 RAG 查询只需 Flash 级，20% 复杂推理才上 Pro 级。</li>
+<li><strong>缓存杠杆</strong>：DeepSeek cache hit $0.0028/M vs miss $0.14/M（低 50-100 倍）；system prompt 固定 + prefix caching 命中率 80% 时，输入费用省 60%。</li>
+<li><strong>检索经济学</strong>：reranker 先取 k=20 再精排到 top-3，比直接检索 k=8 更便宜且质量更高（大 k 买召回，精排后上下文 token 反而下降）。</li>
+<li><strong>分层路由</strong>：简单任务走 Flash；置信度低或用户追问时升级 Pro。实测 15 万查询 $1950→$59，33 倍差距。</li>
+</ul>
+<h3 id="三个杠杆为什么成立">三个杠杆为什么成立</h3>3
+<ol>
+<li><strong>输入 token 主导成本</strong>：RAG 的输出短、上下文长，成本大头在输入侧，所以 k/分块/缓存比换模型更有效。</li>
+<li><strong>缓存是结构性折扣</strong>：固定前缀让 provider 侧 KV 复用，价格表层面就是 1/50~1/100，不需要任何质量妥协。</li>
+<li><strong>质量与成本在路由层解耦</strong>：不追求"一个模型又便宜又好"，而是用置信度把简单流量导向低价层。</li>
+</ol>
+<h2 id="how成本建模参数预算缓存改造与路由监控">HOW：成本建模、参数预算、缓存改造与路由监控</h2>2
+<ol>
+<li>先建模再优化：<code>月成本 = Q × (k×avg_chunk_tokens×P_in + answer_tokens×P_out)</code>，把 k、缓存命中率、分层比例三个变量代入算敏感度。</li>
+<li>k 值预算：默认 k=4~6 + rerank 精排到 top-3；任何把 k 拉到 8 以上的改动必须附成本测算。</li>
+<li>缓存改造：system prompt 与固定指令放最前（prefix 稳定），易变的用户 query 放最后；目标 cache 命中率 ≥ 80%。</li>
+<li>路由阈值：reranker 粗筛 → 精排 → 置信度评分；低置信或追问才升级 Pro 模型。</li>
+<li>监控：按月复盘 cache hit rate、avg context tokens、Flash/Pro 流量比（目标 80/20）。</li>
+</ol>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">本库真实落地（源码核对，2026-10-26）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<ul>
+<li><strong>k 值旋钮（<code>rag/config.yaml</code>）</strong>：<code>retrieval.top_k: 4</code>、<code>rerank.top_n: 30</code>、<code>rerank.simple_fact_top_n: 30</code>、<code>dense_top_n: 1000</code>、<code>sparse_top_n: 100</code>——大候选买召回、精排后只留 top-k 进上下文，正是"reranker 先取 k=20 再精排到 top-3"的本地变体。</li>
+<li><strong>模型分层（<code>rag/config.yaml::generation</code>）</strong>：当前 <code>model: "doubao-seed-2.1-lite"</code>（低价 Flash 级），回退小米 <code>mimo-v2.6-flash</code>（TokenPlan 订阅池）；复杂推理升级 Pro 级由路由层决定（见下）。</li>
+<li><strong>分层路由（<code>rag/query.py</code>）</strong>：<code>_classify_query()</code>（行 834）用 LLM 把 query 分 <code>simple_fact / complex_reasoning / multi_hop</code> 三档；<code>decide_route()</code>（行 870）按档位选检索深度——简单事实走浅检索、复杂问题才走深检索+重排，天然实现"简单流量走低价层"的 80/20。</li>
+<li><strong>成本阀门（<code>rag/query.py::rewrite_query_crag</code>，行 772）</strong>：CRAG 改写有 <code>crag.rewrite_daily_limit: 100</code> 的每日计数器（<code>data/rewrite_counter.json</code>），防重写放大 token 消耗；<code>crag.relevance_threshold: 0.5</code>、<code>min_relevant_docs: 2</code> 控制何时触发重写。</li>
+<li><strong>成本公式本地版</strong>：<code>月成本 ≈ Q × (top_k × avg_chunk_tokens × P_in + answer_tokens × P_out)</code>，其中 <code>top_k=4</code>、chunk 上限 800 字符（<code>ingest.py</code>）代入即可估算；改动 k 前先用此式算敏感度。</li>
+</ul>
+<h2 id="一句话洞见l3">一句话洞见（L3）</h2>2
+<ol>
+<li>价格分层决定模型选择：80% 的 RAG 查询只需低价层 Flash 模型处理，20% 复杂任务才需旗舰 Pro 模型，这是成本优化的黄金比例。</li>
+<li>k 值是成本控制关键阀门：检索 chunk 数（k）从 3 增至 8 会使单 query 成本翻倍，成为最易失控的配置杠杆点。</li>
+<li>缓存机制创造指数级节省：prefix caching 命中率达 80% 可削减 60% 输入费用，cache hit 价格仅为 miss 的 1/100。</li>
+<li>分层路由实现动态优化：先 reranker 粗筛再精排 + 置信度路由策略，可创造 33 倍成本差距的运营效益。</li>
+</ol>
+<p><strong>这篇源文回答的核心问题</strong>：如何通过技术选型与系统设计实现 RAG 架构的极致成本优化？</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">关联笔记</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>[[RRF融合加重排解决检索短板-混合检索流水线]]</li><li>[[Air-gap部署消除整类控制-FDE私有化离线部署方法论]]</li></ul></div>2
+<ul>
+<li>[[RRF融合加重排解决检索短板-混合检索流水线]]</li>
+<li><a href="../L10-%E6%96%B9%E6%B3%95%E8%AE%BA%E5%B1%82/04-%E6%8A%80%E6%9C%AF%E9%80%89%E5%9E%8B%E5%86%B3%E7%AD%96%E6%A1%86%E6%9E%B6.html">技术选型决策框架：离线验证、总成本与退出成本</a></li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] <strong>课件</strong>：原文未引用课件，本次仅重排结构，不新增来源。</li>
+<li>[书1] <strong>书籍</strong>：原文未引用书籍，本次仅重排结构，不新增来源。</li>
+<li>[业1] <strong>业内调研</strong>：<code>raw/sources/LLM成本建模-调研-20261012.md</code> 与 <code>raw/distill/LLM成本建模.distill.json</code>，落在成本公式、价格分层、k 值、缓存和路由三杠杆。</li>
+<li>[业2] <strong>业内官方定价</strong>：<a href="https://help.aliyun.com/zh/model-studio/model-pricing">阿里云百炼模型定价</a>，落在模型分层与成本测算的价格口径。</li>
+<li>[业3] <strong>业内官方文档</strong>：<a href="https://api-docs.deepseek.com">DeepSeek API 文档</a>，落在 cache hit/miss 价差与 prefix caching 杠杆。</li>
+</ul></div></details></div></body></html>

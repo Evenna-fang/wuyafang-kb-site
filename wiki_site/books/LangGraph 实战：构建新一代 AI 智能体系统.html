@@ -1,0 +1,165 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LangGraph 实战：构建新一代 AI 智能体系统</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ LangGraph 实战：构建新一代 AI 智能体系统</span></div><div class="wrap"><h1 id="书章节重点-langgraph-实战构建新一代-ai-智能体系统">书章节重点 · LangGraph 实战：构建新一代 AI 智能体系统</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书系统讲解基于 LangGraph 框架构建 AI 智能体系统的完整技术体系，覆盖从 ReAct 设计模式、状态图编排、记忆与交互机制，到多智能体架构、平台部署及企业级案例的工程落地路径，是《LangChain 实战》的进阶读本</li></ul></div>2
+<p>本书系统讲解基于 LangGraph 框架构建 AI 智能体系统的完整技术体系，覆盖从 ReAct 设计模式、状态图编排、记忆与交互机制，到多智能体架构、平台部署及企业级案例的工程落地路径，是《LangChain 实战》的进阶读本。全书的主线不是把模型调用包装成聊天接口，而是把模型、工具、状态、持久化、人工监督和可观测性组织成可恢复的执行图：先定义状态，再拆分节点，随后用条件边表达决策，用检查点保存进度，最后以平台和案例验证系统的可运营性。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 AI智能体的原理和机制</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：AI 智能体的本质是具备感知、决策与行动能力的自主系统，ReAct 设计模式通过“推理—行动”交替循环实现这一能力；工程上应把观察、思考、工具调用和结果回写分别建模</li><li>核心观点3：智能体开发面临工具调用可靠性、状态管理、可控性等多重技术与工程挑战，需要框架级支撑；尤其要为工具超时、参数错误、外部服务不可用准备降级路径</li><li>核心观点4：从传统固定流程迁移到智能体流程时，确定性校验仍然重要，模型负责选择和生成，规则、类型约束及人工审批负责边界控制</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：AI 智能体的本质是具备感知、决策与行动能力的自主系统，ReAct 设计模式通过“推理—行动”交替循环实现这一能力；工程上应把观察、思考、工具调用和结果回写分别建模。</li>
+<li><strong>核心观点2</strong>：Reflexion 框架在 ReAct 循环后增加“反思”步骤，对行动过程与结果进行回顾分析，将经验教训用于指导后续策略优化；它适合失败代价较高、可以获得反馈的任务，不应无条件增加循环。</li>
+<li><strong>核心观点3</strong>：智能体开发面临工具调用可靠性、状态管理、可控性等多重技术与工程挑战，需要框架级支撑；尤其要为工具超时、参数错误、外部服务不可用准备降级路径。</li>
+<li><strong>核心观点4</strong>：从传统固定流程迁移到智能体流程时，确定性校验仍然重要，模型负责选择和生成，规则、类型约束及人工审批负责边界控制。<blockquote>
+<p>在完成一次ReAct循环后，Reflexion框架会让AI智能体增加一个额外的“反思”步骤，对之前的行动过程和结果进行回顾和分析，总结经验教训，并用于指导后续的行动策略。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第2章-langgraph框架概览">第2章 LangGraph框架概览</h3>3
+<ul>
+<li><strong>核心观点1</strong>：LangGraph 是 LangChain 生态中面向有状态、可循环智能体流程的编排框架，二者是互补而非替代关系；LangChain提供模型与工具组件，LangGraph负责把它们组织成可执行图。</li>
+<li><strong>核心观点2</strong>：LangGraph 以图结构原生支持 ReAct 模式的循环与分支，比链式编排更适合复杂智能体逻辑；节点表达动作，边表达控制流，状态表达共享上下文。</li>
+<li><strong>核心观点3</strong>：框架学习应从最小图开始，先跑通起点、一个节点和结束节点，再逐步加入条件路由、工具、检查点和子图，避免一开始把所有能力堆进单个节点。</li>
+<li><strong>核心观点4</strong>：选型时要比较流程是否需要循环、暂停、恢复和人工介入；简单的一次性链路不必强行图化，长任务和多阶段任务才更能体现 LangGraph 优势。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 LangGraph的状态图结构</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：核心原语（节点、边、状态）构成状态图基础，分支与并发实现灵活流程控制；状态应只保存后续节点真正需要的数据，避免把不可控的大段上下文无限累积</li><li>核心观点2：MapReduce 模式通过 Send 对象列表实现任务动态分解与并行分发，引擎自动解析目标节点与状态数据创建并行子任务；Reduce 阶段再用聚合器合并结果</li><li>核心观点3：子图机制支持模块化与复用设计，工具调用扩展智能体能力边界，图可视化便于调试与理解；子图适合封装检索、审批或报告生成等稳定能力单元</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：核心原语（节点、边、状态）构成状态图基础，分支与并发实现灵活流程控制；状态应只保存后续节点真正需要的数据，避免把不可控的大段上下文无限累积。</li>
+<li><strong>核心观点2</strong>：MapReduce 模式通过 Send 对象列表实现任务动态分解与并行分发，引擎自动解析目标节点与状态数据创建并行子任务；Reduce 阶段再用聚合器合并结果。</li>
+<li><strong>核心观点3</strong>：子图机制支持模块化与复用设计，工具调用扩展智能体能力边界，图可视化便于调试与理解；子图适合封装检索、审批或报告生成等稳定能力单元。</li>
+<li><strong>核心观点4</strong>：条件边应返回有限、可测试的路由值，并为未知值设置安全出口；并行分支要考虑共享状态的写入冲突和最终聚合顺序。<blockquote>
+<p>LangGraph引擎会自动解析Send对象列表，并根据Send对象中指定的目标节点名称node_name和状态数据state，动态地创建和分发并行子任务。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第4章-ai智能体的交互体验">第4章 AI智能体的交互体验</h3>3
+<ul>
+<li><strong>核心观点1</strong>：流式处理为用户提供实时反馈，是长时运行智能体流程的关键体验保障；可以分别展示模型令牌、节点事件和工具结果，让用户知道系统正在做什么。</li>
+<li><strong>核心观点2</strong>：持久化方案需按场景选型——PostgreSQL 适合高流量生产级智能体，SQLite 适合无需数据库服务器的轻量应用；选择时还要看并发量、备份和恢复要求。</li>
+<li><strong>核心观点3</strong>：人机环路协作机制允许在关键节点中断并引入人工介入，提升可控性；审批数据必须写回状态，并明确继续、修改、拒绝三类动作的后续边。</li>
+<li><strong>核心观点4</strong>：交互体验不仅是输出速度，还包括可解释的阶段状态、错误提示和可恢复入口，不能只把最终文本显示给用户。<blockquote>
+<p>PostgreSQL以其可靠性、可扩展性及对并发访问的支持而闻名，这使PostgresSaver成为高流量、生产级AI智能体的理想选择。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 AI智能体的记忆系统</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：记忆分为短期（会话内中间结果与临时数据）与长期记忆，二者服务于不同时间尺度的上下文需求；短期记忆跟随线程，长期记忆跨线程并需检索</li><li>核心观点2：记忆存储需结合 LangMem 等工具，并在格式化样式与信息选取上做设计权衡；不是所有对话都值得长期保存，事实、偏好和任务状态应区分处理</li><li>核心观点3：记忆系统设计需重点考量存储策略、检索方式与上下文注入的平衡；召回过少会失去个性化，召回过多会造成上下文污染</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：记忆分为短期（会话内中间结果与临时数据）与长期记忆，二者服务于不同时间尺度的上下文需求；短期记忆跟随线程，长期记忆跨线程并需检索。</li>
+<li><strong>核心观点2</strong>：记忆存储需结合 LangMem 等工具，并在格式化样式与信息选取上做设计权衡；不是所有对话都值得长期保存，事实、偏好和任务状态应区分处理。</li>
+<li><strong>核心观点3</strong>：记忆系统设计需重点考量存储策略、检索方式与上下文注入的平衡；召回过少会失去个性化，召回过多会造成上下文污染。</li>
+<li><strong>核心观点4</strong>：应为记忆增加更新、删除和纠错机制，并保留来源与时间信息，使系统能修正过时偏好而不是永久重复旧事实。<blockquote>
+<p>中间结果（会话特定）：在对话过程中生成的临时数据和输出，包括计算中间值、检索结果或工具输出等即时处理所需的信息。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第6章-langgraph的核心api">第6章 LangGraph的核心API</h3>3
+<ul>
+<li><strong>核心观点1</strong>：<code>create_react_agent</code> 提供开箱即用的 ReAct 智能体封装，适合快速构建标准场景；当需要自定义每一步状态或路由时，再下沉到图 API。</li>
+<li><strong>核心观点2</strong>：Functional API 负责封装工作流整体逻辑并管理执行流程，包括长时任务、持久化与人机环路中断；函数式写法适合已有业务代码的渐进式接入。</li>
+<li><strong>核心观点3</strong>：API 选择应基于流程复杂度与可控性需求，在声明式图编排与函数式封装间权衡；图 API可视化和分支表达更强，Functional API更贴近普通程序控制流。</li>
+<li><strong>核心观点4</strong>：API调用边界要配合类型化输入、结构化输出和异常处理，避免节点之间靠隐含字段传递数据。<blockquote>
+<p>负责封装工作流的整体逻辑并管理其执行流程，包括处理长时间运行的任务、支持持久化和人机环路中断。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 AI智能体系统的架构设计与模式应用</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：常见工作流以增强型 LLM 串联处理阶段，前一调用输出作为后续输入形成流水线；每个阶段应有清晰输入输出和失败重试边界</li><li>核心观点2：多智能体架构通过模块化、专业化与受控通信，构建更复杂且可管理的 AI 应用；角色越多，越要限制消息格式、共享状态和转交次数</li><li>核心观点3：情境感知智能体架构强调对环境与上下文的动态感知，以支撑更自主的决策；环境信号应进入状态，而不是藏在提示词字符串里</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：常见工作流以增强型 LLM 串联处理阶段，前一调用输出作为后续输入形成流水线；每个阶段应有清晰输入输出和失败重试边界。</li>
+<li><strong>核心观点2</strong>：多智能体架构通过模块化、专业化与受控通信，构建更复杂且可管理的 AI 应用；角色越多，越要限制消息格式、共享状态和转交次数。</li>
+<li><strong>核心观点3</strong>：情境感知智能体架构强调对环境与上下文的动态感知，以支撑更自主的决策；环境信号应进入状态，而不是藏在提示词字符串里。</li>
+<li><strong>核心观点4</strong>：架构设计要同时考虑任务拆解、协调、反馈和终止条件，避免多个智能体互相调用形成不可控循环。<blockquote>
+<p>它们通过采用模块化、专业化和受控通信方式，为构建更复杂和可管理的AI应用程序提供了途径。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第8章-langgraph平台介绍">第8章 LangGraph平台介绍</h3>3
+<ul>
+<li><strong>核心观点1</strong>：平台以任务队列（Redis）处理并发与突发流量，以流式传输支持实时反馈；队列解决调度问题，不能替代业务层的幂等和重试设计。</li>
+<li><strong>核心观点2</strong>：部署支持运行时配置参数传递与 langgraph.json 指向图创建函数的配置方式，并可定制镜像级依赖；配置与代码应分离，便于不同环境复用同一图。</li>
+<li><strong>核心观点3</strong>：Agent Protocol 提供标准化接口（如存储项目 PUT/store/items），LangGraph Studio 提供实时流式执行可视化；协议化接口有助于前端、服务端和图运行时解耦。</li>
+<li><strong>核心观点4</strong>：平台涵盖访问控制、RemoteGraph 与 React Hook 等高级能力，支撑生产级集成；上线前仍需补充认证、租户隔离、日志和成本监控。<blockquote>
+<p>将Redis作为任务队列（Task Queue），对于处理并发请求和管理突发流量至关重要。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第9章 LangGraph应用开发模板</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：官方模板覆盖新项目、ReAct、数据充实、记忆、RAG 及 RAG 研究智能体等典型场景，加速项目起步；模板的价值在于目录结构和运行约定可复用</li><li>核心观点2：记忆智能体模板中可通过调整格式化样式与注入信息（上下文、相似度得分等）优化记忆利用效果；应以实际回答质量而不是召回数量评估模板</li><li>核心观点3：模板使用时要先确认依赖、环境变量、图入口和检查点配置，再替换业务节点；只复制代码而忽略配置会造成难以定位的运行差异</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：官方模板覆盖新项目、ReAct、数据充实、记忆、RAG 及 RAG 研究智能体等典型场景，加速项目起步；模板的价值在于目录结构和运行约定可复用。</li>
+<li><strong>核心观点2</strong>：记忆智能体模板中可通过调整格式化样式与注入信息（上下文、相似度得分等）优化记忆利用效果；应以实际回答质量而不是召回数量评估模板。</li>
+<li><strong>核心观点3</strong>：模板使用时要先确认依赖、环境变量、图入口和检查点配置，再替换业务节点；只复制代码而忽略配置会造成难以定位的运行差异。</li>
+<li><strong>核心观点4</strong>：模板适合原型，不等于生产方案，生产化还需增加测试、权限、观测、超时和数据脱敏。<blockquote>
+<p>尝试不同的格式化样式（例如，项目符号列表、编号列表等），或者尝试包含来自内存的不同信息（例如，上下文、相似度得分等）。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第10章-langgraph官方应用案例浅析">第10章 LangGraph官方应用案例浅析</h3>3
+<ul>
+<li><strong>核心观点1</strong>：开放画布支持从空白编辑器或现有文档起步，全面支持多种编程语言，区别于对话式起点工具；其关键是让用户在创作流程中持续反馈。</li>
+<li><strong>核心观点2</strong>：报告大师以协调器并行启动“章节构建子图”，并支持用户反馈触发计划重新生成与结构优化；这是协调器、子图和人工反馈结合的典型范式。</li>
+<li><strong>核心观点3</strong>：Agent Inbox 展示人机协作收件箱模式在智能体工作流中的落地；待处理事项应有明确状态、负责人和恢复位置。</li>
+<li><strong>核心观点4</strong>：案例说明复杂产品不能只优化单次模型回答，还要设计任务计划、并行执行、反馈回路和可观察的中间产物。<blockquote>
+<p>使用网络研究并行构建章节：计划获得批准后，LangGraph协调器针对每个需要网络研究的报告章节（根据报告计划中的确定）启动“章节构建子图”的并行执行。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第11章 AI智能体技术展望</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：多智能体框架选型需关注版本更新频率与版本间兼容性，以降低升级风险；应锁定依赖并用最小回归场景验证升级</li><li>核心观点2：智能体技术正向更自主、更协同、更工程化的方向演进，但自主性必须与权限、审计、人工兜底和可回滚能力同步增长</li><li>核心观点3：未来系统竞争力不仅来自更强模型，也来自状态管理、工具生态、评测、部署和运维闭环；工程质量决定能力能否稳定复用</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：多智能体框架选型需关注版本更新频率与版本间兼容性，以降低升级风险；应锁定依赖并用最小回归场景验证升级。</li>
+<li><strong>核心观点2</strong>：智能体技术正向更自主、更协同、更工程化的方向演进，但自主性必须与权限、审计、人工兜底和可回滚能力同步增长。</li>
+<li><strong>核心观点3</strong>：未来系统竞争力不仅来自更强模型，也来自状态管理、工具生态、评测、部署和运维闭环；工程质量决定能力能否稳定复用。</li>
+<li><strong>核心观点4</strong>：学习 LangGraph 的重点是掌握可迁移的图式思维：把目标拆成状态变化和控制流，再根据风险选择自动化或人工确认。<blockquote>
+<p>在版本选择上，要注意框架版本的更新频率和版本间的兼容性，以降低未来升级带来的风险。</p>
+</blockquote>
+</li>
+</ul>
+<h2 id="适用场景标签">适用场景标签</h2>2
+<ul>
+<li>AI 智能体开发</li>
+<li>LangGraph 框架学习</li>
+<li>LLM 应用工程化落地</li>
+<li>多智能体系统架构设计</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">一句话推荐</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>从原理到生产的智能体实战指南</li></ul></div>2
+<p>从原理到生产的智能体实战指南</p></div></details></div></body></html>

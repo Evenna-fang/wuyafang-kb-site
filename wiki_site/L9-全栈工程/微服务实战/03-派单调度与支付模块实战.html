@@ -1,0 +1,469 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>03-派单调度与支付模块实战</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../../index.html">🏠 总入口</a><a href="../../graph.html">🕸 关联图谱</a><a href="../../ontology/index.html">📖 术语表</a><span class="cur">/ 03-派单调度与支付模块实战</span></div><div class="wrap"><h2 id="why">WHY</h2>2
+<h3 id="1-课程目标与版本基线">1. 课程目标与版本基线</h3>3
+<p>本文以智链云途物流为背景，把运单从创建、派送到支付结算串成一条可落地链路。示例基于 Spring Boot 2.7.18、Spring Cloud 2021.0.8、Spring Cloud Alibaba 2021.0.5.0、Nacos 2.2.3、RocketMQ 4.9.7、Redis 6/7 和 JDK 17。代码使用标准 Spring Boot API，可直接放入对应服务工程；本文没有连接真实中间件做联调，接入时需要替换环境变量中的地址和商户配置。</p>
+<p>物流系统同时面对空间数据和资金数据。派单要在毫秒级找到附近骑手，并处理骑手抢单、超时和重复点击；支付要接收第三方异步通知，保证订单和支付单最终一致。两类问题都不能只依赖内存锁：位置检索必须考虑 Redis GEO 的数据模型，接单必须有数据库条件更新，支付必须验签、幂等和可追账。</p>
+<h2 id="what">WHAT</h2>2
+<h3 id="11-总体业务架构">1.1 总体业务架构</h3>3
+<pre><code class="language-mermaid">flowchart LR
+  C[用户端] --&gt; G[Gateway]
+  G --&gt; O[订单服务]
+  G --&gt; D[派单服务]
+  G --&gt; P[支付服务]
+  D --&gt; R[(Redis GEO/锁)]
+  O --&gt; M[(MySQL)]
+  P --&gt; A[支付宝沙箱]
+  P --&gt; W[微信支付]
+  O --&gt; MQ[(RocketMQ)]
+  D --&gt; MQ
+  P --&gt; MQ
+  MQ --&gt; N[Nacos/监控]
+</code></pre>
+<p>订单服务只负责订单事实，派单服务维护运单和骑手状态，支付服务维护支付单和渠道流水。RocketMQ 传递领域事件，Nacos 管理服务发现和配置。跨服务调用使用 OpenFeign 时要设置连接、读取超时和重试边界，避免支付接口被重复重试。</p>
+<h2 id="how">HOW</h2>2
+<h3 id="2-派单调度">2. 派单调度</h3>3
+<h4 id="21-业务模型与数据表">2.1 业务模型与数据表</h4>
+<p>运单至少包含运单号、订单号、取货点、送货点、状态、指定时间窗和当前骑手。骑手记录服务区域、在线状态、当前单量、最大并发量以及最近上报时间。位置数据放 Redis GEO，业务属性仍放 MySQL；不要把 GEO 当作完整的骑手主数据。</p>
+<pre><code class="language-sql">CREATE TABLE delivery_order (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_no VARCHAR(32) NOT NULL UNIQUE,
+  rider_id BIGINT NULL,
+  status VARCHAR(20) NOT NULL,
+  version INT NOT NULL DEFAULT 0,
+  assigned_at DATETIME NULL,
+  updated_at DATETIME NOT NULL,
+  KEY idx_status (status)
+);
+CREATE TABLE rider (
+  id BIGINT PRIMARY KEY,
+  online TINYINT NOT NULL,
+  current_orders INT NOT NULL DEFAULT 0,
+  max_orders INT NOT NULL DEFAULT 5,
+  last_location_at DATETIME NULL
+);
+</code></pre>
+<p>状态迁移由服务端统一执行，接口只接收命令，不允许客户端直接传目标状态。每次迁移写状态日志，日志包含操作者、来源事件和幂等键，便于客服追溯。</p>
+<pre><code class="language-mermaid">stateDiagram-v2
+  [*] --&gt; 待派单
+  待派单 --&gt; 已派单: 选中骑手/条件更新
+  已派单 --&gt; 已接单: 骑手接单
+  已派单 --&gt; 待派单: 超时或拒绝
+  已接单 --&gt; 配送中: 取货确认
+  配送中 --&gt; 已完成: 送达签收
+  配送中 --&gt; 异常: 取消/事故
+  异常 --&gt; 待派单: 重新调度
+</code></pre>
+<h4 id="22-位置上报与-geo-检索">2.2 位置上报与 GEO 检索</h4>
+<p>Redis GEO 的 member 没有独立 TTL，<code>GEOADD</code> 写入后不会自动过期。因此服务需要把最后上报时间写到 Hash 或数据库，查询后过滤超过阈值的骑手，并用定时任务清理离线 member。Redis 6.2 提供 <code>GEOSEARCH</code>，旧版本可使用 <code>GEORADIUS</code>，生产环境应确认服务器版本。</p>
+<pre><code class="language-java">package com.wuyafang.delivery.location;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.geo.Circle;
+import org.springframework.data.geo.Distance;
+import org.springframework.data.geo.GeoResult;
+import org.springframework.data.geo.Metrics;
+import org.springframework.data.redis.connection.RedisGeoCommands;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class RiderLocationService {
+    private static final String GEO_KEY = &quot;rider:geo:online&quot;;
+    private static final String LAST_KEY = &quot;rider:last-location:&quot;;
+    private final StringRedisTemplate redis;
+
+    public void report(long riderId, double longitude, double latitude, long epochSecond) {
+        redis.opsForGeo().add(GEO_KEY,
+                new RedisGeoCommands.GeoLocation&lt;&gt;(String.valueOf(riderId),
+                        new org.springframework.data.geo.Point(longitude, latitude)));
+        redis.opsForHash().put(LAST_KEY + riderId, &quot;epoch&quot;, String.valueOf(epochSecond));
+    }
+
+    public List&lt;GeoResult&lt;RedisGeoCommands.GeoLocation&lt;String&gt;&gt;&gt; nearby(
+            double longitude, double latitude, double radiusKm) {
+        return redis.opsForGeo().radius(GEO_KEY,
+                new Circle(new org.springframework.data.geo.Point(longitude, latitude),
+                        new Distance(radiusKm, Metrics.KILOMETERS)),
+                RedisGeoCommands.GeoRadiusCommandArgs.newGeoRadiusArgs()
+                        .includeDistance().sortAscending().limit(50));
+    }
+}
+</code></pre>
+<p>对应的 Redis 命令如下，顺序始终是经度、纬度，反过来会把位置写到错误半球。<code>GEOSEARCH</code> 可按圆心半径检索并返回距离。</p>
+<pre><code class="language-text">GEOADD rider:geo:online 121.4737 31.2304 10001
+GEOSEARCH rider:geo:online FROMLONLAT 121.4737 31.2304 BYRADIUS 5 km ASC COUNT 50 WITHDIST
+GEOSEARCH rider:geo:online FROMMEMBER 10001 BYRADIUS 3 km ASC
+</code></pre>
+<h4 id="23-派单策略与评分">2.3 派单策略与评分</h4>
+<p>第一层先过滤：骑手在线、最近上报小于 90 秒、当前单量小于最大并发、没有同一运单锁。第二层按距离排序，距离相同再比较负载。综合评分可采用 <code>0.5×距离分 + 0.3×负载分 + 0.2×服务分</code>，所有分数归一化到 0 到 1，避免不同量纲直接相加。服务分来自近 30 天准时率和取消率，不能用一次评价决定结果。</p>
+<pre><code class="language-mermaid">flowchart TD
+  A[创建运单] --&gt; B[读取取货点]
+  B --&gt; C[GEOSEARCH 半径检索]
+  C --&gt; D[过滤离线/超载/过期位置]
+  D --&gt; E[计算距离与负载评分]
+  E --&gt; F{候选为空?}
+  F -- 是 --&gt; G[扩大半径或进入人工池]
+  F -- 否 --&gt; H[按评分取前N]
+  H --&gt; I[抢占接单锁]
+  I --&gt; J{DB条件更新成功?}
+  J -- 是 --&gt; K[发送派单通知]
+  J -- 否 --&gt; L[尝试下一候选]
+</code></pre>
+<p>接单锁只用于减少并发竞争，不能替代数据库条件更新。推荐使用 <code>rider:accept:{waybillId}</code>，值为请求幂等号，短 TTL 例如 10 秒。数据库更新必须约束 <code>status='已派单' AND rider_id=?</code>，成功行数为 1 才算接单成功。</p>
+<pre><code class="language-java">package com.wuyafang.delivery.assignment;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Duration;
+
+@Service
+@RequiredArgsConstructor
+public class AcceptService {
+    private final StringRedisTemplate redis;
+    private final WaybillMapper waybillMapper;
+
+    @Transactional
+    public boolean accept(long waybillId, long riderId, String requestId) {
+        String key = &quot;rider:accept:&quot; + waybillId;
+        Boolean locked = redis.opsForValue().setIfAbsent(key, requestId, Duration.ofSeconds(10));
+        if (!Boolean.TRUE.equals(locked)) return false;
+        int changed = waybillMapper.accept(waybillId, riderId);
+        if (changed != 1) {
+            redis.delete(key);
+            return false;
+        }
+        return true;
+    }
+}
+</code></pre>
+<pre><code class="language-java">package com.wuyafang.delivery.assignment;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Update;
+
+@Mapper
+public interface WaybillMapper {
+    @Update(&quot;UPDATE delivery_order SET status='已接单', updated_at=NOW() &quot; +
+            &quot;WHERE id=#{waybillId} AND rider_id=#{riderId} AND status='已派单'&quot;)
+    int accept(long waybillId, long riderId);
+}
+</code></pre>
+<h4 id="24-超时重新调度">2.4 超时重新调度</h4>
+<p>派单成功后发送 RocketMQ 延迟消息。RocketMQ 4.9.x 使用固定 <code>delayLevel</code>，不能把任意毫秒数直接传给消息；例如 level 4 约 10 秒，具体映射以 broker 配置为准。消费者读取运单状态，仍为已派单才回滚到待派单并重新选择骑手。Redis Keyspace Notification 受配置、重启和集群影响，适合补偿提醒，不应作为唯一超时机制。</p>
+<pre><code class="language-java">package com.wuyafang.delivery.assignment;
+
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.common.message.Message;
+import org.springframework.stereotype.Component;
+
+import java.nio.charset.StandardCharsets;
+
+@Component
+public class AssignmentTimeoutProducer {
+    private final DefaultMQProducer producer;
+    public AssignmentTimeoutProducer(DefaultMQProducer producer) { this.producer = producer; }
+    public void send(long waybillId) throws Exception {
+        Message message = new Message(&quot;waybill-timeout&quot;, &quot;timeout&quot;, String.valueOf(waybillId),
+                String.valueOf(waybillId).getBytes(StandardCharsets.UTF_8));
+        message.setDelayTimeLevel(4);
+        producer.send(message);
+    }
+}
+</code></pre>
+<pre><code class="language-java">package com.wuyafang.delivery.assignment;
+
+import lombok.RequiredArgsConstructor;
+import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
+import org.apache.rocketmq.spring.core.RocketMQListener;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+@RocketMQMessageListener(topic = &quot;waybill-timeout&quot;, consumerGroup = &quot;dispatch-timeout&quot;)
+public class AssignmentTimeoutConsumer implements RocketMQListener&lt;String&gt; {
+    private final WaybillMapperExt mapper;
+    @Override public void onMessage(String body) {
+        long id = Long.parseLong(body);
+        mapper.resetIfWaiting(id); // UPDATE ... WHERE status='已派单'
+    }
+}
+</code></pre>
+<h3 id="3-支付模块">3. 支付模块</h3>3
+<h4 id="31-支付架构与支付单">3.1 支付架构与支付单</h4>
+<p>支付单独立于订单，保存支付号、订单号、金额（分）、渠道、状态、第三方交易号、通知次数和最后通知时间。金额使用整数分或 BigDecimal，禁止 double。创建支付单时校验订单归属、金额和可支付状态，返回渠道所需参数；绝不把支付宝私钥返回前端。</p>
+<pre><code class="language-mermaid">flowchart LR
+  U[用户] --&gt; API[支付API]
+  API --&gt; PS[支付服务]
+  PS --&gt; DB[(支付单/本地消息表)]
+  PS --&gt; Z[支付宝沙箱]
+  PS --&gt; WX[微信支付]
+  Z --&gt;|异步notify| N[通知接口]
+  N --&gt; DB
+  DB --&gt; MQ[RocketMQ支付成功事件]
+  MQ --&gt; OS[订单服务]
+  OS --&gt; DS[派单服务]
+  PS --&gt; Q[主动查询/对账任务]
+</code></pre>
+<pre><code class="language-java">package com.wuyafang.pay.config;
+
+import com.alipay.api.AlipayClient;
+import com.alipay.api.DefaultAlipayClient;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class AlipayConfig {
+    @Bean
+    AlipayClient alipayClient(PayProperties p) {
+        return new DefaultAlipayClient(p.gateway(), p.appId(), p.privateKey(),
+                &quot;json&quot;, &quot;UTF-8&quot;, p.alipayPublicKey(), &quot;RSA2&quot;);
+    }
+}
+</code></pre>
+<p>密钥从环境变量或密钥管理服务注入，示例只展示属性绑定，不读取、打印或提交真实密钥。</p>
+<pre><code class="language-java">package com.wuyafang.pay.api;
+
+import com.alipay.api.AlipayClient;
+import com.alipay.api.request.AlipayTradePagePayRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping(&quot;/pay&quot;)
+public class PayController {
+    private final AlipayClient client;
+    private final PayProperties properties;
+
+    @PostMapping(&quot;/alipay/page&quot;)
+    public String page(@RequestParam String paymentNo, @RequestParam String subject,
+                       @RequestParam String totalAmount) throws Exception {
+        AlipayTradePagePayRequest request = new AlipayTradePagePayRequest();
+        request.setReturnUrl(properties.returnUrl());
+        request.setNotifyUrl(properties.notifyUrl());
+        request.setBizContent(&quot;{\&quot;out_trade_no\&quot;:\&quot;&quot; + paymentNo + &quot;\&quot;,&quot; +
+                &quot;\&quot;total_amount\&quot;:\&quot;&quot; + totalAmount + &quot;\&quot;,\&quot;subject\&quot;:\&quot;&quot; + subject + &quot;\&quot;}&quot;);
+        return client.pageExecute(request).getBody();
+    }
+}
+</code></pre>
+<p>正式代码应使用 JSON 序列化构造 <code>bizContent</code>，并对 subject 做长度与字符校验。沙箱联调时配置网关地址、appId、回调地址和支付宝公钥；回调地址必须可被公网访问，内网环境可用受控隧道。</p>
+<h4 id="32-异步通知验签与幂等">3.2 异步通知、验签与幂等</h4>
+<p>通知接口先验签，再核对 app_id、seller_id、商户订单号、金额和交易状态。<code>TRADE_SUCCESS</code> 才能完成支付；<code>TRADE_FINISHED</code> 还要根据业务是否允许退款后完成。验签通过后，在本地事务中锁定支付单、比较状态并写入第三方交易号，提交成功后返回 <code>success</code>。如果业务更新失败，返回非 success 让渠道重试。原始通知参数可脱敏落库，便于审计。</p>
+<pre><code class="language-java">package com.wuyafang.pay.notify;
+
+import com.alipay.api.AlipayApiException;
+import com.alipay.api.internal.util.AlipaySignature;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@RestController
+@RequiredArgsConstructor
+public class AlipayNotifyController {
+    private final PayProperties properties;
+    private final PaymentService paymentService;
+
+    @PostMapping(&quot;/pay/alipay/notify&quot;)
+    public String notify(HttpServletRequest request) throws AlipayApiException {
+        Map&lt;String, String&gt; params = new HashMap&lt;&gt;();
+        request.getParameterMap().forEach((k, v) -&gt; params.put(k, v[0]));
+        boolean valid = AlipaySignature.rsaCheckV1(params, properties.alipayPublicKey(),
+                &quot;UTF-8&quot;, &quot;RSA2&quot;);
+        if (!valid || !properties.appId().equals(params.get(&quot;app_id&quot;))) return &quot;failure&quot;;
+        if (!properties.sellerId().equals(params.get(&quot;seller_id&quot;))) return &quot;failure&quot;;
+        if (!&quot;TRADE_SUCCESS&quot;.equals(params.get(&quot;trade_status&quot;))) return &quot;success&quot;;
+        if (!paymentService.amountMatches(params.get(&quot;out_trade_no&quot;), params.get(&quot;total_amount&quot;))) return &quot;failure&quot;;
+        paymentService.markPaid(params.get(&quot;out_trade_no&quot;), params.get(&quot;trade_no&quot;), params.get(&quot;gmt_payment&quot;));
+        return &quot;success&quot;;
+    }
+}
+</code></pre>
+<p><code>markPaid</code> 必须带条件 <code>WHERE status IN ('WAIT_PAY','PAYING')</code>，重复通知更新行数为 0 时仍返回 success。金额比较使用分转 BigDecimal 后精确比较，禁止字符串包含判断。主动查询任务按支付创建时间和状态扫描，调用 <code>alipay.trade.query</code>；对账文件下载后按商户订单号核对金额和状态，差异进入人工工单，不能自动覆盖已退款记录。</p>
+<pre><code class="language-java">package com.wuyafang.pay.service;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class PaymentService {
+    private final PaymentMapper mapper;
+    private final PaymentEventMapper eventMapper;
+
+    @Transactional
+    public void markPaid(String paymentNo, String tradeNo, String paidAt) {
+        int changed = mapper.markPaid(paymentNo, tradeNo, paidAt);
+        if (changed == 1) eventMapper.insertIfAbsent(paymentNo, &quot;PAY_SUCCESS&quot;);
+    }
+    public boolean amountMatches(String paymentNo, String amount) {
+        return mapper.amountEquals(paymentNo, amount);
+    }
+}
+</code></pre>
+<h4 id="33-支付状态机与最终一致性">3.3 支付状态机与最终一致性</h4>
+<p>支付状态包含待支付、支付中、支付成功、支付失败、已关闭、已退款。支付成功事件不能直接在 HTTP 线程同步调用订单和派单服务，否则任一服务短暂不可用都会导致回调失败。支付单和本地消息表放在同一个数据库事务，后台投递器发送 RocketMQ，消费者以业务幂等键处理订单状态。</p>
+<pre><code class="language-mermaid">stateDiagram-v2
+  [*] --&gt; 待支付
+  待支付 --&gt; 支付中: 创建渠道订单
+  支付中 --&gt; 支付成功: 验签通知/主动查询
+  支付中 --&gt; 支付失败: 渠道失败
+  待支付 --&gt; 已关闭: 超时关闭
+  支付成功 --&gt; 已退款: 退款完成
+  支付成功 --&gt; 支付成功: 重复通知幂等
+</code></pre>
+<pre><code class="language-mermaid">sequenceDiagram
+  participant U as 用户
+  participant P as 支付服务
+  participant A as 支付宝
+  participant DB as MySQL
+  participant MQ as RocketMQ
+  participant O as 订单服务
+  U-&gt;&gt;P: 创建支付单
+  P-&gt;&gt;A: pageExecute
+  A--&gt;&gt;U: 收银台
+  A-&gt;&gt;P: notify(签名参数)
+  P-&gt;&gt;P: 验签/金额/商户核对
+  P-&gt;&gt;DB: 支付单+本地消息同事务
+  P--&gt;&gt;A: success
+  P-&gt;&gt;MQ: 投递支付成功事件
+  MQ-&gt;&gt;O: 幂等更新订单
+  O--&gt;&gt;MQ: ack
+</code></pre>
+<p>事务消息可以用于需要可靠发布的场景，但不要把支付宝远程支付调用放进 Seata AT；外部支付不受全局事务控制，XID 也不会天然跨异步消息传播。更简单可靠的做法是本地消息表加重试、死信和对账。</p>
+<h4 id="34-seata-at-在下单扣库存与派单中的应用">3.4 Seata AT 在下单扣库存与派单中的应用</h4>
+<p>Seata AT 一阶段由各分支事务执行 SQL，同时记录 <code>undo_log</code>，提交前注册分支；二阶段全局提交删除日志，回滚阶段按反向 SQL 恢复数据并检查脏写。订单库、库存库、运单库需要配置同一事务组和 TC 地址，所有表准备主键，数据库隔离级别和时钟保持稳定。</p>
+<pre><code class="language-sql">CREATE TABLE undo_log (
+  branch_id BIGINT NOT NULL,
+  xid VARCHAR(128) NOT NULL,
+  context VARCHAR(128) NOT NULL,
+  rollback_info LONGBLOB NOT NULL,
+  log_status INT NOT NULL,
+  log_created DATETIME NOT NULL,
+  log_modified DATETIME NOT NULL,
+  PRIMARY KEY (branch_id, xid)
+);
+</code></pre>
+<pre><code class="language-java">package com.wuyafang.order.service;
+
+import io.seata.spring.annotation.GlobalTransactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class OrderCreateService {
+    private final OrderRepository orders;
+    private final InventoryClient inventory;
+    private final WaybillClient waybills;
+
+    @GlobalTransactional(name = &quot;create-order&quot;, rollbackFor = Exception.class)
+    public void create(CreateCommand command) {
+        long orderId = orders.insert(command);
+        inventory.deduct(command.skuId(), command.quantity());
+        waybills.createForOrder(orderId, command.pickupAddress(), command.deliveryAddress());
+    }
+}
+</code></pre>
+<p>AT 适合短事务和可补偿的数据库写入，长时间等待骑手接单、第三方支付、文件上传等不应放进全局事务。网络超时可能造成分支已提交但调用方未知，业务必须提供幂等键、状态查询和人工补偿。升级 Seata 时同步客户端、服务端和数据库脚本版本，监控锁等待、回滚次数和 undo_log 堆积。</p>
+<h3 id="4-踩坑与最佳实践">4. 踩坑与最佳实践</h3>3
+<h4 id="41-可观测性与故障恢复设计">4.1 可观测性与故障恢复设计</h4>
+<p>派单和支付都需要统一的业务追踪号。网关生成 traceId，订单号、运单号、支付单号在各服务日志中结构化输出，RocketMQ 消息体携带 eventId 和 traceId。这样可以从一次用户请求追到位置筛选、接单更新、支付通知和订单完成。日志中不要记录身份证号、银行卡号、支付宝私钥或完整回调参数；金额、订单号等敏感字段按审计要求脱敏。</p>
+<p>位置上报接口应限制单个骑手的频率，例如每 3 秒一次，超过频率直接丢弃或只保留最新坐标。服务端校验经纬度范围、时间戳漂移和骑手在线状态。Redis 写入失败时不要把旧坐标标成新时间，调度服务应继续使用数据库中的最后心跳并降低候选优先级。对于长时间没有心跳的骑手，先标记疑似离线，再由定时任务确认，避免网络抖动造成大量派单失败。</p>
+<p>候选计算可以分两阶段缓存：第一阶段只返回骑手 ID 和距离，第二阶段批量读取骑手负载、服务分和区域限制。不要为每个候选逐个调用远程服务，否则半径扩大时延迟会线性增长。评分结果带计算时间，超过 10 秒的结果不能直接用于接单。对于高峰期，调度线程池要设置有界队列，队列满时进入人工池并告警，而不是无限创建线程。</p>
+<p>支付链路应把每一次状态变化写入支付流水表，字段包括旧状态、新状态、事件来源、请求号和发生时间。状态机只允许白名单迁移，例如已退款不能回到支付成功。支付关闭任务和主动查询任务要使用分布式锁，按支付单分片执行，避免多个实例重复查询同一渠道订单。对账差异必须保留原始文件摘要和比对结果，修复动作由有权限的运营人员审批。</p>
+<p>对于 RocketMQ 消费者，业务幂等键应使用 <code>paymentNo:eventType</code> 或 <code>waybillId:eventType</code>，而不是消息 ID，因为重投时消息 ID 可能变化。消费者先写消费记录，再更新业务表，或者利用业务表唯一索引保证同一事件只生效一次。处理成功后才返回消费成功；发生数据库死锁或短暂网络错误时抛出异常触发重试，参数校验失败则进入死信并告警。死信处理工具必须支持人工重放和原因备注。</p>
+<p>数据库索引也要围绕状态机设计。运单查询通常按状态、区域和更新时间过滤，可建立 <code>(status, updated_at)</code> 联合索引；接单更新通过主键定位后再判断状态，避免对状态列做范围扫描。支付单按 <code>payment_no</code>、<code>out_trade_no</code> 建唯一索引，通知表按 <code>payment_no,event_type</code> 建唯一约束。定时任务采用游标分页，不使用大 offset，以免历史支付单增长后扫描变慢。所有时间统一使用 UTC 存储，展示层再转换为用户时区，跨区域派送时尤其重要。</p>
+<p>外部渠道调用必须设置连接和读取超时，并记录渠道响应码、耗时和重试次数。只对明确的网络异常重试，业务参数错误、余额不足或签名错误不应自动重试。支付创建接口使用客户端幂等号，服务端将其映射到支付单；同一幂等号再次请求时返回原支付单，而不是重新创建渠道订单。退款同样需要独立幂等号，并限制退款金额不超过可退余额。</p>
+<p>压测场景至少包括一万个骑手同时上报位置、同一运单一百个并发接单、支付通知重复发送十次、支付通知先于订单回调到达、RocketMQ 消费者重启和 Redis 故障切换。验收指标应记录 P99 延迟、条件更新成功率、通知重试次数、死信数量和对账差异。压测数据使用虚拟订单和虚拟商户号，禁止把生产用户数据复制到测试环境。</p>
+<p>第一，Redis GEO 只有经纬度和 member，没有 member 级过期时间；必须结合时间戳过滤，并设置离线清理任务。第二，GEO 的参数顺序是 longitude、latitude，移动端常把 latitude 放前面，接入层要统一 DTO 并增加中国城市坐标测试。第三，距离优先不等于最优派单，过载骑手会造成二次超时，评分中必须加入当前单量和准时率。</p>
+<p>第四，Redis SETNX 锁丢失、续期或网络分区都可能发生，最终一致性依赖数据库条件更新和状态日志。第五，RocketMQ 延迟消息使用固定 delayLevel，不能假设任意延迟精度；消费失败需要重试和死信监控。第六，支付通知可能乱序、重复或延迟，验签成功也不代表金额正确，必须核对商户、订单、金额和状态。</p>
+<p>第七，支付宝回调响应 <code>success</code> 前要确保本地事务提交；否则渠道停止重试会形成漏单。第八，主动查询和对账是通知链路的补偿，不是可选报表。第九，Seata AT 不覆盖支付宝远程调用，也不会自动跨 RocketMQ 异步边界传播 XID，支付场景仍采用本地消息表和对账。</p>
+<p>上线前准备指标：派单候选为空率、接单条件更新失败率、位置过期比例、支付通知验签失败率、支付成功到订单完成的延迟、消息重试次数和对账差异金额。压测要覆盖同一运单多人抢单、重复回调、支付回调乱序、Redis 主从切换和 RocketMQ 重平衡。演练结束后检查状态机是否出现非法跳转，并通过补偿任务恢复可重试状态。</p>
+<h3 id="5-小结">5. 小结</h3>3
+<p>派单模块用 Redis GEO 做近邻候选，用评分模型选人，用短锁降低竞争，再用数据库条件更新保证唯一接单；超时通过 RocketMQ 延迟消息驱动重新调度。支付模块把支付单、验签、幂等、异步消息、主动查询和对账放在同一条可追踪链路中。Seata AT 能解决数据库短事务的一致性，但不能替代支付渠道的最终一致性设计。掌握这些边界后，智链云途可以在高并发和故障下保持订单、运单和资金状态可恢复。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库有一个真在用的「派单调度模块」，只是不用 Spring 写（<code>scripts/task_bus.py</code> + <code>scripts/sql/shared_task_bus_ddl.sql</code>，本次读源码）</strong>：<br />
+  | 课件概念 | 本库实现 | 证据 |<br />
+  |---|---|---|<br />
+  | 派单 | <code>task_create()</code>（L102）| <code>owner</code>/<code>closer</code> 双必填 + <code>budget_tier IN ('千','万','十万')</code> |<br />
+  | 抢单（防重复派） | <code>task_claim()</code>（L133）+ <code>claim_token</code> | 状态冲突退出码 <code>2</code> |<br />
+  | 心跳/超时回收 | <code>task_heartbeat()</code>（L174）/ <code>sweep()</code>（L434）| <code>ttl_seconds BETWEEN 60 AND 86400</code> |<br />
+  | 结单 | <code>task_complete()</code>（L214）| 必填 <code>artifact_hash</code>（64 hex CHECK）|</li>
+<li><strong>调度算法的真实约束不是「最短路径」，而是「已派给谁、多久没心跳、谁能收口」</strong>——所以本库的任务表有 <code>attempt</code>（被重领次数）与 <code>fail_reason</code>，这两个字段在课件派单模型里通常没有。</li>
+<li><strong>和课件讲法的差异</strong>：课件的派单调度是「骑手抢单/超时改派 + 支付回调对账」；本库没有支付模块，<strong>唯一相关的「对账」是 <code>receipt.py</code> 的完成凭据</strong>（执行人声明的产物哈希与验证结果比对）。</li>
+<li><strong>本库暂无</strong>：无支付链路、无计价规则、无派单的地理/时效优化；<code>sweep()</code> 的 TTL 回收在单机 SQLite 上够用，换成多实例需换成真正的分布式锁。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库有一个<strong>真在用的派单调度实现</strong>，只是载体不是 Spring：SQLite 任务表 + <code>scripts/task_bus.py</code>，<code>task_claim()</code>（L133）走抢单锁 <code>claim_token</code>，<code>task_heartbeat()</code>（L174）写心跳、<code>sweep()</code>（L434）按 TTL 回收僵尸单；支付模块无对应代码。</li>
+<li><strong>读源码</strong>：调度/支付模块；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] <strong>课程内容落点</strong>：<a href="../../../raw/sources/%E8%AF%BE%E7%A8%8B%E5%A4%A7%E7%BA%B2-%E9%BB%91%E9%A9%AC-AI%E5%BA%94%E7%94%A8%E6%99%BA%E8%83%BD%E4%BD%93v6-20261026.md">黑马 AI 应用智能体课程项目大纲</a>；<code>raw/courseware/</code> 未检索到对应 Java 微服务原始课件，故不虚构课件路径。</li>
+<li>[业1] <strong>业内官方</strong>：以下 Redis GEO、RocketMQ、支付宝与 Seata 官方文档，落在近邻检索、延迟消息、验签通知和 AT 事务边界。</li>
+</ul>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">参考资料</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<ul>
+<li>Spring Data Redis 地理空间 API：https://docs.spring.io/spring-data/redis/docs/2.7.x/reference/html/</li>
+<li>Redis GEOSEARCH 命令：https://redis.io/commands/geosearch/</li>
+<li>RocketMQ 4.x 延迟消息：https://rocketmq.apache.org/docs/4.x/producer/04message1/</li>
+<li>支付宝开放平台交易创建与异步通知：https://opendocs.alipay.com/open/028r8t</li>
+<li>Seata AT 模式：https://seata.apache.org/docs/dev/mode/at-mode/</li>
+</ul></div></details></div></body></html>

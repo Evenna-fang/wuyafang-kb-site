@@ -1,0 +1,320 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>00-融合清单与验收</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 00-融合清单与验收</span></div><div class="wrap"><h1 id="l0-三源融合主题收敛替换与验收记录">L0 三源融合：主题收敛、替换与验收记录</h1>
+<p>本文件为维护清单，不是主题正文。节点归属：总地图「四之一、知识层」的 <code>wiki/L0-基础层</code>；验收记录挂 N5，删除与快照清理挂 N6。<br />
+本次只核对既有正文、补维护清单并清理已被取代的散篇，没有重写或修改任何既有正文。</p>
+<p>起始盘点为 27 篇 Markdown：22 篇旧文、5 篇新正文。16 篇旧文由 5 篇新正文明确合并并删除；其余 6 篇因 <code>06-数据分析与可视化.md</code>、<code>07-数据工程与SQL.md</code> 不存在，未被新正文取代，继续保留。最终为 5 篇新正文、6 篇保留旧文和本篇维护清单，共 12 篇 Markdown。<br />
+知识库文稿改动只在 <code>wiki/L0-基础层</code>；未修改 raw、ontology、其他层、RAG 索引或 HTML 产物。另按全局报错纪律在 WSL 台账登记了一条已修复的验收脚本括号笔误，不涉及知识正文。</p>
+<h2 id="主题收敛与字数">主题收敛与字数</h2>2
+<p>汉字数：去掉 frontmatter 和 fenced code 后，统计 Unicode U+4E00—U+9FFF；非空白字符：全文含元数据、代码、标点。<br />
+「合并旧篇数」只计本次实际删除的旧文，不把因缺少后继正文而保留的 6 篇计入。</p>
+<table>
+<thead>
+<tr>
+<th>主题</th>
+<th>唯一正文</th>
+<th style="text-align: right;">合并旧篇数</th>
+<th style="text-align: right;">正文汉字数</th>
+<th style="text-align: right;">全文非空白字符</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>学习路径与AI通识</td>
+<td><a href="01-%E5%AD%A6%E4%B9%A0%E8%B7%AF%E5%BE%84%E4%B8%8EAI%E9%80%9A%E8%AF%86.html">01-学习路径与AI通识.md</a></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">3326</td>
+<td style="text-align: right;">6396</td>
+</tr>
+<tr>
+<td>环境与工具链</td>
+<td><a href="02-%E7%8E%AF%E5%A2%83%E4%B8%8E%E5%B7%A5%E5%85%B7%E9%93%BE.html">02-环境与工具链.md</a></td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2621</td>
+<td style="text-align: right;">6692</td>
+</tr>
+<tr>
+<td>Python核心编程</td>
+<td><a href="03-Python%E6%A0%B8%E5%BF%83%E7%BC%96%E7%A8%8B.html">03-Python核心编程.md</a></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">1954</td>
+<td style="text-align: right;">7220</td>
+</tr>
+<tr>
+<td>Python异步编程</td>
+<td><a href="04-Python%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B.html">04-Python异步编程.md</a></td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2027</td>
+<td style="text-align: right;">5494</td>
+</tr>
+<tr>
+<td>数学与统计直觉</td>
+<td><a href="05-%E6%95%B0%E5%AD%A6%E4%B8%8E%E7%BB%9F%E8%AE%A1%E7%9B%B4%E8%A7%89.html">05-数学与统计直觉.md</a></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">2155</td>
+<td style="text-align: right;">5364</td>
+</tr>
+</tbody>
+</table>
+<h3 id="尚未收敛的主题">尚未收敛的主题</h3>3
+<table>
+<thead>
+<tr>
+<th>主题</th>
+<th>当前保留正文</th>
+<th>未删除原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据分析</td>
+<td><a href="L0-%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90.html">L0-数据分析.md</a></td>
+<td>新正文 01 指向的 06 篇不存在，不能认定已被取代</td>
+</tr>
+<tr>
+<td>数据可视化</td>
+<td><a href="L0-%E6%95%B0%E6%8D%AE%E5%8F%AF%E8%A7%86%E5%8C%96-1.html">L0-数据可视化-1.md</a>、<a href="L0-%E6%95%B0%E6%8D%AE%E5%8F%AF%E8%A7%86%E5%8C%96-2.html">L0-数据可视化-2.md</a>、<a href="L0-%E6%95%B0%E6%8D%AE%E5%8F%AF%E8%A7%86%E5%8C%96-3.html">L0-数据可视化-3.md</a>、<a href="L0-%E6%95%B0%E6%8D%AE%E5%8F%AF%E8%A7%86%E5%8C%96-4.html">L0-数据可视化-4.md</a></td>
+<td>同上；05 只合并数学与统计主题，不承接四篇可视化正文</td>
+</tr>
+<tr>
+<td>数据工程与SQL</td>
+<td><a href="L0-%E6%95%B0%E6%8D%AE%E5%B7%A5%E7%A8%8B.html">L0-数据工程.md</a></td>
+<td>新正文 01 指向的 07 篇不存在，不能认定已被取代</td>
+</tr>
+</tbody>
+</table>
+<h2 id="22-篇逐项去向与删除清单">22 篇逐项去向与删除清单</h2>2
+<p>原始 SHA-256 均在删除前从 <code>.fusion-work/original/</code> 对应副本计算；22/22 篇当前旧文与快照逐字节一致后才执行后续处理。保留的 6 篇也记录了原始哈希，但不因「有快照」而推定其已被取代。</p>
+<table>
+<thead>
+<tr>
+<th>原文件</th>
+<th>处理</th>
+<th>唯一去向</th>
+<th>原始 SHA-256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L0-AI通识.md</td>
+<td>删除旧散篇</td>
+<td><a href="01-%E5%AD%A6%E4%B9%A0%E8%B7%AF%E5%BE%84%E4%B8%8EAI%E9%80%9A%E8%AF%86.html">01-学习路径与AI通识.md</a></td>
+<td><code>35ac31f343da13a25ae77dfc290bfcf9fcdc78e7202e37b9082cbc9e5ae35311</code></td>
+</tr>
+<tr>
+<td>L0-AI通识导航.md</td>
+<td>删除旧散篇</td>
+<td><a href="01-%E5%AD%A6%E4%B9%A0%E8%B7%AF%E5%BE%84%E4%B8%8EAI%E9%80%9A%E8%AF%86.html">01-学习路径与AI通识.md</a></td>
+<td><code>5e215ac176a830ae1da016302b046b4db376330db211f8edaaf258dac478e282</code></td>
+</tr>
+<tr>
+<td>L0-学习路径导航.md</td>
+<td>删除旧散篇</td>
+<td><a href="01-%E5%AD%A6%E4%B9%A0%E8%B7%AF%E5%BE%84%E4%B8%8EAI%E9%80%9A%E8%AF%86.html">01-学习路径与AI通识.md</a></td>
+<td><code>95746c1305ce1f4707253d40b8727b37be5c8968ddea4480190e49f8e507b66d</code></td>
+</tr>
+<tr>
+<td>课程结构对标-博学谷vs黑马-20261026.md</td>
+<td>删除旧散篇</td>
+<td><a href="01-%E5%AD%A6%E4%B9%A0%E8%B7%AF%E5%BE%84%E4%B8%8EAI%E9%80%9A%E8%AF%86.html">01-学习路径与AI通识.md</a></td>
+<td><code>282675f2d0c479305ab783a5f3d645441fc71a0db1c317265e50063cfe62ed21</code></td>
+</tr>
+<tr>
+<td>L0-国内镜像与可达性速查-202609.md</td>
+<td>删除旧散篇</td>
+<td><a href="02-%E7%8E%AF%E5%A2%83%E4%B8%8E%E5%B7%A5%E5%85%B7%E9%93%BE.html">02-环境与工具链.md</a></td>
+<td><code>3859f9889d54feaaa02441e0c0c710028dd62e9a15f680280ed3971807d0ba5e</code></td>
+</tr>
+<tr>
+<td>L0-环境与工具链.md</td>
+<td>删除旧散篇</td>
+<td><a href="02-%E7%8E%AF%E5%A2%83%E4%B8%8E%E5%B7%A5%E5%85%B7%E9%93%BE.html">02-环境与工具链.md</a></td>
+<td><code>506ea3074e7df738ac7d1ee47f2f5013c3973bbf80311247b6aaa99eda2eb682</code></td>
+</tr>
+<tr>
+<td>L0-Python基础语法.md</td>
+<td>删除旧散篇</td>
+<td><a href="03-Python%E6%A0%B8%E5%BF%83%E7%BC%96%E7%A8%8B.html">03-Python核心编程.md</a></td>
+<td><code>b7c0679feb94c4ed0b07e8ef3481b9c8e3ba17ed0d9aa330d6deff9b2d466c12</code></td>
+</tr>
+<tr>
+<td>L0-Python数据结构.md</td>
+<td>删除旧散篇</td>
+<td><a href="03-Python%E6%A0%B8%E5%BF%83%E7%BC%96%E7%A8%8B.html">03-Python核心编程.md</a></td>
+<td><code>144d76763378a204f95f2ff6a9265c4694f95a5d5adf4f28f662c7e9519c791c</code></td>
+</tr>
+<tr>
+<td>L0-Python函数与模块.md</td>
+<td>删除旧散篇</td>
+<td><a href="03-Python%E6%A0%B8%E5%BF%83%E7%BC%96%E7%A8%8B.html">03-Python核心编程.md</a></td>
+<td><code>cba568f1da9344f3dbbe60f56decaaf95e3afae65a0bedb2c30a0d846f4789fd</code></td>
+</tr>
+<tr>
+<td>L0-Python-OOP与爬虫.md</td>
+<td>删除旧散篇</td>
+<td><a href="03-Python%E6%A0%B8%E5%BF%83%E7%BC%96%E7%A8%8B.html">03-Python核心编程.md</a></td>
+<td><code>ae79a5f9c66499a801e3979fafe90396b470cdd7112bfd4e2819401c2d563e13</code></td>
+</tr>
+<tr>
+<td>L0-Python异步-1-asyncio与协程基础.md</td>
+<td>删除旧散篇</td>
+<td><a href="04-Python%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B.html">04-Python异步编程.md</a></td>
+<td><code>c955cac4141062369d0452722c78d493fc34f1946046bf0a8ec3a1a02bfa702d</code></td>
+</tr>
+<tr>
+<td>L0-Python异步-2-事件循环与实战进阶.md</td>
+<td>删除旧散篇</td>
+<td><a href="04-Python%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B.html">04-Python异步编程.md</a></td>
+<td><code>d4bd4a6c20f4885b48043886feed1945359939bdab6c5ca3b584171f2293a55f</code></td>
+</tr>
+<tr>
+<td>L0-数学最小集-概率统计白话.md</td>
+<td>删除旧散篇</td>
+<td><a href="05-%E6%95%B0%E5%AD%A6%E4%B8%8E%E7%BB%9F%E8%AE%A1%E7%9B%B4%E8%A7%89.html">05-数学与统计直觉.md</a></td>
+<td><code>68f23cbfb77dd2f5c7e2cf63788929b58d849c71b089852220bcf9e1f224dd17</code></td>
+</tr>
+<tr>
+<td>L0-数学最小集-线性代数白话.md</td>
+<td>删除旧散篇</td>
+<td><a href="05-%E6%95%B0%E5%AD%A6%E4%B8%8E%E7%BB%9F%E8%AE%A1%E7%9B%B4%E8%A7%89.html">05-数学与统计直觉.md</a></td>
+<td><code>977484dc9f39cf9c85b12831e872af70ed7e183cc18885f1dd58722bbf09bc08</code></td>
+</tr>
+<tr>
+<td>L0-统计直觉.md</td>
+<td>删除旧散篇</td>
+<td><a href="05-%E6%95%B0%E5%AD%A6%E4%B8%8E%E7%BB%9F%E8%AE%A1%E7%9B%B4%E8%A7%89.html">05-数学与统计直觉.md</a></td>
+<td><code>af2aea61e12b8d4b523f3b844525e2b1a94636908bc9902aec8489bdfb12e777</code></td>
+</tr>
+<tr>
+<td>数学基础-概率统计线性代数.md</td>
+<td>删除旧散篇</td>
+<td><a href="05-%E6%95%B0%E5%AD%A6%E4%B8%8E%E7%BB%9F%E8%AE%A1%E7%9B%B4%E8%A7%89.html">05-数学与统计直觉.md</a></td>
+<td><code>9ed547cc2dd6cd0a85f76a78fac53c527dadf3605daa113a7e8b96266fc3375e</code></td>
+</tr>
+<tr>
+<td>L0-数据分析.md</td>
+<td>保留：未由新正文取代</td>
+<td><a href="L0-%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90.html">L0-数据分析.md</a></td>
+<td><code>70e89264cb06cc33a2dd777a0a1bd57053ebc7ae9c8a0c5d044356f88adda36c</code></td>
+</tr>
+<tr>
+<td>L0-数据可视化-1.md</td>
+<td>保留：未由新正文取代</td>
+<td><a href="L0-%E6%95%B0%E6%8D%AE%E5%8F%AF%E8%A7%86%E5%8C%96-1.html">L0-数据可视化-1.md</a></td>
+<td><code>a321ba8c606a3c4127cc90bea7da3bb8f9f1c6b7f821fdd982850d8cc944fa99</code></td>
+</tr>
+<tr>
+<td>L0-数据可视化-2.md</td>
+<td>保留：未由新正文取代</td>
+<td><a href="L0-%E6%95%B0%E6%8D%AE%E5%8F%AF%E8%A7%86%E5%8C%96-2.html">L0-数据可视化-2.md</a></td>
+<td><code>7a4b986e286951a5e6260862fbf53915a3620d76db8ad7e7028b92859d22ecd8</code></td>
+</tr>
+<tr>
+<td>L0-数据可视化-3.md</td>
+<td>保留：未由新正文取代</td>
+<td><a href="L0-%E6%95%B0%E6%8D%AE%E5%8F%AF%E8%A7%86%E5%8C%96-3.html">L0-数据可视化-3.md</a></td>
+<td><code>f07f193cf8cc3b717b59772c5c0ffba3266d1e40b08e3df805cdd1101bb59465</code></td>
+</tr>
+<tr>
+<td>L0-数据可视化-4.md</td>
+<td>保留：未由新正文取代</td>
+<td><a href="L0-%E6%95%B0%E6%8D%AE%E5%8F%AF%E8%A7%86%E5%8C%96-4.html">L0-数据可视化-4.md</a></td>
+<td><code>f4db815d5eb14885c8a507655ae9a0e2c4ddcc22f67a0e28b5a7b7006549c7c7</code></td>
+</tr>
+<tr>
+<td>L0-数据工程.md</td>
+<td>保留：未由新正文取代</td>
+<td><a href="L0-%E6%95%B0%E6%8D%AE%E5%B7%A5%E7%A8%8B.html">L0-数据工程.md</a></td>
+<td><code>295a7214b8cc914fb203bb36e865219bfe1c91352b7b91a7f7585b27bdfd3e7d</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="三源边界说明">三源边界说明</h2>2
+<ul>
+<li><strong>课件</strong>：提供学习顺序、概念骨架和练习背景；旧课件中的版本状态、可达性和性能结论不能自动当作当前事实。</li>
+<li><strong>书籍</strong>：新正文引用的是目录、划线摘录或相应 JSON，不声称阅读或核验了书籍全文，也不把摘录扩展成原书未表达的结论。</li>
+<li><strong>业内</strong>：包括公开官方文档和 arXiv 论文/本地摘要。论文结果只在其原文实验边界内成立；跨领域启发不能写成 Python、本库或业务场景的性能证据。</li>
+<li>本次收尾只核对三源落点段、来源类型与 arXiv ID 是否存在，没有重新联网核验所有链接，也没有复现论文、模型调用或正文中的全部代码实验。</li>
+</ul>
+<h2 id="验收记录">验收记录</h2>2
+<h3 id="三段与来源逐篇核对">三段与来源逐篇核对</h3>3
+<p>核对口径：必须有独立的 <code>WHY</code>、<code>WHAT</code> 或 <code>WHAT / WHYT</code>、<code>HOW</code> 标题；文末必须有「来源与三源融合落点」段，段内区分课件、书籍、业内来源并含 arXiv ID。</p>
+<ul>
+<li>5 篇新正文：<strong>5/5 三段齐全，5/5 指定来源段位于文末，5/5 含课件/书籍/业内落点，5/5 含 arXiv ID</strong>。</li>
+<li>22 篇旧文：没有一篇同时满足上述全部条件。<code>L0-国内镜像与可达性速查-202609.md</code> 有独立 WHY/WHAT/HOW，但缺指定三源落点段和 arXiv ID；其余 21 篇均缺独立三段、指定三源落点段和 arXiv ID。</li>
+<li>论文引用：5 篇新正文共列出 7 个 arXiv ID——<code>2610.40492</code>、<code>2610.20503</code>、<code>2610.20578</code>、<code>2610.22039</code>、<code>2610.37609</code>、<code>2610.22187</code>、<code>2610.23845</code>；22 篇旧文均未检出 arXiv ID。</li>
+<li>因 6 篇旧文仍需保留，最终 11 篇主题正文中是 <strong>5/11 全部达标</strong>，不是全层 100% 达标。</li>
+</ul>
+<h3 id="删除与快照确认">删除与快照确认</h3>3
+<ul>
+<li>16 篇已取代散篇已删除；6 篇未取代旧文保留，逐项见上表。</li>
+<li>删除前 <code>.fusion-work/original/</code> 有 22 篇副本；本次仅对 16 篇执行删除，且逐篇确认快照存在并与当前旧文一致。</li>
+<li>散篇处理后，整个 <code>.fusion-work</code> 已删除，包括 22 篇临时副本；原始 SHA-256 已留在本清单。</li>
+<li>本层不保留本次融合的 <code>.bak</code> 或第二份正文副本。</li>
+</ul>
+<h3 id="未达标篇目清单保留不粉饰">未达标篇目清单（保留，不粉饰）</h3>3
+<p>以下 6 篇均缺独立 WHY/WHAT(WHYT)/HOW 三段、文末「来源与三源融合落点」段和 arXiv ID。本次任务禁止补写正文，故只列明，不自行修复：</p>
+<ol>
+<li><code>L0-数据分析.md</code></li>
+<li><code>L0-数据可视化-1.md</code></li>
+<li><code>L0-数据可视化-2.md</code></li>
+<li><code>L0-数据可视化-3.md</code></li>
+<li><code>L0-数据可视化-4.md</code></li>
+<li><code>L0-数据工程.md</code></li>
+</ol>
+<h3 id="额外发现的正文与链接缺口">额外发现的正文与链接缺口</h3>3
+<p>以下是独立只读复审和最终 11 篇正文本地 Markdown 链接扫描发现的问题。本次只补记清单，不修改正文或层外目标：</p>
+<ul>
+<li><code>01-学习路径与AI通识.md</code> 第 80—81 行引用 <code>06-数据分析与可视化.md</code> 和 <code>07-数据工程与SQL.md</code>，两篇均不存在。这不影响其「三段与三源段存在」判定，但意味着学习路线尚未闭环。</li>
+<li>同一篇第 89—104 行称七篇路线检查命令「已实跑」，成功输出为「L0 七篇唯一正文均在」；在当前 06/07 缺失状态下，该脚本必然失败。旧的实跑声明不能作为当前七篇路线已验收的证据。</li>
+<li>保留的 <code>L0-数据工程.md</code> 有 3 处指向本次已删除散篇的断链：第 42、745 行指向 <code>L0-环境与工具链.md</code>，第 717 行指向 <code>L0-学习路径导航.md</code>。虽然融合去向分别是 02 和 01，本单未获修改既有正文的授权，故未改链。</li>
+<li>三源引用目标还存在 6 处缺失：<code>02-环境与工具链.md</code> 第 201 行与 <code>04-Python异步编程.md</code> 第 182 行均指向不存在的 <code>raw/weread/43208843/best_bookmarks.md</code>；<code>03-Python核心编程.md</code> 第 257 行、<code>04-Python异步编程.md</code> 第 184 行、<code>05-数学与统计直觉.md</code> 第 181—182 行所引对应 arXiv 本地摘要不存在。这是「文中有 arXiv ID」之外的链接可用性问题，本次不把二者混为一项通过。</li>
+<li><code>L0-数据工程.md</code> 第 310 行另指向不存在的跨层文件 <code>wiki/L4-RAG工程/L4-RAG工程-最佳答案.md</code>；按边界未触碰 L4。</li>
+<li>因本单明确禁止改动既有正文、禁止重写或补写正文，本次没有新建 06/07，也没有修改任何上述链接；相应 6 篇旧文因此保留。后续若要完成全层收敛，需先由正文任务补齐或明确 06/07 的唯一正文，再重新评估其去向。</li>
+</ul>
+<h2 id="收口">收口</h2>2
+<p>本次落盘的是<strong>有条件的融合收尾结果</strong>：5 篇新正文结构核对通过，16 篇已取代散篇与全部临时快照已清除；数据分析、可视化和数据工程仍未完成新正文融合。<br />
+未创建付费模型任务、未读取凭据、未上传本地内容。本地只读验收通过；<code>receipt declare</code> 被全局 open 门禁 <code>gate:steps-json-evidence-mtime-stale</code> 拦截，未进入 verify，故不声称已取得完成凭据。</p></div></body></html>

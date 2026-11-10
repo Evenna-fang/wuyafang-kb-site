@@ -1,0 +1,156 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI工程：大模型应用开发实战</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ AI工程：大模型应用开发实战</span></div><div class="wrap"><h1 id="书章节重点-ai工程大模型应用开发实战">书章节重点 · AI工程：大模型应用开发实战</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书系统阐述如何基于现成基础模型（LLM/LMM）构建实用AI应用，覆盖从模型理解、评估、提示工程、RAG与智能体、微调到推理优化的完整工程链路</li><li>核心主张是：技术工具迭代迅速，但底层工程方法论的生命力更持久，多数人的机遇在于将基础模型适配到具体场景</li><li>全书的工程视角并不把模型当作孤立的聊天接口，而是把应用看成由模型、数据、提示、工具、评估、基础设施和用户反馈共同组成的系统</li></ul></div>2
+<p>本书系统阐述如何基于现成基础模型（LLM/LMM）构建实用AI应用，覆盖从模型理解、评估、提示工程、RAG与智能体、微调到推理优化的完整工程链路。核心主张是：技术工具迭代迅速，但底层工程方法论的生命力更持久，多数人的机遇在于将基础模型适配到具体场景。全书的工程视角并不把模型当作孤立的聊天接口，而是把应用看成由模型、数据、提示、工具、评估、基础设施和用户反馈共同组成的系统。落地时应先定义任务和验收标准，再选择模型与架构，持续用真实反馈校正效果、成本和可靠性。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 基于基础模型构建AI应用入门</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：AI工程的兴起源于基础模型能力的通用化，开发者从“训练模型”转向“基于现成模型构建应用”，应用层的适配能力成为主要竞争点</li><li>核心观点2：AI领域竞争优势分三类——技术、数据和分发；基础模型时代各公司核心技术趋同，分发优势倾向大公司，因此差异化机会在数据与场景适配</li><li>核心观点3：规划AI应用需明确技术栈分层（模型层、应用层、基础设施层），并区分“模型能做什么”与“产品需要什么”</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：AI工程的兴起源于基础模型能力的通用化，开发者从“训练模型”转向“基于现成模型构建应用”，应用层的适配能力成为主要竞争点。工程重点因此从单纯追求参数规模转向理解用户任务、数据来源和交付流程。</li>
+<li><strong>核心观点2</strong>：AI领域竞争优势分三类——技术、数据和分发；基础模型时代各公司核心技术趋同，分发优势倾向大公司，因此差异化机会在数据与场景适配。小团队更适合在具体行业积累高质量数据和工作流经验。</li>
+<li><strong>核心观点3</strong>：规划AI应用需明确技术栈分层（模型层、应用层、基础设施层），并区分“模型能做什么”与“产品需要什么”。模型能力只是可行性起点，产品还要解决权限、延迟、成本、错误处理和用户体验。</li>
+<li><strong>核心观点4</strong>：应用规划应先把目标拆成输入、处理、输出和验收四部分，再决定使用单次生成、检索增强还是带工具的智能体。任务越明确，越容易选择适当的系统复杂度。</li>
+<li><strong>核心观点5</strong>：基础模型的价值在于降低通用能力的获得成本，但场景知识、业务规则和分发渠道仍需由应用方建设。工程团队应把不可替代的部分沉淀在数据和流程中，而不是只依赖某个模型品牌。<blockquote>
+<p>对绝大多数人而言，最大的机遇在于将这些模型适配到具体的应用场景中。<br />
+工具更新换代很快，底层知识的生命力更为持久。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第2章-理解基础模型">第2章 理解基础模型</h3>3
+<ul>
+<li><strong>核心观点1</strong>：语言模型分掩码语言模型与自回归语言模型，区别在于预测token时可利用的上下文信息范围，这决定了各自适用的任务类型。理解预测方向，有助于判断模型在补全、理解和生成任务中的行为差异。</li>
+<li><strong>核心观点2</strong>：自监督学习使模型直接从输入数据推断标签，突破人工标注瓶颈，是大规模预训练可行的关键。数据本身提供训练信号，但数据质量、覆盖范围和分布仍会影响模型最终能力。</li>
+<li><strong>核心观点3</strong>：采样是模型生成输出的过程，是AI领域最被低估的概念之一——它解释了幻觉与不一致性，合适的采样策略能以小代价显著提升性能。工程上不能把一次输出当作确定答案，应通过参数、重试和校验管理随机性。</li>
+<li><strong>核心观点4</strong>：温度参数通过重新分配概率影响输出：高温降低常见token概率、提升稀有token概率，从而增加创造性。任务若重视稳定和可复现，通常需要更保守的采样；任务若重视发散，则可接受更高多样性。</li>
+<li><strong>核心观点5</strong>：token是模型处理文本的基本单位，语言、编码方式和文本内容会改变token数量，进而影响上下文容量、费用和延迟。多语言应用在设计容量预算时不能只按字符数估算。<blockquote>
+<p>采样是模型从所有可能的选项中生成输出的过程，这可能是AI领域最被低估的概念之一。<br />
+补全结果是基于概率的预测，并不能保证正确。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 评估方法论</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：评估是AI工程中最困难的挑战之一，根源在于语言输出的开放性使“正确性”难以形式化定义</li><li>核心观点2：理解语言建模指标（如交叉熵损失）是评估的基础；交叉熵从约3.4 nat降至2.8 nat需10倍训练数据，说明指标提升的边际成本极高</li><li>核心观点3：精确评估适用于有标准答案的任务；开放式任务需借助“AI当裁判”与比较评估（成对排名）来近似判断质量</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：评估是AI工程中最困难的挑战之一，根源在于语言输出的开放性使“正确性”难以形式化定义。一个可用的评估体系必须先区分事实正确、任务完成、表达质量和安全边界。</li>
+<li><strong>核心观点2</strong>：理解语言建模指标（如交叉熵损失）是评估的基础；交叉熵从约3.4 nat降至2.8 nat需10倍训练数据，说明指标提升的边际成本极高。单一指标的改善不必然等于用户体验改善。</li>
+<li><strong>核心观点3</strong>：精确评估适用于有标准答案的任务；开放式任务需借助“AI当裁判”与比较评估（成对排名）来近似判断质量。评估样本应覆盖常见输入、边界输入和容易失败的输入。</li>
+<li><strong>核心观点4</strong>：token化效率存在显著语言差异（英语中位数7、印地语32、缅甸语72），直接影响多语言场景的成本与性能评估。评估结果要与实际使用场景绑定，不能只看公开基准。开发者应记录提示版本、模型版本、输入数据和输出结果，才能在迭代后解释性能变化。</li>
+<li><strong>核心观点5</strong>：评估既要测平均表现，也要关注长尾错误、拒答、安全和成本。对于关键任务，人工抽检与自动指标互补，不能把裁判模型的分数直接当作事实。</li>
+</ul>
+<h3 id="第4章-评估ai系统">第4章 评估AI系统</h3>3
+<ul>
+<li><strong>核心观点1</strong>：评估AI系统需先确立评估标准（如准确性、延迟、成本、安全性），标准应与业务目标对齐而非仅看模型基准分。不同指标之间常有取舍，必须先确定优先级。</li>
+<li><strong>核心观点2</strong>：模型选择应基于自身任务的评估结果，而非公开排行榜；应用开发者往往缺乏理解模型架构与训练细节的专业知识，需通过系统化评估弥补。候选模型应在相同数据、相同提示和相同输出约束下比较。</li>
+<li><strong>核心观点3</strong>：评估流水线应设计为可复用、可迭代的工程组件，支持持续回归测试。每次修改提示、检索器或模型后，都应重新运行关键样本，防止局部优化破坏已有能力。</li>
+<li><strong>核心观点4</strong>：系统评估应把模型外部组件纳入范围，包括检索质量、工具调用成功率、解析失败率、人工接管比例和用户完成任务的时间。端到端结果比单个模型分数更接近业务价值。</li>
+<li><strong>核心观点5</strong>：评估报告应同时呈现通过项、失败样例和不确定项，明确哪些结论来自自动测量、哪些需要人工复核，从而为后续工程决策提供依据。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 提示工程</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：提示工程是低成本适配模型的首要手段，最佳实践包括明确指令、提供示例、结构化输出格式等</li><li>核心观点2：防御性提示工程关注提示注入与越狱风险，需在提示设计层面预设边界与校验机制</li><li>核心观点3：提示的效果高度依赖模型特性，同一提示在不同模型间不可直接迁移，需结合评估迭代</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：提示工程是低成本适配模型的首要手段，最佳实践包括明确指令、提供示例、结构化输出格式等。提示应说明任务目标、输入边界、步骤要求和失败时的处理方式。</li>
+<li><strong>核心观点2</strong>：防御性提示工程关注提示注入与越狱风险，需在提示设计层面预设边界与校验机制。外部文本只能作为待处理数据，不能无条件覆盖系统规则或泄露敏感信息。</li>
+<li><strong>核心观点3</strong>：提示的效果高度依赖模型特性，同一提示在不同模型间不可直接迁移，需结合评估迭代。迁移时应重新检查格式遵循、长上下文处理和工具调用行为。</li>
+<li><strong>核心观点4</strong>：结构化输出能降低下游解析成本，但格式约束不能替代内容校验。系统应对必填字段、类型、范围和事实来源进行检查，异常时采取重试、降级或人工处理。</li>
+<li><strong>核心观点5</strong>：提示优化应保留版本和样例，不要依赖临时对话中的偶然成功。通过小步修改和回归集比较，才能知道改动究竟带来收益还是只是改变了表达。</li>
+</ul>
+<h3 id="第6章-rag与智能体">第6章 RAG与智能体</h3>3
+<ul>
+<li><strong>核心观点1</strong>：RAG通过外挂检索增强模型知识，解决知识时效性与私有数据接入问题，是应用层最主流的架构模式之一。其效果取决于文档切分、索引、召回、排序、上下文拼接和答案引用等多个环节。</li>
+<li><strong>核心观点2</strong>：检索增强并非把更多文本塞进上下文，而是要找到与问题最相关、最可信、可被模型利用的证据。检索结果不足时应允许系统说明不知道，而不是用模型先验补写事实。</li>
+<li><strong>核心观点3</strong>：智能体的关键设计原则是规划与执行解耦——先生成计划，验证通过后再执行，可显著降低错误累积。工具权限、参数校验和执行后的结果检查共同构成安全边界。</li>
+<li><strong>核心观点4</strong>：记忆机制是智能体持续工作的基础，需区分短期上下文与长期存储的设计取舍。短期上下文服务当前任务，长期记忆要考虑选择、更新、过期和隐私。</li>
+<li><strong>核心观点5</strong>：智能体不应为了“自主”而增加复杂度；如果固定流程足以解决问题，工作流通常更容易评估和维护。只有在任务路径确实需要动态规划时，才引入更强的自主性。<blockquote>
+<p>规划最好与执行解耦。你可以先要求智能体生成一个计划，只有在这个计划通过验证后才执行。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 微调</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：微调并非默认选项，应仅在提示工程与RAG无法满足需求时考虑，需权衡成本、数据需求与维护负担</li><li>核心观点2：内存瓶颈是微调的核心工程约束，参数、梯度、优化器状态与激活值共同决定显存占用</li><li>核心观点3：微调技术（如参数高效微调）通过只更新部分参数缓解内存压力，是在有限资源下适配模型的主要路径</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：微调并非默认选项，应仅在提示工程与RAG无法满足需求时考虑，需权衡成本、数据需求与维护负担。若问题来自知识更新，优先考虑检索；若问题来自格式或稳定风格，微调才可能更合适。</li>
+<li><strong>核心观点2</strong>：内存瓶颈是微调的核心工程约束，参数、梯度、优化器状态与激活值共同决定显存占用。模型规模、批次、序列长度和精度设置会共同影响训练资源。</li>
+<li><strong>核心观点3</strong>：微调技术（如参数高效微调）通过只更新部分参数缓解内存压力，是在有限资源下适配模型的主要路径。它降低了训练成本，但仍需要高质量样本和严格验证。</li>
+<li><strong>核心观点4</strong>：微调数据应围绕目标任务构造，覆盖正确答案、边界输入和拒答情形。数据量增加不等于质量提升，重复、矛盾或带有错误模式的样本会污染适配结果。</li>
+<li><strong>核心观点5</strong>：微调完成后要与基线模型对照评估，观察目标能力是否提升以及通用能力是否退化，并把模型版本、数据版本和训练配置纳入可追溯记录。</li>
+</ul>
+<h3 id="第8章-数据集工程">第8章 数据集工程</h3>3
+<ul>
+<li><strong>核心观点1</strong>：数据策展决定模型质量上限，需关注数据来源、质量过滤与分布平衡。数据集不仅要有“正确答案”，还要说明输入条件、适用范围和可能的歧义。</li>
+<li><strong>核心观点2</strong>：数据增强与合成可扩充训练数据，但反复用AI生成数据训练新模型会导致模式遗忘与性能退化。合成数据应经过抽样检查、去重和与真实数据的对照。</li>
+<li><strong>核心观点3</strong>：数据处理流程需工程化，保证可复现与可审计。原始数据、清洗规则、划分结果和最终样本应保留版本关系，便于定位评估变化的原因。</li>
+<li><strong>核心观点4</strong>：训练集、验证集和测试集要避免泄漏，尤其要注意近重复文本、同一用户记录和来自同一来源的高度相似样本。否则测试分数会高估真实泛化能力。</li>
+<li><strong>核心观点5</strong>：数据集工程还包括权限、隐私和版权边界。进入训练或评估流程前，应确认数据用途和可处理范围，必要时进行脱敏与访问控制。<blockquote>
+<p>反复使用AI生成的数据来训练新的AI模型，会导致新模型逐渐遗忘原始的数据模式，从而随着时间推移性能逐渐下降。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第9章 推理优化</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：推理优化需从延迟、吞吐、成本三个维度建立度量基线，再针对性优化</li><li>核心观点2：增加上下文长度会影响内存占用，但不改变模型参数总量——理解这一区分是容量规划的前提</li><li>核心观点3：推理优化手段（如批处理、量化、缓存）各有取舍，需结合业务SLA选择组合策略</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：推理优化需从延迟、吞吐、成本三个维度建立度量基线，再针对性优化。没有基线就无法判断量化、缓存或批处理是否真的改善了服务。</li>
+<li><strong>核心观点2</strong>：增加上下文长度会影响内存占用，但不改变模型参数总量——理解这一区分是容量规划的前提。上下文过长还可能增加延迟，并稀释真正重要的信息。</li>
+<li><strong>核心观点3</strong>：推理优化手段（如批处理、量化、缓存）各有取舍，需结合业务SLA选择组合策略。低延迟交互与高吞吐离线任务的最优方案并不相同。</li>
+<li><strong>核心观点4</strong>：缓存适合重复或稳定的计算，但要考虑失效、版本变更和个性化输入；量化能降低资源需求，却需要重新验证准确性和格式遵循。</li>
+<li><strong>核心观点5</strong>：优化不能只看服务器指标，还要观察用户端首字延迟、完整响应时间、超时率和失败重试。最终目标是在可接受质量下提供稳定服务。</li>
+</ul>
+<h3 id="第10章-ai工程架构与用户反馈">第10章 AI工程架构与用户反馈</h3>3
+<ul>
+<li><strong>核心观点1</strong>：AI工程架构需支持模型迭代、评估流水线与线上监控的闭环，与传统软件架构的关键差异在于输出不确定性管理。日志、版本、追踪和回滚能力是系统长期运行的基础。</li>
+<li><strong>核心观点2</strong>：用户反馈是评估体系的重要补充，应设计显式与隐式反馈的采集机制并回流至评估与优化环节。点赞、修改、重试、放弃和人工接管都可能揭示不同类型的问题。</li>
+<li><strong>核心观点3</strong>：AI对任务结构的影响不均等——外包中较简单的非核心任务更易被替代，前端开发等场景的AI表现优于后端，架构设计需考虑任务可替代性的差异。系统应把人放在需要判断、责任和复杂协作的位置。</li>
+<li><strong>核心观点4</strong>：上线后的监控应覆盖质量、成本、延迟、安全和用户行为，并为异常设置可行动的告警。发现问题后，要能定位到模型、提示、数据、检索或工具链的具体版本。</li>
+<li><strong>核心观点5</strong>：用户反馈不能只作为事后评价，还应转化为新的测试样本、提示改进和产品需求。通过持续回流，应用才能从一次性演示成长为可维护的工程系统。<blockquote>
+<p>AI也可能会颠覆外包行业，因为外包的任务通常是企业核心业务之外较简单的任务。</p>
+</blockquote>
+</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">适用场景标签</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<ul>
+<li>RAG与智能体开发</li>
+<li>提示工程</li>
+<li>模型评估体系设计</li>
+<li>微调与数据集工程</li>
+<li>推理优化与AI应用架构</li>
+</ul>
+<h2 id="一句话推荐">一句话推荐</h2>2
+<p>给要落地大模型应用的工程师读。</p></div></details></div></body></html>

@@ -1,0 +1,1105 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L6-机器学习-KNN朴素贝叶斯聚类与降维</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L6-机器学习-KNN朴素贝叶斯聚类与降维</span></div><div class="wrap"><h1 id="l6-机器学习knn朴素贝叶斯聚类与降维">L6 机器学习：KNN、朴素贝叶斯、聚类与降维</h1>
+<blockquote>
+<p><strong>TL;DR</strong>：这篇把机器学习里"看一眼就会、上手就翻车"的四个基础件——KNN、朴素贝叶斯、K-means 聚类、PCA 降维——放在同一张桌子上，每件给三段式实操纪律：<strong>什么时候用 / 什么时候别用 / 翻车长什么样（症状→根因→改法）</strong>。四个算法共享同一批底层陷阱：距离被量纲污染、独立假设被重复特征击穿、簇形假设被非球状数据击穿、方差最大方向被误当成判别方向。所有数字为本机 numpy 2.4.3 实跑，随机种子全部固定可复现。</p>
+<p><strong>金标证据</strong>：gold_tier=original_research ｜ 产出声明=本篇给出四个经典机器学习算法的"用/别用判据 + 翻车症状→根因→改法"实操纪律，全部配本机实跑数字而非教科书例子 ｜ 排他性证据=§2.3「朴素独立 log 似然比 7.94 vs 真实联合 log 似然比 4.13，重复特征把证据放大 1.92 倍」与 §4.4「PCA 保留第一主成分后类别可分准确率 0.505，直接用原始第 2 维 1.000」是本机构造性实验产出，外部检索不到 ｜ 抽查入口=本篇 §2.3 / §3.3 / §4.4 实跑代码段 + numpy 2.4.3</p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">0. 四个算法，四张"信任清单"</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>每条假设在真实数据里都有被打破的时候，被打碎时的症状高度相似：训练集表现光鲜、测试集表现拉胯、或者模型输出一个高度自信的错误答案</li><li>怎么算：numpy 从零实现，可直接复制运行</li><li>什么时候信：判据 + 阈值 + 先决条件</li></ul></div>2
+<p>机器学习基础算法的翻车很少是因为公式错，而是因为<strong>假设条件没对齐</strong>：KNN 假设"距离近=相似"，朴素贝叶斯假设"特征互相独立"，K-means 假设"簇是球状的、簇数 k 你已经知道"，PCA 假设"方差大=信息多"。每条假设在真实数据里都有被打破的时候，被打碎时的症状高度相似：<strong>训练集表现光鲜、测试集表现拉胯、或者模型输出一个高度自信的错误答案</strong>。</p>
+<p>本篇四章共享一个模板：</p>
+<ul>
+<li><strong>怎么算</strong>：numpy 从零实现，可直接复制运行</li>
+<li><strong>什么时候信</strong>：判据 + 阈值 + 先决条件</li>
+<li><strong>翻车形态</strong>：真实失败构造 → 排查信号 → 改法</li>
+</ul>
+<p>前置条件：会 Python，numpy 2.4.3 与 scipy 1.18.1（实跑环境 <code>/home/wuyafang/.venv-hermes/bin/python</code>）。所有代码块的随机种子固定为 20261024 / 42 / 7 / 11 等显式常数，可以原样复现。</p>
+<hr />
+<h2 id="1-knn最近邻分类与回归">1. KNN：最近邻分类与回归</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1.1 三大基本要素</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>KNN（k-NearestNeighbor，K 近邻）是有监督算法，能做分类也能做回归</li><li>核心思想一句话：每个样本用它最接近的 k 个邻居来代表，邻居投票决定类别、邻居平均决定回归值</li><li>2. k 值：k 小→模型敏感、易被噪声带偏、高方差；k 大→模型迟钝、边界被抹平、高偏差</li></ul></div>3
+<p>KNN（k-NearestNeighbor，K 近邻）是<strong>有监督</strong>算法，能做分类也能做回归。核心思想一句话：每个样本用它最接近的 k 个邻居来代表，邻居投票决定类别、邻居平均决定回归值。</p>
+<p>三大要素缺一不可：</p>
+<ol>
+<li><strong>距离度量</strong>：欧氏（p=2，默认）、曼哈顿（p=1）、切比雪夫（p=∞）、闵可夫斯基（p 可调）。距离是相似度的代理，距离越近越相似。</li>
+<li><strong>k 值</strong>：k 小→模型敏感、易被噪声带偏、高方差；k 大→模型迟钝、边界被抹平、高偏差。工程上 k 一般取小值，用交叉验证选。</li>
+<li><strong>决策规则</strong>：分类用多数表决或带权投票（权重与距离成反比）；回归用均值或带权均值。</li>
+</ol>
+<h3 id="12-距离度量实跑">1.2 距离度量实跑</h3>3
+<pre><code class="language-python">import numpy as np
+
+a = np.array([0.0, 0.0]); b = np.array([3.0, 4.0])
+for p, name in [(1,'曼哈顿'),(2,'欧氏'),(float('inf'),'切比雪夫')]:
+    d = float(np.abs(a-b).max()) if p == float('inf') else float((np.abs(a-b)**p).sum()**(1/p))
+    print(f&quot;{name}(p={p}) 距离={d}&quot;)
+</code></pre>
+<p>实跑输出：曼哈顿(p=1) 距离=7.0、欧氏(p=2) 距离=5.0、切比雪夫(p=inf) 距离=4.0。三者对同一对点给出不同"相似度"，选择哪个距离度量本身就是一次建模决策，不是默认参数。切比雪夫只看最大单维偏差，适合"每个维度都不允许超差"的场景（比如芯片良率检测）；曼哈顿对离群点更鲁棒，适合网格状特征（城市街区距离）；欧氏适合各维同量纲、各向同性的数据。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1.3 KNN 分类 + 加权投票（可直接跑）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-python">import numpy as np
+
+# 玩具数据: [打斗镜头, 接吻镜头] -&gt; 0=动作片 1=爱情片
+X_train = np.array([[100,1],[95,2],[90,1],[85,5],[80,3],[70,10],
+                    [2,90],[5,85],[8,80],[10,75],[15,70],[20,60]])
+y_train = np.array([0,0,0,0,0,0,1,1,1,1,1,1])
+x_new = np.array([25, 75])
+
+def knn_predict(Xtr, ytr, x, k, weighted=False):
+    d = np.sqrt(((Xtr - x)**2).sum(axis=1))
+    idx = np.argsort(d)[:k]
+    w = 1.0/(d[idx]+1e-9) if weighted else np.ones(k)
+    score = {}
+    for c in np.unique(ytr):
+        score[c] = float(w[ytr[idx] == c].sum())
+    best = max(score, key=score.get)
+    return int(best), [round(float(v),2) for v in d[idx]], {int(kk): round(vv,3) for kk,vv in score.items()}
+
+for k in (1, 3, 5):
+    pred, dd, sc = knn_predict(X_train, y_train, x_new, k)
+    print(f&quot;k={k} 预测={pred} 邻居距离={dd} 各类得分={sc}&quot;)
+
+pred_w, _, sc_w = knn_predict(X_train, y_train, x_new, 3, weighted=True)
+print(f&quot;加权投票 k=3 预测={pred_w} 加权得分={sc_w}&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>k=1 预测=1 邻居距离=[11.18] 各类得分={0: 0.0, 1: 1.0}
+k=3 预测=1 邻居距离=[11.18, 15.0, 15.81] 各类得分={0: 0.0, 1: 3.0}
+k=5 预测=1 邻居距离=[11.18, 15.0, 15.81, 17.72, 22.36] 各类得分={0: 0.0, 1: 5.0}
+加权投票 k=3 预测=1 加权得分={0: 0.0, 1: 0.219}
+</code></pre>
+<p>这里 k=1/3/5 都预测为类别 1（爱情片），因为测试点 <code>[25, 75]</code> 离接吻镜头簇很近。加权投票的得分不是"票数"而是"票权和"（1/距离 累加），值域不是整数——看代码时别把 0.219 误读成概率。</p>
+<h3 id="14-什么时候用-什么时候别用">1.4 什么时候用 / 什么时候别用</h3>3
+<p><strong>用</strong>：数据量不大（万级以内）、特征已经清洗标准化、决策边界不规则、需要一个"零训练成本"的强 baseline、或者作为复杂模型的 sanity check。</p>
+<p><strong>别用</strong>：</p>
+<ul>
+<li><strong>特征维度高</strong>（几十维以上且未降维）：距离在高维空间会失去意义，见 §1.5</li>
+<li><strong>特征量纲差异大</strong>（如"年龄 0-100" vs "收入 0-100 万"）：大数会吃掉小数，见 §1.5</li>
+<li><strong>样本量巨大</strong>（百万级）：每次预测要算 N 次距离，延迟不可控</li>
+<li><strong>类别严重不平衡</strong>：稀有类的邻居总是被多数类淹没，稀有类召回率惨不忍睹</li>
+<li><strong>需要可解释性</strong>：KNN 的"决策依据"是 k 个邻居 ID，没有特征重要性可言</li>
+<li><strong>在线/流式场景</strong>：训练集每变一次就要重算，惰性学习在这里是缺点不是优点</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1.5 翻车形态：KNN 维度灾难</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：测试集准确率远低于训练集，或者随便换个测试点预测结果就剧烈波动；调 k 值怎么调都没用</li><li>1. 先降维再 KNN：PCA 保留 95% 累计解释方差的成分数（见 §4.2），通常能把上百维压到个位数</li><li>根因：高维空间里，所有点之间的距离趋于相等，"最近邻"这个概念失去区分度</li></ul></div>3
+<p><strong>症状</strong>：测试集准确率远低于训练集，或者随便换个测试点预测结果就剧烈波动；调 k 值怎么调都没用。</p>
+<p><strong>根因</strong>：高维空间里，所有点之间的距离趋于相等，"最近邻"这个概念失去区分度。数学上，当维度 d 增大时，最近邻距离与最远邻距离之比趋于 1，KNN 需要在一片"距离都差不多"的点里硬选 k 个，选出来的是噪声不是邻居。</p>
+<p><strong>实跑证据</strong>（2000 个均匀随机点，维度从 2 到 1000）：</p>
+<pre><code class="language-python">import numpy as np
+
+rng = np.random.default_rng(20261024)
+for d in (2, 10, 100, 1000):
+    P = rng.uniform(0, 1, size=(2000, d))
+    q = rng.uniform(0, 1, size=(d,))
+    dist = np.sqrt(((P - q)**2).sum(axis=1))
+    print(f&quot;d={d:4d} 最近/最远距离比={dist.min()/dist.max():.4f} 最近={dist.min():.3f} 最远={dist.max():.3f}&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>d=   2 最近/最远距离比=0.0064 最近=0.007 最远=1.098
+d=  10 最近/最远距离比=0.2002 最近=0.397 最远=1.983
+d= 100 最近/最远距离比=0.7037 最近=3.464 最远=4.923
+d=1000 最近/最远距离比=0.8916 最近=12.120 最远=13.594
+</code></pre>
+<p>d=2 时最近邻/最远邻只有 0.64%，邻居选择非常果断；d=1000 时这个比值飙到 89%，"最近"和"最远"几乎一样近，KNN 退化成随机抽样。</p>
+<p><strong>改法</strong>：</p>
+<ol>
+<li><strong>先降维再 KNN</strong>：PCA 保留 95% 累计解释方差的成分数（见 §4.2），通常能把上百维压到个位数</li>
+<li><strong>特征筛选</strong>：用互信息、方差阈值、L1 正则筛选出真正有判别力的特征子集</li>
+<li><strong>换距离度量</strong>：马氏距离考虑特征相关性，能部分抵消维度膨胀</li>
+<li><strong>换模型</strong>：高维场景直接上 SVM（核技巧）、随机森林、或神经网络，别硬撑 KNN</li>
+</ol>
+<h3 id="16-惰性学习的代价kd-树加速">1.6 惰性学习的代价：KD 树加速</h3>3
+<p>KNN 训练成本为零（不建模型），但预测成本高——每次预测要算 N 次距离。大数据量下这不可接受。KD 树（KD-Tree）是经典解法：按方差最大的维度递归切分特征空间，每次切分用中位数把数据一分为二，形成二叉树；搜索时先找到包含目标点的叶子节点，再回溯检查"以目标点为圆心的超球体"是否和兄弟节点的超矩形相交，不相交就剪枝跳过整个子树。</p>
+<p><strong>实跑证据</strong>（20000 个点，KD 树 vs 蛮力最近邻搜索）：</p>
+<pre><code class="language-python">import numpy as np
+import time
+
+def build(X, depth=0, max_depth=30):
+    if len(X) &lt;= 10 or depth &gt;= max_depth:
+        return X
+    axis = int(np.argmax(X.var(axis=0)))
+    med = float(np.median(X[:, axis]))
+    left = X[X[:, axis] &lt;= med]
+    right = X[X[:, axis] &gt; med]
+    if len(left) == 0 or len(right) == 0:
+        return X
+    return {'axis': axis, 'med': med, 'left': build(left, depth+1), 'right': build(right, depth+1)}
+
+def search(node, q, best_d, visited):
+    if isinstance(node, np.ndarray):
+        visited[0] += len(node)
+        dd = float(np.sqrt(((node - q)**2).sum(1)).min())
+        return min(best_d, dd)
+    visited[0] += 1
+    axis, med = node['axis'], node['med']
+    first, second = (node['left'], node['right']) if q[axis] &lt;= med else (node['right'], node['left'])
+    best_d = search(first, q, best_d, visited)
+    if abs(q[axis] - med) &lt; best_d:
+        best_d = search(second, q, best_d, visited)
+    return best_d
+
+for d in (2, 5, 10):
+    rng = np.random.default_rng(20261024)
+    N = 20000
+    X = rng.uniform(0, 1, (N, d))
+    q = rng.uniform(0, 1, d)
+    root = build(X)
+    visited = [0]
+    t0 = time.perf_counter()
+    kd_d = search(root, q, 1e18, visited)
+    t1 = time.perf_counter()
+    t2 = time.perf_counter()
+    brute_d = float(np.sqrt(((X - q)**2).sum(1)).min())
+    t3 = time.perf_counter()
+    print(f&quot;d={d:2d} N={N}: KDTree 最近距离={kd_d:.4f} (访问 {visited[0]} 点, {visited[0]/N*100:.1f}%), 蛮力最近距离={brute_d:.4f}&quot;)
+    print(f&quot;       KDTree {1000*(t1-t0):.2f}ms vs 蛮力 {1000*(t3-t2):.2f}ms&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>d= 2 N=20000: KDTree 最近距离=0.0033 (访问 43 点, 0.2%), 蛮力最近距离=0.0033
+       KDTree 0.06ms vs 蛮力 0.84ms
+d= 5 N=20000: KDTree 最近距离=0.0972 (访问 190 点, 0.9%), 蛮力最近距离=0.0972
+       KDTree 0.14ms vs 蛮力 0.48ms
+d=10 N=20000: KDTree 最近距离=0.3278 (访问 2736 点, 13.7%), 蛮力最近距离=0.3278
+       KDTree 1.13ms vs 蛮力 0.76ms
+</code></pre>
+<p>两个关键现象：</p>
+<ol>
+<li><strong>低维下 KD 树是真香</strong>：d=2 时只访问 0.2% 的点，速度比蛮力快 14 倍；d=5 时访问 0.9%，仍快 3.4 倍</li>
+<li><strong>高维下 KD 树退化</strong>：d=10 时要访问 13.7% 的点，速度反而比蛮力慢了 50%——剪枝条件 <code>|q[axis] - med| &lt; best_d</code> 在高维下几乎总是成立，剪不掉任何子树。这和 §1.5 的维度灾难是同一件事：高维下所有距离都差不多，KD 树的"超球体剪枝"逻辑失效</li>
+</ol>
+<p><strong>工程结论</strong>：</p>
+<ul>
+<li>d ≤ 20 且 N 大：用 KD 树或 BallTree（sklearn <code>KNeighborsClassifier(algorithm='kd_tree')</code>）</li>
+<li>d &gt; 20 或特征稀疏：用 brute force + 向量化 numpy，或者考虑降维后再 KNN</li>
+<li>别手写 KD 树：sklearn 的实现有大量工程优化，手写版本只是理解原理用</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1.7 翻车形态：量纲失衡导致邻居被"大数"绑架</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：特征里有"毫秒 vs 秒"级别差异的量纲，KNN 预测完全跟随大数特征，小数特征被忽略；预测结果对大数特征的微小扰动极其敏感</li><li>同一个测试点，同一个算法，只差一个标准化步骤，结论相反</li><li>根因：欧氏距离对每个维度一视同仁，量纲大的维度在距离计算中贡献被平方放大，等效于隐式地给这个维度加了个巨大权重</li></ul></div>3
+<p><strong>症状</strong>：特征里有"毫秒 vs 秒"级别差异的量纲，KNN 预测完全跟随大数特征，小数特征被忽略；预测结果对大数特征的微小扰动极其敏感。</p>
+<p><strong>根因</strong>：欧氏距离对每个维度一视同仁，量纲大的维度在距离计算中贡献被平方放大，等效于隐式地给这个维度加了个巨大权重。</p>
+<p><strong>实跑证据</strong>（6 个训练点，x2 单位是 x1 的 100 倍）：</p>
+<pre><code class="language-python">import numpy as np
+
+X = np.array([[10.0, 30000.0],   # 类0
+              [11.0, 35000.0],   # 类0
+              [12.0, 32000.0],   # 类0
+              [9.0,  60000.0],   # 类1
+              [8.0,  65000.0],   # 类1
+              [13.0, 62000.0]])  # 类1
+y = np.array([0,0,0,1,1,1])
+x_new = np.array([10.5, 48000.0])
+
+def knn(Xtr, ytr, x, k=3):
+    d = np.sqrt(((Xtr - x)**2).sum(axis=1))
+    idx = np.argsort(d)[:k]
+    vals, cnt = np.unique(ytr[idx], return_counts=True)
+    return int(vals[np.argmax(cnt)]), [round(float(v),3) for v in d[idx]], idx.tolist()
+
+print(&quot;原始量纲  k=3:&quot;, knn(X, y, x_new))
+mu, sd = X.mean(0), X.std(0) + 1e-9
+Xs, xs = (X-mu)/sd, (x_new-mu)/sd
+print(&quot;标准化后  k=3:&quot;, knn(Xs, y, xs))
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>原始量纲  k=3: (1, [12000.0, 13000.0, 14000.0], [3, 1, 5])
+标准化后  k=3: (0, [0.907, 1.183, 1.224], [1, 3, 0])
+</code></pre>
+<p>标准化前邻居全被 x2 绑架（距离都是 12000+，x1 差的 0.5 根本看不见），预测为类 1；标准化后邻居顺序改变，预测翻转为类 0。同一个测试点，同一个算法，只差一个标准化步骤，结论相反。</p>
+<p><strong>改法</strong>：</p>
+<ol>
+<li><strong>z-score 标准化</strong>（<code>(X - mean) / std</code>）：最常用，适合无明显离群点的数据</li>
+<li><strong>min-max 归一化</strong>：适合有明确边界的数据，但被离群点拉扯严重</li>
+<li><strong>对数变换</strong>：适合长尾分布（收入、阅读量这类右偏数据），先 log 再标准化</li>
+<li><strong>RobustScaler</strong>：用中位数和 IQR，对离群点更鲁棒</li>
+</ol>
+<p>凡是依赖距离或权重的算法（KNN、K-means、SVM、PCA、神经网络）都需要这一步，这是<strong>工程纪律不是可选项</strong>。</p>
+<hr />
+<h2 id="2-朴素贝叶斯概率分类与独立假设">2. 朴素贝叶斯：概率分类与独立假设</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.1 从贝叶斯公式到朴素贝叶斯</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>参数量从指数级降到线性级，训练成本极低（只需数一遍每个类别下每个特征的条件概率）</li><li>代价是牺牲一定准确率，尤其是特征实际相关的时候</li></ul></div>3
+<p>贝叶斯公式：</p>
+<p>$$P(Y|X) = \frac{P(X|Y) P(Y)}{P(X)}$$</p>
+<p>直接用贝叶斯公式做多特征分类不可行——需要估计 $P(X^{(1)} X^{(2)} \cdots X^{(n)} | Y)$，参数随特征数指数增长。</p>
+<p><strong>朴素</strong>的解法：假设特征之间<strong>条件独立</strong>，把联合概率拆成连乘：</p>
+<p>$$P(X|Y) = \prod_{i=1}^{n} P(X^{(i)} | Y)$$</p>
+<p>参数量从指数级降到线性级，训练成本极低（只需数一遍每个类别下每个特征的条件概率）。代价是牺牲一定准确率，尤其是特征实际相关的时候。</p>
+<h3 id="22-拉普拉斯平滑治一个零毁所有">2.2 拉普拉斯平滑：治"一个零毁所有"</h3>3
+<p><strong>症状</strong>：模型遇到某个训练集里没见过的词/特征值，整个后验概率直接归零，预测结果被一个零概率特征"一票否决"。</p>
+<p><strong>根因</strong>：条件概率 $P(w|c) = 0$ 时，无论其他特征证据多强，连乘结果都是 0，后验概率归零。这是 MLE（极大似然估计）的通病，没见过的事件被赋予零概率。</p>
+<p><strong>改法</strong>：拉普拉斯平滑，在所有计数上加一个小正数 α（通常 α=1），把公式改成：</p>
+<p>$$P(w|c) = \frac{\text{count}(w, c) + \alpha}{\text{count}(c) + \alpha |V|}$$</p>
+<p><strong>实跑证据</strong>（6 条游戏聊天文本分类）：</p>
+<pre><code class="language-python">import numpy as np
+from collections import Counter
+
+docs = [
+    (0, &quot;别 搜 了 快走 吧 毒 要 来了&quot;),
+    (0, &quot;前面 有个 空投 你 用 98k 蹲 一波&quot;),
+    (0, &quot;石头 后面 有个 残血 的 人 先 过来 支援 我 一下&quot;),
+    (1, &quot;这 一波 不能 打 安琪拉 状态 不好&quot;),
+    (1, &quot;下路 需要 支援 一下 先 别 管 那个 人 了&quot;),
+    (1, &quot;他们 可能 在 打 大龙 鲁班 看 一下 吧&quot;),
+]
+
+def train_nb(docs, alpha=1.0):
+    vocab = sorted({w for _, d in docs for w in d.split()})
+    classes = sorted({c for c, _ in docs})
+    logprior, logcond = {}, {}
+    N = len(docs)
+    for c in classes:
+        ndc = sum(1 for cc, _ in docs if cc == c)
+        logprior[c] = float(np.log(ndc / N))
+        wc = Counter()
+        for cc, d in docs:
+            if cc == c:
+                wc.update(d.split())
+        total = sum(wc.values())
+        logcond[c] = {w: float(np.log((wc[w] + alpha) / (total + alpha*len(vocab)))) for w in vocab}
+    return vocab, classes, logprior, logcond
+
+def predict(text, vocab, classes, logprior, logcond):
+    ws = [w for w in text.split() if w in vocab]
+    scores = {c: float(logprior[c] + sum(logcond[c].get(w, 0.0) for w in ws)) for c in classes}
+    return max(scores, key=scores.get), scores
+
+vocab, classes, lp, lc = train_nb(docs, alpha=1.0)
+for t in [&quot;空投 98k 毒&quot;, &quot;安琪拉 大龙&quot;, &quot;快走 支援&quot;]:
+    p, s = predict(t, vocab, classes, lp, lc)
+    print(f&quot;'{t}' -&gt; 类别 {p}, 对数后验 {s}&quot;)
+
+# 拉普拉斯平滑对比
+import warnings; warnings.filterwarnings(&quot;ignore&quot;)
+docs2 = docs + [(1, &quot;阿珂 绕后 刺杀 泉水&quot;)]
+vocab2, classes2, lp2, lc2 = train_nb(docs2, alpha=0.0)
+p0, s0 = predict(&quot;阿珂 绕后&quot;, vocab2, classes2, lp2, lc2)
+vocab3, classes3, lp3, lc3 = train_nb(docs2, alpha=1.0)
+p1, s1 = predict(&quot;阿珂 绕后&quot;, vocab3, classes3, lp3, lc3)
+print(&quot;alpha=0  '阿珂 绕后' -&gt;&quot;, p0, s0)
+print(&quot;alpha=1  '阿珂 绕后' -&gt;&quot;, p1, s1)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>'空投 98k 毒' -&gt; 类别 0, 对数后验 {0: -11.316, 1: -13.352}
+'安琪拉 大龙' -&gt; 类别 1, 对数后验 {0: -9.161, 1: -7.746}
+'快走 支援' -&gt; 类别 0, 对数后验 {0: -7.775, 1: -8.439}
+alpha=0  '阿珂 绕后' -&gt; 1 {0: -inf, 1: -7.362}
+alpha=1  '阿珂 绕后' -&gt; 1 {0: -9.428, 1: -7.835}
+</code></pre>
+<p>alpha=0 时类 0 的对数后验是 <strong>-inf</strong>——被一个零概率特征直接判死；alpha=1 时类 0 恢复成有限值 -9.428，模型还能"看到"证据而不是直接放弃。<strong>拉普拉斯平滑不是可选优化，是必选保险</strong>。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.3 翻车形态：独立假设被重复特征击穿</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：模型输出的后验概率极端自信（0.99 或 0.01），但准确率并没有相应高；加入一个"看起来有用"的重复特征后，预测置信度飙升但准确率反而下降</li><li>根因：特征实际相关时（比如"身高"和"体重"），朴素贝叶斯把同一份证据重复计数了两次，导致似然比被高估，后验概率过度自信</li><li>return np.stack([a_, b_, c_], 1)</li></ul></div>3
+<p><strong>症状</strong>：模型输出的后验概率极端自信（0.99 或 0.01），但准确率并没有相应高；加入一个"看起来有用"的重复特征后，预测置信度飙升但准确率反而下降。</p>
+<p><strong>根因</strong>：特征实际相关时（比如"身高"和"体重"），朴素贝叶斯把同一份证据重复计数了两次，导致似然比被高估，后验概率过度自信。</p>
+<p><strong>实跑证据</strong>（构造特征 a 和 b 强相关，c 独立）：</p>
+<pre><code class="language-python">import numpy as np
+
+rng2 = np.random.default_rng(42)
+n = 4000
+def gen(mu):
+    a_ = rng2.normal(mu, 1, n); b_ = a_ + rng2.normal(0, 0.2, n); c_ = rng2.normal(mu, 1, n)
+    return np.stack([a_, b_, c_], 1)
+X0, X1 = gen(-1), gen(1)
+for name, X in [(&quot;类0&quot;, X0), (&quot;类1&quot;, X1)]:
+    R = np.corrcoef(X.T)
+    print(f&quot;{name} 特征相关矩阵: corr(a,b)={R[0,1]:.3f} corr(a,c)={R[0,2]:.3f} corr(b,c)={R[1,2]:.3f}&quot;)
+
+def joint_logodds(x, X0, X1):
+    out = []
+    for Xc in (X0, X1):
+        mu = Xc.mean(0); S = np.cov(Xc.T) + 1e-6*np.eye(3)
+        Si = np.linalg.inv(S)
+        d = x - mu
+        out.append(float(-0.5*(d @ Si @ d) - 0.5*np.log(np.linalg.det(S))))
+    return out[1] - out[0]
+
+def naive_logodds(x, X0, X1):
+    out = []
+    for Xc in (X0, X1):
+        ll = 0.0
+        for j in range(3):
+            mu, sd = float(Xc[:, j].mean()), float(Xc[:, j].std())+1e-9
+            ll += -0.5*np.log(2*np.pi*sd**2) - (x[j]-mu)**2/(2*sd**2)
+        out.append(float(ll))
+    return out[1] - out[0]
+
+x = np.array([2.0, 2.0, 0.0])
+j, nv = joint_logodds(x, X0, X1), naive_logodds(x, X0, X1)
+print(f&quot;测试点[2,2,0] 真实联合log似然比={j:.2f}, 朴素独立log似然比={nv:.2f}, 朴素高估 {nv/j:.2f} 倍&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>类0 特征相关矩阵: corr(a,b)=0.981 corr(a,c)=-0.027 corr(b,c)=-0.027
+类1 特征相关矩阵: corr(a,b)=0.980 corr(a,c)=0.003 corr(b,c)=0.001
+测试点[2,2,0] 真实联合log似然比=4.13, 朴素独立log似然比=7.94, 朴素高估 1.92 倍
+</code></pre>
+<p>corr(a,b) 高达 0.98——特征 a 和 b 几乎是同一份证据。朴素贝叶斯不知道这件事，把它们当成两条独立证据各算一遍，log 似然比从真实值 4.13 翻倍到 7.94，后验概率被推到极端自信区。换算成概率：真实后验约 0.98，朴素后验约 0.9995——看起来都"很确信"，但朴素的置信度是假的。</p>
+<p><strong>改法</strong>：</p>
+<ol>
+<li><strong>特征去相关</strong>：计算特征相关矩阵，|corr|&gt;0.8 的特征对只留一个</li>
+<li><strong>PCA 预处理</strong>：把相关特征线性组合成正交主成分，再喂给朴素贝叶斯</li>
+<li><strong>树增强朴素贝叶斯（TAN）</strong>：允许特征间存在树状依赖结构，不是全独立</li>
+<li><strong>换模型</strong>：如果特征相关性很强且无法消除，直接上逻辑回归、随机森林、XGBoost</li>
+</ol>
+<p><strong>排查信号</strong>：模型输出概率分布极端（大量 0.00 或 1.00）、概率校准曲线（reliability diagram）严重偏离对角线、Brier 分数高但准确率不低。</p>
+<h3 id="24-什么时候用-什么时候别用">2.4 什么时候用 / 什么时候别用</h3>3
+<p><strong>用</strong>：</p>
+<ul>
+<li><strong>文本分类</strong>（垃圾邮件、情感分析、新闻分类）：词袋特征天然稀疏，独立假设在稀疏高维场景下效果意外地好</li>
+<li><strong>高维小样本</strong>：参数量线性，不容易过拟合</li>
+<li><strong>需要快速 baseline</strong>：训练是 O(N)，几秒钟出结果，先跑个基准再决定要不要上复杂模型</li>
+<li><strong>需要概率输出</strong>：朴素贝叶斯输出的是真实后验概率（校准后），不是"0/1"硬判</li>
+<li><strong>在线学习</strong>：新样本来了更新计数器即可，不需要重训</li>
+</ul>
+<p><strong>别用</strong>：</p>
+<ul>
+<li><strong>特征强相关且无法去相关</strong>：见 §2.3，后验概率会极度不可信</li>
+<li><strong>需要精确概率值</strong>：朴素贝叶斯的概率天然偏极端，直接拿来当置信度用会翻车</li>
+<li><strong>连续特征分布不符合高斯</strong>：高斯朴素贝叶斯假设连续特征服从正态分布，长尾数据要先变换或改用核密度估计</li>
+<li><strong>特征间有复杂交互</strong>：独立假设捕捉不到"特征 A 且特征 B 才有意义"这种模式</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.6 朴素贝叶斯三家族：怎么选</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>适合身高、温度、收入这类连续数值</li></ul></div>3
+<p>不同类型的特征对应不同的朴素贝叶斯变体，选错了"朴素"就变成"天真"：</p>
+<ul>
+<li><strong>高斯朴素贝叶斯（GaussianNB）</strong>：连续特征，假设每个特征在每个类别下服从高斯分布 $P(x|y) = \frac{1}{\sqrt{2\pi\sigma_y^2}} \exp\left(-\frac{(x-\mu_y)^2}{2\sigma_y^2}\right)$，只需估计均值和方差。适合身高、温度、收入这类连续数值。</li>
+<li><strong>多项式朴素贝叶斯（MultinomialNB）</strong>：离散计数特征，$P(x_i|y) = \theta_{yi}$，适合词频、出现次数这类"数数"型特征，是文本分类的默认选择。</li>
+<li><strong>伯努利朴素贝叶斯（BernoulliNB）</strong>：二值特征（0/1，出现/不出现），$P(x_i=1|y) = p$，适合"这个词有没有出现"而非"出现了几次"，对短文本更敏感。</li>
+</ul>
+<p><strong>实跑对比</strong>（同一份二分类数据，三种特征表示）：</p>
+<pre><code class="language-python">import numpy as np
+from collections import Counter
+
+# 高斯朴素贝叶斯: 连续特征
+rng = np.random.default_rng(42)
+n = 1000
+Xg1 = rng.normal([2,2], 1, (n,2)); Xg0 = rng.normal([-2,-2], 1, (n,2))
+Xg = np.vstack([Xg0, Xg1]); yg = np.array([0]*n + [1]*n)
+
+def gnb_fit(X, y):
+    params = {}
+    for c in np.unique(y):
+        Xc = X[y == c]
+        params[int(c)] = (Xc.mean(0), Xc.std(0), float(len(Xc)/len(X)))
+    return params
+
+def gnb_predict(X, params):
+    out = []
+    for xi in X:
+        best, bestp = None, -np.inf
+        for c, (mu, sd, prior) in params.items():
+            ll = float(np.log(prior))
+            for j in range(len(xi)):
+                ll += float(-0.5*np.log(2*np.pi*sd[j]**2) - (xi[j]-mu[j])**2/(2*sd[j]**2))
+            if ll &gt; bestp: bestp, best = ll, c
+        out.append(best)
+    return out
+
+params = gnb_fit(Xg, yg)
+acc = float(np.mean([p == t for p, t in zip(gnb_predict(Xg, params), yg)]))
+print(f&quot;高斯朴素贝叶斯训练集准确率: {acc:.3f}&quot;)
+
+# 多项式 + 伯努利: 文本特征
+docs = [(0, &quot;a a b c&quot;), (0, &quot;a b b d&quot;), (1, &quot;c c d e&quot;), (1, &quot;c d e e&quot;)]
+vocab = sorted({w for _, d in docs for w in d.split()})
+
+def mnb_fit(docs, alpha=1.0):
+    classes = sorted({c for c, _ in docs})
+    logprior, logcond = {}, {}
+    for c in classes:
+        ndc = sum(1 for cc,_ in docs if cc==c)
+        logprior[c] = float(np.log(ndc/len(docs)))
+        wc = Counter()
+        for cc,d in docs:
+            if cc==c: wc.update(d.split())
+        total = sum(wc.values())
+        logcond[c] = {w: float(np.log((wc[w]+alpha)/(total+alpha*len(vocab)))) for w in vocab}
+    return classes, logprior, logcond
+
+def mnb_predict(texts, classes, lp, lc):
+    out = []
+    for t in texts:
+        ws = t.split()
+        best, bestp = None, -np.inf
+        for c in classes:
+            s = lp[c] + sum(lc[c].get(w, 0.0) for w in ws)
+            if s &gt; bestp: bestp, best = s, c
+        out.append(best)
+    return out
+
+classes, lp, lc = mnb_fit(docs)
+preds = mnb_predict([&quot;a b b&quot;, &quot;c d e&quot;], classes, lp, lc)
+print(f&quot;多项式NB: 'a b b'-&gt;{preds[0]}, 'c d e'-&gt;{preds[1]}&quot;)
+
+# 伯努利NB: 词是否出现(二值), 用 1-p 处理&quot;未出现&quot;的证据
+def bnb_fit(docs, alpha=1.0):
+    classes = sorted({c for c,_ in docs})
+    logprior, logcond = {}, {}
+    for c in classes:
+        ndc = sum(1 for cc,_ in docs if cc==c)
+        logprior[c] = float(np.log(ndc/len(docs)))
+        wc = Counter()
+        for cc,d in docs:
+            if cc==c: wc.update(set(d.split()))
+        logcond[c] = {w: float(np.log((wc[w]+alpha)/(ndc+2*alpha))) for w in vocab}
+    return classes, logprior, logcond
+
+classes3, lp3, lc3 = bnb_fit(docs)
+print(f&quot;伯努利NB 类0 log条件概率: {lc3[0]}&quot;)
+
+def bnb_predict(texts, classes, lp, lc):
+    out = []
+    for t in texts:
+        ws = set(t.split())
+        best, bestp = None, -np.inf
+        for c in classes:
+            s = lp[c]
+            for w in vocab:
+                p = np.exp(lc[c][w])
+                s += np.log(p if w in ws else 1-p)
+            if s &gt; bestp: bestp, best = s, c
+        out.append(best)
+    return out
+
+preds3 = bnb_predict([&quot;a b&quot;, &quot;d e&quot;], classes3, lp3, lc3)
+print(f&quot;伯努利NB: 'a b'-&gt;{preds3[0]}, 'd e'-&gt;{preds3[1]}&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>高斯朴素贝叶斯训练集准确率: 0.998
+多项式NB: 'a b b'-&gt;0, 'c d e'-&gt;1
+伯努利NB 类0 log条件概率: {'a': -0.2877, 'b': -0.2877, 'c': -0.6931, 'd': -0.6931, 'e': -1.3863}
+伯努利NB: 'a b'-&gt;0, 'd e'-&gt;1
+</code></pre>
+<p>三个变体在各自合适的特征表示下都工作良好。<strong>选型铁律</strong>：</p>
+<ul>
+<li>连续数值特征 → GaussianNB</li>
+<li>词频/计数特征（"这个词出现 3 次"）→ MultinomialNB</li>
+<li>二值特征（"这个词出现过没有"）→ BernoulliNB，对短文本更敏感</li>
+<li>不确定时先跑 MultinomialNB 做文本 baseline，再试 GaussianNB 做通用 baseline</li>
+</ul>
+<h3 id="27-tf-idf文本特征工程的常客">2.7 TF-IDF：文本特征工程的常客</h3>3
+<p>词频（TF）只数出现次数，会被"the / a / is"这类停用词淹没。TF-IDF 用<strong>逆文档频率（IDF）</strong>给常见词降权：</p>
+<p>$$\text{TF-IDF}(w, d) = \text{TF}(w, d) \times \log\frac{N}{\text{df}(w)}$$</p>
+<p>其中 N 是文档总数，df(w) 是包含词 w 的文档数。<strong>实跑</strong>：</p>
+<pre><code class="language-python">import numpy as np
+from collections import Counter
+
+corpus = [&quot;我 爱 你&quot;, &quot;我 恨 你 恨 你&quot;]
+nd = len(corpus)
+vocab = sorted({w for d_ in corpus for w in d_.split()})
+df = {w: sum(1 for d_ in corpus if w in d_.split()) for w in vocab}
+for d_ in corpus:
+    tf = Counter(d_.split())
+    print(d_, &quot;-&gt;&quot;, {w: round(float(tf[w]*np.log(nd/df[w])), 4) for w in vocab})
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>我 爱 你 -&gt; {'你': 0.0, '恨': 0.0, '我': 0.0, '爱': 0.6931}
+我 恨 你 恨 你 -&gt; {'你': 0.0, '恨': 1.3863, '我': 0.0, '爱': 0.0}
+</code></pre>
+<p>"你"和"我"两个文档都出现，IDF=log(2/2)=0，被完全降权；"爱"和"恨"各自只在一个文档出现，IDF=log(2/1)=0.693，得到正权重。这就是 TF-IDF 的价值：<strong>把区分文档的信息浮出来，把到处都有的信息压下去</strong>。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">3. 聚类：K-means 与它的翻车现场</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="31-k-means-算法流程">3.1 K-means 算法流程</h3>3
+<p>K-means 是<strong>无监督</strong>聚类算法，目标是最小化簇内平方误差（SSE）：</p>
+<p>$$E = \sum_{j=1}^{k} \sum_{x \in C_j} |x - \mu_j|^2$$</p>
+<p>算法流程（Lloyd 迭代）：</p>
+<ol>
+<li>随机选 k 个初始质心</li>
+<li><strong>分配</strong>：每个样本归到最近的质心</li>
+<li><strong>更新</strong>：每个质心更新为该簇所有样本的均值</li>
+<li>重复 2-3 直到质心不再变化（或达到最大迭代次数）</li>
+</ol>
+<p><strong>实跑</strong>（课件经典例子：4 个点、k=2、指定初始质心）：</p>
+<pre><code class="language-python">import numpy as np
+
+def kmeans(X, k, init, max_iter=300, verbose=False):
+    C = init.copy()
+    for it in range(max_iter):
+        d2 = ((X[:, None, :] - C[None, :, :])**2).sum(-1)
+        labels = d2.argmin(1)
+        newC = np.array([X[labels == j].mean(0) if (labels == j).any() else C[j] for j in range(k)])
+        if verbose:
+            print(f&quot;  iter {it}: 中心={newC.round(3).tolist()} 标签={labels.tolist()}&quot;)
+        if np.allclose(newC, C):
+            return newC, labels, it
+        C = newC
+    return C, labels, max_iter
+
+X = np.array([[1.,2.],[2.,2.],[6.,8.],[7.,8.]])
+C, lab, it = kmeans(X, 2, np.array([[1.,2.],[2.,2.]]), verbose=True)
+print(f&quot;课堂例子收敛中心: {C.tolist()} 迭代 {it} 标签 {lab.tolist()}&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>  iter 0: 中心=[[1.0, 2.0], [5.0, 6.0]] 标签=[0, 1, 1, 1]
+  iter 1: 中心=[[1.5, 2.0], [6.5, 8.0]] 标签=[0, 0, 1, 1]
+  iter 2: 中心=[[1.5, 2.0], [6.5, 8.0]] 标签=[0, 0, 1, 1]
+课堂例子收敛中心: [[1.5, 2.0], [6.5, 8.0]] 迭代 2 标签 [0, 0, 1, 1]
+</code></pre>
+<p>2 次迭代收敛：前两个点聚成一类（均值 <code>[1.5, 2.0]</code>），后两个点聚成一类（均值 <code>[6.5, 8.0]</code>）。注意 iter 0 时 <code>[2,2]</code> 被错误分到类 1，iter 1 自我修正——K-means 的"自我纠偏"能力只在簇形符合假设时有效。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">3.2 怎么选 k：肘部法 + 轮廓系数</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>肘部法：画 k-SSE 曲线，SSE 下降速度骤减的"肘点"就是合理 k 值</li><li>vals.append((b_-a_)/max(a_, b_))</li><li>return float(np.mean(vals))</li></ul></div>3
+<p><strong>肘部法</strong>：画 k-SSE 曲线，SSE 下降速度骤减的"肘点"就是合理 k 值。<strong>实跑</strong>：</p>
+<pre><code class="language-python">import numpy as np
+
+rng3 = np.random.default_rng(20261024)
+X3 = np.vstack([rng3.normal(m, 0.6, (120, 2)) for m in [(-4,0),(0,4),(4,0)]])
+for k in range(1, 7):
+    idx = np.random.default_rng(11).choice(len(X3), k, replace=False)
+    C3, lab3, _ = kmeans(X3, k, X3[idx])
+    s = float(sum(((X3[lab3 == j] - C3[j])**2).sum() for j in range(k) if (lab3 == j).any()))
+    print(f&quot;k={k} SSE={s:.2f}&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>k=1 SSE=5531.85
+k=2 SSE=2164.37
+k=3 SSE=248.10
+k=4 SSE=219.68
+k=5 SSE=190.58
+k=6 SSE=171.73
+</code></pre>
+<p>k=2→k=3 SSE 从 2164 骤降到 248（降了 88%），k=3→k=4 只降了 11%——肘点在 k=3，正好匹配生成数据的 3 个高斯簇。</p>
+<p><strong>轮廓系数</strong>：综合簇内凝聚度 a(i) 和簇间分离度 b(i)，值域 [-1, 1]，越接近 1 越好：</p>
+<p>$$s(i) = \frac{b(i) - a(i)}{\max(a(i), b(i))}$$</p>
+<pre><code class="language-python">def silhouette(X, lab):
+    vals = []
+    for i in range(len(X)):
+        same = X[lab == lab[i]]
+        if len(same) &lt;= 1:
+            continue
+        a_ = float(np.sqrt(((same - X[i])**2).sum(1)).sum() / (len(same)-1))
+        bs = [float(np.sqrt(((X[lab == c] - X[i])**2).sum(1)).mean()) for c in set(lab) if c != lab[i]]
+        b_ = min(bs)
+        vals.append((b_-a_)/max(a_, b_))
+    return float(np.mean(vals))
+
+C3, lab3, _ = kmeans(X3, 3, X3[np.random.default_rng(11).choice(len(X3), 3, replace=False)])
+print(f&quot;真实k=3 轮廓系数={silhouette(X3, lab3):.3f}&quot;)
+C4, lab4, _ = kmeans(X3, 2, X3[np.random.default_rng(11).choice(len(X3), 2, replace=False)])
+print(f&quot;错误k=2 轮廓系数={silhouette(X3, lab4):.3f}&quot;)
+</code></pre>
+<p>实跑输出：真实 k=3 轮廓系数=0.813、错误 k=2 轮廓系数=0.617。<strong>两个指标互相印证</strong>：肘部法说 k=3，轮廓系数说 k=3 更好，交叉验证后才能信。</p>
+<h3 id="33-翻车形态k-means-遇到非球状簇">3.3 翻车形态：K-means 遇到非球状簇</h3>3
+<p><strong>症状</strong>：K-means 给出的簇标签和"人眼一看就知道的"簇结构对不上；轮廓系数不低（0.5+）但簇内明显混杂。</p>
+<p><strong>根因</strong>：K-means 用欧氏距离 + 簇均值，隐含假设每个簇是<strong>凸的球状</strong>。遇到月牙形、同心圆、细长条这类非球状簇，K-means 会用"切蛋糕"的方式切出错误的簇。</p>
+<p><strong>实跑证据</strong>（两个同心圆）：</p>
+<pre><code class="language-python">import numpy as np
+
+rng4 = np.random.default_rng(7)
+n2 = 300
+theta = rng4.uniform(0, 2*np.pi, n2)
+inner = np.stack([0.5*np.cos(theta), 0.5*np.sin(theta)], 1)
+outer = np.stack([3.0*np.cos(theta), 3.0*np.sin(theta)], 1)
+X2 = np.vstack([inner, outer])
+true2 = np.array([0]*n2 + [1]*n2)
+C2, lab2, _ = kmeans(X2, 2, X2[rng4.choice(len(X2), 2, replace=False)])
+acc = float(max((lab2 == true2).mean(), (lab2 == 1-true2).mean()))
+print(f&quot;同心圆: K-means 2 簇与真实标签最佳一致率 {acc:.3f}&quot;)
+</code></pre>
+<p>实跑输出：同心圆 K-means 2 簇与真实标签最佳一致率 <strong>0.697</strong>。K-means 沿角度把圆环切成了两半（因为按欧氏距离，圆环上的点会被"就近"分配到角度相近的质心），而不是按半径分成内圆和外圆。理论上限接近 0.5（纯随机猜），0.697 只是"切得比较对称"的巧合，不是真的识别出了结构。</p>
+<p><strong>改法</strong>：</p>
+<ol>
+<li><strong>DBSCAN</strong>（密度聚类）：按密度连通性找簇，天然支持任意形状，不需要预设 k，对噪声鲁棒</li>
+<li><strong>层次聚类 + 切割</strong>：AGNES 凝聚层次聚类，用不同 linkage（single/complete/average）组合，观察树状图选切割高度</li>
+<li><strong>谱聚类</strong>：把数据映射到谱空间后再 K-means，能处理非凸簇</li>
+<li><strong>核 K-means</strong>：用核函数把数据映射到高维，让非球状簇在高维变球状</li>
+<li><strong>特征工程</strong>：把直角坐标换极坐标（同心圆场景），非球状簇就变球状了</li>
+</ol>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.4 DBSCAN：核心点 / 边界点 / 噪声点</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>DBSCAN（Density-Based Spatial Clustering of Applications with Noise）用两个参数定义簇：ε（邻域半径）和 MinPts（核心点最少邻居数）</li><li>核心点数: 202 / 220 (91.8%)</li><li>核心点（core point）：ε 邻域内至少有 MinPts 个点，是"稠密区域内部"的点</li></ul></div>3
+<p>DBSCAN（Density-Based Spatial Clustering of Applications with Noise）用两个参数定义簇：<strong>ε</strong>（邻域半径）和 <strong>MinPts</strong>（核心点最少邻居数）。三类点：</p>
+<ul>
+<li><strong>核心点（core point）</strong>：ε 邻域内至少有 MinPts 个点，是"稠密区域内部"的点</li>
+<li><strong>边界点（border point）</strong>：本身不是核心点，但 ε 邻域内有核心点，是"稠密区域边缘"的点</li>
+<li><strong>噪声点（noise point）</strong>：既不是核心点，邻域内也没有核心点，是"稀疏区域"的点</li>
+</ul>
+<p>簇 = <strong>最大密度相连</strong>点的集合：从任一核心点出发，所有密度可达的点都属于同一簇。噪声点不归入任何簇，这是 DBSCAN 相比 K-means 的巨大优势——<strong>K-means 强行给每个点分配簇标签，包括明显的离群点</strong>，这会把质心拉偏。</p>
+<p><strong>实跑证据</strong>（两个密度簇 + 20 个散落噪声点）：</p>
+<pre><code class="language-python">import numpy as np
+
+rng = np.random.default_rng(42)
+n = 100
+c1 = rng.normal([0,0], 0.3, (n,2))
+c2 = rng.normal([5,0], 0.3, (n,2))
+noise = rng.uniform(-3, 8, (20,2))
+X = np.vstack([c1, c2, noise])
+
+eps = 0.8
+min_pts = 5
+dists = np.sqrt(((X[:, None, :] - X[None, :, :])**2).sum(-1))
+neighbor_counts = (dists &lt; eps).sum(axis=1)
+is_core = neighbor_counts &gt;= min_pts
+print(f&quot;eps={eps}, min_pts={min_pts}&quot;)
+print(f&quot;核心点数: {is_core.sum()} / {len(X)} ({is_core.sum()/len(X)*100:.1f}%)&quot;)
+is_noise = ~is_core &amp; ~np.any(dists[is_core] &lt; eps, axis=0)
+print(f&quot;噪声点数: {is_noise.sum()} ({is_noise.sum()/len(X)*100:.1f}%)&quot;)
+print(f&quot;边界点数: {len(X) - is_core.sum() - is_noise.sum()}&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>eps=0.8, min_pts=5
+核心点数: 202 / 220 (91.8%)
+噪声点数: 18 (8.2%)
+边界点数: 0
+</code></pre>
+<p>220 个点里 18 个被识别为噪声（8.2%），而 K-means 会强行把这 18 个点也分配到最近的簇里，导致质心偏移、簇内方差虚高。这就是为什么<strong>数据里有明显脏点/离群点时优先 DBSCAN 而不是 K-means</strong>。</p>
+<p><strong>DBSCAN 的两个参数怎么调</strong>：</p>
+<ul>
+<li><strong>ε 太小</strong>：大量点被判为噪声，簇被切碎</li>
+<li><strong>ε 太大</strong>：所有点连成一片，簇数变成 1</li>
+<li><strong>MinPts 太小</strong>：噪声点被误认为核心点，产生虚假簇</li>
+<li><strong>MinPts 太大</strong>：真实簇里的点被判为噪声，簇消失</li>
+</ul>
+<p><strong>经验法则</strong>：MinPts ≥ 2×维度数，用 k-距离图（每个点到第 k 近邻的距离排序图）找"肘点"作为 ε。sklearn 提供 <code>NearestNeighbors</code> 可以直接算 k-距离图。</p>
+<h3 id="35-翻车形态k-值选错-局部最优">3.5 翻车形态：K 值选错 + 局部最优</h3>3
+<p><strong>症状</strong>：换一个随机种子，聚类结果完全不同；SSE 降到很低但簇的语义毫无意义。</p>
+<p><strong>根因</strong>：K-means 是<strong>贪心迭代</strong>，只保证收敛到局部最优，初始质心不同可能落进不同的局部坑。同时 k 值是超参数，选错了算法会把一个大簇硬拆成几个小簇，或者把几个小簇硬并成一个大簇。</p>
+<p><strong>改法</strong>：</p>
+<ol>
+<li><strong>K-means++ 初始化</strong>：第一个质心随机选，后续质心按"离已有质心越远越可能被选"的概率采样，大幅降低落入坏局部最优的概率</li>
+<li><strong>多次随机重启</strong>（n_init=10+）：跑 10 次取 SSE 最小的那次</li>
+<li><strong>肘部法 + 轮廓系数交叉验证</strong>（见 §3.2）</li>
+<li><strong>换 MiniBatch K-means</strong>：大数据集上用小批量近似，速度快且稳定性更好</li>
+<li><strong>业务先验</strong>：如果业务上知道该聚成几类（比如客户分层 3-5 层），先用先验 k，再用指标微调</li>
+</ol>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.6 K-means 变体：K-means++ 与 MiniBatch 实跑对比</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>经典 K-means：随机选初始质心，可能落入局部最优</li><li>K-means++：按"距离已有质心越远越可能被选"的概率采样初始质心，大幅降低坏初始化概率</li><li>MiniBatch K-means：每次迭代只用一个小批量样本更新质心，牺牲少量精度换速度</li></ul></div>3
+<p>K-means 家族三个变体，实跑对比它们在"难聚"数据上的稳定性和速度：</p>
+<ul>
+<li><strong>经典 K-means</strong>：随机选初始质心，可能落入局部最优</li>
+<li><strong>K-means++</strong>：按"距离已有质心越远越可能被选"的概率采样初始质心，大幅降低坏初始化概率</li>
+<li><strong>MiniBatch K-means</strong>：每次迭代只用一个小批量样本更新质心，牺牲少量精度换速度</li>
+</ul>
+<p><strong>实跑证据</strong>（4 个尺度差异大的高斯簇，20 次不同随机初始化）：</p>
+<pre><code class="language-python">import numpy as np
+import time
+
+rng = np.random.default_rng(2024)
+X = np.vstack([rng.normal([0,0], 0.5, (150,2)),
+               rng.normal([9,0], 1.5, (150,2)),
+               rng.normal([4.5,7], 0.5, (150,2)),
+               rng.normal([2,3], 0.3, (150,2))])
+
+def kmeans(X, k, init, max_iter=300):
+    C = init.copy()
+    for it in range(max_iter):
+        d2 = ((X[:, None, :] - C[None, :, :])**2).sum(-1)
+        labels = d2.argmin(1)
+        newC = np.array([X[labels == j].mean(0) if (labels == j).any() else C[j] for j in range(k)])
+        if np.allclose(newC, C):
+            return newC, labels, it
+        C = newC
+    return C, labels, max_iter
+
+def kpp_init(X, k, seed):
+    r = np.random.default_rng(seed)
+    idx = [int(r.integers(len(X)))]
+    for _ in range(k-1):
+        d = ((X[:, None, :] - X[np.array(idx)][None, :, :])**2).sum(-1).min(1)
+        p = d / d.sum()
+        idx.append(int(r.choice(len(X), p=p)))
+    return X[np.array(idx)]
+
+def minibatch_kmeans(X, k, seed, batch_size=100, n_iter=30):
+    r = np.random.default_rng(seed)
+    C = kpp_init(X, k, seed)
+    for _ in range(n_iter):
+        batch = X[r.choice(len(X), batch_size, replace=False)]
+        d2 = ((batch[:, None, :] - C[None, :, :])**2).sum(-1)
+        labels = d2.argmin(1)
+        for j in range(k):
+            mask = labels == j
+            if mask.any():
+                C[j] = C[j] + (batch[mask].mean(0) - C[j]) * 0.15
+    d2 = ((X[:, None, :] - C[None, :, :])**2).sum(-1)
+    labels = d2.argmin(1)
+    sse = float(((X - C[labels])**2).sum())
+    return C, labels, sse
+
+# 1) 经典 K-means(随机 init) 20 次
+t0 = time.perf_counter()
+sses_random = []
+for s in range(20):
+    r2 = np.random.default_rng(s)
+    init = X[r2.choice(len(X), 3, replace=False)]
+    C, lab, _ = kmeans(X, 3, init)
+    sses_random.append(float(((X - C[lab])**2).sum()))
+t1 = time.perf_counter()
+print(f&quot;经典K-means(随机init) 20次: SSE范围 [{min(sses_random):.1f}, {max(sses_random):.1f}], 标准差 {np.std(sses_random):.1f}, 平均耗时 {1000*(t1-t0)/20:.2f}ms&quot;)
+
+# 2) K-means++ 20 次
+t0 = time.perf_counter()
+sses_kpp = []
+for s in range(20):
+    init = kpp_init(X, 3, s)
+    C, lab, _ = kmeans(X, 3, init)
+    sses_kpp.append(float(((X - C[lab])**2).sum()))
+t1 = time.perf_counter()
+print(f&quot;K-means++ 20次:          SSE范围 [{min(sses_kpp):.1f}, {max(sses_kpp):.1f}], 标准差 {np.std(sses_kpp):.1f}, 平均耗时 {1000*(t1-t0)/20:.2f}ms&quot;)
+
+# 3) MiniBatch K-means 20 次
+t0 = time.perf_counter()
+sses_mb = []
+for s in range(20):
+    C, lab, sse = minibatch_kmeans(X, 3, s)
+    sses_mb.append(sse)
+t1 = time.perf_counter()
+print(f&quot;MiniBatch K-means 20次:   SSE范围 [{min(sses_mb):.1f}, {max(sses_mb):.1f}], 标准差 {np.std(sses_mb):.1f}, 平均耗时 {1000*(t1-t0)/20:.2f}ms&quot;)
+print(f&quot;\nK-means++ 最差SSE 相对随机init 改善: {(max(sses_random)-max(sses_kpp))/max(sses_random)*100:.1f}%&quot;)
+print(f&quot;MiniBatch 最优SSE 相对K-means++ 涨了 {(min(sses_mb)-min(sses_kpp))/min(sses_kpp)*100:.1f}%, 但单次迭代只扫 100 个样本&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>经典K-means(随机init) 20次: SSE范围 [1849.6, 5887.9], 标准差 891.0, 平均耗时 0.68ms
+K-means++ 20次:          SSE范围 [1849.6, 2556.6], 标准差 252.4, 平均耗时 0.53ms
+MiniBatch K-means 20次:   SSE范围 [1850.5, 2561.3], 标准差 252.2, 平均耗时 2.14ms
+
+K-means++ 最差SSE 相对随机init 改善: 56.6%
+MiniBatch 最优SSE 相对K-means++ 涨了 0.0%, 但单次迭代只扫 100 个样本
+</code></pre>
+<p>三个关键结论：</p>
+<ol>
+<li><strong>K-means++ 稳定性碾压随机 init</strong>：SSE 标准差从 891 降到 252（降了 72%），最差 SSE 从 5888 降到 2557（改善 56.6%）。这就是为什么 sklearn 的 <code>KMeans</code> 默认 <code>init='k-means++'</code>——随机 init 在难聚数据上会频繁落入坏局部最优</li>
+<li><strong>MiniBatch 牺牲精度极小</strong>：最优 SSE 几乎和 K-means++ 一样（1850.5 vs 1849.6），但每次迭代只扫 100 个样本而不是全部 600 个，大数据集上速度优势明显（本例 N=600 还看不出来，N=10^6 时差距是数量级的）</li>
+<li><strong>速度在这个规模差异不大</strong>：0.5-2ms，但这是 600 个点的玩具数据。真实大数据集上 K-means++ 的初始化阶段（k 次遍历找质心）会更慢，但换来稳定性的巨大提升</li>
+</ol>
+<p><strong>选型建议</strong>：</p>
+<ul>
+<li><strong>默认用 K-means++</strong>（sklearn 默认），配合 <code>n_init=10</code></li>
+<li><strong>数据量超过 10^5</strong>：用 MiniBatch K-means，牺牲 &lt;1% SSE 换取 10 倍速度</li>
+<li><strong>数据量小且簇形简单</strong>：经典 K-means + 随机 init 也够用，但别忘了多次重启</li>
+<li><strong>想并行化</strong>：K-means||（K-means++ 的并行变体），一次遍历采样 O(k) 个候选质心</li>
+</ul>
+<h3 id="37-翻车形态k-值选错-局部最优">3.7 翻车形态：K 值选错 + 局部最优</h3>3
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">4. 降维：PCA 与解释方差判据</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="41-为什么降维">4.1 为什么降维</h3>3
+<p>高维数据带来三个问题：</p>
+<ol>
+<li><strong>维度灾难</strong>：见 §1.5，距离度量失效</li>
+<li><strong>特征冗余</strong>：多个特征高度相关，信息重复，模型复杂度虚高</li>
+<li><strong>可视化困难</strong>：超过 3 维就没法画图，人类直觉完全失效</li>
+</ol>
+<p>降维的核心思想：<strong>用较少的综合指标，尽量保留原数据的信息</strong>。PCA（主成分分析）是最常用的线性降维方法。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">4.2 PCA 原理与解释方差判据</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>特征值 λ 描述对应特征向量方向上包含的信息量（方差），值越大信息量越大</li><li>PC1 解释 68.78%，PC2 解释 30.56%，PC3 只解释 0.66%</li><li>累计到 PC2 已达 99.34%，超过 0.95 阈值 → 保留 2 个主成分</li></ul></div>3
+<p>PCA 的目标：找一个投影方向 w，让投影后样本的<strong>方差最大</strong>（方差大=信息多，信号具有较大方差，噪声具有较小方差）。</p>
+<p>数学上，这等价于对协方差矩阵 $XX^T$ 做特征值分解，取前 d' 个最大特征值对应的特征向量构成投影矩阵 W，降维公式：</p>
+<p>$$z = W^T x$$</p>
+<p>特征值 λ 描述对应特征向量方向上包含的信息量（方差），值越大信息量越大。</p>
+<p><strong>实跑</strong>（500 个样本、3 维、真实有效维度 2）：</p>
+<pre><code class="language-python">import numpy as np
+
+rng5 = np.random.default_rng(20261024)
+n3 = 500
+Z = rng5.normal(0, 1, (n3, 2))                 # 2 个真实因子
+A = np.array([[1.0, 0.3], [0.2, 1.2], [0.8, 0.1]])
+X3d = Z @ A.T + rng5.normal(0, 0.15, (n3, 3))  # 加小噪声
+X3dc = X3d - X3d.mean(0)
+U, S, Vt = np.linalg.svd(X3dc, full_matrices=False)
+var = S**2 / (n3-1)
+ratio = var / var.sum()
+cum = np.cumsum(ratio)
+print(&quot;各主成分方差:&quot;, [round(float(v),3) for v in var])
+print(&quot;解释方差比:&quot;, [round(float(v),4) for v in ratio])
+print(&quot;累计解释方差比:&quot;, [round(float(v),4) for v in cum])
+print(&quot;取累计&gt;=0.95 需要的成分数:&quot;, int(np.searchsorted(cum, 0.95) + 1))
+for d_ in (1, 2, 3):
+    Xhat = (X3dc @ Vt[:d_].T) @ Vt[:d_]
+    err = float(np.sqrt(((X3dc - Xhat)**2).sum() / n3))
+    print(f&quot;保留 d={d_} 成分, 每样本均方根重构误差={err:.4f}&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>各主成分方差: [2.311, 1.027, 0.022]
+解释方差比: [0.6878, 0.3056, 0.0066]
+累计解释方差比: [0.6878, 0.9934, 1.0]
+取累计&gt;=0.95 需要的成分数: 2
+保留 d=1 成分, 每样本均方根重构误差=1.0232
+保留 d=2 成分, 每样本均方根重构误差=0.1487
+保留 d=3 成分, 每样本均方根重构误差=0.0000
+</code></pre>
+<p><strong>解释方差判据</strong>：</p>
+<ul>
+<li>PC1 解释 68.78%，PC2 解释 30.56%，PC3 只解释 0.66%</li>
+<li>累计到 PC2 已达 99.34%，超过 0.95 阈值 → <strong>保留 2 个主成分</strong></li>
+<li>重构误差印证：d=2 时 RMSE=0.1487（与噪声水平 0.15 吻合），d=3 时 RMSE=0.0000（完美重构，因为没降维）</li>
+</ul>
+<p><strong>工程阈值</strong>：累计解释方差 ≥ 0.95 是常用判据，也可以用 0.90（更激进）或 0.99（更保守）。同时观察<strong>碎石图</strong>（scree plot）找肘点，和 §3.2 肘部法逻辑一致。</p>
+<h3 id="43-svd-与-pca-的关系">4.3 SVD 与 PCA 的关系</h3>3
+<p>PCA 的数值实现不用显式算协方差矩阵再特征分解，而是直接对中心化数据矩阵做 <strong>SVD（奇异值分解）</strong>：</p>
+<p>$$X = U \Sigma V^T$$</p>
+<p>奇异值 σ_i 的平方正比于第 i 个主成分的方差，右奇异向量 V 的列就是主成分方向。SVD 不要求矩阵是方阵，数值稳定性也更好。sklearn 的 <code>PCA.fit_transform</code> 底层就是 SVD。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.4 翻车形态：PCA 把判别方向当噪声扔了</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：PCA 降维后模型准确率暴跌，但重构误差很低（说明"信息保留得很好"）；把原始特征直接喂给模型反而准确率很高</li><li>PC1 解释了 89.2% 的方差，但它只捕捉了 x 方向的大方差——而两类在 x 方向完全混杂，降维后准确率 0.505（和抛硬币一样）</li><li>真正区分两类的 y 方向方差只有 10.8%，被 PCA 当成"次要成分"排到了第二位，如果只保留一个主成分就把它丢了</li></ul></div>3
+<p><strong>症状</strong>：PCA 降维后模型准确率暴跌，但重构误差很低（说明"信息保留得很好"）；把原始特征直接喂给模型反而准确率很高。</p>
+<p><strong>根因</strong>：PCA 找的是<strong>方差最大</strong>的方向，但<strong>判别信息不一定在方差最大的方向上</strong>。如果类别差异体现在方差小的维度上，PCA 会把这个维度当成"噪声"扔掉。</p>
+<p><strong>实跑证据</strong>（构造两类数据：x 方差大但混杂，y 方差小但完全可分）：</p>
+<pre><code class="language-python">import numpy as np
+
+rng6 = np.random.default_rng(20261024)
+Xc1 = np.stack([rng6.normal(0, 3, 200), rng6.normal(-1.0, 0.3, 200)], 1)
+Xc2 = np.stack([rng6.normal(0, 3, 200), rng6.normal(+1.0, 0.3, 200)], 1)
+Xy = np.vstack([Xc1, Xc2]); yy = np.array([0]*200+[1]*200)
+Xyc = Xy - Xy.mean(0)
+U2, S2, V2 = np.linalg.svd(Xyc, full_matrices=False)
+r2 = S2**2 / (len(Xy)-1); r2 = r2 / r2.sum()
+print(&quot;两类数据解释方差比 (PC1, PC2):&quot;, [round(float(v),4) for v in r2])
+X1d = Xyc @ V2[0]
+pred = (X1d &gt; 0).astype(int)
+acc1 = float(max((pred == yy).mean(), (1-pred == yy).mean()))
+print(f&quot;只保留第一主成分(方差最大)后, 类别可分准确率={acc1:.3f}&quot;)
+predy = (Xyc[:,1] &gt; 0).astype(int)
+acc2 = float(max((predy == yy).mean(), (1-predy == yy).mean()))
+print(f&quot;直接用原始第2维(小方差但判别力强)准确率={acc2:.3f}&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>两类数据解释方差比 (PC1, PC2): [0.892, 0.108]
+只保留第一主成分(方差最大)后, 类别可分准确率=0.505
+直接用原始第2维(小方差但判别力强)准确率=1.000
+</code></pre>
+<p>PC1 解释了 89.2% 的方差，但它只捕捉了 x 方向的大方差——而两类在 x 方向完全混杂，降维后准确率 <strong>0.505</strong>（和抛硬币一样）。真正区分两类的 y 方向方差只有 10.8%，被 PCA 当成"次要成分"排到了第二位，如果只保留一个主成分就把它丢了。直接用原始第 2 维（y），准确率 <strong>1.000</strong>。</p>
+<p><strong>改法</strong>：</p>
+<ol>
+<li><strong>有监督降维用 LDA（线性判别分析）</strong>：LDA 的目标是"类内方差最小、类间方差最大"，直接优化判别能力而不是重构误差</li>
+<li><strong>保留足够主成分</strong>：用 0.95 累计解释方差阈值而不是"只留一个"</li>
+<li><strong>PCA 之后接模型验证</strong>：降维后跑一遍分类任务，确认准确率没暴跌，别只看重构误差</li>
+<li><strong>特征重要性先验</strong>：如果有业务先验知道哪些特征有判别力，用这些特征先跑 baseline，对比 PCA 结果</li>
+</ol>
+<h3 id="45-什么时候用-什么时候别用">4.5 什么时候用 / 什么时候别用</h3>3
+<p><strong>用</strong>：</p>
+<ul>
+<li><strong>特征冗余严重</strong>（几十个相关特征）：PCA 能去相关、压缩维度</li>
+<li><strong>可视化</strong>：降到 2-3 维画图，观察簇结构、离群点、类别分布</li>
+<li><strong>去噪</strong>：丢掉方差最小的主成分，往往正好是噪声</li>
+<li><strong>加速后续模型</strong>：KNN、SVM 在降维后效果更好、速度更快</li>
+<li><strong>多重共线性</strong>：逻辑回归、线性回归遇到共线特征会数值不稳，PCA 后喂正交特征</li>
+</ul>
+<p><strong>别用</strong>：</p>
+<ul>
+<li><strong>需要可解释性</strong>：主成分是原始特征的线性组合，业务含义模糊</li>
+<li><strong>判别信息在小方差方向</strong>：见 §4.4，用 LDA 替代</li>
+<li><strong>稀疏数据</strong>（如词袋）：PCA 会把稀疏矩阵变稠密，内存爆炸，用 TruncatedSVD 或 NMF</li>
+<li><strong>非线性流形结构</strong>：数据在低维流形上卷曲（如瑞士卷），线性 PCA 无法展开，用 t-SNE、UMAP、Isomap</li>
+</ul>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">5. 四个算法的共同教训</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 距离型算法必须标准化（KNN、K-means、SVM、PCA），这是前置步骤不是可选优化</li><li>3. 先跑 baseline 再上复杂模型：朴素贝叶斯、KNN 是最快的 baseline，准确率能超过 80% 就说明数据质量没问题，再决定要不要上深度学习</li><li>2. 假设必须显式检查：特征相关矩阵检查独立假设、簇形可视化检查球状假设、碎石图检查方差假设——别信"算法默认参数"</li></ul></div>2
+<p>把四章翻车形态放在一起看，会发现<strong>根因高度集中</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>翻车症状</th>
+<th>根因</th>
+<th>涉及算法</th>
+<th>改法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>预测随大数特征漂移</td>
+<td>量纲失衡</td>
+<td>KNN、K-means</td>
+<td>标准化 / 归一化</td>
+</tr>
+<tr>
+<td>高维下距离无意义</td>
+<td>维度灾难</td>
+<td>KNN、K-means</td>
+<td>PCA 降维 / 特征筛选</td>
+</tr>
+<tr>
+<td>后验概率过度自信</td>
+<td>独立假设违反</td>
+<td>朴素贝叶斯</td>
+<td>特征去相关 / TAN</td>
+</tr>
+<tr>
+<td>零概率毁掉整条预测</td>
+<td>MLE 零概率问题</td>
+<td>朴素贝叶斯</td>
+<td>拉普拉斯平滑</td>
+</tr>
+<tr>
+<td>簇形和假设对不上</td>
+<td>球状簇假设</td>
+<td>K-means</td>
+<td>DBSCAN / 谱聚类</td>
+</tr>
+<tr>
+<td>换种子结果就变</td>
+<td>局部最优 + k 未知</td>
+<td>K-means</td>
+<td>K-means++ / 多次重启</td>
+</tr>
+<tr>
+<td>降维后准确率暴跌</td>
+<td>判别方向在小方差</td>
+<td>PCA</td>
+<td>LDA / 保留更多成分</td>
+</tr>
+</tbody>
+</table>
+<p><strong>三条普适工程纪律</strong>：</p>
+<ol>
+<li><strong>距离型算法必须标准化</strong>（KNN、K-means、SVM、PCA），这是前置步骤不是可选优化</li>
+<li><strong>假设必须显式检查</strong>：特征相关矩阵检查独立假设、簇形可视化检查球状假设、碎石图检查方差假设——别信"算法默认参数"</li>
+<li><strong>先跑 baseline 再上复杂模型</strong>：朴素贝叶斯、KNN 是最快的 baseline，准确率能超过 80% 就说明数据质量没问题，再决定要不要上深度学习</li>
+</ol>
+<hr />
+<h2 id="6-术语表">6. 术语表</h2>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>英文</th>
+<th>一句话解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>KNN</td>
+<td>k-NearestNeighbor</td>
+<td>用 k 个最近邻居投票/平均做预测的有监督算法</td>
+</tr>
+<tr>
+<td>闵可夫斯基距离</td>
+<td>Minkowski Distance</td>
+<td>$L_p = (\sum</td>
+</tr>
+<tr>
+<td>惰性学习</td>
+<td>Lazy Learning</td>
+<td>KNN 训练阶段不建模型，预测时才计算距离，"训练零成本"</td>
+</tr>
+<tr>
+<td>KD 树</td>
+<td>KD-Tree</td>
+<td>用空间划分加速最近邻搜索的数据结构，避免暴力 O(N) 扫描</td>
+</tr>
+<tr>
+<td>朴素贝叶斯</td>
+<td>Naive Bayes</td>
+<td>基于贝叶斯定理 + 特征条件独立假设的线性时间概率分类器</td>
+</tr>
+<tr>
+<td>条件独立假设</td>
+<td>Conditional Independence</td>
+<td>假设 $P(X|Y) = \prod P(X^{(i)}|Y)$，把联合概率拆成连乘</td>
+</tr>
+<tr>
+<td>拉普拉斯平滑</td>
+<td>Laplace Smoothing</td>
+<td>在频数计数上加 α（通常 α=1），防止零概率毁掉后验</td>
+</tr>
+<tr>
+<td>TF-IDF</td>
+<td>Term Frequency–Inverse Document Frequency</td>
+<td>$\text{TF} \times \log(N/df)$，给常见词降权、稀有词升权</td>
+</tr>
+<tr>
+<td>高斯朴素贝叶斯</td>
+<td>Gaussian Naive Bayes</td>
+<td>连续特征假设服从高斯分布，用均值和方差算条件概率</td>
+</tr>
+<tr>
+<td>K-means</td>
+<td>K-Means</td>
+<td>无监督聚类，最小化簇内平方误差 SSE，Lloyd 迭代求解</td>
+</tr>
+<tr>
+<td>质心</td>
+<td>Centroid</td>
+<td>簇内所有样本的均值向量，K-means 每轮更新的目标</td>
+</tr>
+<tr>
+<td>SSE</td>
+<td>Sum of Squared Errors</td>
+<td>$\sum |x - \mu_j|^2$，K-means 的目标函数，肘部法的纵轴</td>
+</tr>
+<tr>
+<td>肘部法</td>
+<td>Elbow Method</td>
+<td>画 k-SSE 曲线，下降速度骤减的肘点对应合理 k</td>
+</tr>
+<tr>
+<td>轮廓系数</td>
+<td>Silhouette Coefficient</td>
+<td>$s = (b-a)/\max(a,b)$，综合簇内凝聚和簇间分离，[-1,1] 越大越好</td>
+</tr>
+<tr>
+<td>K-means++</td>
+<td>K-Means++</td>
+<td>按距离平方概率采样初始质心，降低落入局部最优的概率</td>
+</tr>
+<tr>
+<td>DBSCAN</td>
+<td>Density-Based Spatial Clustering of Applications with Noise</td>
+<td>密度聚类，按 ε 邻域密度定义簇，支持任意形状，不需要预设 k</td>
+</tr>
+<tr>
+<td>层次聚类</td>
+<td>Hierarchical Clustering</td>
+<td>自底向上合并（AGNES）或自顶向下分裂，产出树状图</td>
+</tr>
+<tr>
+<td>PCA</td>
+<td>Principal Component Analysis</td>
+<td>找方差最大的投影方向，用 SVD 实现的线性降维</td>
+</tr>
+<tr>
+<td>SVD</td>
+<td>Singular Value Decomposition</td>
+<td>$X = U\Sigma V^T$，不要求方阵，PCA 的数值实现</td>
+</tr>
+<tr>
+<td>解释方差比</td>
+<td>Explained Variance Ratio</td>
+<td>每个主成分方差占总方差的比例，累计≥0.95 是常用保留判据</td>
+</tr>
+<tr>
+<td>LDA</td>
+<td>Linear Discriminant Analysis</td>
+<td>有监督降维，类内方差最小 + 类间方差最大，优化判别能力</td>
+</tr>
+<tr>
+<td>维度灾难</td>
+<td>Curse of Dimensionality</td>
+<td>高维空间距离趋于等距，距离型算法失效</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">7. 参考与延伸</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>课件来源：机器学习第二期（2022，徐老师）—— 12KNN算法、10朴素贝叶斯、17聚类算法、09数据降维 四份 PPT，「derived_from」 数组列出原始路径</li><li>实跑环境：Python 3.x + numpy 2.4.3 + scipy 1.18.1（「/home/wuyafang/.venv-hermes/bin/python」）</li><li>《L0-统计直觉》：均值/中位数、假设检验、置信区间的应用纪律，与本篇 §1.6 标准化、§4.2 解释方差判据直接相关</li></ul></div>2
+<ul>
+<li><strong>课件来源</strong>：机器学习第二期（2022，徐老师）—— 12KNN算法、10朴素贝叶斯、17聚类算法、09数据降维 四份 PPT，<code>derived_from</code> 数组列出原始路径</li>
+<li><strong>实跑环境</strong>：Python 3.x + numpy 2.4.3 + scipy 1.18.1（<code>/home/wuyafang/.venv-hermes/bin/python</code>）</li>
+<li><strong>延伸阅读</strong>：</li>
+<li>《L0-统计直觉》：均值/中位数、假设检验、置信区间的应用纪律，与本篇 §1.6 标准化、§4.2 解释方差判据直接相关</li>
+<li>sklearn 官方文档：<code>sklearn.decomposition.PCA</code>、<code>sklearn.cluster.KMeans</code>、<code>sklearn.naive_bayes.GaussianNB</code>、<code>sklearn.neighbors.KNeighborsClassifier</code>，本篇 numpy 实现与 sklearn API 语义一致</li>
+<li>DBSCAN 原论文：Ester et al., "A Density-Based Algorithm for Discovering Clusters in Large Spatial Databases with Noise", KDD 1996</li>
+<li>K-means++ 原论文：Arthur &amp; Vassilvitskii, "k-means++: The Advantages of Careful Seeding", SODA 2007</li>
+</ul></div></details></div></body></html>

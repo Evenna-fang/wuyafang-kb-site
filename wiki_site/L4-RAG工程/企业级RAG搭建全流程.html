@@ -1,0 +1,1323 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>企业级RAG搭建全流程</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 企业级RAG搭建全流程</span></div><div class="wrap"><h1 id="企业级rag搭建全流程教程版从零到可验收的-8-步">企业级RAG搭建全流程（教程版：从零到可验收的 8 步）</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+<strong>本篇为「企业级搭建流程骨架」专题分支</strong>（2026-10-26 去重梳理定位），RAG 全景主线（10 大模块可执行命令+源码结构解读+全缺口清单+评测尺子重建）详见 <strong><a href="RAG%E4%BD%9C%E6%88%98%E6%89%8B%E5%86%8C-%E5%85%A8%E6%99%AF%E5%9B%BE-20261021.html">RAG作战手册-全景图-20261021</a></strong>；域总纲/导航级权威入口见 <a href="L4-RAG%E5%B7%A5%E7%A8%8B-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L4-RAG工程-最佳答案</a>。<br />
+相关（域内 5 篇主线/分支导航）：<a href="RAG%E4%BD%9C%E6%88%98%E6%89%8B%E5%86%8C-%E5%85%A8%E6%99%AF%E5%9B%BE-20261021.html">RAG作战手册-全景图-20261021</a>（实操主线） · <a href="L4-RAG%E5%B7%A5%E7%A8%8B-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L4-RAG工程-最佳答案</a>（全域主线） · <a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践-2026</a>（专题分支·生产架构） · <a href="L4-RAG%E5%B7%A5%E7%A8%8B-%E8%AF%BE%E4%BB%B6%E5%AE%9E%E6%93%8D.html">L4-RAG工程-课件实操</a>（专题分支·课件代码）<br />
+相关（域外）：<a href="RAG%E6%A3%80%E7%B4%A2%E4%B8%8D%E5%87%86%E6%80%8E%E4%B9%88%E6%8E%92%E6%9F%A5.html">RAG检索不准怎么排查</a> · <a href="Chunk%E5%A4%A7%E5%B0%8F%E6%80%8E%E4%B9%88%E9%80%89.html">Chunk大小怎么选</a></p>
+<p><strong>TL;DR 一句话答案</strong>：企业级 RAG 的标准流程是 <strong>数据准备 → 分块嵌入 → 建库索引 → 混合检索（dense + sparse + RRF）→ 重排 rerank → 门禁拒答 → 生成 → 评估闭环</strong>；我们这套真实实现落在 <code>/mnt/c/MyData/Documents/wuyafang-l/rag/</code>（bge-m3 本地 snapshot + Chroma 1.5.9 + bge-reranker-v2-m3 + LangGraph 1.2.11 + RAGAS 0.4.3），照本文第 3 节的 8 步走，每步都有能直接复制粘贴的命令、参数解释、预期输出和常见错误。当前库实测 <strong>18599 个 chunk、919 个已登记源文件、56 条 golden 评测题</strong>，端到端 Recall@5 = 56.9%（2026-10-15 实测）。</p>
+</blockquote>
+<hr />
+<h2 id="why">WHY</h2>2
+<h3 id="核心论点">核心论点</h3>3
+<p><strong>企业级 RAG 的成败不在单点技术，而在八步链路的每一步都有可验收的产物——缺一步就是"能跑但不可交付"。</strong> 数据准备→分块嵌入→建库索引→混合检索→rerank→门禁拒答→生成→评估闭环的顺序不可调换（评测是其余七步的验收前置，索引版本管理是改 chunking 后的强制动作）。工程上的真难点是让每一步都可复制：真实文件名/参数/预期输出比架构图重要，这也是本库用 18599 chunk、56 条 golden 题、Recall@5 56.9% 作为验收水位的原因——没有数字的"全流程"只是流程图。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2. 为什么：原理 + 为什么这样做而不是那样做 + 代价权衡</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<h4 id="21-为什么是混合检索而不是单路-dense">2.1 为什么是"混合检索"，而不是单路 dense</h4>
+<p>dense 擅长"意思相近但用词不同"（问"拒答机制"能召回"门禁"），但<strong>对专有名词、型号、ID 类查询很弱</strong>；sparse（关键词权重）正好相反。两路结果量纲完全不同（dense 是 <code>1-dist ∈ [0,1]</code>，sparse 是未归一的词权重、实测可 &gt;1），<strong>直接加权求和必翻车</strong>——我们 10-14 就踩过：无关课件的 sparse 原始分 2.35 直接碾压 wiki 层霸榜 top1。所以用 <strong>RRF 只吃"排名"不吃"分数"</strong>，天然同量纲：</p>
+<pre><code class="language-python"># rag/query.py::rrf_fuse —— 实测输出（可直接跑，见下方命令）
+# dense 路: a#0 第1名, b#1 第2名；sparse 路: b#1 第1名, c#2 第2名；k=60
+# b#1 = 1/(60+2) + 1/(60+1) = 0.032522  ← 两路都出现，稳居第 1
+# a#0 = 1/(60+1) = 0.016393              ← 只有 dense 路
+# c#2 = 1/(60+2) = 0.016129              ← 只有 sparse 路
+</code></pre>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l &amp;&amp; /home/wuyafang/ai-stack/bin/python - &lt;&lt;'PY'
+import sys; sys.path.insert(0, '/mnt/c/MyData/Documents/wuyafang-l/rag')
+from query import rrf_fuse
+dense=[{&quot;_id&quot;:&quot;a#0&quot;,&quot;source&quot;:&quot;wiki/x.md&quot;,&quot;chunk&quot;:0},{&quot;_id&quot;:&quot;b#1&quot;,&quot;source&quot;:&quot;raw/y.md&quot;,&quot;chunk&quot;:1}]
+sparse=[{&quot;_id&quot;:&quot;b#1&quot;,&quot;source&quot;:&quot;raw/y.md&quot;,&quot;chunk&quot;:1},{&quot;_id&quot;:&quot;c#2&quot;,&quot;source&quot;:&quot;wiki/z.md&quot;,&quot;chunk&quot;:2}]
+for h in rrf_fuse([dense, sparse], k=60):
+    print(h[&quot;_id&quot;], round(h[&quot;rrf_score&quot;], 6))
+PY
+# 预期输出: b#1 0.032522 / a#0 0.016393 / c#2 0.016129
+</code></pre>
+<p><strong>代价</strong>：RRF 丢弃了分数的绝对大小，<code>k=60</code> 是压制头部排名影响的经验值（Cormack 2009 实验结论，本项目沿用）。要"分数敏感"的场景只能换加权归一融合，那需要先做分位数归一，我们没做，因为 RRF 已够用。</p>
+<h4 id="22-为什么-dense-和-sparse-必须共用一个-bge-m3-实例">2.2 为什么 dense 和 sparse 必须共用一个 bge-m3 实例</h4>
+<p>历史方案是 dense 走 <code>sentence_transformers</code>、sparse 走 <code>FlagEmbedding.BGEM3FlagModel</code>，<strong>两个加载器在同进程抢同一份 snapshot 权重，后加载的那个 encode 出空</strong>——日志会从 <code>dense top-0 + sparse top-100</code> 变成镜像的 <code>dense top-1000 + sparse top-0</code>。2026-10-16 修复成 <code>_get_m3_model()</code> 单实例：一个 <code>BGEM3FlagModel</code> 同时吐 <code>dense_vecs</code> 和 <code>lexical_weights</code>，<strong>查询侧与索引侧（<code>ingest.py</code> 的 <code>get_bge_model()</code>）严格同源</strong>，向量空间与 token id 才对得上。</p>
+<p><strong>为什么不用 Ollama 提供 embedding</strong>：<code>embedding.eval_mode: true</code> 时 dense 走 <code>localhost:11434</code>，但实测 Ollama 里只有 <code>qwen3</code> 没有 bge-m3，服务 inactive → <code>Connection refused</code> → dense 路空。<strong>本地 snapshot 是唯一确定可用的路径</strong>（<code>~/.cache/huggingface/hub/models--BAAI--bge-m3/snapshots/5617a9f61b028005a4858fdac845db406aefb181</code>，已验证含 <code>colbert_linear.pt</code> 与 <code>sparse_linear.pt</code>）。</p>
+<h4 id="23-为什么必须-rerank且为什么-simple_fact-也不能跳过">2.3 为什么必须 rerank，且为什么 simple_fact 也不能跳过</h4>
+<p>双塔（bi-encoder）检索为了快，query 和文档<strong>分开编码</strong>，精度有天花板；cross-encoder（reranker）把"问题+整段"拼在一起过模型，慢但准。实测区分度极高：<strong>域外问题 0.0021 vs 正样本 0.9924</strong>，这个 0.45 阈值就是我们的门禁主路径。</p>
+<p>10-15 之前 <code>simple_fact</code> 路由跳过 rerank，只剩 <code>dist_threshold=0.60</code> 兜底，而 bge-m3 给域外问题的 dense dist 实测只有 <strong>0.37~0.43</strong>，永远 &lt; 0.60 → <strong>门禁形同虚设，答非所问</strong>。现在三条路由统一过 rerank（<code>simple_fact_top_n: 10</code>）。</p>
+<p><strong>代价</strong>：rerank 一次 <code>top_n=10</code> 成对打分，CPU 上约 0.5~2s，且首次加载 reranker 模型约 1 分钟；所以配了 <code>data/rerank_cache/</code>（md5 缓存）和 <code>timeout: 60.0</code> 熔断——超时返回 <code>None</code>，回退 RRF 排序而不是崩。</p>
+<h4 id="24-为什么先建评估再动检索fix-order">2.4 为什么先建评估、再动检索（Fix-Order）</h4>
+<p>调参最贵的成本是"不知道这次改动是变好还是变坏"。我们踩过三次：golden 集因 wiki 目录重组腐烂两次（10-09 扁平→子目录 55/76 引用失效；10-14 合并 10 条死标签），第三版才加 <code>--check-golden</code> 守卫。<strong>顺序永远是：评估口径 → 检索 → 生成</strong>，反过来就是凭感觉调。RAGAS 四指标 + golden-q 56 题就是这把尺子。</p>
+<h4 id="25-选型权衡表为什么不是别的">2.5 选型权衡表（为什么不是别的）</h4>
+<table>
+<thead>
+<tr>
+<th>决策</th>
+<th>我们的选择</th>
+<th>被否掉的方案</th>
+<th>权衡结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>向量库</td>
+<td>Chroma 1.5.9 单机文件库</td>
+<td>Milvus / Pinecone / PGVector</td>
+<td>当前 18599 chunk、单机单用户，Chroma 零运维；百万级以上再迁 Milvus</td>
+</tr>
+<tr>
+<td>Embedding</td>
+<td>bge-m3 本地 snapshot</td>
+<td>OpenAI text-embedding-3 / Cohere embed</td>
+<td>免 API 费、不出网、dense+sparse 一个模型全出；代价是 CPU 编码慢</td>
+</tr>
+<tr>
+<td>分块</td>
+<td>Markdown 标题 + 800 字符细切</td>
+<td>固定 512 token 硬切</td>
+<td>保留章节结构（<code>heading_path</code> 进 metadata）；代价是块长不均匀</td>
+</tr>
+<tr>
+<td>融合</td>
+<td>RRF(k=60)</td>
+<td>加权分数相加 / MaxSim</td>
+<td>免归一、抗量纲不一致；代价是忽略分数大小</td>
+</tr>
+<tr>
+<td>拒答</td>
+<td>rerank 阈值 0.45 为主</td>
+<td>dense 阈值兜底</td>
+<td>dense 正/负样本间距只有 0.03（0.3732 vs 0.4245），刀刃级不可靠，只能当备用</td>
+</tr>
+<tr>
+<td>生成</td>
+<td><code>mimo-v2.6-flash</code>（小米 TokenPlan）</td>
+<td>火山豆包 / 本地 qwen2.5:0.5b</td>
+<td>豆包额度耗尽切换；0.5b 做裁判会假完成（空答案判 0 分）</td>
+</tr>
+<tr>
+<td>对外暴露</td>
+<td>常驻 HTTP MCP（127.0.0.1:8770）</td>
+<td>每个 Agent 各起一个 stdio server</td>
+<td>1 个模型 1.6GB，6 份 = 爆内存；单例只加载一次</td>
+</tr>
+</tbody>
+</table>
+<h4 id="26-为什么用小块检索父块回灌而不是拿大块直接检索">2.6 为什么用"小块检索、父块回灌"，而不是拿大块直接检索</h4>
+<p>检索希望块小：块越小，这段话的语义越集中，dense 向量被无关内容稀释得越少，<br />
+<code>Recall@k</code> 越容易做高。生成希望块大：大模型只看 100 字的碎片，很容易断章取义，<br />
+拼出来的上下文缺前后条件。两头都要，就拆成两层——<strong>检索用小块（本项目 Markdown<br />
+标题切出的 163~506 字符段，实测见步骤 4），生成时用 <code>parent_text</code> 回灌父块</strong><br />
+（<code>split_parent_chunks()</code> 的 <code>chunk_size=PARENT_CHUNK_SIZE</code>、<code>chunk_overlap=PARENT_CHUNK_OVERLAP</code>）。</p>
+<p>在代码里的落点是两处，缺一处就退化：</p>
+<pre><code class="language-python">rag/query.py::retrieve_node()
+    # 每个 hit 带上父块文本，送 rerank / 生成用的是父块，不是碎块
+    for h in hits:
+        h[&quot;_rerank_text&quot;] = h.get(&quot;parent_text&quot;) or h[&quot;text&quot;]
+
+rag/ingest.py::find_parent_chunk(chunk_text, parent_chunks)
+    # 用块首 120 字符在父块列表里回溯，命中返回父块全文，找不到退化为第一个父块
+</code></pre>
+<p><strong>代价</strong>：<code>chunks.jsonl</code> 每条要多存一份 <code>parent_text</code>，当前文件 38761631 字节<br />
+（约 37MB，18599 条），内存里做内容指纹去重时也要一起读；换来的是生成端上下文完整。<br />
+<strong>为什么不干脆全用 800 字符块检索</strong>：同样召回 4 条，800 字符块给模型的是 3200 字符<br />
+噪声，200~300 字符块给的是 800~1200 字符高密度证据，rerank 的成对打分也更准——<br />
+这也是 <a href="Chunk%E5%A4%A7%E5%B0%8F%E6%80%8E%E4%B9%88%E9%80%89.html">Chunk大小怎么选</a> 的结论来源。</p>
+<h4 id="27-为什么调-path_boost-把-wiki-顶上去是死路我们扫过-8-组网格才敢下结论">2.7 为什么"调 path_boost 把 wiki 顶上去"是死路（我们扫过 8 组网格才敢下结论）</h4>
+<p>语料结构失衡（raw 16842 条 vs wiki 1706 条，9:1）很容易让人想到"给 wiki 加权"。<br />
+10-15 用 <code>rag/eval/_sweep_boost.py</code> / <code>_sweep_ablation.py</code> 做过一次生产保真消融，<br />
+扫了 <code>wiki2/wiki3/wiki4</code>、<code>raw0.5/raw0.6</code>、<code>onto1.0</code>、<code>hardtier</code> 及组合共 8 组：</p>
+<table>
+<thead>
+<tr>
+<th>排序模式</th>
+<th>Recall@1</th>
+<th>Recall@5</th>
+<th>Recall@10</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A 裸序（含图谱 hit）</td>
+<td>25.5%</td>
+<td>76.5%</td>
+<td>88.2%</td>
+</tr>
+<tr>
+<td>B 裸序（剔图谱 hit）</td>
+<td>51.0%</td>
+<td>76.5%</td>
+<td>88.2%</td>
+</tr>
+<tr>
+<td>C 去重 + boost（剔图谱）</td>
+<td>29.4%</td>
+<td>60.8%</td>
+<td>82.4%</td>
+</tr>
+<tr>
+<td>D 完整生产（去重 + boost + 图谱）</td>
+<td>5.9%</td>
+<td>60.8%</td>
+<td>82.4%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>8 组 boost 全部 ≤ baseline，<code>wiki3/wiki4</code> 反而把 Q017 从 rank4 推到 rank17。</strong><br />
+结论有两条：① 加权解决不了量级差，真正要修的是候选池结构和端到端窗口；<br />
+② 这张表测在 rerank <strong>之前</strong>，生产最终输出是 rerank <strong>之后</strong>，所以它不足以支撑<br />
+"改 query.py"，真正缺的数是端到端口径（已补：<code>rag/eval/_e2e_eval.py</code>，<br />
+R@5 = 56.9%）。<strong>先量再改</strong>是这条结论唯一可复用的部分。</p>
+<hr />
+<blockquote>
+<p>[交叉链接] 此处与 <a href="RAG%E4%BD%9C%E6%88%98%E6%89%8B%E5%86%8C-%E5%85%A8%E6%99%AF%E5%9B%BE-20261021.html">RAG作战手册-全景图-20261021</a> §1 十大模块/§4 高频命令速查、<a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践-2026</a> §3 分步重叠（同一批 <code>ingest.py</code>/<code>query.py</code>/<code>eval_*.py</code> 命令），详见主线全景图 §1+§4；本节按「8 步从零到验收」顺序组织，每步带\"目的→命令→参数→预期输出→常见错误\"，适合照着一步步搭。</p>
+</blockquote>
+<h2 id="what">WHAT</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">0. 小白前置：这个域是什么 / 需要先会什么 / 术语表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<h4 id="这个域是什么">这个域是什么</h4>
+<p>RAG（Retrieval-Augmented Generation，检索增强生成）解决一个非常具体的问题：<strong>大模型（LLM）不知道你私有文档里的内容，而且会一本正经地编</strong>。做法是先把你本地的 Markdown/PDF 文档切成小块、转成向量存进向量库；用户提问时，先去库里捞最相关的几段，再把这几段塞进提示词（prompt）让模型"照着材料回答"。</p>
+<p>一句话记住它的边界：<strong>RAG 改善的是"模型手里有没有这份材料"，不是"模型聪不聪明"</strong>。</p>
+<h4 id="需要先会什么缺哪块补哪块不要全学完才动手">需要先会什么（缺哪块补哪块，不要全学完才动手）</h4>
+<ol>
+<li><strong>Bash 基础</strong>：会 <code>cd</code>、<code>ls</code>、<code>grep -n</code>、<code>cat</code>，会看退出码（<code>echo $?</code>）。</li>
+<li><strong>Python 虚拟环境</strong>：会 <code>source &lt;venv&gt;/bin/activate</code> 或直接用绝对路径 <code>&lt;venv&gt;/bin/python</code>。本项目所有命令必须用 <code>/home/wuyafang/ai-stack/bin/python</code>（Python 3.14.4）——<strong>系统 <code>python3</code> 没装 chromadb，直接跑会 <code>ModuleNotFoundError: No module named 'chromadb'</code></strong>（本文实测过）。</li>
+<li><strong>编辑 YAML</strong>：<code>rag/config.yaml</code> 是全管线唯一配置入口，缩进用空格、不能用 Tab。</li>
+<li><strong>SQLite 基本查询</strong>：Chroma 的数据落在 <code>rag/index/chroma.sqlite3</code>，验收经常要直接查表。</li>
+<li><strong>不用先会的</strong>：分布式、GPU 推理、微调——本方案全程 CPU 本地跑，bge-m3 加载约 1.6GB 内存。</li>
+</ol>
+<blockquote>
+<p>[交叉链接] 此处与 <a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践-2026</a> §0.3 术语表、<a href="RAG%E4%BD%9C%E6%88%98%E6%89%8B%E5%86%8C-%E5%85%A8%E6%99%AF%E5%9B%BE-20261021.html">RAG作战手册-全景图-20261021</a> §1/§3 重叠（同一批缩写解释），详见主线全景图；本节是本篇面向「从零起步」视角的16条版本，数值口径以主线为准。</p>
+</blockquote>
+<h4 id="术语表16-条缩写首次出现给全称">术语表（16 条，缩写首次出现给全称）</h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>术语</th>
+<th>全称</th>
+<th>一句话解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>RAG</td>
+<td>Retrieval-Augmented Generation</td>
+<td>检索增强生成：先查库再让大模型照材料回答</td>
+</tr>
+<tr>
+<td>2</td>
+<td>LLM</td>
+<td>Large Language Model</td>
+<td>大语言模型，本项目生成端用 <code>mimo-v2.6-flash</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Embedding</td>
+<td>向量嵌入</td>
+<td>把一段文字变成一串数字（向量），语义相近的向量距离也近</td>
+</tr>
+<tr>
+<td>4</td>
+<td>dense</td>
+<td>Dense Vector（稠密向量）</td>
+<td>每一维都有值的向量，本项目 bge-m3 输出 1024 维</td>
+</tr>
+<tr>
+<td>5</td>
+<td>sparse</td>
+<td>Sparse Vector（稀疏向量）</td>
+<td>只有少数词有权重的向量，等价于"加权关键词"，bge-m3 通过 <code>lexical_weights</code> 输出</td>
+</tr>
+<tr>
+<td>6</td>
+<td>BM25</td>
+<td>Best Matching 25</td>
+<td>1990s 的经典关键词打分算法，sparse 路的近亲（我们的 sparse 是神经网络版 BM25 风格打分）</td>
+</tr>
+<tr>
+<td>7</td>
+<td>RRF</td>
+<td>Reciprocal Rank Fusion</td>
+<td>倒数排名融合：把多路结果按"第几名"加分合并，<code>score += w/(k+rank)</code>，本项目 <code>k=60</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td>chunk</td>
+<td>分块</td>
+<td>文档切出来的最小检索单位，本项目 Markdown 按 <code>#/##/###</code> 切，超 800 字符再细切</td>
+</tr>
+<tr>
+<td>9</td>
+<td>rerank</td>
+<td>重排</td>
+<td>用 cross-encoder 模型把"问题+候选段"成对打分，重排顺序，本项目用 bge-reranker-v2-m3</td>
+</tr>
+<tr>
+<td>10</td>
+<td>cosine distance</td>
+<td>余弦距离</td>
+<td>两个向量方向差异，Chroma 用它，<code>0 = 完全相同</code>，越大越不像</td>
+</tr>
+<tr>
+<td>11</td>
+<td>metadata</td>
+<td>元数据</td>
+<td>挂在每个 chunk 上的字段：<code>source_file / source_tier / heading_path / sparse_vec / ttl</code> 等</td>
+</tr>
+<tr>
+<td>12</td>
+<td>registry</td>
+<td>增量登记表</td>
+<td><code>rag/data/registry.json</code>，记录每个文件的 sha256 + bge_version，命中就跳过不重编码</td>
+</tr>
+<tr>
+<td>13</td>
+<td>TTL</td>
+<td>Time To Live（存活期）</td>
+<td>知识保鲜字段，<code>7d/30d/180d/eternal</code>，过期 chunk 检索时被过滤或提示</td>
+</tr>
+<tr>
+<td>14</td>
+<td>MCP</td>
+<td>Model Context Protocol</td>
+<td>模型上下文协议，我们用它把知识库暴露成 <code>search_knowledge</code> / <code>kb_stats</code> 两个工具</td>
+</tr>
+<tr>
+<td>15</td>
+<td>gate</td>
+<td>检索门禁</td>
+<td>检索分数不达标就拒答，防止拿不相关的段落硬编答案</td>
+</tr>
+<tr>
+<td>16</td>
+<td>RAGAS</td>
+<td>RAG Assessment</td>
+<td>RAG 专用评估库，本项目装的是 0.4.3，跑四指标：context_precision / context_recall / faithfulness / answer_relevancy</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p>[交叉链接] 此处与 <a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践-2026</a> §1 是什么、<a href="RAG%E4%BD%9C%E6%88%98%E6%89%8B%E5%86%8C-%E5%85%A8%E6%99%AF%E5%9B%BE-20261021.html">RAG作战手册-全景图-20261021</a> §0 全局图/§3 源码结构重叠（同一条管线不同切分粒度），详见主线全景图；本节多一张「一条 chunk 在库里长什么样」的字段表（本篇独有细节，别处查不到）。</p>
+</blockquote>
+<h3 id="1-是什么定义-边界">1. 是什么：定义 + 边界</h3>3
+<h4 id="定义">定义</h4>
+<p><strong>企业级 RAG = 一条带反馈回路的流水线，而不是一个"向量搜索函数"。</strong> 它的完整生命周期在我们库里对应这些物理文件：</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>落地文件</th>
+<th>干什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据准备</td>
+<td><code>raw/</code>（16842 chunk）、<code>wiki/</code>（1706）、<code>ontology/</code>（51）</td>
+<td>三层语料：外部知识 / 人读权威条目 / 术语对齐</td>
+</tr>
+<tr>
+<td>分块</td>
+<td><code>rag/ingest.py</code> 的 <code>split_file()</code></td>
+<td>Markdown 标题切 + &gt;800 字符段 RecursiveCharacter 细切（<code>chunk_size=800, chunk_overlap=100</code>）</td>
+</tr>
+<tr>
+<td>嵌入</td>
+<td><code>rag/ingest.py</code> 的 <code>encode_with_sparse()</code></td>
+<td>bge-m3 一次 encode 同时出 dense(1024) + sparse(lexical_weights)</td>
+</tr>
+<tr>
+<td>建库</td>
+<td><code>rag/index/chroma.sqlite3</code></td>
+<td>Chroma collection <code>wuyafang_kb</code>，<code>hnsw:space=cosine</code>，当前 18599 条</td>
+</tr>
+<tr>
+<td>检索</td>
+<td><code>rag/query.py</code> 的 <code>retrieve_hybrid()</code></td>
+<td>dense top-1000 + sparse top-100 → RRF(k=60) 融合</td>
+</tr>
+<tr>
+<td>重排</td>
+<td><code>rag/query.py</code> 的 <code>rerank()</code> / <code>rerank_node()</code></td>
+<td>bge-reranker-v2-m3 成对打分，阈值 0.45</td>
+</tr>
+<tr>
+<td>门禁</td>
+<td><code>rag/query.py</code> 的 <code>gate_node()</code></td>
+<td>rerank 分数 &lt; 0.45 → 拒答；rerank 熔断时退 <code>gate.dense_threshold=0.50</code></td>
+</tr>
+<tr>
+<td>生成</td>
+<td><code>rag/query.py</code> 的 <code>generate_node()</code></td>
+<td><code>mimo-v2.6-flash</code>，OpenAI 兼容端点，超时 180s</td>
+</tr>
+<tr>
+<td>评估</td>
+<td><code>rag/eval/*.py</code> + <code>rag/eval_ragas.py</code></td>
+<td>golden-q 56 题 + RAGAS 四指标</td>
+</tr>
+</tbody>
+</table>
+<h4 id="一条-chunk-在库里长什么样决定你能查什么过滤什么">一条 chunk 在库里长什么样（决定你能查什么、过滤什么）</h4>
+<p><code>rag/data/chunks.jsonl</code> 每行一条记录，本文实测字段列表：<br />
+<code>['source', 'chunk', 'file_hash', 'source_tier', 'chunk_type', 'date', 'heading_path', 'text', 'parent_text']</code></p>
+<pre><code class="language-json">{
+  &quot;source&quot;: &quot;wiki/L4-RAG工程/RAG检索不准怎么排查.md&quot;,
+  &quot;chunk&quot;: 4,
+  &quot;file_hash&quot;: &quot;e3b0c44298fc1c14&quot;,
+  &quot;source_tier&quot;: 2,
+  &quot;chunk_type&quot;: &quot;wiki&quot;,
+  &quot;date&quot;: &quot;2026-10-16&quot;,
+  &quot;heading_path&quot;: &quot;## 这个问题的答案是什么&quot;,
+  &quot;text&quot;: &quot;本文来自wiki/...,主要讲这个问题的答案是什么。\n\n正文……&quot;,
+  &quot;parent_text&quot;: &quot;父块全文(800字符级, 生成时回灌)&quot;
+}
+</code></pre>
+<p>进了 Chroma 之后 metadata 还会多出 <code>sparse_vec</code>（sparse 权重的 JSON 串，检索时<br />
+在 Python 里点积打分）、<code>chars</code>、<code>bge_version</code>、<code>chroma:document</code>（正文本体）等 key。<br />
+<strong>查询这些字段必须查 <code>embedding_metadata</code> 表</strong>（列是 <code>id/key/string_value/int_value/float_value/bool_value</code>），<br />
+而 <code>source_file</code> 不在 <code>embeddings</code> 表里——这是写验收脚本最常撞的一堵墙。</p>
+<h4 id="解决什么">解决什么</h4>
+<ol>
+<li><strong>可溯源回答</strong>：答案后面能挂 <code>source + chunk 编号</code>，用户可以点回原文。</li>
+<li><strong>拒答</strong>：库里没有的内容明说"未检索到相关片段"，而不是编（<code>gate_node</code> 就是干这个的）。</li>
+<li><strong>私有知识上桌</strong>：18599 个 chunk 全在本地磁盘，不外传原文。</li>
+<li><strong>可评估</strong>：换任何参数都能用同一把尺子（<code>golden-q.jsonl</code> 56 题）量出变好还是变坏。</li>
+</ol>
+<h4 id="不解决什么越界即返工">不解决什么（越界即返工）</h4>
+<ul>
+<li><strong>不解决"模型推理能力"</strong>：问题需要多步计算、长链推理时，换更强的 LLM 才是正解，调检索没用。</li>
+<li><strong>不解决"原始资料质量"</strong>：PDF 乱码、表格切散（我们 102/119 篇含表格且 <code>ingest.py</code> 无表格逻辑，属 P1 缺口）、OCR 错字，进库前就得修。</li>
+<li><strong>不解决"权限与多租户"</strong>：Chroma 无行级权限，谁能查库就能查全部内容。</li>
+<li><strong>不替代微调</strong>：需要模型学会"说话风格/固定格式"才微调；需要模型"知道新知识"优先 RAG。</li>
+<li><strong>不做在线高并发服务</strong>：<code>query.py</code> 是 CLI 单进程，bge-m3 单实例 1.6GB，对外要靠常驻 MCP server（127.0.0.1:8770）而不是每请求起一个进程。</li>
+</ul>
+<hr />
+<blockquote>
+<p>[交叉链接] 此处与 <a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践-2026</a> §2 为什么、<a href="RAG%E4%BD%9C%E6%88%98%E6%89%8B%E5%86%8C-%E5%85%A8%E6%99%AF%E5%9B%BE-20261021.html">RAG作战手册-全景图-20261021</a> §1⑤/§5 重叠（同一段 RRF k=60 数字推导、dense/sparse 单实例、rerank/门禁阈值、Fix-Order），详见主线全景图 §1⑤+§5；本节多一张「选型权衡表」（§2.5）与「path_boost 死路」实测消融（§2.7）供决策追溯。</p>
+</blockquote>
+</div></details><h2 id="how">HOW</h2>2
+<h3 id="30-分钟最小上手路线照跑一遍每步都有退出码">30 分钟最小上手路线（照跑一遍，每步都有退出码）</h3>3
+<pre><code class="language-bash"># ① 2min: 环境与模型文件齐不齐
+cd /mnt/c/MyData/Documents/wuyafang-l &amp;&amp; /home/wuyafang/ai-stack/bin/python -V &amp;&amp; \
+  ls ~/.cache/huggingface/hub/models--BAAI--bge-m3/snapshots/*/ | grep -c '\.pt$'   # 期望 2
+# ① 退出码 0 且输出 2 才继续
+# ② 5min: 只读核对库里的真数(不加载模型, 不占检索资源)
+/home/wuyafang/ai-stack/bin/python -c &quot;import json,sqlite3; \
+  print('registry=',len(json.load(open('rag/data/registry.json')))); \
+  db=sqlite3.connect('file:rag/index/chroma.sqlite3?mode=ro',uri=True); \
+  print('vectors=',db.execute('select count(*) from embeddings').fetchone()[0])&quot;
+# ③ 3min: 看懂配置里 6 个关键数字
+grep -nE &quot;top_k:|dense_top_n:|sparse_top_n:|rrf_k:|threshold:|dense_threshold:&quot; rag/config.yaml
+# ④ 剩余时间: 读步骤 4 的分块演示, 用真实文件看切出来的块长分布
+</code></pre>
+<p>三步跑完你手上就有三个可复现数字（<code>2</code> 个 <code>.pt</code> 文件、<code>919</code> 个登记源、<code>18599</code> 条向量），<br />
+后面任何一次改动都能拿它们当对照组——<strong>先有基线再动手</strong>是本文唯一的硬顺序要求。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 怎么做：分步骤（每步 = 目的 → 可复制命令/代码 → 参数解释 → 预期输出 → 常见错误）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<h4 id="步骤-1-确认运行环境与依赖版本">步骤 1 · 确认运行环境与依赖版本</h4>
+<ul>
+<li><strong>目的</strong>：排除 90% 的"跑不起来"——解释器不对、依赖缺失、模型文件没下载。</li>
+<li><strong>可复制命令</strong>：</li>
+</ul>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+/home/wuyafang/ai-stack/bin/python -V
+/home/wuyafang/ai-stack/bin/pip list 2&gt;/dev/null | grep -iE &quot;chromadb|FlagEmbedding|langgraph|ragas|langchain-text-splitters&quot;
+ls -d ~/.cache/huggingface/hub/models--BAAI--bge-m3/snapshots/*/
+ls ~/.cache/huggingface/hub/models--BAAI--bge-m3/snapshots/5617a9f61b028005a4858fdac845db406aefb181/ | grep -E '\.pt$'
+</code></pre>
+<ul>
+<li><strong>参数解释</strong>：<code>ai-stack</code> 是本项目唯一装齐依赖的 venv（<code>/home/wuyafang/ai-stack/bin/activate</code>）；最后一条 <code>grep '\.pt$'</code> 是<strong>必查项</strong>——bge-m3 的 sparse 头要 <code>sparse_linear.pt</code>，缺了会随机初始化（详见第 6 节排错 2）。</li>
+<li><strong>预期输出</strong>（本文实测）：<code>Python 3.14.4</code>；<code>chromadb 1.5.9 / FlagEmbedding 1.4.2 / langgraph 1.2.11 / ragas 0.4.3 / langchain-text-splitters 1.1.2</code>；snapshot 目录列出 <code>colbert_linear.pt</code> 和 <code>sparse_linear.pt</code> 两行。</li>
+<li><strong>常见错误</strong>：用系统 <code>python3</code> 跑 → <code>ModuleNotFoundError: No module named 'chromadb'</code>（本项目实测）；只列出一个 <code>.pt</code> → sparse 头随机，见排错 2。</li>
+</ul>
+<h4 id="步骤-2-准备语料并按三层归档">步骤 2 · 准备语料并按三层归档</h4>
+<ul>
+<li><strong>目的</strong>：让"我用的时候找得到"，并且给每个文件打上可被检索层利用的元数据（<code>source_tier</code> / <code>ttl</code> / <code>wiki_role</code>）。</li>
+<li>据[一手源]：RAG入库一手源细节-20261009.md —— Microsoft Azure RAG 官方 6 phase 的第 1 个 Preparation 不是"抓文档入库"，而是先建评测集：定业务域 → 分析内容分类/格式/安全约束/结构 → 收代表性测试文档 → 构造测试 Q&amp;A 对（可用 LLM 生成候选问题，<strong>SME 必须人工审</strong>）→ 再构造"文档答不上来的负向 query"测系统会不会瞎说。该源认为没有这一步，RAGAS Answer Correctness 跑不起来。</li>
+<li>据[一手源]：各类格式进RAG处理方案-20261021.md —— 归档前先判"该不该进库"：有人写的教程/笔记/方法论/案例/规范/调研进；向量存储与 rerank 缓存等构建产物、纯数据集（csv）、测试桩、依赖清单、纯链接跳转、重复副本不进。该源在课件库 234 个 txt 里实测出重复组（小说章节 12 份、DeepSeek 介绍 6 份、公司规章 6 份），各留 1 份；docx 与 pdf 版同内容规章只留一份。非 md 格式的解析与切法见 <a href="Chunk%E5%A4%A7%E5%B0%8F%E6%80%8E%E4%B9%88%E9%80%89.html">Chunk大小怎么选</a> 第三节的格式表。</li>
+<li><strong>可复制命令</strong>（新建一篇 wiki 的标准模板，直接整段粘到终端）：</li>
+</ul>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l/wiki/L4-RAG工程
+cat &gt; 新条目-示例.md &lt;&lt;'EOF'
+---
+tags: [L4-RAG, 示例]
+updated: 2026-10-16
+maturity: tutorial
+wiki_role: article
+owner: wuyafang
+last_verified: 2026-10-16
+ttl: 180d
+---
+# 新条目标题
+&gt; TL;DR 一句话答案
+正文……
+EOF
+# 正文按本篇 0–7 段模板写(小白前置/是什么/为什么/怎么做/落地现状/工具栈/排错/来源)
+# raw/ 外部资料还需在正文头部补 source_tier 分级:
+#   source_tier: 1  一手(arXiv/GitHub/官方文档, 权重1.0)
+#   source_tier: 2  二手(博客/社区, 权重0.7)
+#   source_tier: 3  三手(自媒体, 权重0.4, 检索降权)
+grep -rn &quot;source_tier&quot; /mnt/c/MyData/Documents/wuyafang-l/raw/rag-arch/*.md | head -3
+</code></pre>
+<ul>
+<li><strong>参数解释</strong>：<code>maturity: tutorial</code> 是本次升级的成熟度标记（原 <code>substantial</code>）；<code>ttl: 180d</code> 决定过期提醒（据[一手源]：RAG保鲜落地验证-20261009.md —— 到期后"墓碑标记 + 检索过滤"可自动做，只有物理删除必须人工；业界无按目录路径自动判 TTL 的先例，所以入库时显式写 <code>ttl</code>，目录只当默认值提示；依据是 arXiv:2609.31342 单条过期文档让 83 题里 74 题答错，详见 <a href="%E7%9F%A5%E8%AF%86%E5%BA%93%E4%BF%9D%E9%B2%9C%E4%B8%8ETTL%E6%B2%BB%E7%90%86.html">知识库保鲜与TTL治理</a>），原理类可写 <code>eternal</code>；<code>source_tier</code> 由 <code>ingest.py::parse_source_tier()</code> 读前 2000 字符解析，写进每条 chunk 的 metadata，检索时 <code>query.py::weight_by_tier()</code> 按 <code>{1:1.0, 2:0.7, 3:0.4}</code> 降权。</li>
+<li><strong>预期输出</strong>：<code>grep</code> 至少打出几行 <code>source_tier: 1</code> 的命中；文件出现在 <code>wiki/L4-RAG工程/</code> 下。</li>
+<li><strong>常见错误</strong>：评测数据（golden-q、测试结果）写进 <code>raw/</code> → RAG 会"抄作业"，Recall@k 虚高，<strong>必须放 <code>notes/benchmark/</code>（不入库）</strong>；frontmatter 用 Tab 缩进 → 后续解析失败。</li>
+</ul>
+<h4 id="步骤-3-核对配置-ragconfigyaml全管线唯一开关">步骤 3 · 核对配置 <code>rag/config.yaml</code>（全管线唯一开关）</h4>
+<ul>
+<li><strong>目的</strong>：把"我改了没生效"的根因提前消灭——所有阈值都在这一个文件里。</li>
+<li><strong>可复制命令</strong>：</li>
+</ul>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+grep -nE &quot;top_k:|dense_top_n:|sparse_top_n:|rrf_k:|dist_threshold:|threshold:|simple_fact_top_n:|dense_threshold:&quot; rag/config.yaml
+</code></pre>
+<ul>
+<li><strong>参数解释</strong>：<code>top_k=4</code> 最终返回条数；<code>dense_top_n=1000</code> / <code>sparse_top_n=100</code> 是两路候选池（10-14 从 200 放宽到 1000，让真实 dist=0.28 的 wiki 能进池）；<code>rrf_k=60</code> 融合常数；<code>dist_threshold=0.60</code> 是 dense 兜底门禁（对域外无效，见 2.3）；<code>rerank.threshold=0.45</code> 是<strong>主门禁</strong>；<code>rerank.simple_fact_top_n=10</code> 是简单事实路由的 rerank 窗口（10-15 从 4 调到 10，因 4 会把 rank 5-10 的正确文档结构性排除）；<code>gate.dense_threshold=0.50</code> 只在 rerank 熔断时生效。</li>
+<li><strong>预期输出</strong>（本文实测行号）：<code>29: top_k: 4</code>、<code>33: rrf_k: 60</code>、<code>38: dense_top_n: 1000</code>、<code>46: threshold: 0.45</code>、<code>54: simple_fact_top_n: 10</code>、<code>62: dense_threshold: 0.50</code>。</li>
+<li><strong>常见错误</strong>：改了配置却用旧进程验证（<code>CONFIG</code> 在 import 时读一次）；缩进用 Tab；以为 <code>dist_threshold</code> 能拦域外题——实测拦不住。</li>
+</ul>
+<h4 id="步骤-4-分块先在本地看清楚切成什么样再入库">步骤 4 · 分块：先在本地看清楚"切成什么样"，再入库</h4>
+<ul>
+<li><strong>目的</strong>：分块决定召回上限。<strong>先打印分块结果人工看一眼，不要直接跑全量 ingest</strong>。</li>
+<li><strong>可复制代码</strong>（本文实测跑通，只读、不写库）：</li>
+</ul>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l &amp;&amp; /home/wuyafang/ai-stack/bin/python - &lt;&lt;'PY'
+import sys, pathlib
+sys.path.insert(0, '/mnt/c/MyData/Documents/wuyafang-l/rag')
+from ingest import split_file, extract_heading_path, build_context_prefix
+p = pathlib.Path('/mnt/c/MyData/Documents/wuyafang-l/wiki/L4-RAG工程/RAG检索不准怎么排查.md')
+text = p.read_text(encoding='utf-8')
+chunks = split_file(text, 'wiki/L4-RAG工程/RAG检索不准怎么排查.md')
+print('chunks =', len(chunks))
+print('lens =', [len(c) for c in chunks][:8])
+h = extract_heading_path(text, chunks[0])
+print('heading_path =', repr(h))
+print('prefix =', build_context_prefix('wiki/L4-RAG工程/RAG检索不准怎么排查.md', h, 'wiki'))
+PY
+</code></pre>
+<ul>
+<li><strong>参数解释</strong>：<code>split_file()</code> 对 <code>.md</code> 先用 <code>MarkdownHeaderTextSplitter(headers_to_split_on=[('#','H1'),('##','H2'),('###','H3')])</code> 按标题切，超过 800 字符的段再用 <code>RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100)</code> 细切；<code>build_context_prefix()</code> 是<strong>零 LLM 成本的规则版 Contextual Retrieval</strong>，拼出"本文来自…,主要讲…"前缀挂到 chunk 头部。</li>
+<li>据[一手源]：RAG入库一手源细节-20261009.md —— 这里的"规则版 Contextual Retrieval"<strong>不能套用 Anthropic 的 35%/49%/67%</strong>：那组数字（top-20 失败率 5.7%→3.7%→2.9%→1.9%）的前提是用 LLM <strong>逐 chunk</strong> 生成它在文档里的定位，且 embedding、BM25、rerank 三档叠加；Anthropic 原话称给 chunk 加通用文档摘要收益 very limited。规则拼接的路径/标题前缀效果只能以本库自己的 A/B 为准。该源另把"Chunk Enrichment"（Microsoft 单列的一整个 phase：清洗含索引侧 prompt-injection 防护，加 Title/Summary/Keywords/chunk 能答的问题等字段）列为本流程最容易缺的一步。</li>
+<li><strong>预期输出</strong>（本文实测）：<code>chunks = 10</code>，<code>lens = [163, 123, 229, 119, 506, 263, 317, 161]</code>，<code>prefix = 本文来自wiki/L4-RAG工程/RAG检索不准怎么排查.md,主要讲未标章节。</code></li>
+<li><strong>常见错误</strong>：<code>chunks[0]</code> 是 frontmatter 块，<code>heading_path</code> 为空串 → 前缀变成"未标章节"（上面实测就是），这是已知小瑕疵，不影响检索；单块 &gt;8000 字符必须截断（<code>encode_with_sparse</code> 里 <code>texts[:8000]</code>），否则撞 bge-m3 8192 token 上限报 HTTP 500。</li>
+</ul>
+<h4 id="步骤-5-入库增量-ingest-与三处交叉验收">步骤 5 · 入库：增量 ingest 与三处交叉验收</h4>
+<ul>
+<li><strong>目的</strong>：把 <code>raw/ + wiki/ + ontology/</code> 的 <code>.md</code> 变成 18599 条带 dense+sparse 的向量，并且<strong>证明真的进去了</strong>。</li>
+<li><strong>可复制命令</strong>：</li>
+</ul>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+source /home/wuyafang/ai-stack/bin/activate
+python rag/ingest.py --help          # 先看参数: --rebuild(清空重建) / --no-sparse(纯dense)
+# 正式增量灌库(本任务未执行, 避免与在跑的评测抢资源):
+# python rag/ingest.py
+# 只灌 wiki+ontology(RAW 1000+ 老文件全走 skip 会拖 25 分钟):
+# RAG_INCLUDE_PREFIX=&quot;wiki/,ontology/&quot; python rag/ingest.py
+</code></pre>
+<ul>
+<li><strong>参数解释</strong>：增量判断靠 <code>registry.json</code> 的 <code>sha256 + bge_version</code> 双键，命中即 <code>skip ... unchanged</code>；<code>--rebuild</code> 会<strong>删 collection 全量重灌</strong>（慢且有中断风险），目录重组后才需要；<code>RAG_INCLUDE_PREFIX</code> 是分层重建过滤器（10-14 加）。</li>
+<li><strong>预期输出</strong>：开头一行 <code>[ingest] index=.../index collection=wuyafang_kb embedding=bge-m3 chunk=800/100 files=919 dedup=on(min=40) sparse=on</code>，逐文件 <code>skip ... unchanged (registry hit)</code>，最后 <code>[verify] 结论: OK=N WARN=M</code>。</li>
+<li><strong>常见错误</strong>：<code>registry</code> 说全灌了但 chroma 实查缺失（历史 rebuild 被打断）→ <strong>只删 <code>rag/data/registry.json</code>（先备份）再跑普通 <code>ingest.py</code>，不要 <code>--rebuild</code></strong>；日志打印 <code>upsert &lt;file&gt;: N chunks</code> <strong>不等于入库成功</strong>——唯一可信判据是三处交叉（registry 有 sha256 + chroma 有该 source 的 chunk + manifest status）。</li>
+</ul>
+<h4 id="步骤-6-检索混合召回-rerank-门禁-生成">步骤 6 · 检索：混合召回 → rerank → 门禁 → 生成</h4>
+<ul>
+<li><strong>目的</strong>：跑通一次端到端问答，并能读懂每一行日志代表哪一层。</li>
+<li><strong>可复制命令</strong>：</li>
+</ul>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l &amp;&amp; /home/wuyafang/ai-stack/bin/python rag/query.py --help
+# 只检索不生成(省额度, 排查用):
+# /home/wuyafang/ai-stack/bin/python rag/query.py &quot;hybrid search相比dense-only在Recall@5上提升多少？&quot; --no-gen
+# 解释模式(把片段转成可执行步骤):
+# /home/wuyafang/ai-stack/bin/python rag/query.py &quot;chunk大小怎么选&quot; --explain
+</code></pre>
+<ul>
+<li><strong>参数解释</strong>：<code>--no-gen</code> 只跑到门禁（不调 LLM，省 token）；<code>--no-rerank</code> 关 rerank → 门禁退 <code>gate.dense_threshold</code>；<code>--no-crag</code> 关查询重写环；<code>--no-adaptive</code> 关三路由分类（全走 complex_reasoning）；<code>--topk N</code> / <code>--threshold X</code> 单次覆盖配置。管线顺序固定：<code>route_question → retrieve_node → grade_documents(CRAG) → rewrite_node(≤2次) → rerank_node → gate_node → generate_node</code>（LangGraph 状态机 <code>RAGState</code>）。</li>
+<li><strong>预期输出</strong>：<code>[config] adaptive=True crag=True rerank_threshold=0.45 dist_threshold=0.60</code> → <code>[router] ... route=complex_reasoning</code> → <code>[hybrid] dense top-1000 + sparse top-100 (q_sparse tokens=N)</code> → <code>[rerank] scored 10 docs in X.XXs</code> → <code>[gate] best_rerank_score=0.99 threshold=0.45</code> → 生成答案 + 引用。</li>
+<li><strong>常见错误</strong>：日志出现 <code>dense top-0</code> 或 <code>tokens=0</code> = 单路退化（见排错 1、2）；<code>[gate] 未达标</code> 但 rerank 明明有 0.67 = 门禁用错字段（见排错 4）；<code>[mode] 生成失败(HTTP Error 404)</code> = 生成端点不对。</li>
+</ul>
+<p><strong>日志逐行读法（这是排查时的对照表，每行只对应管线一个节点）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>日志行</th>
+<th>出自哪个节点</th>
+<th>正常值</th>
+<th>异常值意味着什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[config] adaptive=... rerank_threshold=...</code></td>
+<td><code>main()</code> 开头</td>
+<td><code>adaptive=True</code> <code>rerank_threshold=0.45</code></td>
+<td>值不对 = 改了 yaml 没重启进程</td>
+</tr>
+<tr>
+<td><code>[router] ... route=simple_fact</code></td>
+<td><code>route_question</code></td>
+<td>三选一</td>
+<td>每次都 <code>complex_reasoning</code> = 分类超时（10s）走了默认分支</td>
+</tr>
+<tr>
+<td><code>[retrieve] simple_fact: dense top-1000</code></td>
+<td><code>_do_retrieve</code></td>
+<td>top-N 等于 <code>dense_top_n</code></td>
+<td>数字是 20/50 = 配置没更新到 1000</td>
+</tr>
+<tr>
+<td><code>[hybrid] dense top-1000 + sparse top-100 (q_sparse tokens=N)</code></td>
+<td><code>retrieve_hybrid</code></td>
+<td><strong>两路都 &gt;0，tokens&gt;0</strong></td>
+<td>任一为 0 = 单路退化，见排错 1/4</td>
+</tr>
+<tr>
+<td><code>[sparse] 扫描 18599 条, 命中 X 条, 取 top-100</code></td>
+<td><code>retrieve_hybrid</code> sparse 段</td>
+<td>命中率远低于 90%</td>
+<td>命中率 ≈93% = sparse 头随机，见排错 2</td>
+</tr>
+<tr>
+<td><code>[retrieve] source-dedup: top-312 -&gt; top-96 (max_per_src=3)</code></td>
+<td><code>retrieve_node</code></td>
+<td>数量下降</td>
+<td>不降 = 同源霸榜仍在，查 <code>source_max_per_query</code></td>
+</tr>
+<tr>
+<td><code>[retrieve] best_dist=0.2814</code></td>
+<td><code>retrieve_node</code></td>
+<td>正样本 ≈0.28</td>
+<td>落在 0.37~0.43 = 域外题区间，准备看门禁</td>
+</tr>
+<tr>
+<td><code>[rerank] scored 10 docs in 0.83s</code></td>
+<td><code>rerank()</code></td>
+<td>0.5~2s</td>
+<td>打出 <code>熔断</code> = 模型没加载或超 60s</td>
+</tr>
+<tr>
+<td><code>[gate] best_rerank_score=0.9924 threshold=0.45</code></td>
+<td><code>gate_node</code></td>
+<td>正样本 0.9x</td>
+<td>0.0021 = 域外题被正确拦截</td>
+</tr>
+<tr>
+<td><code>[crag] 相关性评估: 2/4 片段相关</code></td>
+<td><code>grade_documents</code></td>
+<td>≥2</td>
+<td>&lt;2 会触发重写，最多 2 次</td>
+</tr>
+</tbody>
+</table>
+<p>这张表的用法：<strong>跑一次 <code>--no-gen</code>，把日志从上往下对，第一个出现异常值的行就是故障层</strong>，<br />
+不要从答案反推（答案烂可能是检索、门禁、生成三层中任何一层）。</p>
+<h4 id="步骤-7-评估golden-q-守卫-recall-ragas-四指标">步骤 7 · 评估：golden-q 守卫 + Recall + RAGAS 四指标</h4>
+<ul>
+<li><strong>目的</strong>：把"感觉变好了"变成一个可比较的数字，改完管线必须重跑。</li>
+<li><strong>可复制命令</strong>：</li>
+</ul>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l/rag/eval
+# ① 尺子自检: 任一标签解析不到 → exit=2 (防 wiki 重组后标签腐烂)
+/home/wuyafang/ai-stack/bin/python eval_recall_fast.py --check-golden
+# ② 召回水位(绕开 sparse 更快): Recall@1/@5/@10
+/home/wuyafang/ai-stack/bin/python eval_recall_fast.py --no-sparse --json-out recall_check.json
+# ③ RAGAS 四指标(context_precision/context_recall/faithfulness/answer_relevancy)
+cd /mnt/c/MyData/Documents/wuyafang-l/rag &amp;&amp; /home/wuyafang/ai-stack/bin/python eval_ragas.py
+</code></pre>
+<ul>
+<li><strong>参数解释</strong>：<code>--check-golden</code> 只认 <code>wiki/ raw/ ontology/</code> 三个语料目录里的标签，死标签直接非零退出；<code>--no-sparse</code> 跳过全库 sparse 扫描（实测 32s/条的性能坑）；<code>eval_ragas.py</code> 复用生产管线 <code>retrieve_hybrid → ollama_chat</code>，再喂给 ragas 0.4.3 的四个 metric（注意它要给 <code>langchain_community.chat_models.vertexai</code> 打空壳补丁，ragas 0.4.3 顶层引用了已移除的 <code>ChatVertexAI</code>）。</li>
+<li><strong>预期输出</strong>：<code>--check-golden</code> 全绿退出码 0；召回输出一张 Recall@1/@5/@10 表（修正尺子后 n=51 正样本基线：<strong>51.0% / 82.4% / 88.2%</strong>，端到端生产保真口径是 <strong>R@5=56.9%</strong>）；RAGAS 输出 4 个 0~1 分数。</li>
+<li><strong>常见错误</strong>：引用旧基线数字（不同题库规模的 Recall 不可跨轮比）；裁判/生成用本地 0.5b 模型 → 空答案被判 0 分假完成；评测"全空"多半是 <code>timeout=180s</code> 静默超时，不是评测坏了。</li>
+</ul>
+<h4 id="步骤-8-对外暴露把知识库变成-mcp-工具六员共用">步骤 8 · 对外暴露：把知识库变成 MCP 工具（六员共用）</h4>
+<ul>
+<li><strong>目的</strong>：让其它 Agent 也能查库，且<strong>只加载一份 bge-m3</strong>。</li>
+<li><strong>可复制命令</strong>：</li>
+</ul>
+<pre><code class="language-bash">ss -ltn | grep 8770                       # server 是否在听(本文实测: LISTEN 127.0.0.1:8770)
+# 接入写法(六员各自执行一次):
+#   codex mcp add rag-kb --url http://127.0.0.1:8770/mcp
+#   claude mcp add --transport http rag-kb http://127.0.0.1:8770/mcp
+# 暴露的工具只有两个: search_knowledge(检索) / kb_stats(统计)
+</code></pre>
+<ul>
+<li><strong>参数解释</strong>：HTTP 单例（streamable-http，路径 <code>/mcp</code>）而非每员一个 stdio server——bge-m3 常驻约 1.6GB，6 份会爆掉 11GB 机器；server 必须<strong>复用 <code>query.py</code> 的 <code>retrieve_hybrid → rerank → weight_by_tier</code></strong>，另写一套会导致两条检索路径结果不一致；单 chunk 截断 800 字符 + 返回 <code>total_chars</code> 控 token。</li>
+<li><strong>预期输出</strong>：<code>ss</code> 打出一行 <code>LISTEN 0 2048 127.0.0.1:8770 0.0.0.0:*</code>（本文实测）；server 侧访问日志出现 <code>client=&lt;名&gt; tool=search_knowledge query=&lt;前40字&gt; hits=&lt;n&gt; ms=&lt;耗时&gt;</code>——<strong>验收以 server 日志为准，不采信客户端自报</strong>。首查慢是正常的（首次加载模型 1-2 分钟，实测一次 search_knowledge 109s），验收 timeout 给足 ≥300s。</li>
+<li><strong>常见错误</strong>：照 MCP 1.x 记忆写 <code>FastMCP</code> → 2.x 里已改名 <code>mcp.server.mcpserver.MCPServer</code>，import 直接失败；客户端 <code>streamablehttp_client</code> 这个名字不存在（正确是 <code>streamable_http_client</code>）。</li>
+</ul>
+<hr />
+<blockquote>
+<p>[交叉链接] 此处与 <a href="RAG%E4%BD%9C%E6%88%98%E6%89%8B%E5%86%8C-%E5%85%A8%E6%99%AF%E5%9B%BE-20261021.html">RAG作战手册-全景图-20261021</a> §2 全缺口清单、<a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践-2026</a> §4 落地现状重叠（同一批已做/未做/验证命令），详见主线全景图 §2（缺口口径最新，2026-10-21）；本节是 2026-10-16 快照 + 一张「改完之后的固定验收四步」（§4.4，本篇独有收尾纪律），数字引用请以主线为准。</p>
+</blockquote>
+<h3 id="4-我们库的真实落地现状哪些已做-哪些没做-怎么亲手验证">4. 我们库的真实落地现状（哪些已做 / 哪些没做 / 怎么亲手验证）</h3>3
+<h4 id="41-已做截至-2026-10-16-可复现">4.1 已做（截至 2026-10-16 可复现）</h4>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>状态</th>
+<th>硬数字/证据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据三层</td>
+<td>✅</td>
+<td><code>raw/</code> 16842 chunk(90.6%) / <code>wiki/</code> 1706(9.2%) / <code>ontology/</code> 51(0.3%)，合计 <strong>18599</strong></td>
+</tr>
+<tr>
+<td>增量登记</td>
+<td>✅</td>
+<td><code>rag/data/registry.json</code> <strong>919</strong> 个源文件（sha256 + bge_version 双键）</td>
+</tr>
+<tr>
+<td>分块</td>
+<td>✅</td>
+<td>Markdown 标题 + 800/100 细切 + 父 chunk 回灌（<code>parent_text</code> 字段在 chunks.jsonl 里）</td>
+</tr>
+<tr>
+<td>双路嵌入</td>
+<td>✅</td>
+<td><code>_get_m3_model()</code> 单实例，dense 1024 维 + sparse <code>lexical_weights</code>；snapshot 已含 <code>sparse_linear.pt</code></td>
+</tr>
+<tr>
+<td>混合检索</td>
+<td>✅</td>
+<td><code>retrieve_hybrid()</code> dense top-1000 + sparse top-100 → RRF k=60</td>
+</tr>
+<tr>
+<td>去重</td>
+<td>✅</td>
+<td>source 去重（同源≤3条）+ 内容指纹去重（<code>chunk_fingerprint</code>，min 40 字符）</td>
+</tr>
+<tr>
+<td>rerank</td>
+<td>✅</td>
+<td>bge-reranker-v2-m3，<code>top_n=10</code> / <code>simple_fact_top_n=10</code> / <code>threshold=0.45</code> / 缓存+60s 熔断</td>
+</tr>
+<tr>
+<td>门禁</td>
+<td>✅</td>
+<td>rerank 主路径 0.45；域外 Q056=0.0021 拒答、正样本 Q001=0.9924 通过（10-15 端到端实测）</td>
+</tr>
+<tr>
+<td>三路由 Adaptive</td>
+<td>✅</td>
+<td>simple_fact / complex_reasoning / multi_hop，LLM 分类超时 10s 默认 complex</td>
+</tr>
+<tr>
+<td>CRAG 纠错环</td>
+<td>✅</td>
+<td>相关片段 &lt;2 触发重写，最多 2 次，每日上限 100</td>
+</tr>
+<tr>
+<td>评估</td>
+<td>✅</td>
+<td>golden-q 56 题（51 正 + 5 负样本 <code>negative:true</code>）+ <code>--check-golden</code> 守卫 + RAGAS 四指标</td>
+</tr>
+<tr>
+<td>MCP 暴露</td>
+<td>✅</td>
+<td>127.0.0.1:8770 监听中，工具 <code>search_knowledge</code> / <code>kb_stats</code></td>
+</tr>
+</tbody>
+</table>
+<h4 id="42-没做差距台账-p0p1别当已完成">4.2 没做（差距台账 P0/P1，别当已完成）</h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>缺口</th>
+<th>优先级</th>
+<th>现状数字</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>裁判模型用 0.5B</td>
+<td>P0</td>
+<td>4 个 judge 脚本全用 <code>qwen2.5:0.5b</code>，同模型在别处已判废 → 评估不可信</td>
+</tr>
+<tr>
+<td>2</td>
+<td>dense 兜底门禁不可靠</td>
+<td>P0</td>
+<td>正样本 best_dist=0.3732 vs 域外 0.4245，间距仅 <strong>0.03</strong>，<code>gate.dense_threshold=0.50</code> 拦不住域外；rerank 一断幻觉重现</td>
+</tr>
+<tr>
+<td>3</td>
+<td>sparse 路性能与伪性</td>
+<td>P0</td>
+<td>命中后 Python 点积全库 18599 条 = <strong>32s/条</strong>；多 query <code>tokens=0</code> 退化为纯 dense</td>
+</tr>
+<tr>
+<td>4</td>
+<td>表格零处理</td>
+<td>P1</td>
+<td>102/119 篇含表格，<code>ingest.py</code> 无表格逻辑，表头与数据行被切散</td>
+</tr>
+<tr>
+<td>5</td>
+<td>召回水位</td>
+<td>P1</td>
+<td>端到端 R@5 = <strong>56.9%</strong>（simple_fact 仅 <strong>36%</strong>）</td>
+</tr>
+<tr>
+<td>6</td>
+<td>无回归闭环</td>
+<td>P1</td>
+<td>wiki 目录变更后不强制重跑评测，golden 已腐烂两次</td>
+</tr>
+<tr>
+<td>7</td>
+<td>语料结构失衡</td>
+<td>结构性</td>
+<td>raw 占 90.6% 淹没 wiki 权威条目；调 <code>path_boost</code> 已被网格扫证明是死路（8 组全部 ≤ baseline）</td>
+</tr>
+<tr>
+<td>8</td>
+<td>PDF 版面解析</td>
+<td>P2</td>
+<td>PDF 未系统接入，仅 Markdown 主力</td>
+</tr>
+</tbody>
+</table>
+<p>据[一手源]：多模态文档解析入库RAG调研-20261021.md、RAG入库一手源细节-20261009.md —— 上表第 8 行与下面几条是<strong>一手源对标出的缺口</strong>（数字为该源 2026-10-21 / 10-09 的本地盘点口径，不是本篇复测结果）：</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>缺口</th>
+<th>一手源依据</th>
+<th>该源给的优先级</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8a</td>
+<td>PDF/docx 解析：<code>ingest.py</code> 只 glob <code>*.md</code>，pdf/docx 未转 md</td>
+<td>业界用 MinerU / Docling 转 LLM-ready Markdown；该源盘点出 5 个 docx、9 个 pdf、4 个 xlsx/xls、3 个正文 html 待转</td>
+<td>P0（转 md 后落 <code>raw/courseware/</code> 或 <code>raw/sources/</code>；先清 macOS <code>._</code> 垃圾文件）</td>
+</tr>
+<tr>
+<td>8b</td>
+<td>HTML 剥标签：3 个 FDE 正文 html 无 md 版未入库</td>
+<td>BeautifulSoup / LlamaIndex HTMLNodeParser；整页站点（其中一个约 300KB）要先抽 <code>&lt;article&gt;</code></td>
+<td>P0</td>
+</tr>
+<tr>
+<td>8c</td>
+<td>图片多模态：该源称约 1.7 万张图零处理</td>
+<td>路线 A ColPali / ColQwen2 / VisRAG 页面当图做多向量（ViDoRe 上优于 OCR+文本管线）；路线 B 先用 VLM 转描述再入文本路</td>
+<td>P1 试点（抽 100 张课件图 A/B），P2 才考虑 multi-vector 检索</td>
+</tr>
+<tr>
+<td>8d</td>
+<td>多模态元数据字段 <code>modality/parse_tool/page_no/block_no</code></td>
+<td>Azure + Elastic 共识：chunk 必须带可过滤元数据</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>8e</td>
+<td>Chunk enrichment（清洗含索引侧 prompt-injection 防护 + title/summary/keywords/chunk 能答的问题）</td>
+<td>Microsoft Azure RAG 6 phase 单列一个 phase</td>
+<td>高</td>
+</tr>
+<tr>
+<td>8f</td>
+<td>评测 Q&amp;A 集构建（含 SME 审核 + 负向 query）</td>
+<td>Microsoft Preparation phase</td>
+<td>高</td>
+</tr>
+<tr>
+<td>8g</td>
+<td>大 PDF 版面解析切片</td>
+<td>Google Vertex RAG Engine 用 Document AI Layout Parser，PDF 超过 15 页先用 pypdf 物理切成重叠小 PDF</td>
+<td>低（纯文本为主的库暂时用不上）</td>
+</tr>
+</tbody>
+</table>
+<p>路线 A 的向量库约束：该源指出 Chroma 当前无 multi-vector 支持，图路增益被试点证实后才评估换 Weaviate/Qdrant 或应用层自实现 MaxSim，不在本流程 8 步之内。</p>
+<h4 id="43-怎么亲手验证只读不占检索资源">4.3 怎么亲手验证（只读，不占检索资源）</h4>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l &amp;&amp; /home/wuyafang/ai-stack/bin/python - &lt;&lt;'PY'
+import json, collections, sqlite3, pathlib
+# 1) chunks.jsonl 真数与三层占比
+pre = collections.Counter(); n = 0
+with open('rag/data/chunks.jsonl', encoding='utf-8') as f:
+    for line in f:
+        if not line.strip(): continue
+        n += 1; pre[json.loads(line)['source'].split('/')[0] + '/'] += 1
+print('chunks =', n, dict(pre))
+# 2) registry 登记数
+print('registry =', len(json.load(open('rag/data/registry.json', encoding='utf-8'))))
+# 3) chroma 实际向量数(只读 URI 打开, 不锁库)
+db = sqlite3.connect('file:rag/index/chroma.sqlite3?mode=ro', uri=True)
+print('embeddings =', db.execute('select count(*) from embeddings').fetchone()[0])
+# 4) golden 尺子条数
+print('golden =', sum(1 for _ in open('rag/eval/golden-q.jsonl', encoding='utf-8')))
+PY
+</code></pre>
+<p><strong>预期输出</strong>（2026-10-16 本文实测）：</p>
+<pre><code>chunks = 18599 {'ontology/': 51, 'raw/': 16842, 'wiki/': 1706}
+registry = 919
+embeddings = 18599
+golden = 56
+</code></pre>
+<p><code>chunks == embeddings</code> 说明 jsonl 与库一致；两个数对不上 = 有文件入库一半（按排错 5 处理）。再查"新写的文档能不能被检索到"，用步骤 6 的 <code>--no-gen</code> 检索该文档主题，<strong>top-k 里没有它就不算入库完成</strong>（"upsert 成功"和"检索得到"是两件事）。</p>
+<h4 id="44-改完之后的固定验收四步顺序不能换全绿才允许说完成">4.4 改完之后的固定验收四步（顺序不能换，全绿才允许说"完成"）</h4>
+<ol>
+<li><strong>尺子先绿</strong>：<code>python eval_recall_fast.py --check-golden</code>，退出码必须是 0。<br />
+   退出码 2 = golden 标签指向了不存在的文件，先修尺子，<strong>此时任何分数都不可信</strong>。</li>
+<li><strong>库数对齐</strong>：跑 4.3 的只读脚本，<code>chunks == embeddings == 18599</code>（若本次入库则同步上涨）。<br />
+<strong>总数下降 = 有数据被丢或被覆盖</strong>，必须查清再收尾，不能只看"新文件有没有进"。</li>
+<li><strong>三路都活</strong>：<code>query.py "&lt;新文档主题&gt;" --no-gen</code> 的日志里<br />
+<code>dense top-N</code> 与 <code>sparse top-M</code> <strong>同时 &gt;0</strong>，且 <code>tokens&gt;0</code>；任一为 0 是单路退化。</li>
+<li><strong>分数不回落</strong>：同一把尺子、同一口径（n 值、是否含负样本、是否 <code>--no-sparse</code>）<br />
+   跑一次对比——<code>python eval_recall_fast.py --no-sparse --json-out after.json</code>，<br />
+   与改动前的 <code>before.json</code> 比 Recall@5。掉分 = 吞了信息，先回滚再找原因，<br />
+   不接受"没退化就算过"（因为口径一换数字就能对不上）。</li>
+</ol>
+<p>这四步对应的就是"能证明"这一层：<strong>知识有没有（第 2 步）、检索活没活（第 3 步）、<br />
+尺子准不准（第 1 步）、变好还是变坏（第 4 步）</strong>。跳过第 1 步的验收全部作废——<br />
+golden 已经因为目录重组失真过两次，当时所有"Recall 达标"的结论都是假的。</p>
+<hr />
+<blockquote>
+<p>[交叉链接] 此处与 <a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践-2026</a> §5 工具与技术栈清单、<a href="RAG%E4%BD%9C%E6%88%98%E6%89%8B%E5%86%8C-%E5%85%A8%E6%99%AF%E5%9B%BE-20261021.html">RAG作战手册-全景图-20261021</a> §3.6 附 config 说明重叠（同一批工具+版本+选型理由），详见主线全景图 §3.6；本节多一列「替代品」便于选型对比。</p>
+</blockquote>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5. 工具与技术栈清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>版本纪律（这张表能长期可信的前提）：三个数字必须一起锁——「chromadb 1.5.9」</li><li>例如 LangSmith/Langfuse 观测层（台账记录其上报 payload 持续失败，22MB 上报未修）就属于</li><li>（升级到不同 schema 会 「KeyError: '_type'」）、「FlagEmbedding 1.4.2」（sparse/colbert 头</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>作用</th>
+<th>版本 / 规格</th>
+<th>替代品</th>
+<th>选型理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bge-m3</td>
+<td>dense+sparse 统一嵌入</td>
+<td>本地 snapshot <code>5617a9f6...b181</code>，1024 维，CPU <code>use_fp16=False</code></td>
+<td>bge-large-zh、OpenAI text-embedding-3、Cohere embed v3</td>
+<td>一个模型同时出两路，查询与索引同源；本地不出网零费用</td>
+</tr>
+<tr>
+<td>FlagEmbedding</td>
+<td>模型加载库</td>
+<td>1.4.2（<code>BGEM3FlagModel</code> / <code>FlagReranker</code>）</td>
+<td>sentence-transformers、Transformers 原生</td>
+<td>官方支持 sparse/colbert 头，ST 格式下载会缺 <code>sparse_linear.pt</code></td>
+</tr>
+<tr>
+<td>Chroma</td>
+<td>向量库</td>
+<td>1.5.9，collection <code>wuyafang_kb</code>，<code>hnsw:space=cosine</code>，18599 条</td>
+<td>FAISS、Qdrant、Milvus、PGVector、Pinecone</td>
+<td>单机文件库零运维；百万级以上再考虑 Milvus</td>
+</tr>
+<tr>
+<td>bge-reranker-v2-m3</td>
+<td>cross-encoder 精排 + 门禁打分</td>
+<td>snapshot <code>953dc6f6...41e</code>，阈值 0.45</td>
+<td>Cohere Rerank、ms-marco-MiniLM</td>
+<td>中英双语、域外/正样本区分度 0.0021 vs 0.9924，本地免费</td>
+</tr>
+<tr>
+<td>LangGraph</td>
+<td>检索-重排-门禁-生成状态机</td>
+<td>1.2.11（<code>RAGState</code> + 条件边）</td>
+<td>手写 if-else 管线、LlamaIndex workflow</td>
+<td>中间可插 CRAG 重写/门禁分支，状态可 checkpoint</td>
+</tr>
+<tr>
+<td>LangChain Text Splitters</td>
+<td>分块</td>
+<td>1.1.2（<code>MarkdownHeaderTextSplitter</code> + <code>RecursiveCharacterTextSplitter</code>）</td>
+<td>自写正则切分</td>
+<td>保标题层级，切失败有兜底</td>
+</tr>
+<tr>
+<td>SQLite（经 chroma）</td>
+<td>持久化</td>
+<td><code>rag/index/chroma.sqlite3</code>，embeddings 18599 / metadata 278985</td>
+<td>LanceDB、Parquet</td>
+<td>随库自带，验收可直接 <code>mode=ro</code> 只读查</td>
+</tr>
+<tr>
+<td>golden-q 评测</td>
+<td>检索尺子</td>
+<td><code>rag/eval/golden-q.jsonl</code> 56 题（51 正 + 5 负）</td>
+<td>自建 QA 集、BEIR</td>
+<td>覆盖 A简单/B多跳/C全局 + no-answer 负例，带 <code>--check-golden</code> 守卫</td>
+</tr>
+<tr>
+<td>RAGAS</td>
+<td>答案级评估</td>
+<td>0.4.3（context_precision / context_recall / faithfulness / answer_relevancy）</td>
+<td>DeepEval、TruLens、Langfuse</td>
+<td>与生产管线同一检索路径，四指标覆盖检索+生成两侧</td>
+</tr>
+<tr>
+<td>rag-kb MCP server</td>
+<td>知识库对外工具</td>
+<td>HTTP 单例 <code>127.0.0.1:8770/mcp</code>，工具 <code>search_knowledge</code> / <code>kb_stats</code></td>
+<td>每员一个 stdio server</td>
+<td>单实例 1.6GB 模型只加载一次，六员共享</td>
+</tr>
+<tr>
+<td>ai-stack venv</td>
+<td>运行环境</td>
+<td><code>/home/wuyafang/ai-stack/bin/activate</code>，Python 3.14.4</td>
+<td>conda、系统 python3</td>
+<td>系统 python3 缺 chromadb（实测报错）</td>
+</tr>
+<tr>
+<td>mimo-v2.6-flash</td>
+<td>生成 / 评测裁判候选</td>
+<td><code>https://token-plan-cn.xiaomimimo.com/v1/chat/completions</code></td>
+<td>doubao-seed-2.1-lite（额度耗尽）、qwen2.5:0.5b（判废）</td>
+<td>TokenPlan 订阅池可用，OpenAI 兼容</td>
+</tr>
+</tbody>
+</table>
+<p><strong>版本纪律（这张表能长期可信的前提）</strong>：三个数字必须一起锁——<code>chromadb 1.5.9</code><br />
+（升级到不同 schema 会 <code>KeyError: '_type'</code>）、<code>FlagEmbedding 1.4.2</code>（sparse/colbert 头<br />
+的加载行为随版本变）、bge-m3 snapshot 哈希 <code>5617a9f61b028005a4858fdac845db406aefb181</code><br />
+（换了 snapshot 等于换了向量空间，<strong>必须全库重编码</strong>，否则查询向量和库内向量不同源）。<br />
+核对命令：<code>/home/wuyafang/ai-stack/bin/pip list | grep -iE "chromadb|FlagEmbedding"</code> 加<br />
+<code>ls ~/.cache/huggingface/hub/models--BAAI--bge-m3/snapshots/</code>。凡是在本表里没有对应<br />
+版本号、也没有在 <code>rag/</code> 里被 grep 到的东西，本文一律标 <code>待验证</code> 而不是写成"我们用了"——<br />
+例如 LangSmith/Langfuse 观测层（台账记录其上报 payload 持续失败，22MB 上报未修）就属于<br />
+未接入状态，不进本表正列。</p>
+<hr />
+<blockquote>
+<p>[交叉链接] 此处与 <a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践-2026</a> §6 排错手册（10 条）、<a href="RAG%E4%BD%9C%E6%88%98%E6%89%8B%E5%86%8C-%E5%85%A8%E6%99%AF%E5%9B%BE-20261021.html">RAG作战手册-全景图-20261021</a> §5 踩坑 Top 速查重叠（同一批症状/根因，如 dense top-0、sparse 归零/噪声、门禁假阴性、入库假完成、chroma 段错误、尺子腐烂），详见主线全景图 §5；本节是 6.1–6.10 全量细化版，排查时以本节命令为准、以主线坑速查为索引。</p>
+</blockquote>
+<h3 id="6-排错手册症状-根因-定位命令-修复">6. 排错手册（症状 → 根因 → 定位命令 → 修复）</h3>3
+<p><strong>用法</strong>：10 条排错按"出现频率 × 卡实战程度"排序，每条都必须走完<br />
+<strong>症状 → 根因 → 定位命令 → 修复</strong>四段，不允许跳过定位命令直接改配置。<br />
+三条通用纪律：① 报错先查 <code>error-ledger</code>（命中 fixed 直接套用，不重复踩坑）；<br />
+② 同一个错连续修 3 次不成立就停手，整理已知信息上报，不硬闯；<br />
+③ 任何"我修好了"都要回到第 4 节的验收四步跑一遍，自报不算数。</p>
+<h4 id="61-dense-路返回-0-条hybrid-dense-top-0-sparse-top-100">6.1 dense 路返回 0 条（<code>[hybrid] dense top-0 + sparse top-100</code>）</h4>
+<ul>
+<li><strong>根因</strong>：<code>embedding.eval_mode: true</code> 让 dense 走 <code>localhost:11434</code>，但 Ollama 里没有 bge-m3、服务 inactive → <code>Connection refused</code> → dense 路空，三路 RRF 退化成 sparse 单路。</li>
+<li><strong>定位命令</strong>：</li>
+</ul>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+grep -n 'eval_mode' rag/config.yaml
+grep -n 'dense_top_n\|sparse_top_n' rag/config.yaml
+curl -s -m5 http://localhost:11434/api/tags || echo &quot;Ollama 不可用&quot;
+/home/wuyafang/ai-stack/bin/python -c &quot;import sys;sys.path.insert(0,'rag');from query import query_dense;print(len(query_dense('测试')))&quot;
+</code></pre>
+<ul>
+<li><strong>修复</strong>：<code>eval_mode: false</code>（当前值就是 false）→ dense 走本地 snapshot；若打印 <code>1024</code> 即恢复。<strong>只改这一步不够</strong>，必须确认 dense/sparse 同走 <code>_get_m3_model()</code>，否则只是把 <code>dense top-0</code> 换成 <code>sparse top-0</code>。</li>
+</ul>
+<h4 id="62-两路都非-0-但-sparse-是噪声sparse_linearpt-随机头">6.2 两路都非 0 但 sparse 是噪声（<code>sparse_linear.pt</code> 随机头）</h4>
+<ul>
+<li><strong>根因</strong>：snapshot 用 sentence-transformers 格式下载时不含 <code>sparse_linear.pt</code>，FlagEmbedding 缺文件就<strong>随机初始化</strong>且只打印 "is new initialize" 不报错；查询侧和索引侧各自随机 → sparse 排序等于噪声，症状是命中率畸高（实测 18599 条命中 17329 条 ≈ 93%）+ <code>tokens=0</code> 抖动。</li>
+<li><strong>定位命令</strong>：</li>
+</ul>
+<pre><code class="language-bash">SNAP=/home/wuyafang/.cache/huggingface/hub/models--BAAI--bge-m3/snapshots/5617a9f61b028005a4858fdac845db406aefb181
+ls &quot;$SNAP&quot; | grep -E '\.pt$'    # 必须同时有 colbert_linear.pt 和 sparse_linear.pt
+</code></pre>
+<ul>
+<li><strong>修复</strong>：本文实测<strong>两个 <code>.pt</code> 都在</strong>，该坑已解除；若换机器后缺，<code>HF_ENDPOINT=https://hf-mirror.com</code> 下载官方 <code>sparse_linear.pt</code> 放进 snapshot，并<strong>重建 sparse 索引</strong>（已有 <code>metadata.sparse_vec</code> 是旧随机头算的，必须先探速率：实测 CPU 上约 0.2 条/秒 → 1.8 万 chunk ≈ 25 小时，别按"分钟级"直接挂全量）。动手前先 <code>cp rag/index/chroma.sqlite3 rag/index/chroma.sqlite3.bak-&lt;ts&gt;</code>。</li>
+</ul>
+<h4 id="63-rerank-明明命中却报未检索到门禁假阴性">6.3 rerank 明明命中却报"未检索到"（门禁假阴性）</h4>
+<ul>
+<li><strong>根因</strong>：sparse 路的 hit 带占位 <code>dist=1.0</code>，若它被排到 <code>final_hits[0]</code>，而门禁用 <code>final_hits[0]["dist"]</code> 判定，<code>1.0 &gt; 0.75</code> 恒成立。</li>
+<li><strong>定位命令</strong>：<code>grep -nE "\[gate\]|\[rerank\]" &lt;运行日志&gt;</code>——<strong>一个说命中（score=0.67）一个说没命中 = 门禁 bug，不是检索 bug</strong>。</li>
+<li><strong>修复</strong>（已落地）：<code>gate_node</code> 分两路——有 rerank 用 <code>best_rerank_score</code> 与 <code>0.45</code> 比；无 rerank 才用 <code>best_dist</code> 与 <code>gate.dense_threshold=0.50</code> 比。排查顺序：先追 <code>final_hits[0]</code> 的来源（sparse 占位是高发污染源），<strong>别急着调 <code>dist_threshold</code></strong>。</li>
+</ul>
+<h4 id="64-混合检索退化成单路tokens0-sparse-top-0">6.4 混合检索退化成单路（<code>tokens=0</code> / <code>sparse top-0</code>）</h4>
+<ul>
+<li><strong>根因</strong>：两个 <code>BGEM3FlagModel</code> 实例抢同一份权重，后加载者 encode 出空；或 <code>config.yaml</code> 里 <code>sparse_disabled: true</code>。</li>
+<li><strong>定位命令</strong>：</li>
+</ul>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+grep -n 'sparse_disabled' rag/config.yaml
+/home/wuyafang/ai-stack/bin/python - &lt;&lt;'PY'
+import sys; sys.path.insert(0,'rag')
+from query import query_dense, query_sparse
+print('dense =', len(query_dense('测试')), 'sparse_tokens =', len(query_sparse('测试')))
+PY
+# 硬判据: dense=1024 且 sparse_tokens&gt;0 才算三路真活
+</code></pre>
+<ul>
+<li><strong>修复</strong>：2026-10-16 已改为 <code>_get_m3_model()</code> 单实例（<code>_get_sparse_model()</code> 只是兼容旧名），与 <code>ingest.py</code> 注入的 <code>_bge_model</code> 共用；<strong>验收必须看同一次 <code>retrieve_hybrid</code> 日志里 dense 和 sparse 都 &gt;0</strong>，"有结果返回/召回还行"不算通过。</li>
+</ul>
+<h4 id="65-日志显示-upsert-n-chunks-但查不到入库假完成">6.5 日志显示 <code>upsert N chunks</code> 但查不到（入库假完成）</h4>
+<ul>
+<li><strong>根因</strong>：ingest 进程在写盘中途被掐（子单被打断时日志留 <code>cannot schedule new futures after interpreter shutdown</code>），或 registry 状态先落盘了。</li>
+<li><strong>定位命令</strong>：</li>
+</ul>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l &amp;&amp; /home/wuyafang/ai-stack/bin/python - &lt;&lt;'PY'
+import json, sqlite3, sys
+src = sys.argv[1] if len(sys.argv)&gt;1 else 'RAG检索不准怎么排查.md'
+db = sqlite3.connect('file:rag/index/chroma.sqlite3?mode=ro', uri=True)
+rows = db.execute(&quot;select string_value,count(*) from embedding_metadata &quot;
+                  &quot;where key='source_file' and string_value like ? group by 1&quot;,
+                  ('%'+src+'%',)).fetchall()
+print(rows or 'NOT FOUND')
+PY
+</code></pre>
+<ul>
+<li><strong>修复</strong>：三处交叉对齐才算数——① <code>registry.json</code> 记到该文件 sha256 ② chroma <code>embedding_metadata</code> 能查到该 <code>source_file</code> ③ <code>manifest.json</code> status。任一缺 = 没真入库，<strong>备份后删 <code>rag/data/registry.json</code> 再跑普通 <code>ingest.py</code>（禁 <code>--rebuild</code>）</strong>。注意 <code>source_file</code> 存的是相对路径（<code>wiki/...</code>），用 basename <code>LIKE</code> 匹配，别带 <code>/mnt/c/...</code> 绝对前缀。</li>
+</ul>
+<h4 id="66-检索正常但没有答案生成层-404-空输出">6.6 检索正常但没有答案（生成层 404 / 空输出）</h4>
+<ul>
+<li><strong>根因</strong>：<code>ollama_chat()</code> 打的端点和 <code>config.yaml</code> 里定义的端点不一致；或评测 timeout=180s 静默超时，表现是 <code>chunks=0</code>、<code>answer</code> 空、faithfulness <code>0/0</code>。</li>
+<li><strong>定位命令</strong>：</li>
+</ul>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+grep -n 'api_url\|model:' rag/config.yaml | head        # 生成端点必须是 token-plan-cn.xiaomimimo.com
+grep -nE &quot;\[SKIP\] 无 chunks|\[SKIP\] 无答案生成&quot; rag/eval/*.log | head
+ps -ef | grep -E &quot;eval_recall|query.py&quot; | grep -v grep   # 看评测是否还在跑
+</code></pre>
+<ul>
+<li><strong>修复</strong>：生成端点用 <code>mimo-v2.6-flash</code>（小米 TokenPlan），火山豆包额度已耗尽（旧端点 <code>ark.cn-beijing.volces.com/api/plan/v3/chat/completions</code> 留作回退）；评测"跑空"先查 timeout（改 300s）和脚本是否断言 <code>chunks&gt;0</code>，别直接改评测逻辑；裁判模型不要用本地 <code>qwen2.5:0.5b</code>。</li>
+</ul>
+<h4 id="67-chroma-一打开就段错误hnsw-头与表行数不匹配">6.7 chroma 一打开就段错误（HNSW 头与表行数不匹配）</h4>
+<ul>
+<li><strong>根因</strong>：<code>header.bin</code> 记录的点数（如 11248）与 <code>embeddings</code> 表实际行数（如 5236）不一致时，<code>chromadb_rust_bindings</code> 直接 SIGSEGV，不抛 Python 异常。</li>
+<li><strong>定位命令</strong>：<code>ls -t rag/index.bak-* 2&gt;/dev/null | head; python3 -c "import chromadb;print(chromadb.PersistentClient(path='rag/index').get_collection('wuyafang_kb').count())"</code>（崩在这一行 = 石锤）。</li>
+<li><strong>修复</strong>：从最近的 <code>index.bak-*</code> 拷回 <code>chroma.sqlite3</code> + uuid 目录，验证 count 正常再续灌；<strong>不要降级 chromadb</strong>——0.5.x 与 1.x 的 DB schema 不兼容（<code>KeyError: '_type'</code>），当前锁定 1.5.9。</li>
+</ul>
+<h4 id="68-ingest-日志看着正常chunksjsonl-却变-0-字节或不涨">6.8 ingest 日志看着正常，<code>chunks.jsonl</code> 却变 0 字节或不涨</h4>
+<ul>
+<li><strong>根因</strong>：两个独立的坑。① 脚本用 <code>open(path,'w')</code> 一上来截断旧 jsonl，<br />
+  全部文件都 <code>skip</code> 时新批次一条没写 → 0 字节（代码里"修复#5"就是延迟合并写）；<br />
+  ② 日志尾全是 <code>skip ... unchanged</code>，这是 ingest 先扫 <code>raw/</code> 1000+ 老文件，<br />
+<code>wiki/</code> 在扫描顺序后段还没轮到，<strong>不是卡死</strong>。</li>
+<li><strong>定位命令</strong>：</li>
+</ul>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+ls -l rag/data/chunks.jsonl                       # 若为 0 字节 = 命中根因①
+ps -ef | grep ingest.py | grep -v grep            # 进程还在 = 正常推进
+ps -p &lt;PID&gt; -o pid,etime,%mem,rss                 # 内存 ~1.6GB = bge-m3 已加载
+tail -20 &lt;ingest运行日志&gt;                          # 全是 skip 不是报错, 继续等
+</code></pre>
+<ul>
+<li><strong>修复</strong>：0 字节时用 <code>.bak</code> 恢复 jsonl（Chroma 里的向量不受影响，jsonl 只是账本），<br />
+  再跑普通 <code>ingest.py</code> 续写；判定卡死要看三条同时成立：日志尾停在报错行且时间戳不前进、<br />
+<code>ingest.py</code> 进程已无、<code>manifest.json</code> 仍标 <code>running</code>（僵尸态）——此时按"未完成"重跑，<br />
+  不要信 manifest。另外 <code>文件过大 (N &gt; MAX_FILE_CHARS)</code> 的 skip 是<strong>体积护栏</strong>在工作<br />
+  （数据 dump 不入库），不是错误。</li>
+</ul>
+<h4 id="69-评测数字莫名其妙变低尺子腐烂不是检索退化">6.9 评测数字莫名其妙变低（尺子腐烂，不是检索退化）</h4>
+<ul>
+<li><strong>根因</strong>：wiki 目录重组/合并后，<code>golden-q.jsonl</code> 的 <code>relevant_source</code> 标签指向已不存在<br />
+  或已合并的文件，<code>rel_match()</code> 匹配不到 → 正确答案算漏召。已发生两次：<br />
+  10-09 扁平→子目录导致 55/76 引用失效；10-14 合并导致 10 条死标签。<br />
+  同类问题还有：域外负样本（<code>relevant_source=[]</code>）被算进召回分母。</li>
+<li><strong>定位命令</strong>：</li>
+</ul>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l/rag/eval
+/home/wuyafang/ai-stack/bin/python eval_recall_fast.py --check-golden
+echo &quot;exit=$?&quot;     # exit=2 = 有标签解析不到, 先修尺子再看分数
+# 逐题看漏了哪条:
+# /home/wuyafang/ai-stack/bin/python eval_recall_fast.py --no-sparse --json-out miss.json
+</code></pre>
+<ul>
+<li><strong>修复</strong>：10-15 的标准动作可直接照抄——13 条死标签重指到合并后的目标文档、<br />
+  5 条负样本标 <code>negative:true</code> 移出分母、加 <code>--check-golden</code> 守卫；<br />
+  修完基线从 62.5% 回到 <strong>82.4%（n=51，裸序口径）</strong>。改完必须记录口径<br />
+  （n 多少题、含不含负样本、是否 <code>--no-sparse</code>、是否 rerank 之前），<strong>不同口径的<br />
+  Recall 不许直接比</strong>。</li>
+</ul>
+<h4 id="610-加完新文档库里查得到但提示语前缀不对">6.10 加完新文档，库里查得到但提示语/前缀不对</h4>
+<ul>
+<li><strong>根因</strong>：<code>build_context_prefix()</code> 是<strong>规则版</strong>（<code>本文来自…,主要讲…</code>），章节回溯<br />
+  失败就填"未标章节"；若改用 LLM 生成 Contextual 前缀，Anthropic 官方英文 prompt<br />
+  对中文文档约 40% 输出英文，与中文知识库不匹配。</li>
+<li><strong>定位命令</strong>：</li>
+</ul>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+grep -c &quot;未标章节&quot; rag/data/chunks.jsonl     # 数量大 = 大量 chunk 没回溯到标题
+grep -n &quot;build_context_prefix&quot; rag/ingest.py # 规则版实现, 行号 389
+</code></pre>
+<ul>
+<li>据[一手源]：RAG入库一手源细节-20261009.md —— 保留规则版的同时要认清它的收益上限：Anthropic 的 49%/67% 失败率降幅来自<strong>逐 chunk LLM 生成</strong>的上下文，该源列出的"逐 chunk LLM contextualizer（不是规则拼接）"为高优先级缺口；规则前缀的真实收益没有一手数字，只能靠上面的 5×5 A/B 自测。</li>
+<li><strong>修复</strong>：优先保留规则版（零 LLM 成本、语言稳定）；确要用 LLM 版，<br />
+  prompt 末尾必须加 <code>Respond in Chinese (中文) regardless of the document language</code>，<br />
+  并先做 5 文档 × 5 chunk 的 A/B 小批验证再全量切；<code>未标章节</code> 多来自 frontmatter 块<br />
+  （步骤 4 实测 <code>chunks[0]</code> 即是），属可接受损耗，不必为此重写分块。</li>
+</ul>
+<hr />
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">怎么用（源码框架与技术栈）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<p>8 步流程在本库每步都有真实入口（<code>rag/</code>，技术栈：Python 3 + Chroma + FlagEmbedding bge-m3 + bge-reranker-v2-m3 + LangGraph + 火山豆包 API + ragas 0.4.3）：</p>
+<table>
+<thead>
+<tr>
+<th>步</th>
+<th>真实入口</th>
+<th>命令</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 环境</td>
+<td><code>~/ai-stack</code> venv（chromadb/FlagEmbedding/langgraph/datasets）</td>
+<td><code>source ~/ai-stack/bin/activate</code></td>
+</tr>
+<tr>
+<td>2 语料三层归档</td>
+<td><code>raw/</code>+<code>wiki/</code>+<code>ontology/</code>，<code>ingest.py::infer_chunk_type()</code>/<code>parse_source_tier()</code>（frontmatter <code>source_tier: 1/2/3</code>，默认 2）</td>
+<td>—</td>
+</tr>
+<tr>
+<td>3 配置核对</td>
+<td><code>rag/config.yaml</code>（全管线唯一开关，<code>query.py::load_config()</code> 加载，env <code>RAG_*</code> 前缀可覆盖）</td>
+<td><code>grep -n "threshold\|top_n\|rrf_k" rag/config.yaml</code></td>
+</tr>
+<tr>
+<td>4 分块</td>
+<td><code>split_file()</code>（H1–H3 + 800 细切 + 表格保护）/<code>split_parent_chunks()</code> 800/100</td>
+<td><code>RAG_CHUNK_MODE=atomic RAG_ATOMIC_MAX_CHARS=400 python rag/ingest.py</code>（可选原子化）</td>
+</tr>
+<tr>
+<td>5 入库</td>
+<td><code>ingest.py::main()</code> 增量（registry sha256+bge_version skip）+ <code>run_verify()</code> 自动验证</td>
+<td><code>python rag/ingest.py</code>；只灌两层 <code>RAG_INCLUDE_PREFIX="wiki/,ontology/" python rag/ingest.py</code></td>
+</tr>
+<tr>
+<td>6 检索</td>
+<td><code>query.py::retrieve_hybrid()</code>→<code>rerank_node()</code>→<code>gate_node()</code>→<code>generate_node()</code></td>
+<td><code>python rag/query.py "&lt;q&gt;" --no-gen</code>；解释模式加 <code>--explain</code></td>
+</tr>
+<tr>
+<td>7 评估</td>
+<td><code>eval/eval_recall_fast.py</code>（<code>--check-golden</code> 守卫）+ <code>eval_ragas.py</code> 四指标 + <code>eval/_e2e_eval.py</code></td>
+<td><code>python3 rag/eval/eval_recall_fast.py --check-golden &amp;&amp; python3 rag/eval/eval_recall_fast.py --no-sparse --json-out after.json</code></td>
+</tr>
+<tr>
+<td>8 对外暴露</td>
+<td><code>rag/mcp_server.py</code>（stdio MCP，<code>MCPServer</code> mcp 2.x，工具 <code>query_knowledge(question, top_k=5)</code>）/ <code>rag/serve.py</code>（FastAPI+uvicorn，OpenAI 兼容 <code>/v1/chat/completions</code>）</td>
+<td>启动行见 <code>rag/README-MCP.md</code>：<code>env -u PYTHONPATH -u PYTHONHOME PYTHONUNBUFFERED=1 /home/wuyafang/ai-stack/bin/python /mnt/c/MyData/Documents/wuyafang-l/rag/mcp_server.py</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>改完后的固定验收四步</strong>（顺序不能换）：① <code>python3 rag/eval/eval_recall_fast.py --check-golden</code> exit=0；② 库数对齐（<code>wc -l rag/data/chunks.jsonl</code> 与 registry 同量级，总数下降必须查清）；③ 三路都活（<code>[hybrid] dense top-N + sparse top-M</code> 两路都 &gt;0 且 <code>q_sparse tokens&gt;0</code>）；④ 分数不回落（同口径 <code>--json-out after.json</code> 与 <code>before.json</code> 比 Recall@5）。</p>
+<p>注意 <code>rag/README-MCP.md</code> 记载的 HTTP 单例（<code>127.0.0.1:8770/mcp</code>，工具 <code>search_knowledge</code>/<code>kb_stats</code>）是 DSH 侧 <code>mcp-remote</code> 桥接实例（2026-10-21 实测存活）；本库 <code>rag/</code> 目录内可验的一手实现是 stdio 版 <code>mcp_server.py</code>（工具名 <code>query_knowledge</code>）与 <code>serve.py</code>（<code>RAG_PORT</code> 默认 6400）。</p>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7. 延伸与来源（书章节 / arXiv / 官方文档，均可核）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核对方式（三条路径，按可信度排序）：① 库内一手材料直接开文件对行号——</li><li>2 个 「.pt」 文件）都能用第 4.3 节脚本一分钟复现；写"待验证"的项目不要当成结论引用</li><li>③ 工具行为以官方文档/模型卡为准，与本机 「pip list」、「ls snapshot」 的实测版本对照</li></ul></div>3
+<p><strong>核对方式（三条路径，按可信度排序）</strong>：① 库内一手材料直接开文件对行号——<br />
+<code>grep -n "_get_m3_model" /mnt/c/MyData/Documents/wuyafang-l/rag/query.py</code>；<br />
+② 论文用 arXiv ID 打开摘要页核标题与作者，<code>https://arxiv.org/abs/&lt;ID&gt;</code>；<br />
+③ 工具行为以官方文档/模型卡为准，与本机 <code>pip list</code>、<code>ls snapshot</code> 的实测版本对照。<br />
+凡本文写"实测"的数字（18599 chunk、919 registry、56 golden、0.45/0.60/0.50 三个阈值、<br />
+2 个 <code>.pt</code> 文件）都能用第 4.3 节脚本一分钟复现；写"待验证"的项目不要当成结论引用。</p>
+<h4 id="书本篇原稿由-7-本书交叉提炼本次保留并补章号">书（本篇原稿由 7 本书交叉提炼，本次保留并补章号）</h4>
+<ul>
+<li>黄佳《RAG实战课》：第 2 章分块（§2.2 固定 / §2.3 递归 / §2.4 按格式）、第 3 章混合检索（§3.4 稀疏+dense+BM25 三路）、第 6 章父子分层（§6.1 small-to-big，全书最高频划线）、第 9 章系统评估（§9.2 context 指标、§9.3 answer 指标）。</li>
+<li>郑天民《从零实现RAG与Agent系统》：LlamaIndex 工作流代码化；CRAG（Corrective RAG）纠错环与多 Agent 扩展。</li>
+<li>李多多《企业级RAG系统》：10 章四部分架构；"基于文档逻辑分块"；第 10 章自适应 RAG 分类器。</li>
+<li>宁星星《RAG实践权威指南》：核心组件论、相似度计算与分布式推理。</li>
+<li>Denis Rothman《RAG-Driven Generative AI》（英）：pipeline 拼装思想，第 6 章用 Pinecone 做银行客户数据。</li>
+<li>凌峰《构建智能生成系统》：§5.1 nprobe/top_k 动态调整与延迟调优（缓存/并行）。</li>
+<li>吕思《实战AI搜索》：后端分层（DAO/Service/Controller）与五大模块。</li>
+</ul>
+<h4 id="arxiv一手论文id-可核">arXiv（一手论文，ID 可核）</h4>
+<ul>
+<li>Lewis et al., 2020，<strong>arXiv:2005.11401</strong>《Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks》——RAG 原始论文。</li>
+<li>Karpukhin et al., 2020，<strong>arXiv:2004.04906</strong>《Dense Passage Retrieval for Open-Domain Question Answering》——dense 双塔检索的奠基工作。</li>
+<li>Chen et al., 2024，<strong>arXiv:2402.03216</strong>《BGE M3-Embedding: Multi-Lingual, Multi-Functionality, Multi-Granularity Text Embeddings Through Self-Knowledge Distillation》——我们用的 bge-m3 论文（dense+sparse+colbert 三合一）。</li>
+<li>Cormack et al., 2009（WSDM）《Reciprocal Rank Fusion outperforms Condorcet and individual Rank learning Methods》——<code>rrf_k=60</code> 的出处。</li>
+<li>Izacard et al., 2022，<strong>arXiv:2212.10496</strong>《Few-shot Learning with Retrieval Augmented Language Models》（GenRead/HyDE）——查询侧改写思路。</li>
+<li>Asai et al., 2023，<strong>arXiv:2310.11511</strong>《Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection》——让模型自判是否需要重新检索。</li>
+<li>Kedia et al., 2024，<strong>arXiv:2401.15884</strong>《Corrective RAG (CRAG)》——我们 <code>crag:</code> 配置段的来源。</li>
+<li>Es et al., 2023，<strong>arXiv:2309.15217</strong>《RAGAS: Automated Evaluation of Retrieval Augmented Generation》——四指标定义。</li>
+<li>Gao et al., 2023，<strong>arXiv:2312.10997</strong>《Retrieval-Augmented Generation for Large Language Models: A Survey》——九步/分层视角的综述。</li>
+<li>Johnson et al., 2017，<strong>arXiv:1702.08734</strong>《Billion-scale similarity search with GPUs》（FAISS）——向量库备选方案。</li>
+<li>Muennighoff et al., 2022，<strong>arXiv:2210.07316</strong>《MTEB: Massive Multilingual Text Embedding Benchmark》——换 embedding 模型前该看的横向评测。</li>
+<li>Robertson &amp; Zaragoza, 2009，《The Probabilistic Relevance Framework: BM25 and Beyond》（牛津大学出版社）——BM25 与 RRF 所属的排序理论体系。</li>
+<li>Vaswani et al., 2017，<strong>arXiv:1706.03762</strong>《Attention Is All You Need》——理解 cross-encoder reranker 为什么"慢但准"的前置章节。</li>
+</ul>
+<h4 id="官方文档工具本身">官方文档（工具本身）</h4>
+<ul>
+<li>Chroma 文档：<code>docs.trychroma.com</code>（collection metadata、<code>hnsw:space</code>、持久化路径语义）。</li>
+<li>FlagEmbedding 仓库：<code>github.com/FlagOpen/FlagEmbedding</code>（<code>BGEM3FlagModel.encode(return_dense=..., return_sparse=...)</code> 签名、<code>sparse_linear.pt</code> 要求）。</li>
+<li>bge-m3 / bge-reranker-v2-m3 模型卡：HuggingFace <code>BAAI/bge-m3</code>、<code>BAAI/bge-reranker-v2-m3</code>（含 snapshot 文件清单，可与本机 <code>ls</code> 对照）。</li>
+<li>RAGAS 文档：<code>docs.ragas.io</code>（0.4.x 的 <code>evaluate()</code> 与四 metric 入参）。</li>
+<li>LangGraph 文档：<code>langchain-ai.github.io/langgraph</code>（状态机、条件边、checkpoint）。</li>
+<li>MCP 规范：<code>modelcontextprotocol.io</code>（streamable-http transport；2.x server 端 <code>mcp.server.mcpserver.MCPServer</code>）。</li>
+<li>Anthropic 工程博客《Contextual Retrieval》（2024-09）——本项目用的<strong>规则版</strong> Contextual 前缀（零 LLM 成本）是它的降级实现，<code>build_context_prefix()</code> 见 <code>rag/ingest.py:389</code>。</li>
+<li>📚 内部调研（据[一手源]）：<code>raw/rag-arch/RAG入库一手源细节-20261009.md</code>（Microsoft 6 phase / Google Vertex RAG Engine）、<code>raw/rag-arch/各类格式进RAG处理方案-20261021.md</code>、<code>raw/rag-arch/多模态文档解析入库RAG调研-20261021.md</code>（MinerU/Docling/ColPali 路线对比）、<code>raw/rag-arch/RAG保鲜落地验证-20261009.md</code>（TTL 与墓碑过滤）。</li>
+</ul>
+<h4 id="我们自己的一手材料库内路径">我们自己的一手材料（库内路径）</h4>
+<ul>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/rag/query.py</code>（1637 行）、<code>rag/ingest.py</code>（963 行）、<code>rag/config.yaml</code>（101 行）——本篇所有代码块的出处。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/本地RAG剩余差距-20261015.md</code>——P0/P1 缺口表、gate 阈值标定数据、A/B/C/D 排序消融。</li>
+<li><code>~/.hermes/skills/software-development/knowledge-base-wuyafang/SKILL.md</code>——dense 静默退化、<code>sparse_linear.pt</code> 随机头、gate 假阴性、评测三层等实战坑的原始记录。</li>
+</ul>
+<h3 id="三源融合清单">三源融合清单</h3>3
+<ul>
+<li>[书1] 书籍：<a href="../../raw/weread/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%20RAG%E5%AE%9E%E6%88%98%E8%AF%BE.md">大模型应用开发 RAG实战课</a>——分块、混合检索、父子分层与评估。</li>
+<li>[书2] 书籍：<a href="../../raw/weread/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%AE%9E%E6%88%98%EF%BC%9A%E4%BB%8E%E9%9B%B6%E5%AE%9E%E7%8E%B0RAG%E4%B8%8EAgent%E7%B3%BB%E7%BB%9F.md">大模型实战：从零实现RAG与Agent系统</a>——LlamaIndex、CRAG 与工作流。</li>
+<li>[书3] 书籍：<a href="../../raw/weread/%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E6%9E%84%E5%BB%BA%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E7%B3%BB%E7%BB%9F.md">从零开始构建企业级RAG系统</a>——企业级架构与自适应 RAG。</li>
+<li>[书4] 书籍：<a href="../../raw/weread/RAG%E5%AE%9E%E8%B7%B5%E6%9D%83%E5%A8%81%E6%8C%87%E5%8D%97%EF%BC%9A%E6%9E%84%E5%BB%BA%E7%B2%BE%E5%87%86%E3%80%81%E9%AB%98%E6%95%88%E5%A4%A7%E6%A8%A1%E5%9E%8B%E4%B9%8B%E9%81%93.md">RAG实践权威指南</a>——核心组件、相似度与分布式推理。</li>
+<li>[书5] 书籍：<a href="../../raw/weread/RAG-Driven%20Generative%20AI.md">RAG-Driven Generative AI</a>——pipeline 与生产部署。</li>
+<li>[书6] 书籍：<a href="../../raw/weread/%E5%A4%A7%E6%A8%A1%E5%9E%8BRAG%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%EF%BC%9A%E6%9E%84%E5%BB%BA%E6%99%BA%E8%83%BD%E7%94%9F%E6%88%90%E7%B3%BB%E7%BB%9F.md">大模型RAG应用开发：构建智能生成系统</a>——检索参数与延迟调优。</li>
+<li>[书7] 书籍：<a href="../../raw/weread/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E8%90%BD%E5%9C%B0%EF%BC%9A%E5%AE%9E%E6%88%98AI%E6%90%9C%E7%B4%A2.md">大模型应用落地：实战AI搜索</a>——搜索系统分层与模块划分。</li>
+<li>[业1] 业内：arXiv:2005.11401（RAG）、arXiv:2004.04906（DPR）、arXiv:2402.03216（BGE-M3）、arXiv:2401.15884（CRAG）、arXiv:2309.15217（RAGAS）；完整论文清单保留在上方原有来源节。</li>
+<li>[业2] 业内：Chroma、FlagEmbedding、RAGAS、LangGraph、MCP 与 Anthropic 官方文档；内部调研入口见 <a href="../../raw/rag-arch/RAG%E5%85%A5%E5%BA%93%E4%B8%80%E6%89%8B%E6%BA%90%E7%BB%86%E8%8A%82-20261009.md">RAG入库一手源细节</a>。</li>
+<li>说明：原文仅提供课件实操导航，未列具体 <code>../../raw/courseware/</code> 来源路径，本次不补造。</li>
+</ul>
+</div></details><h2 id="本库真实落地">本库真实落地</h2>2
+<blockquote>
+<p>本节 2026-11-05 补写，逐条核验路径与函数名（可 grep 复核），不复述正文流程图。</p>
+</blockquote>
+<ul>
+<li><strong>全流程"七步"在本库的可执行落点</strong>：<br />
+  1. 入库：<code>rag/ingest.py</code> <code>main()</code>（L1100）→ <code>split_file()</code>（L587）→ <code>encode_with_sparse()</code>（L286）→ registry 增量（<code>load_registry()</code> L359 / <code>save_registry()</code> L370）。<br />
+  2. 检索：<code>rag/query.py</code> <code>retrieve_hybrid()</code>（L867，分层路由+自动回退）。<br />
+  3. 融合：<code>rrf_fuse()</code>（L428）+ <code>weight_by_tier()</code>（L695）。<br />
+  4. 精排/门禁：<code>rerank()</code>（L890）→ <code>gate_node()</code>（L2245）。<br />
+  5. 生成/引用：<code>generate_node()</code>（L2378）+ 句级引用校验。<br />
+  6. 服务化：<code>rag/serve.py</code> <code>chat_completions()</code>（L323）/<code>rag/mcp_server.py</code> <code>query_knowledge()</code>（L167）。<br />
+  7. 评测回归：<code>rag/eval/eval_recall_fast.py --check-golden</code> + <code>_e2e_eval.py</code>。</li>
+<li><strong>企业级"最后一公里"的两个真实工具</strong>：多端服务用 OpenAI 兼容 JSON 契约（<code>rag/serve.py</code> <code>ChatCompletionRequest</code> L281），知识站点交付用 <code>rag/sync_wiki_site.py</code> <code>build_incremental()</code>（L148，逐篇渲染缺失/过期 html + 重建索引）。<strong>本库暂无多租户/权限过滤</strong>（正文差距表），共享场景需自行在检索前加过滤。</li>
+<li><strong>和课件讲法的差异</strong>：课件全流程偏 LlamaIndex pipeline；本库全流程是自建（LangGraph 状态机 + Chroma + bge-m3），LlamaIndex 仅留对照实现 <code>rag/query_llamaindex.py</code>。</li>
+</ul></div></body></html>

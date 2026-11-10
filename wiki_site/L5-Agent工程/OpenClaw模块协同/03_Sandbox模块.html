@@ -1,0 +1,204 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>03_Sandbox模块</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../../index.html">🏠 总入口</a><a href="../../graph.html">🕸 关联图谱</a><a href="../../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/OpenClaw模块协同/03_Sandbox模块</span></div><div class="wrap"><blockquote><p><a href="../../index.html">← 返回总入口</a></p></blockquote><h1 id="openclaw-sandbox">OpenClaw 核心模块 —— Sandbox（沙箱隔离）</h1>
+<h2 id="_1">沙箱的定位</h2>
+<p>在开放式 AI 平台中，<strong>安全</strong> 与 <strong>可控</strong> 是最关键的运营指标。OpenClaw 通过 <strong>Sandbox</strong> 为每一次子代理（Sub‑agent）的执行提供 <strong>进程级别的资源隔离</strong> 与 <strong>IO 沙箱</strong>，防止恶意代码、无限循环或资源泄露影响主系统。Sandbox 同时兼顾 <strong>低延迟</strong>（对即时任务的快速响应）和 <strong>高可配置</strong>（支持容器、虚拟机、用户命名空间等多种后端）。</p>
+<h2 id="_2">核心特性</h2>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>进程隔离</strong></td>
+<td>每个子任务在独立的 Linux 命名空间（pid、net、mnt）中运行，使用 <code>unshare</code> 与 <code>cgroups</code> 限制 CPU、内存、IO。</td>
+</tr>
+<tr>
+<td><strong>文件系统根限定</strong></td>
+<td>通过 <code>chroot</code> 将可见文件系统限制在 <code>/home/wuyafang/.openclaw/sandbox_root</code>，防止子代理读取系统敏感文件。</td>
+</tr>
+<tr>
+<td><strong>网络白名单</strong></td>
+<td>支持 <code>iptables</code> 规则，仅允许访问白名单域名（如 <code>api.openai.com</code>、<code>*.bailian.aliyun.com</code>），默认阻断所有外网。</td>
+</tr>
+<tr>
+<td><strong>资源配额</strong></td>
+<td><code>cpu_quota=200%</code>、<code>memory_limit=512Mi</code>、<code>pids_limit=64</code>（可在配置中自行调整）。</td>
+</tr>
+<tr>
+<td><strong>审计日志</strong></td>
+<td>每一次执行产生 <code>sandbox_audit.log</code>，记录 <code>pid、uid、resource usage、exit_code、stderr/stdout</code>。</td>
+</tr>
+<tr>
+<td><strong>快速回滚</strong></td>
+<td>运行结束后自动 <code>umount</code>、<code>delete</code> 临时挂载点，确保无残留文件。</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_3">工作流程（时序图）</h2>
+<pre><code class="language-mermaid">flowchart LR
+    A[Routing] --&gt; B[Sandbox Manager]
+    B --&gt; C[Create Namespace]
+    C --&gt; D[Copy Exec Binary]
+    D --&gt; E[Run Sub‑agent]
+    E --&gt; F[Collect Output]
+    F --&gt; G[Write to Memory RAG]
+    G --&gt; H[Return Result]
+</code></pre>
+<ol>
+<li><strong>Routing</strong> 把子任务交给 <strong>Sandbox Manager</strong>；</li>
+<li><strong>Sandbox Manager</strong> 根据配置创建 <code>cgroup</code> 与 <code>namespace</code>；</li>
+<li>将可执行文件（<code>openclaw-agent</code>、<code>python</code>、<code>node</code>）拷贝至沙箱根目录；</li>
+<li>通过 <code>unshare --mount --uts --ipc --net --pid</code> 启动子进程；</li>
+<li>子进程完成后 <strong>Sandbox Manager</strong> 收集 <code>stdout/stderr</code>，写入 <strong>Memory RAG</strong> 供后续子代理使用。</li>
+</ol>
+<p><strong>图：Sandbox 多层隔离架构（由内到外逐层限制）</strong></p>
+<pre><code class="language-mermaid">flowchart TB
+    SUB[&quot;Sub-agent 进程&quot;] --&gt; NS[&quot;命名空间隔离 pid net mnt&quot;]
+    NS --&gt; CG[&quot;cgroup 配额 cpu 200 percent 内存 512Mi pids 64&quot;]
+    CG --&gt; FS[&quot;chroot 限定 sandbox_root&quot;]
+    FS --&gt; SEC[&quot;seccomp 与 AppArmor 系统调用过滤&quot;]
+    SEC --&gt; NET[&quot;iptables 域名白名单&quot;]
+    NET --&gt; AUD[&quot;auditd 与 sandbox_audit.log 审计&quot;]
+    AUD --&gt; OUT[&quot;stdout stderr 写入 Memory RAG&quot;]
+</code></pre>
+<h2 id="openclawjson">配置示例（<code>openclaw.json</code>）</h2>
+<pre><code class="language-json5">{
+  &quot;sandbox&quot;: {
+    &quot;enabled&quot;: true,
+    &quot;rootPath&quot;: &quot;~/openclaw/sandbox_root&quot;,
+    &quot;cpuQuota&quot;: &quot;200%&quot;,
+    &quot;memoryLimit&quot;: &quot;512Mi&quot;,
+    &quot;pidsLimit&quot;: 64,
+    &quot;networkWhitelist&quot;: [
+      &quot;api.openai.com&quot;,
+      &quot;*.bailian.aliyun.com&quot;
+    ],
+    &quot;auditLog&quot;: &quot;~/openclaw/logs/sandbox_audit.log&quot;
+  }
+}
+</code></pre>
+<ul>
+<li><code>rootPath</code> 必须在 <strong>用户可写</strong> 的目录下；首次运行时会自动 <code>mkdir -p</code> 并 <code>chmod 700</code>；</li>
+<li><code>networkWhitelist</code> 支持通配符，内部使用 <code>iptables -d</code> 实现。</li>
+</ul>
+<h2 id="_4">沙箱安全加固</h2>
+<ol>
+<li><strong>Seccomp 过滤</strong>：默认禁用 <code>fork</code>、<code>execveat</code>、<code>ptrace</code> 等危险系统调用；需要额外二进制时可在 <code>sandbox.seccompProfile</code> 中白名单；</li>
+<li><strong>AppArmor</strong>（如系统支持）可在 <code>/etc/apparmor.d/openclaw-sandbox</code> 中添加 <code>profile</code>；</li>
+<li><strong>透明日志</strong>：<code>auditd</code> 记录所有 <code>execve</code>、<code>open</code> 系统调用；</li>
+<li><strong>资源泄漏检测</strong>：监控 <code>cgroup.memory.max_usage_in_bytes</code> 与 <code>cpu.stat</code>，若超过阈值自动 <code>kill</code> 子进程。</li>
+</ol>
+<h2 id="_5">常见错误码与排查</h2>
+<table>
+<thead>
+<tr>
+<th>错误码</th>
+<th>含义</th>
+<th>可能原因</th>
+<th>解决方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SBOX001</code></td>
+<td>创建 Namespace 失败</td>
+<td><code>unshare</code> 权限不足（需要 <code>CAP_SYS_ADMIN</code>）</td>
+<td>检查用户是否在 <code>docker</code> 或 <code>unprivileged</code> 组；若在 WSL，确认 <code>kernel.unprivileged_userns_clone=1</code> 已启用。</td>
+</tr>
+<tr>
+<td><code>SBOX002</code></td>
+<td>文件系统访问受限</td>
+<td><code>chroot</code> 路径缺失或权限不足</td>
+<td>确认 <code>sandbox.rootPath</code> 已存在且 <code>chmod 700</code>；</td>
+</tr>
+<tr>
+<td><code>SBOX003</code></td>
+<td>网络被阻断</td>
+<td>目标域名未在白名单</td>
+<td>将域名加入 <code>sandbox.networkWhitelist</code> 并 <code>openclaw sandbox reload</code>；</td>
+</tr>
+<tr>
+<td><code>SBOX004</code></td>
+<td>资源超限</td>
+<td>CPU/Memory 超出配额</td>
+<td>调整 <code>sandbox.cpuQuota</code>、<code>sandbox.memoryLimit</code> 或优化子任务代码。</td>
+</tr>
+</tbody>
+</table>
+<p><strong>图：Sandbox 错误码判定路径</strong></p>
+<pre><code class="language-mermaid">flowchart TD
+    S[&quot;启动沙箱&quot;] --&gt; A{&quot;创建 Namespace&quot;}
+    A --&gt;|&quot;失败&quot;| E1[&quot;SBOX001 检查 CAP_SYS_ADMIN 与 userns 开关&quot;]
+    A --&gt;|&quot;成功&quot;| B{&quot;挂载 chroot 根目录&quot;}
+    B --&gt;|&quot;失败&quot;| E2[&quot;SBOX002 检查 rootPath 与权限 700&quot;]
+    B --&gt;|&quot;成功&quot;| C{&quot;运行中访问网络&quot;}
+    C --&gt;|&quot;不在白名单&quot;| E3[&quot;SBOX003 加入 networkWhitelist 并 reload&quot;]
+    C --&gt;|&quot;允许&quot;| D{&quot;资源是否超限&quot;}
+    D --&gt;|&quot;超限&quot;| E4[&quot;SBOX004 调整 cpuQuota 或 memoryLimit&quot;]
+    D --&gt;|&quot;正常&quot;| OK[&quot;执行完成 回收挂载点&quot;]
+</code></pre>
+<h2 id="_6">与其他模块的协同</h2>
+<ul>
+<li><strong>Routing</strong>：在路由决策阶段会为需要隔离执行的任务打上 <code>sandbox=true</code> 标记；</li>
+<li><strong>Memory RAG</strong>：沙箱结束后将产生的日志、输出写入时序记忆，供后续生成阶段使用；</li>
+<li><strong>Subagent</strong>：Subagent 实际运行的业务代码始终在 Sandbox 环境中执行，确保 <strong>安全闭环</strong>。</li>
+</ul>
+<h2 id="api">实战案例：安全调用第三方 API</h2>
+<pre><code class="language-bash">openclaw agent exec '调用 https://api.openai.com/v1/chat/completions' \
+    --model deepseek/deepseek-v4-pro \
+    --sandbox true \
+    --timeout 120
+</code></pre>
+<ul>
+<li>通过 <code>--sandbox true</code> 强制在隔离环境中执行；</li>
+<li>请求仅能访问 <code>api.openai.com</code>（已在白名单），若代码尝试访问其他域名会返回 <code>SBOX003</code> 错误。</li>
+</ul>
+<h2 id="_7">小结</h2>
+<p>Sandbox 模块为 OpenClaw 提供了 <strong>可信执行</strong> 的底层保障。通过 <strong>命名空间、cgroup、网络白名单</strong> 的组合，实现了对资源、文件系统、网络的全方位限制，同时配合 <strong>审计日志</strong> 与 <strong>监控指标</strong>，确保在多租户或高风险任务场景下系统仍能保持高可用。后续章节会展示 <strong>Subagent</strong> 如何在 Sandbox 中完成业务调度，从而形成完整的任务闭环。</p></div></body></html>

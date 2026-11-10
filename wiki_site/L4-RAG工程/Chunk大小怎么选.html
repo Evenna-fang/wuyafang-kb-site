@@ -1,0 +1,538 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Chunk大小怎么选</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ Chunk大小怎么选</span></div><div class="wrap"><h1 id="chunk-大小怎么选分块策略全对比">Chunk 大小怎么选：分块策略全对比</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/weread/RAG%E5%AE%9E%E8%B7%B5%E6%9D%83%E5%A8%81%E6%8C%87%E5%8D%97%EF%BC%9A%E6%9E%84%E5%BB%BA%E7%B2%BE%E5%87%86%E3%80%81%E9%AB%98%E6%95%88%E5%A4%A7%E6%A8%A1%E5%9E%8B%E4%B9%8B%E9%81%93.md">RAG实践权威指南：构建精准、高效大模型之道</a> · <a href="../../raw/weread/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%20RAG%E5%AE%9E%E6%88%98%E8%AF%BE.md">大模型应用开发 RAG实战课</a> · <a href="../../raw/weread/%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E6%9E%84%E5%BB%BA%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E7%B3%BB%E7%BB%9F.md">从零开始构建企业级RAG系统</a> · <a href="../../raw/courseware/RAG%E7%AF%87/1-RAG%E5%9F%BA%E7%A1%80-2025-10-8-%E6%9F%8F%E6%B1%8C__day01%281%29__01-RAG%E5%9F%BA%E7%A1%80.md">1-RAG基础-2025-10-8-柏汌__day01(1)__01-RAG基础</a></p>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E6%90%AD%E5%BB%BA%E5%85%A8%E6%B5%81%E7%A8%8B.html">企业级RAG搭建全流程</a> · <a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构</a></p>
+</blockquote>
+<h1 id="why分块先保护证据完整性再谈召回与成本">WHY：分块先保护证据完整性，再谈召回与成本</h1>
+<h2 id="为什么这不是一个填-512的参数题">为什么这不是一个“填 512”的参数题</h2>2
+<p>业务需要的是完整证据：一条定义的条件与结论、表格的表头与数据、函数的签名与实现不能被分开后失去关联。块太碎会让答案缺前提，块太大又会把无关主题一起编码。下游换 embedding 或扩 top_k 不能恢复已经切丢的事实，所以不做分块验收的后果是“索引成功、问答却持续漏条件”。</p>
+<p>来源：<a href="../books/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%20RAG%E5%AE%9E%E6%88%98%E8%AF%BE.html">《RAG实战课》第 2/6/9 章提炼</a>把分块、分层索引与评测串成闭环；<a href="../../raw/rag-arch/%E6%95%B4%E6%9C%AC%E4%B9%A6%E5%85%A5%E5%BA%93%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-20261014.md">整本书调研 Q1/Q4</a>提供参数对照。适用于源文已经解析正确、失败可归因到证据边界的场景；扫描件缺字、库里根本无资料、越权访问不属于尺寸调参问题。验收先看结构完整，再看同一题集的召回与生成，不能拿块数更少当质量更好。</p>
+<h2 id="核心论点">核心论点</h2>2
+<p><strong>检索质量的天花板由 chunk 边界决定，不由模型决定——分块是 RAG 里"最便宜的高杠杆优化"。</strong> 没有普适最优 chunk 大小，只有"分层检索"这一结构性解法：小 chunk（256–384 tok）管召回精度、父 chunk（≤1024 tok）管生成完整性，7 本书里被划线最多的就是这条。默认起点是递归分块 512/overlap 50，特殊载体（合同按条款、代码按函数、表格整张）必须放弃统一切法；所有分块策略的收益都要用同一把评测尺子（Recall@5）验证，否则"今天 256 好、明天 512 好"的摇摆永无止境。</p>
+<h1 id="whyt结构边界父子块与尺寸单位如何共同决策">WHYT：结构边界、父子块与尺寸单位如何共同决策</h1>
+<h2 id="数据契约与尺寸选择依据">数据契约与尺寸选择依据</h2>2
+<pre><code class="language-text">原文标题/段落/表格 → child（定位证据）→ dense+sparse 检索
+                         │ 命中位置
+                         └→ parent_text（恢复条件）→ 生成与引用
+source + heading_path + file_hash 将两种粒度关联到同一源版本
+</code></pre>
+<p>原文书籍/调研里的 token 经验值与本库实现必须区分。2026-11-03 核对 <code>rag/ingest.py</code>：<code>RecursiveCharacterTextSplitter</code> 未指定 token 长度函数，384/80 与父块 800/100 按字符计；Markdown legacy 路径先按标题切，再由 <code>_md_fine_splitter</code> 800/100 细切，不能把 <code>RAG_CHUNK_SIZE=512</code> 当成所有 Markdown 块都变成 512 token。下面 10-14“表格未处理”是历史快照；后文 10-26 表格保护是后续状态，不能把两张表当同一时点。</p>
+<p>选型按任务对标：固定/递归是低成本基线，结构切分保护文档语义，父子分层分离检索与生成粒度，RAPTOR 更适合长文跨章；语义切分、Late Chunking 要证明边际收益。上游材料的 benchmark 来自不同语料，不推出“父子分块永远最优”。本篇保留所有原始推荐区间，但将其作为候选，不作为生产硬阈值。</p>
+<h2 id="这个问题的答案是什么">这个问题的答案是什么</h2>2
+<p><strong>没有一个"正确"的 chunk 大小，只有"场景化的默认值 + 分层检索"。</strong> 7 本书交叉对比下来，共识是：</p>
+<ol>
+<li><strong>不要用单一 chunk 大小</strong>——小了丢上下文，大了稀释相似度。</li>
+<li><strong>生产环境的最优解是 hierarchical（父子分块）</strong>：用小 chunk（256–384 token）做检索找位置，用父 chunk（≤1024 token）喂给 LLM 做生成。这是黄佳《RAG实战课》1460 人划线的最高频观点。</li>
+<li><strong>默认起点</strong>：纯文本递归分块 512 token / overlap 50；法律 / 合同用文档逻辑分块（按条款）；Markdown 按标题层级切。</li>
+</ol>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">详细方法</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="一五种主流分块策略对比">一、五种主流分块策略对比</h3>3
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>做法</th>
+<th>优点</th>
+<th>缺点</th>
+<th>适用场景</th>
+<th>来自哪本书</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>固定大小</strong></td>
+<td>按 N 字符或 N token 切，overlap 固定</td>
+<td>简单、可预测</td>
+<td>切断句子 / 决策</td>
+<td>快速 demo</td>
+<td>黄佳 §2.2；企业级RAG §</td>
+</tr>
+<tr>
+<td><strong>递归分块</strong></td>
+<td>优先按段落 → 句子 → 词递归切</td>
+<td>保留语义边界</td>
+<td>还是长度驱动</td>
+<td><strong>通用默认</strong></td>
+<td>黄佳 §2.3</td>
+</tr>
+<tr>
+<td><strong>格式分块</strong></td>
+<td>Markdown/HTML 按 <code>#</code> 标题切</td>
+<td>保留文档结构</td>
+<td>标题本身无意义时空 chunk</td>
+<td>技术文档 / Wiki</td>
+<td>黄佳 §2.4</td>
+</tr>
+<tr>
+<td><strong>文档逻辑分块</strong></td>
+<td>按段落 / 小节 / 条款切</td>
+<td>语义完整</td>
+<td>需要人工标注</td>
+<td>合同 / 法律 / 报告</td>
+<td>企业级RAG §"Document Specific Chunking"</td>
+</tr>
+<tr>
+<td><strong>语义分块</strong></td>
+<td>用 Embedding 检测语义断点</td>
+<td>最智能</td>
+<td>计算成本高，慢</td>
+<td>高端场景</td>
+<td>黄佳 §2.5</td>
+</tr>
+</tbody>
+</table>
+<p>据[一手源]：整本书入库最佳实践-20261014.md —— "最智能"不等于"最准"，2026 年的两份实测都不支持语义分块：Vecta/FloTorch benchmark（50 篇学术论文、90 万 token）里 recursive 512-token 端到端准确率 <strong>69%</strong> 排第一，semantic chunking 平均只切出 43 token 的碎片，准确率 <strong>54%</strong>（LLM 拿不到完整上下文）；Vectara NAACL 2025 同行评审（25 种配置 × 48 个模型）里 fixed-size 在三个评估任务上都赢了 semantic chunking。NVIDIA 2024 七策略对比中 page-level 切分以 0.648 的准确率排第一。选型口诀：<strong>默认递归 256–512，语义分块要自己的评测集证明更好才换，别因为"贵"就以为"好"。</strong></p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">二、为什么"小 chunk 检索 + 大 chunk 生成"是生产最优</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>小 chunk（200–300 tok）：dense 向量相似度准（因为语义集中），但 chunk 本身信息不完整，LLM 读了答不出</li><li>大 chunk（800–1200 tok）：上下文完整，但一个 chunk 里塞了多个主题，向量被"平均"掉，召回不准</li><li>small chunk (256 tok) 向量检索 → 找到命中位置</li></ul></div>3
+<p><strong>矛盾</strong>：<br />
+- 小 chunk（200–300 tok）：dense 向量相似度准（因为语义集中），但 chunk 本身信息不完整，LLM 读了答不出。<br />
+- 大 chunk（800–1200 tok）：上下文完整，但一个 chunk 里塞了多个主题，向量被"平均"掉，召回不准。</p>
+<p><strong>解法（small-to-big / hierarchical）</strong>：</p>
+<pre><code>用户 query
+   ↓
+small chunk (256 tok) 向量检索 → 找到命中位置
+   ↓
+回查父 chunk (1024 tok) → 喂给 LLM 生成答案
+</code></pre>
+<ul>
+<li>黄佳 §6.1（1460 人划线）："先使用较小的文本块进行检索（以提高检索精度），然后在生成阶段引用更大、更完整的文本块"。</li>
+<li>郑天民 / 凌峰 也在 LlamaIndex 里用 NodeRelationships 实现类似机制。</li>
+</ul>
+<h3 id="三尺寸经验值速查">三、尺寸经验值速查</h3>3
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>推荐 chunk 大小</th>
+<th>overlap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一般技术文档 / Wiki</td>
+<td>384–512 tok</td>
+<td>50–80</td>
+</tr>
+<tr>
+<td>法律条款 / 合同</td>
+<td>按条款整体，不切碎</td>
+<td>0</td>
+</tr>
+<tr>
+<td>FAQ / Q&amp;A 对</td>
+<td>每个对一个 chunk</td>
+<td>0</td>
+</tr>
+<tr>
+<td>长篇小说 / 故事</td>
+<td>800–1024 tok（需要连贯上下文）</td>
+<td>100</td>
+</tr>
+<tr>
+<td>代码文件</td>
+<td>按函数 / class 切</td>
+<td>0</td>
+</tr>
+<tr>
+<td>表格</td>
+<td>整张表一个 chunk，不拆</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p>据[一手源]：各类格式进RAG处理方案-20261021.md、多模态文档解析入库RAG调研-20261021.md —— 按<strong>文件格式</strong>选切法（先转成可切的文本，再切）：</p>
+<table>
+<thead>
+<tr>
+<th>格式</th>
+<th>解析</th>
+<th>切法</th>
+<th>粒度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>txt 课程笔记（tab 缩进大纲体）</td>
+<td>直接读；先用 chardet/ftfy 修编码</td>
+<td>按顶层缩进块切，或退化为 RecursiveCharacterTextSplitter 到 <code>\n\n</code></td>
+<td>300–800 token + 重叠</td>
+</tr>
+<tr>
+<td>pdf / docx</td>
+<td>MinerU（首选，输出 md 且带 <code>doc:/page:/block:</code> 定位）；Docling 做对拍；MarkItDown 仅 office 轻量兜底</td>
+<td>转 Markdown 后按 H1/H2 标题切（LlamaIndex MarkdownNodeParser 同思路），表格整块不切碎</td>
+<td>标题块</td>
+</tr>
+<tr>
+<td>xlsx / csv</td>
+<td>pandas.read_excel / read_csv</td>
+<td><strong>每行一条记录</strong>，不按字符切；表头当上下文前缀</td>
+<td>单行</td>
+</tr>
+<tr>
+<td>json（文档型）</td>
+<td>LlamaIndex JSONNodeParser</td>
+<td>每个数组元素/对象一个 chunk，嵌套对象保留上下文键，metadata 记 <code>json_path</code></td>
+<td>单对象</td>
+</tr>
+<tr>
+<td>html</td>
+<td>BeautifulSoup <code>get_text()</code> 或 LlamaIndex HTMLNodeParser（默认只抽 p/h1-h6/li/section，天然剥 nav/footer/script）</td>
+<td>剥标签后按标题/段落切；整页站点先定位 <code>&lt;article&gt;</code> 再抽</td>
+<td>标题/段落</td>
+</tr>
+<tr>
+<td>复杂版式 PDF（图表密集、OCR 易错）</td>
+<td>视觉原生路线（ColPali 类，页面截图直接做 patch 多向量，用 MaxSim 打分）</td>
+<td><strong>不切片，以"页"为检索单元</strong></td>
+<td>整页</td>
+</tr>
+</tbody>
+</table>
+<p>选型口诀：<strong>散文按标题段落，表格/记录按行，文字为主走"解析成 md"，版式复杂走"页级视觉向量"，两条路线是分工不是二选一。</strong></p>
+<blockquote>
+<p><strong>冲突观点 C1</strong>：凌峰《构建智能生成系统》倾向"按查询复杂度动态调整 nprobe / top_k"，但 chunk 大小固定。黄佳《实战课》更激进——直接上 hierarchical。<strong>我的判断</strong>：凌峰适合快速起步，黄佳适合生产。两者不冲突，是不同阶段。</p>
+</blockquote>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">四、容易踩的坑</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. overlap 设太大（≥200）：chunk 之间高度重叠，向量库膨胀，检索结果冗余</li><li>经验值 overlap ≤ chunk 的 15–20%</li><li>2. 把 Markdown 表格当纯文本切：表格被切成无意义碎片</li></ul></div>3
+<ol>
+<li><strong>overlap 设太大</strong>（≥200）：chunk 之间高度重叠，向量库膨胀，检索结果冗余。经验值 overlap ≤ chunk 的 15–20%。</li>
+<li><strong>把 Markdown 表格当纯文本切</strong>：表格被切成无意义碎片。要么按整表存，要么用 TableSummarizer 生成摘要后入库。</li>
+<li><strong>PDF 页眉页脚没去掉</strong>：每个 chunk 都带"第 X 页"噪声，稀释 embedding。黄佳 §1.8 专门讲 PDF 版面识别。</li>
+<li><strong>chunk 太碎（&lt;128 tok）</strong>：单 chunk 语义不足，embedding 质量差；且召回 top-k 时一片碎片，LLM 上下文混乱。</li>
+<li><strong>metadata 忘了带 heading_path</strong>：chunk 知道自己是哪个章节的，rerank 和过滤才能用。</li>
+<li><strong>把构建产物当知识切</strong>（据[一手源]：各类格式进RAG处理方案-20261021.md）：LlamaIndex 的 <code>docstore.json</code> / <code>vector_store.json</code>、<code>rerank_cache/*.json</code>、<code>registry.json</code> 是构建产物不是知识，绝不进库；该源在本库实测 725 个 json 几乎全部不进，14 个 csv 全部不进（机器学习数据集、评测报告、ontology 三元组派生物）。切分之前先判"该不该进"，切得再好也救不了垃圾 chunk 对 faithfulness 的拉低。</li>
+<li><strong>编码没修就切</strong>（同源）：实测 <code>requirements.txt</code> 是 UTF-16/GBK 乱码，课程笔记是 UTF-8；混编码文件先用 chardet/ftfy 修好，否则切出的 chunk 全是乱码向量。</li>
+</ol>
+<h3 id="五进阶索引构建黄佳-26-6">五、进阶索引构建（黄佳 §2.6 / §6）</h3>3
+<ul>
+<li><strong>滑动窗口（sentence window）</strong>：以句子为单位，前后各扩展 N 句作为上下文入库</li>
+<li><strong>父子节点（Parent-Child）</strong>：small-to-big 的标准实现</li>
+<li><strong>RAPTOR（Recursive Abstractive Tree）</strong>：对 chunks 递归聚类 + LLM 生成摘要，建一棵摘要树——支持从"粗摘要"到"细节"多级检索</li>
+<li><strong>前后向扩展（prev/next node）</strong>：回答"在某事件之前 / 之后"类问题时，自动把相邻节点也带回来（黄佳 §6.4，1440 人划线）</li>
+</ul>
+<p>据[一手源]：整本书入库最佳实践-20261014.md —— 这几项进阶索引的适用边界（RAPTOR、Late Chunking 别盲目上）：</p>
+<ul>
+<li><strong>Parent-Child</strong>：child 128–256 精确检索、命中后返回 512–1024 的 parent，业内实战参数 parent 800–1200 字符 / child 150–250 字符；本库 384/800 在推荐区间内，不是主要矛盾。</li>
+<li><strong>RAPTOR</strong>（Stanford ICLR 2024）：适合"单本长文档的多步推理 QA"（如 QASPER、复杂法律文书）；几百篇横向对比的库不适合，最多给最厚的单本书单独建一棵树。</li>
+<li><strong>Late Chunking</strong>（Jina 2024.08）：要 8K 上下文 embedding 模型先通读再 token 级 pooling；bge-m3 虽支持 8K，但 FlagEmbedding 没暴露 token-level pooling API，要换模型，改造成本高，Contextual Retrieval 和去重做完、baseline 仍不够时再考虑。</li>
+</ul>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">来自哪些书的哪些观点</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>观点</th>
+<th>出处</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>递归分块是通用默认</td>
+<td>黄佳 §2.3</td>
+</tr>
+<tr>
+<td>文档逻辑分块（Document Specific Chunking）</td>
+<td>李多多《企业级RAG系统》第二部分</td>
+</tr>
+<tr>
+<td>small-to-big 父子分块（最高频划线 1460 人）</td>
+<td>黄佳 §6.1</td>
+</tr>
+<tr>
+<td>HierarchicalNodeParser + RAPTOR</td>
+<td>黄佳 §6.3</td>
+</tr>
+<tr>
+<td>前后向扩展支持时序问答</td>
+<td>黄佳 §6.4</td>
+</tr>
+<tr>
+<td>按段落 / 标题 / 表格 / 列表有特定语义</td>
+<td>黄佳 §2.5（1418 人划线）</td>
+</tr>
+<tr>
+<td>元数据标记（页码 / 时间 / 类型 / 文档标题）</td>
+<td>黄佳 §2（1336 人划线）</td>
+</tr>
+<tr>
+<td>加载时每个页面 = 一个 Document 对象</td>
+<td>黄佳 §1（1389 人划线）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="how在真实分割器上检查样本再做同尺子实验">HOW：在真实分割器上检查样本，再做同尺子实验</h1>
+<h2 id="先检查实际分块不先重灌生产索引">先检查实际分块，不先重灌生产索引</h2>2
+<ol>
+<li>确认本次会走哪个分支，避免改了环境变量却没有改变 Markdown 切法。</li>
+</ol>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+rg -n 'CHUNK_SIZE|CHUNK_OVERLAP|CHUNK_MODE|ATOMIC_MAX_CHARS|_MD_LONG_THRESHOLD|_md_fine_splitter|def _split_file_impl' rag/ingest.py
+</code></pre>
+<p>验收：能说清输入格式、字符/token 单位、child/parent 各用哪个参数。默认 legacy 不等于 atomic；atomic 的上限来自 <code>RAG_ATOMIC_MAX_CHARS</code>。</p>
+<ol start="2">
+<li>直接调用现有纯分割函数看一个真实文件，不调用 ingest.main、不编码、不写索引：</li>
+</ol>
+<pre><code class="language-bash">PYTHONDONTWRITEBYTECODE=1 env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python - &lt;&lt;'PY'
+import sys
+from pathlib import Path
+sys.path.insert(0, 'rag')
+from ingest import split_file, split_parent_chunks
+p = Path('wiki/L4-RAG工程/Chunk大小怎么选.md')
+text = p.read_text(encoding='utf-8')
+children = split_file(text, str(p))
+parents = split_parent_chunks(text)
+assert children and parents
+sizes = sorted(map(len, children))
+print('child_count=', len(children), 'parent_count=', len(parents))
+print('char_min/median/max=', sizes[0], sizes[len(sizes)//2], sizes[-1])
+print('first_child_preview=', children[0][:120])
+PY
+</code></pre>
+<p>验收：有非空块，抽看定义、列表、代码围栏和表格边界；表格保护可能保留长块，不能仅凭最大长度超目标就判错。此代码是读者实验入口，本次未运行依赖较重的分割模块。</p>
+<ol start="3">
+<li>先跑尺子检查，再在独立、完整的实验索引比较候选分块；不要在生产库只改尺寸后期待 registry 自动重算所有旧文件。</li>
+</ol>
+<pre><code class="language-bash">env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --check-golden
+</code></pre>
+<p>验收：同一源文快照、同一题集、同一 embedding/rerank，报告 R@1/R@5、块数、上下文完整性与成本；只有失败题被修复且其他题未退化才放行。<code>RAG_INDEX_DIR/RAG_DATA_DIR</code> 可隔离实验存储，但还须保证评测读取同一实验索引，并检查公共 ingest 锁；本轮只改文档，不执行重切或 <code>--rebuild</code>。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">我们库当前的落地实现（2026-10-14 对照代码核对）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<p>实际实现在 <code>rag/ingest.py</code> 的 <code>split_file()</code> / <code>split_parent_chunks()</code>：</p>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>现状实现</th>
+<th>与上面共识的对照</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.md</code> 主分割器</td>
+<td><code>MarkdownHeaderTextSplitter</code>（H1/H2/H3 三级标题）</td>
+<td>✅ 对应「格式分块」，但<strong>不是</strong>课件教的主力方法</td>
+</tr>
+<tr>
+<td>段落细切</td>
+<td>段 &gt;800 字符再用 <code>RecursiveCharacterTextSplitter(800/100)</code></td>
+<td>✅ 相当于 recursive 兜底</td>
+</tr>
+<tr>
+<td>非 <code>.md</code></td>
+<td><code>RecursiveCharacterTextSplitter(384/80)</code></td>
+<td>✅ 对应「递归分块」默认值</td>
+</tr>
+<tr>
+<td>父子分层</td>
+<td>✅ <code>split_parent_chunks</code> = 800/100，子块 metadata 存 <code>parent_text</code>（截 1500 字符）</td>
+<td>✅ 对应 small-to-big / ParentDocumentRetriever</td>
+</tr>
+<tr>
+<td>metadata</td>
+<td><code>source</code> / <code>chunk</code> / <code>heading_path</code> / <code>date</code> / <code>chunk_type</code> / <code>source_tier</code> / <code>ttl</code> / <code>captured_at</code> / <code>sparse_vec</code></td>
+<td>✅ 已补齐</td>
+</tr>
+<tr>
+<td>chunk 级去重</td>
+<td>正文指纹去重（编码前丢弃重复正文，wiki 优先）</td>
+<td>2026-10-14 新增</td>
+</tr>
+<tr>
+<td>表格处理</td>
+<td>❌ 未专门处理，与正文一起按标题切</td>
+<td>仍是缺口</td>
+</tr>
+</tbody>
+</table>
+<p><strong>结论：本库实现 = 课件方法（RecursiveCharacter + 父文档检索器）+ 一层 Markdown 结构感知增强。</strong></p>
+<h3 id="与课件教法的差异实测">与课件教法的差异（实测）</h3>3
+<p>统计 <code>raw/courseware/</code> 全部 md 的方法提及次数：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>提及次数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RecursiveCharacterTextSplitter</code></td>
+<td>809</td>
+</tr>
+<tr>
+<td><code>chunk_size</code></td>
+<td>804</td>
+</tr>
+<tr>
+<td><code>chunk_overlap</code></td>
+<td>599</td>
+</tr>
+<tr>
+<td>父文档 / <code>ParentDocumentRetriever</code></td>
+<td>253 / 84</td>
+</tr>
+<tr>
+<td><code>CharacterTextSplitter</code></td>
+<td>42</td>
+</tr>
+<tr>
+<td><code>TokenTextSplitter</code></td>
+<td>23</td>
+</tr>
+<tr>
+<td><code>MarkdownHeaderTextSplitter</code></td>
+<td>4（仅提及）</td>
+</tr>
+</tbody>
+</table>
+<p>课件主力是<strong>按长度递归切</strong>（<code>RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)</code> 是出现最多的参数组合），本库 <code>.md</code> 主路径却是<strong>按标题切</strong>。实测同一课件文件：</p>
+<ul>
+<li><code>MarkdownHeaderTextSplitter</code> + 800 细切 → 109 块，中位 706 字符，p90 788</li>
+<li><code>RecursiveCharacterTextSplitter(384/80)</code> → 234 块，中位约 338 字符</li>
+</ul>
+<p><strong>代价</strong>：<code>MarkdownHeaderTextSplitter</code> 不识别代码围栏，课件代码块里的 <code># 注释</code> 会被当成标题切一刀（实测在 <code># 推荐写法</code> 处产生 chunk 边界），代码密集的课件会切出以代码片段开头的块。</p>
+<p><strong>收益</strong>：章节标题进 <code>heading_path</code> metadata，chunk 语义边界更贴合文档结构；同等文件 chunk 数约为纯递归切法的 45%，索引更省。</p>
+<p><strong>若要完全对齐课件</strong>：把 <code>split_file()</code> 的 <code>.md</code> 分支换成 <code>RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)</code>，<code>split_parent_chunks()</code> 保持不动即可。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">相关条目</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>整本书与整套课件怎么入库：双层去重与章节级组织</li></ul></div>2
+<ul>
+<li><a href="%E6%95%B4%E6%9C%AC%E4%B9%A6%E4%B8%8E%E6%95%B4%E5%A5%97%E8%AF%BE%E4%BB%B6%E6%80%8E%E4%B9%88%E5%85%A5%E5%BA%93.html">整本书与整套课件怎么入库：双层去重与章节级组织</a></li>
+</ul>
+<h2 id="怎么用源码框架与技术栈">怎么用（源码框架与技术栈）</h2>2
+<p>落地就是改 <code>rag/ingest.py</code> 的分块参数并重灌，本库当前的真实口径（2026-10-26 对照代码核对）：</p>
+<table>
+<thead>
+<tr>
+<th>环节</th>
+<th>真实函数/常量（<code>rag/ingest.py</code>）</th>
+<th>当前值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.md</code> 切分</td>
+<td><code>split_file()</code> → <code>_md_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=_MD_HEADERS)</code>，<code>_MD_HEADERS = [('#','H1'),('##','H2'),('###','H3')]</code></td>
+<td>按 H1–H3 切</td>
+</tr>
+<tr>
+<td>长段细切</td>
+<td><code>_md_fine_splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100, separators=SEPARATORS)</code>，触发阈 <code>_MD_LONG_THRESHOLD = 800</code></td>
+<td>&gt;800 字符段再细切</td>
+</tr>
+<tr>
+<td>非 md / 兜底</td>
+<td><code>RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)</code>，<code>CHUNK_SIZE = int(os.environ.get("RAG_CHUNK_SIZE", "384"))</code>、<code>CHUNK_OVERLAP = int(os.environ.get("RAG_CHUNK_OVERLAP", "80"))</code></td>
+<td>384/80</td>
+</tr>
+<tr>
+<td>父块（生成上下文）</td>
+<td><code>split_parent_chunks()</code>，<code>PARENT_CHUNK_SIZE = int(os.environ.get("RAG_PARENT_CHUNK_SIZE", "800"))</code>、<code>PARENT_CHUNK_OVERLAP = int(os.environ.get("RAG_PARENT_CHUNK_OVERLAP", "100"))</code></td>
+<td>800/100</td>
+</tr>
+<tr>
+<td>原子化模式</td>
+<td><code>CHUNK_MODE = os.environ.get("RAG_CHUNK_MODE", "legacy")</code>，<code>_atomic_split()</code> 单块 ≤ <code>ATOMIC_MAX_CHARS = int(os.environ.get("RAG_ATOMIC_MAX_CHARS", "400"))</code></td>
+<td>默认 legacy</td>
+</tr>
+<tr>
+<td>表格保护</td>
+<td><code>_split_table_segments()</code> / <code>_split_table_block()</code>，表头行与数据行同 chunk（G5 20261026）</td>
+<td>默认开</td>
+</tr>
+<tr>
+<td>脏 chunk 过滤</td>
+<td><code>is_noisy_vector_chunk(text, noisy_ratio=0.80)</code></td>
+<td>默认开</td>
+</tr>
+</tbody>
+</table>
+<p><strong>换尺寸的可执行动作</strong>（只改环境变量，不动代码）：</p>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+# 只灌 wiki+ontology（分层过滤，SCOPED 模式自动跳过 stale 清理保护其它层）
+RAG_INCLUDE_PREFIX=&quot;wiki/,ontology/&quot; python rag/ingest.py
+# 换一组子块尺寸做对比实验（改完必跑评测，见下）
+RAG_CHUNK_SIZE=512 RAG_CHUNK_OVERLAP=100 RAG_INCLUDE_PREFIX=&quot;wiki/,ontology/&quot; python rag/ingest.py
+# 小批冒烟：只处理按优先级排序后的前 N 个文件
+RAG_FILE_LIMIT=5 RAG_INCLUDE_PREFIX=&quot;wiki/,ontology/&quot; python rag/ingest.py
+</code></pre>
+<p><strong>改完的验收</strong>（顺序不能换，详见 <code>rag/eval/eval_recall_fast.py</code> 与 <code>rag/eval/_e2e_eval.py</code>）：</p>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l/rag/eval
+python3 eval_recall_fast.py --check-golden        # exit=0 才有资格谈分数
+python3 eval_recall_fast.py --no-sparse --json-out after.json   # Recall@1/@5
+python3 _e2e_eval.py --json-out e2e_after.json    # 生产保真口径（约 31 分钟）
+</code></pre>
+<p>与 <code>before.json</code> / <code>eval/e2e_final.json</code> 逐项对比，R@5 不降才放行；掉分就回滚参数重灌。</p>
+<blockquote>
+<p>三段结构补齐 2026-11-03</p>
+</blockquote>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li>
+<p><strong>本库不用单一 chunk 大小，用「父子两层 + 标题原子切」（<code>rag/ingest.py</code> L465 / L613，本次读源码）</strong>：<br />
+  ```python<br />
+  def _atomic_split(text: str) -&gt; list:<br />
+      """Zettelkasten 式原子分块: 一 chunk 一概念。</p>
+<p>规则:<br />
+  1. 先按 markdown 小节标题 (#{1,6}) 切段 —— 每个小节 = 一个概念单元;<br />
+  2. 小节内再按段落边界 (空行) 切;<br />
+  3. 单块 &gt;ATOMIC_MAX_CHARS 时在句子边界细切;<br />
+  4. 过短块 (&lt;ATOMIC_MIN_CHARS) 与相邻块合并 (不跨小节边界)。<br />
+  代码围栏 <code>内部不切。
+  """</code><br />
+  配套的父块是 <code>split_parent_chunks()</code>（<code>PARENT_CHUNK_SIZE=800</code> → 融合落点写过「800 字符父块」，本次沿用配置与函数名）。<br />
+- <strong>为什么这样选</strong>：子块要「小而准」进 rerank（本次 rerank 输入是 <code>heading_path + 子块</code>），父块要「大而全」进生成。<strong>chunk 大小不是全局参数，是「给谁用」的参数</strong>。<br />
+- <strong>代码围栏不切</strong>这条规则是拿事故换来的：<code>rag/ingest.py</code> L337 附近另有 <code>MarkdownHeaderTextSplitter</code> + 800 字符细切的老路径，<code>.md</code> 的表格与代码块必须整块保留（L344 起 <code>_TABLE_LINE_RE</code>/<code>_FENCE_LINE_RE</code> 就是为此加的）。<br />
+- <strong>和课件讲法的差异</strong>：课件给的是「chunk_size=1000, overlap=200」（<code>RecursiveCharacterTextSplitter</code> 默认调参）；本库对 <code>.md</code> 用标题切、对超长段落才退到 800 字符递归切——<strong>结构化文档用结构切，不要用字符数切</strong>。<br />
+- <strong>本库暂无</strong>：没有针对当前语料的 chunk 大小 A/B 实验数据落盘（历史数字散在 <code>config.yaml</code> 与评测报告注释里）。</p>
+</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库实际用的是「父块 800 字符 + 子块按标题原子切」双层：<code>rag/ingest.py</code> L613 <code>split_parent_chunks()</code>（<code>PARENT_CHUNK_SIZE</code> 800）与 L465 <code>_atomic_split()</code>（一个 markdown 小节 = 一个概念单元，过短块不跨小节合并）。</li>
+<li><strong>读源码</strong>：切分参数；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul></div></details></div></body></html>

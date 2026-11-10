@@ -1,0 +1,233 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LLM生产监控与Eval观测</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ LLM生产监控与Eval观测</span></div><div class="wrap"><h1 id="llm-生产可观测与-eval从-trace-到发版门禁">LLM 生产可观测与 Eval：从 trace 到发版门禁</h1>
+<blockquote>
+<p>本篇融合原《LLM 生产监控与 Eval 观测》《Tracing 可观测选型》。课件的 RAGAS 示例提供离线评测入口，书籍提供“质量内建、快速反馈”的方法，官方文档用于核对 trace 数据模型和当前接入方式。工具资源占用、价格和版本不采用旧文固定数字，部署前应以当前官方清单与本机实测为准。</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY：为什么“服务没报错”仍可能交付坏答案</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>HTTP 200 只能说明请求完成，不能说明检索到了正确材料、答案有依据、工具没有越权</li><li>《持续交付2.0》的两个原则在这里直接适用：质量内建，而不是上线后靠大批量检验；快速反馈，让失败样本尽快回到开发与评测环</li><li>LLM 的非确定性又使同一代码在换模型、改 prompt、改检索参数后产生质量漂移</li></ul></div>2
+<p>HTTP 200 只能说明请求完成，不能说明检索到了正确材料、答案有依据、工具没有越权。LLM 的非确定性又使同一代码在换模型、改 prompt、改检索参数后产生质量漂移。只看平均延迟还会漏掉 p99 长尾，只看一个 LLM 总分则会把检索、生成和 judge 偏差混成一个数字。</p>
+<p>《持续交付2.0》的两个原则在这里直接适用：<strong>质量内建</strong>，而不是上线后靠大批量检验；<strong>快速反馈</strong>，让失败样本尽快回到开发与评测环。Langfuse 官方也把 production traces 视为评测的数据基础。由此得到闭环：</p>
+<pre><code class="language-text">一次请求留 trace → 指标定位慢/错/贵 → 离线分层评测解释质量
+→ 低分 trace 经人工审核进入 dataset → CI 回归门禁 → 小流量发布与线上抽样
+</code></pre>
+<p>trace 不是答案正确性的证明，eval 分数也不是线上行为正常的证明；两者必须联合判读。</p>
+<h2 id="what-whyt观测指标评测各自回答什么">WHAT / WHYT：观测、指标、评测各自回答什么</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. Trace：还原一次请求的因果链</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>chat.request（鉴权结果、模型路由、trace_id，不记密钥）</li><li>├─ rag.retrieve（top_k、过滤条件类型、耗时、候选数）</li><li>├─ rag.rerank（输入/输出候选数、耗时）</li></ul></div>3
+<p>建议的 span 树：</p>
+<pre><code class="language-text">chat.request（鉴权结果、模型路由、trace_id，不记密钥）
+├─ rag.retrieve（top_k、过滤条件类型、耗时、候选数）
+├─ rag.rerank（输入/输出候选数、耗时）
+├─ llm.generate（模型、TTFT、总耗时、输入/输出 token、结束原因）
+└─ tool.call（工具名、参数校验结果、审批/错误，不记敏感参数）
+</code></pre>
+<ul>
+<li>OpenTelemetry 提供厂商中立的 traces/metrics/logs 采集与导出；GenAI semantic conventions 仍应按所采用版本的稳定性状态使用，不能把开发中的字段当成永久不变协议。</li>
+<li>Langfuse 官方数据模型以 trace 串联 LLM、检索、工具与自定义步骤，并原生理解 token、模型参数、prompt/completion 和 eval 分数。</li>
+<li>Phoenix 支持本地、容器和自建部署，官方 quickstart 使用 6006 提供 UI/OTLP HTTP，4317 用于 OTLP gRPC；团队共享时可选择 PostgreSQL 持久化。</li>
+<li>默认不采集完整 prompt、响应、文档正文和用户标识。确需采样时，先做脱敏、访问控制、保留期限和删除机制；<code>trace_id</code> 不应包含敏感信息。</li>
+</ul>
+<h3 id="2-metrics发现何时何处对谁变坏">2. Metrics：发现何时、何处、对谁变坏</h3>3
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>指标</th>
+<th>判读注意</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>体验</td>
+<td>TTFT、TPOT/ITL、端到端 p50/p95/p99</td>
+<td>流式首 token 快不等于整段快；按输出长度分层</td>
+</tr>
+<tr>
+<td>可靠性</td>
+<td>HTTP/Provider 错误、429、超时、取消、流中断</td>
+<td>按模型、路由、版本、租户类型切分</td>
+</tr>
+<tr>
+<td>检索</td>
+<td>候选数、Recall@k、rerank 前后排名变化</td>
+<td>线上无 relevant 标签时不能直接算真实 Recall</td>
+</tr>
+<tr>
+<td>成本</td>
+<td>输入/输出/缓存 token、每请求与每成功任务成本</td>
+<td>失败、重试、工具循环也计费</td>
+</tr>
+<tr>
+<td>质量</td>
+<td>faithfulness、答案相关性、无答案拒答、人工通过率</td>
+<td>judge 需校准；抽样要记录偏差</td>
+</tr>
+<tr>
+<td>反馈</td>
+<td>点踩、停止、重试、人工接管</td>
+<td>反馈是信号，不自动等于 ground truth</td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. Eval：把“坏”拆成可回归的问题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>检索层：Context/Recall@k、MRR/nDCG，回答“该找的内容是否找到、是否排前”</li><li>没有人工 relevant 标注就不能凭空计算召回</li><li>生成层：faithfulness 检查答案断言能否由给定上下文支持；answer relevancy 检查是否回应问题</li></ul></div>3
+<ul>
+<li>检索层：Context/Recall@k、MRR/nDCG，回答“该找的内容是否找到、是否排前”。没有人工 relevant 标注就不能凭空计算召回。</li>
+<li>生成层：faithfulness 检查答案断言能否由给定上下文支持；answer relevancy 检查是否回应问题。二者都不是“事实必然为真”：上下文本身可能错。</li>
+<li>端到端：任务成功率、引用正确性、无答案拒答、工具副作用与安全负例。</li>
+<li>确定性检查优先：JSON schema、必填引用、禁词、长度、SQL/代码测试可稳定自动化；开放式质量再使用 LLM-as-a-Judge，并用人工标注集测 judge 的一致性和偏差。</li>
+</ul>
+<h3 id="4-论文提示judge-的刻度本身也是变量">4. 论文提示：judge 的刻度本身也是变量</h3>3
+<p>《Change the Number, Change the Answer》（<a href="https://arxiv.org/abs/2610.22187">arXiv:2610.22187</a>）在其社会/心理构念评分实验中交叉比较刻度范围、连续/离散格式与符号方向，发现仅改一个设计元素就会使归一化分数平均移动约 0.10，并改变约 20% 文本的类别；rubric prompting 并未消除这种敏感性。该结论不能直接外推成所有 RAG judge 的固定误差，但足以否定“换一个 5/100 分制，阈值仍可直接比较”的做法。</p>
+<p><strong>我们怎么用</strong>：线上质量门禁固定 judge 模型、prompt、刻度、温度和 rubric 版本；改任一项都视为新评测仪器，用同一人工标注集重新校准。优先报告确定性通过率和成对偏好，使用 scalar score 时同时报告分档结果与跨刻度稳健性检查，不把“75 分”当跨模型通用事实。</p>
+</div></details><h3 id="5-工具选择按约束不按品牌排名">5. 工具选择按约束，不按品牌排名</h3>3
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>适合</th>
+<th>需要接受的代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OTel + Jaeger/现有 APM</td>
+<td>已有通用观测平台、重视协议中立</td>
+<td>LLM 成本/eval/专用 UI 需自建或补产品</td>
+</tr>
+<tr>
+<td>Phoenix</td>
+<td>本地起步、RAG/LLM trace 与 eval、希望自托管</td>
+<td>共享部署仍需规划存储、鉴权与容量</td>
+</tr>
+<tr>
+<td>Langfuse</td>
+<td>要 trace + dataset + prompt/eval/成本视图的一体化</td>
+<td>自托管组件和资源以当前版本为准，先实测</td>
+</tr>
+<tr>
+<td>LangSmith</td>
+<td>已采用其 LangChain/LangSmith 工作流</td>
+<td>评估许可、数据出域、额度与自托管门槛</td>
+</tr>
+</tbody>
+</table>
+<p>小内存机器不沿用过时“唯一可选”结论：先跑目标版本空载与真实 trace 负载，记录 RSS、CPU、写入延迟和 OOM，再决定。</p>
+<h2 id="how落地一条可验收的观测评测流水线">HOW：落地一条可验收的观测—评测流水线</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 用 OTel 打最小业务 span</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))</li><li>span.set_attribute("rag.top_k", top_k) 自有字段明确命名空间</li><li>trace.set_tracer_provider(provider)</li></ul></div>3
+<pre><code class="language-bash">pip install opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
+export OTEL_SERVICE_NAME='l9-rag'
+export OTEL_EXPORTER_OTLP_ENDPOINT='http://127.0.0.1:4318'
+</code></pre>
+<pre><code class="language-python">from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+
+provider = TracerProvider(resource=Resource.create({&quot;service.name&quot;: &quot;l9-rag&quot;}))
+provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
+trace.set_tracer_provider(provider)
+tracer = trace.get_tracer(__name__)
+
+@tracer.start_as_current_span(&quot;rag.retrieve&quot;)
+def retrieve(query: str, top_k: int):
+    span = trace.get_current_span()
+    span.set_attribute(&quot;rag.top_k&quot;, top_k)  # 自有字段明确命名空间
+    docs = do_retrieve(query=query, top_k=top_k)
+    span.set_attribute(&quot;rag.candidate_count&quot;, len(docs))
+    return docs
+</code></pre>
+<p>在 <code>llm.generate</code> span 记录模型名、token 和结束原因；采用 <code>gen_ai.*</code> 时对照所安装 SDK 对应的 OTel 规范版本。不要把 query、doc text 默认塞入 attributes。验证不是“代码无异常”，而是一次真实请求后 UI 能看到父子关系和耗时。</p>
+<h3 id="2-本地-phoenix-冒烟资源允许时">2. 本地 Phoenix 冒烟（资源允许时）</h3>3
+<pre><code class="language-bash">docker run -d --name phoenix \
+  -p 6006:6006 -p 4317:4317 \
+  arizephoenix/phoenix:latest
+# UI / OTLP HTTP: http://127.0.0.1:6006
+# 生产不要漂 latest：锁定已验证版本/镜像摘要，配置持久卷、鉴权与备份。
+</code></pre>
+<p>跑一个包含 retrieve→rerank→generate 的请求，确认三层 span；再制造一次检索空结果和一次模型超时，确认异常与状态可见。选择 Langfuse 时同样先以当前官方 compose/资源指南做冒烟，不照搬旧内存表。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 建可审计的 dataset 与 CI 门禁</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>每条数据至少包含：「id」、「question」、允许的 「relevant_doc_ids」、可选 reference、上下文快照/数据版本、标签来源、人工审核人</li><li>建议初始覆盖正常、多义、无答案、长上下文、权限与注入负例，而非只凑“50 条”</li><li>1. 确定性单测：schema、引用 ID 存在、租户负例、工具参数校验</li></ul></div>3
+<p>每条数据至少包含：<code>id</code>、<code>question</code>、允许的 <code>relevant_doc_ids</code>、可选 reference、上下文快照/数据版本、标签来源、人工审核人。建议初始覆盖正常、多义、无答案、长上下文、权限与注入负例，而非只凑“50 条”。</p>
+<p>CI 分四层：</p>
+<ol>
+<li><strong>确定性单测</strong>：schema、引用 ID 存在、租户负例、工具参数校验。</li>
+<li><strong>检索回归</strong>：固定索引快照，比较 Recall@k/MRR 与 p95；阈值由基线和业务容忍度确定。</li>
+<li><strong>生成回归</strong>：基线与候选模型使用相同 prompt、上下文和解码参数；faithfulness/任务分下降则阻断。</li>
+<li><strong>端到端冒烟</strong>：真实启动服务，检查流式、超时、取消、降级和 trace 完整，不用 curl 200 代替功能验收。</li>
+</ol>
+<h3 id="4-线上抽样与-badcase-回流">4. 线上抽样与 badcase 回流</h3>3
+<ul>
+<li>全量保留轻量指标，trace 按错误、慢请求、高成本和随机样本分层采样；不要只采失败导致分布失真。</li>
+<li>低分样本先由人工判断是检索错、上下文错、生成错、judge 错还是标注错，再回流到对应 dataset。</li>
+<li>发版采用小流量或影子流量，对比同版本 SLO 与质量；异常时回滚到已验证的模型/prompt/索引组合。</li>
+<li>每周审一次“指标变好但用户变差”的反例，防止单一分数成为目标后失真。</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库的观测是「带指标的结构化日志行」，每行都能被 grep 出数字（本次实跑原始日志）</strong>：<br />
+<code>[retrieve] merged top-435: top_rrf=0.0164 best_dist=0.2720
+  [rerank] 熔断: 回退排序 top-3
+  [gate] best_dist=0.2720 dense_gate_threshold=0.5
+  [jev门控] 前 3 条 -&gt; 后 2 条，剔除：wiki/L5-Agent工程/Agent框架实操选型-2026.md/0.08
+  [jev] 忠实度=0.90 质量=1.54/2 置信度=0.31</code><br />
+<strong>每个节点一行、每行带数字、格式固定</strong>——这是「没有 APM 也能监控」的最小方案。</li>
+<li><strong>评测落盘而不是打印</strong>：<code>rag/eval_ragas.py</code> 跑 RAGAS 四指标（context_precision / context_recall / faithfulness / answer_relevancy），结果写 <code>rag/eval_ragas_report.csv</code>，并对指标为 NaN 的样本<strong>逐条归因打印</strong>（<code>[FAIL] qN ... 归因=LLM评分调用超时/失败</code>），不静默跳过。</li>
+<li><strong>追踪是可选的，不是必需的</strong>：<code>rag/query.py</code> 用 <code>@traceable(run_type="retriever", name="rag.retrieve")</code> 标注了关键函数，但 <strong>langsmith 缺失时降级成空装饰器</strong>（L43-49 <code>except ImportError: def traceable(...)</code>）——<strong>观测不能让主链路起不来</strong>。这一点在生产里比「全链路 trace」更重要。</li>
+<li><strong>和课件讲法的差异</strong>：课件多讲 LangSmith/Langfuse 接入；本库的判据是「<strong>没有观测后端时，日志里能不能判断这次为什么慢/为什么答错</strong>」，所以日志行带指标是底线，trace 是加分。</li>
+<li><strong>本库暂无</strong>：没有指标汇聚/告警（日志不落时序库），没有线上 SLO 定义，没有按天统计的错误率看板。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库的观测是「日志行 + 落盘指标」：<code>rag/query.py</code> 每节点打印带指标的日志（<code>[rerank] scored N docs in Xs</code>、<code>[gate] best_dist=...</code>、<code>[jev] 忠实度=0.90 质量=1.54/2 置信度=0.31</code>），评测落盘 <code>rag/eval_ragas_report.csv</code>（<code>rag/eval_ragas.py</code> L129）。</li>
+<li><strong>读源码</strong>：观测的三类信号；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+</div></details></div></details><h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] <strong>课件</strong>：<a href="../../raw/courseware/2603%E6%9C%9FAI%E5%A4%A7%E6%A8%A1%E5%9E%8BAgent%E7%AF%87__2603%E6%9C%9FAI%E5%A4%A7%E6%A8%A1%E5%9E%8BAgent%E7%AF%87__7-Agent%E8%AF%A6%E8%A7%A3-2026-4-3-%E5%88%9D%E8%A7%81__day07/day07/09-%E4%BD%BF%E7%94%A8RAGAS%E8%BF%9B%E8%A1%8C%E8%AF%84%E4%BC%B0.py">RAGAS 评估示例</a>，落在离线评测入口；同目录检索评估脚本用于分层指标设计，未在本轮重跑。</li>
+<li>[书1] <strong>书籍摘录</strong>：<a href="../../raw/weread/%E6%8C%81%E7%BB%AD%E4%BA%A4%E4%BB%982.0%EF%BC%9A%E4%B8%9A%E5%8A%A1%E5%BC%95%E9%A2%86%E7%9A%84DevOps%E7%B2%BE%E8%A6%81%EF%BC%88%E5%A2%9E%E8%AE%A2%E6%9C%AC%EF%BC%89.md">持续交付2.0</a>，落在质量内建、快速反馈、部署流水线与监测；<a href="../../raw/weread/%E5%A4%A7%E6%A8%A1%E5%9E%8BRAG%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%EF%BC%9A%E6%9E%84%E5%BB%BA%E6%99%BA%E8%83%BD%E7%94%9F%E6%88%90%E7%B3%BB%E7%BB%9F.md">大模型 RAG 应用开发</a>，落在检索与生成协同、系统测试。均只按目录与公开划线使用，不声称书籍全文。</li>
+<li>[业1] <strong>业内官方</strong>：<a href="https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/">OpenTelemetry GenAI spans</a>、<a href="https://langfuse.com/docs/observability/overview">Langfuse Observability</a>、<a href="https://arize.com/docs/phoenix/get-started">Phoenix Get Started</a>（均 GET 200：2026-11-04），分别落在 span 语义、trace/dataset/eval 闭环和本地部署入口；未据此宣称本机资源实测。</li>
+<li>[业2] <strong>论文</strong>：<a href="https://arxiv.org/abs/2610.22187">Change the Number, Change the Answer，arXiv:2610.22187</a>（GET 200：2026-11-04；<a href="../../raw/sources/arxiv-daily/2026-10-15-2610.22187.md">本地摘要</a>），落在 judge 刻度版本化、人工校准和跨刻度稳健性检查。</li>
+<li>历史调研：<a href="../../raw/fullstack/%E7%94%9F%E4%BA%A7%E7%9B%91%E6%8E%A7%E4%B8%8EEval-2026.md">生产监控与 Eval</a>、<a href="../../raw/sources/Tracing%E9%80%89%E5%9E%8B%E8%B0%83%E7%A0%94-20261026.md">Tracing 选型调研</a>；固定内存、额度、价格和“唯一可选”结论未作为当前事实继承。</li>
+</ul></div></body></html>

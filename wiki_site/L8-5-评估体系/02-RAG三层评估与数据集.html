@@ -1,0 +1,230 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>02-RAG三层评估与数据集</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 02-RAG三层评估与数据集</span></div><div class="wrap"><h1 id="rag-三层评估与数据集先定位检索生成还是端到端问题">RAG 三层评估与数据集：先定位检索、生成还是端到端问题</h1>
+<blockquote>
+<p>本篇是本层“RAG 三层评估与数据集”的唯一正文。“检索层—生成层—端到端”是本库用于工程归因的三层框架，不是 RAGAS 原论文规定的官方三层分类。历史阈值与历史评测数字均不当成本次实测。</p>
+</blockquote>
+<h2 id="why为什么端到端低分不能直接怪生成模型">WHY：为什么端到端低分不能直接怪生成模型</h2>2
+<p>同一个“答案错了”，至少可能来自四条路径：</p>
+<ol>
+<li>正确材料根本没有被检索到。</li>
+<li>正确材料被检索到，但排名太靠后或被上下文预算截掉。</li>
+<li>最终上下文包含正确材料，生成器却没有使用或误用了它。</li>
+<li>检索与生成单独看都正常，但问题本身无答案、金标缺失，或系统超时、拒答。</li>
+</ol>
+<p>如果只跑端到端评分，团队会反复换提示词和模型，却看不到真正故障层；如果只跑检索指标，又可能把“找到了相关段落”误当成“用户得到正确、完整答案”。</p>
+<p>三层评估的价值是<strong>归因</strong>而不是多报几个数字：</p>
+<ul>
+<li>检索层回答“证据有没有来、是否排前、上下文是否足够”。</li>
+<li>生成层回答“给定实际送入的上下文，回答是否忠实、相关、完整”。</li>
+<li>端到端回答“从用户问题到最终响应，任务是否成功”。</li>
+</ul>
+<p>没有稳定的金标与证据 ID，三层数字看似精确，实际无法比较。尤其当标注覆盖变化时，检索器完全没变，Recall 也可能变化。</p>
+<h2 id="what-whyt三层指标数据契约与适用边界">WHAT / WHYT：三层指标、数据契约与适用边界</h2>2
+<h3 id="1-检索层recallhitratemrr-与排序精度不是同一件事">1. 检索层：Recall、HitRate、MRR 与排序精度不是同一件事</h3>3
+<p>设某题金标证据集合为 (G)，前 (k) 个检索结果为 (R_k)：</p>
+<ul>
+<li><strong>Recall@k</strong>：(|G \cap R_k| / |G|)。关心金标证据找回了多少；多证据问答尤其重要。</li>
+<li><strong>HitRate@k</strong>：只要 (G \cap R_k) 非空即为 1。关心是否至少命中一条，不代表证据齐全。</li>
+<li><strong>MRR</strong>：每题取首个相关结果排名的倒数再平均。关心第一条证据是否靠前，不反映后续证据覆盖。</li>
+<li><strong>Context Precision</strong>：对前 k 个位置的相关/不相关序列计算 AP 型排序指标。关心相关项是否靠前，不能替代 Recall。</li>
+<li><strong>Context Relevance</strong>：上下文与问题的相关程度。相关不等于足以支持正确答案。</li>
+</ul>
+<p>例如相关序列为 <code>[1, 0, 1, 0, 1]</code>，三个命中位置的 precision 分别是 <code>1</code>、<code>2/3</code>、<code>3/5</code>，AP 为：</p>
+<pre><code class="language-text">(1 + 2/3 + 3/5) / 3 = 0.755555...
+</code></pre>
+<p>即使该例 Recall@5 为 1，AP 仍只有约 0.7556，因为不相关项插在相关项之前。两个指标揭示不同问题，不应互相替代。</p>
+<h3 id="2-生成层必须使用最终送模上下文">2. 生成层：必须使用“最终送模上下文”</h3>3
+<p>生成层不是只保存检索器原始输出。重排、去重、截断、权限过滤和模板拼接后，模型实际看到的上下文可能已不同。评估记录至少要保留：</p>
+<pre><code class="language-text">query_id + ranked_evidence_ids + final_context_ids + answer + reference_answer + metric_status
+</code></pre>
+<p>否则无法区分“检索没找到”与“找到了但没送模”，也无法复查裁判是否读到同一材料。忠实度、答案相关性、答案正确性的具体口径见 <a href="03-RAGAS%E6%A0%B8%E5%BF%83%E6%8C%87%E6%A0%87.html">03-RAGAS核心指标</a>。</p>
+<h3 id="3-端到端正确性覆盖率与失败状态一起看">3. 端到端：正确性、覆盖率与失败状态一起看</h3>3
+<p>端到端参考答案 <code>reference_answer</code> 应包含关键事实、可接受变体和禁止事实。无答案问题还要标记 <code>unanswerable</code>，把“应当拒答”与“答错”分开。空输出、超时、检索空结果、裁判异常和正常低分分别记录，不能统一塞成 0 分。</p>
+<p>建议每条结果都有：</p>
+<pre><code class="language-json">{&quot;query_id&quot;:&quot;q-017&quot;,&quot;slice&quot;:&quot;policy/unanswerable&quot;,&quot;retrieval_status&quot;:&quot;scored&quot;,&quot;generation_status&quot;:&quot;scored&quot;,&quot;judge_status&quot;:&quot;scored&quot;,&quot;faithfulness&quot;:1.0,&quot;answer_correctness&quot;:null}
+</code></pre>
+<p><code>null</code> 必须配套原因，例如 <code>not_applicable</code>；报告中的指标分母只包含该指标有效样本，同时公开缺失率和原因。不能因为“忠实”就推断“回答完整”。</p>
+<h3 id="4-论文怎么说我们怎么用">4. 论文怎么说，我们怎么用</h3>3
+<p><strong>金标覆盖会改变检索评分（arXiv:2610.31606）</strong>。本地摘要报告：在一个含 18 篇文档、18 个查询的小开发集上，标注扩充使 evidence spans 从 25 增至 37、accepted chunk targets 从 36 增至 51，而检索排名不变。这是小规模开发集证据，不能外推成所有数据集的同幅度变化。</p>
+<p>我们的用法：看到检索分数上升，先检查 qrels/manifest 是否变化；新增金标时保留数据集版本，并使用同一版本重跑基线与候选。报告把“检索器变化”和“标注覆盖变化”拆开，禁止把后者包装成模型收益。</p>
+<h3 id="5-历史阈值与结构性假象的边界">5. 历史阈值与结构性假象的边界</h3>3
+<p>旧稿保存的是 <strong>2026-10-19 历史快照</strong>：当时 <code>rerank.threshold=0.45</code>，正负样本分离窗记为 <code>(0.0211, 0.4943]</code>；还曾出现 <code>R@5=R@10</code>，原因是 <code>top_k=4</code> 加图谱槽使结果列表最长只有 5。它们说明如何诊断，不是 2026-11-04 重新测得的当前真值。</p>
+<p>因此：</p>
+<ul>
+<li>不把 <code>0.45</code> 复制成其他模型、版本或业务的默认阈值。</li>
+<li>计算 Recall@k 前先看实际返回长度与上游 <code>top_k</code>，否则增大 k 只是名义变化。</li>
+<li>阈值必须同时看正负样本，单独用正例调低阈值可能显著增加误检。</li>
+</ul>
+<h2 id="how从金标审计到三层可复跑评估">HOW：从金标审计到三层可复跑评估</h2>2
+<h3 id="第一步建立版本化-qrels-与查询集">第一步：建立版本化 qrels 与查询集</h3>3
+<p>查询集建议字段：</p>
+<pre><code class="language-json">{&quot;query_id&quot;:&quot;q-001&quot;,&quot;query&quot;:&quot;退款期限如何计算？&quot;,&quot;gold_evidence_ids&quot;:[&quot;doc-7#p3&quot;,&quot;doc-7#p4&quot;],&quot;reference_answer&quot;:&quot;……&quot;,&quot;slice&quot;:&quot;refund&quot;,&quot;unanswerable&quot;:false,&quot;qrels_version&quot;:&quot;2026-11-04-v1&quot;}
+</code></pre>
+<p>操作顺序：</p>
+<ol>
+<li>领域人员先标问题是否可答，再标<strong>所有足以回答的证据</strong>，不是只点一条看似相关的 chunk。</li>
+<li>多证据题记录证据组合，避免只命中一条就宣称信息完整。</li>
+<li>冲突材料、过时材料和重复 chunk 单独标记，不能只凭文本相似度自动并入金标。</li>
+<li>将数据集分为调参开发集与只读测试集；阈值和提示词只在开发集上选择。</li>
+<li>每次改标注生成新 <code>qrels_version</code>，基线和候选在同一版本上配对重跑。</li>
+</ol>
+<h3 id="第二步用确定性实现计算检索指标">第二步：用确定性实现计算检索指标</h3>3
+<pre><code class="language-python">import math
+
+
+def recall_at_k(gold_ids, retrieved_ids, k):
+    gold = set(gold_ids)
+    return len(gold &amp; set(retrieved_ids[:k])) / len(gold) if gold else math.nan
+
+
+def hit_rate_at_k(gold_ids, retrieved_ids, k):
+    gold = set(gold_ids)
+    return float(bool(gold &amp; set(retrieved_ids[:k]))) if gold else math.nan
+
+
+def reciprocal_rank(gold_ids, retrieved_ids):
+    gold = set(gold_ids)
+    for rank, doc_id in enumerate(retrieved_ids, start=1):
+        if doc_id in gold:
+            return 1.0 / rank
+    return 0.0
+
+
+def average_precision(relevance):
+    hits = 0
+    precision_sum = 0.0
+    for rank, relevant in enumerate(relevance, start=1):
+        if relevant:
+            hits += 1
+            precision_sum += hits / rank
+    return precision_sum / hits if hits else math.nan
+</code></pre>
+<p>无金标的查询不应被强行记 0；它应进入 <code>not_applicable</code> 并报告数量。<code>average_precision</code> 的输入是<strong>真实逐位置相关性</strong>，不是只根据是否命中生成的简化标签。</p>
+<h3 id="第三步保存足以归因的检索轨迹">第三步：保存足以归因的检索轨迹</h3>3
+<p>每次运行至少写：</p>
+<pre><code class="language-text">manifest_hash / retriever_version / query_id / requested_k / actual_returned_n
+ranked_ids_with_scores / final_context_ids / latency_ms / error_type
+</code></pre>
+<p>然后按以下顺序定位：</p>
+<ol>
+<li><code>requested_k</code> 是否大于实际可能返回的数量。</li>
+<li>金标是否在原始候选、重排后列表、最终上下文三个位置分别出现。</li>
+<li>相似度分布是否因嵌入模型或分数归一化变化而整体平移。</li>
+<li>空结果是个别查询失败，还是全批数据/配置错误。</li>
+</ol>
+<p>下面的接入命令只是接口示例，<strong>未实跑</strong>，需要实际评估脚本和检索器：</p>
+<pre><code class="language-bash"># 未实跑：只读本地数据，输出到本地 artifacts；不得上传私有查询或文档。
+python eval_retrieval.py \
+  --queries ./eval-data/queries.jsonl \
+  --qrels ./eval-data/qrels-2026-11-04-v1.jsonl \
+  --manifest ./eval-data/manifest.json \
+  --k 1 3 5 10 \
+  --output ./eval-artifacts/retrieval-candidate.jsonl
+</code></pre>
+<h3 id="第四步双端标定阈值而不是照搬历史值">第四步：双端标定阈值，而不是照搬历史值</h3>3
+<p>设正样本为“应保留的证据对”，负样本为“不应保留的证据对”：</p>
+<ol>
+<li>在开发集同时采样正、负与困难边界样本，检查标签独立性。</li>
+<li>分别画出正负分布，按业务代价选择漏检/误检权衡。</li>
+<li>若存在干净分离窗，可把候选阈值放在窗内并做扰动测试；若分布高度重叠，不要虚构“完美阈值”。</li>
+<li>在冻结测试集只验证一次最终方案，并按领域、语言、查询类型分桶。</li>
+<li>保存阈值、打分器版本和数据版本；任何一项变化都重新标定。</li>
+</ol>
+<p>可复用判定逻辑：</p>
+<pre><code class="language-python">def candidate_window(positive_scores, negative_scores):
+    if not positive_scores or not negative_scores:
+        raise ValueError(&quot;正负样本都不能为空&quot;)
+    lower = max(negative_scores)
+    upper = min(positive_scores)
+    return (lower, upper) if lower &lt; upper else None
+</code></pre>
+<p>返回 <code>None</code> 表示当前样本没有简单的一维干净分离窗，不代表系统无可用工作点；此时应结合成本函数、分桶阈值或改进入股特征，而不是只报最好看的阈值。</p>
+<h3 id="第五步汇总三层结果">第五步：汇总三层结果</h3>3
+<pre><code class="language-text">检索：Recall@k / HitRate@k / MRR / AP + 有效样本数
+生成：Faithfulness / Relevancy / Correctness + 各指标缺失率
+端到端：任务成功率 / 拒答正确率 / 延迟 / 成本 + 失败类型
+归因：无证据、未送模、未使用证据、遗漏、幻觉、裁判失败
+</code></pre>
+<p>只有同批 query、同一 manifest、同一数据版本和同一评分协议的结果才能做 paired delta。基线失败时重新运行基线，不允许把缺失基线自动记为候选通过。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li>
+<p><strong>"数据集必须覆盖三层"的真实版本：检索层/生成层共用一批样本（<code>rag/eval_ragas.py</code> L58 <code>build_dataset()</code>，grep 可验）</strong>：<br />
+  ```python<br />
+  def build_dataset():<br />
+      import chromadb<br />
+      client = chromadb.PersistentClient(path=query.CONFIG["index"]["dir"])<br />
+      col = client.get_collection(query.CONFIG["index"]["collection"])</p>
+<p>answers, contexts = [], []<br />
+  for i, s in enumerate(QA_SAMPLES, 1):<br />
+      print(f"[{i}/{len(QA_SAMPLES)}] {s['question'][:30]}...", flush=True)<br />
+      hits = query.retrieve_hybrid(col, s["question"], dense_top=12, sparse_top=12)<br />
+      contexts.append([h["text"] if isinstance(h, dict) else str(h) for h in hits[:5]])<br />
+<code>``
+  同一批</code>QA_SAMPLES<code>同时产出</code>contexts<code>（检索层证据）和</code>answer<code>（生成层输出），**评测调用的是生产同一条</code>retrieve_hybrid<code>**——不在评测脚本里另写检索，否则分数不代表线上。
+- **样本集的"负例"从哪来（</code>rag/query.py<code>L2240</code>_build_refusal_answer()<code>）**：拒答文案是常量，</code>"""CRAG式拒答文案(负例必须命中此文案, 验收断言依赖此常量)。"""<code>——**负例不是靠人眼看，是靠断言该文案是否出现**。
+- **和课件讲法的差异**：课件三层评估（检索层 Recall@k/MRR、生成层 faithfulness、端到端人工评分）建议分层独立构造数据集，并给 LLM 生成 + 人工校验的造题流程；本库样本量很小（</code>QA_SAMPLES` 手写十几条），<strong>没有自动造题、没有人工双盲评分、没有分层标注</strong>。本库的三层是"同一批样本三种指标"，不是"三层各自的数据集"。</p>
+</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<h3 id="课件用于检索生成分层与基础指标概念">课件：用于检索/生成分层与基础指标概念</h3>3
+<ul>
+<li>[课1] <a href="../../raw/courseware/RAG%E7%AF%87/_merged/06-RAG%E8%AF%84%E4%BC%B0%E4%B8%8E%E5%BA%94%E7%94%A8%E5%B9%B3%E5%8F%B0-%E5%90%88%E5%B9%B6%E7%89%88.md">RAG 评估与应用平台合并课件</a>：其中的检索精确率、召回率与响应评估概念，落入本篇三层归因和指标分工。</li>
+<li>[课2] <a href="../../raw/courseware/RAG%E7%AF%87/day10__%E8%AF%BE%E4%BB%B6__05-RAG%E8%AF%84%E4%BC%B0%E4%B8%8E%E5%BA%94%E7%94%A8%E6%A1%86%E6%9E%B6.md">RAG 评估与应用框架</a>：用于保留 question、contexts、answer 等评估输入意识；课件中的历史调用方式不作为当前版本已验证示例。</li>
+</ul>
+<h3 id="书籍只使用目录简介与本地高亮不声称读过全文">书籍：只使用目录、简介与本地高亮，不声称读过全文</h3>3
+<ul>
+<li>[书1] <a href="../../raw/weread/%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E6%9E%84%E5%BB%BA%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E7%B3%BB%E7%BB%9F.md">《从零开始构建企业级RAG系统》本地简介、大纲与高亮</a>：检索与生成分层、忠实度定义和用户点赞点踩回流的高亮，分别落入分层归因与 badcase 回流思路。</li>
+<li>[书2] <a href="../../raw/weread/AI%E5%B7%A5%E7%A8%8B%EF%BC%9A%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%E5%AE%9E%E6%88%98.md">《AI工程：大模型应用开发实战》本地目录与热门划线</a>：评估方法论与评估 AI 系统章节目录用于支撑“先定义任务与数据，再解释指标”的工程顺序。</li>
+</ul>
+<h3 id="业内与论文用于指标实现边界金标审计与版本化口径">业内与论文：用于指标实现边界、金标审计与版本化口径</h3>3
+<ul>
+<li>[业1] RAGAS 原始论文：arXiv:2309.15217；EACL 2024 Demo 页面：<a href="https://aclanthology.org/2024.eacl-demo.16/">官方页面</a>（GET 200，2026-11-04）。用于区分原始框架与本库自定义三层工程归因。</li>
+<li>[业2] <a href="https://docs.ragas.io/">RAGAS 官方文档</a>（GET 200，2026-11-04）：用于指标生态与输入概念的官方入口；具体公式以固定版本源码和本篇确定性实现为准。</li>
+<li>[业3] 金标覆盖研究：arXiv:2610.31606。只阅读本地摘要，已落实为 qrels 版本化、同版配对重跑与覆盖审计。</li>
+<li>[业4] 可复现性研究：arXiv:2610.23845。只阅读本地摘要；其“保存可执行基线并审查分析选择”的启示用于本篇保留 manifest、真实排名位置和最终上下文，而非只留汇总分。</li>
+</ul></div></body></html>

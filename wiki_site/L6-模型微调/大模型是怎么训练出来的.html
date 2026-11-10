@@ -1,0 +1,113 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>大模型是怎么训练出来的</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 大模型是怎么训练出来的</span></div><div class="wrap"><h1 id="大模型是怎么训练出来的">大模型是怎么训练出来的</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">这个问题的答案是什么</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>今天能用的大模型（GPT、LLaMA、Qwen 这类）不是一步训出来的，而是三个阶段接力：先在海量无标注文本上做预训练，让模型"见过"人类语言；再用几千到几万条"指令-回答"对做监督微调（SFT），让模型学会"按要求答题"的格式；最后用人类偏好（RLHF）或直接偏好优化（DPO）对齐，让模型输出"有用、无害、诚实"</li><li>预训练决定模型有多聪明，SFT 和对齐决定它好不好用</li></ul></div>2
+<p>今天能用的大模型（GPT、LLaMA、Qwen 这类）不是一步训出来的，而是<strong>三个阶段接力</strong>：<strong>先在海量无标注文本上做预训练，让模型"见过"人类语言；再用几千到几万条"指令-回答"对做监督微调（SFT），让模型学会"按要求答题"的格式；最后用人类偏好（RLHF）或直接偏好优化（DPO）对齐，让模型输出"有用、无害、诚实"</strong>。预训练决定模型有多聪明，SFT 和对齐决定它好不好用。</p>
+<h2 id="详细内容">详细内容</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第一阶段：预训练（Pre-training）——让模型"读过互联网"</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>目标极其简单：给模型一句话的前半段，让它预测下一个词是什么</li><li>这就是为什么预训练能吃到几乎整个互联网</li><li>《从零构建大模型》里 408 人划线的那句最准确："大语言模型的预训练目标是在大量无标注的文本语料库（原始文本）上进行下一单词预测</li></ul></div>3
+<p>目标极其简单：<strong>给模型一句话的前半段，让它预测下一个词是什么</strong>。《从零构建大模型》里 408 人划线的那句最准确：<strong>"大语言模型的预训练目标是在大量无标注的文本语料库（原始文本）上进行下一单词预测。"</strong></p>
+<p>这里有两个关键点：</p>
+<ol>
+<li><strong>不需要人工标注</strong>。《从零构建大模型》另一处强调：<strong>"这一阶段大语言模型使用自监督学习，模型从输入数据中生成自己的标签。"</strong> 你把"C4"、"Common Crawl"这种几百 GB 的网页文本丢进去，模型自己用"下一个词"当标签。这就是为什么预训练能吃到几乎整个互联网。</li>
+<li><strong>数据混合有讲究</strong>。《Transformer 模型开发从 0 到 1》提到 GPT-3 训练时 Common Crawl 权重设为 0.44，同时混入其他高质量数据集——Common Crawl 太杂，必须用高质量语料配比来拉回来。《大语言模型：原理、应用与优化》也讲到从 Common Crawl 清理出 C4 数据集给 T5 用。</li>
+</ol>
+<p>预训练完的模型是什么样？它会续写、会补全，但你跟它说"帮我写一份周报"，它可能直接接"——周报是一种……"——因为它没学过"按指令做事"，只会"接话"。</p>
+<h3 id="第二阶段监督微调sft让模型学会答题">第二阶段：监督微调（SFT）——让模型"学会答题"</h3>3
+<p>SFT 用的是一小批人工写好的"指令 + 理想回答"对（通常几万到几十万条），训练目标跟预训练一样是预测下一个词，但<strong>训练数据变成了"问-答"格式</strong>。《从零构建大模型》第 7 章"通过微调遵循人类指令"就是讲这件事。</p>
+<p>《Happy-LLM》里那句点出了 SFT 的价值：<strong>"指令遵循能力意味着我们不再需要对于每一件事都先教模型，然后模型才能去做这件事。"</strong> 经过 SFT，模型从"文本续写机"变成了"问答助手"——你给它一个问题，它知道该输出一段回答而不是把问题接下去。</p>
+<p>《大语言模型：原理、应用与优化》第 4.2 节提到：<strong>"构造数据既可以通过聘请数据标注员完成，又可以通过已有大模型自动构造（Self-Instruct）。"</strong> 这就是为什么 SFT 数据成本可控——可以让强模型先生成一批，人工再筛选。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第三阶段：RLHF / DPO——让模型"对齐人类偏好"</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>SFT 完的模型回答是像样的，但未必"好用"——可能太啰嗦、可能一本正经胡说八道、可能拒绝回答正常问题</li><li>《统计学习方法》里提到的"智能系统的目标不是短期奖励最大化，而是长期累积奖励最大化"——这句话放到 RLHF 里依然成立，整个 RL 框架本质上就是这个思想</li><li>这一阶段要让它学会"人类更喜欢哪个回答"</li></ul></div>3
+<p>SFT 完的模型回答是像样的，但未必"好用"——可能太啰嗦、可能一本正经胡说八道、可能拒绝回答正常问题。这一阶段要让它学会"人类更喜欢哪个回答"。</p>
+<p><strong>RLHF（基于人类反馈的强化学习）</strong> 三步走：<br />
+1. 收集同一个问题的多个回答，让人类标注员排序哪个好哪个差；<br />
+2. 训练一个"奖励模型"（Reward Model）去模仿人类的打分；<br />
+3. 用强化学习（PPO）让语言模型去最大化奖励模型给的分数。</p>
+<p>《统计学习方法》里提到的"智能系统的目标不是短期奖励最大化，而是长期累积奖励最大化"——这句话放到 RLHF 里依然成立，整个 RL 框架本质上就是这个思想。</p>
+<p><strong>DPO（直接偏好优化）</strong> 是后来更简洁的做法：跳过单独训练奖励模型这一步，<strong>直接用偏好数据（哪个回答比哪个好）去优化语言模型</strong>，数学上等价于一个简化版的 RLHF。《大语言模型：原理、应用与优化》第 4.4 节"直接偏好优化"专门讲了这个方法——省去了 PPO 的复杂稳定性问题，现在很多团队默认用 DPO。</p>
+<h3 id="三阶段的本质区别">三阶段的本质区别</h3>3
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>数据</th>
+<th>目标</th>
+<th>产物</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>预训练</td>
+<td>无标注文本（TB 级）</td>
+<td>下一词预测</td>
+<td>基座模型（聪明但不会聊天）</td>
+</tr>
+<tr>
+<td>SFT</td>
+<td>指令-回答对（万-十万条）</td>
+<td>学习问答格式</td>
+<td>会答题的模型</td>
+</tr>
+<tr>
+<td>对齐（RLHF/DPO）</td>
+<td>偏好排序数据（万条）</td>
+<td>优化人类偏好</td>
+<td>有用无害的助手</td>
+</tr>
+</tbody>
+</table>
+<p>《大模型是怎样跑起来的》里那句提醒很重要：<strong>"生成得像真的，并不等于一定是真的。"</strong> 三阶段训练能让模型输出流畅、符合格式，但事实性错误仍然存在——因为整个训练目标里没有"必须正确"这一项，只有"像不像人写的"。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">来自哪些书的哪些观点（标注来源）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>《从零构建大模型》（Sebastian Raschka）：预训练目标是下一词预测（408 人划线）；预训练是自监督学习，模型自己生成标签；预训练后用较小的标注数据集微调；第 6 章分类微调、第 7 章指令微调、附录 E LoRA 是三阶段里 SFT 的几种实现方式；大语言模型构建通常包括预训练和微调两个阶段</li><li>《大模型是怎样跑起来的（轻科技）》：大模型本质是"高速文字接龙"——看前文猜后文；生成流畅 ≠ 真实；常见事实答得稳，冷门事实和需要推理的问题可能答得很流畅但不正确</li><li>《统计学习方法》（李航）：监督学习、无监督学习、强化学习三分法——正好对应大模型训练的三种范式（SFT/预训练/RLHF）；强化学习优化长期累积奖励，是 RLHF 的理论基础</li></ul></div>2
+<ul>
+<li><strong>《从零构建大模型》（Sebastian Raschka）</strong>：预训练目标是下一词预测（408 人划线）；预训练是自监督学习，模型自己生成标签；预训练后用较小的标注数据集微调；第 6 章分类微调、第 7 章指令微调、附录 E LoRA 是三阶段里 SFT 的几种实现方式；大语言模型构建通常包括预训练和微调两个阶段。</li>
+<li><strong>《大语言模型：原理、应用与优化》（苏之阳等）</strong>：第 3 章"大模型学习范式的演进"讲预训练与微调、多任务学习；第 4 章"大模型对齐训练"系统讲 RLHF（4.2）、RLAIF（4.3）、DPO（4.4）、超级对齐（4.5）；Self-Instruct 用已有大模型自动构造数据；C4 数据集从 Common Crawl 清理而来。</li>
+<li><strong>《Happy-LLM：从零开始构建大模型》</strong>：6.1 模型预训练、6.2 模型 SFT、6.3 高效微调——三阶段在目录上就并列呈现；指令遵循能力让模型不再需要每件事都先教；预训练用 CLM 任务（因果语言建模）。</li>
+<li><strong>《Transformer 模型开发从 0 到 1》</strong>：GPT 系列训练时混合 Common Crawl（权重 0.44）与高质量数据集；无监督预训练在大规模文本上通过预测下一个词学习单词关系和语言结构。</li>
+<li><strong>《统计学习方法》（李航）</strong>：监督学习、无监督学习、强化学习三分法——正好对应大模型训练的三种范式（SFT/预训练/RLHF）；强化学习优化长期累积奖励，是 RLHF 的理论基础。</li>
+<li><strong>《大模型是怎样跑起来的（轻科技）》</strong>：大模型本质是"高速文字接龙"——看前文猜后文；生成流畅 ≠ 真实；常见事实答得稳，冷门事实和需要推理的问题可能答得很流畅但不正确。</li>
+</ul></div></details></div></body></html>

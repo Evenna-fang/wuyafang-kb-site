@@ -1,0 +1,381 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L1-Web全栈开发实战</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L1-Web全栈开发实战</span></div><div class="wrap"><h1 id="l1-web-全栈开发实战api-契约前后端分离与可验收交付">L1 Web 全栈开发实战：API 契约、前后端分离与可验收交付</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+本篇合并原 FastAPI + Vue 课件实操与 Web 前后端分离散篇，补齐接口契约、数据边界、负例和端到端验收。示例是教学用内存任务服务，重启后数据清空；不包含生产认证与持久化。所有安装、启动、curl 和浏览器步骤均<strong>未实跑</strong>，不能据此宣称服务已部署。</p>
+</blockquote>
+<h2 id="why为什么前端能画后端能返回还不算打通">WHY：为什么“前端能画、后端能返回”还不算打通</h2>2
+<p>一个页面从按钮到数据库通常要穿过浏览器、开发服务器或反向代理、HTTP 接口、输入校验、业务规则和数据层。任何一层只按自己的假设工作，都会出现典型的“单件都正常、联调全失败”：前端把 <code>priority</code> 发成字符串，后端期待整数；接口发生 422，页面却只显示“网络错误”；静态路由 <code>/tasks/stats</code> 被 <code>/tasks/{task_id}</code> 抢先匹配；本地允许所有跨域来源，上线后又把同一宽松配置带到公网。</p>
+<p>前后端分离的价值不是把代码机械地放成两个目录，而是建立<strong>可独立开发、共同遵守、能自动验收的契约</strong>：</p>
+<ul>
+<li>前端可以先用固定 JSON 开发交互，后端可以用 curl/测试客户端验证业务，不必互相等待。</li>
+<li>Web、移动端和第三方可以复用同一 API，但权限和输入校验必须在服务端重做，不能相信页面隐藏了按钮。</li>
+<li>前端静态资源和后端服务可以独立扩缩容、回滚，但版本兼容、缓存与发布顺序由此成为显式工作。</li>
+<li>契约不清时，分离反而增加网络失败、跨域、重复状态和多套模型，小型服务端渲染页面未必需要它。</li>
+</ul>
+<p>《持续交付 2.0》目录把部署流水线、自动化测试、配置管理、低风险发布和监测列为连续能力，公开摘录还强调从生产过程开始质量内建。落到 Web 实战，就是不要等“页面完成后联调”：先冻结请求/响应示例与错误语义，再让前端、后端各自用同一组样本测试。</p>
+<h2 id="what-whyt核心概念区别与适用边界">WHAT / WHYT：核心概念、区别与适用边界</h2>2
+<h3 id="1-前后端分离不等于-mvc也不等于微服务">1. 前后端分离不等于 MVC，也不等于微服务</h3>3
+<p>传统服务端 MVC 中，控制器处理请求，视图模板通常在服务器生成 HTML。前后端分离中，后端主要返回数据，浏览器中的前端应用负责渲染和交互。二者都能有模型、视图、控制器思想，差别主要在<strong>视图在哪里执行、页面与数据怎样交付</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>适用场景</th>
+<th>代价与边界</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>服务端渲染/模板</td>
+<td>内容页、小型后台、首屏与 SEO 优先</td>
+<td>交互复杂后前后端职责可能纠缠</td>
+</tr>
+<tr>
+<td>SPA + API</td>
+<td>富交互、多客户端、前端团队独立交付</td>
+<td>首屏、SEO、状态同步、跨域和接口版本更复杂</td>
+</tr>
+<tr>
+<td>同构/SSR 框架</td>
+<td>既要首屏与 SEO，又要富交互</td>
+<td>构建与运行链路更复杂，不是本篇最小 demo 的目标</td>
+</tr>
+<tr>
+<td>微服务</td>
+<td>多个独立业务边界和发布单元</td>
+<td>是后端组织方式，与是否前后端分离无必然关系</td>
+</tr>
+</tbody>
+</table>
+<h3 id="2-fastapipydanticsqlalchemyvue-各管一段">2. FastAPI、Pydantic、SQLAlchemy、Vue 各管一段</h3>3
+<ul>
+<li><strong>FastAPI</strong>负责 HTTP 路由、依赖注入、请求/响应模型接入与 OpenAPI 文档。它不会替开发者决定业务权限。</li>
+<li><strong>Pydantic</strong>负责数据解析和校验。请求通过校验只说明形状与约束合格，不说明用户有权操作。</li>
+<li><strong>SQLAlchemy</strong>负责 Python 与关系数据库之间的连接、ORM 或 SQL 表达；本篇为突出契约先用内存存储，真实持久化见<a href="%E6%95%B0%E6%8D%AE%E5%BA%93%E8%AE%BE%E8%AE%A1%E4%B8%8ESQL%E5%AE%9E%E6%88%98.html">数据库篇</a>。</li>
+<li><strong>Vue</strong>负责声明式 UI、组件和响应式状态。本地课件强调其渐进式特点：可以从页面渲染和表单开始，需要时再引入组件、路由与集中状态，不必起步就堆齐全家桶。</li>
+</ul>
+<p>课件的 FastAPI 代码还给出两个直接教训：路径参数用 <code>Annotated[int, Path(...)]</code> 等类型与元数据表达约束；动态 <code>/root/{id}</code> 若写在静态 <code>/root/test</code> 前面，可能先把 <code>test</code> 当动态段匹配。因此路由顺序和负例测试是设计的一部分。</p>
+<h3 id="3-restgraphqlwebsocket-不是互斥的先进程度">3. REST、GraphQL、WebSocket 不是互斥的“先进程度”</h3>3
+<ul>
+<li><strong>REST 风格 HTTP</strong>适合资源边界清楚、缓存与状态码语义有用的 CRUD。不要把 URI 当装饰，重点是统一资源和错误契约。</li>
+<li><strong>GraphQL</strong>适合调用方确实需要灵活选择字段、聚合多种数据的场景；同时需要查询复杂度、权限和缓存治理，不是“复杂查询就自动选它”。</li>
+<li><strong>WebSocket/SSE</strong>适合服务端持续推送或双向交互；普通创建任务不需要长连接。</li>
+<li><strong>OpenAPI</strong>描述 HTTP API 的契约，Swagger UI 是文档界面；文档生成不等于业务正确，更不等于端到端测试通过。</li>
+</ul>
+<h3 id="4-论文怎么说我们怎么用">4. 论文怎么说，我们怎么用</h3>3
+<p>WebHarbor（arXiv:2611.03634）为 GUI Web Agent 构建了 153 个可执行、Docker 化网站环境和 3,518 个任务，强调真实网站内容不断变化、访问受限，而合成环境又常缺功能深度；其流程由 Agent 实现变化、人类审计视觉保真度、功能正确性和任务有效性。</p>
+<p>本篇不声称复现 WebHarbor，也不把它的 Agent 训练结果当成普通 Web 项目收益。可直接借用的是验收方法：<strong>把网站变成可重复启动的环境，把关键交互写成可重放任务，并同时审视觉、功能和任务有效性</strong>。因此下面的验收不只 <code>curl 200</code>，还包括浏览器创建、校验失败、删除和刷新后的真实状态；需要稳定回归时，再按<a href="L1-Dockerfile%E4%B8%8ECompose%E7%BC%96%E6%8E%92%E5%AE%9E%E6%88%98.html">Docker Compose 篇</a>把前端、后端及依赖容器化。</p>
+<h2 id="how从零做一个可联调可测负例的任务应用">HOW：从零做一个可联调、可测负例的任务应用</h2>2
+<h3 id="第一步建立两个进程和一份契约">第一步：建立两个进程和一份契约</h3>3
+<p>在空练习目录执行：</p>
+<pre><code class="language-bash">mkdir web-task-demo &amp;&amp; cd web-task-demo
+mkdir backend
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install fastapi uvicorn
+npm create vite@latest frontend -- --template vue
+cd frontend &amp;&amp; npm install &amp;&amp; cd ..
+</code></pre>
+<p>依赖安装后应把实际通过测试的版本写进锁文件；上面只负责搭建练习环境，未固定版本，也不代表长期可复现构建。后端使用 8000，Vite 默认使用 5173。最小契约为：</p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>请求</th>
+<th>成功响应</th>
+<th>必测失败</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>创建任务</td>
+<td><code>POST /api/tasks</code>，JSON 含 <code>title/priority</code></td>
+<td>201 + 完整任务</td>
+<td>空标题、优先级越界 → 422</td>
+</tr>
+<tr>
+<td>任务列表</td>
+<td><code>GET /api/tasks</code></td>
+<td>200 + 数组</td>
+<td><code>limit=0</code> → 422</td>
+</tr>
+<tr>
+<td>单个任务</td>
+<td><code>GET /api/tasks/{id}</code></td>
+<td>200 + 任务</td>
+<td>不存在 → 404</td>
+</tr>
+<tr>
+<td>完成任务</td>
+<td><code>PATCH /api/tasks/{id}/complete</code></td>
+<td>200 + 更新后任务</td>
+<td>不存在 → 404</td>
+</tr>
+<tr>
+<td>删除任务</td>
+<td><code>DELETE /api/tasks/{id}</code></td>
+<td>204，无响应体</td>
+<td>不存在 → 404</td>
+</tr>
+</tbody>
+</table>
+<h3 id="第二步实现后端输入模型与响应模型分开">第二步：实现后端，输入模型与响应模型分开</h3>3
+<p>保存为 <code>backend/main.py</code>：</p>
+<pre><code class="language-python">from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
+app = FastAPI(title=&quot;Task Demo&quot;, version=&quot;1.0.0&quot;)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[&quot;http://localhost:5173&quot;],
+    allow_credentials=False,
+    allow_methods=[&quot;GET&quot;, &quot;POST&quot;, &quot;PATCH&quot;, &quot;DELETE&quot;, &quot;OPTIONS&quot;],
+    allow_headers=[&quot;Content-Type&quot;],
+)
+
+class TaskCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=100)
+    priority: int = Field(default=0, ge=0, le=5)
+
+class TaskOut(BaseModel):
+    id: int
+    title: str
+    priority: int
+    completed: bool
+
+# 教学内存库：进程重启即清空，不用于多 worker 或生产。
+tasks: dict[int, TaskOut] = {}
+next_id = 1
+
+@app.post(&quot;/api/tasks&quot;, response_model=TaskOut, status_code=201)
+def create_task(payload: TaskCreate):
+    global next_id
+    task = TaskOut(id=next_id, completed=False, **payload.model_dump())
+    tasks[next_id] = task
+    next_id += 1
+    return task
+
+@app.get(&quot;/api/tasks&quot;, response_model=list[TaskOut])
+def list_tasks(limit: int = Query(default=20, ge=1, le=100)):
+    return list(tasks.values())[:limit]
+
+@app.get(&quot;/api/tasks/{task_id}&quot;, response_model=TaskOut)
+def get_task(task_id: int):
+    if task_id not in tasks:
+        raise HTTPException(status_code=404, detail=&quot;任务不存在&quot;)
+    return tasks[task_id]
+
+@app.patch(&quot;/api/tasks/{task_id}/complete&quot;, response_model=TaskOut)
+def complete_task(task_id: int):
+    task = get_task(task_id)
+    tasks[task_id] = task.model_copy(update={&quot;completed&quot;: True})
+    return tasks[task_id]
+
+@app.delete(&quot;/api/tasks/{task_id}&quot;, status_code=204)
+def delete_task(task_id: int):
+    if task_id not in tasks:
+        raise HTTPException(status_code=404, detail=&quot;任务不存在&quot;)
+    del tasks[task_id]
+    return None
+</code></pre>
+<p>这里故意不复用 <code>TaskCreate</code> 作为响应：输入没有 <code>id/completed</code>，输出必须包含它们。生产还应添加认证、授权、持久化、并发控制和迁移，不能靠 Pydantic 代替这些职责。若增加 <code>/api/tasks/stats</code>，要放在 <code>/api/tasks/{task_id}</code> 之前，或设计不冲突的路径并加测试。</p>
+<p>启动后端：</p>
+<pre><code class="language-bash">source .venv/bin/activate
+uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
+</code></pre>
+<p>另开终端做正例与负例：</p>
+<pre><code class="language-bash">curl -i -X POST http://127.0.0.1:8000/api/tasks \
+  -H 'Content-Type: application/json' \
+  -d '{&quot;title&quot;:&quot;写完联调契约&quot;,&quot;priority&quot;:3}'
+curl -i http://127.0.0.1:8000/api/tasks
+curl -i -X POST http://127.0.0.1:8000/api/tasks \
+  -H 'Content-Type: application/json' \
+  -d '{&quot;title&quot;:&quot;&quot;,&quot;priority&quot;:99}'
+curl -i http://127.0.0.1:8000/api/tasks/999
+curl -i -X PATCH http://127.0.0.1:8000/api/tasks/1/complete
+curl -i -X DELETE http://127.0.0.1:8000/api/tasks/1
+</code></pre>
+<p>预期前两次分别为 201/200；非法输入为 422，缺失任务为 404，删除为 204。打开 <code>http://127.0.0.1:8000/docs</code> 可检查 OpenAPI 文档，但文档存在不能替代上述请求。</p>
+<h3 id="第三步实现-vue-调用层把-422-和网络失败分开">第三步：实现 Vue 调用层，把 422 和网络失败分开</h3>3
+<p>替换 <code>frontend/src/api.js</code>：</p>
+<pre><code class="language-javascript">const BASE_URL = 'http://127.0.0.1:8000/api'
+
+async function request(path, options = {}) {
+  let response
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      ...options,
+      headers: { 'Content-Type': 'application/json', ...options.headers },
+    })
+  } catch (error) {
+    throw new Error('无法连接服务器，请检查后端是否启动')
+  }
+  if (response.status === 204) return null
+  const body = await response.json().catch(() =&gt; null)
+  if (!response.ok) {
+    const message = response.status === 422
+      ? '输入未通过校验，请检查标题和优先级'
+      : body?.detail || `请求失败：HTTP ${response.status}`
+    throw new Error(message)
+  }
+  return body
+}
+
+export const listTasks = () =&gt; request('/tasks')
+export const createTask = (data) =&gt; request('/tasks', {
+  method: 'POST', body: JSON.stringify(data),
+})
+export const completeTask = (id) =&gt; request(`/tasks/${id}/complete`, { method: 'PATCH' })
+export const deleteTask = (id) =&gt; request(`/tasks/${id}`, { method: 'DELETE' })
+</code></pre>
+<p>替换 <code>frontend/src/App.vue</code>：</p>
+<pre><code class="language-vue">&lt;script setup&gt;
+import { onMounted, ref } from 'vue'
+import { listTasks, createTask, completeTask, deleteTask } from './api'
+
+const tasks = ref([])
+const title = ref('')
+const priority = ref(0)
+const error = ref('')
+const loading = ref(false)
+
+async function refresh() {
+  try {
+    tasks.value = await listTasks()
+  } catch (e) {
+    error.value = e.message
+  }
+}
+
+async function submit() {
+  error.value = ''
+  loading.value = true
+  try {
+    await createTask({ title: title.value, priority: priority.value })
+    title.value = ''
+    priority.value = 0
+    await refresh()
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(refresh)
+&lt;/script&gt;
+
+&lt;template&gt;
+  &lt;main&gt;
+    &lt;h1&gt;任务清单&lt;/h1&gt;
+    &lt;form @submit.prevent=&quot;submit&quot;&gt;
+      &lt;label&gt;标题 &lt;input v-model=&quot;title&quot; required maxlength=&quot;100&quot; /&gt;&lt;/label&gt;
+      &lt;label&gt;优先级 &lt;input v-model.number=&quot;priority&quot; type=&quot;number&quot; min=&quot;0&quot; max=&quot;5&quot; /&gt;&lt;/label&gt;
+      &lt;button :disabled=&quot;loading&quot;&gt;{{ loading ? '提交中' : '创建' }}&lt;/button&gt;
+    &lt;/form&gt;
+    &lt;p v-if=&quot;error&quot; role=&quot;alert&quot;&gt;{{ error }}&lt;/p&gt;
+    &lt;ul&gt;
+      &lt;li v-for=&quot;task in tasks&quot; :key=&quot;task.id&quot;&gt;
+        {{ task.title }}（优先级 {{ task.priority }}）
+        &lt;span&gt;{{ task.completed ? '已完成' : '未完成' }}&lt;/span&gt;
+        &lt;button @click=&quot;completeTask(task.id).then(refresh).catch(e =&gt; error = e.message)&quot;&gt;完成&lt;/button&gt;
+        &lt;button @click=&quot;deleteTask(task.id).then(refresh).catch(e =&gt; error = e.message)&quot;&gt;删除&lt;/button&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/main&gt;
+&lt;/template&gt;
+</code></pre>
+<p>启动前端：</p>
+<pre><code class="language-bash">cd frontend
+npm run dev -- --host 127.0.0.1
+</code></pre>
+<p>生产构建应通过同源反向代理或环境配置确定 API 地址，不把开发机地址写死。CORS 只允许真实前端来源；<code>allow_origins=["*"]</code> 与凭据、认证组合需要额外审查，不能作为通用修复。</p>
+<h3 id="第四步跑一遍真正端到端验收">第四步：跑一遍真正端到端验收</h3>3
+<ol>
+<li>首次打开页面，列表为空且无网络错误。</li>
+<li>创建合法任务，页面出现新项；直接 GET API 也能看到同一项。</li>
+<li>用 curl 提交空标题和越界优先级，收到 422；页面输入非法数据时有可读提示，不是永久 loading。</li>
+<li>请求不存在的 ID，API 为 404；页面不会把错误任务插入列表。</li>
+<li>点击完成和删除，再次查询 API 验证服务端状态，而不是只看按钮变色。</li>
+<li>刷新浏览器，当前内存示例仍保留数据；重启后端后应清空。这个结果是存储设计的结果，不是“丢数据 bug”。</li>
+<li>停止后端再点击创建，页面显示连接失败；恢复后端后可以重试。</li>
+<li>需要稳定 GUI 回归时，固定依赖、种子数据和截图环境，把上述流程变成自动化任务。WebHarbor 的启发是环境确定性与人类多维审计，而不是只增加测试数量。</li>
+</ol>
+<p><strong>上线前仍未覆盖</strong>：认证授权、CSRF 策略、数据库与迁移、XSS 依赖审查、上传文件大小和路径安全、HTTPS、限流、日志脱敏、并发 worker、备份恢复。不要把这个教学内存 demo 原样暴露到公网。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库的「后端」是一个 398 行的 FastAPI 应用，且它刻意不复制业务逻辑（<code>rag/serve.py</code> L44 / L37，本次读源码）</strong>：<br />
+<code>python
+  app = FastAPI(
+  ...
+  # 复用 query.py 的检索/生成核心 (共享文件, 本服务只 import 不改写)
+  import query as ragquery  # noqa: E402</code><br />
+<strong>共享核心只 import 表壳另写</strong>，是 Web 分层里最该学的一条：改检索逻辑只改 <code>query.py</code>，服务层不会被分叉。</li>
+<li><strong>真正实现了的 4 个端点（L299-379）</strong>：<code>GET /health</code>、<code>GET /v1/models</code>、<code>POST /v1/chat/completions</code>（同时挂 <code>/chat/completions</code> 兼容路径）、<code>POST /v1/completions</code>——<strong>面向 OpenAI 协议而不是自定义协议</strong>，客户端不用写适配层。</li>
+<li><strong>前端在本库是「借用现成的」</strong>：用 OpenWebUI 直连 <code>rag/serve.py</code>（文件头 docstring 第 3 行「OpenAI 兼容 RAG 服务, 供 OpenWebUI (3001) 接入本地知识库」）；仓库里没有自己写的前端页面，<code>wiki_site/</code> 下 395 个 HTML 是知识库阅读站（由 <code>scripts/link_sources.py</code> 等生成），不是业务前端。</li>
+<li><strong>和课件讲法的差异</strong>：课件的前后端分离项目是「Vue 前端 + FastAPI 自带 JWT/Vue Router」；本库的前端是可插拔的第三方 UI（OpenWebUI），后端只守 OpenAI 契约——<strong>接口标准化比自建前端省得多</strong>，代价是拿不到自定义交互。</li>
+<li><strong>本库暂无</strong>：没有鉴权（<code>rag/serve.py</code> 路由上无 <code>Depends(auth)</code>）、没有前端构建产物、没有 CORS 白名单到具体域名（<code>CORSMiddleware</code> 已 import，配置以代码为准）。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库的 Web 面在 <code>rag/serve.py</code>：FastAPI 应用（L44 <code>app = FastAPI(</code>）+ 4 个路由（<code>GET /health</code> L299、<code>GET /v1/models</code> L310、<code>POST /v1/chat/completions</code> L321 兼容 <code>/chat/completions</code> L322、<code>POST /v1/completions</code> L365），只 <code>import query</code> 不复制检索逻辑（L37 <code>import query as ragquery</code>）。</li>
+<li><strong>读源码</strong>：Web 全栈的分层；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li><strong>[课1]</strong> <a href="../../raw/courseware/2603%E6%9C%9FAI%E5%A4%A7%E6%A8%A1%E5%9E%8BAgent%E7%AF%87__2603%E6%9C%9FAI%E5%A4%A7%E6%A8%A1%E5%9E%8BAgent%E7%AF%87__1-FastAPI-2026-3-20-%E5%88%9D%E8%A7%81__day01/_%E4%BB%A3%E7%A0%81%E8%AF%BE%E4%BB%B6%E6%B1%87%E6%80%BB.md">FastAPI day01 代码课件汇总</a>：Pydantic 模型、路径/查询/请求体约束、上传与异步代码；本文采用类型契约和路由顺序教训，未照搬课件中含类型错误的旧片段。</li>
+<li><strong>[课2]</strong> <a href="../../raw/courseware/Vue/Vue__Vue__02-Vue%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8.md">Vue 快速入门</a>：渐进式框架、声明式渲染、组件与工程化边界；本文用现代 Vue 3 组合式写法，不把课件的 Vue 2 全局构造写法当现行模板。</li>
+<li><strong>[课3]</strong> <a href="../../raw/courseware/python/part4-engineering.md">Python 工程实践第 12 章</a>：任务 API、分页、响应模型和 SQLAlchemy 持久化示例，落到 CRUD 契约及内存/数据库边界。</li>
+<li><strong>[书1]</strong> <a href="../../raw/weread/%E6%8C%81%E7%BB%AD%E4%BA%A4%E4%BB%982.0%EF%BC%9A%E4%B8%9A%E5%8A%A1%E5%BC%95%E9%A2%86%E7%9A%84DevOps%E7%B2%BE%E8%A6%81%EF%BC%88%E5%A2%9E%E8%AE%A2%E6%9C%AC%EF%BC%89.md">《持续交付 2.0》目录与公开热门划线</a>：质量内建、自动化测试、配置与低风险发布，落到“先契约、再并行、最后 E2E”；仅为目录与摘录，不是全文。</li>
+<li><strong>[书2]</strong> <a href="../../raw/weread/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%E2%80%94%E2%80%94%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A330%E4%B8%AA%E5%8F%AF%E6%89%A7%E8%A1%8C%E6%A1%88%E4%BE%8B%E8%AE%BE%E8%AE%A1.md">《30 个可执行案例设计》目录与高亮笔记</a>：各项目均含总体设计、环境、实现、功能测试，支撑按项目闭环而非只贴页面代码；仅为摘录。</li>
+<li><strong>[业1]</strong> <a href="../../raw/sources/arxiv-daily/2026-11-02-2611.03634.md">WebHarbor 本地摘要</a>，arXiv:2611.03634：153 个 Docker 化网站、3,518 个任务和视觉/功能/任务审计，转化为确定环境中的完整交互验收；未复现论文系统。</li>
+<li><strong>[业2]</strong> <a href="https://fastapi.tiangolo.com/tutorial/">FastAPI 官方教程</a>：路由、请求体、响应模型和校验语义；<strong>GET 200，2026-11-04</strong>。</li>
+<li><strong>[业3]</strong> <a href="https://docs.pydantic.dev/latest/">Pydantic 官方文档</a>：模型解析与约束；<strong>GET 200，2026-11-04</strong>，最终跳转至当前验证文档。</li>
+<li><strong>[业4]</strong> <a href="https://vuejs.org/guide/introduction.html">Vue 官方指南</a>：渐进式框架与组合式 API；<strong>GET 200，2026-11-04</strong>。</li>
+</ul></div></body></html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LoRA微调到底省了什么</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ LoRA微调到底省了什么</span></div><div class="wrap"><h1 id="lora-微调到底省了什么">LoRA 微调到底省了什么</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">这个问题的答案是什么</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>LoRA（Low-Rank Adaptation）的核心思想是：微调时不要动原模型的几十亿参数，而是在每个权重矩阵旁边加两个瘦长的小矩阵 A 和 B，让它们俩的乘积去"近似"权重矩阵需要的变化量</li><li>省的东西具体体现在三个方面：可训练参数量从几十亿降到几百万、显存占用砍掉 70% 以上、训练和推理速度都明显变快</li><li>因为语言微调时的权重变化本身是低秩的，所以这个近似够用</li></ul></div>2
+<p>LoRA（Low-Rank Adaptation）的核心思想是：<strong>微调时不要动原模型的几十亿参数，而是在每个权重矩阵旁边加两个瘦长的小矩阵 A 和 B，让它们俩的乘积去"近似"权重矩阵需要的变化量</strong>。因为语言微调时的权重变化本身是低秩的，所以这个近似够用。省的东西具体体现在三个方面：<strong>可训练参数量从几十亿降到几百万、显存占用砍掉 70% 以上、训练和推理速度都明显变快</strong>。</p>
+<h2 id="详细内容">详细内容</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 参数量：从"全动"变成"只动 0.1%"</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>假设原模型某一层的权重矩阵是 W，维度 d×d，d 可能是 4096 或 8192</li><li>原来要学 d² ≈ 1600 万个数，现在只学 d×r + r×d ≈ 2×4096×8 ≈ 6.5 万个参数——参数量直接降到原来的 0.4% 左右</li><li>Sebastian Raschka 在《从零构建大模型》附录 E 专门有一节"使用 LoRA 进行参数高效微调"；《大语言模型：原理、应用与优化》第 7.3 节"低参数量微调"、第 7.4 节"超低参数量微调的探索"也是围绕这个思路展开的——为什么叫"低参数量"而不是"压缩"</li></ul></div>3
+<p>假设原模型某一层的权重矩阵是 W，维度 d×d，d 可能是 4096 或 8192。全量微调时 W 里所有 d² ≈ 1600 万到 6700 万个参数都要更新，还要给每个参数存一份梯度和一份优化器状态（Adam 要 m、v 两份）。</p>
+<p>LoRA 的做法是：把要学的 ΔW 拆成两个小矩阵 B（d×r）和 A（r×d），其中 r 通常取 8 或 16。原来要学 d² ≈ 1600 万个数，现在只学 d×r + r×d ≈ 2×4096×8 ≈ 6.5 万个参数——<strong>参数量直接降到原来的 0.4% 左右</strong>。原模型的 W 全程冻结，不更新。</p>
+<p>Sebastian Raschka 在《从零构建大模型》附录 E 专门有一节"使用 LoRA 进行参数高效微调"；《大语言模型：原理、应用与优化》第 7.3 节"低参数量微调"、第 7.4 节"超低参数量微调的探索"也是围绕这个思路展开的——为什么叫"低参数量"而不是"压缩"？因为它不是把模型本身变小，而是<strong>把"要训练的那部分"变小</strong>。</p>
+<h3 id="2-显存优化器状态这一块大头省了">2. 显存：优化器状态这一块大头省了</h3>3
+<p>训练时显存吃紧主要不是模型权重本身，而是<strong>每个可训练参数都要配套存：梯度（跟参数同大）、Adam 的动量 m（同大）、Adam 的方差 v（同大），加上混合精度还要一份副本</strong>。也就是说，可训练参数每多 1 个，实际要占 4-8 倍的显存。</p>
+<p>全量微调一个 7B 模型，光优化器状态就要吃掉 7B×4×2 ≈ 56GB 显存——这就是为什么普通人单卡根本微调不动 7B 模型。</p>
+<p>换成 LoRA 后，可训练参数从 7B 降到几百万，优化器状态也跟着缩到几百 MB。<strong>原模型权重虽然还得放显存里（以 FP16 冻结加载），但不用给它配套梯度和优化器状态</strong>。这是 LoRA 能在单张 24GB 卡上微调 7B 模型的关键。</p>
+<p>《大语言模型：原理、应用与优化》第 6.5 节"内存优化策略"讲了 FlashAttention 等手段，但 LoRA 属于另一个方向——<strong>从"训练多少参数"这个根上省显存</strong>，而不是从计算细节上抠。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 训练速度和推理速度</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>训练时，因为可训练参数少，反向传播要更新的梯度少，optimizer step 快；同时冻结的原模型权重可以用更低精度（FP16/INT8）加载，减少显存读写</li><li>《Happy-LLM》第 6.3 节"高效微调"就是把 LoRA 跟混合并行一起用——8 卡 A100 能轻松训百亿参数，其中 LoRA 贡献很大</li><li>这是它比 Prefix-Tuning、Adapter 这类方法更受欢迎的原因之一</li></ul></div>3
+<p>训练时，因为可训练参数少，反向传播要更新的梯度少，optimizer step 快；同时冻结的原模型权重可以用更低精度（FP16/INT8）加载，减少显存读写。《Happy-LLM》第 6.3 节"高效微调"就是把 LoRA 跟混合并行一起用——8 卡 A100 能轻松训百亿参数，其中 LoRA 贡献很大。</p>
+<p>推理时更妙：LoRA 学完后，B×A 这个乘积可以<strong>直接合并回原权重 W</strong>，得到一个新的 W' = W + B×A，跟全量微调后的模型在推理时没有任何区别——没有额外计算开销，也不能说"LoRA 推理慢"。这是它比 Prefix-Tuning、Adapter 这类方法更受欢迎的原因之一。</p>
+<p>另外一个隐性收益：<strong>一个基座模型可以挂多个 LoRA</strong>（不同任务、不同风格），切换时只换几 MB 的小矩阵，不用重新加载整个几十 GB 的模型权重。这在做"一个底座多场景部署"时是巨大的工程优势。</p>
+<h2 id="来自哪些书的哪些观点标注来源">来自哪些书的哪些观点（标注来源）</h2>2
+<ul>
+<li><strong>《从零构建大模型》（Sebastian Raschka）</strong>：附录 E"使用 LoRA 进行参数高效微调"——PEFT 是独立章节；大语言模型构建通常包括预训练和微调两个阶段，但微调不必动全部参数；针对特定领域定制的模型往往优于通用模型，这也是 LoRA 存在的意义。</li>
+<li><strong>《大语言模型：原理、应用与优化》（苏之阳等）</strong>：7.2 全量参数微调、7.3 低参数量微调、7.4 超低参数量微调——三档对比；6.5 内存优化策略（FlashAttention、FP16/FP32 混合精度）是配套手段；9.1 模型小型化一节提到"减小参数位宽意味着更小的内存存储和更快的整数运算"，这个逻辑同样适用于 LoRA 减少可训练参数。</li>
+<li><strong>《Happy-LLM：从零开始构建大模型》</strong>：6.3 节"高效微调"作为独立章节，跟预训练、SFT 并列；6.1 提到"利用混合并行训练方式，在 8 卡 A100 集群上可轻松支持百亿参数模型的高效训练"——LoRA 是能做到这件事的关键之一。</li>
+<li><strong>《深度学习详解》（李宏毅）</strong>：第 17 章"网络压缩"提到知识蒸馏、深度可分离卷积——这些是模型侧的压缩思路，LoRA 是训练侧的参数高效思路，两者互补。</li>
+<li><strong>《Transformer 模型开发从 0 到 1》</strong>：GPT 系列训练时使用混合权重的高质量数据集——说明预训练已经把基座训到位，后续微调只需在小范围参数上做适配，这是 LoRA 能 work 的前提。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">相关条目</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>L6 模型微调（Fine-tuning）— 2026</li></ul></div>2
+<ul>
+<li><a href="L6-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83-2026.html">L6 模型微调（Fine-tuning）— 2026</a></li>
+</ul></div></details></div></body></html>

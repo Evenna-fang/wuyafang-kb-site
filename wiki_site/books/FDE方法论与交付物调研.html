@@ -1,0 +1,107 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>FDE方法论与交付物调研</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ FDE方法论与交付物调研</span></div><div class="wrap"><h1 id="书章节重点-fde方法论与交付物调研">书章节重点 · FDE方法论与交付物调研</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本文是 2026-09-30 对 FDE（Forward Deployed Engineer，前线部署工程师）角色定义、方法论与交付物的一手调研汇编，来源覆盖 Palantir 官方 AI FDE 文档、OpenFDE 社区「什么是 FDE」页、Hamel Husain 博客（AI Evals 方向）三个一手源</li><li>核心结论是：FDE 不是一个新名字，而是一种新的责任边界——把工程师放到客户真实业务现场，让他对「系统有没有真的被用起来、有没有真的产生业务结果」负责到底</li><li>这一口径纠正对后续所有 FDE 方法论引用至关重要——否则会把 AI 产品的工作流误读成人类 FDE 的岗位起源</li></ul></div>2
+<p>本文是 2026-09-30 对 FDE（Forward Deployed Engineer，前线部署工程师）角色定义、方法论与交付物的一手调研汇编，来源覆盖 Palantir 官方 AI FDE 文档、OpenFDE 社区「什么是 FDE」页、Hamel Husain 博客（AI Evals 方向）三个一手源。核心结论是：FDE 不是一个新名字，而是一种新的责任边界——把工程师放到客户真实业务现场，让他对「系统有没有真的被用起来、有没有真的产生业务结果」负责到底。调研同时纠正了一个常见口径偏差：Palantir 官方「AI FDE」页面讲的是 AI 智能体产品（the AI-powered forward deployed engineer），不是人类 FDE 角色的起源定义，Dev vs Delta、Echo/Delta、Ontology 组织逻辑、build/prove/generalize 等角色起源内容不在该页，需另找来源。这一口径纠正对后续所有 FDE 方法论引用至关重要——否则会把 AI 产品的工作流误读成人类 FDE 的岗位起源。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">① FDE 角色定义与演进（Palantir 官方文档页）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：Palantir 的 AI FDE 是一个交互式智能体产品，定位是「the AI-powered forward deployed engineer」，通过对话式命令操作 Foundry——把自然语言请求翻译成 Foundry 操作，执行数据转换、管理代码仓库、构建与维护本体（ontology）</li><li>核心观点2：四步工作流：① 分析意图与上下文；② 确定要执行的 Foundry 操作；③ 用原生工具支持执行请求动作；④ 返回上下文解释与文档</li><li>这与人类 FDE 在客户基础设施上必须遵守客户权限边界是同一原则：在客户环境工作，权限不是「能做什么」而是「被允许做什么」</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：Palantir 的 AI FDE 是一个交互式智能体产品，定位是「the AI-powered forward deployed engineer」，通过对话式命令操作 Foundry——把自然语言请求翻译成 Foundry 操作，执行数据转换、管理代码仓库、构建与维护本体（ontology）。这意味着 Palantir 已经把 FDE 的工作模式产品化为 AI 智能体，人类 FDE 的经验被沉淀为产品能力，反过来加速 AI 交付。</li>
+<li><strong>核心观点2</strong>：四步工作流：① 分析意图与上下文；② 确定要执行的 Foundry 操作；③ 用原生工具支持执行请求动作；④ 返回上下文解释与文档。这是一个闭环操作模型——模型执行动作、观察结果、用反馈决定下一步动作，使能完成复杂多步工作流。这套闭环与人类 FDE 的「Discover→Design→Deploy→Review」四阶段方法论在结构上同构，都是「理解问题→确定方案→执行交付→反馈迭代」的循环。</li>
+<li><strong>核心观点3</strong>：权限约束是交付关键——「All operations respect the user's existing permissions, including application and data access」，可以选择特定模型、工具与数据可用范围，确保 AI FDE 只能访问请求操作所需的能力。这与人类 FDE 在客户基础设施上必须遵守客户权限边界是同一原则：在客户环境工作，权限不是「能做什么」而是「被允许做什么」。数据安全、合规、审计这些不是事后补丁，而是架构设计的第一层约束。</li>
+<li><strong>核心观点4</strong>：上下文治理——初始状态加载最小上下文，提供 Foundry 概念的通用知识但不访问用户数据，防止「context pollution」（无关信息稀释模型推理效果）。这一设计对人类 FDE 的启示是：在客户环境起步时应先从最小可行上下文开始，而非一上来就灌入所有客户数据。上下文管理的纪律性直接决定了 AI 系统在客户现场的推理质量——噪声越多，越容易跑偏。</li>
+<li><strong>核心观点5</strong>：自验证动作清单——AI FDE 可以运行 transform preview 验证转换代码、运行 function preview 验证函数行为、审查 CI 检查验证代码仓库写的代码。这套自验证清单可直接改写为人类 FDE 客户上线检查单：每一次交付变更都应有对应的预览、验证、审查动作，而不是「改完就上线」。</li>
+<li><strong>核心观点6</strong>：变更评审门——默认所有工作流走分支，AI FDE 在 Global Branch proposal 或 Code Repository pull request 中提出变更供评审。这与人类 FDE 交付时的 review 流程（PoC 验收门禁、Go-Live 门禁）是同一种机制：任何变更都必须经过评审才能进入生产，评审门的设计决定了交付的质量底线。</li>
+</ul>
+<blockquote>
+<p>"AI FDE employs a closed-loop operation model, where the model executes an action, observes the result, and uses that feedback to determine its next action."</p>
+</blockquote>
+<h3 id="②-openfde-社区定义页什么是-fde">② OpenFDE 社区定义页（什么是 FDE）</h3>3
+<ul>
+<li><strong>核心观点1</strong>：FDE 是「结果的所有者（owner of the outcome）」——能进入客户现场理解真实问题、能亲手把系统写到生产、能把现场经验回流成产品能力的工程型角色。衡量他的不是交付了什么文档，而是业务流程有没有被真正改变。这个定义把 FDE 与所有「只对自己那一段负责」的岗位区分开：销售对签约负责、售前对方案负责、交付对验收负责、工程师对代码负责，而 FDE 对最终结果负责，并且为了拿到这个结果可以横穿这所有环节。</li>
+<li><strong>核心观点2</strong>：各家头部公司官方描述共识——OpenAI 把 FDE 定义为对客户部署从发现、定界、设计、构建到生产 rollout 全程负责，成功指标是生产采用与可衡量的业务影响；Google Cloud 强调 FDE 是 embedded builder，要和客户一起 code、debug、ship，而不是给建议。这些官方描述的共同点是「端到端对结果负责」而非「只做某一段」，差异在于 OpenAI 强调全程负责，Google 强调嵌入客户团队一起动手。</li>
+<li><strong>核心观点3</strong>：4C 框架——现场（Context）决定做对的是不是正确的事；代码（Code）决定到底能不能交付；校准（Calibration）决定交付的是真有效还是自我感觉良好；回流（Compounding）决定是在做会复利的产品还是一次性项目。只占一个面的人很多：只懂现场的是顾问，只会写代码的是工程师，只盯指标的是分析师，只想着产品化的是 PM。真正稀缺、也真正定义 FDE 的，是把四个面收在同一个责任主体上。</li>
+<li><strong>核心观点4</strong>：FDE 不是什么——售前对方案负责，咨询对建议负责，交付对验收负责；FDE 对生产环境里真实发生的业务结果负责。正因为横跨太多环节，FDE 很容易被误解成「换了名字的售前/咨询/交付」。区分真 FDE 的判据是：他能不能亲手把系统写到客户生产环境、他能不能用真实业务指标证明系统真的被用起来、他能不能把现场经验回流成可复用的产品能力。</li>
+<li><strong>核心观点5</strong>：「大 FDE」外溢——FDE 不只是岗位编制，更是正在外溢的工作方式。当 AI 能力变化太快、客户问题高度异质，「把懂结果的人放到现场、让他端到端拿结果」开始影响销售、售前、交付、产品乃至创始人的工作方式。这意味着即使不在「FDE」这个 title 下，也应该按 FDE 的方法论来工作——端到端对结果负责、横跨环节拿结果、把经验回流成可复用能力。</li>
+<li><strong>核心观点6</strong>：一个具体的画面——一家银行想做「AI 助手提升客户经理效率」。第一周 FDE 不写代码，坐在客户经理旁边看他们怎么处理一天的工作，发现真正的瓶颈不是「问答」而是分散在五个系统里的客户信息。第二周接通其中三个系统的只读接口，做一个能按权限检索、带出处引用的草稿助手，先给 10 个人试用。第三周修一个会让客户经理看到越权数据的检索 bug，同时把试点采纳率做成客户高管能看懂的图。第四周发现「按角色过滤客户数据」这件事下一家银行也会遇到——于是抽象成可复用模块提给产品团队。这四周里 FDE 做了销售、售前、交付、工程师、产品经理各自会做的一部分，但他做这些不是为了交付物，而是为了那个结果真的发生。</li>
+</ul>
+<blockquote>
+<p>"售前对方案负责，咨询对建议负责，交付对验收负责；FDE 对生产环境里真实发生的业务结果负责。"</p>
+</blockquote>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">③ Hamel Husain 博客（AI Evals 方向）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：Hamel 是拥有 20+ 年经验的机器学习工程师，曾在 Airbnb 和 GitHub 工作，早期 LLM 研究被 OpenAI 用于代码理解（CodeSearchNet）</li><li>这背书了 Evals 已经是 AI 工程的核心技能方向——头部公司都在派人学，说明 Evals 不是可选项而是必备能力</li><li>核心观点3：首页是索引不是方法论正文——核心文章包括「AI Evals: Everything You Need to Know」「Do Automated Evals Work</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：Hamel 是拥有 20+ 年经验的机器学习工程师，曾在 Airbnb 和 GitHub 工作，早期 LLM 研究被 OpenAI 用于代码理解（CodeSearchNet）。当前工作重心是把数据科学带回 AI——帮助团队 debug、分析、测量他们的系统，他把这个方向叫做「evals」。这个定位说明了 Evals 不是一个独立工具，而是数据科学方法论在 AI 系统上的应用：测量、分析、迭代。</li>
+<li><strong>核心观点2</strong>：与 Parlance Labs 共同教授「AI Evals for Engineers and PMs」课程，5000+ 学生来自 500+ 公司（包括 OpenAI、Anthropic、Google）。这背书了 Evals 已经是 AI 工程的核心技能方向——头部公司都在派人学，说明 Evals 不是可选项而是必备能力。</li>
+<li><strong>核心观点3</strong>：首页是索引不是方法论正文——核心文章包括「AI Evals: Everything You Need to Know」「Do Automated Evals Work?」「'It's Hard to Eval' Is a Product Smell」「A Field Guide to Rapidly Improving AI Products」「Your AI Product Needs Evals」「Using LLM-as-a-Judge For Evaluation: A Complete Guide」「Debugging AI With Adversarial Validation」「Selecting The Right AI Evals Tool」。这些标题本身构成了 Evals 知识地图：从「为什么需要 evals」到「自动 evals 管不管用」到「难 eval 是产品味」到「如何快速改进 AI 产品」到「LLM-as-a-Judge」到「对抗验证」到「选工具」。</li>
+<li><strong>核心观点4</strong>：对 FDE 的启示——Evals 是 FDE「校准（Calibration）」这一面的核心工具。没有 evals，FDE 交付的系统只能停留在「上线了」的自我感觉，无法证明「被用起来、指标真的变好」。Hamel 的知识地图应作为 FDE 校准能力建设的学习路径：先用 evals 证明系统有效，再用对抗验证找系统性偏差，最后选工具规模化。这与 OpenFDE 4C 框架中的 Calibration 面完全对应——正确率、覆盖率、越权率、人工接管率、采用率这些指标，都需要 evals 来测量。</li>
+<li><strong>核心观点5</strong>：「It's Hard to Eval Is a Product Smell」——这个标题本身是一个重要判断：如果你的系统很难评估，往往不是评估方法的问题，而是产品设计的问题。FDE 在客户现场遇到「这个 AI 怎么测效果」的难题时，应该先反思产品设计是不是把可测性丢掉了——可测的产品自然有指标，不可测的产品往往是设计模糊、边界不清的。</li>
+</ul>
+<h3 id="④-url-实测与诚实标注">④ URL 实测与诚实标注</h3>3
+<ul>
+<li><strong>核心观点1</strong>：调研方法纪律——所有 URL 均本次实测，标注 ✅ 实测可达并取到正文 / ❌ 未证实或死链 / ❔ 待实测。引号内一律为原文摘录，英文原文保留英文并注明出处 URL。这种纪律防止了调研文档最常见的两种失真：凭记忆编造 URL、把二手转述当一手原文。</li>
+<li><strong>核心观点2</strong>：重要口径纠正——Palantir 官方 AI FDE 页不是人类 FDE 起源定义页，这一发现防止后续基于错误口径推演 FDE 方法论。Dev vs Delta、Echo/Delta 等角色起源内容需另找来源。在引用 Palantir 作为 FDE 起源时必须先确认是不是 AI FDE 产品页，否则张冠李戴。</li>
+<li><strong>核心观点3</strong>：OpenFDE 网站有 308 重定向——open-fde.com/zh/docs/what-is-fde → openfde.net/zh/docs/what-is-fde，308 重定向本身是服务迁移信号。tool-map 页与 Agent v0.1 博客在本次实测中未取到正文，标 ❌ 不编造。诚实标注未取到的内容，比用推测填充更有长期价值——后续复测时可以直接对照。</li>
+<li><strong>核心观点4</strong>：编造声明——所有引号内文字均为实际返回的原文或已验真结论；未取到的内容一律标 ❌/❔，未用推测填充。这一纪律对所有调研类文档是通用的质量底线。FDE 方法论涉及大量具体数字、阈值、工作流步骤，任何编造都会在客户现场被戳穿，因此调研阶段的诚实标注比「看起来完整」更重要。</li>
+<li><strong>核心观点5</strong>：GitHub Open-FDE/FDEAgent 仓库 404 死链——沿用总表结论不收录为源。这说明开源 FDE 工具链仍在早期，没有成熟的开源实现可直接复用。FDE 交付工具目前以各公司内部工具为主，外部可参考的是方法论而非代码。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">⑤ 对 FDE 落地实践的综合启示</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：从 Palantir AI FDE 产品化趋势看，FDE 的工作模式正在被 AI 智能体沉淀为可复用产品</li><li>这正是 OpenFDE 4C 框架中 Compounding（回流）面的核心价值</li><li>核心观点2：从 OpenFDE 定义看，FDE 与相邻岗位的边界判据是「对生产环境真实发生的业务结果负责」</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：从 Palantir AI FDE 产品化趋势看，FDE 的工作模式正在被 AI 智能体沉淀为可复用产品。人类 FDE 不应把 AI 视为威胁，而应把自己定位为「AI FDE 的设计者与校准者」——把现场经验转化为智能体能力，让下一个客户更快落地。这正是 OpenFDE 4C 框架中 Compounding（回流）面的核心价值。</li>
+<li><strong>核心观点2</strong>：从 OpenFDE 定义看，FDE 与相邻岗位的边界判据是「对生产环境真实发生的业务结果负责」。面试或判断一个岗位是否「真 FDE」时，应追问三个问题：他能不能亲手把系统写到客户生产环境？他能不能用真实业务指标证明系统被用起来？他能不能把现场经验回流成可复用产品？三个都是「是」才是真 FDE，否则只是「在客户附近工作的某类岗位」。</li>
+<li><strong>核心观点3</strong>：从 Hamel Evals 知识地图看，FDE 的 Calibration 面是最容易被忽视、却最决定交付质量的一环。FDE 常见误区是把「Demo 效果好」等同于「系统有效」，但 Demo 是精心挑选的样例，生产环境才是真实分布。建立 evals 体系——黄金集、对抗验证、LLM-as-a-Judge——是 FDE 从「能交付」走向「交付有效」的关键跃迁。</li>
+</ul>
+<h2 id="适用场景标签">适用场景标签</h2>2
+<ul>
+<li>FDE 角色定义与方法论</li>
+<li>客户现场交付与责任边界</li>
+<li>4C 能力模型（现场/代码/校准/回流）</li>
+<li>AI Evals 学习路径</li>
+<li>一手调研方法与诚实标注</li>
+<li>Palantir / OpenFDE 社区口径对齐</li>
+<li>FDE 起源与产品化趋势</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">一句话推荐</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>FDE 方法论一手调研汇编，含 Palantir 官方口径纠正、OpenFDE 4C 框架、Hamel Evals 知识地图三大块</li></ul></div>2
+<p>FDE 方法论一手调研汇编，含 Palantir 官方口径纠正、OpenFDE 4C 框架、Hamel Evals 知识地图三大块。</p></div></details></div></body></html>

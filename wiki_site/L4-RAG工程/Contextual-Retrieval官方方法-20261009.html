@@ -1,0 +1,175 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Contextual-Retrieval官方方法-20261009</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ Contextual-Retrieval官方方法-20261009</span></div><div class="wrap"><h1 id="anthropic-contextual-retrieval-官方方法">Anthropic Contextual Retrieval 官方方法</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/rag-arch/RAG%E4%B8%9A%E5%86%85%E6%9C%80%E9%AB%98%E6%A0%87%E5%87%86-20261009.md">RAG业内最高标准-20261009</a> · <a href="../../raw/rag-arch/RAG%E6%A0%87%E5%87%86%E8%90%BD%E4%BD%8D%E6%96%B9%E6%A1%88-20261009.md">RAG标准落位方案-20261009</a> · <a href="../../raw/rag-arch/RAG%E5%9B%BE%E8%B0%B1%E8%A1%8C%E4%B8%9A%E6%A0%87%E5%87%86%E8%B0%83%E7%A0%94-20261009.md">RAG图谱行业标准调研-20261009</a></p>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构</a></p>
+<p>来源：Anthropic 官方博客 https://www.anthropic.com/news/contextual-retrieval（2024-09-19，逐字抓取）。一手源详见 <code>plans/RAG业内最高标准-20261009.md</code> ②节。</p>
+</blockquote>
+<h2 id="why">WHY</h2>2
+<h3 id="核心论点">核心论点</h3>3
+<p><strong>Contextual Retrieval 的收益来自"给每个 chunk 补一句全局定位"这一动作本身，而收益大小取决于前缀是 LLM 生成还是规则拼接——两者不可混为一谈。</strong> 官方数字（top-20 检索失败率 5.7%→3.7%→2.9%→1.9%）全部出自 LLM 生成版 + hybrid + rerank 的组合，且官方明确否定启发式摘要（"very limited gains"）；本库 <code>build_context_prefix()</code> 的规则拼接版只是零成本的近似，不能引用官方降幅数字。到 2026 年这套方法已是成熟标配基线而非前沿，升级决策只应比较"规则版 vs LLM 版的实际 A/B 差距"，不值得再争论要不要做。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">为什么要做（动机与代价）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>动机（WHY）：chunk 是从整篇文档里切出来的碎片，脱离了文档级的全局语境——单独看一个 200 token 的片段，embedding 模型不知道它讲的是"哪本书的哪一章"</li><li>查询里带的词（书名/章节名/术语）常常只出现在文档别处，结果 chunk 的向量与 query 的向量天然错位，检索不到真正该命中的段落</li><li>Contextual Retrieval 的动机就是把"chunk 在全文中的位置"这一全局信息在入库时就补进每个 chunk，让 embedding 时的语义与 query 对齐</li></ul></div>3
+<ul>
+<li><strong>动机（WHY）</strong>：chunk 是从整篇文档里切出来的碎片，脱离了文档级的全局语境——单独看一个 200 token 的片段，embedding 模型不知道它讲的是"哪本书的哪一章"。查询里带的词（书名/章节名/术语）常常只出现在文档别处，结果 chunk 的向量与 query 的向量天然错位，检索不到真正该命中的段落。Contextual Retrieval 的动机就是<strong>把"chunk 在全文中的位置"这一全局信息在入库时就补进每个 chunk</strong>，让 embedding 时的语义与 query 对齐。</li>
+<li><strong>代价与权衡</strong>：补全局语境有两条路——LLM 给每个 chunk 生成一句"它在全文中的定位"（官方做法，准确但要花钱花时间），或用规则拼 source+heading 前缀（零成本但信息量少）。官方实测规则拼接/启发式摘要收益"very limited"，真正有效的是 LLM 生成版——代价是一次性入库成本约 $1.02/每百万 document tokens（靠 prompt caching 才压下来）。所以决策不是"要不要做"（2026 年已是标配基线），而是"规则版够不够用、要不要花钱升 LLM 版"。</li>
+</ul>
+<h2 id="what">WHAT</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">是什么（定义与边界）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心动作是"补全局定位"，前缀生成方式（LLM vs 规则）决定收益量级</li><li>⚠️ 引用红线：35%/49%/67% 是 top-20 检索失败率的相对降幅，且全部出自 LLM 生成版——规则拼接版不许引用这些数字（见下文"官方数字"节）</li><li>❌ 不管：排序质量（那是 rerank 的活）、召回上限（那是 hybrid 的活）——官方数字是三者叠加（Contextual → +hybrid → +rerank）才到 1.9%，不能把 67% 全归给 Contextual 本身</li></ul></div>3
+<p><strong>定义</strong>：Contextual Retrieval = 入库时给每个 chunk 追加一句 LLM 生成的"该 chunk 在全文中的位置与主题"前缀，再把带前缀的 chunk 送进 embedding，使向量携带全局定位信息。核心动作是"补全局定位"，前缀生成方式（LLM vs 规则）决定收益量级。</p>
+<p><strong>边界（本方法管什么、不管什么）</strong>：<br />
+- ✅ 管：解决"chunk 碎片化导致语义与 query 错位"的检索失败。<br />
+- ❌ 不管：排序质量（那是 rerank 的活）、召回上限（那是 hybrid 的活）——官方数字是三者叠加（Contextual → +hybrid → +rerank）才到 1.9%，不能把 67% 全归给 Contextual 本身。<br />
+- ❌ 不管：内容本身的准确性/过期治理（那是保鲜层的活）。<br />
+- ⚠️ 引用红线：35%/49%/67% 是 top-20 检索失败率的<strong>相对降幅</strong>，且全部出自 LLM 生成版——规则拼接版不许引用这些数字（见下文"官方数字"节）。</p>
+<h3 id="官方-promptllm-生成-contextual-前缀">官方 prompt（LLM 生成 contextual 前缀）</h3>3
+<pre><code class="language-text">&lt;document&gt;
+{{WHOLE_DOCUMENT}}
+&lt;/document&gt;
+Here is the chunk we want to situate within the whole document
+&lt;chunk&gt;
+{{CHUNK_CONTENT}}
+&lt;/chunk&gt;
+Please give a short succinct context to situate this chunk within the overall document for the purposes of improving search retrieval of the chunk. Answer only with the succinct context and nothing else.
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">官方数字（逐字核对，勿引错）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 35% / 49% / 67% 全是"top-20 检索失败率的相对降幅"（基线5.7%），不是整体查询错误率、不是 Recall 目标值</li><li>2. 35% 是 Contextual Embeddings 单独、49% 是 hybrid、67% 是 hybrid+rerank —— 不是笼统的"Contextual 降35%"</li></ul></div>3
+<p>基线 = 纯 embeddings 的 <strong>top-20 检索失败率 5.7%</strong>（跨 codebase/fiction/arXiv/science 四类语料）：</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>top-20 检索失败率</th>
+<th>相对降幅</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Baseline（纯 embeddings）</td>
+<td>5.7%</td>
+<td>—</td>
+</tr>
+<tr>
+<td>+ Contextual Embeddings</td>
+<td>3.7%</td>
+<td><strong>−35%</strong></td>
+</tr>
+<tr>
+<td>+ Hybrid（embeddings+BM25）</td>
+<td>2.9%</td>
+<td><strong>−49%</strong></td>
+</tr>
+<tr>
+<td>+ Hybrid + Cohere rerank</td>
+<td>1.9%</td>
+<td><strong>−67%</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>三条引用红线</strong>：<br />
+1. <strong>35% / 49% / 67% 全是"top-20 检索失败率的相对降幅"</strong>（基线5.7%），不是整体查询错误率、不是 Recall 目标值。<br />
+2. 35% 是 Contextual Embeddings <strong>单独</strong>、49% 是 <strong>hybrid</strong>、67% 是 <strong>hybrid+rerank</strong> —— 不是笼统的"Contextual 降35%"。<br />
+3. 官方<strong>否定启发式摘要</strong>：文档级通用摘要"very limited gains"、summary-based indexing"low performance" —— 所以规则拼接（source+heading拼接）不是官方方法，官方是 <strong>LLM 生成</strong>。</p>
+<h3 id="成本">成本</h3>3
+<p>一次性入库 <strong>$1.02 / 每百万 document tokens</strong>（假设 800-token chunks / 8k文档 / 每chunk约100 tokens前缀）。prompt caching 把整篇文档缓存一次（1.25x），每 chunk 读缓存（0.1x，90%折扣）—— 这是<strong>成本机制不是准确率变体</strong>。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">本地现状判定</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「ingest.py:230 build_context_prefix()」 是规则拼接版（source_name+heading_path+chunk_type 拼接，零LLM成本）—— 官方数字是 LLM 生成版测出来的，规则版距官方版有真实差距（业内标准③A7 判定仅 🟡）</li><li>若要升级 LLM 版：按官方 prompt + 先小批 A/B 验证收益再全量</li></ul></div>3
+<p><code>ingest.py:230 build_context_prefix()</code> 是<strong>规则拼接版</strong>（source_name+heading_path+chunk_type 拼接，零LLM成本）—— 官方数字是 LLM 生成版测出来的，规则版距官方版有真实差距（业内标准③A7 判定仅 🟡）。若要升级 LLM 版：按官方 prompt + 先小批 A/B 验证收益再全量。</p>
+<h4 id="与二手实测的对照冷启动取舍">与二手实测的对照（冷启动取舍）</h4>
+<p>据[一手源]：RAG优化-外部调研-20260929（方向 6，tier2）：该源转述 Anthropic 提出的做法是 indexing 时给每个 chunk 加 2–3 句上下文前缀（prompt 为 "Here is the full document: {doc}. Here is a chunk: {chunk}. Give a short context to situate this chunk"），并引 arXiv 2604.01733 实测为"consistent moderate gains，一次性成本"；其落地清单把前缀也列了"调用一次 LLM，或规则生成 <code>本文档 = {filename}，所属决策 = {heading}</code>"两条路，理由是 800 token chunk 切小后会失去上下文，前缀补回，对 162 chunk 冷启动友好。冲突裁决：规则前缀可作冷启动起点，但<strong>官方一手明确否定启发式摘要（very limited gains）</strong>，按"一手官方 &gt; 二手总结"的真值层级，规则版的收益只能说"补回了 source/heading 定位"，不能套用官方 35%/49%/67% 降幅；是否值得花钱升 LLM 版，仍以本库规则版 vs LLM 版的小批 A/B 为准。</p>
+<h3 id="2026-定位">2026 定位</h3>3
+<p>Contextual Retrieval 到 2026 已是<strong>成熟标配基线</strong>（AWS Bedrock KBs 产品化、LlamaIndex cookbook 落地），<strong>不是前沿</strong>。前沿已转向：agentic/iterative RAG、训练型 contextual embeddings（arXiv 2505.24782）、late chunking（arXiv 2409.04701）。</p>
+</div></details><h2 id="how">HOW</h2>2
+<h3 id="怎么用">怎么用</h3>3
+<ul>
+<li><strong>先看本库规则版 vs LLM 版现状</strong>：规则版前缀在 <code>rag/ingest.py</code> 的 <code>build_context_prefix()</code>（source_name+heading_path+chunk_type 拼接，零 LLM 成本）；LLM 版在 <code>rag/contextual_llm.py</code> 的 <code>generate_contextual_prefix_llm(chunk, full_doc, source_name)</code>（DeepSeek-V3 via 硅基流动，50–100 token 前缀，chunk_hash 缓存 <code>rag/data/contextual_cache.jsonl</code>，失败自动降级规则版保证 ingest 不挂）。</li>
+<li><strong>升级前先小批 A/B 验证收益再全量</strong>：<br />
+<code>bash
+  source ~/ai-stack/bin/activate
+  cd /mnt/c/MyData/Documents/wuyafang-l/rag/eval
+  python3 ab_contextual_test.py        # 规则版 vs LLM 版对照（参考报告 rag/Contextual-Retrieval-LLM-AB验证报告-20261026.md）</code><br />
+  两版都以 <code>eval_recall.py</code> 的 Recall@5 不低于基线 87.5% 为验收线（<code>plans/RAG架构标准-20261009.md</code> 标准2）。</li>
+<li><strong>成本先算后跑</strong>：<code>python3 -c "import sys; sys.path.insert(0,'rag'); from contextual_llm import estimate_cost; print(estimate_cost(total_chunks=6510, avg_chunk_chars=400))"</code> 按官方口径（$1.02/M doc tokens，prompt caching 1.25x 缓存 + 0.1x 读）估价，全量前把估算值写进变更记录。</li>
+<li><strong>官方数字引用红线</strong>：35%（Contextual Embeddings 单独）/ 49%（+hybrid）/ 67%（+hybrid+rerank）是“top-20 检索失败率相对降幅”（基线 5.7%），不是 Recall 目标值；官方否定启发式摘要，别把规则拼接版的效果说成官方方法。</li>
+<li><strong>省内存/省时的批量入库姿势</strong>（/mnt/c 9p 写速仅 24MB/s）：<br />
+<code>bash
+  RAG_INDEX_DIR=$HOME/kb-index RAG_DATA_DIR=$HOME/kb-data python3 rag/ingest.py   # 全量重建用 --rebuild</code><br />
+  幂等：file_hash 未变跳过；contextual 前缀缓存命中不重复调 LLM。</li>
+</ul>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">关联</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>本地执行标准：「plans/RAG架构标准-20261009.md」 标准2（验收已修正为 Recall@5 不低于基线87.5%）</li><li>权威标准：「plans/RAG业内最高标准-20261009.md」 ②节</li></ul></div>3
+<ul>
+<li>本地执行标准：<code>plans/RAG架构标准-20261009.md</code> 标准2（验收已修正为 Recall@5 不低于基线87.5%）</li>
+<li>权威标准：<code>plans/RAG业内最高标准-20261009.md</code> ②节</li>
+</ul>
+<h2 id="本库真实落地">本库真实落地</h2>2
+<blockquote>
+<p>2026-11-04 源码核对：路径 <code>os.path.exists</code> 全绿，代码块逐字摘自源文件（可 grep 复核）。行号以 <code>rag/ingest.py</code> 1594 行版本为准。</p>
+</blockquote>
+<ul>
+<li><strong>本库真的有两条实现，不是一个概念</strong>：规则版 <code>build_context_prefix()</code>（<code>rag/ingest.py</code> L809）与 LLM 版 <code>build_context_prefix_llm()</code>（L825），由 <code>CONTEXTUAL_MODE</code> 切换，默认 <code>rule</code>：<br />
+<code>python
+  # RAG_CONTEXTUAL_MODE=llm 启用LLM版, 默认 rule (规则版)
+  CONTEXTUAL_MODE = os.environ.get("RAG_CONTEXTUAL_MODE", "rule")  # rule | llm</code></li>
+<li><strong>规则版前缀就是一句话模板</strong>（<code>rag/ingest.py</code> L822）：<br />
+<code>python
+  return f"本文来自{source_name},主要讲{h}。"</code><br />
+  它不是官方方法——官方要的是「这个 chunk 在全文档里处在什么位置、起什么作用」，这是两回事，本库把它显式叫「规则版」就是承认这一点（<code>rag/contextual_llm.py</code> 文件头：<em>"规则版: 仅用文件路径+标题生成前缀, 零LLM成本但信息量有限"</em>）。</li>
+<li><strong>LLM 版的前缀生成在 <code>rag/contextual_llm.py</code></strong>：走 SiliconFlow（<code>deepseek-ai/DeepSeek-V3</code>，可用 <code>RAG_CONTEXTUAL_MODEL</code> 覆盖），带 <code>data/contextual_cache.jsonl</code> 缓存；失败降级为规则版，保证 ingest 不挂。</li>
+<li><strong>A/B 证据在本库，不在论文里</strong>：<code>rag/eval/ab_contextual_test.py</code>（对比 <code>build_context_prefix</code> vs <code>generate_contextual_prefix_llm</code>，指标 Recall@5）与报告 <code>rag/Contextual-Retrieval-LLM-AB验证报告-20261026.md</code>（成本口径 ¥7.75/15k chunks）。</li>
+<li><strong>重要边界</strong>：<code>ingest.py</code> 里送 embed 的是 <code>indexed = prefix + c</code>，但写进 metadata 的 <code>text</code> 是 <code>e["raw"]</code>（不带前缀）。也就是说<strong>前缀只影响检索向量，不会进生成上下文</strong>——想知道「答案里为什么没有那段上下文」，看这里。</li>
+<li>
+<p><strong>和课件讲法的差异</strong>：课件把 contextual retrieval 讲成一个开关；本库的真实代价是「全库需要重灌一次 embedding」——前缀变了向量就变，<code>registry</code> 的 <code>bge_version</code> 就是用来防这类重灌风暴的。</p>
+</li>
+<li>
+<p><strong>本库暂无</strong>：没有在 <code>RAG_CHUNK_MODE=atomic</code> + LLM 前缀的叠加组合上做过对照实验；A/B 报告的成本数字是估算口径，未按真实 token 账单核对。</p>
+</li>
+</ul>
+</div></details><h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<h3 id="三源融合清单">三源融合清单</h3>3
+<ul>
+<li>[业1] 业内：<a href="https://www.anthropic.com/news/contextual-retrieval">Anthropic 官方 Contextual Retrieval</a>（2024-09-19）；本地抓取与裁决见 <a href="../../raw/rag-arch/RAG%E4%B8%9A%E5%86%85%E6%9C%80%E9%AB%98%E6%A0%87%E5%87%86-20261009.md">RAG业内最高标准</a>。</li>
+<li>[业2] 业内：arXiv:2604.01733（原文注明为二手实测转引）、arXiv:2505.24782（训练型 contextual embeddings）、arXiv:2409.04701（late chunking）。</li>
+<li>说明：原文未列课件或书籍来源，本次不补造。</li>
+</ul></div></body></html>

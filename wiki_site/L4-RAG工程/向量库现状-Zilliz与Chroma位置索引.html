@@ -1,0 +1,159 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>向量库现状-Zilliz与Chroma位置索引</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 向量库现状-Zilliz与Chroma位置索引</span></div><div class="wrap"><h1 id="rag-向量库现状与位置索引唯一事实源">RAG 向量库现状与位置索引（唯一事实源）</h1>
+<blockquote>
+<p>本文是「问 RAG 用哪个向量库 / 凭据在哪 / 数据有多少」的唯一出处。<br />
+2026-11-04 实测。</p>
+</blockquote>
+<h2 id="why">WHY</h2>2
+<h3 id="结论先行">结论先行</h3>3
+<p><strong>本地和云端两套都在，云端（Zilliz Cloud）是活的，有 2 万多条真实数据。</strong></p>
+<ul>
+<li>本地：ChromaDB（<code>~/kb-local/rag/index/chroma.sqlite3</code>，463MB，索引目录 2.3G）</li>
+<li>云端：Zilliz Cloud 托管 Milvus（杭州 serverless），3 个集合共 23,674 条</li>
+</ul>
+<p>问"有没有用 Milvus"→ <strong>有</strong>，走的是 Zilliz Cloud 托管版，不是本地自建。<br />
+本地 <code>docker ps</code> 查不到 Milvus 容器 <strong>不代表没在用</strong>。</p>
+<h3 id="判断口径防再误判">判断口径（防再误判）</h3>3
+<ol>
+<li>问"用没用某向量库"→ 先查 <strong><code>cloud_backend.py</code> 是否被主流程 import</strong>，再查云端集合条数，<strong>不能只因本地无容器就否定</strong></li>
+<li>查凭据→ 同时查 <code>~/.hermes/.env</code> 和 <code>~/.hermes/secrets.env</code>（后者是真源）</li>
+<li>云端与本地并存是设计现状，不是冲突：本地 Chroma 供离线/开发，云端供多端访问</li>
+</ol>
+<h2 id="what">WHAT</h2>2
+<h3 id="凭据位置易踩坑">凭据位置（易踩坑）</h3>3
+<p>凭据在 <strong><code>~/.hermes/secrets.env</code></strong>，<strong>不在</strong> <code>~/.hermes/.env</code>。</p>
+<pre><code class="language-bash"># secrets.env 中的键
+ZILLIZ_TOKEN=&lt;104 字符&gt;
+ZILLIZ_URI=https://in03-9a578d6cbbc7459.serverless.ali-cn-hangzhou.cloud.zilliz.com
+</code></pre>
+<p>只查 <code>.env</code> 会误判为"未配置"——这是 2026-11-04 实际犯过的错。</p>
+<h3 id="云端集合清单实测">云端集合清单（实测）</h3>3
+<table>
+<thead>
+<tr>
+<th>集合</th>
+<th style="text-align: right;">条数</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>wuyafang_kb_cloud</code></td>
+<td style="text-align: right;">20,177</td>
+<td>主知识库（wiki + 课件 + 实操页）</td>
+</tr>
+<tr>
+<td><code>wuyafang_kb_images</code></td>
+<td style="text-align: right;">3,492</td>
+<td>图像向量（以文搜图）</td>
+</tr>
+<tr>
+<td><code>Vector_index_6e1d1fec_46df_4072_b306_5dbdcc38d2dd_Node</code></td>
+<td style="text-align: right;">5</td>
+<td>LlamaIndex 遗留，可忽略</td>
+</tr>
+</tbody>
+</table>
+<p>集群：<code>in03-9a578d6cbbc7459</code>（杭州 serverless）</p>
+<h3 id="代码位置">代码位置</h3>3
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th style="text-align: right;">行数</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rag/cloud_backend.py</code></td>
+<td style="text-align: right;">130</td>
+<td>MilvusClient 封装，dense + 内部 Function BM25 sparse</td>
+</tr>
+<tr>
+<td><code>rag/ingest_to_cloud.py</code></td>
+<td style="text-align: right;">400</td>
+<td>云端灌库</td>
+</tr>
+<tr>
+<td><code>rag/verify_cloud_ingest.py</code></td>
+<td style="text-align: right;">159</td>
+<td>云端灌库验证</td>
+</tr>
+</tbody>
+</table>
+<h2 id="how">HOW</h2>2
+<h3 id="自检命令">自检命令</h3>3
+<pre><code class="language-bash"># 查云端集合与条数
+~/ai-stack/bin/python - &lt;&lt;'PY'
+import os
+env={}
+for line in open(os.path.expanduser('~/.hermes/secrets.env'),encoding='utf-8',errors='replace'):
+    line=line.strip()
+    if line.startswith('#') or '=' not in line: continue
+    k,v=line.split('=',1); env[k.strip()]=v.strip().strip('&quot;').strip(&quot;'&quot;)
+from pymilvus import MilvusClient
+c=MilvusClient(uri=env['ZILLIZ_URI'], token=env['ZILLIZ_TOKEN'])
+for n in c.list_collections():
+    print(n, c.get_collection_stats(n).get('row_count'))
+PY
+</code></pre>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<h3 id="三源融合清单">三源融合清单</h3>3
+<ul>
+<li>[业1] 工程实测：2026-11-04 本地 Chroma 与 Zilliz Cloud 集合状态；核查入口为 <code>rag/cloud_backend.py</code>、<code>rag/ingest_to_cloud.py</code>、<code>rag/verify_cloud_ingest.py</code>。</li>
+<li>说明：本篇是环境事实快照，原文未列课件、书籍、官方文档 URL 或 arXiv 来源，本次不补造。</li>
+</ul>
+<h2 id="本库真实落地">本库真实落地</h2>2
+<blockquote>
+<p>本节 2026-11-05 补写，逐条核验路径与函数名（可 grep 复核），不复述正文快照数字。</p>
+</blockquote>
+<ul>
+<li><strong>本地 Chroma 侧</strong>：主检索链路全部走本地（<code>rag/query.py</code> <code>retrieve_hybrid()</code> L867 等），索引目录与集合名由 <code>rag/config.yaml</code> 的 <code>index</code> 段控制；<code>scripts/build_kb.py</code> <code>chroma_stats()</code>（L196）用 sqlite 只读直查 <code>embedding_metadata</code> 统计 chunk/文件数（不启 Chroma 客户端）。</li>
+<li><strong>Zilliz 云端侧三件套</strong>：<code>rag/cloud_backend.py</code> <code>ZillizBackend</code>（L32，<code>create_collection()</code> L43 建 dense+text(BM25) 集合、中文 jieba analyzer、<code>hybrid_search()</code> L92）；<code>rag/ingest_to_cloud.py</code> <code>collect_targets()</code>（L69，wiki+2605课件两批，.bak 整棵排除）+ <code>Upserter</code>（L187，批量 upsert）+ <code>main()</code>（L245，--dry-run/--limit/--force）；<code>rag/verify_cloud_ingest.py</code> <code>main()</code>（L56，G1-G4 目标覆盖率 + 对账 + 可选 query 验证，<code>ok()</code> L51 逐条 PASS/FAIL）。</li>
+<li><strong>一句话支撑</strong>：正文"本地 Chroma 与 Zilliz Cloud 各管一层"的现状，靠这三件套维持——迁移可断点续跑（<code>load_progress()</code> L223/<code>record_progress()</code> L237），上线前必须过 <code>verify_cloud_ingest.py</code> 的覆盖率核对。</li>
+</ul></div></body></html>

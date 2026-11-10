@@ -1,0 +1,84 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LLM应用安全-攻防态势与防御分层</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="index.html">🏠 总入口</a><a href="graph.html">🕸 关联图谱</a><a href="ontology/index.html">📖 术语表</a><span class="cur">/ LLM应用安全-攻防态势与防御分层</span></div><div class="wrap"><h1 id="llm应用安全-攻防态势与防御分层distilljson">LLM应用安全-攻防态势与防御分层.distill.json</h1>
+<ul>
+<li>source_file: raw/distill/LLM应用安全-攻防态势与防御分层.distill.json</li>
+<li>format: json</li>
+</ul>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">内容</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>base: LLM应用安全-攻防态势与防御分层</li><li>[原则:防御建议] 官方建议:把computer use限定在可信环境(VM/container,最小权限)｜依据:四、Anthropic官方防御立场</li><li>[原则:交付红线] 任何delimiter策略都不可靠——"忽略之前指令"这种防御没有工程保证｜依据:七、FDE交付red line(必须告诉客户)</li></ul></div>2
+<ul>
+<li><strong>base</strong>: LLM应用安全-攻防态势与防御分层</li>
+<li><strong>source_file</strong>: raw/sources/LLM应用安全-外部调研-20261012.md</li>
+<li><strong>model</strong>: deepseek-ai/DeepSeek-V3</li>
+<li><strong>generated_at</strong>: 2026-10-21 15:02:46</li>
+<li><strong>level1_excerpts</strong>: - <strong>[数据:OWASP社区规模]</strong> OWASP GenAI Security Project 2026 Top 10 for LLM Applications已发布(2026),是社区驱动的最新权威指南｜依据:一、OWASP官方最新动向  </li>
+<li><strong>[机制:Agent控制标准]</strong> 2026版本同时发布 <strong>Agent Control Standard</strong>——专门针对agentic AI的控制标准｜依据:一、OWASP官方最新动向  </li>
+<li><strong>[数据:攻击成功率]</strong> GUI-based agent上,单次prompt注入无防护时成功率 <strong>17.8%</strong>｜依据:二、2026年攻防真实数据  </li>
+<li><strong>[数据:击穿率]</strong> 到第200次尝试时,击穿率 <strong>78.6%</strong>｜依据:二、2026年攻防真实数据  </li>
+<li><strong>[案例:CVE漏洞]</strong> CVE-2025-68143 / 68144 / 68145(2026-01披露):Anthropic自己的Git MCP server里3个prompt注入漏洞｜依据:三、2026年真实CVE与事故案例  </li>
+<li><strong>[原则:防御建议]</strong> 官方建议:把computer use限定在<strong>可信环境</strong>(VM/container,最小权限)｜依据:四、Anthropic官方防御立场  </li>
+<li><strong>[机制:防御分层]</strong> sysdig总结的三层结构:架构层、运行时层、治理层｜依据:五、防御分层(2026行业共识)  </li>
+<li><strong>[机制:MCP风险]</strong> MCP(Model Context Protocol)让模型可以调terminal/database/filesystem,直接把prompt注入的影响从"说错话"升级到"执行命令"｜依据:六、MCP带来的新攻击面  </li>
+<li><strong>[原则:交付红线]</strong> 任何delimiter策略都不可靠——"忽略之前指令"这种防御没有工程保证｜依据:七、FDE交付red line(必须告诉客户)  </li>
+<li><strong>[原则:交付红线]</strong> 同一模型不同action集=不同安全等级——给agent加工具等于开新攻击面｜依据:七、FDE交付red line(必须告诉客户)</li>
+<li><strong>level2_summary</strong>: ```markdown<br />
+<strong>1. OWASP 2026权威指南与Agent控制标准</strong><br />
+OWASP发布GenAI Security Project 2026 Top 10，是社区驱动的最新LLM安全指南。同步推出Agent Control Standard，专门规范agentic AI的控制要求。（依据：OWASP官方）</li>
+</ul>
+<p><strong>2. Prompt注入攻击的高成功率</strong><br />
+GUI-based agent上单次prompt注入无防护时成功率17.8%，到第200次尝试时击穿率升至78.6%。（依据：2026攻防数据）</p>
+<p><strong>3. MCP协议带来的新攻击面</strong><br />
+MCP允许模型直接调用系统资源（terminal/database等），使prompt注入从"错误输出"升级为"命令执行"。典型案例：Anthropic Git MCP server曝出3个CVE漏洞（CVE-2025-68143系列）。（依据：MCP技术说明+2026年CVE）</p>
+<p><strong>4. 防御框架与交付红线</strong><br />
+Sysdig提出三层防御：架构层/运行时层/治理层。交付必须声明：delimiter策略不可靠，且每新增工具即产生新攻击面。（依据：防御分层共识+FDE交付标准）</p>
+<pre><code>- **level3_digest**: ```markdown
+1. **OWASP 2026指南是LLM安全领域的社区驱动黄金标准**，配套的Agent Control Standard首次规范了agentic AI控制要求  
+2. **Prompt注入攻击具有累积击穿效应**，无防护时200次尝试可使成功率从17.8%跃升至78.6%  
+3. **MCP协议将AI安全威胁升级为系统级风险**，模型直接调用系统资源使prompt注入转化为命令执行漏洞  
+4. **现代AI防御需架构/运行时/治理三层协同**，且工具扩展与攻击面增加呈正相关  
+
+**核心问题**：2026年最前沿的AI安全威胁形态是什么？对应的防御框架如何构建？
+</code></pre></div></details></div></body></html>

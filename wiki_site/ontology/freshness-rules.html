@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>freshness-rules</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ freshness-rules</span></div><div class="wrap"><h1 id="知识新鲜度规则ttl-衰减打分">知识新鲜度规则（TTL + 衰减打分）</h1>
+<blockquote>
+<p>来源: Graphiti/Zep 时序图谱（arXiv 2501.13956, 事实带 temporal validity window + episode 溯源）<br />
++ 现有 TTL 框架（7d/30d/180d/eternal）。衰减公式为【我(OC)推断，待验证】。</p>
+</blockquote>
+<h2 id="时间字段对齐-graphiti-模式">时间字段（对齐 Graphiti 模式）</h2>2
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>valid_at</td>
+<td>事实生效时间（入库时间）</td>
+</tr>
+<tr>
+<td>invalid_at</td>
+<td>事实失效时间（空=仍有效）</td>
+</tr>
+<tr>
+<td>source_episode</td>
+<td>溯源（原始入库批次/来源文件）</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ttl-分层沿用既有">TTL 分层（沿用既有）</h2>2
+<ul>
+<li>7d（动态资讯）/ 30d（默认）/ 180d（工程实践）/ eternal（原理/术语）</li>
+</ul>
+<h2 id="检索衰减打分设计待验证">检索衰减打分（设计，待验证）</h2>2
+<p>score_final = score × decay; decay = exp(-ln2 × age / half_life)<br />
+half_life 取 TTL/2。过期（age &gt; TTL）：invalid_at 置位 → 仅作历史引用，不进新检索 top-k。<br />
+质量校验门：入库前过 memory-classify（既有），RAG 条目附加 source_tier 权重（既有）。</p>
+<h2 id="淘汰策略">淘汰策略</h2>2
+<ul>
+<li>age &gt; TTL × 2 → 移入 归档/&lt;年月&gt;.md，索引剥离（同总网归档模式）</li>
+<li>每月归档 cron 扫描（挂 N6 熵清理，同 backlog 归档机制）</li>
+</ul></div></body></html>

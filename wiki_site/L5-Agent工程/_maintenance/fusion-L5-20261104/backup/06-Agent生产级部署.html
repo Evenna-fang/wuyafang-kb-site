@@ -1,0 +1,826 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>06-Agent生产级部署</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../../../../index.html">🏠 总入口</a><a href="../../../../graph.html">🕸 关联图谱</a><a href="../../../../ontology/index.html">📖 术语表</a><span class="cur">/ 06-Agent生产级部署</span></div><div class="wrap"><h1 id="agent-生产级部署从已受理到可证明完成">Agent 生产级部署：从“已受理”到“可证明完成”</h1>
+<blockquote>
+<p><a href="../00-%E7%9F%A5%E8%AF%86%E5%BA%93%E6%80%BB%E5%85%A5%E5%8F%A3.html">← 返回知识库总入口</a></p>
+<p>上一篇解释状态图如何执行与恢复：<a href="05-LangGraph%E7%8A%B6%E6%80%81%E6%9C%BA.html">LangGraph 状态机</a>。本篇换到业务上线视角：无论底层使用 LangGraph、Temporal、Restate 还是自研任务队列，都必须回答“任务是否只生效一次、结果是否真实、失败能否恢复、质量能否回归、版本能否撤回”。</p>
+<p><strong>证据口径</strong>：本文融合课件实操、书籍章节重点笔记、既有调研与业内一手源。代码和配置是待验证骨架，本次未启动服务、未连接数据库或消息队列、未运行评测，也未执行部署。文中的阈值示例均标为配置起点或来源示例，不是当前系统实测成绩。</p>
+</blockquote>
+<h2 id="why">WHY</h2>2
+<h3 id="demo-的有回答不等于业务的已完成">Demo 的“有回答”不等于业务的“已完成”</h3>3
+<p>一个 Agent 在演示中成功，通常只证明某次输入得到了看似合理的输出。生产任务却可能包含退款、建单、修改权限、发送通知和更新知识库。此时，模型说“我已经处理”，工具返回 HTTP 成功，甚至接口返回 <code>success: true</code>，都不能独立证明业务终态正确。消息可能只进入队列，写库可能尚未同步到读取副本，外部系统可能接受了请求但业务规则拒绝执行，进程也可能在响应返回前崩溃。</p>
+<p>因此，生产系统要把三个概念分开：<strong>模型意图</strong>是模型准备做什么，<strong>系统受理</strong>是平台已经记录并准备执行什么，<strong>业务完成</strong>是确定性证据表明外部状态满足目标。三者之间需要状态机、幂等、读回、post-condition 和审计连接。缺少任何一环，都会把“自称完成”误当“真实完成”。</p>
+<p>ACM Queue 对 Agent 可靠性的讨论把这类系统视为会动态生成调用图的分布式系统：超时、部分写入、重复副作用和级联重试仍是主要故障，不能全部归因于模型不够聪明。提示词可以改善选择，却不能替代 deadline、退避、熔断、幂等键、隔舱和补偿。生产部署的第一性原理由此很明确：把不确定性限制在决策层，把资金、权限和外部状态变化交给可验证的工程边界。</p>
+<h3 id="长任务需要可恢复而不是重新问一次">长任务需要“可恢复”，而不是“重新问一次”</h3>3
+<p>长程 Agent 的价值来自连续执行多个步骤，风险也来自步骤累积。任何一步都可能遇到模型空流、工具超时、队列重启、下游限流或发布切流。如果没有 durable execution，恢复只能从头开始，既浪费 token，又重复外部动作；如果只有进程内存中的列表，服务滚动更新就会把所有在途任务变成孤儿。</p>
+<p>Temporal 的 Event History、Restate 的 journal、LangGraph 的 checkpoint 虽然实现不同，却共同指向一个原则：恢复依据是持久化的已完成边界，而不是进程记忆或聊天自述。框架能复用已完成步骤的结果，但不能自动知道一次付款是否已经在银行生效。因此 durable execution 与业务幂等必须同时存在，二者不是可替换选项。</p>
+<p>人工审批进一步放大这一需求。审批可能等待数小时或数天，不能依赖一个 HTTP 请求始终不断线，也不能让 worker 空转轮询。正确形态是把待审批状态持久化，释放执行资源，审批事件到达后按任务标识恢复，并验证审批人、动作版本和状态仍然匹配。</p>
+<h3 id="上线是持续治理不是一次部署动作">上线是持续治理，不是一次部署动作</h3>3
+<p>模型、提示词、工具描述、知识库、检索策略和外部 API 都会变化。一次验收通过只能证明当时那组样本和依赖上的表现，不能保证下一次模型升级、流量突增或知识更新后仍可靠。生产体系必须同时有 trace 解释单次运行、SLO 约束服务质量、预算限制爆炸半径、Evals 比较版本、灰度控制暴露范围、回滚恢复旧行为。</p>
+<p>《Building Agentic AI Systems》第 8—9 章的章节笔记把隐私、偏见、安全和人工最终否决权放在系统约束的位置，而非上线后的补充材料。这一点对 Agent 尤其重要：它不只生成内容，还能代表用户读取数据和执行动作。权限过大、记忆污染或评估偏差会转化为真实世界后果，所以发布门禁必须同时覆盖“答得对不对”和“能不能做这件事”。</p>
+<h2 id="whatwhyt">WHAT（WHYT）</h2>2
+<h3 id="一生产参考架构控制面执行面与证据面分离">一、生产参考架构：控制面、执行面与证据面分离</h3>3
+<p>一个可运营的最小架构通常包含六层。</p>
+<ol>
+<li><strong>接入层</strong>：FastAPI 或其他 Web 框架负责认证、租户识别、Pydantic 输入校验、限流和幂等请求接收。课件 day01—day02 的路由、请求体和异步服务骨架可用于这一层，但演示代码还需补授权、异常模型和部署配置。</li>
+<li><strong>任务控制面</strong>：创建 <code>run_id</code>、关联 <code>thread_id</code>、记录状态迁移、接受取消和审批、提供查询接口。控制面本身必须持久化，不能只在单个 worker 内存里保存任务表。</li>
+<li><strong>持久执行面</strong>：队列与 worker 推进工作流，在每个完成边界写 checkpoint 或 journal。模型调用、只读检索、外部写入和人工等待采用不同超时、重试与恢复策略。</li>
+<li><strong>业务证据面</strong>：保存幂等记录、下游对象标识、写后读回快照、post-condition 结果和补偿记录。它是“业务完成”的判定依据，不是普通调试日志的附属品。</li>
+<li><strong>观测与评估面</strong>：trace 串联模型、检索、工具、记忆、审批和部署版本；指标计算成功率、延迟、降级率与成本；离线 eval 和在线抽检持续比较质量。</li>
+<li><strong>治理面</strong>：管理工具权限、数据保留、记忆写入、prompt 和模型版本、灰度策略、审批策略与回滚。高风险变更需要独立评审，Agent 不得自行修改生产配置。</li>
+</ol>
+<p>这种分层不是要求一次引入大量基础设施，而是要求职责不混淆。小系统可以用一个 Postgres 和少量 worker 起步，但仍要区分“队列已接收”“执行中”“等待人审”“已完成”“完成但降级”“失败待补偿”等状态。状态越少越简单，前提是每个状态的语义和迁移条件足够明确。</p>
+<h3 id="二accepted-与-completed对外契约必须先诚实">二、accepted 与 completed：对外契约必须先诚实</h3>3
+<p><code>accepted</code> 表示系统已经持久化请求并返回可查询标识，例如任务进入 <code>queued</code>。<code>completed</code> 表示业务后置条件已经满足，并有证据可回查。中间还可能有 <code>running</code>、<code>awaiting_approval</code>、<code>retrying</code>、<code>degraded</code>、<code>failed</code>、<code>compensating</code> 和 <code>cancelled</code>。</p>
+<p>把二者混为一个 <code>success</code>，会诱导前端和上游过早继续。例如邮件工具应返回“已排队”和消息标识，而不是声称“用户已收到”；支付工具应区分“支付请求已受理”和“账本已确认扣款”；知识库写入应区分“已提交摄取”和“目标文档可检索且版本正确”。终态必须来自业务系统或独立读回，而不是由 LLM 根据工具文本推断。</p>
+<p>对外接口至少返回 <code>run_id</code>、当前状态、状态版本和查询地址。客户端轮询或订阅时，状态版本可防止旧响应覆盖新状态。重复提交同一请求时，应返回原任务或明确冲突，不应静默创建第二个任务。取消也只是请求：已经进入不可逆外部动作的步骤，需要按业务补偿，不能假装时间倒流。</p>
+<h3 id="三幂等键去重记录与半完成窗口">三、幂等键、去重记录与半完成窗口</h3>3
+<p>幂等的目标是让“同一逻辑动作”无论重试多少次，都只产生一个可接受结果。幂等键必须稳定、作用域清晰，并与业务动作绑定。常见形式是租户、业务对象、动作和计划版本的组合哈希，例如“某订单的一次退款”，而不是每次进程启动随机生成的 UUID。若用户明确发起第二次独立退款，则应使用新的业务动作标识，不能被旧去重记录错误吞掉。</p>
+<p>最稳妥的方式是让下游原生支持幂等键，并在本地数据库同时保存动作记录。记录至少包括键、请求摘要、状态、下游对象 ID、结果摘要和更新时间。唯一约束防并发重复，请求摘要防同一键携带不同参数，状态机防止 worker 看到 <code>in_progress</code> 就盲目再次调用。</p>
+<p>最难的是半完成窗口：外部动作已经生效，本地还没记录结果便崩溃。恢复后只看到“未完成”，若直接重试仍可能重复。解决方案按优先级是：用同一幂等键重试让下游去重；按业务键查询下游是否已经存在；读回并核对金额、对象和版本；无法确定时进入人工对账，而不是乐观标记成功。 Exactly-once 不应被当作网络调用的自然属性，业务上通常追求“至少一次执行加幂等收敛”。</p>
+<h3 id="四写后读回与-post-condition验证世界而非验证自述">四、写后读回与 post-condition：验证世界，而非验证自述</h3>3
+<p>写后读回答“是否真的写下了”，post-condition 回答“写下的内容是否满足业务目标”。例如创建工单后，不仅要按 ID 读到记录，还要检查租户、状态、金额、负责人和版本；修改权限后，不仅要看到配置文本改变，还要用目标身份执行一次授权判定；更新知识后，不仅要确认文档入库，还要确认新 revision 可检索、旧 revision 不再作为当前事实。</p>
+<p>一个 post-condition 应是确定性、可独立运行、尽可能接近最终业务读取路径的检查。它不能简单复用写入函数内部的返回值，也不能让同一个模型阅读自己的报告后打分。检查失败时，系统不能进入 completed，应根据证据选择重试、补偿或人工处理。</p>
+<p>验证预算按后果分级。低风险缓存更新可以只检查键和版本；普通建单需要字段读回；资金、权限、对外发布需要更强证据和人工确认。读回还要考虑一致性：读到旧副本不代表写入失败，应使用支持一致性读取的接口、携带版本或在明确窗口内重试验证，避免“为了确认而制造第二次写入”。</p>
+<h3 id="五状态持久化与上下文治理">五、状态持久化与上下文治理</h3>3
+<p>生产状态至少分为四类：任务状态用于恢复执行，业务对象状态用于判定终态，对话状态用于当前交互，长期记忆用于跨任务复用。把它们全部塞进一个 messages 列表，会同时造成恢复困难、隐私边界模糊和 token 膨胀。任务状态应由 checkpoint 或工作流存储管理，业务事实以业务数据库为准，对话只保存必要事件，长期记忆走独立写入门禁。</p>
+<p>上下文治理可采用写入、选择、压缩和隔离四类策略。大文件和工具原始回包放在上下文之外，模型只拿引用和必要摘要；按当前步骤选择字段，不把完整历史广播给所有子 Agent；压缩必须保留目标、约束、未完成事项和来源；并行子任务使用独立上下文，但共享明确的决策与产物契约。</p>
+<p>隔离不等于信息越少越好。只给子 Agent 一句任务，会让它重复推导或作出与主任务冲突的隐式决定；全量复制 trace 又会泄漏无关信息并放大成本。可操作的折中是结构化交接包：目标、已完成工作、必要事实、产物引用、约束、未知项和验收标准。每个字段可审计，接收方不需要猜测。</p>
+<p>还要设置上下文和输出预算。超限时不能简单从头部截断，因为可能丢失系统约束或当前目标；应按消息类型、业务优先级和证据新鲜度裁剪。上下文治理的有效性最终通过任务成功率、忠实度、成本和长对话回归来验证，而不是只看 token 数下降。</p>
+<h3 id="六超时重试降级与熔断必须协同">六、超时、重试、降级与熔断必须协同</h3>3
+<p>任何网络调用都要有连接和整体 deadline，Agent 还要有整任务预算。AWS Builders' Library 强调超时、重试、退避和抖动共同使用：超时阻止无限等待，退避避免加剧下游过载，抖动避免大量客户端同时重试。超时值应来自下游延迟分布和业务 deadline，不应所有工具统一写同一个数。</p>
+<p>重试只针对暂时性且再次执行有意义的失败。参数错误、权限拒绝、业务规则不允许和余额不足应快速失败或转人工。重试预算应跨模型、工具和子 Agent 汇总，否则每一层都重试数次，会形成乘法放大。所有写操作重试前必须已有幂等策略。</p>
+<p>fallback 链要记录质量权衡。可依次尝试健康同类实例、简化模型、缓存结果、只读回答或明确拒绝；不能为了“接口仍返回 200”而无限降级。降级结果必须带 <code>degraded=true</code>、原因和缺失能力，让前端与后续节点知道不能按完整结果使用。</p>
+<p>熔断阻止故障期间继续敲打下游。AWS Well-Architected 的 Agentic AI Lens 给出过“固定窗口错误率或连续超时触发、等待后探测恢复”的示例阈值；那些数值只是来源中的配置例子，不是所有业务默认值。实现时应按依赖隔离熔断器，避免一个工具故障拖垮所有任务，并用故障注入证明熔断、半开探测和恢复真实发生。</p>
+<h3 id="七tracingslo-与成本预算">七、Tracing、SLO 与成本预算</h3>3
+<p>有效 trace 必须重建一次业务 run 的完整因果链，而不只是记录模型调用了几次。根 span 关联租户、用户请求、run、thread、部署和版本；子 span 覆盖模型、检索、工具、记忆、审批、补偿和外部写后读回。跨服务要传播 W3C Trace Context，避免子 Agent 或队列之后出现断头链。</p>
+<p>trace 与审计日志职责不同。trace 用于诊断性能和行为，审计用于证明谁在什么授权下做了什么。二者都要脱敏，但审计更强调不可篡改、保留和访问控制。不能把完整 prompt、工具回包、个人信息或密钥默认发送到外部观测平台；应先本地过滤，必要时只保留哈希、长度、类型和安全摘要。</p>
+<p>SLO 应围绕业务结果定义，例如“在依赖正常且无需人审的任务中，于目标时间内达到已验证完成的比例”，而不是只监控 HTTP 可用性。需要同时看端到端延迟、验证后成功率、重复副作用数、人工接管率、降级率、恢复成功率和数据泄露事件。等待人审的时间应与系统执行时间分开，否则审批速度会污染服务延迟指标。</p>
+<p>成本不能只统计根模型 token。重试、子 Agent、缓存写入与读取、检索、rerank、工具、数据库和观测都产生费用；usage 字段缺失应记为未知，不能记为零。核心指标是“每个已验证成功任务的成本”，并按任务类型、模型、版本和降级路径拆分。预算至少包含单 run token、工具调用、扇出、总时长和金额上限，超限时进入受控停止并保存可恢复状态。</p>
+<h3 id="八安全隐私偏见与人工最终否决权">八、安全、隐私、偏见与人工最终否决权</h3>3
+<p>工具权限应按身份、租户、资源和动作最小化。模型选择工具不等于获得授权，参数合法也不等于允许执行。授权必须在工具执行层再次检查，尤其是委派和多 Agent 场景：不能把上游 Agent 的高权限凭据透明传给所有下游。沙箱、网络出口白名单、文件系统边界和独立凭据用于限制爆炸半径，工具描述中的“只读”“幂等”等注解只能作为提示，不能替代强制控制。</p>
+<p>隐私治理要覆盖输入、检索、State、checkpoint、trace、长期记忆和 eval 数据集。只保护入口而忽略 checkpoint，仍会长期保存敏感正文。数据分类、最小采集、加密、租户隔离、保留期限、删除传播和导出审计应形成同一条生命周期。用于评测的生产样本也要脱敏和授权，不能因为“只是测试”就绕过规则。</p>
+<p>偏见评估要按业务受影响人群和决策后果设计。客服回复语气与自动筛选、额度分配不是同一风险；总体平均分可能掩盖某组样本持续失败。第 8 章笔记强调代表性数据、定期性能监控和利益相关者反馈，落地时应保留分组指标、申诉渠道和人工复核，不用单一 LLM judge 宣布“公平”。</p>
+<p>人工审批应按影响和可逆性分级：低风险只读可自动，普通写入可执行后通知，高风险或不可逆动作必须事前批准。审批界面展示对象、参数、差异、后果和证据，而不是只显示“Agent 想执行一个工具”。系统必须保留人类最终否决权、紧急停止和撤销授权能力；审批服务异常时，高风险动作应 fail-closed。</p>
+<h3 id="九evals从单元断言到线上行为分层">九、Evals：从单元断言到线上行为分层</h3>3
+<p>Anthropic 的 Agent eval 工程方法把 Task、Trial、Grader、Transcript 和 Outcome 分开：任务定义输入与预期，单次试验保留完整轨迹，评分器可以是代码、单元测试或 LLM，最终评价结果而非只看文本。对会修改状态的 Agent，还要检查终态和关键过程检查点，例如是否在退款前验证账户、是否越权、是否重复执行。</p>
+<p>评估应分层。确定性单测验证 schema、路由、权限、幂等和 post-condition；集成测试用假下游覆盖超时、半完成和恢复；RAG 指标评估检索与回答；LLM-as-Judge 处理难以完全规则化的质量维度；端到端测试检查真实业务路径；线上监控和抽检发现分布变化。任何一层都不能替代全部其他层。</p>
+<p>RAGAS 常见指标各有边界。Faithfulness 衡量回答是否由所给上下文支持，Answer Relevancy 关注回答与问题的相关性，Answer Correctness 需要 reference 或相应标注口径。高忠实度而正确性低可能提示检索材料本身不对，但这只是诊断线索，不是无需人工复核的定律。Agent 还需要工具选择、参数合法、权限遵守、状态终态、恢复和成本指标，不能拿 RAG 三项总分代替。</p>
+<p>LLM-as-Judge 有位置、冗长、自偏好等已知偏差。rubric 应尽量拆成可观察、最好布尔化的问题，并用人工 gold set 校准；成对比较时交换顺序，避免只偏爱某一位置。judge 的模型、prompt、rubric 和版本必须记录。分数用于趋势和回归，不应脱离置信区间、样本组成和失败案例被当成绝对真值。</p>
+<p>非确定性任务需要多次独立 trial。τ-bench 的 <code>pass^k</code> 表示同一任务 k 次全部成功，与代码生成中“k 次至少一次成功”的 <code>pass@k</code> 方向不同。CI 可以对小关键集重复运行，夜间再跑大集和更高次数。单次绿灯只能证明一次运行，不足以宣称稳定。</p>
+<h3 id="十ci-门禁与线上线下分层">十、CI 门禁与线上线下分层</h3>3
+<p>每次代码、prompt、模型、工具 schema、检索配置或记忆策略变化，都应触发与之匹配的回归。PR 阶段跑确定性强、成本低的小集；合并前跑关键业务与故障负例；夜间跑大样本、多 trial、红队和模型对照；发布前跑目标环境冒烟与恢复演练；发布后持续抽样并观察真实终态。</p>
+<p>门禁不应只有“平均分不得低于某值”。还要看关键安全用例必须全过、历史 bad case 不得复发、相对基线的退化幅度、成本与延迟预算，以及失败样本是否集中于某个群体或任务类型。阈值必须由业务基线和风险决定。旧调研中出现的具体分数和样本规模只能作为搭建参考，不是本文对任何新系统的验收承诺。</p>
+<p>线上无需 reference 的指标可以抽样运行，但要防止 judge 成本和数据外传；离线有标注集可运行正确性、检索召回和更复杂对照。线上 bad case 经过脱敏、归因和人工确认后回流数据集，同时保留负例和“不允许发生”的行为，防止评估集只剩成功问法。</p>
+<h3 id="十一记忆保鲜共享记忆与写入门禁">十一、记忆保鲜、共享记忆与写入门禁</h3>3
+<p>生产记忆的关键不是“能存多少”，而是“这条信息现在是否真实、是否允许这样使用”。每条长期记忆至少要有来源、主体、事实类型、生效时间、最后验证时间、版本、权限和撤回状态。价格、额度、当前配置等易变事实与生日等稳定事实不能使用同一保鲜策略。过期内容应降权、标注或停止注入，不能静默当作最新事实。</p>
+<p>冲突解决应使用时间和版本等确定性规则，模型可协助判断两条内容是否指同一事实，但不应凭语言偏好决定哪条更新。新事实覆盖旧事实时要保留演化链和撤回指针，便于审计与纠错。多 Agent 共享记忆还要携带 provenance 和 authority：用户明确指令、已验证业务记录、模型推测和外部不可信文本不能拥有同等执行力。</p>
+<p>共享记忆写入门禁至少包括：身份和租户校验、schema 校验、敏感信息检查、来源分级、冲突检测、版本写入和可撤回。读取时按当前任务权限过滤，不因某 Agent 能写就让所有 Agent 能读。负例记忆也有价值，例如“此结论已被证伪”“该工具在此租户禁用”，但负例应明确作用域，避免永久阻断已经修复的合法行为。</p>
+<p>快慢双进程可以作为成本治理：快路径读取结构化摘要和少量高置信记忆，遇到时间冲突、证据稀疏或多跳问题时，再升级慢路径重读原始记录。门控应尽量轻量并记录升级原因。它优化的是查证成本，不改变写入门禁和权限要求。</p>
+<p>旧总述的三层记忆可落成三类不同制品，而不是再建一个无边界消息池：<strong>经验层</strong>保存可复用教训及其适用条件，<strong>任务层</strong>保存任务指纹、路由决策与结果索引，<strong>交互层</strong>保存原始事件、工具回包和 diff 的受控引用。经验层不得脱离来源自动升级为事实，任务层不能替代业务状态，交互层必须服从保留与删除策略。三层可以先用关系表和对象存储实现，不必为了分层强上图数据库；检索时按语义、时间、因果和实体等维度过滤，但每次都回查权限、版本与 provenance。旧稿中未给出可复核条件的记忆收益数字不沿用。</p>
+<h3 id="十二自进化与-live-steering-的生产边界">十二、自进化与 live-steering 的生产边界</h3>3
+<p>live-steering 是运行中的监督与纠偏：监督者发现偏离目标、重复动作或风险上升时，可以暂停、缩小权限、补充约束或转人工。它应通过受控控制面修改当前 run 的可变指令，并保存 steering 原因、操作者、前后版本和效果，不能让 supervisor 偷偷改写不可变审计历史。</p>
+<p>自进化则把多次运行中的经验整理为候选技能、记忆或流程改进。生产上必须坚持“自动起草、独立评测、人审发布、可回滚”。候选先进入隔离区，用固定留出集、历史负例和安全用例验证；只有证明保持原有能力且改善目标指标，才进入灰度。外部检索到的技能、工具描述和记忆都按不可信输入处理，防止自写工具把恶意模式传播回知识库。</p>
+<p><strong>禁止 Agent 未经评审直接修改生产 prompt、权限、路由、密钥、模型渠道、记忆权威级别和回滚策略。</strong> 快慢双速的“快”只能指候选生成和受控运行纠偏，不能指绕过发布门禁。任何自进化成果都应有版本、来源、适用边界、撤回方式和失败负例。</p>
+<h3 id="十三灰度彩虹部署旧-thread-与回滚">十三、灰度、彩虹部署、旧 thread 与回滚</h3>3
+<p>Agent 发版不能只比较静态文件是否更新，因为旧版本可能留下大量运行中或等待审批的 thread。新代码恢复旧 checkpoint 时，节点名、State 类型、工具 schema 和外部契约都可能不兼容。因此发布前必须盘点在途任务，并决定哪些由旧版本跑完、哪些可迁移、哪些需要人工终止和补偿。</p>
+<p>灰度先让新 run 进入新版本，旧 run 留在兼容版本；观察验证后成功率、延迟、成本、安全和恢复指标，再逐步扩大。Anthropic 多 Agent 工程实践提到的彩虹部署强调新旧实例并存，适合无法同时迁移所有长任务的场景。它不是简单按机器滚动替换，而是按任务生命周期管理版本。</p>
+<p>State 和 checkpoint 迁移应优先后向兼容：新增字段带默认值，不随意重命名节点，不原地改变字段含义，工具结果带 schema 版本。必须破坏性变更时，使用显式迁移器，在副本上验证旧 thread 恢复后再执行。checkpoint 保留期要覆盖最长在途任务、审批和审计需求，回滚期间也不能清理旧格式数据。</p>
+<p>回滚不仅是把容器镜像切回旧版。还要确认新任务是否已写入旧代码无法读取的状态、外部副作用是否需要补偿、prompt 和模型版本能否同步恢复、观测字段是否仍一致。回滚路径应定期演练，并保留新旧版本兼容性矩阵；从未演练的回滚只是文档愿望。</p>
+<h2 id="how">HOW</h2>2
+<h3 id="一fastapi-接入骨架先持久化受理再异步执行">一、FastAPI 接入骨架：先持久化受理，再异步执行</h3>3
+<p>课件中的 FastAPI 与 Pydantic 可作为入口骨架。生产上要新增幂等接收、状态查询和授权，不让 HTTP 请求横跨整个长任务。</p>
+<pre><code class="language-python">from enum import Enum
+from typing import Annotated
+from fastapi import FastAPI, Header, HTTPException
+from pydantic import BaseModel, Field
+
+
+class RunStatus(str, Enum):
+    QUEUED = &quot;queued&quot;
+    RUNNING = &quot;running&quot;
+    AWAITING_APPROVAL = &quot;awaiting_approval&quot;
+    COMPLETED = &quot;completed&quot;
+    FAILED = &quot;failed&quot;
+
+
+class CreateRunRequest(BaseModel):
+    tenant_id: str
+    objective: str = Field(min_length=1, max_length=4000)
+    input_refs: list[str] = Field(default_factory=list, max_length=20)
+
+
+class CreateRunResponse(BaseModel):
+    run_id: str
+    status: RunStatus
+    status_version: int
+    status_url: str
+
+
+app = FastAPI()
+
+
+@app.post(&quot;/v1/runs&quot;, response_model=CreateRunResponse, status_code=202)
+async def create_run(
+    request: CreateRunRequest,
+    idempotency_key: Annotated[str, Header(alias=&quot;Idempotency-Key&quot;)],
+) -&gt; CreateRunResponse:
+    # 1. 在业务数据库校验调用者身份、租户和请求权限
+    # 2. 以 (tenant_id, idempotency_key) 唯一约束查找或创建 run
+    # 3. 同事务保存请求摘要与 queued 状态，再写入可靠 outbox
+    # 4. 返回 202 accepted；此处不宣称业务已完成
+    run_id = &quot;replace-with-persisted-run-id&quot;
+    return CreateRunResponse(
+        run_id=run_id,
+        status=RunStatus.QUEUED,
+        status_version=1,
+        status_url=f&quot;/v1/runs/{run_id}&quot;,
+    )
+
+
+@app.get(&quot;/v1/runs/{run_id}&quot;)
+async def get_run(run_id: str) -&gt; dict:
+    # 查询前再次校验该调用者是否可访问此 run
+    # 返回公开状态与证据摘要，不泄露完整 State、prompt 或工具回包
+    return {
+        &quot;run_id&quot;: run_id,
+        &quot;status&quot;: RunStatus.QUEUED,
+        &quot;status_version&quot;: 1,
+        &quot;evidence&quot;: None,
+    }
+</code></pre>
+<p>这里的 202 只表示 accepted。worker 从 outbox 或队列取得任务后推进，只有 post-condition 通过才写 completed。重复请求若键相同且请求摘要相同，返回原 run；键相同而参数不同则返回冲突。测试要覆盖并发重复提交、进程在创建后崩溃、队列重复投递、旧状态响应晚到和无权限查询。</p>
+<h3 id="二幂等工具示例唯一约束请求摘要与结果复用">二、幂等工具示例：唯一约束、请求摘要与结果复用</h3>3
+<p>以下是仓储逻辑骨架，突出事务边界，不绑定具体 ORM。</p>
+<pre><code class="language-python">import hashlib
+import json
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class RefundCommand:
+    tenant_id: str
+    order_id: str
+    action_id: str
+    amount_minor: int
+    currency: str
+
+
+def canonical_digest(command: RefundCommand) -&gt; str:
+    # 规范化请求，防止同一幂等键被用于不同金额或币种
+    payload = json.dumps({
+        &quot;tenant_id&quot;: command.tenant_id,
+        &quot;order_id&quot;: command.order_id,
+        &quot;action_id&quot;: command.action_id,
+        &quot;amount_minor&quot;: command.amount_minor,
+        &quot;currency&quot;: command.currency,
+    }, sort_keys=True, separators=(&quot;,&quot;, &quot;:&quot;))
+    return hashlib.sha256(payload.encode(&quot;utf-8&quot;)).hexdigest()
+
+
+class RemoteOutcomeUnknown(Exception):
+    &quot;&quot;&quot;支付适配器无法判断请求是否被下游接受时抛出。&quot;&quot;&quot;
+
+
+class RefundNotFinal(Exception):
+    &quot;&quot;&quot;回执存在，但业务尚未到达终态。&quot;&quot;&quot;
+
+
+class RefundEvidenceMismatch(Exception):
+    &quot;&quot;&quot;回执与订单、租户、金额或币种不匹配，禁止自动完成。&quot;&quot;&quot;
+
+
+def execute_refund(command: RefundCommand, repository, payment_client) -&gt; dict:
+    idem_key = f&quot;{command.tenant_id}:{command.order_id}:refund:{command.action_id}&quot;
+    digest = canonical_digest(command)
+
+    with repository.transaction():
+        action = repository.lock_or_create_action(
+            idem_key=idem_key,
+            request_digest=digest,
+        )
+        if action.request_digest != digest:
+            raise ValueError(&quot;幂等键已用于不同请求&quot;)
+        if action.status == &quot;completed&quot;:
+            return action.result
+
+        # 原子 CAS：只有一个 worker 能从 new 进入远程调用，其他 worker 只查原结果
+        should_call_remote = action.status == &quot;new&quot; and repository.compare_and_set_status(
+            idem_key=idem_key,
+            expected=&quot;new&quot;,
+            target=&quot;in_progress&quot;,
+            request_digest=digest,
+        )
+
+    if should_call_remote:
+        try:
+            # 适配器必须绑定已认证租户；下游仍按同一幂等键去重
+            receipt = payment_client.refund(
+                tenant_id=command.tenant_id,
+                order_id=command.order_id,
+                amount_minor=command.amount_minor,
+                currency=command.currency,
+                idempotency_key=idem_key,
+            )
+        except (TimeoutError, RemoteOutcomeUnknown) as exc:
+            # 远程可能已成功：落对账态，之后只查原结果，不再次发起退款
+            repository.compare_and_set_status(
+                idem_key=idem_key,
+                expected=&quot;in_progress&quot;,
+                target=&quot;needs_reconciliation&quot;,
+                request_digest=digest,
+            )
+            raise RuntimeError(&quot;退款结果未知，已进入对账&quot;) from exc
+
+        # 该迁移按 idem_key + digest + in_progress 条件写入；若已被恢复者完成，
+        # 仓储应返回既有 completed 结果，而不是用较晚回包覆盖它。
+        accepted = repository.mark_accepted(
+            idem_key, receipt.receipt_id, expected_status=&quot;in_progress&quot;,
+            request_digest=digest,
+        )
+        if accepted.status == &quot;completed&quot;:
+            return accepted.result
+
+    # CAS 失败者、in_progress、accepted、needs_reconciliation 都进入同一只读恢复路径。
+    return reconcile_refund(command, repository, payment_client)
+
+
+def reconcile_refund(
+    command: RefundCommand, repository, payment_client, *, retry_exhausted: bool = False,
+) -&gt; dict:
+    &quot;&quot;&quot;独立恢复入口：只查询原幂等键，任何分支都不得再次调用 refund。&quot;&quot;&quot;
+    idem_key = f&quot;{command.tenant_id}:{command.order_id}:refund:{command.action_id}&quot;
+    digest = canonical_digest(command)
+    action = repository.get_action(idem_key)
+    if action.request_digest != digest:
+        raise ValueError(&quot;幂等键已用于不同请求&quot;)
+    if action.status == &quot;completed&quot;:
+        return action.result
+    if action.status not in {&quot;in_progress&quot;, &quot;accepted&quot;, &quot;needs_reconciliation&quot;}:
+        raise RuntimeError(f&quot;当前状态不允许恢复查询: {action.status}&quot;)
+
+    try:
+        receipt = payment_client.get_refund_by_idempotency_key(
+            idem_key, tenant_id=command.tenant_id,
+        )
+    except (TimeoutError, RemoteOutcomeUnknown) as exc:
+        repository.compare_and_set_status(
+            idem_key=idem_key, expected=action.status,
+            target=&quot;needs_reconciliation&quot;, request_digest=digest,
+        )
+        raise RuntimeError(&quot;查询结果仍未知，保持对账并由调度器有界重查&quot;) from exc
+
+    if receipt is None:
+        if retry_exhausted:
+            repository.compare_and_set_status(
+                idem_key=idem_key, expected=action.status,
+                target=&quot;needs_reconciliation&quot;, request_digest=digest,
+            )
+            raise RuntimeError(&quot;有界重查后仍无回执，保持对账，禁止补发退款&quot;)
+        raise RuntimeError(&quot;原调用尚无可见回执，保持原状态并稍后重查&quot;)
+
+    try:
+        verify_refund_post_condition(command, receipt)
+    except RefundNotFinal as exc:
+        if retry_exhausted:
+            repository.compare_and_set_status(
+                idem_key=idem_key, expected=action.status,
+                target=&quot;needs_reconciliation&quot;, request_digest=digest,
+            )
+            raise RuntimeError(&quot;有界重查后仍未到业务终态，转入对账&quot;) from exc
+        raise RuntimeError(&quot;回执尚未到业务终态，保持原状态并稍后重查&quot;) from exc
+    except RefundEvidenceMismatch as exc:
+        repository.compare_and_set_status(
+            idem_key=idem_key, expected=action.status,
+            target=&quot;evidence_mismatch&quot;, request_digest=digest,
+        )
+        # evidence_mismatch 不在自动恢复或自动完成白名单；真实系统同时触发高优先级告警
+        raise RuntimeError(&quot;回执证据不匹配，已冻结自动恢复并等待人工处置&quot;) from exc
+
+    # 数据库条件更新：只有相同摘要且处于允许状态才能完成；并发完成时返回既有结果。
+    return repository.complete_if_current(
+        idem_key=idem_key,
+        expected_statuses={&quot;in_progress&quot;, &quot;accepted&quot;, &quot;needs_reconciliation&quot;},
+        request_digest=digest,
+        result=receipt.to_public_dict(),
+    )
+</code></pre>
+<p>真实实现还要解决本地事务与远程调用不能原子提交的问题，并为“远程成功、本地未知”保存对账状态。若进程在 CAS 后、远程调用前崩溃，恢复者查询不到回执时先保持 <code>in_progress</code> 并有界重查；耗尽后转 <code>needs_reconciliation</code>，仍不得自动补发。<code>evidence_mismatch</code> 是独立人工冻结态，不在自动恢复和自动完成白名单内；只有人工核实证据并显式解除后，才能重新进入 <code>needs_reconciliation</code>。只有下游提供足够强的一致性语义和明确的“从未受理”证据时，才能由另外的受审流程决定关闭或创建新动作，不能把普通 <code>not_found</code> 当作安全重试许可。</p>
+<p>故障测试至少注入：远程超时但实际成功、本地写 completed 前崩溃、CAS 后远程调用前崩溃、两个 worker 同时执行、同键不同金额、下游重复回包和读回到旧数据。任何无法确定结果的案例都应进入 <code>needs_reconciliation</code>，不能继续自动重试。</p>
+<h3 id="三post-condition-验证独立读回业务终态">三、post-condition 验证：独立读回业务终态</h3>3
+<pre><code class="language-python">def verify_refund_post_condition(command: RefundCommand, receipt) -&gt; None:
+    # 字段不匹配是证据异常，暂时未终态是可重查状态，两者必须分开
+    if receipt.order_id != command.order_id:
+        raise RefundEvidenceMismatch(&quot;读回对象不匹配&quot;)
+    if receipt.amount_minor != command.amount_minor:
+        raise RefundEvidenceMismatch(&quot;读回金额不匹配&quot;)
+    if receipt.currency != command.currency:
+        raise RefundEvidenceMismatch(&quot;读回币种不匹配&quot;)
+    if receipt.tenant_id != command.tenant_id:
+        raise RefundEvidenceMismatch(&quot;租户边界不匹配&quot;)
+    if receipt.status not in {&quot;succeeded&quot;, &quot;settled&quot;}:
+        raise RefundNotFinal(&quot;尚未达到业务完成状态&quot;)
+
+
+def verify_permission_post_condition(authorizer, principal, resource, action) -&gt; None:
+    # 从最终授权路径验证，而不是只读取刚写入的策略文本
+    decision = authorizer.check(
+        principal=principal,
+        resource=resource,
+        action=action,
+        consistent=True,
+    )
+    if not decision.allowed:
+        raise AssertionError(&quot;策略已写入但授权后置条件未满足&quot;)
+</code></pre>
+<p>验证器不应复用模型生成的“检查清单文本”，而应由业务代码定义。结果保存 <code>evidence_type</code>、对象 ID、版本、读回时间、检查器版本和必要摘要；证据中的敏感字段先脱敏。对异步终态，可返回 <code>running</code> 并采用有界验证重试，不能为了追求同步响应而提前 completed。</p>
+<h3 id="四超时重试降级和熔断配置示例">四、超时、重试、降级和熔断配置示例</h3>3
+<pre><code class="language-yaml">runtime:
+  task_deadline_seconds: 900       # 示例起点，需按业务 SLO 验证
+  checkpoint_mode: sync            # 高风险写入流程的候选配置
+  max_model_rounds: 12             # 示例起点，不是官方推荐
+  max_fanout: 20                   # 与下游容量共同约束
+
+model_call:
+  connect_timeout_seconds: 3
+  request_timeout_seconds: 60
+  retry:
+    max_attempts: 3
+    backoff_factor: 2
+    jitter: true
+    retry_on: [connection_error, retryable_rate_limit, upstream_unavailable]
+
+refund_tool:
+  connect_timeout_seconds: 2
+  request_timeout_seconds: 15
+  retry:
+    max_attempts: 3
+    same_idempotency_key_required: true
+  circuit_breaker:
+    error_rate_window_seconds: 60  # 以下为策略示例，须压测与故障注入校准
+    error_rate_threshold: 0.50
+    consecutive_timeouts: 5
+    recovery_probe_after_seconds: 30
+
+fallback:
+  order: [healthy_equivalent, simplified_readonly, cached_answer, explicit_failure]
+  emit_degraded_event: true
+
+budget:
+  max_total_tokens: 50000          # 演示值，须按任务类型与价格模型配置
+  max_tool_calls: 30
+  max_cost_minor: 500
+  on_exceeded: checkpoint_and_stop
+</code></pre>
+<p>重试配置必须映射到真实异常分类，不能把字符串列表当作已实现能力。熔断器按下游和租户容量隔离，恢复探测只允许少量流量。预算超限时应保存状态、记录已花费成本和未完成原因；若业务允许，可等待人工增加预算，而不是直接丢弃全部进度。</p>
+<h3 id="五部署配置版本在途任务和持久化一起发布">五、部署配置：版本、在途任务和持久化一起发布</h3>3
+<pre><code class="language-yaml">service:
+  name: ticket-agent
+  image: registry.example.internal/ticket-agent@sha256:REPLACE_WITH_DIGEST
+  replicas: 3
+  revision: agent-2026-11-03-a
+
+compatibility:
+  state_schema_version: 7
+  checkpoint_read_versions: [6, 7]
+  graph_node_contract_version: 4
+  tool_contract_version: 3
+  accepts_new_threads: true
+  resumes_legacy_threads: true
+
+storage:
+  checkpoint_backend: postgres
+  setup_mode: controlled_migration
+  retention:
+    running_threads: until_terminal_plus_audit
+    awaiting_approval: until_terminal_plus_audit
+    completed_threads_days: 90       # 示例，最终按合规与审计要求确定
+
+rollout:
+  strategy: rainbow
+  new_thread_traffic_percent: 5      # 示例起点，按风险与样本量调整
+  legacy_threads_stay_on_revision: agent-2026-10-20-b
+  automatic_rollback:
+    verified_success_rate_drop: true
+    duplicate_side_effect_detected: true
+    security_negative_case_failed: true
+
+security:
+  secrets_from: runtime_secret_ref
+  trace_payload_capture: disabled
+  network_egress: allowlist
+  high_risk_action_on_approval_outage: deny
+</code></pre>
+<p>镜像 digest、State schema、prompt、模型、工具和 eval 数据集版本应写入同一发布清单。部署前先运行 checkpoint 迁移检查，部署中保留旧 worker 处理旧 thread，部署后观察新旧版本分桶指标。配置里的保留天数与流量比例只是结构示例，不是对真实业务的建议定值。</p>
+<h3 id="六trace-字段表与审计最小集">六、trace 字段表与审计最小集</h3>3
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>所属层级</th>
+<th>用途</th>
+<th>注意事项</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>trace_id</code>、<code>span_id</code>、<code>parent_span_id</code></td>
+<td>全链路</td>
+<td>重建调用树</td>
+<td>跨队列与服务传播上下文</td>
+</tr>
+<tr>
+<td><code>tenant_id_hash</code>、<code>run_id</code>、<code>thread_id</code></td>
+<td>根任务</td>
+<td>关联业务与恢复状态</td>
+<td>直接标识按权限和脱敏策略处理</td>
+</tr>
+<tr>
+<td><code>deployment_revision</code></td>
+<td>根任务</td>
+<td>灰度对照与回滚定位</td>
+<td>与镜像 digest 对齐</td>
+</tr>
+<tr>
+<td><code>state_schema_version</code></td>
+<td>状态</td>
+<td>判断旧 thread 兼容</td>
+<td>不记录完整敏感 State</td>
+</tr>
+<tr>
+<td><code>prompt_revision</code>、<code>model_revision</code></td>
+<td>模型</td>
+<td>解释质量和成本变化</td>
+<td>模型别名不能代替精确版本</td>
+</tr>
+<tr>
+<td><code>tool_name</code>、<code>tool_contract_version</code></td>
+<td>工具</td>
+<td>分析参数和契约问题</td>
+<td>参数只保留白名单摘要</td>
+</tr>
+<tr>
+<td><code>idempotency_key_hash</code></td>
+<td>写操作</td>
+<td>排查重复副作用</td>
+<td>原键若含敏感信息则不直出</td>
+</tr>
+<tr>
+<td><code>attempt</code>、<code>timeout_ms</code>、<code>error_class</code></td>
+<td>调用</td>
+<td>分析重试放大与故障类型</td>
+<td>区分永久、瞬时和未知结果</td>
+</tr>
+<tr>
+<td><code>accepted_at</code>、<code>completed_at</code></td>
+<td>业务状态</td>
+<td>区分受理与完成</td>
+<td>completed 必须有证据</td>
+</tr>
+<tr>
+<td><code>post_condition_status</code>、<code>evidence_ref</code></td>
+<td>验证</td>
+<td>证明业务终态</td>
+<td>证据引用需要访问控制</td>
+</tr>
+<tr>
+<td><code>approval_id</code>、<code>approver_role</code>、<code>decision</code></td>
+<td>人审</td>
+<td>问责与否决审计</td>
+<td>审批理由按合规要求保存</td>
+</tr>
+<tr>
+<td><code>degraded</code>、<code>fallback_reason</code></td>
+<td>降级</td>
+<td>防止低质量结果被当完整结果</td>
+<td>下游和前端都应可见</td>
+</tr>
+<tr>
+<td><code>input_tokens</code>、<code>output_tokens</code>、<code>cached_tokens</code></td>
+<td>成本</td>
+<td>计算模型成本</td>
+<td>缺失标未知，不填零</td>
+</tr>
+<tr>
+<td><code>tool_cost</code>、<code>infra_cost</code>、<code>eval_cost</code></td>
+<td>成本</td>
+<td>计算成功任务总成本</td>
+<td>避免重试和子任务重复汇总</td>
+</tr>
+<tr>
+<td><code>memory_read_version</code>、<code>memory_write_decision</code></td>
+<td>记忆</td>
+<td>追踪污染、保鲜和拒绝写入</td>
+<td>不默认记录记忆全文</td>
+</tr>
+</tbody>
+</table>
+<p>审计最小集还应包括操作者、授权依据、对象、动作、前后版本、时间、结果和撤回关联。trace 采样不能牺牲高风险写入和安全失败链路；这些事件应完整进入受控审计通道。</p>
+<h3 id="七slo-与预算先定义公式再填业务阈值">七、SLO 与预算：先定义公式，再填业务阈值</h3>3
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>推荐口径</th>
+<th>不能混入的内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>验证后任务成功率</td>
+<td>post-condition 通过且进入 completed 的 run 比例</td>
+<td>仅 accepted、仅模型自报成功</td>
+</tr>
+<tr>
+<td>系统执行延迟</td>
+<td>从首次 running 到终态的执行时间</td>
+<td>纯人工等待时间另列</td>
+</tr>
+<tr>
+<td>重复副作用率</td>
+<td>同一 action_id 产生多个有效外部结果的比例</td>
+<td>下游去重后的安全重试不算新副作用</td>
+</tr>
+<tr>
+<td>恢复成功率</td>
+<td>故障后从持久边界达到正确终态的比例</td>
+<td>从头重跑且重复写入不能算成功恢复</td>
+</tr>
+<tr>
+<td>人工接管率</td>
+<td>转人工的 run 比例及原因分布</td>
+<td>正常事前审批与异常接管分开</td>
+</tr>
+<tr>
+<td>降级完成率</td>
+<td>带 degraded 的完成比例</td>
+<td>不与完整质量完成混报</td>
+</tr>
+<tr>
+<td>单成功任务成本</td>
+<td>总模型、工具、基础设施、评测成本除以验证成功任务数</td>
+<td>usage 未知不能按零成本</td>
+</tr>
+<tr>
+<td>安全负例通过率</td>
+<td>越权、泄露、未审批写入等负例全部阻断</td>
+<td>不得用总体平均分抵消</td>
+</tr>
+</tbody>
+</table>
+<p>预算可以采用“软告警—停止新扇出—受控停止—人工复核”四级动作，而不是超一个 token 数就杀进程。对高风险外部动作，预算不足不能成为绕过审批继续执行的理由。SLO 与预算的初值来自历史 trace、业务风险和下游容量，发布后再按版本比较调整。</p>
+<h3 id="八eval-数据结构与-ci-门禁伪代码">八、eval 数据结构与 CI 门禁伪代码</h3>3
+<pre><code class="language-json">{
+  &quot;case_id&quot;: &quot;refund-timeout-after-remote-success-001&quot;,
+  &quot;suite&quot;: &quot;critical_recovery&quot;,
+  &quot;input&quot;: {
+    &quot;tenant_id&quot;: &quot;synthetic-tenant-a&quot;,
+    &quot;order_id&quot;: &quot;synthetic-order-001&quot;,
+    &quot;action&quot;: &quot;refund&quot;
+  },
+  &quot;faults&quot;: [
+    {&quot;at&quot;: &quot;payment_response&quot;, &quot;type&quot;: &quot;timeout_after_commit&quot;}
+  ],
+  &quot;expected&quot;: {
+    &quot;final_status&quot;: &quot;completed&quot;,
+    &quot;refund_count&quot;: 1,
+    &quot;post_conditions&quot;: [&quot;amount_matches&quot;, &quot;currency_matches&quot;, &quot;tenant_matches&quot;],
+    &quot;forbidden&quot;: [&quot;duplicate_refund&quot;, &quot;false_success_before_readback&quot;]
+  },
+  &quot;graders&quot;: [&quot;deterministic_state&quot;, &quot;audit_assertion&quot;],
+  &quot;trials&quot;: 3,
+  &quot;tags&quot;: [&quot;finance&quot;, &quot;recovery&quot;, &quot;negative_path&quot;]
+}
+</code></pre>
+<p>样本必须区分合成、脱敏生产和人工构造，保留版本与来源。<code>trials</code> 是示例配置，不代表足够证明稳定；关键非确定性场景应结合风险增加独立运行次数。</p>
+<pre><code class="language-python">def ci_eval_gate(candidate_report, baseline_report, policy):
+    # 第一层：确定性和安全负例，任一失败直接阻断
+    assert candidate_report.deterministic_failures == 0
+    assert candidate_report.security_negative_failures == 0
+    assert candidate_report.duplicate_side_effects == 0
+
+    # 第二层：历史 bad case 不允许复发
+    assert candidate_report.regressed_known_cases == []
+
+    # 第三层：质量、恢复、延迟和成本与版本化基线比较
+    assert candidate_report.verified_success_rate &gt;= policy.min_success_rate
+    assert candidate_report.recovery_success_rate &gt;= policy.min_recovery_rate
+    assert candidate_report.p95_latency_ms &lt;= policy.max_p95_latency_ms
+    assert candidate_report.cost_per_success_minor &lt;= policy.max_cost_minor
+
+    # 第四层：LLM judge 只作为有校准记录的一组指标
+    assert candidate_report.judge_calibration_version == policy.approved_judge_version
+    assert candidate_report.judge_regressions &lt;= policy.allowed_judge_regressions
+</code></pre>
+<p>CI 产物至少包含数据集版本、代码和镜像版本、prompt 与模型 revision、judge rubric、原始 trial 结果、失败 trace 引用和统计口径。门禁脚本失败应 fail-closed，不能因为评测服务超时就默认通过。夜间任务可扩大数据集和故障矩阵，线上则按版本监控真实终态与抽检质量。</p>
+<h3 id="九本批论文怎么用同时验证任务正确无害与证据充分">九、本批论文怎么用：同时验证任务正确、无害与证据充分</h3>3
+<p><strong>任务成功不等于安全成功。</strong><a href="../../raw/sources/arxiv-daily/2026-11-02-2611.03575.html">arXiv:2611.03575</a> 的 VeriHarm-Bench 把“完成良性开发任务却破坏无关文件、权限或数据”定义为 harmful success，并同时生成任务正确性测试与伤害测试。其报告中 95% 平均任务准确率与 37% 平均 safe success 只属于所测 Agent 和策展基准，不能外推为本库比例。我们把 grader 改成两个独立布尔量：<code>task_correct</code> 与 <code>no_harm</code>，发布门要求二者同时成立；故障样本除断言目标文件正确，还断言工作区其他文件哈希不变、权限未放宽、无关数据未删除，避免高任务分抵消伤害。</p>
+<p><strong>验证器要主动补证据。</strong><a href="../../raw/sources/arxiv-daily/2026-10-29-2610.40578.html">arXiv:2610.40578</a> 的 VeriCUA 把计算机使用 Agent 的验收视为动态证据收集：先按任务形成 rubric，再针对未决要求选择 GUI 或代码检查，按显式规则合并证据。我们借用的是“未决项驱动验证”，不是照搬其界面 Agent：post-condition 先列出对象、状态、权限、副作用四类断言，能确定性读回的用代码，只有必须观察界面的项目才补 GUI 检查；任何一项缺证据都不得由“整体看起来完成”补齐，仍保持本文的确定性业务终态优先。</p>
+<p><strong>评分量表也必须版本化。</strong><a href="../../raw/sources/arxiv-daily/2026-10-15-2610.22187.html">arXiv:2610.22187</a> 在文本评分任务中发现，量表范围、连续/离散形式或符号变化会同时改变归一化分数和类别解释，且 rubric prompting 并未消除这种敏感性。它研究的是社会与心理构念评分，不是 Agent 终态测试；对我们的启示是 LLM judge 的量表也属于评测配置。落地时固定 scale 与 rubric 版本，优先拆成可观察布尔项，换量表时在相同 gold set 上重校准，并抽查分类翻转样本，不能直接把旧 5 分制阈值平移到新 11 分制。</p>
+<h3 id="十故障注入验证防线真的存在">十、故障注入：验证防线真的存在</h3>3
+<table>
+<thead>
+<tr>
+<th>故障</th>
+<th>注入位置</th>
+<th>应观察到的行为</th>
+<th>不合格表现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>模型超时、空流、非法结构</td>
+<td>模型适配器</td>
+<td>有界重试、结构化错误、受控降级</td>
+<td>无限等待或把空答案当完成</td>
+</tr>
+<tr>
+<td>下游 500 与限流</td>
+<td>工具网关</td>
+<td>退避加抖动、熔断、恢复探测</td>
+<td>多节点同步重试风暴</td>
+</tr>
+<tr>
+<td>远程成功后本地崩溃</td>
+<td>写工具响应边界</td>
+<td>同键恢复、查询对账、最多一个有效结果</td>
+<td>第二笔付款或重复建单</td>
+</tr>
+<tr>
+<td>checkpoint 写失败</td>
+<td>状态存储</td>
+<td>fail-loud、停止推进或按策略恢复</td>
+<td>无状态继续执行高风险动作</td>
+</tr>
+<tr>
+<td>worker 被强制终止</td>
+<td>任意完成边界之间</td>
+<td>新实例按持久状态接管</td>
+<td>从头重跑全部副作用</td>
+</tr>
+<tr>
+<td>队列重复投递</td>
+<td>消息消费端</td>
+<td>run/action 去重，状态版本一致</td>
+<td>同一任务并行执行两次</td>
+</tr>
+<tr>
+<td>读副本延迟</td>
+<td>写后读回</td>
+<td>有界一致性验证，不重复写入</td>
+<td>把暂时旧读误判为写失败</td>
+</tr>
+<tr>
+<td>审批服务不可用</td>
+<td>人审入口</td>
+<td>高风险动作拒绝，状态可恢复</td>
+<td>自动放行或绕过审批</td>
+</tr>
+<tr>
+<td>旧 thread 在新版恢复</td>
+<td>发布流水线</td>
+<td>兼容读取或留在旧版本</td>
+<td>反序列化失败后丢任务</td>
+</tr>
+<tr>
+<td>记忆冲突与过期</td>
+<td>记忆读取和写入</td>
+<td>来源、版本、时间与撤回生效</td>
+<td>旧事实静默覆盖新事实</td>
+</tr>
+<tr>
+<td>trace 后端不可用</td>
+<td>观测导出</td>
+<td>本地脱敏缓冲或按风险降级</td>
+<td>把完整敏感 payload 外发重试</td>
+</tr>
+<tr>
+<td>回滚途中再次回滚</td>
+<td>发布控制面</td>
+<td>版本与数据兼容、外部补偿明确</td>
+<td>只切镜像不管 State 格式</td>
+</tr>
+</tbody>
+</table>
+<p>演练必须使用合成数据、隔离下游和受控权限。每次记录预期、实际、证据和修复项，不能只确认“报警出现了”，还要确认任务终态和用户影响符合设计。</p>
+<h3 id="十一上线检查表">十一、上线检查表</h3>3
+<p><strong>业务契约与状态</strong></p>
+<ul>
+<li>[ ] accepted、running、awaiting approval、completed、failed 和补偿状态有唯一语义。</li>
+<li>[ ] completed 只能由 post-condition 证据触发，模型自报和 HTTP 200 不足以完成。</li>
+<li>[ ] 所有外部写动作有稳定幂等键、唯一约束、请求摘要和半完成对账路径。</li>
+<li>[ ] 任务、业务、对话和长期记忆分储，thread 与租户访问权限经过服务端校验。</li>
+<li>[ ] checkpoint 保留覆盖最长任务、人审与审计期限，清理不会删除在途任务。</li>
+</ul>
+<p><strong>可靠性与成本</strong></p>
+<ul>
+<li>[ ] 模型和工具有 deadline、异常分类、退避抖动、重试上限及可恢复停止。</li>
+<li>[ ] fallback 有质量标记，熔断有恢复探测，二者均经过故障注入。</li>
+<li>[ ] 单 run 与全局预算覆盖重试、子 Agent、扇出、工具和基础设施。</li>
+<li>[ ] 杀 worker、队列重复、远程半完成、数据库不可用和读副本延迟均演练过。</li>
+</ul>
+<p><strong>安全与治理</strong></p>
+<ul>
+<li>[ ] 工具执行层重新鉴权，最小权限、租户隔离、沙箱和网络出口控制生效。</li>
+<li>[ ] 隐私扫描覆盖 State、checkpoint、trace、记忆和 eval 数据，不只覆盖入口。</li>
+<li>[ ] 高风险动作在审批不可用时 fail-closed，人类拥有最终否决和紧急停止能力。</li>
+<li>[ ] 偏见与受影响群体指标有人工复核、申诉和处置渠道。</li>
+<li>[ ] 记忆带来源、权限、时间、版本、撤回和负例，自进化候选不得未评审进入生产。</li>
+</ul>
+<p><strong>评估、观测与发布</strong></p>
+<ul>
+<li>[ ] trace 可重建模型、工具、记忆、审批、恢复和补偿链，敏感 payload 默认不采集。</li>
+<li>[ ] 确定性测试、业务终态、RAG 指标、校准后的 judge 和线上抽检分层运行。</li>
+<li>[ ] CI 包含负例、历史 bad case、多 trial、成本和延迟门禁，评测失败不会默认放行。</li>
+<li>[ ] 发布清单绑定镜像、State、prompt、模型、工具、记忆和 eval 数据集版本。</li>
+<li>[ ] 灰度只先切新 thread，旧 thread 有兼容或驻留旧版方案。</li>
+<li>[ ] 回滚同时考虑代码、State、prompt、模型、外部补偿与 checkpoint 可读性，并已实际演练。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li><strong>[课1] 课件原文：</strong><a href="../../raw/courseware/Agent%E7%AF%87/code/day01__03-%E7%AE%80%E5%8D%95fastapi.html">day01 FastAPI 入口</a>、<a href="../../raw/courseware/Agent%E7%AF%87/code/day01__01-pydantic%E6%A8%A1%E5%9D%97.html">day01 Pydantic</a>、<a href="../../raw/courseware/Agent%E7%AF%87/code/day12__12-%E6%A3%80%E6%9F%A5%E7%82%B9.html">day12 检查点</a>、<a href="../../raw/courseware/Agent%E7%AF%87/code/day15__07-%E6%9D%83%E9%99%90%E6%8E%A7%E5%88%B6.html">day15 权限控制</a>。落点是 HOW 的 Web 接入、状态恢复和权限检查；课件 Demo 不被当作生产安全、幂等或部署已验证。</li>
+<li><strong>[书1] 书籍目录与公开划线摘录：</strong><a href="../../raw/weread/Building%20Agentic%20AI%20Systems.html">Building Agentic AI Systems</a>。第 4、7、8、9 章目录用于组织检查点、可解释、隐私、偏见、安全和人工监督；公开划线关于状态版本化、隐私和代表性数据的提醒进入 WHY 与 HOW。只使用目录和热门划线，<strong>不声称阅读书籍全文</strong>。</li>
+<li><strong>[业1] 业内作者原文与官方文档：</strong><a href="https://queue.acm.org/doi/10.1145/3841558">ACM Queue：Failure Is a Feature</a>、<a href="https://builder.aws.com/content/3EumjoZascWd1oZiEgL8ORlv3qE/timeouts-retries-and-backoff-with-jitter">AWS：Timeouts, retries, and backoff with jitter</a>、<a href="https://docs.temporal.io/workflows">Temporal Workflows</a>、<a href="https://docs.restate.dev/ai/patterns/durable-agents">Restate Durable Agents</a>、<a href="https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents">Anthropic：Demystifying evals for AI agents</a>。<a href="../../raw/sources/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%8D%8F%E4%BD%9C%E4%B8%9A%E5%86%85%E6%A0%87%E5%87%86%E8%B0%83%E7%A0%94-20261103.html">多智能体一手源调研</a>于 <strong>2026-11-03</strong> 直读这些来源，<a href="../../raw/sources/%E4%B8%9A%E5%86%85%E6%8A%80%E6%9C%AF%E6%A0%88%E6%89%AB%E6%8F%8F-20261103.html">业内技术栈扫描</a>所取公开 URL 记录 <strong>GET 200：2026-11-03</strong>；本次未复跑请求。可靠性、持久执行和 Evals 分别落入参考架构、恢复骨架与 CI 门禁。</li>
+<li><strong>[业2] 其他一手源：</strong><a href="https://arxiv.org/abs/2406.12045">τ-bench：arXiv:2406.12045</a> 用于区分 <code>pass^k</code> 与 <code>pass@k</code>；<a href="https://github.com/open-telemetry/semantic-conventions-genai">OpenTelemetry GenAI</a> 与 <a href="https://www.w3.org/TR/trace-context/">W3C Trace Context</a> 用于 trace 字段和跨服务传播；<a href="../../raw/sources/%E7%94%9F%E4%BA%A7%E7%BA%A7Agent%E5%BC%80%E5%8F%91%E5%AE%9E%E6%88%98-%E5%A4%96%E9%83%A8%E8%B0%83%E7%A0%94-20261012.html">生产 Agent 调研</a>与<a href="../../raw/sources/Evals%E5%AE%9E%E6%93%8D-%E8%B0%83%E7%A0%94-20261012.html">Evals 调研</a>只作一手源索引，未把其中的性能和成本数字当通用阈值。</li>
+<li><strong>[业3] 本批论文：</strong><a href="../../raw/sources/arxiv-daily/2026-11-02-2611.03575.html">arXiv:2611.03575</a> 转为任务正确与无害双门禁，<a href="../../raw/sources/arxiv-daily/2026-10-29-2610.40578.html">arXiv:2610.40578</a> 转为未决项驱动的证据补全，<a href="../../raw/sources/arxiv-daily/2026-10-15-2610.22187.html">arXiv:2610.22187</a> 转为 judge 量表版本化与重校准，均在 HOW 第 9 节给出工程动作，而非罗列摘要。</li>
+<li><strong>[业4] 旧总述融合：</strong>《L5-Agent工程-最佳答案》的日志、错误处理、高风险确认、状态检查点、快慢记忆与三层记忆思想，已分别由本文 WHY、WHAT 第 4—13 节和 HOW 的上线清单深化；未提供可复核条件的收益数字不保留。</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>健康探针（<code>rag/serve.py</code> L299 <code>/health</code>，grep 可验）</strong>：<br />
+<code>python
+  @app.get("/health")
+  def health():
+      try:
+          col = get_collection()
+          return {"status": "ok", "collection": ragquery.COLLECTION,
+                  "embeddings": col.count(), "gen_model": ragquery.GEN_MODEL,
+                  "dist_threshold": DIST_THRESHOLD, "rerank_threshold": RERANK_THRESHOLD}
+      except Exception as e:
+          return JSONResponse(status_code=503, content={"status": "error", "detail": str(e)})</code><br />
+<code>/health</code> 返回的不只是 <code>ok</code>，还带"库里有多少 chunk / 当前生成模型 / 两个门禁阈值"——探针能区分"进程活着但索引为空"和"真的可用"；<code>get_collection()</code> 每次调用先 <code>col.count()</code> 做活性校验，灌库导致句柄失效时重建客户端。</li>
+<li><strong>单实例锁防并发灌库（<code>rag/ingest.py</code> L1038 <code>_ingest_lock()</code>，grep 可验）</strong>：<br />
+<code>python
+  with open(INGEST_LOCK_PATH, "a", encoding="utf-8") as lock_file:
+      try:
+          fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+      except BlockingIOError:
+          print(f"[ingest] skip: another ingest is running (lock={INGEST_LOCK_PATH})", flush=True)</code><br />
+  用 <code>flock</code> 而非 PID 文件：进程被杀内核自动释放，不留陈旧锁。</li>
+<li><strong>超时与熔断</strong>：<code>rag/query.py::rerank()</code> 超过 <code>CONFIG["rerank"]["timeout"]</code> 直接返回 <code>None</code> 触发熔断，<code>rerank_node</code> 回退到 dense 距离门禁，链路不挂死；<code>rag/serve.py</code> 生成层是"本地 Ollama → 云端豆包"两级 fallback（<code>gen_with_fallback</code>）。</li>
+<li><strong>和课件讲法的差异</strong>：课件用 <code>streamlit</code> 做交互演示 + <code>uvicorn.run</code> 起服务；本库 <code>rag/serve.py</code> 同时实现 OpenAI 兼容接口（<code>/v1/chat/completions</code> + <code>/v1/models</code>），让任意 OpenAI 客户端零改动接入——比 streamlit 更接近"生产可被别的系统调用"。容器化/K8s 编排本库暂无，生产托管用的是裸机 <code>systemd</code>（见 <code>L12-模型部署/L12-vLLM推理加速</code> §9.3）。</li>
+</ul>
+<h2 id="证据边界与未验证项">证据边界与未验证项</h2>2
+<ol>
+<li>本次仅创建文档，没有运行 FastAPI、数据库事务、队列、工作流、模型、RAGAS、LLM judge、CI 或部署配置。所有代码和 YAML 都是说明职责与验收方式的骨架，不能视为已验证实现。</li>
+<li><code>execute_refund</code> 示例刻意抽象了仓储和支付客户端，真实系统必须补充事务隔离、锁超时、远程调用与本地提交之间的对账、密钥注入、错误映射和重放测试。它不构成支付系统的完整安全方案。</li>
+<li>配置中的任务时限、模型轮数、扇出、token、成本、保留天数、灰度比例和熔断参数均为演示结构或来源示例，不是官方统一推荐，也不是本库实测最优值。部署前必须按业务 SLO、风险和容量重新标定。</li>
+<li>既有材料中的事故占比、成本、延迟、准确率和 benchmark 数字具有特定样本、模型、时间和任务边界。本文没有把这些数字堆成上线承诺；如后续引用，必须回到原一手源复核口径。</li>
+<li>RAGAS 和 LLM-as-Judge 不能独立证明 Agent 的业务终态、安全性或公平性。judge 需要人工校准，RAG 指标不能替代权限、幂等、恢复和 post-condition 的确定性测试。</li>
+<li>durable execution 框架只能持久化执行边界和结果，不能天然保证外部世界 exactly-once。半完成窗口仍依赖下游幂等、查询对账、补偿和人工处置。</li>
+<li>彩虹部署、旧 thread 驻留、checkpoint 迁移和回滚方案未在目标环境演练。尤其是跨版本 State、节点契约和工具结果兼容性，需要用真实旧 checkpoint 副本验证后才能发布。</li>
+<li>记忆保鲜、共享记忆、自进化和 live-steering 在本文只形成治理要求，没有验证具体记忆产品、论文收益或本库现有实现。禁止把这些设计要求写成已经落地的能力。</li>
+</ol></div></body></html>

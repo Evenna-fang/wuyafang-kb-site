@@ -1,0 +1,481 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L8-5-测评基准-C-Eval</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L8-5-测评基准-C-Eval</span></div><div class="wrap"><h1 id="测评基准c-eval中文分层学科考试评测">测评基准：C-Eval（中文分层学科考试评测）</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="L8-5-%E6%B5%8B%E8%AF%84%E5%9F%BA%E5%87%86-MMLU-CMMLU.html">测评基准 MMLU 与 CMMLU</a>（本文复用其中 <code>mc_eval.py</code>） · <a href="L8-5-%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L8-5 评估体系最佳答案</a> · <a href="LLM%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB-Evals-2026.html">LLM评估体系Evals</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心论点</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>C-Eval 是目前使用最广的中文知识类评测之一，特点有三个：按初中、高中、大学、专业四级难度分层；带一个专门拉开顶尖模型差距的 Hard 子集；test 集答案不公开，官方成绩必须把预测结果提交榜单</li><li>第三点决定了它的用法：本地能自测的只有 val 集（1346 题），那只是个"自检用的小样本"，误差大，不能当正式成绩</li></ul></div>2
+<p>C-Eval 是目前使用最广的中文知识类评测之一，特点有三个：按初中、高中、大学、专业四级难度分层；带一个专门拉开顶尖模型差距的 Hard 子集；test 集答案不公开，官方成绩必须把预测结果提交榜单。第三点决定了它的用法：本地能自测的只有 val 集（1346 题），那只是个"自检用的小样本"，误差大，不能当正式成绩。本文给出完整操作：下载数据、用 lm-evaluation-harness 与 OpenCompass 跑 val、用自写脚本跑 val 并按类别与难度汇总、生成 test 提交文件、读懂结果和避开常见错误。</p>
+<h2 id="一是什么">一、是什么</h2>2
+<p><strong>C-Eval</strong>（Huang 等，2023，arXiv:2305.08322）是一份中文多学科四选一选择题库，共 13948 题，覆盖 52 个学科。数据按用途分三份：</p>
+<table>
+<thead>
+<tr>
+<th>子集</th>
+<th>题数</th>
+<th>是否带答案</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>dev</td>
+<td>260（每科 5 题）</td>
+<td>带答案，还带解析（explanation）</td>
+<td>做 few-shot 示例，解析可构造思维链示例</td>
+</tr>
+<tr>
+<td>val</td>
+<td>1346</td>
+<td>带答案</td>
+<td>本地自测、调模板、调超参</td>
+</tr>
+<tr>
+<td>test</td>
+<td>12342</td>
+<td><strong>不带答案</strong></td>
+<td>提交官方榜单取得正式成绩</td>
+</tr>
+</tbody>
+</table>
+<p>学科按难度分四级：初中、高中、大学、专业（如法律职业资格、医师资格、会计师等考试），再按领域归为 STEM、社会科学、人文、其他四大类。<strong>C-Eval Hard</strong> 是其中最难的 8 个学科（高等数学、离散数学、概率统计、大学化学、大学物理、高中数学、高中化学、高中物理），需要多步推理，直答几乎无法得高分。论文发表时 GPT-4 的平均成绩约 68.7%，在 Hard 子集上只有约 54.9%，当时这个差距是它最有价值的地方。</p>
+<p>三个基准的横向对比如下，选型时对照使用。</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>MMLU</th>
+<th>CMMLU</th>
+<th>C-Eval</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>语言</td>
+<td>英文</td>
+<td>中文</td>
+<td>中文</td>
+</tr>
+<tr>
+<td>学科数</td>
+<td>57</td>
+<td>67</td>
+<td>52</td>
+</tr>
+<tr>
+<td>题量（约）</td>
+<td>15908</td>
+<td>11528</td>
+<td>13948</td>
+</tr>
+<tr>
+<td>难度分层</td>
+<td>无显式分层</td>
+<td>无显式分层</td>
+<td>初中/高中/大学/专业，另有 Hard</td>
+</tr>
+<tr>
+<td>中国语境</td>
+<td>无</td>
+<td>强（单列 China-specific 类）</td>
+<td>中等（含中国职业资格考试）</td>
+</tr>
+<tr>
+<td>本地可得完整成绩</td>
+<td>是（test 公开）</td>
+<td>是（test 公开）</td>
+<td><strong>否</strong>（需提交榜单，本地仅 val）</td>
+</tr>
+<tr>
+<td>数据来源</td>
+<td>英文公开考试与教材</td>
+<td>中文考试与教材</td>
+<td>中文模拟考试与真题改编</td>
+</tr>
+<tr>
+<td>本地自测题量</td>
+<td>14042</td>
+<td>约 11528</td>
+<td>1346</td>
+</tr>
+<tr>
+<td>单次自测误差（95% 置信区间）</td>
+<td>约 ±0.8 点</td>
+<td>约 ±0.9 点</td>
+<td>约 ±2.5 点</td>
+</tr>
+<tr>
+<td>典型用途</td>
+<td>英文能力、跨模型横比</td>
+<td>中文知识与中国语境</td>
+<td>中文难度分层、Hard 区分度</td>
+</tr>
+</tbody>
+</table>
+<p>最后两行的数字由二项分布估算：准确率 p 约 0.5 到 0.7 时，95% 置信区间半宽约为 1.96 倍的 √(p(1−p)/n)。C-Eval val 的 1346 题给出约 ±2.5 点，所以在 val 上两个模型差 2 点以内，不能说谁更强。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">二、为什么要用它</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 它是中文模型的通用名片</li><li>不要对单科分数下结论，只看大类汇总和整体趋势</li><li>例如初中 85%、专业 55%，说明模型有常识但缺专业知识，该考虑补 RAG 或领域继续预训练；如果各级都低，通常是中文能力本身不足</li></ul></div>2
+<p><strong>1. 它是中文模型的通用名片。</strong> 国内发布的模型几乎都会报 C-Eval，榜单上能查到大量对手的成绩，做中文基座选型时这些数据是现成的参照系。</p>
+<p><strong>2. 难度分层能定位能力断层。</strong> 同一个模型在初中和专业两级的分差，反映知识深度。例如初中 85%、专业 55%，说明模型有常识但缺专业知识，该考虑补 RAG 或领域继续预训练；如果各级都低，通常是中文能力本身不足。MMLU 和 CMMLU 没有这种分层视角。</p>
+<p><strong>3. Hard 子集能拉开顶尖模型。</strong> MMLU 在前沿模型上已经饱和，C-Eval Hard 偏理科多步推理，直答与带思维链的成绩差距巨大，适合考察推理增强是否真的有效。</p>
+<p><strong>4. 但它有几个必须带着用的限制。</strong><br />
+- test 答案不公开，是为了防污染，同时意味着你无法本地复核榜单成绩，也无法对预测结果做错题分析。<br />
+- val 只有 1346 题，平均每科约 26 题，单科准确率的 95% 置信区间在 ±15 到 ±20 点。<strong>不要对单科分数下结论</strong>，只看大类汇总和整体趋势。<br />
+- 题目和答案已在网络流传多年，val 集尤其容易被训练语料覆盖，val 上分数高不等于 test 同样高。<br />
+- 提示模板敏感：直答、思维链、选项字母位置的细微变化都会引起几个点的波动。</p>
+<p><strong>5. 它和 MMLU、CMMLU 是互补关系。</strong> MMLU 说明模型的英文通用知识，CMMLU 说明中文知识和中国语境，C-Eval 说明中文知识在不同难度上的分布。三者放在一起看，能回答"这个模型的短板在语言、在领域还是在难度"。例如 CMMLU 与 C-Eval 都高、MMLU 偏低，通常是中文强化模型；三者同步偏低，说明基座本身知识不足，换模型比调 prompt 更有效。</p>
+<p><strong>6. 它能为业务选型提供准入门槛。</strong> 做中文业务落地时，常见做法是设一个最低线，比如 C-Eval val 总分不低于某个基线模型减去误差范围，过了线才投入更贵的业务评测（golden set、人工评审）。这样可以先用几分钟的自动测评淘汰明显不合格的候选，把人工和算力留给通过初筛的模型。</p>
+<p>所以 C-Eval 的定位是："榜单成绩"和"本地回归"两件事分开做。本地回归用 val 加上自己的私有题，榜单成绩靠提交 test。</p>
+<h2 id="三怎么做">三、怎么做</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">3.0 整体流程</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>flowchart TD</li></ul></div>3
+<pre><code class="language-mermaid">flowchart TD
+    A[&quot;下载 C-Eval 数据&lt;br/&gt;dev / val / test&quot;] --&gt; B[&quot;冒烟&lt;br/&gt;每科 5 题 确认分数明显高于 25%&quot;]
+    B --&gt; C[&quot;val 全量评测&lt;br/&gt;5-shot 直答&quot;]
+    C --&gt; D[&quot;按大类 难度 Hard 汇总&quot;]
+    D --&gt; E{&quot;需要官方成绩吗&quot;}
+    E --&gt;|&quot;否 仅回归或选型&quot;| F[&quot;落报告&lt;br/&gt;附设置与版本&quot;]
+    E --&gt;|&quot;是&quot;| G[&quot;test 预测&lt;br/&gt;生成提交 json&quot;]
+    G --&gt; H[&quot;上传官方榜单&lt;br/&gt;获得 test 分数&quot;]
+    H --&gt; F
+</code></pre>
+<h3 id="31-环境与数据">3.1 环境与数据</h3>3
+<pre><code class="language-bash">python -m venv ~/venvs/evalbench &amp;&amp; source ~/venvs/evalbench/bin/activate
+pip install -U &quot;lm-eval&quot; torch transformers accelerate huggingface_hub
+
+mkdir -p ~/evaldata/ceval &amp;&amp; cd ~/evaldata/ceval
+# 官方数据在 HF 数据集仓库 ceval/ceval-exam；仓库附带 ceval-exam.zip，内含 dev/ val/ test/ 三个目录的 csv
+huggingface-cli download ceval/ceval-exam --repo-type dataset --local-dir .
+ls                      # 以实际文件为准；若有 ceval-exam.zip，解压后得到 dev/val/test 目录
+unzip -q ceval-exam.zip 2&gt;/dev/null; ls dev | head -3
+</code></pre>
+<p>注意：目录以实际下载结果为准。预期文件名是 <code>dev/{学科}_dev.csv</code>、<code>val/{学科}_val.csv</code>、<code>test/{学科}_test.csv</code>，列为 <code>id,question,A,B,C,D,answer,explanation</code>，其中 test 没有 <code>answer</code> 和 <code>explanation</code> 列。如果你拿到的是 parquet 或其他布局，先用 pandas 转成上述 csv 再往下走，否则后面脚本读不到文件。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.2 方式 A：lm-evaluation-harness</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-bash"># val 集 5-shot（harness 里 C-Eval 任务读取的是带答案的 val）
+lm_eval --model hf \
+  --model_args pretrained=/path/to/model,dtype=bfloat16 \
+  --tasks ceval-valid --num_fewshot 5 --batch_size auto \
+  --output_path results/ceval_modelA --log_samples
+</code></pre>
+<p>要点：<br />
+- 任务名以 <code>lm_eval --tasks list | grep -i ceval</code> 为准。常见的是 <code>ceval-valid</code>（val 集，各学科为子任务）。<br />
+- 结果里可以拿到每科准确率和总平均，自己按 3.5 的分组再汇总一次大类和 Hard。<br />
+- 与 MMLU 一样，务必保留 <code>--log_samples</code>。</p>
+<h3 id="33-方式-bopencompass">3.3 方式 B：OpenCompass</h3>3
+<pre><code class="language-bash">pip install -U opencompass
+opencompass --models hf_internlm2_7b --datasets ceval_gen -w outputs/ceval_modelA
+# 想跑带思维链的版本，使用配置目录中名称含 cot 的 ceval 配置；以安装版本里 configs/datasets 下实际文件为准
+</code></pre>
+<p>OpenCompass 已经内置 C-Eval 的汇总逻辑，并支持直接导出可提交榜单的预测文件（具体开关以其文档为准），如果榜单提交是常规需求，这条路比自己拼文件更省事。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.4 方式 C：自写脚本跑 val（复用 <code>mc_eval.py</code>）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>先把 MMLU 与 CMMLU 一文 3.5 节 的 「mc_eval.py」 保存到工作目录，然后新建下面的 「ceval_eval.py」</li><li>它做三件事：加载 C-Eval 的学科中文名、在 val 上评测、按大类和难度汇总</li></ul></div>3
+<p>先把 <a href="L8-5-%E6%B5%8B%E8%AF%84%E5%9F%BA%E5%87%86-MMLU-CMMLU.html">MMLU 与 CMMLU 一文 3.5 节</a> 的 <code>mc_eval.py</code> 保存到工作目录，然后新建下面的 <code>ceval_eval.py</code>。它做三件事：加载 C-Eval 的学科中文名、在 val 上评测、按大类和难度汇总。</p>
+<pre><code class="language-python"># ceval_eval.py  （与 mc_eval.py 放同一目录）
+import csv, json, sys
+from pathlib import Path
+import mc_eval as m
+
+m.HEAD[&quot;ceval&quot;] = &quot;以下是中国关于{subject}考试的单项选择题，请选出其中的正确答案。\n\n&quot;
+m.SUFFIX[&quot;ceval&quot;] = &quot;答案：&quot;
+
+HARD = {
+    &quot;advanced_mathematics&quot;, &quot;discrete_mathematics&quot;, &quot;probability_and_statistics&quot;,
+    &quot;college_chemistry&quot;, &quot;college_physics&quot;,
+    &quot;high_school_mathematics&quot;, &quot;high_school_chemistry&quot;, &quot;high_school_physics&quot;,
+}
+
+
+def load_mapping(root):
+    mp = Path(root) / &quot;subject_mapping.json&quot;   # 若数据里附带：{学科: [英文名, 中文名, 大类]}
+    if not mp.exists():
+        return {}, {}
+    raw = json.loads(mp.read_text(encoding=&quot;utf-8&quot;))
+    return {k: v[1] for k, v in raw.items()}, {k: v[2] for k, v in raw.items()}
+
+
+def load_split(root, split, sub):
+    return m.read_rows(Path(root) / split / f&quot;{sub}_{split}.csv&quot;, header=True)
+
+
+def group_acc(per, groups):
+    out = {}
+    for g, members in groups.items():
+        sel = [per[s] for s in members if s in per]
+        if sel:
+            out[g] = sum(x[&quot;correct&quot;] for x in sel) / sum(x[&quot;n&quot;] for x in sel)
+    return out
+
+
+def run_val(root, scorer, k=5, limit=None):
+    root = Path(root)
+    subs = sorted(p.name[: -len(&quot;_val.csv&quot;)] for p in (root / &quot;val&quot;).glob(&quot;*_val.csv&quot;))
+    names, cats = load_mapping(root)
+    per, macro, micro = m.evaluate(
+        &quot;ceval&quot;, subs, lambda sp, s: load_split(root, sp, s), scorer,
+        k=k, limit=limit, eval_split=&quot;val&quot;, names=names,
+    )
+    groups = {&quot;Hard&quot;: HARD}
+    for s, c in cats.items():
+        groups.setdefault(c, set()).add(s)
+    return per, macro, micro, group_acc(per, groups)
+
+
+def predict_test(root, scorer, k=5):
+    &quot;&quot;&quot;生成官方提交格式 {学科: {id: 字母}}；提交前请对照榜单页面当前的格式说明&quot;&quot;&quot;
+    root = Path(root)
+    names, _ = load_mapping(root)
+    result = {}
+    for p in sorted((root / &quot;test&quot;).glob(&quot;*_test.csv&quot;)):
+        sub = p.name[: -len(&quot;_test.csv&quot;)]
+        with open(p, newline=&quot;&quot;, encoding=&quot;utf-8-sig&quot;) as f:
+            ids = [r[&quot;id&quot;] for r in csv.DictReader(f)]
+        dev, rows = load_split(root, &quot;dev&quot;, sub), load_split(root, &quot;test&quot;, sub)
+        shown = names.get(sub, sub)
+        result[sub] = {i: scorer(m.build_prompt(&quot;ceval&quot;, shown, dev, it, k), k) for i, it in zip(ids, rows)}
+    return result
+
+
+if __name__ == &quot;__main__&quot;:
+    mode, root, model_path, out = sys.argv[1:5]
+    k = int(sys.argv[5]) if len(sys.argv) &gt; 5 else 5
+    limit = int(sys.argv[6]) if len(sys.argv) &gt; 6 else None
+    scorer = m.make_hf_scorer(model_path)
+    if mode == &quot;val&quot;:
+        per, macro, micro, groups = run_val(root, scorer, k, limit)
+        Path(out).write_text(json.dumps(
+            {&quot;macro&quot;: macro, &quot;micro&quot;: micro, &quot;groups&quot;: groups, &quot;per&quot;: per}, ensure_ascii=False, indent=1))
+        print(f&quot;ceval val k={k} macro={macro:.4f} micro={micro:.4f}&quot;)
+        for g, a in sorted(groups.items()):
+            print(f&quot;  {g}: {a:.4f}&quot;)
+    else:
+        Path(out).write_text(json.dumps(predict_test(root, scorer, k), ensure_ascii=False))
+        print(&quot;submission written:&quot;, out)
+</code></pre>
+<p>运行：</p>
+<pre><code class="language-bash">cd ~/evaldata
+# 冒烟：每科 5 题，应明显高于 25%
+python ceval_eval.py val ./ceval /path/to/model out_smoke.json 5 5
+# val 全量 5-shot
+python ceval_eval.py val ./ceval /path/to/model out_ceval_val.json 5
+# 生成 test 提交文件（耗时较长，建议用 GPU 并先在冒烟中确认模板）
+python ceval_eval.py test ./ceval /path/to/model submission.json 5
+</code></pre>
+<p>只有云端聊天接口时，把 <code>m.make_hf_scorer(model_path)</code> 换成 <code>m.make_api_scorer("模型名")</code>，并设置环境变量 <code>EVAL_BASE_URL</code> 与 <code>EVAL_API_KEY</code>。注意 12342 道 test 题就是一万多次接口调用，先看限流和费用。</p>
+<h3 id="35-汇总按大类按难度hard-单独报">3.5 汇总：按大类、按难度、Hard 单独报</h3>3
+<p>脚本已输出大类分数和 Hard 分数。难度分层（初中/高中/大学/专业）需要按学科名归类：</p>
+<table>
+<thead>
+<tr>
+<th>难度</th>
+<th>学科名特征</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>初中</td>
+<td>文件名以 <code>middle_school_</code> 开头</td>
+</tr>
+<tr>
+<td>高中</td>
+<td>文件名以 <code>high_school_</code> 开头</td>
+</tr>
+<tr>
+<td>大学</td>
+<td>文件名以 <code>college_</code> 开头，以及 <code>advanced_mathematics</code>、<code>discrete_mathematics</code>、<code>probability_and_statistics</code> 等大学课程</td>
+</tr>
+<tr>
+<td>专业</td>
+<td>各类职业资格考试，如 <code>law</code>、<code>clinical_medicine</code>、<code>accountant</code> 等</td>
+</tr>
+</tbody>
+</table>
+<p>按前缀把 <code>groups</code> 字典补全即可，例如：</p>
+<pre><code class="language-python">level = {&quot;初中&quot;: &quot;middle_school_&quot;, &quot;高中&quot;: &quot;high_school_&quot;, &quot;大学&quot;: &quot;college_&quot;}
+groups = {lv: {s for s in per if s.startswith(pre)} for lv, pre in level.items()}
+</code></pre>
+<p>报告里至少写这几行：整体（macro 与 micro）、四大类、四级难度、Hard。<strong>单科分数只放附录，不放结论</strong>，原因见第二节第 4 点。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.6 提交 test 到官方榜单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 在官方榜单站点注册账号（入口见 C-Eval 仓库 README，本文不转录链接，避免过期）</li><li>正确做法：用 val 和私有题调好所有设置，最后只提交一次</li><li>以榜单提交页当前的格式说明为准，格式不符会被直接拒收</li></ul></div>3
+<ol>
+<li>在官方榜单站点注册账号（入口见 C-Eval 仓库 README，本文不转录链接，避免过期）。</li>
+<li>用 3.4 节生成 <code>submission.json</code>，格式为 <code>{学科名: {题目 id: 选项字母}}</code>，例如 <code>{"computer_network": {"0": "A", "1": "C"}}</code>。以榜单提交页当前的格式说明为准，格式不符会被直接拒收。</li>
+<li>提交前自查：学科数应为 52，每科条目数等于对应 test csv 的行数，所有答案都是 A/B/C/D 之一，没有空值。下面的检查脚本可以在提交前跑：</li>
+</ol>
+<pre><code class="language-python">import csv, json
+from pathlib import Path
+
+sub = json.loads(Path(&quot;submission.json&quot;).read_text(encoding=&quot;utf-8&quot;))
+root = Path(&quot;ceval/test&quot;)
+problems = []
+for p in sorted(root.glob(&quot;*_test.csv&quot;)):
+    name = p.name[: -len(&quot;_test.csv&quot;)]
+    with open(p, newline=&quot;&quot;, encoding=&quot;utf-8-sig&quot;) as f:
+        n = sum(1 for _ in csv.DictReader(f))
+    got = sub.get(name, {})
+    if len(got) != n:
+        problems.append((name, &quot;题数&quot;, n, len(got)))
+    if any(v not in (&quot;A&quot;, &quot;B&quot;, &quot;C&quot;, &quot;D&quot;) for v in got.values()):
+        problems.append((name, &quot;含非法答案&quot;))
+print(&quot;学科数&quot;, len(sub), &quot;问题数&quot;, len(problems))
+for x in problems:
+    print(x)
+</code></pre>
+<ol start="4">
+<li>提交次数和公开展示规则以榜单页面为准。常见约束是限制提交频率，并禁止针对 test 反复调参（不然 test 也会被"拟合"）。正确做法：用 val 和私有题调好所有设置，最后只提交一次。</li>
+</ol>
+<h3 id="37-提示模板与-shot-的取舍">3.7 提示模板与 shot 的取舍</h3>3
+<table>
+<thead>
+<tr>
+<th>设置</th>
+<th>适用</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5-shot 直答</td>
+<td>基座模型、与公布值对账</td>
+<td>示例取 dev 前 5 题，不要换，否则不可比</td>
+</tr>
+<tr>
+<td>0-shot 直答</td>
+<td>已做指令微调的对话模型</td>
+<td>对话模型常需套用其对话模板，否则偏低</td>
+</tr>
+<tr>
+<td>5-shot 思维链</td>
+<td>考察推理能力，尤其 Hard 子集</td>
+<td>dev 的 explanation 可作为示例推理；输出长，必须用生成式解析，成本高</td>
+</tr>
+<tr>
+<td>生成式（API）</td>
+<td>无 logprobs 的接口</td>
+<td>带推理的模型要放大 <code>max_tokens</code>，并标注"带推理"，与直答不可同榜</td>
+</tr>
+</tbody>
+</table>
+<p>固定下来之后，所有后续回归都用同一套，不要为了"让分数好看"临时调模板。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.8 对账与可信度控制</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 先复现已知模型：拿一个公布过 C-Eval 成绩的小模型，用同样 5-shot 设置跑 val，与公布值（多数公布的是 test 或 val 平均）差距应在 val 误差范围（约 ±2.5 点）内</li><li>要判断改动有效，在 val 之外补一份私有题，累计题量到 3000 以上再下结论</li><li>6. Hard 子集单独看：Hard 的准确率可能只有 30% 到 50%，随机基线仍是 25%，要和直答、思维链两种设置分别对比，不要混报</li></ul></div>3
+<ol>
+<li><strong>先复现已知模型</strong>：拿一个公布过 C-Eval 成绩的小模型，用同样 5-shot 设置跑 val，与公布值（多数公布的是 test 或 val 平均）差距应在 val 误差范围（约 ±2.5 点）内。差得多，先查流程。</li>
+<li><strong>val 成绩要标注为 val</strong>：对外不要把 val 成绩说成"C-Eval 成绩"，榜单成绩特指 test。</li>
+<li><strong>同尺子对比</strong>：量化、微调、换版本的前后比较，使用同一份脚本、同一硬件、同一精度，一次只改一个因素。</li>
+<li><strong>差异显著性</strong>：整体 micro 差小于 2.5 点视为噪声。要判断改动有效，在 val 之外补一份私有题，累计题量到 3000 以上再下结论。</li>
+<li><strong>污染自查</strong>：对 val 题干做续写，能近乎逐字续出选项则说明已被训练覆盖。此时 val 分数仅作流程自检，决策依据换成私有题。</li>
+<li><strong>Hard 子集单独看</strong>：Hard 的准确率可能只有 30% 到 50%，随机基线仍是 25%，要和直答、思维链两种设置分别对比，不要混报。</li>
+</ol>
+<h3 id="39-接入本库的评测门禁">3.9 接入本库的评测门禁</h3>3
+<ul>
+<li>选型：候选模型各跑一次 C-Eval val、CMMLU、MMLU 的 5-shot，把三者填入对比表，附上设置与版本；进入业务 golden set 评测的条件设为"C-Eval val 总分不低于基线模型 −2.5 点"。</li>
+<li>回归：基线写入 <code>eval/ceval_baseline.json</code>（含设置、工具版本、大类与 Hard 分数）。变更后重跑，整体降超过 2.5 点，或 Hard 降超过 5 点，阻断并要求查因。思路与 <a href="RAGAS%E7%94%9F%E4%BA%A7%E7%BA%A7%E8%AF%84%E4%BC%B0-CI%E9%9B%86%E6%88%90%E4%B8%8E%E7%BA%BF%E4%B8%8A%E6%B5%81%E9%87%8F%E8%AF%84%E4%BC%B0-20261030.html">RAGAS 生产级评估</a> 一致：比 delta，不比绝对分。</li>
+<li>业务补充：从业务文档挑 100 到 300 条四选一题，做成与 C-Eval 同格式的 csv，复用 <code>ceval_eval.py</code>，用来抵消公开题污染。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.10 踩坑清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 把 val 当成 test：val 带答案，容易被训练语料收录，直接用来宣称"榜单成绩"属于误导</li><li>8. 单科分数波动过大时硬做结论，例如"模型在某科退步 20 点"，在 26 题的样本上这属于正常噪声</li><li>2. test csv 没有 「answer」 列，直接套用评测函数会得到准确率 0，这是用错了流程：test 只能生成提交文件</li></ul></div>3
+<ol>
+<li>把 val 当成 test：val 带答案，容易被训练语料收录，直接用来宣称"榜单成绩"属于误导。</li>
+<li>test csv 没有 <code>answer</code> 列，直接套用评测函数会得到准确率 0，这是用错了流程：test 只能生成提交文件。</li>
+<li>提交文件的 id 用了行号而不是 csv 里的 <code>id</code> 列，导致整批错位。用本文脚本中的 <code>ids</code> 读取方式。</li>
+<li>学科文件名带后缀（<code>_val</code>、<code>_test</code>），拼路径时漏掉会读不到数据，进而静默得到空结果。核对学科数必须是 52。</li>
+<li>对话模型直接喂基座式 prompt，不套对话模板，分数偏低 5 到 15 点。</li>
+<li>思维链的输出被 <code>max_tokens</code> 截断，解析成空答案，被当作答错。解析后必须统计空答案率。</li>
+<li>反复在 test 上提交试不同模板：等于拿 test 做调参，成绩虚高。</li>
+<li>单科分数波动过大时硬做结论，例如"模型在某科退步 20 点"，在 26 题的样本上这属于正常噪声。</li>
+</ol>
+<h3 id="311-报告怎么写">3.11 报告怎么写</h3>3
+<p>报告放在 <code>eval/reports/</code>，文件名带日期和模型名。固定包含以下字段，缺一项别人就无法复现：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>模型与版本</td>
+<td>模型目录名加权重哈希前 8 位</td>
+</tr>
+<tr>
+<td>数据集与子集</td>
+<td>C-Eval val 1346 题；若提交榜单，另注明 test 提交日期与次数</td>
+</tr>
+<tr>
+<td>模板与 shot</td>
+<td>官方中文模板，5-shot 直答</td>
+</tr>
+<tr>
+<td>打分方式</td>
+<td>logits 比较，或生成式解析并注明是否带推理</td>
+</tr>
+<tr>
+<td>汇总口径</td>
+<td>macro 与 micro 均给出</td>
+</tr>
+<tr>
+<td>工具版本</td>
+<td>脚本提交号，或 lm-eval 版本号</td>
+</tr>
+<tr>
+<td>空答案率</td>
+<td>生成式打分必须填写</td>
+</tr>
+</tbody>
+</table>
+<p>正文只放四张表：整体成绩、四大类、四级难度、Hard 子集，并给出与基线的差值和 95% 置信区间。单科明细放附录。结论只写表格能支持的内容，例如"val 整体 micro 比基线高 1.1 点，低于误差范围，视为持平；Hard 低 4 点，样本仅 8 科共约 200 题，需补私有题确认"。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.12 常见问答</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>问：val 成绩很高，能说模型"C-Eval 很强"吗</li><li>按科看只用来定位"哪一类知识明显偏弱"，且只看趋势，不对单个数字下结论</li><li>问：每科只有二十多题，为什么还要按科看</li></ul></div>3
+<p><strong>问：val 成绩很高，能说模型"C-Eval 很强"吗？</strong> 不能。val 集公开了答案，被训练语料收录的概率高。val 只用来自检流程和做回归，榜单成绩特指 test。</p>
+<p><strong>问：每科只有二十多题，为什么还要按科看？</strong> 按科看只用来定位"哪一类知识明显偏弱"，且只看趋势，不对单个数字下结论。想做可靠的分科判断，需要把私有题补到每科 100 题以上。</p>
+<p><strong>问：Hard 子集为什么直答分数那么低？</strong> 这 8 科是理科多步推理，直答要求模型心算出结果。用思维链后分数常大幅提升，但输出长度和成本也同步上升，所以两种设置必须分开报告。</p>
+<p><strong>问：能不能把 CMMLU 和 C-Eval 的分数取平均当"中文能力"？</strong> 不建议。两个基准的难度分布和汇总口径不同，平均后的数字没有明确含义，并排给出两个数更诚实。</p>
+<p><strong>问：test 提交失败怎么排查？</strong> 先用 3.6 的自查脚本核对学科数、题数和答案合法性；再确认 id 取自 csv 的 <code>id</code> 列而非行号；最后查看榜单页面当前的格式要求有没有变化。</p>
+<h3 id="313-验收清单">3.13 验收清单</h3>3
+<ul>
+<li>[ ] 已记录模板、shot 数、打分方式、汇总口径、工具版本、模型版本</li>
+<li>[ ] 学科数为 52，val 总题数为 1346，test 总题数为 12342</li>
+<li>[ ] 冒烟通过，分数明显高于 25%</li>
+<li>[ ] 已复现一个已知模型，误差落在 val 置信区间内</li>
+<li>[ ] 报告含整体、四大类、四级难度、Hard 四组成绩，单科只放附录</li>
+<li>[ ] 如需提交榜单：submission.json 通过自查脚本，且 test 只提交一次</li>
+<li>[ ] 基线文件已落盘，供下次回归对比</li>
+</ul></div></details></div></details></div></body></html>

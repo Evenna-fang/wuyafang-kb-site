@@ -1,0 +1,192 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L8-1-需求挖掘-最佳答案</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L8-1-需求挖掘-最佳答案</span></div><div class="wrap"><h1 id="l8-1-需求挖掘-最佳答案">L8-1 需求挖掘 · 最佳答案</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+访谈实战：<a href="L8-Discover%E6%89%A7%E8%A1%8C-%E4%BB%8E%E7%8E%B0%E5%9C%BA%E5%8F%91%E7%8E%B0%E5%88%B0%E5%8F%AF%E8%AF%81%E4%BC%AA%E8%AF%95%E7%82%B9-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">发现路径与证据分级</a> · <a href="L8-%E9%9C%80%E6%B1%82%E6%8C%96%E6%8E%98%E4%B8%8E%E5%AE%A2%E6%88%B7%E8%AE%BF%E8%B0%88-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">问法对照与客户访谈</a>（怎么问、怎么听、怎么核对）</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>客户开口说的第一句话（"我要个AI客服""帮我们做个AI改造"）几乎从不是真需求，而是一个被技术包装过的、自己也没想清楚的愿望</li><li>需求挖掘没做扎实，后面所有的模型选型、部署、多模态都是空中楼阁——95% 的 AI 项目死在第一步，不是死在工程上</li><li>FDE 与普通乙方的区别，就在于能不能在第一周把这句话拆成可验证的业务问题、可衡量的指标、可证伪的下一步</li></ul></div>2
+<p>客户开口说的第一句话（"我要个AI客服""帮我们做个AI改造"）几乎从不是真需求，而是一个被技术包装过的、自己也没想清楚的愿望。FDE 与普通乙方的区别，就在于能不能在第一周把这句话拆成<strong>可验证的业务问题、可衡量的指标、可证伪的下一步</strong>。需求挖掘没做扎实，后面所有的模型选型、部署、多模态都是空中楼阁——95% 的 AI 项目死在第一步，不是死在工程上。</p>
+<h2 id="what这个节点的最佳答案是什么">WHAT：这个节点的最佳答案是什么</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 第一原则：先结果，后功能，最后才是模型</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>客户描述的是解决方案（"我要 14 指标仪表盘"），FDE 要挖到问题（"周一早上先看哪辆车迟到"）</li><li>判断做没做对的标准是——能不能一句话说清"为谁、解决什么可测问题"</li><li>Palantir 公开讲过一个经典故事：47 页的需求文档，最后收敛成一个 Slack 提醒</li></ul></div>3
+<p>客户描述的是<strong>解决方案</strong>（"我要 14 指标仪表盘"），FDE 要挖到<strong>问题</strong>（"周一早上先看哪辆车迟到"）。Palantir 公开讲过一个经典故事：47 页的需求文档，最后收敛成一个 Slack 提醒。判断做没做对的标准是——能不能一句话说清"<strong>为谁、解决什么可测问题</strong>"。</p>
+<h3 id="2-访谈核心六问一张表带走">2. 访谈核心六问（一张表带走）</h3>3
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>问法</th>
+<th>你在挖什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>今天谁在做这件事？一步步怎么做？</td>
+<td>真实工作流（不是理想流程）</td>
+</tr>
+<tr>
+<td>2</td>
+<td>怎样算做好了？谁用什么数字看你？</td>
+<td>指标与考核</td>
+</tr>
+<tr>
+<td>3</td>
+<td>最近一次失败是什么？代价？</td>
+<td>风险与边缘</td>
+</tr>
+<tr>
+<td>4</td>
+<td>数据在哪？谁能碰？能否出网？</td>
+<td>约束</td>
+</tr>
+<tr>
+<td>5</td>
+<td>为什么是现在？为什么找我们？</td>
+<td>动机与政治</td>
+</tr>
+<tr>
+<td>6</td>
+<td>如果只能改善 20%，你选哪？</td>
+<td>优先级</td>
+</tr>
+</tbody>
+</table>
+<p>追问句式："能否带我看一次真实案例？""如果系统给错答案谁会怎样？""能否打开系统让我看一眼刚才那条？""为什么是现在，三个月前为什么没做？"</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 第一天到现场：不要写代码，要走流程</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>上午跟岗：坐在理赔员/客服/销售旁边，只记录不打断——他开了几个系统、每步多久、哪里最不耐烦</li><li>下午画一张流程图：标三类环节——瓶颈（最耗时）、重复（同动作做 N 次）、易错（经常返工）</li><li>远洋保险那张"流程耗时表"（核对环节 20 分钟占单案一半、日耗 140 小时）一摆出来，钱该花在哪就清楚了</li></ul></div>3
+<ul>
+<li><strong>上午跟岗</strong>：坐在理赔员/客服/销售旁边，只记录不打断——他开了几个系统、每步多久、哪里最不耐烦。</li>
+<li><strong>下午画一张流程图</strong>：标三类环节——瓶颈（最耗时）、重复（同动作做 N 次）、易错（经常返工）。远洋保险那张"流程耗时表"（核对环节 20 分钟占单案一半、日耗 140 小时）一摆出来，钱该花在哪就清楚了。</li>
+<li><strong>傍晚一页纸对齐</strong>：当天整理"流程现状 + 3 个最痛痛点 + 初步想法"，当面和业务负责人过一遍，<strong>不要空手听需求</strong>。</li>
+</ul>
+<p>第一天三禁忌：① 别承诺技术方案（业务深浅还没摸清）；② 别否定客户现有流程（人家靠这套活了十年）；③ 别只和 IT 聊（痛点在一线，不在 IT 办公室）。</p>
+<h3 id="4-模糊需求拆解四步法以我要个ai客服为例">4. 模糊需求拆解四步法（以"我要个AI客服"为例）</h3>3
+<ol>
+<li><strong>分类</strong>：把过去一周聊天记录倒出来分三类——A 类有标准答案（物流查询、营业时间，AI 直接答）；B 类半结构化（产品参数，AI 辅助人审核）；C 类复杂投诉（必须人工）。电商客服里物流查询占 40%，这才是 AI 该吃掉的那块，不是"什么都答"。</li>
+<li><strong>找数据</strong>：知识库在哪？Word？Excel？客服脑子里？谁维护、多久更新？客户知识库本身就是乱的，再强的模型也救不了——制造业设备维修那个案例，先统一设备编码和故障分类，才谈得上 AI。</li>
+<li><strong>定边界</strong>：明确哪些关键词触发转人工（投诉、退款超 XX 元、情绪词）；转人工时自动把对话历史交给客服，不要让客户重复说；人工处理完把案例回补知识库。Klarna 削减过头又重新招人工的教训要记住。</li>
+<li><strong>定指标</strong>：A 类问题自动化率、平均处理时长降了多少、转人工比例与原因、CSAT 不是问"你满意吗"而是"有没有解决问题"。</li>
+</ol>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5. 和高层对话：不聊技术，聊损益/风险/时间</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>高层脑子里真正关心三件事：能省多少钱</li><li>三大坑：技术炫技（讲 RAG/Agent 召回率他听不懂）；过度承诺（"AI 什么都能做"后面一定崩）；跳过业务方直接跟高层谈（高层点头业务不配合，项目落地不了）</li><li>他不是不想讲清楚，是他自己也没想清楚——"提高效率、压一压成本"就是典型的模糊愿望</li></ul></div>3
+<p>高层脑子里真正关心三件事：<strong>能省多少钱？冒多大风险？多久见效？</strong> 他不是不想讲清楚，是他自己也没想清楚——"提高效率、压一压成本"就是典型的模糊愿望。FDE 的角色是翻译。</p>
+<p>四类对象四类话术：<br />
+| 对象 | 关心什么 | 你怎么说 |<br />
+|------|---------|---------|<br />
+| 高层 | 投入产出、竞争、风险 | "3 个月帮您省 X 万人力成本，风险 Y，先做小范围验证" |<br />
+| 业务负责人 | 减不减我的活、会不会错 | "原来每天 2 小时核对 3 个系统，现在 5 分钟看 AI 结果复核标黄项" |<br />
+| 技术负责人 | 数据怎么接、出事找谁 | "数据由 XX 系统提供，接口我来写，24h 响应" |<br />
+| 一线员工 | 会不会加我活、会不会替代我 | "AI 帮你干重复活，你做更有价值的判断" |</p>
+<p>三大坑：技术炫技（讲 RAG/Agent 召回率他听不懂）；过度承诺（"AI 什么都能做"后面一定崩）；跳过业务方直接跟高层谈（高层点头业务不配合，项目落地不了）。</p>
+<h3 id="6-三层判定模型在客户约束下能否交付">6. 三层判定："模型在客户约束下能否交付"</h3>3
+<p>任何一层不过 = 降级方案（助手/缩范围/不做），不是硬上：<br />
+- <strong>任务可判据性</strong>：有没有 golden set？模型稳定水平 vs 业务要求是否匹配？答错是否可发现/可回滚？要求 99% 而模型稳定 85% 时硬上，只会变成"AI 干一次人再干一次"。<br />
+- <strong>约束可行性</strong>：数据能否出域？身份从哪来、文档级授权怎么映射？PII 落不落在提示词/日志里？工具调用会不会越权写？谁能看审计？红线：不用"管理员万能账号"撑过 Pilot，不接受"先向量化全库再靠提示词防泄露"。<br />
+- <strong>组织可接住性</strong>：业务 owner 有没有（还是只有 IT 牵头）？能不能旁看真实工作流？责任模型跟不跟得上（"我可以用 AI，但不敢信 AI"= 责任还在他，项目必挂）？培训/变更窗口明不明确？</p>
+</div></details><h3 id="7-一手源补强访谈当研究做把客户要的改写成真问题">7. 一手源补强：访谈当研究做、把"客户要的"改写成"真问题"</h3>3
+<blockquote>
+<p><strong>据[一手源]</strong>（逐条标来源，tier 说明见各条）</p>
+</blockquote>
+<ul>
+<li><strong>访谈 = 研究输入，不是销售电话</strong>（Anthropic-FDE与Palantir-Ontology一手-20260930，Perspective AI，tier 2）：W1 做 <strong>8-15 场结构化访谈</strong>；访谈 scope 到<strong>工作流</strong>而不是功能清单；<strong>优先访谈操作员而非高管</strong>（被 AI 替代的是操作员的工作流）；转录喂回 eval 套件，引语、摩擦点、未解问题直接变测试用例。Palantir 一侧的强度是每周 5-15 场深度对话（全球FDE对标-Palantir与AI巨头方法论-20260930）。</li>
+<li><strong>能力一的三问 + 基线</strong>（FDE三大核心能力-九天Hector转录-20260930，口述 tier 2）：最核心的问题是什么？能不能用 AI 解决？能解决到什么程度？甲方常只说"提升问答准确率/响应效率"，FDE 要划清问题、定基线、评估指标、成功标准和上线条件，否则"尾款收不回来"。目标值要在立项时写死（例如 4 小时→2 小时），上线后再对照，不能事后用结果回填。</li>
+<li><strong>把"客户要的"改写成真问题的两个实例</strong>（FDE案例+LLM安全+GraphRAG调研-20261026，tier 2，方法归纳见 <a href="L8-%E9%9C%80%E6%B1%82%E6%8C%96%E6%8E%98%E4%B8%8E%E5%AE%A2%E6%88%B7%E8%AE%BF%E8%B0%88-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">需求挖掘与客户访谈深篇</a>）：</li>
+<li>大阪精密制造：客户要"AI 质检替代老师傅的眼睛"，现场发现老师傅做的是<strong>多维度根因诊断</strong>（模具磨损/材料杂质/热处理异常），不只是二分类，于是做成"口述知识库 + RAG 辅助 + 视觉模型"三层，新人准确率 96%→99.2%。教训：技术只占 30%，70% 是理解人；老师傅因职业自尊不愿配合，要借部长的"传承"框架说服。</li>
+<li>共享财务审核：客户要"AI 自学习审核"，追问数据发现<strong>只有通过单据（正样本）</strong>，没有退单和修改痕迹。所以访谈六问的第 4 问（数据在哪）要追加一句："有没有被拒绝/被修改的样本？"没有就要先补负样本、规则打底。</li>
+<li><strong>受监管行业的访谈要提前问 eval 门槛</strong>（Anthropic 一手）：金融/医疗/法律/政府里，信用备忘或临床记录里的幻觉是"可报告事故"，所以 W1 就要问清"谁来定通过线、错了谁担"。</li>
+<li><strong>约束清单别靠即兴</strong>：第 4 问"数据在哪、能否出网"在私有化项目里要展开成 7 项现场勘察（网络/硬件驱动/操作系统权限/数据脱敏审计/更新方式与版本锁定/等保与驻场/既有系统集成），清单见 <a href="L8-3-%E7%A7%81%E6%9C%89%E5%8C%96%E9%83%A8%E7%BD%B2-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">私有化部署正文</a>与<a href="L8-%E6%8A%80%E6%9C%AF%E4%B8%93%E9%A1%B9-Ontology%E7%A7%81%E6%9C%89%E5%8C%96%E5%A4%9A%E6%A8%A1%E6%80%81-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">技术专项</a>。</li>
+<li><strong>进场的"乱 CSV"测验</strong>（Palantir 招聘案例题，全球FDE对标一手源）："给你这份乱 CSV，周五交付什么？"，考的就是第一周能不能交付一个能跑的东西，对应本篇 HOW 第 4 条"小块闭环赢信任"。</li>
+</ul>
+<h2 id="howfde-实操">HOW：FDE 实操</h2>2
+<ol>
+<li><strong>第一天就带一页纸产出</strong>：流程耗时表 + 痛点 TOP3 + 两周计划。客户版给业务负责人，内部版写踩坑/技术进展/需要配合。</li>
+<li><strong>会议纪律</strong>：原话 vs 推断分开记（推断要标注）；听到解决方案立刻爬回结果指标；冲突观点并记不现场站队；结束前复述问题陈述请对方纠正；24 小时内发纪要；红旗（如"数据两周后才好"）立刻升级赞助人。</li>
+<li><strong>问题拆解硬规矩</strong>：拆成 3-5 个<strong>子问题部件</strong>，不是"采数据→训练→上线"这种阶段；标出硬点（做错了结果就崩的那一块，比如"高风险类目无标注"= 没标签就没法 eval）；给一个具体可证伪的下一步（"本周与 2 名律师标 30 份合同高风险句，形成 v0 量规与黄金集"）。</li>
+<li><strong>小块闭环赢信任</strong>：若问题能在一天内闭环，直接构建、交付、收口——先赢信任，才拿得到真问题的访问权。</li>
+<li><strong>评估结论模板</strong>：写清"任务可判据性 / 约束可行性 / 组织可接住性"三条，最后给一个判定——可交付（方案 X）/ 降级为 HITL 助手 / 缩范围为 ___ / 不建议做。</li>
+</ol>
+<h3 id="三源与论文融合落点">三源与论文融合落点</h3>3
+<ul>
+<li><strong>课件</strong>：<code>raw/courseware/2603期AI大模型Agent篇__2603期AI大模型Agent篇__7-Agent详解-2026-4-3-初见__day07/_代码课件汇总.md</code> 的评测数据素材用于把访谈中的摩擦点转成题目、预期行为和评分口径；不能直接把课程示例当客户黄金集。</li>
+<li><strong>书籍/摘录</strong>：<code>raw/weread/FDE/流程！（人人都能落地的简明流程再造手册，专为中小微企业打造）.md</code> 第 4、7 章划线要求识别少数核心流程、厘清人员/内容/时间/地点/方式，并用合规性、频率和结果验证执行。访谈纪要因此必须同时有流程步骤和结果基线，而非只收功能愿望；本文仅据目录与热门划线。</li>
+<li><strong>业内一手材料</strong>：<code>raw/sources/Anthropic-FDE与Palantir-Ontology一手-20260930.md</code> 中的 Palantir/Anthropic 材料支持工作流级访谈和受监管场景的前置 Eval 门槛；外部案例数字仍按原材料证据级别使用。</li>
+<li><strong>论文落地</strong>：arXiv:2610.31636（<code>raw/sources/arxiv-daily/2026-10-22-2610.31636.md</code>）把 Agent 定位为只读、预算受限的语料调试器，并将人工确认后的发现编译成可执行测试；论文同时提醒静态采样基线在部分维度更强。需求阶段应采用“分层抽样/只读分析发现异常→业务与数据 Owner 确认→冻结确定性回归用例”，不能默认让 LLM 全量批改语料，也不能把发现直接当事实。</li>
+</ul>
+<p>以下脚本用一条合成访谈记录演示出口检查，不读取客户数据、不调用模型；它只验证字段完整性，不证明访谈内容真实。</p>
+<pre><code class="language-bash">python -I - &lt;&lt;'PY'
+interview = {
+    &quot;quote&quot;: &quot;原话：退换货要跨三个系统查询&quot;,
+    &quot;inference&quot;: &quot;推断：查询环节可能适合先做人机协同&quot;,
+    &quot;baseline&quot;: &quot;待业务Owner补证&quot;,
+    &quot;negative_examples&quot;: &quot;合成负例路径：eval/negative-v1.jsonl&quot;,
+    &quot;owner&quot;: &quot;待指定&quot;,
+    &quot;next_test&quot;: &quot;授权后抽取30条真实脱敏工单复核&quot;,
+}
+assert interview[&quot;quote&quot;] != interview[&quot;inference&quot;]
+for key in (&quot;baseline&quot;, &quot;negative_examples&quot;, &quot;owner&quot;, &quot;next_test&quot;):
+    assert key in interview, f&quot;缺少 {key}&quot;
+print(&quot;访谈出口结构：PASS；baseline/owner 仍须补证，不得进入自动上线&quot;)
+PY
+</code></pre>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>"原话与推断分开记"的机械版：来源行计数（<code>/home/wuyafang/.hermes/scripts/batch_audit.py</code>，grep 可验）</strong>：<br />
+<code>python
+  def count_source_lines(text):
+      return sum(
+          1 for line in text.splitlines()
+          if LINK_RE.search(line) or SOURCE_LINE_RE.match(line)
+      )</code><br />
+<code>audit_file()</code> 里同时记 <code>words / code_blocks / has_why / has_how / source_lines</code>——<strong>每条结论必须有来源行</strong>，这不是道德要求而是被计数的字段：访谈纪要里"原话"（可直接引用的来源）进 <code>source_lines</code>，"推断"没来源必须显式标"待业务 Owner 补证"。</li>
+<li><strong>需求落点的物理载体（<code>/home/wuyafang/.hermes/scripts/dispatch-guard.py</code>）</strong>：派单卡第 5 核必须是 <code>总地图节点(须填N1-N6节点号)</code>，正则 <code>(?&lt;![A-Za-z0-9])N[1-6](?![0-9])</code> 机械校验——逼着"客户要什么"在每个环节都能追到全景图节点，而不是凭记忆传话。</li>
+<li><strong>和课件讲法的差异</strong>：课件给的是访谈六问 + 第一天走流程的人员方法；本库提供的是<strong>落地夹具</strong>（来源行计数、节点号必填）。本库暂无客户访谈专用模板与行业报价数据，这部分仍需按课件手工做。</li>
+</ul>
+<h2 id="缺口清单">缺口清单</h2>2
+<ul>
+<li>缺一个可复用的《访谈六问》checklist 打印版（现在散在好几篇里）</li>
+<li>缺"高层第一次见面 30 分钟演示脚本"（目前只有话术表，没有完整开场结构）</li>
+<li>缺"业务方/高层/IT 三方 alignment 会议"的标准议程模板</li>
+<li>不同行业（金融/制造/政务）的访谈侧重差异还没有单独提炼</li>
+</ul></div></details></div></body></html>

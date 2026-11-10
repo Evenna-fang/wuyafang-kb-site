@@ -1,0 +1,101 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>错误台账机制</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 错误台账机制</span></div><div class="wrap"><h1 id="错误台账机制error-ledger-回流钩子">错误台账机制（error-ledger → 回流钩子）</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/practice/skills-%E7%B2%BE%E9%80%89/risk-gate.md">risk-gate</a></p>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="%E8%B0%83%E7%A0%94%E6%B5%81%E7%A8%8BSOP%E4%B8%8E%E4%BF%A1%E6%81%AF%E6%BA%90.html">调研SOP</a> · <a href="%E6%B4%BE%E5%8D%95%E7%BA%AA%E5%BE%8B%E4%B8%89%E6%9D%A1.html">派单纪律</a> · <a href="OC%E5%AE%A1%E6%9F%A5Gap%E9%97%A8%E7%A6%81.html">Gap门禁</a> · <a href="Debate%E8%84%91%E6%9A%B4%E4%B8%8E%E6%98%BE%E5%BC%8F%E5%BD%92%E5%B9%B6%E8%A7%84%E5%88%99.html">Debate脑暴</a> · <a href="Trace-Tampering%E9%98%B2%E5%BE%A1.html">Trace-Tampering</a> · <a href="%E5%85%AD%E5%91%98%E9%85%8D%E7%BD%AE%E7%BB%88%E5%B1%80.html">六员配置</a> · <a href="AI%E5%B7%A5%E7%A8%8B%E8%B8%A9%E5%9D%91Top10.html">AI工程踩坑Top10</a> · <a href="AI%E8%A1%8C%E4%B8%9A%E5%8A%A8%E6%80%81%E8%A7%82%E5%AF%9F-2026-09.html">AI行业动态</a> · <a href="Playwright%E5%8F%8D%E7%88%AC%E7%88%AC%E5%8F%96%E5%AE%9E%E6%88%98-2026.html">Playwright反爬</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心结论</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>error-ledger 是踩坑的结构化台账（fingerprint / 报错 / 修复 / 状态），114 条起步</li><li>它不只是存档，而是知识回流的源头：高频已修复条目定期回流到技能 references（当案例）、insight-log（泛化经验）、RAG 语料</li><li>回流钩子按"根因聚类 → 映射载体"跑，不自动改文件，只出回流清单</li></ul></div>2
+<p>error-ledger 是踩坑的结构化台账（fingerprint / 报错 / 修复 / 状态），114 条起步。它不只是存档，而是<strong>知识回流的源头</strong>：高频已修复条目定期回流到技能 references（当案例）、insight-log（泛化经验）、RAG 语料。回流钩子按"根因聚类 → 映射载体"跑，不自动改文件，只出回流清单。</p>
+<h2 id="关键细节">关键细节</h2>2
+<p>台账现状（2026-09-28）：<br />
+- 总条数 113 条：fixed ~75 / open ~38<br />
+- 高频指纹 Top5：<br />
+  1. <code>mcp:linear-oauth</code> — 191 次（fixed，反复踩，必须进 references）<br />
+  2. <code>mcp:docker-conn-fail</code> — 53 次（fixed）<br />
+  3. <code>llm:empty-stream</code> — 5 次（open，仍在踩）<br />
+  4. <code>api:quota-402</code> — 5 次（open，provider 轮换期正常）<br />
+  5. <code>mcp:pycharm/datagrip/idea</code> 连接失败 — 各 3 次（fixed）</p>
+<p>回流映射规则：<br />
+- <strong>已 fixed 且高频</strong> → 必须进技能 references（当复现案例）<br />
+- <strong>open 未修复</strong> → 留在台账，不进 references（避免把没解决的问题当答案）<br />
+- 新条目按严重度自动分级：P0 阻断(立即修+提炼) / P1 影响体验(本周修) / P2 cosmetic(记录即可)</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">风险闸门</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>增量补充：risk-gate 的三类风险词与触发时的前置三步</li><li>"→ 命中断言类"确定"→ 拦的不是动作而是结论：转 OC 审查 Gap 门禁，无 ≥ 2 次独立实测只能答"未确认"，禁止直接下"能用"</li><li>四级响应（一级自检／二级决策树+多 Agent／三级双 Agent 复核／四级 PDCA 复盘）已在 团队规范与共享记忆 第四节，此处不重复</li></ul></div>2
+<blockquote>
+<p>增量补充：risk-gate 的<strong>三类风险词</strong>与触发时的<strong>前置三步</strong>。四级响应（一级自检／二级决策树+多 Agent／三级双 Agent 复核／四级 PDCA 复盘）已在 <a href="%E5%9B%A2%E9%98%9F%E8%A7%84%E8%8C%83%E4%B8%8E%E5%85%B1%E4%BA%AB%E8%AE%B0%E5%BF%86.html">团队规范与共享记忆</a> 第四节，此处不重复。</p>
+</blockquote>
+<p><strong>一、风险词不止"操作类"，还有"断言类"和"异常类"</strong>——只盯"删除／修改"会漏掉后两类：</p>
+<ul>
+<li><strong>操作类</strong>：删除、修改、上线、生产、重启、清空、卸载、迁移、覆盖、格式化。</li>
+<li><strong>断言类</strong>：绝对、肯定、一定、百分百、万无一失、不可能出错——<strong>这类最容易漏拦</strong>：一旦说出"肯定没问题"，就等于免掉了自己的举证责任，是"自报即作数"（见本文回流钩子）在语言层的变体。</li>
+<li><strong>异常类</strong>：报错、故障、失败、紧急、崩溃、数据丢失。</li>
+</ul>
+<p><strong>二、闸门被触发时，先跑三步前置（顺序不可省）</strong>：</p>
+<ol>
+<li><strong>确认范围与权责</strong>：操作范围（哪些文件／服务／数据）？谁授权（用户明确要求 vs 我自作主张）？可逆吗（不可逆需二次确认）？</li>
+<li><strong>历史失误调取</strong>：查台账／记忆中是否有同类操作的失误记录，有则特别提醒——<strong>本 error-ledger 正是该调取的来源</strong>。</li>
+<li><strong>场景分级执行</strong>：按影响面定档，再套对应校验强度。</li>
+</ol>
+<p><strong>三、判断上下文，别无脑拦</strong>：含风险词不等于要拦。<strong>"帮我看看这个报错"是咨询（一级，不拦）；"把这个文件删了"是操作（执行级，拦）。</strong> 闸门拦的是动作，不是词。</p>
+<p><strong>四、实例（两类风险词的拦法不同）</strong>：</p>
+<ul>
+<li>输入"这个 config.yaml 我改一下"→ 命中<strong>操作类</strong>"修改" + 例外清单（<code>~/.hermes</code> 配置）→ 升执行级：先备份 → 输出六项 → 二次确认。</li>
+<li>输入"你确定这个还能用吗？"→ 命中<strong>断言类</strong>"确定"→ 拦的不是动作而是<strong>结论</strong>：转 <a href="OC%E5%AE%A1%E6%9F%A5Gap%E9%97%A8%E7%A6%81.html">OC 审查 Gap 门禁</a>，无 ≥ 2 次独立实测只能答"未确认"，禁止直接下"能用"。</li>
+</ul>
+<p><strong>五、闸门与台账的咬合</strong>：闸门触发的"历史失误调取"直接读本台账；闸门挡下并复盘出的新教训，按上文"回流映射规则"写回台账——<strong>闸门是入口、台账是沉淀</strong>，两端接上才不会出现"拦了但没记住"。</p>
+<p><strong>输出格式（触发时）</strong>：检测到风险词 → 先打印"操作类型／影响范围／可逆性／历史失误／场景分级／校验要求"六项，用户确认后再执行。</p>
+<h2 id="来源">来源</h2>2
+<ul>
+<li>notes/decisions/回流钩子报告-20260928.md</li>
+<li>notes/processes/链路落地项.md（错误阈值分级）</li>
+<li>notes/processes/周复盘-20260928.md</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">相关术语</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Insight Graph（L1 error-ledger → L2 insight-log）：ontology/Agent记忆术语表.md</li><li>历时指针（Diachronic Pointer）：ontology/Agent记忆术语表.md</li></ul></div>2
+<ul>
+<li>Insight Graph（L1 error-ledger → L2 insight-log）：ontology/Agent记忆术语表.md</li>
+<li>历时指针（Diachronic Pointer）：ontology/Agent记忆术语表.md</li>
+</ul></div></details></div></body></html>

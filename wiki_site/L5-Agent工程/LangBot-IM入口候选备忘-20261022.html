@@ -1,0 +1,162 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LangBot-IM入口候选备忘-20261022</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/LangBot-IM入口候选备忘-20261022</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="langbotim-2026-10-22">LangBot：IM 入口候选备忘（2026-10-22 · 暂不部署）</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a>
+相关：<a href="MCP到底解决什么问题.html">MCP到底解决什么问题</a> · <a href="Coze-Dify-LangChain边界在哪.html">Coze-Dify-LangChain边界在哪</a> · <a href="../L7-低代码平台/L7-Dify部署与RAG集成-20261103.html">Dify 部署与 RAG 集成</a></p>
+<p>用户定位（原话）："可以调换下用法放进 RAG 有需要再启动"——作为<strong>知识库 IM 化的候选入口，暂不部署</strong>，触发条件满足再启动。</p>
+</blockquote>
+<h2 id="_1">是什么</h2>
+<p>开源生产级 IM 机器人平台（GitHub: <code>langbot-app/LangBot</code>，2022 年创建，214 个 release）。一套代码接 10+ 聊天平台，把 LLM 变成聊天机器人/Agent。</p>
+<ul>
+<li><strong>支持平台</strong>：QQ（个人号+官方）、微信（个人+公众号）、企业微信、飞书、钉钉、Discord、Telegram、Slack、LINE、KOOK、Matrix、Satori、Email。</li>
+<li><strong>支持模型后端</strong>：LiteLLM 统一请求层 → OpenAI/Anthropic/DeepSeek/Gemini/xAI/Moonshot/智谱/Ollama/LM Studio + 硅基流动/百炼/火山方舟/魔搭/302.AI 等网关。<strong>现有 provider 全部可接</strong>。</li>
+</ul>
+<h2 id="_2">核心能力（按对本项目的相关度排）</h2>
+<table>
+<thead>
+<tr>
+<th>能力</th>
+<th>说明</th>
+<th>对本项目相关度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>内置 RAG</strong></td>
+<td>默认 Chroma 向量库 + Rerank 精排，可插拔外部知识库（RAGFlow/Dify/FastGPT）</td>
+<td>⭐⭐⭐ 与本地 RAG 栈同源（Chroma），但能力弱于本地三路混合检索</td>
+</tr>
+<tr>
+<td><strong>MCP 协议</strong></td>
+<td>既做 MCP client（Stdio/HTTP），又暴露 <code>/mcp</code> 端点当 MCP server（agent 可编程管理它）</td>
+<td>⭐⭐⭐ 六员可直接管理 LangBot</td>
+</tr>
+<tr>
+<td><strong>Skills + 代码沙箱</strong></td>
+<td>按需加载指令包 + Docker/nsjail/E2B 隔离执行</td>
+<td>⭐⭐ 与 Hermes 技能体系理念一致</td>
+</tr>
+<tr>
+<td><strong>多平台触达</strong></td>
+<td>一个机器人覆盖所有 IM</td>
+<td>⭐⭐⭐ 手机端查任务/收通知的最强方案</td>
+</tr>
+<tr>
+<td><strong>Web 管理面板</strong></td>
+<td>浏览器配置，不改 YAML</td>
+<td>⭐⭐</td>
+</tr>
+<tr>
+<td><strong>插件生态</strong></td>
+<td>数百个社区插件，跨进程事件驱动，热插拔</td>
+<td>⭐⭐</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_3">部署方式</h2>
+<ul>
+<li>一行启动：<code>uvx langbot</code>（需 uv）→ http://localhost:5300。</li>
+<li>Docker Compose：<code>cd LangBot/docker &amp;&amp; docker compose --profile all up -d</code>。</li>
+<li>也有 aaPanel / Kubernetes / Zeabur / Railway 云部署。</li>
+</ul>
+<h2 id="_4">与现有体系的关系</h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>LangBot</th>
+<th>现有六员体系</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>架构</td>
+<td>IM 机器人（消息驱动）</td>
+<td>CLI/终端调度</td>
+</tr>
+<tr>
+<td>RAG</td>
+<td>内置 Chroma + Rerank</td>
+<td>本地三路混合（dense+sparse+BM25）+ 图谱</td>
+</tr>
+<tr>
+<td>模型接入</td>
+<td>LiteLLM 统一层</td>
+<td>各自配置 provider</td>
+</tr>
+<tr>
+<td>适用场景</td>
+<td>对外服务（群内问答、客服）</td>
+<td>内部开发/调度</td>
+</tr>
+</tbody>
+</table>
+<p><strong>结论：不替代、不冲突，是"对外服务层"的候选</strong>。</p>
+<h2 id="_5">何时值得接入（触发条件）</h2>
+<p>✅ <strong>该接</strong>：
+- 要给学员/同事提供"群里 @机器人 问知识库"的服务（知识库 IM 化）。
+- 需要在手机上多平台管理任务/收通知（比 telegram-send 强）。</p>
+<p>❌ <strong>不该接</strong>（现状）：
+- 只是想增强本地 RAG（它内置 RAG 不如现有三路混合检索）。
+- 想替代六员体系（架构不同）。
+- 内存紧张时（多一个常驻进程，WSL 7.8G 已吃紧）。</p>
+<h2 id="_6">待办（挂账，不急）</h2>
+<ul>
+<li>[ ] 等触发条件满足（学员/同事有 IM 问答需求）再部署。</li>
+<li>[ ] 部署前先评估内存预算（当前 WSL 可用 ~3.5G，LangBot + Docker 至少要 1G）。</li>
+<li>[ ] 接入时优先用它的 MCP server 让六员管理，而不是手动配。</li>
+</ul>
+<h2 id="cherry-studio-2026-10-22">附：Cherry Studio 一句话备忘（2026-10-22）</h2>
+<p><strong>Cherry Studio</strong>：开源 AI 桌面客户端（多模型对话 + 本地知识库 + 多模态）。与现有体系关系：知识库能力冗余（不如本地三路混合检索）、与 OpenWebUI 功能重叠。<strong>结论：不接</strong>，除非想在 Windows 桌面快速对比模型输出（现有工具已覆盖）。与 LangBot 不同：Cherry Studio 是个人桌面客户端，LangBot 是对外 IM 服务。</p>
+<h2 id="sources">Sources</h2>
+<ul>
+<li>[1] GitHub README（中/英）— https://github.com/langbot-app/LangBot</li>
+<li>[2] ARCHITECTURE.md — https://github.com/langbot-app/LangBot/blob/master/ARCHITECTURE.md</li>
+<li>[3] Features wiki — https://github.com/langbot-app/LangBot/wiki/en-insight-features</li>
+</ul>
+<h2 id="_7">适用场景标签</h2>
+<h1 id="langbot-im-mcp-im-cherry-studio">LangBot #IM机器人 #MCP #对外服务层 #知识库IM化 #Cherry-Studio #候选接入</h1></div></body></html>

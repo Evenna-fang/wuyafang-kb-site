@@ -1,0 +1,223 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>00-融合清单与验收</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 00-融合清单与验收</span></div><div class="wrap"><h1 id="l5-三源融合主题收敛替换与验收记录">L5 三源融合：主题收敛、替换与验收记录</h1>
+<p>本文件为维护清单，不是第七篇主题正文，挂在总地图既有“wiki/L5-Agent工程”知识资产节点。目标是保留 6 篇唯一主题正文和本清单；6 个现有路径已完成融合重写，旧总述散篇《L5-Agent工程-最佳答案》列入删除项。<strong>实际删除操作被安全钩子拦截，因此当前仍有 7 篇正文加本清单，<code>.fusion-work</code> 仍存在。</strong><br />
+三源为本地 Agent 课件、书籍目录与重点笔记或划线摘录、公开官方文档及业内作者原文和论文。未把目录、笔记或摘录声称为书籍全文。<br />
+本次只收尾核对、补维护清单，并尝试清理旧总述与临时快照；未修改六篇既有正文，未修改 raw、ontology、其他层、全局入口、RAG 索引或 HTML 产物。</p>
+<h2 id="主题收敛与字数">主题收敛与字数</h2>2
+<p>汉字数：去掉 frontmatter 和 fenced code 后，统计 Unicode U+4E00—U+9FFF；非空白字符：全文含元数据、代码、标点。<br />
+“合并旧篇数”仅按当前 <code>.fusion-work/original/</code> 中可复核的 7 个路径逐一归属：旧总述是跨主题概览，主去向计入 Multi-Agent，其余主题内容由对应正文承接但不重复计数。既有总地图记录历史上 40 篇旧文收敛为 6 篇；其余 33 篇已在本收尾前删除且没有快照，无法重算逐篇映射，故不把下表冒充历史 40 篇的全量分主题计数。</p>
+<table>
+<thead>
+<tr>
+<th>主题</th>
+<th>唯一正文</th>
+<th style="text-align: right;">合并旧篇数</th>
+<th style="text-align: right;">正文汉字数</th>
+<th style="text-align: right;">全文非空白字符</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agentic RAG 六模式</td>
+<td><a href="01-Agentic-RAG%E5%85%AD%E6%A8%A1%E5%BC%8F.html">01-Agentic-RAG六模式.md</a></td>
+<td style="text-align: right;">1（本轮可核验）</td>
+<td style="text-align: right;">6420</td>
+<td style="text-align: right;">14205</td>
+</tr>
+<tr>
+<td>Multi-Agent 协作</td>
+<td><a href="02-Multi-Agent%E5%8D%8F%E4%BD%9C.html">02-Multi-Agent协作.md</a></td>
+<td style="text-align: right;">2（本轮可核验）</td>
+<td style="text-align: right;">6557</td>
+<td style="text-align: right;">16058</td>
+</tr>
+<tr>
+<td>MCP 协议实战</td>
+<td><a href="03-MCP%E5%8D%8F%E8%AE%AE%E5%AE%9E%E6%88%98.html">03-MCP协议实战.md</a></td>
+<td style="text-align: right;">1（本轮可核验）</td>
+<td style="text-align: right;">6283</td>
+<td style="text-align: right;">16050</td>
+</tr>
+<tr>
+<td>A2A 协议</td>
+<td><a href="04-A2A%E5%8D%8F%E8%AE%AE.html">04-A2A协议.md</a></td>
+<td style="text-align: right;">1（本轮可核验）</td>
+<td style="text-align: right;">6519</td>
+<td style="text-align: right;">16822</td>
+</tr>
+<tr>
+<td>LangGraph 状态机</td>
+<td><a href="05-LangGraph%E7%8A%B6%E6%80%81%E6%9C%BA.html">05-LangGraph状态机.md</a></td>
+<td style="text-align: right;">1（本轮可核验）</td>
+<td style="text-align: right;">8107</td>
+<td style="text-align: right;">19398</td>
+</tr>
+<tr>
+<td>Agent 生产级部署</td>
+<td><a href="06-Agent%E7%94%9F%E4%BA%A7%E7%BA%A7%E9%83%A8%E7%BD%B2.html">06-Agent生产级部署.md</a></td>
+<td style="text-align: right;">1（本轮可核验）</td>
+<td style="text-align: right;">10781</td>
+<td style="text-align: right;">27081</td>
+</tr>
+</tbody>
+</table>
+<h2 id="可核验-7-篇逐项去向与删除清单">可核验 7 篇逐项去向与删除清单</h2>2
+<p>以下 SHA-256 均在删除快照前，直接对 <code>.fusion-work/original/</code> 中对应文件的原始字节计算。当前快照不含更早删除的 33 篇，故不存在可据此补算的文件名与原始 SHA-256；本表不补造这些记录。</p>
+<table>
+<thead>
+<tr>
+<th>原文件</th>
+<th>处理</th>
+<th>唯一去向</th>
+<th>原始 SHA-256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01-Agentic-RAG六模式.md</td>
+<td>原路径融合重写</td>
+<td><a href="01-Agentic-RAG%E5%85%AD%E6%A8%A1%E5%BC%8F.html">01-Agentic-RAG六模式.md</a></td>
+<td><code>3763b559895c69cdbad016dc3a2d3a07cf06ed3f7eae9f5399a2aaf91d707a0e</code></td>
+</tr>
+<tr>
+<td>02-Multi-Agent协作.md</td>
+<td>原路径融合重写</td>
+<td><a href="02-Multi-Agent%E5%8D%8F%E4%BD%9C.html">02-Multi-Agent协作.md</a></td>
+<td><code>8a119c11ff10a9b27d4d5246d0ae238e7009917de1034d275bb4ef1ef3820640</code></td>
+</tr>
+<tr>
+<td>L5-Agent工程-最佳答案.md</td>
+<td>待删除旧总述散篇；删除被安全钩子拦截。跨主题内容已被六篇深化取代，主去向不重复计数</td>
+<td><a href="02-Multi-Agent%E5%8D%8F%E4%BD%9C.html">02-Multi-Agent协作.md</a></td>
+<td><code>ca18a6db4f15cda3b7f577fac1ec121524d961d8bb4efaa899a7d6fd71ed24d0</code></td>
+</tr>
+<tr>
+<td>03-MCP协议实战.md</td>
+<td>原路径融合重写</td>
+<td><a href="03-MCP%E5%8D%8F%E8%AE%AE%E5%AE%9E%E6%88%98.html">03-MCP协议实战.md</a></td>
+<td><code>0bf3259a71b441fbf9ce27c86ff4dcca2936801f0166f107175c4378184ef485</code></td>
+</tr>
+<tr>
+<td>04-A2A协议.md</td>
+<td>原路径融合重写</td>
+<td><a href="04-A2A%E5%8D%8F%E8%AE%AE.html">04-A2A协议.md</a></td>
+<td><code>3ad76fee84c13ce94e2bb15c0c237f9359bbde04d3030d4c9a08f0672841d826</code></td>
+</tr>
+<tr>
+<td>05-LangGraph状态机.md</td>
+<td>原路径融合重写</td>
+<td><a href="05-LangGraph%E7%8A%B6%E6%80%81%E6%9C%BA.html">05-LangGraph状态机.md</a></td>
+<td><code>8b182f1048612a94a4e7dd98efa3a6634a41b3461fdd59fa68e1f94c26d4a5db</code></td>
+</tr>
+<tr>
+<td>06-Agent生产级部署.md</td>
+<td>原路径融合重写</td>
+<td><a href="06-Agent%E7%94%9F%E4%BA%A7%E7%BA%A7%E9%83%A8%E7%BD%B2.html">06-Agent生产级部署.md</a></td>
+<td><code>5893dc94f7cd3a5db5f6849915b370d3cac6d1f78f5ef943ca6ba4d7a0ecbdb8</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="三源边界说明">三源边界说明</h2>2
+<ul>
+<li><strong>课件</strong>：使用本地 Agent 篇代码与示例组织机制和实践路径；课件 Demo 不等于六模式、协议互通或生产部署已经实跑。</li>
+<li><strong>书籍</strong>：只使用本库存有的目录、章节重点笔记和公开划线摘录建立知识框架，不声称本次通读原书，也不以书籍笔记证明具体协议字段。</li>
+<li><strong>业内</strong>：官方规范、官方文档、业内作者原文与 arXiv 论文用于区分协议事实、原方法机制和工程近似；本次收尾只核对引用是否存在，未重新联网复核其内容。</li>
+<li>六篇正文均另有“证据边界与未验证项”。示例代码、外部服务、数据库、协议互通、评测和部署是否实跑，以各篇声明为准；本清单不把结构核对升级为功能实测。</li>
+</ul>
+<h2 id="验收记录">验收记录</h2>2
+<h3 id="三段与三源结构">三段与三源结构</h3>3
+<ul>
+<li>保留的 6 篇唯一正文 <strong>6/6</strong> 含独立 <code>WHY</code>、<code>WHAT（WHYT）</code>、<code>HOW</code> 标题。</li>
+<li>保留的 6 篇唯一正文 <strong>6/6</strong> 含文末“来源与三源融合落点”段，且段内均列出课件、书籍、业内来源及其正文落点。</li>
+<li>保留篇目未达标清单：<strong>无</strong>。</li>
+<li>收尾前一并核对的《L5-Agent工程-最佳答案.md》虽有 WHY/WHAT/HOW，但没有指定三源来源段，也没有 arXiv ID，且已被更完整的六篇正文取代；按任务要求列为未达标旧散篇并删除，未自行补写正文。</li>
+</ul>
+<h3 id="论文引用情况">论文引用情况</h3>3
+<table>
+<thead>
+<tr>
+<th>唯一正文</th>
+<th>arXiv ID</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01-Agentic-RAG六模式.md</td>
+<td>2310.11511、2401.15884、2403.14403、2404.16130、2610.31606</td>
+</tr>
+<tr>
+<td>02-Multi-Agent协作.md</td>
+<td>2610.37624</td>
+</tr>
+<tr>
+<td>03-MCP协议实战.md</td>
+<td>2610.20576</td>
+</tr>
+<tr>
+<td>04-A2A协议.md</td>
+<td>2610.31366</td>
+</tr>
+<tr>
+<td>05-LangGraph状态机.md</td>
+<td>2610.31303</td>
+</tr>
+<tr>
+<td>06-Agent生产级部署.md</td>
+<td>2406.12045、2610.22187、2610.40578、2611.03575</td>
+</tr>
+</tbody>
+</table>
+<p>6/6 保留正文至少有一个 arXiv ID，且在“来源与三源融合落点”段说明论文用途。本次只核对正文中的 ID 与落点文字，不声称重新阅读或复现论文。</p>
+<h3 id="删除与收口记录未通过">删除与收口记录（未通过）</h3>3
+<ul>
+<li>删除前已确认 <code>.fusion-work/original/L5-Agent工程-最佳答案.md</code> 存在，并已在上表记录其 SHA-256；实际删除命令被 <code>PreToolUse</code> 安全钩子拦截，旧总述仍存在。未换用其他方式绕过。</li>
+<li>六篇原路径重写稿的原始 SHA-256 均已登记；整个 <code>.fusion-work</code> 仍存在，快照副本尚未清理。</li>
+<li>未创建 <code>.bak</code> 或其他备份副本；因删除受阻，当前目录为 7 篇正文加 1 篇维护清单，未达到目标的 6 篇正文加 1 篇维护清单。</li>
+<li>六篇既有正文内容保持原样；本次新增内容仅为本维护清单。</li>
+<li>历史映射限制：现有 7 份快照可完整登记并核算 SHA；更早删除的 33 篇无快照，本清单明确保留这一缺口，不声称完成历史 40 篇的逐文件 SHA 审计。</li>
+<li><strong>验收结论：维护清单已补，6 篇保留正文的结构与引用核对通过；旧总述删除和 <code>.fusion-work</code> 清理未通过，任务尚未全部完成。</strong></li>
+</ul></div></body></html>

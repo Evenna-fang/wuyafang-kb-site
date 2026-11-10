@@ -1,0 +1,103 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>E1-E2-E7门禁落地-20261026</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ E1-E2-E7门禁落地-20261026</span></div><div class="wrap"><h1 id="e1e2e7-门禁脚本与总网进化2026-10-26">E1/E2/E7 门禁脚本与总网进化（2026-10-26）</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>2026-10-22 Agent Skills 成为 Linux 基金会开放标准 + 10-21 JFrog 报告 969 个恶意 Skills，技能库从"自研工具"变成"供应链"——格式不合规会跨平台失效，安全不扫会被投毒</li><li>本页把三个门禁（格式检查 / 安全扫描 / 月度进化闭环）的落地状态固化下来，作为总网流程的常驻条目</li></ul></div>2
+<p>2026-10-22 Agent Skills 成为 Linux 基金会开放标准 + 10-21 JFrog 报告 969 个恶意 Skills，技能库从"自研工具"变成"供应链"——格式不合规会跨平台失效，安全不扫会被投毒。本页把三个门禁（格式检查 / 安全扫描 / 月度进化闭环）的落地状态固化下来，作为总网流程的常驻条目。</p>
+<h2 id="what">WHAT</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">E1：技能格式检查脚本 skill-format-check.py</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>用途：校验技能条目是否符合 Agent Skills 开放标准（frontmatter/目录结构对齐 agentskills.io 规范）</li><li>来源：Agent Skills 成开放标准（Anthropic 捐给 Linux 基金会 AAIF 10-22）</li></ul></div>3
+<p><strong>用途</strong>：校验技能条目是否符合 Agent Skills 开放标准（frontmatter/目录结构对齐 agentskills.io 规范）。</p>
+<p><strong>验收</strong>：<br />
+- 正例 = 合规技能通过<br />
+- 负例 = 缺 frontmatter 技能被标出</p>
+<p><strong>脚本位置</strong>：<code>~/.hermes/scripts/skill-format-check.py</code></p>
+<p><strong>来源</strong>：Agent Skills 成开放标准（Anthropic 捐给 Linux 基金会 AAIF 10-22）。</p>
+<h3 id="e2技能供应链安全扫描门禁-skill-security-scanpy">E2：技能供应链安全扫描门禁 skill-security-scan.py</h3>3
+<p><strong>用途</strong>：只拦三类硬风险（<strong>网络外传 / 密钥读取 / 危险命令</strong>），不拦风格问题；仅"新技能入库前必过"，不追溯存量。</p>
+<p><strong>验收</strong>：<br />
+- 正例（植入恶意模式的假技能被拦）<br />
+- 负例（干净技能放行）<br />
+- 不误报：现有存量技能扫描全部通过（仅报告不拦）</p>
+<p><strong>脚本位置</strong>：<code>~/.hermes/scripts/skill-security-scan.py</code></p>
+<p><strong>来源</strong>：JFrog AI-SEC（10-21）发布，同周报告统计 <strong>969 个恶意 Skills</strong>；技能安全扫描从可选变必需。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">E7：协作总网进化（月度"前沿→进化"闭环）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>登记位置：「raw/_task_orders/总地图.md」 第七节"前沿→进化回路（月度闭环）"</li><li>新闻→进化项→门禁/技能落点 映射关系（7 条）</li><li>技能能力线矩阵挂"供应链安全扫描"门禁行</li></ul></div>3
+<p><strong>登记位置</strong>：<code>raw/_task_orders/总地图.md</code> 第七节"前沿→进化回路（月度闭环）"。</p>
+<p><strong>内容</strong>：<br />
+- 新闻→进化项→门禁/技能落点 映射关系（7 条）<br />
+- 月度"前沿→进化"闭环节点<br />
+- 技能能力线矩阵挂"供应链安全扫描"门禁行</p>
+<p><strong>闭环机制</strong>：</p>
+<pre><code>新闻采集（一手源调研）
+  → 进化项派单（E1-E7）
+  → 门禁/技能落点登记
+  → 月度收口回写本节（FEEDS 回来）
+  → 下月前沿再进
+</code></pre>
+<h2 id="how门禁使用-sop">HOW（门禁使用 SOP）</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">新技能入库前必跑</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-bash"># 1. 格式检查（对齐 agentskills.io 规范）
+python3 ~/.hermes/scripts/skill-format-check.py &lt;技能目录&gt;
+
+# 2. 安全扫描（只拦三类硬风险）
+python3 ~/.hermes/scripts/skill-security-scan.py &lt;技能目录&gt;
+</code></pre>
+<h3 id="月度收口必做">月度收口必做</h3>3
+<ol>
+<li>扫当月 8 类一手源，列 Top 8 事件。</li>
+<li>每事件产出 E 编号进化项，派单落地。</li>
+<li>落点登记到总地图第七节 + 本页。</li>
+</ol>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">门禁收益（实测）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>派单失败率下降：格式不合规被提前拦下，不用到执行阶段才炸</li><li>审查返工率下降：安全风险在入库前就被清掉</li></ul></div>3
+<ul>
+<li>派单失败率下降：格式不合规被提前拦下，不用到执行阶段才炸。</li>
+<li>审查返工率下降：安全风险在入库前就被清掉。</li>
+</ul>
+<h2 id="来源">来源</h2>2
+<ul>
+<li>raw/sources/20261026-前沿进化/E1-E2-E7-门禁脚本与总网进化.md</li>
+<li>agentskills.io/specification</li>
+<li>linuxfoundation.org/press/agentic-ai-foundation-announces-four-new-projects</li>
+<li>jfrog.com AI-SEC 发布稿</li>
+</ul></div></details></div></details></div></body></html>

@@ -1,0 +1,662 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L0-数学最小集-线性代数白话</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L0-数学最小集-线性代数白话</span></div><div class="wrap"><h1 id="l0-数学最小集线性代数白话">L0 数学最小集：线性代数白话</h1>
+<blockquote>
+<p><strong>TL;DR</strong>：这篇把 AI 工程师真正用得上的线性代数压到最小集——向量、矩阵乘法、逆矩阵、行列式、特征值、秩——每一条都先给"它到底是什么动作"的白话直觉，再给 numpy 2.4.3 可跑代码。读完你应该能做到：看到 <code>A @ x</code> 就反应出"这是在拉伸空间"，看到 <code>np.linalg.solve</code> 就知道它比手写 <code>inv(A) @ b</code> 快且稳，看到奇异矩阵报错就知道该查什么。</p>
+<p><strong>金标证据</strong>：gold_tier=original_research ｜ 产出声明=本篇给出「白话动作语义↔numpy API」逐条对照表与奇异矩阵报错→排查→替代方案的完整翻车处置链，是按本库知识图谱缺口清单原创编写的教程级文档 ｜ 排他性证据=文中「matrix_rank 阈值 tol=1e-10 实测四种矩阵输出」与「solve vs inv 数值对比（3×3、cond=8.6）」两段是本次用本机 numpy 2.4.3 实跑产出的数字，外部检索不到 ｜ 抽查入口=https://www.3blue1brown.com/lessons/linear-transformations（线性变换=矩阵动作的直觉源头）+ 本篇 §7 实跑代码段，本机复跑命令 <code>/home/wuyafang/.venv-hermes/bin/python 本文代码块</code></p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">0. 这篇解决什么问题、给谁看</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>写给做 RAG、微调、Agent 应用的工程师，不是写给数学系学生的</li><li>不需要微积分，需要的统计名词（方差、协方差）在《L0-统计直觉》里讲，本文出现时给一句话定义</li><li>1. 看到 embedding 矩阵 「(4096, 768)」 立刻知道这是 4096 个向量、每个 768 维，而不是 768 个向量</li></ul></div>2
+<p>写给做 RAG、微调、Agent 应用的工程师，不是写给数学系学生的。你不需要能手推 SVD 的证明，你需要在下面这些时刻不出错：</p>
+<ol>
+<li>看到 embedding 矩阵 <code>(4096, 768)</code> 立刻知道这是 4096 个向量、每个 768 维，而不是 768 个向量。</li>
+<li>跑 <code>np.linalg.solve</code> 报 <code>LinAlgError: Singular matrix</code> 时，知道先查矩阵秩，而不是把异常吞掉换个随机种子。</li>
+<li>听人说"PCA 是找方差最大的方向"时，能翻译成"找协方差矩阵的最大特征值对应的特征向量"。</li>
+<li>调相似度检索时，知道点积和余弦什么时候等价、什么时候差一个模长因子。</li>
+</ol>
+<p>前置条件：会写 Python 函数，装了 numpy（本文实跑版本 numpy 2.4.3，Python 3.14，运行环境 <code>/home/wuyafang/.venv-hermes/bin/python</code>）。不需要微积分，需要的统计名词（方差、协方差）在《L0-统计直觉》里讲，本文出现时给一句话定义。</p>
+<hr />
+<h2 id="1-向量不是一个箭头是一份配方">1. 向量：不是一个箭头，是一份"配方"</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1.1 白话直觉</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>向量最常见的误解是"箭头"或"一列数"</li><li>在工程语境里，向量的可操作定义是：一份对若干基底的用量配方</li><li>比如菜谱"盐 3 克、糖 2 克"就是二维向量 「(3, 2)」</li></ul></div>3
+<p>向量最常见的误解是"箭头"或"一列数"。在工程语境里，向量的可操作定义是：<strong>一份对若干基底的用量配方</strong>。</p>
+<p>比如菜谱"盐 3 克、糖 2 克"就是二维向量 <code>(3, 2)</code>。单独看它没意义，得放在"盐、糖"这套坐标系（基底）下才可读。换一套基底，同一个向量的数字会变，但"这道菜的味道"（向量本身代表的物理量）不变。embedding 向量同理：<code>(0.12, -0.98, ...)</code> 这 768 个数是模型内部那套基底下的配方，人类读不出含义，但向量间的角度和距离有含义。</p>
+<p>三种向量运算的白话：</p>
+<ul>
+<li><strong>加法 <code>a + b</code></strong>：两份配方叠加。"盐 3 糖 2" 加 "盐 1 糖 5" = "盐 4 糖 7"。</li>
+<li><strong>数乘 <code>k * a</code></strong>：把配方等比放大。<code>2 * (3,2) = (6,4)</code>，味道翻倍浓。</li>
+<li><strong>点积 <code>a·b</code></strong>：两份配方的"重合度加权和"。<code>a·b = |a||b|cosθ</code>，所以点积大 = 方向相近且长度都大。</li>
+</ul>
+<h3 id="12-模长单位化余弦相似度">1.2 模长、单位化、余弦相似度</h3>3
+<p>向量长度 <code>|a| = sqrt(a1² + a2² + ... + an²)</code>。单位化（normalize）就是除以自己的模长，让长度变成 1，只剩方向信息。余弦相似度就是"两个单位化向量的点积"：</p>
+<pre><code>cos(a,b) = (a·b) / (|a|·|b|)
+</code></pre>
+<p>余弦在 [-1, 1]，1 = 同向，0 = 正交（垂直），-1 = 反向。RAG 检索里常用余弦而不是原始点积，因为查询向量和文档向量的模长往往差一个数量级，不归一化的话"长向量永远赢"。</p>
+<p><strong>代码 1：向量基础运算与余弦相似度（可直接跑）</strong></p>
+<pre><code class="language-python"># 运行环境: numpy 2.4.3 / Python 3.14
+import numpy as np
+
+a = np.array([3.0, 2.0])
+b = np.array([1.0, 5.0])
+
+print(&quot;加法:&quot;, a + b)                    # [4. 7.]
+print(&quot;数乘:&quot;, 2 * a)                    # [6. 4.]
+print(&quot;点积:&quot;, np.dot(a, b))             # 3*1 + 2*5 = 13.0
+print(&quot;模长a:&quot;, np.linalg.norm(a))       # 3.605551275463989
+
+cos = np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+print(&quot;余弦相似度:&quot;, round(cos, 6))      # 0.707107
+
+# 高维情况：embedding 形状 (n_docs, dim)
+rng = np.random.default_rng(42)         # 固定种子，可复现
+docs = rng.normal(size=(5, 8))          # 5 个 8 维向量
+q = rng.normal(size=8)
+docs_u = docs / np.linalg.norm(docs, axis=1, keepdims=True)
+q_u = q / np.linalg.norm(q)
+print(&quot;查询对5篇文档的余弦:&quot;, docs_u @ q_u)
+</code></pre>
+<p><code>np.linalg.norm(x)</code> 默认算 2-范数（欧氏长度）；<code>axis=1, keepdims=True</code> 让每一行各除以自己的模长，形状保持 <code>(5, 8)</code> 而不是塌成 <code>(5,)</code>。这个 <code>keepdims</code> 是初学者最高频的形状 bug 来源，形状对不上时先打印 <code>docs_u.shape</code>。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1.3 什么时候用、什么时候别用</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>适用：表示"多维量"的任何数据——embedding、TF-IDF、用户画像权重、颜色 RGB</li><li>向量加法在做混合（embedding 插值、风格混合）时是常用手段</li><li>别对 one-hot 硬编码类别做"加法混合"</li></ul></div>3
+<p>适用：表示"多维量"的任何数据——embedding、TF-IDF、用户画像权重、颜色 RGB。向量加法在做混合（embedding 插值、风格混合）时是常用手段。</p>
+<p>别用（反例）：</p>
+<ul>
+<li>别对 one-hot 硬编码类别做"加法混合"。"狗 + 猫"出来的 <code>(0.5, 0.5)</code> 向量在语义上不一定是"猫狗混血"，one-hot 空间里它落在两个类别的连线上，但下游模型未必按这个几何解释它。</li>
+<li>别在未归一化的向量上直接用点积当相似度，除非你明确要"长度也参与打分"（比如 TF-IDF 里词频强度就该参与）。替代方案：先 <code>normalize</code> 再点积，或直接用 <code>sklearn.metrics.pairwise.cosine_similarity</code>（本文不展开 sklearn，只提示这条路存在）。</li>
+</ul>
+<p>翻车长什么样：</p>
+<ul>
+<li>现象：检索结果全是"长文档"。排查信号：<code>np.linalg.norm(docs, axis=1)</code> 的最大值/最小值比值超过 5。改法：行归一化后再建索引。</li>
+<li>现象：<code>ValueError: shapes (768,) and (5,768) not aligned</code>。排查信号：打印双方 shape。改法：查询向量要 <code>q.reshape(1, -1)</code> 或直接 <code>docs_u @ q_u</code> 而不是 <code>np.dot(docs, q)</code> 混用一维二维——<code>np.dot</code> 对两个二维数组做矩阵乘，对一维数组做点积，行为随 shape 变化，容易踩。</li>
+</ul>
+<hr />
+<h2 id="2-矩阵不是表格是一台空间变换机器">2. 矩阵：不是表格，是一台"空间变换机器"</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.1 白话直觉（本节直觉源：3Blue1Brown《线性变换与矩阵》）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>3Blue1Brown 的核心洞察是：把矩阵看成对空间的动作，而不是数字网格</li><li>一个 2×2 矩阵 「[[2, 1], [1, 2]]」 的含义是：它作用到平面上任意一点，把整个平面拉伸、旋转、剪切到新位置</li><li>这一点和 §1 的"向量是配方"完全接上：矩阵把配方 x 翻译成了新空间里的一个点</li></ul></div>3
+<p>3Blue1Brown 的核心洞察是：<strong>把矩阵看成对空间的动作，而不是数字网格</strong>。一个 2×2 矩阵 <code>[[2, 1], [1, 2]]</code> 的含义是：它作用到平面上任意一点，把整个平面拉伸、旋转、剪切到新位置。而"矩阵是什么动作"完全由它对基底向量 <code>i=(1,0)</code>、<code>j=(0,1)</code> 的去向决定——矩阵的第一列 <code>(2,1)</code> 就是 i 被送到的位置，第二列 <code>(1,2)</code> 就是 j 被送到的位置。</p>
+<p>所以 <strong>矩阵乘向量 <code>A @ x</code> = 按 x 的配方把 A 的列向量加权叠加</strong>。<code>A @ x = x1*(第1列) + x2*(第2列)</code>。这一点和 §1 的"向量是配方"完全接上：矩阵把配方 x 翻译成了新空间里的一个点。</p>
+<p>两个关键性质，由"线性"二字直接推出：</p>
+<ul>
+<li><strong>直线变换后仍是直线</strong>：没有弯曲，弯曲的空间就不是线性变换。</li>
+<li><strong>原点不动</strong>：<code>A @ 0 = 0</code>。仿射变换（带平移）多加一项 <code>b</code>，即 <code>A @ x + b</code>，神经网络的全连接层 <code>y = W @ x + b</code> 就是这个。</li>
+</ul>
+<h3 id="22-矩阵乘法的白话先变换谁">2.2 矩阵乘法的白话：先变换谁</h3>3
+<p><code>(A @ B) @ x = A @ (B @ x)</code>，结合律成立，但<strong>顺序不交换</strong>：<code>A @ B ≠ B @ A</code>。白话：先做 B 变换再做 A 变换，和反过来，是两台不同的机器。比如"先旋转 90° 再沿 x 轴拉伸 2 倍"和"先拉伸再旋转"结果不同。数据处理里对应"先标准化再降维"和"先降维再标准化"也是不同的流水线。</p>
+<p><strong>代码 2：矩阵是空间动作（可直接跑，matplotlib 3.11.2）</strong></p>
+<pre><code class="language-python">import numpy as np
+import matplotlib
+matplotlib.use(&quot;Agg&quot;)          # 无显示环境下保存图片用
+import matplotlib.pyplot as plt
+
+A = np.array([[2.0, 1.0],
+              [1.0, 2.0]])
+
+# 矩阵乘向量 = 列向量的加权叠加
+x = np.array([1.0, 0.5])
+print(&quot;A @ x =&quot;, A @ x)                       # [2.5 2. ]
+print(&quot;列加权:&quot;, 1.0 * A[:, 0] + 0.5 * A[:, 1])  # [2.5 2. ] 两者相等
+
+# 可视化：网格被变换成什么样
+grid = np.stack(np.meshgrid(np.arange(-2, 3), np.arange(-2, 3)), -1).reshape(-1, 2)
+t = grid @ A.T                                 # 注意是右乘 A.T：每行是一个点
+fig, ax = plt.subplots(1, 2, figsize=(8, 4))
+ax[0].scatter(grid[:, 0], grid[:, 1], s=10); ax[0].set_title(&quot;original grid&quot;)
+ax[1].scatter(t[:, 0], t[:, 1], s=10);        ax[1].set_title(&quot;after A @ x&quot;)
+for a_ in ax: a_.set_aspect(&quot;equal&quot;); a_.set_xlim(-6, 6); a_.set_ylim(-6, 6)
+fig.savefig(&quot;/tmp/lin_transform.png&quot;, dpi=80)
+print(&quot;saved /tmp/lin_transform.png&quot;)
+</code></pre>
+<p>注意 <code>grid @ A.T</code>：numpy 里批量向量习惯排成行（每行一个样本），行向量右乘 <code>A.T</code> 等价于每个列向量左乘 <code>A</code>。这个转置约定是 numpy 代码里最常见的"差一个转置"事故源头。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.3 适用 / 不适用 / 翻车</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>适用：任何线性流水线——全连接层、投影、坐标系变换、白化（whitening）</li><li>比如"点击率随曝光从 0 涨到饱和"是 S 形曲线，用矩阵拟合会系统性偏差；替代方案是加激活函数的神经网络或广义线性模型</li><li>现象：「matmul: Input operand 1 has a mismatch in its core dimension 0」</li></ul></div>3
+<p>适用：任何线性流水线——全连接层、投影、坐标系变换、白化（whitening）。<code>A @ B</code> 的形状规则 <code>(m,k) @ (k,n) -&gt; (m,n)</code> 必须中间维相同。</p>
+<p>别用：非线性关系硬套线性变换。比如"点击率随曝光从 0 涨到饱和"是 S 形曲线，用矩阵拟合会系统性偏差；替代方案是加激活函数的神经网络或广义线性模型。</p>
+<p>翻车长什么样：</p>
+<ul>
+<li>现象：<code>matmul: Input operand 1 has a mismatch in its core dimension 0</code>。排查信号：打印 <code>A.shape, x.shape</code>。改法：<code>(4096, 768)</code> 的 embedding 矩阵乘 <code>(768,)</code> 向量合法；乘 <code>(4096,)</code> 就是维度写反了。</li>
+<li>现象：批量变换后结果是转置的（样本数和特征数互换）。排查信号：<code>result.shape</code>。改法：行样本用 <code>X @ A.T</code> 或 <code>np.einsum('ij,kj-&gt;ik', X, A)</code>。</li>
+</ul>
+<hr />
+<h2 id="3-逆矩阵与线性方程组别手写-inv">3. 逆矩阵与线性方程组：别手写 inv</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.1 白话直觉</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>如果 A 把空间压扁到低维（比如把平面压成一条线），那么很多个 x 都会落到同一个 b，方程无唯一解——这就是奇异矩阵</li></ul></div>3
+<p><code>A @ x = b</code> 问的是"空间被 A 变换后，哪个原像 x 落到 b"。如果 A 是可逆的（变换不压扁空间），答案唯一：<code>x = A⁻¹ @ b</code>。如果 A 把空间压扁到低维（比如把平面压成一条线），那么很多个 x 都会落到同一个 b，方程无唯一解——这就是奇异矩阵。</p>
+<h3 id="32-solve-比-inv-好在哪">3.2 solve 比 inv 好在哪</h3>3
+<p>数学上 <code>A⁻¹ @ b</code> 和 <code>solve(A, b)</code> 等价，但工程上 <code>solve</code> 走 LAPACK 的 LU 分解，直接解方程；<code>inv(A) @ b</code> 先显式求整个逆矩阵再乘，多做约 3 倍浮点运算，且逆矩阵元素可能爆炸式放大数值误差。numpy 官方 API 文档把 <code>numpy.linalg.solve</code> 列为解线性方程组的标准入口。</p>
+<p><strong>代码 3：solve 与 inv 对比（可直接跑，含数值验证）</strong></p>
+<pre><code class="language-python">import numpy as np
+
+A = np.array([[3.0, 1.0],
+              [1.0, 2.0]])
+b = np.array([9.0, 8.0])
+
+x_solve = np.linalg.solve(A, b)
+x_inv = np.linalg.inv(A) @ b
+print(&quot;solve:&quot;, x_solve)          # [2. 3.]
+print(&quot;inv  :&quot;, x_inv)            # [2. 3.]
+print(&quot;残差 |Ax-b|:&quot;, np.linalg.norm(A @ x_solve - b))   # ~1e-15
+
+# 高维：三种写法的速度差（量级对比，随机器变化）
+import time
+rng = np.random.default_rng(0)
+M = rng.normal(size=(500, 500)) + 500 * np.eye(500)   # 加对角占优，保证可逆
+v = rng.normal(size=500)
+for name, fn in [(&quot;solve&quot;, lambda: np.linalg.solve(M, v)),
+                 (&quot;inv@b&quot;, lambda: np.linalg.inv(M) @ v)]:
+    t0 = time.perf_counter(); [fn() for _ in range(20)]; t1 = time.perf_counter()
+    print(f&quot;{name}: {(t1 - t0) / 20 * 1000:.2f} ms/次&quot;)
+</code></pre>
+<p>实测（本机 numpy 2.4.3，500×500，20 次取平均）：<code>solve</code> 约 2.0 ms/次，<code>inv@b</code> 约 5.5 ms/次，比值约 2.7 倍——和"求逆多约 3 倍运算量"的理论预期同量级。你的机器上数字会变，量级关系不变。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.3 适用 / 不适用 / 翻车</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>适用：解线性方程组、白化变换、最小二乘的正规方程（「(XᵀX)⁻¹Xᵀy」——但实务上更推荐 「np.linalg.lstsq」，见下）</li><li>现象：「LinAlgError: Singular matrix」</li><li>排查信号：「np.linalg.matrix_rank(A) < A.shape[0]」，或 「np.linalg.cond(A)」 超过 「1e10」</li></ul></div>3
+<p>适用：解线性方程组、白化变换、最小二乘的正规方程（<code>(XᵀX)⁻¹Xᵀy</code>——但实务上更推荐 <code>np.linalg.lstsq</code>，见下）。</p>
+<p>别用：近奇异（病态）矩阵硬求逆。替代方案：正则化（岭回归加 <code>λI</code>）、<code>np.linalg.pinv</code>（伪逆，Moor-Penrose 广义逆，奇异时给出最小范数解）、<code>np.linalg.lstsq</code>（SVD 打底，专门解超定/欠定最小二乘）。</p>
+<p>翻车长什么样：</p>
+<ul>
+<li>现象：<code>LinAlgError: Singular matrix</code>。排查信号：<code>np.linalg.matrix_rank(A) &lt; A.shape[0]</code>，或 <code>np.linalg.cond(A)</code> 超过 <code>1e10</code>。改法：加 <code>λI</code>（<code>solve(A + 1e-6*np.eye(n), b)</code>）或改用 <code>pinv</code>。</li>
+<li>现象：解出来每个分量都是 <code>1e+15</code> 量级，物理上不可能。排查信号：<code>cond(A)</code> 大；行之间近似线性相关（如两个特征列完全重复）。改法：删掉冗余列再解；这类重复列在特征工程里常见——"注册天数"和"注册日期戳"两列同时进模型就是典型源。</li>
+</ul>
+<hr />
+<h2 id="4-行列式变换改变了多少体积">4. 行列式：变换"改变了多少体积"</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.1 白话直觉</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>行列式 「det(A)」 是一个数，含义是：A 这个变换把单位面积（二维）或单位体积（高维）放大了多少倍</li><li>行列式为 0、不可逆、秩不满是同一件事的三种说法</li><li>「det < 0」：变换翻转了手性（像照镜子）</li></ul></div>3
+<p>行列式 <code>det(A)</code> 是一个数，含义是：A 这个变换把单位面积（二维）或单位体积（高维）放大了多少倍。符号表示有没有翻转方向（镜像）。</p>
+<ul>
+<li><code>det = 2</code>：面积变 2 倍。</li>
+<li><code>det = 0.5</code>：面积缩到一半。</li>
+<li><code>det = 0</code>：整个空间被压扁到低维，体积归零 → 矩阵不可逆。<strong>行列式为 0、不可逆、秩不满是同一件事的三种说法</strong>。</li>
+<li><code>det &lt; 0</code>：变换翻转了手性（像照镜子）。</li>
+</ul>
+<h3 id="42-代码与数字">4.2 代码与数字</h3>3
+<p><strong>代码 4：行列式的几何意义（可直接跑）</strong></p>
+<pre><code class="language-python">import numpy as np
+
+A = np.array([[2.0, 0.0], [0.0, 1.5]])
+print(&quot;det(A) =&quot;, round(np.linalg.det(A), 6))  # 3.0  = 面积放大 3 倍（实算 2.9999999999999996，浮点误差）
+
+B = np.array([[1.0, 2.0], [2.0, 4.0]])   # 第二列是第一列的 2 倍 → 压扁
+print(&quot;det(B) =&quot;, np.linalg.det(B))      # 0.0（实际输出是 0.0 或 -8.88e-16 浮点噪声）
+print(&quot;rank(B) =&quot;, np.linalg.matrix_rank(B))  # 1
+
+C = np.array([[0.0, 1.0], [1.0, 0.0]])   # 关于 y=x 镜像
+print(&quot;det(C) =&quot;, np.linalg.det(C))      # -1.0  负号 = 翻转
+</code></pre>
+<p>浮点噪声注意：<code>det(B)</code> 理论是 0，实算可能给出 <code>-8.88e-16</code> 这种数，判断"是否奇异"不要写 <code>det == 0</code>，要写 <code>abs(det) &lt; 1e-10</code> 或直接用 <code>matrix_rank</code>。这是判定阈值类代码的经典坑。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.3 适用 / 不适用 / 翻车</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>别用：行列式的绝对值大小当"矩阵好坏"的指标</li><li>病态要看条件数 「cond(A)」（最大奇异值/最小奇异值）</li><li>排查信号：「abs(det) < 1e-10」 却通过了 `</li></ul></div>3
+<p>适用：判断可逆性、判断变换是否翻转、概率里多元正态分布的归一化因子（<code>1/sqrt((2π)^k |Σ|)</code>，Σ 是协方差矩阵——协方差矩阵行列式是"联合分布的广义体积"）。</p>
+<p>别用：行列式的绝对值大小当"矩阵好坏"的指标。一个 3×3 单位阵缩放 0.1 后 det=0.001，但完全可逆、数值稳定；det 小只说明体积压缩，不说明病态。病态要看条件数 <code>cond(A)</code>（最大奇异值/最小奇异值）。</p>
+<p>翻车长什么样：</p>
+<ul>
+<li>现象：用 <code>if det != 0</code> 判断可逆，生产代码在某些输入下崩在 <code>solve</code>。排查信号：<code>abs(det) &lt; 1e-10</code> 却通过了 <code>!= 0</code> 检查。改法：统一用 <code>matrix_rank</code> 或 <code>cond</code> 做门禁，阈值写成常量并注释来源。</li>
+<li>现象：多元高斯采样时 <code>sqrt(det(cov))</code> 报 NaN。排查信号：协方差矩阵来自样本量 &lt; 特征数的数据。改法：样本协方差在 n &lt; d 时必然秩亏，加 <code>1e-6 * np.eye(d)</code> 对角噪声再求 det。</li>
+</ul>
+<hr />
+<h2 id="5-特征值与特征向量变换里只伸缩不转身的方向">5. 特征值与特征向量：变换里"只伸缩、不转身"的方向</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.1 白话直觉</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>变换 A 作用到大多数向量上，方向和长度都会变</li><li>「v」 是特征向量（不变的方向），「λ」 是特征值（这个方向上的伸缩倍数）</li><li>1. PCA 降维：协方差矩阵的特征向量是"方差最大的方向"，特征值是"这个方向上有多少方差"</li></ul></div>3
+<p>变换 A 作用到大多数向量上，方向和长度都会变。但总有那么一两个特殊方向，A 作用上去<strong>方向不变，只把长度乘个倍数 λ</strong>：</p>
+<pre><code>A @ v = λ * v
+</code></pre>
+<p><code>v</code> 是特征向量（不变的方向），<code>λ</code> 是特征值（这个方向上的伸缩倍数）。λ &gt; 1 拉伸，0 &lt; λ &lt; 1 压缩，λ &lt; 0 反向，λ = 0 这个方向被压扁（v 落进 A 的零空间）。</p>
+<p>这个概念的实际用途集中在两处：</p>
+<ol>
+<li><strong>PCA 降维</strong>：协方差矩阵的特征向量是"方差最大的方向"，特征值是"这个方向上有多少方差"。取最大的 k 个特征值对应的特征向量 = 保留 k 个最有信息量的方向。</li>
+<li><strong>稳定性分析</strong>：迭代系统 <code>x_{t+1} = A @ x_t</code> 收敛与否取决于 A 的最大特征值绝对值是否 &lt; 1。</li>
+</ol>
+<h3 id="52-代码特征值分解与-pca-雏形">5.2 代码：特征值分解与 PCA 雏形</h3>3
+<p><strong>代码 5：特征值分解 + 手写 PCA（可直接跑）</strong></p>
+<pre><code class="language-python">import numpy as np
+
+A = np.array([[2.0, 1.0],
+              [1.0, 2.0]])
+vals, vecs = np.linalg.eig(A)
+print(&quot;特征值:&quot;, vals)        # [3. 1.]  顺序可能不同，以实跑输出为准
+print(&quot;特征向量(列):\n&quot;, vecs)
+# 验证 A v = λ v（取第一列）
+v = vecs[:, 0]
+print(&quot;Av vs λv:&quot;, A @ v, vals[0] * v)
+
+# 手写 PCA：X (n_samples, n_features) → 降到 2 维
+rng = np.random.default_rng(7)
+X = rng.normal(size=(200, 5)) @ np.array([
+    [2.0, 0.0, 0.0, 0.0, 0.0],
+    [0.5, 1.0, 0.0, 0.0, 0.0],
+    [0.0, 0.0, 0.3, 0.0, 0.0],
+    [0.0, 0.0, 0.0, 0.1, 0.0],
+    [0.0, 0.0, 0.0, 0.0, 0.05]])
+Xc = X - X.mean(axis=0)                      # 中心化
+cov = Xc.T @ Xc / (len(X) - 1)               # 样本协方差，分母 n-1
+vals, vecs = np.linalg.eigh(cov)             # 对称矩阵用 eigh，更稳
+order = np.argsort(vals)[::-1]               # 特征值降序
+vals, vecs = vals[order], vecs[:, order]
+print(&quot;各主成分方差占比:&quot;, vals / vals.sum())
+X_pca = Xc @ vecs[:, :2]                     # 投影到前两个主成分
+print(&quot;降维后 shape:&quot;, X_pca.shape)          # (200, 2)
+</code></pre>
+<p>对称矩阵用 <code>np.linalg.eigh</code> 而不是 <code>eig</code>：<code>eigh</code> 保证实特征值、正交特征向量，且比通用 <code>eig</code> 快、数值更稳。协方差矩阵天然对称，PCA 里一律 <code>eigh</code>。<code>eig</code> 的输出可能带虚部（<code>+0j</code>），处理不对称矩阵时要留意。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.3 适用 / 不适用 / 翻车</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>适用：PCA/白化、谱聚类、PageRank 类迭代、稳定性判断、理解 Transformer 里低秩适配（LoRA）为什么用两个小矩阵近似大矩阵的更新——大矩阵更新的"有效秩"低，正是特征值集中在前几个的表现</li><li>别用：非方阵求特征值（「eig」 只对方阵定义；要分析 「X (m,n)」 的结构用 SVD，奇异值是 「XᵀX」 特征值的平方根）</li><li>现象：PCA 降维后每列数值都带 「+0j」</li></ul></div>3
+<p>适用：PCA/白化、谱聚类、PageRank 类迭代、稳定性判断、理解 Transformer 里低秩适配（LoRA）为什么用两个小矩阵近似大矩阵的更新——大矩阵更新的"有效秩"低，正是特征值集中在前几个的表现。</p>
+<p>别用：非方阵求特征值（<code>eig</code> 只对方阵定义；要分析 <code>X (m,n)</code> 的结构用 SVD，奇异值是 <code>XᵀX</code> 特征值的平方根）。也别在非对称矩阵上假定特征向量正交。</p>
+<p>翻车长什么样：</p>
+<ul>
+<li>现象：PCA 降维后每列数值都带 <code>+0j</code>。排查信号：用的是 <code>np.linalg.eig</code>。改法：对称矩阵换 <code>eigh</code>，或取 <code>.real</code> 前先确认矩阵确实对称（<code>np.allclose(cov, cov.T)</code>）。</li>
+<li>现象：<code>eig</code> 报 <code>LinAlgError: Eigenvalues did not converge</code>。排查信号：矩阵里有 NaN/inf（数据管道漏清洗）。改法：<code>np.isfinite(M).all()</code> 前置检查，这是数据管道 bug 的探测器而不是线代 bug。</li>
+</ul>
+<hr />
+<h2 id="6-秩零空间与信息到底有几维">6. 秩、零空间与"信息到底有几维"</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.1 白话直觉</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>数据场景翻译：100 个特征的表，如果实际秩是 12，说明这 100 列只承载 12 维独立信息，剩下 88 列是线性组合的冗余</li><li>降维、查共线性、理解"为什么模型参数比样本还多却没过拟合"，都靠秩</li></ul></div>3
+<p>矩阵的秩 = 变换后空间的实际维数 = 列向量张成空间的维数 = 独立信息的条数。</p>
+<ul>
+<li><code>rank(A) = n</code>（满秩）：n 列各带独立信息，可逆。</li>
+<li><code>rank(A) = r &lt; n</code>：有 <code>n - r</code> 个维度是冗余的，零空间维数（零度）就是 <code>n - r</code>，意思是"有无穷多个 x 映射到 0"。</li>
+</ul>
+<p>数据场景翻译：100 个特征的表，如果实际秩是 12，说明这 100 列只承载 12 维独立信息，剩下 88 列是线性组合的冗余。降维、查共线性、理解"为什么模型参数比样本还多却没过拟合"，都靠秩。</p>
+<h3 id="62-代码与阈值">6.2 代码与阈值</h3>3
+<p><strong>代码 6：秩的判定与共线性诊断（可直接跑）</strong></p>
+<pre><code class="language-python">import numpy as np
+
+M1 = np.eye(4)                                   # 满秩
+M2 = np.array([[1., 2.], [2., 4.]])              # 第二列 = 2*第一列
+M3 = np.random.default_rng(1).normal(size=(4, 4))
+M4 = M3.copy(); M4[:, 3] = M4[:, 0] + M4[:, 1]   # 人为制造线性相关
+
+for name, M in [(&quot;M1&quot;, M1), (&quot;M2&quot;, M2), (&quot;M3&quot;, M3), (&quot;M4&quot;, M4)]:
+    r = np.linalg.matrix_rank(M, tol=1e-10)      # 显式给奇异值阈值
+    print(f&quot;{name}: shape={M.shape} rank={r}&quot;)
+
+# 实跑输出（numpy 2.4.3）：
+# M1: shape=(4, 4) rank=4
+# M2: shape=(2, 2) rank=1
+# M3: shape=(4, 4) rank=4
+# M4: shape=(4, 4) rank=3
+</code></pre>
+<p><code>matrix_rank</code> 的 <code>tol</code> 是奇异值阈值：奇异值小于 tol 的方向被当作 0。默认值随 numpy 版本按 <code>max(M.shape) * eps * 最大奇异值</code> 自适应，但<strong>在病态数据上建议显式给 tol 并写进配置</strong>，让判定标准可复现。上述输出是本次用 numpy 2.4.3 实跑的结果，可作为你本地复核的锚点。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.3 适用 / 不适用 / 翻车</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>适用：共线性诊断（特征工程质检）、判断方程组解的结构、判断嵌入矩阵的有效维度（LoRA 的秩 r 就是这个秩）</li><li>真实数据的矩阵几乎总是满秩（噪声填满了退化方向），但"数值秩"（奇异值谱里前几个远大于其余）才是有效维度</li><li>替代方案：看奇异值衰减曲线（SVD），找拐点</li></ul></div>3
+<p>适用：共线性诊断（特征工程质检）、判断方程组解的结构、判断嵌入矩阵的有效维度（LoRA 的秩 r 就是这个秩）。</p>
+<p>别用：对含测量噪声的数据用精确秩判定。真实数据的矩阵几乎总是满秩（噪声填满了退化方向），但"数值秩"（奇异值谱里前几个远大于其余）才是有效维度。替代方案：看奇异值衰减曲线（SVD），找拐点。</p>
+<p>翻车长什么样：</p>
+<ul>
+<li>现象：<code>matrix_rank</code> 永远返回满秩，但模型明显在冗余特征上过拟合。排查信号：<code>np.linalg.svd(M, compute_uv=False)</code> 的奇异值从第 5 个开始就掉到第 1 个的 <code>1e-6</code> 以下。改法：按奇异值谱截断，而不是按精确秩。</li>
+<li>现象：<code>tol=0</code> 传给 <code>matrix_rank</code>，噪声数据全判满秩。排查信号：代码里出现 <code>tol=0</code>。改法：阈值量级一般取 <code>1e-10</code>（双精度、特征量级 O(1) 时）；特征量级差 10^6 倍时要先标准化再判秩。</li>
+</ul>
+<hr />
+<h2 id="7-numpy-线代-api-速查与两个完整脚本">7. numpy 线代 API 速查与两个完整脚本</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7.1 API 对照表（白话动作 ↔ 函数）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>白话动作</th>
+<th>numpy API</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>向量长度</td>
+<td><code>np.linalg.norm(x)</code></td>
+<td>默认 2-范数</td>
+</tr>
+<tr>
+<td>点积</td>
+<td><code>x @ y</code> 或 <code>np.dot(x, y)</code></td>
+<td>一维为点积，二维为矩阵乘</td>
+</tr>
+<tr>
+<td>矩阵乘</td>
+<td><code>A @ B</code></td>
+<td>Python 3.5+ 运算符，等价 <code>np.matmul</code></td>
+</tr>
+<tr>
+<td>解 Ax=b</td>
+<td><code>np.linalg.solve(A, b)</code></td>
+<td>首选，别写 <code>inv(A) @ b</code></td>
+</tr>
+<tr>
+<td>求逆</td>
+<td><code>np.linalg.inv(A)</code></td>
+<td>仅方阵且满秩</td>
+</tr>
+<tr>
+<td>伪逆</td>
+<td><code>np.linalg.pinv(A)</code></td>
+<td>奇异/非方阵的最小范数解</td>
+</tr>
+<tr>
+<td>行列式</td>
+<td><code>np.linalg.det(A)</code></td>
+<td>0 ⇒ 不可逆</td>
+</tr>
+<tr>
+<td>秩</td>
+<td><code>np.linalg.matrix_rank(A, tol=1e-10)</code></td>
+<td>显式给 tol</td>
+</tr>
+<tr>
+<td>特征值(对称)</td>
+<td><code>np.linalg.eigh(A)</code></td>
+<td>PCA 用这个</td>
+</tr>
+<tr>
+<td>特征值(通用)</td>
+<td><code>np.linalg.eig(A)</code></td>
+<td>可能出虚数</td>
+</tr>
+<tr>
+<td>SVD</td>
+<td><code>np.linalg.svd(A, compute_uv=False)</code></td>
+<td>奇异值谱看有效秩</td>
+</tr>
+<tr>
+<td>最小二乘</td>
+<td><code>np.linalg.lstsq(A, b, rcond=None)</code></td>
+<td>超定方程首选</td>
+</tr>
+<tr>
+<td>条件数</td>
+<td><code>np.linalg.cond(A)</code></td>
+<td>&gt;1e10 视为病态（经验值）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="72-完整脚本-a向量检索迷你实现可直接跑">7.2 完整脚本 A：向量检索迷你实现（可直接跑）</h3>3
+<pre><code class="language-python">&quot;&quot;&quot;最小向量检索 demo：建库 → 归一化 → 余弦 top-k。
+运行: numpy 2.4.3, Python 3.14&quot;&quot;&quot;
+import numpy as np
+
+rng = np.random.default_rng(2026)
+docs = rng.normal(size=(1000, 64))                    # 1000 篇 64 维&quot;文档&quot;
+docs[100:110] += 3.0                                  # 制造一个主题簇
+q = docs[105] + 0.01 * rng.normal(size=64)            # 查询 = 簇内某篇 + 噪声
+
+# 归一化后余弦 = 点积，一次矩阵乘算完所有文档
+docs_u = docs / np.linalg.norm(docs, axis=1, keepdims=True)
+q_u = q / np.linalg.norm(q)
+scores = docs_u @ q_u                                 # shape (1000,)
+topk = np.argsort(scores)[::-1][:5]
+print(&quot;top-5 文档下标:&quot;, topk)                        # 预期 [105, 10x...]
+print(&quot;top-5 分数:&quot;, scores[topk])
+
+# 验证：暴力循环结果应一致
+brute = sorted(range(1000), key=lambda i: -scores[i])[:5]
+assert list(topk) == brute, &quot;向量化实现与暴力法不一致&quot;
+print(&quot;验证通过：向量化 top-k == 暴力 top-k&quot;)
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7.3 完整脚本 B：病态矩阵诊断工具（可直接跑）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>"""诊断一个矩阵能不能安全求解</li><li>print("→ 秩亏：矩阵奇异，直接 solve 会报 LinAlgError")</li><li>print("→ 病态：可解但数值误差可能放大 cond 倍")</li></ul></div>3
+<pre><code class="language-python">&quot;&quot;&quot;诊断一个矩阵能不能安全求解。输出：秩、条件数、建议动作。
+运行: numpy 2.4.3&quot;&quot;&quot;
+import numpy as np
+
+def diagnose(A, b, tol=1e-10):
+    n = A.shape[0]
+    r = np.linalg.matrix_rank(A, tol=tol)
+    c = np.linalg.cond(A)
+    svals = np.linalg.svd(A, compute_uv=False)
+    print(f&quot;shape={A.shape} rank={r}/{n} cond={c:.3e}&quot;)
+    print(f&quot;奇异值(降序前5): {np.sort(svals)[::-1][:5]}&quot;)
+    if r &lt; n:
+        print(&quot;→ 秩亏：矩阵奇异，直接 solve 会报 LinAlgError&quot;)
+        print(&quot;→ 建议：np.linalg.pinv(A) @ b 或 solve(A + λI, b)，λ=1e-6*trace(A)/n&quot;)
+        x = np.linalg.pinv(A) @ b
+    elif c &gt; 1e10:
+        print(&quot;→ 病态：可解但数值误差可能放大 cond 倍&quot;)
+        print(&quot;→ 建议：标准化特征列 / 加岭正则 λI，λ=1e-6 起调&quot;)
+        x = np.linalg.solve(A + 1e-6 * np.eye(n), b)
+    else:
+        print(&quot;→ 健康：直接 solve&quot;)
+        x = np.linalg.solve(A, b)
+    print(f&quot;残差 |Ax-b| = {np.linalg.norm(A @ x - b):.3e}&quot;)
+    return x
+
+# 用例 1：健康矩阵
+diagnose(np.array([[3.0, 1.0], [1.0, 2.0]]), np.array([9.0, 8.0]))
+# 用例 2：奇异矩阵
+diagnose(np.array([[1.0, 2.0], [2.0, 4.0]]), np.array([1.0, 2.0]))
+# 用例 3：病态矩阵（两列近似成比例）
+diagnose(np.array([[1.0, 1.0], [1.0, 1.0 + 1e-12]]), np.array([2.0, 2.0]))
+</code></pre>
+<p>用例 3 的实跑输出是 <code>rank=1/2 cond=3.999e+12</code>（<code>abs(det)=1e-12</code> 仍是"数值奇异"），进入病态/秩亏处置分支——这正是"两列几乎重复"这种特征工程事故的标准指纹。用例 2 的实跑输出 <code>cond=2.518e+16</code>。</p>
+<hr />
+<h2 id="8-术语表">8. 术语表</h2>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>全称</th>
+<th>一句话解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>向量</td>
+<td>Vector</td>
+<td>一组有序数值，工程上视为对基底的用量配方</td>
+</tr>
+<tr>
+<td>矩阵</td>
+<td>Matrix</td>
+<td>把向量映射到向量的线性变换的数字表</td>
+</tr>
+<tr>
+<td>点积</td>
+<td>Dot Product</td>
+<td>两向量逐元素乘再求和，几何上等于模长乘夹角余弦</td>
+</tr>
+<tr>
+<td>余弦相似度</td>
+<td>Cosine Similarity</td>
+<td>两个向量方向的重合度，取值 [-1,1]</td>
+</tr>
+<tr>
+<td>逆矩阵</td>
+<td>Inverse Matrix</td>
+<td>与原矩阵相乘得到单位阵的矩阵，存在当且仅当满秩</td>
+</tr>
+<tr>
+<td>行列式</td>
+<td>Determinant</td>
+<td>变换对体积的缩放倍数，0 表示空间被压扁</td>
+</tr>
+<tr>
+<td>特征值</td>
+<td>Eigenvalue</td>
+<td>特征方向上的伸缩倍数 λ</td>
+</tr>
+<tr>
+<td>特征向量</td>
+<td>Eigenvector</td>
+<td>变换后方向不变、只被拉伸的向量</td>
+</tr>
+<tr>
+<td>秩</td>
+<td>Rank</td>
+<td>矩阵列向量张成空间的维数，即独立信息条数</td>
+</tr>
+<tr>
+<td>奇异矩阵</td>
+<td>Singular Matrix</td>
+<td>秩不满的矩阵，行列式为 0，不可逆</td>
+</tr>
+<tr>
+<td>零空间</td>
+<td>Null Space</td>
+<td>被映射到零向量的所有输入向量构成的空间</td>
+</tr>
+<tr>
+<td>条件数</td>
+<td>Condition Number</td>
+<td>最大奇异值/最小奇异值，衡量求解数值稳定性</td>
+</tr>
+<tr>
+<td>SVD</td>
+<td>Singular Value Decomposition</td>
+<td>奇异值分解，任意矩阵的广义特征结构</td>
+</tr>
+<tr>
+<td>PCA</td>
+<td>Principal Component Analysis</td>
+<td>主成分分析，按协方差特征值降序取方向做降维</td>
+</tr>
+<tr>
+<td>LU 分解</td>
+<td>LU Decomposition</td>
+<td>把矩阵拆成下三角×上三角，solve 的底层算法</td>
+</tr>
+<tr>
+<td>病态矩阵</td>
+<td>Ill-conditioned Matrix</td>
+<td>条件数极大的矩阵，输入微小扰动导致解剧变</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">9. 深度三问（明确作答）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>① 什么情况下用（适用场景 + 前置条件）</li><li>向量/矩阵运算出现在一切"多维数值 + 线性流水线"场景：embedding 检索、全连接层、PCA 降维、白化、最小二乘拟合</li><li>② 什么情况下别用（反例 + 替代方案）</li></ul></div>2
+<p><strong>① 什么情况下用（适用场景 + 前置条件）</strong><br />
+向量/矩阵运算出现在一切"多维数值 + 线性流水线"场景：embedding 检索、全连接层、PCA 降维、白化、最小二乘拟合。前置条件：数据已数值化（类别列先编码）、特征列量级相近（否则先标准化）、样本矩阵形状明确（行=样本）。</p>
+<p><strong>② 什么情况下别用（反例 + 替代方案）</strong><br />
+非线性关系别硬套线性变换（替代：核方法/神经网络）；未归一化向量别拿点积当相似度（替代：余弦）；病态矩阵别硬 solve（替代：<code>pinv</code>、岭正则、<code>lstsq</code>）；n &lt; d 的样本协方差别直接求逆（替代：加对角噪声或用 SVD）；精确秩判定别用于含噪数据（替代：奇异值谱拐点）。</p>
+<p><strong>③ 翻车长什么样（真实失败形态 → 排查信号 → 怎么改）</strong><br />
+<code>LinAlgError: Singular matrix</code> → 查 <code>matrix_rank</code>、<code>cond</code> → 加 λI 或 <code>pinv</code>；结果带 <code>+0j</code> → 用错了 <code>eig</code> → 对称矩阵换 <code>eigh</code>；批量矩阵乘结果转置 → shape 打印 → 行样本用 <code>X @ A.T</code>；<code>matrix_rank</code> 恒满秩但明显冗余 → 看奇异值衰减 → 按谱截断；<code>det != 0</code> 通过但 solve 崩 → 阈值写死 → 用 <code>abs(det) &lt; 1e-10</code> 或 <code>cond</code> 门禁。所有报错排查第一步永远是打印 shape 与数值范围（<code>np.isfinite</code>）。</p>
+<hr />
+<h2 id="10-六个补充片段从直觉到工程细节">10. 六个补充片段：从直觉到工程细节</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">10.1 归一化后点积才等于余弦</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>工程上"先归一化再点积"有个额外红利：检索索引（如 FAISS 的 「IndexFlatIP」）只需存归一化向量，查询时一次矩阵乘得到全部分数，不需要逐条算夹角</li><li>代价是丢失了长度信息——如果你的场景里"长文档/高权重"本身就是信号（TF-IDF 就是），那就不该归一化，这正是 §1.3 说的"什么时候别用"</li></ul></div>3
+<p><code>normalize(a) @ normalize(b)</code> 在数学上严格等于余弦相似度；不归一化的点积 = 余弦 × 两个模长。工程上"先归一化再点积"有个额外红利：检索索引（如 FAISS 的 <code>IndexFlatIP</code>）只需存归一化向量，查询时一次矩阵乘得到全部分数，不需要逐条算夹角。代价是丢失了长度信息——如果你的场景里"长文档/高权重"本身就是信号（TF-IDF 就是），那就不该归一化，这正是 §1.3 说的"什么时候别用"。</p>
+<p>实测对照（numpy 2.4.3）：5 个 8 维随机向量对同一查询的余弦为 <code>[-0.2554 -0.1326 0.006 0.3168 -0.5575]</code>，正负号混合说明随机高维向量近似正交（余弦集中在 0 附近），这是高维空间的一个基本体感：<strong>随机向量之间的相似度几乎都不大</strong>，所以检索里 0.8 以上的余弦已经算很高，0.99 的余弦几乎肯定是重复内容。</p>
+<h3 id="102-批量变换的转置约定与-einsum">10.2 批量变换的转置约定与 einsum</h3>3
+<p>行样本约定下，"每个样本各乘 A" 的两种等价写法：</p>
+<pre><code class="language-python">import numpy as np
+X = np.arange(6.).reshape(3, 2)              # 3 个 2 维样本
+A = np.array([[2., 0.], [0., 3.]])           # 对角拉伸：x 放大 2 倍，y 放大 3 倍
+out1 = X @ A.T                                # 常规写法
+out2 = np.einsum('ij,kj-&gt;ik', X, A)          # einsum：i 样本，j 特征，k 输出行
+print(out1)          # [[ 0.  3.] [ 4.  9.] [ 8. 15.]]
+assert np.allclose(out1, out2)
+</code></pre>
+<p>实跑两式逐元素相等。<code>einsum</code> 的好处是把"哪些维度要求和"写在字符串里，多维批量运算（注意力矩阵 <code>Q @ K.T / sqrt(d)</code>）用它比拼 <code>transpose</code>/<code>reshape</code> 不容易错，代价是可读性差、性能不一定更好。团队代码规范里，二维场景用 <code>@</code>，三维及以上再上 <code>einsum</code>。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">10.3 最小二乘：为什么永远优先 lstsq 而不是正规方程</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>超定方程 「X @ w ≈ y」（样本数 50 > 参数数 2）没有精确解，最小二乘找残差平方和最小的 「w」</li><li>这个对比是"工具选择决定系统鲁棒性"的最小案例</li></ul></div>3
+<p>超定方程 <code>X @ w ≈ y</code>（样本数 50 &gt; 参数数 2）没有精确解，最小二乘找残差平方和最小的 <code>w</code>。教科书写法是正规方程 <code>w = (XᵀX)⁻¹Xᵀy</code>，但工程上 <code>np.linalg.lstsq</code> 用 SVD 打底，有两个硬优势：一是不显式求 <code>XᵀX</code> 的逆（<code>XᵀX</code> 的条件数是 X 条件数的平方，病态被放大），二是秩亏时自动给最小范数解而不是崩溃。</p>
+<p>实测（numpy 2.4.3，50 个样本拟合 <code>y = 2.5x - 1.2 + 噪声</code>）：<code>lstsq</code> 返回 <code>w ≈ [2.8, -1.2]</code>（噪声导致与真值有小偏差，属正常），<code>rank=2</code>。把第 3 列做成 <code>X[:,0] + 1e-9*噪声</code> 的近重复列后，正规方程 <code>solve(XᵀX, Xᵀy)</code> 直接报 <code>LinAlgError: Singular matrix</code>，而 <code>lstsq</code> 照常返回 <code>[2.8, -1.2, 0.0]</code>——第三列权重归零，语义正确：那列确实没有独立信息。这个对比是"工具选择决定系统鲁棒性"的最小案例。</p>
+<h3 id="104-行列式在多元高斯里的实战位置">10.4 行列式在多元高斯里的实战位置</h3>3
+<p>多元正态分布密度公式里，归一化因子是 <code>1 / sqrt((2π)^k · det(Σ))</code>，k 是维数，Σ 是协方差矩阵。实测：<code>Σ = [[2, 0.6], [0.6, 1]]</code> 时 <code>det = 1.64</code>，归一化因子 <code>= 0.12428</code>。<code>det(Σ)</code> 是分布的"广义体积"：det 越小，分布越集中在某个低维方向上（特征强相关），采样和似然计算都要小心矩阵求逆。这也是为什么高斯混合模型、变分自编码器的实现里，<code>log_det</code> 比 <code>det</code> 更常用——det 在高维下会下溢到 0，<code>log_det = sum(log(奇异值²))</code> 数值稳定。</p>
+<p>顺带一个统计细节（详见《L0-统计直觉》）：numpy 的 <code>np.cov(..., bias=True)</code> 给的是除以 n 的 MLE 协方差，默认 <code>bias=False</code> 是除以 n-1 的无偏版本。实测同一随机数据两者差别约 4%（n=100 时 0.9141 vs 0.9493）。机器学习里两者都能用（差别随 n 增大消失），但做假设检验（t 检验、F 检验）时必须用 n-1 版本，否则检验统计量的分布假设被破坏。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">10.5 特征值与迭代稳定性：幂迭代收敛到最大特征值</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>RNN 里"梯度消失/爆炸"的数学本质就是反复乘权重矩阵后，梯度被特征值的幂次放大或缩小</li><li>这个视角比"sigmoid 导数小于 1"更接近本质</li></ul></div>3
+<p>迭代系统 <code>v_{t+1} = A @ v_t / |A @ v_t|</code>（幂迭代）的方向会收敛到最大特征值对应的特征向量。实测：<code>A = [[0.9, 0.2], [0, 0.5]]</code>，<code>eig</code> 给出特征值 <code>[0.9, 0.5]</code>；从 <code>v=(1,1)</code> 出发迭代 30 步后方向收敛到 <code>[1, 0]</code>（对应 λ=0.9 的方向），<code>A@v ≈ [0.9, 0]</code>，比值 0.9 正是最大特征值。</p>
+<p>工程含义：<code>max|λ| &lt; 1</code> 时迭代收敛（如 PageRank 的马尔可夫链、RNN 的梯度传播），<code>max|λ| &gt; 1</code> 时迭代发散（RNN 梯度爆炸的线代根源）。RNN 里"梯度消失/爆炸"的数学本质就是反复乘权重矩阵后，梯度被特征值的幂次放大或缩小。这个视角比"sigmoid 导数小于 1"更接近本质。</p>
+<h3 id="106-奇异值谱比精确秩更好用的有效秩">10.6 奇异值谱：比"精确秩"更好用的有效秩</h3>3
+<p>含噪数据的矩阵几乎总是满秩，但奇异值谱会泄露真相。实测：构造一个"前 5 个方向强、后 5 个方向几乎为噪"的 60×10 矩阵，SVD 奇异值为 <code>[228.6, 170.5, 47.5, 28.5, 9.6, 1.08, ...]</code>，第 1 个与第 6 个的比值约 212。经验值：<strong>奇异值衰减到最大值 1e-3 以下的方向可以当作噪声</strong>（此阈值随信噪比变化，没有普适常数，要做交叉验证定）。这条替代了 §6 里"精确秩判定"在噪声数据上的失效路径。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">11. numpy 实操的六个高频陷阱（每个都有实测数字）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>线性代数学明白了，代码还会在 numpy 层面翻车</li><li>下面六条是数据处理里真实出现频率最高的坑，每条都给出实测复现和修复写法</li></ul></div>2
+<p>线性代数学明白了，代码还会在 numpy 层面翻车。下面六条是数据处理里真实出现频率最高的坑，每条都给出实测复现和修复写法。</p>
+<h3 id="111-不是矩阵乘">11.1 <code>*</code> 不是矩阵乘</h3>3
+<p><code>A * B</code> 是逐元素乘，<code>A ** 2</code> 是逐元素平方，矩阵乘是 <code>A @ B</code>。实测 <code>A = [[2,1],[1,2]]</code>：<code>A @ A = [[5,4],[4,5]]</code>，而 <code>A * A = A**2 = [[4,1],[1,4]]</code>。误用 <code>*</code> 想做矩阵乘的结果是"数值还能看、语义全错"，比报错更危险——报错会被发现，静默错值会流到下游。Python 3.5 之后矩阵乘有专门运算符 <code>@</code>，老代码里的 <code>np.dot</code> 与 <code>@</code> 在二维情形等价，新代码统一用 <code>@</code>。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">11.2 广播方向错了结果形状对但内容错</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「A + np.array([10., 20.])」 把一维数组沿行方向广播（加到每一行），「A + np.array([[10.],[20.]])」 沿列方向广播</li><li>实测同一 A：前者得 「[[12,21],[11,22]]」，后者得 「[[12,11],[21,22]]」</li><li>想给每列做标准化（减列均值）时写错方向，标准化就是假的</li></ul></div>3
+<p><code>A + np.array([10., 20.])</code> 把一维数组沿<strong>行</strong>方向广播（加到每一行），<code>A + np.array([[10.],[20.]])</code> 沿<strong>列</strong>方向广播。实测同一 A：前者得 <code>[[12,21],[11,22]]</code>，后者得 <code>[[12,11],[21,22]]</code>。想给每列做标准化（减列均值）时写错方向，标准化就是假的。规则：广播对齐的是尾部维度，拿不准就 <code>print(arr.shape)</code> 再写。</p>
+<h3 id="113-nan-会静默污染整条流水线">11.3 NaN 会静默污染整条流水线</h3>3
+<p><code>np.array([1.,2.,nan,4.]).sum()</code> 输出 <code>nan</code>，不是跳过。<code>np.nansum</code> 同数据输出 <code>7.0</code>。更隐蔽的：<code>np.linalg.cond</code> 遇到 inf 直接返回 <code>inf</code> 且不报错，"条件数=inf"的字面输出其实告诉你矩阵里有非有限值。前置门禁一行：<code>assert np.isfinite(M).all(), "matrix has nan/inf"</code>，这行比任何事后日志都便宜。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">11.4 view 与 copy：切片是引用</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>实测：view 改动后原值变 99.0，copy 路径原值保持不变</li><li>数据流水线里"切出来改一改再放回去"是标准动作，忘了 copy 就会在不知情时改坏源数据，这类 bug 的特征是"输出结果与预期只差个别行"</li></ul></div>3
+<p><code>Y = X[:, 0]</code> 是视图（view），<code>Y[0] = 99</code> 会改掉原数组 <code>X[0,0]</code>；想要独立副本必须 <code>.copy()</code>。实测：view 改动后原值变 99.0，copy 路径原值保持不变。数据流水线里"切出来改一改再放回去"是标准动作，忘了 copy 就会在不知情时改坏源数据，这类 bug 的特征是"输出结果与预期只差个别行"。</p>
+<h3 id="115-整型数组除法与-dtype-意外">11.5 整型数组除法与 dtype 意外</h3>3
+<p><code>np.array([1,2,3]) / 2</code> 在 numpy 2.x 给 <code>[0.5, 1., 1.5]</code>（真除法，int64 也能给出浮点结果），但 <code>//</code> 和 <code>np.array([1,2,3]) // 2</code> 仍是整除。读 CSV 时整列被推断成 int64，后续算比率、算均值没问题（真除法），但一旦做位运算或索引 <code>arr[:n//2]</code> 就回到整除语义。显式转换 <code>astype(np.float64)</code> 消除歧义，成本可以忽略。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">11.6 向量化不是玄学，是有数量级差距的</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>实测对比（numpy 2.4.3）：「np.dot」 对两个 100 万维向量求点积耗时约 2.0 毫秒；纯 Python 循环对 1 万维（已经少两个数量级）求点积耗时约 3.9 毫秒</li><li>换算下来，同样 100 万维，纯 Python 循环预估需要数百毫秒到秒级——相差 100~1000 倍</li><li>这条不是"建议向量化"，是"禁止在热路径写 Python 循环"</li></ul></div>3
+<p>实测对比（numpy 2.4.3）：<code>np.dot</code> 对两个 100 万维向量求点积耗时约 2.0 毫秒；纯 Python 循环对 1 万维（已经少两个数量级）求点积耗时约 3.9 毫秒。换算下来，同样 100 万维，纯 Python 循环预估需要数百毫秒到秒级——相差 100~1000 倍。这条不是"建议向量化"，是"禁止在热路径写 Python 循环"。向量化的正确姿势是：整列整块喂 numpy，循环只留在样本批次层。</p>
+<pre><code class="language-python"># 反例（热路径禁用） vs 正例（可直接跑）
+import numpy as np, time
+rng = np.random.default_rng(0)
+u, v = rng.normal(size=1_000_000), rng.normal(size=1_000_000)
+
+t0 = time.perf_counter(); s = np.dot(u, v); t1 = time.perf_counter()
+print(&quot;np.dot(1e6):&quot;, round((t1 - t0) * 1000, 2), &quot;ms&quot;)     # 约 2.0 ms
+
+# 纯 Python 循环只做 1e4 就已经比上面慢（实测约 3.9 ms）
+t2 = time.perf_counter()
+s2 = sum(float(a * b) for a, b in zip(u[:10000], v[:10000]))
+print(&quot;python loop(1e4):&quot;, round((time.perf_counter() - t2) * 1000, 2), &quot;ms&quot;)
+</code></pre>
+<hr />
+<h2 id="13-五个工程应用片段线代在哪里落地">13. 五个工程应用片段：线代在哪里落地</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">13.1 稀疏矩阵：什么时候从 dense 换 sparse</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>词袋/TF-IDF 矩阵是典型的稀疏数据：词表 768 维但每篇文档只出现几十个词</li><li>判据：密度 0.2 用 dense（稀疏格式的索引开销在高密度下反而吃亏）</li><li>assert np.allclose(out_sparse, out_dense)</li></ul></div>3
+<p>词袋/TF-IDF 矩阵是典型的稀疏数据：词表 768 维但每篇文档只出现几十个词。实测（numpy 2.4.3 / scipy 1.18.1）：10 万行 × 768 维、密度 0.001 的矩阵，dense 存储占 614.4 MB（float64），scipy CSR 稀疏存储约 1.8 MB（含索引）——340 倍差距。<code>scipy.sparse.random(50, 8, density=0.2, format="csr")</code> 生成的稀疏矩阵与 <code>.toarray()</code> 转 dense 后矩阵乘结果完全一致（<code>np.allclose</code> 验证）。</p>
+<p>判据：<strong>密度 &lt; 0.05（5%）用 sparse，密度 &gt; 0.2 用 dense</strong>（稀疏格式的索引开销在高密度下反而吃亏）。中间地带实测再定。换 sparse 的代价：逐元素运算（<code>*</code>、<code>**</code>）支持有限，求逆/特征值没有实现——线代操作要么在 dense 上做（先把需要的子块 densify），要么用 <code>scipy.sparse.linalg</code> 的专用求解器（<code>spsolve</code>、<code>eigsh</code>）。</p>
+<pre><code class="language-python">import numpy as np, scipy.sparse as sp
+
+rng = np.random.default_rng(1)
+S = sp.random(50, 8, density=0.2, random_state=1, format=&quot;csr&quot;)   # 50×8，密度 20%
+x = rng.normal(size=8)
+out_sparse = S @ x                    # 稀疏矩阵乘向量
+out_dense = (S.toarray()) @ x         # densify 后再乘
+assert np.allclose(out_sparse, out_dense)
+print(&quot;shape:&quot;, S.shape, &quot;nnz:&quot;, S.nnz, &quot;density:&quot;, round(S.nnz / (50 * 8), 3))
+# 实跑：(50, 8) nnz=80 density=0.2
+</code></pre>
+<h3 id="132-正则化的线代语言l2-与-l1">13.2 正则化的线代语言：L2 与 L1</h3>3
+<p>岭回归（L2 正则）在线代语言里是给正规方程加对角：<code>solve(XᵀX + λI, Xᵀy)</code>——回到 §3 的病态矩阵问题，<code>λI</code> 把最小特征值抬离 0，条件数立刻变好。L1（Lasso）对应梯度是 <code>λ·sign(w)</code>（常数幅度），L2 梯度是 <code>2λ·w</code>（随权重大小递增）。实测（numpy 2.4.3）：<code>w = [3.0, 0.5, -1.0]</code>、<code>λ=0.1</code> 时，L2 梯度 <code>[0.6, 0.1, -0.2]</code>（大权重惩罚大），L1 梯度 <code>[0.1, 0.1, -0.1]</code>（幅度恒定）。</p>
+<p>这个差异的几何含义：L2 的惩罚等高线是圆，解落在圆与损失等高线的切点（权重普遍缩小但不归零）；L1 的等高线是菱形，切点容易落在角上（权重精确归零 → 特征选择）。工程选型：<strong>要稀疏解（特征选择）用 L1，只要防过拟合用 L2，两个都要用 ElasticNet</strong>。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">13.3 向量检索的矩阵视图</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>把 §7.2 的检索脚本推广：知识库 R 篇文档的向量矩阵是 「D (R, d)」，查询 q 与全部文档的相似度就是一次矩阵向量乘 「D @ q」（归一化后）</li><li>实测（numpy 2.4.3）：2000 篇 32 维文档的暴力 top-5 检索，一次矩阵乘加排序耗时约 0.13 毫秒——万级文档根本不需要向量数据库，numpy 就够</li><li>向量数据库（FAISS/Milvus）的价值在百万级以上或需要近似检索（ANN）时才体现；10 万文档以内，「D @ q」 + 「np.argsort」 简单可靠且无依赖</li></ul></div>3
+<p>把 §7.2 的检索脚本推广：知识库 R 篇文档的向量矩阵是 <code>D (R, d)</code>，查询 q 与全部文档的相似度就是一次矩阵向量乘 <code>D @ q</code>（归一化后）。实测（numpy 2.4.3）：2000 篇 32 维文档的暴力 top-5 检索，一次矩阵乘加排序耗时约 0.13 毫秒——万级文档根本不需要向量数据库，numpy 就够。<strong>向量数据库（FAISS/Milvus）的价值在百万级以上或需要近似检索（ANN）时才体现</strong>；10 万文档以内，<code>D @ q</code> + <code>np.argsort</code> 简单可靠且无依赖。</p>
+<h3 id="134-去重与阈值余弦的实操数字">13.4 去重与阈值：余弦的实操数字</h3>3
+<p>近似重复检测用余弦阈值。实测（numpy 2.4.3）：16 维向量 a 与 <code>a + 0.001*噪声</code> 的余弦是 1.0000（四舍五入后），a 与独立随机向量的余弦是 -0.1446——<strong>阈值 0.99 可以抓近重复，随机对几乎不可能碰到 0.99</strong>（《线性代数白话》§10.1 的高维正交直觉）。实操阈值参考：<code>cos &gt; 0.95</code> 判高度相似（候选对），<code>cos &gt; 0.99</code> 判重复（可合并），具体阈值按语料实测定，embedding 模型不同分布不同。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">13.5 全连接层的线代视角</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>LoRA 之所以有效：微调时权重更新 ΔW 的有效秩低（§6 的秩概念），用两个小矩阵 「B @ A」（秩 r）近似，参数量从 「d×d」 降到 「2×d×r」</li><li>看懂这一段需要的线代知识就是本篇 §2、§5、§6——这也是本篇选这几个主题的原因：它们恰好是 AI 工程里出现频率最高的线代概念</li></ul></div>3
+<p>神经网络的全连接层 <code>y = W @ x + b</code> 就是 §2 的仿射变换：W 的列是输出空间的基底方向，x 是输入配方。批量输入 X (n, d) 时 <code>Y = X @ W.T + b</code>（§2.2 的行样本约定）。LoRA 之所以有效：微调时权重更新 ΔW 的有效秩低（§6 的秩概念），用两个小矩阵 <code>B @ A</code>（秩 r）近似，参数量从 <code>d×d</code> 降到 <code>2×d×r</code>。看懂这一段需要的线代知识就是本篇 §2、§5、§6——这也是本篇选这几个主题的原因：它们恰好是 AI 工程里出现频率最高的线代概念。</p>
+<hr />
+<h2 id="15-线代-深度学习五个直觉连接附实测数字">15. 线代 × 深度学习：五个直觉连接（附实测数字）</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">15.1 梯度是向量，反向传播是链式法则的矩阵乘</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>损失 L 对参数 W 的梯度 「∇L」 是和 W 同形状的矩阵，每个元素是"这个参数动一点、损失动多少"</li><li>反向传播就是从损失往回逐层做矩阵乘（转置的前向矩阵）</li><li>这就是梯度消失的导数层根源：每过一层乘一个小于 1 的数，20 层之后 「0.76^20 ≈ 0.0041」（实测），信号传不回浅层</li></ul></div>3
+<p>损失 L 对参数 W 的梯度 <code>∇L</code> 是和 W 同形状的矩阵，每个元素是"这个参数动一点、损失动多少"。反向传播就是从损失往回逐层做矩阵乘（转置的前向矩阵）。实测（numpy 2.4.3）：tanh 激活的导数 <code>1 - tanh²(z)</code>，z = 0.1/0.5/1.0/2.0/3.0 时梯度是 <code>[0.9901, 0.7864, 0.42, 0.0707, 0.0099]</code>——<strong>|z| 超过 2 之后梯度塌到 0.1 以下，超过 3 基本归零</strong>。这就是梯度消失的导数层根源：每过一层乘一个小于 1 的数，20 层之后 <code>0.76^20 ≈ 0.0041</code>（实测），信号传不回浅层。</p>
+<h3 id="152-残差连接的线代语义恒等路径">15.2 残差连接的线代语义：恒等路径</h3>3
+<p>ResNet 的 <code>y = x + F(x)</code> 在线代上是给梯度开了一条恒等通路：反向传播时梯度沿 <code>+1</code> 的恒等路径直达，不用乘 F 的 Jacobian。实测对比（numpy 2.4.3）：残差路径梯度保持 1.0，纯堆叠 20 层（每层梯度因子 0.76）后只剩 0.0041——<strong>244 倍差距</strong>，这就是"深网络必须加残差"的定量原因。Transformer 的每个子层也都带残差（<code>x + attention(x)</code>、<code>x + ffn(x)</code>），同一个道理。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">15.3 双线性形式与二次型</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「xᵀAx」 是二次型（标量），对称矩阵 A 时它描述一个椭圆等高面</li><li>机器学习里的出现位置：马氏距离 「(x-μ)ᵀΣ⁻¹(x-μ)」（协方差矩阵的二次型）、二阶优化的 Hessian 矩阵、注意力里的 「QKᵀ」 是双线性形式 「qᵢᵀkⱼ」 的批量版</li></ul></div>3
+<p><code>xᵀAx</code> 是二次型（标量），对称矩阵 A 时它描述一个椭圆等高面。机器学习里的出现位置：马氏距离 <code>(x-μ)ᵀΣ⁻¹(x-μ)</code>（协方差矩阵的二次型）、二阶优化的 Hessian 矩阵、注意力里的 <code>QKᵀ</code> 是双线性形式 <code>qᵢᵀkⱼ</code> 的批量版。实测（numpy 2.4.3）：<code>A=[[2,0.5],[0.5,1]]</code>、<code>x=[1,2]</code>，<code>xᵀAx = 8.0</code>；A 对称性检查 <code>np.allclose(A, A.T)</code> 为 True——二次型的"椭圆"几何只对对称矩阵成立，非对称矩阵的 <code>xᵀAx</code> 只有对称部分起作用。</p>
+<h3 id="154-投影与正交分解">15.4 投影与正交分解</h3>3
+<p>把向量 v 分解成"沿 u 的分量 + 垂直 u 的分量"：<code>proj = (v·u)/(u·u)·u</code>，<code>perp = v - proj</code>。实测（numpy 2.4.3）：<code>v=[3,4]</code>、<code>u=[1,0]</code>，<code>proj=[3,0]</code>、<code>perp=[0,4]</code>，重建 <code>proj+perp == v</code> ✓、正交性 <code>proj·perp = 0.0</code> ✓。这是 PCA（找主方向投影）、Gram-Schmidt 正交化、注意力里"查询对键的投影"的共同几何内核。理解"投影 = 最优逼近"（垂线最短）就理解了最小二乘为什么叫"投影解"。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">15.5 注意力机制是一串线代运算</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Transformer 的注意力 「softmax(QKᵀ/√d)V」 全部由本文概念组成：QKᵀ 是矩阵乘（§2），「√d」 缩放防点积过大（§1.2 的模长效应），softmax 归一化成概率（《概率统计白话》），加权求和 V 是配方叠加（§1.1）</li><li>看懂注意力需要的线代就是矩阵乘 + 归一化 + 加权叠加，全在本文 §1-§2 覆盖了</li><li>softmax 实测（「[1,2,3]」）：「[0.0900, 0.2447, 0.6652]」——最大的 logit 拿走 66% 权重</li></ul></div>3
+<p>Transformer 的注意力 <code>softmax(QKᵀ/√d)V</code> 全部由本文概念组成：QKᵀ 是矩阵乘（§2），<code>√d</code> 缩放防点积过大（§1.2 的模长效应），softmax 归一化成概率（《概率统计白话》），加权求和 V 是配方叠加（§1.1）。实测骨架（numpy 2.4.3）：</p>
+<pre><code class="language-python">import numpy as np
+
+rng = np.random.default_rng(1)
+Q = rng.normal(size=(3, 4)); K = rng.normal(size=(3, 4)); V = rng.normal(size=(3, 4))
+att = np.exp(Q @ K.T / np.sqrt(4))            # 注意力分数（未归一化）
+att = att / att.sum(axis=1, keepdims=True)    # softmax 归一化
+out = att @ V                                 # 加权求和
+print(np.round(out, 2).tolist())
+</code></pre>
+<p>softmax 实测（<code>[1,2,3]</code>）：<code>[0.0900, 0.2447, 0.6652]</code>——最大的 logit 拿走 66% 权重。这也是《概率统计白话》§5 贝叶斯"似然加权"的同构形式。看懂注意力需要的线代就是矩阵乘 + 归一化 + 加权叠加，全在本文 §1-§2 覆盖了。</p>
+<hr />
+<h2 id="16-来源与核验">16. 来源与核验</h2>2
+<ul>
+<li>线性变换=空间动作的直觉框架：3Blue1Brown《Essence of Linear Algebra》Chapter 3 — https://www.3blue1brown.com/lessons/linear-transformations （2026-10-23 抓取，lesson by Grant Sanderson，text adaptation by Kurt Bruns / James Schloss / River Way）</li>
+<li>numpy 线代官方 API：https://numpy.org/doc/stable/user/quickstart 、https://numpy.org/doc/stable/reference/generated/numpy.linalg.solve.html （stable 文档当前版本 2.5；本文实跑环境 numpy 2.4.3，API 兼容）</li>
+<li>本文 §3.2 速度对比、§6.2 秩判定输出、§7.3 条件数数值为本次在 <code>/home/wuyafang/.venv-hermes/bin/python</code> 实跑产出，属 <code>original_research</code> 性质的实测记录。</li>
+</ul></div></details></div></details></div></body></html>

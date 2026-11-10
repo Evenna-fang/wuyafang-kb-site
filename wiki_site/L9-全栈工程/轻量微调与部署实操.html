@@ -1,0 +1,254 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>轻量微调与部署实操</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 轻量微调与部署实操</span></div><div class="wrap"><h1 id="轻量微调与推理部署数据qlora质量回归和服务压测">轻量微调与推理部署：数据、QLoRA、质量回归和服务压测</h1>
+<blockquote>
+<p>本篇保留并改写原《轻量微调与部署实操》。课件覆盖 PEFT、量化和模型评估，书籍补充 LoRA/QLoRA 与私有化部署框架，官方资料用于核对服务压测。训练代码是 GPU 环境模板，本轮无训练与 GPU 实测；TRL/Transformers API 必须在锁定版本后用安装包签名复核。</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY：为什么先决定“不该微调”，再谈训练参数</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>很多“模型不懂业务”的问题其实是知识缺失、检索失败或输出没有约束</li><li>课件把模型推理效果评估单列为框架，书籍的公开划线还提醒“只调 rank 并不存在普适最优值”</li><li>微调擅长学习稳定的格式、语气、任务映射和行为模式；不适合充当需要频繁更新、逐条溯源的知识库</li></ul></div>2
+<p>很多“模型不懂业务”的问题其实是知识缺失、检索失败或输出没有约束。微调擅长学习稳定的格式、语气、任务映射和行为模式；不适合充当需要频繁更新、逐条溯源的知识库。先用 prompt + few-shot 和 RAG 建基线，只有错误稳定复现且属于可学习行为时，微调才有明确收益。</p>
+<p>训练 loss 下降也不等于业务变好：模型可能记住模板、损害通用能力，或在训练集格式上过拟合。课件把模型推理效果评估单列为框架，书籍的公开划线还提醒“只调 rank 并不存在普适最优值”。因此必须否定旧文中“r=16 是通用阈值”“1000 条一定胜过多少条”“某格式必然快 N 倍”这类绝对口径。</p>
+<p>微调与部署必须共用一个验收集：基座、adapter/合并模型、量化后模型都在同一批 held-out 任务上比较。否则训练得到的提升可能在量化或推理引擎切换时消失。</p>
+<h2 id="what-whyt方法数据引擎与量化怎样配合">WHAT / WHYT：方法、数据、引擎与量化怎样配合</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. SFT 方法选择</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「r」、「lora_alpha」、target modules、学习率与 epoch 都是待验证超参，不是跨模型定律</li><li>先用小数据和短训练暴露格式/显存问题，再扩大；保留独立验证集和通用能力回归集</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>更新对象与显存特征</th>
+<th>适用与主要风险</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prompt/few-shot/RAG</td>
+<td>不更新权重</td>
+<td>先建基线；知识需更新/溯源时优先</td>
+</tr>
+<tr>
+<td>LoRA</td>
+<td>冻结基座，训练低秩 adapter；仍需保存基座与反向激活</td>
+<td>稳定行为/格式；多 adapter 易管理</td>
+</tr>
+<tr>
+<td>QLoRA</td>
+<td>量化基座 + LoRA，降低训练显存</td>
+<td>单卡/有限显存；量化与 kernel 影响速度和兼容性</td>
+</tr>
+<tr>
+<td>全量 SFT</td>
+<td>更新全部参数，显存与检查点成本最高</td>
+<td>数据和算力充足、确需全面改行为；遗忘与运维成本高</td>
+</tr>
+</tbody>
+</table>
+<p><code>r</code>、<code>lora_alpha</code>、target modules、学习率与 epoch 都是待验证超参，不是跨模型定律。先用小数据和短训练暴露格式/显存问题，再扩大；保留独立验证集和通用能力回归集。</p>
+<h3 id="2-数据契约比样本截图更重要">2. 数据契约比样本截图更重要</h3>3
+<p>每条 conversational 样本统一为：</p>
+<pre><code class="language-json">{&quot;messages&quot;:[{&quot;role&quot;:&quot;system&quot;,&quot;content&quot;:&quot;按指定JSON格式回答&quot;},{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;业务输入&quot;},{&quot;role&quot;:&quot;assistant&quot;,&quot;content&quot;:&quot;{\&quot;label\&quot;:\&quot;...\&quot;,\&quot;evidence\&quot;:\&quot;...\&quot;}&quot;}]}
+</code></pre>
+<ul>
+<li>使用基座对应的 chat template；不要一部分样本手工拼特殊 token，另一部分由 Trainer 自动套模板。</li>
+<li>train/validation/test 按文档、用户或时间去重分组，避免同一源文切块同时出现在训练与测试造成泄漏。</li>
+<li>覆盖正常、边界、拒答、无答案和安全负例；输出格式必须可被确定性 parser 校验。</li>
+<li>保存数据版本、来源授权、清洗规则和样本哈希；训练代码、依赖、基座 revision、随机种子一并记录。</li>
+</ul>
+<p><strong>论文怎么说 → 我们怎么用</strong>：AutoSFT（<a href="https://arxiv.org/abs/2610.22194">arXiv:2610.22194</a>）把 SFT 数据研究拆成比例调整、剪枝、修复、替换和合成等动作，并在每轮从同一基座重新训练以归因各组件收益。论文说明“自动改数据”需要多种动作与受控对照，不说明多 Agent 在任何数据集都必然增益。我们的数据流水线相应保留 <code>proportion/prune/repair/replace/synthesize</code> 五类变更记录；每轮固定基座、训练器和预算，只改一类数据动作，使用同一 held-out 集比较，禁止一边改数据一边换基座再把收益记给清洗策略。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 部署引擎和量化按 workload 选</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>AWQ/GPTQ/GGUF/FP8 只是格式或方法标签，不直接保证吞吐和质量</li><li>实际结果还受模型、硬件、推理引擎、kernel、batch、输入输出长度影响</li><li>量化后必须重新跑任务质量、长上下文和并发压测；不采用没有原始数据的“快 4–10 倍”作为容量依据</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>需求</th>
+<th>常见路线</th>
+<th>验收重点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单机开发/CPU/边缘</td>
+<td>llama.cpp、Ollama、GGUF</td>
+<td>内存、首 token、长上下文与并发限制</td>
+</tr>
+<tr>
+<td>多并发 GPU 服务、OpenAI 兼容接口</td>
+<td>vLLM</td>
+<td>连续批处理下的 TTFT/TPOT/goodput、KV cache</td>
+</tr>
+<tr>
+<td>共享前缀重、复杂服务编排</td>
+<td>评估 SGLang 等</td>
+<td>自家共享前缀命中率与端到端 SLO</td>
+</tr>
+<tr>
+<td>NVIDIA 专用优化</td>
+<td>TensorRT-LLM/Triton</td>
+<td>构建/维护成本是否换来可复现收益</td>
+</tr>
+</tbody>
+</table>
+<p>AWQ/GPTQ/GGUF/FP8 只是格式或方法标签，不直接保证吞吐和质量。实际结果还受模型、硬件、推理引擎、kernel、batch、输入输出长度影响。量化后必须重新跑任务质量、长上下文和并发压测；不采用没有原始数据的“快 4–10 倍”作为容量依据。</p>
+<h2 id="how从-qlora-模板到可回滚服务">HOW：从 QLoRA 模板到可回滚服务</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 锁环境并准备数据</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-bash">python -m venv .venv
+source .venv/bin/activate
+# 示例依赖；实际项目先根据 GPU/CUDA 与基座兼容性锁定版本并生成 lockfile。
+pip install torch transformers datasets trl peft bitsandbytes accelerate
+</code></pre>
+<p>准备 <code>train.jsonl</code> 与 <code>validation.jsonl</code>，先跑一个脚本检查：每行 JSON 可解析、messages 角色合法、最后一条为 assistant、输出 schema 可验证、训练/验证源文档无重叠。任何格式错误先修数据，不靠 Trainer 静默截断。</p>
+<h3 id="2-qlora-trl-训练模板">2. QLoRA + TRL 训练模板</h3>3
+<pre><code class="language-python">import torch
+from datasets import load_dataset
+from peft import LoraConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from trl import SFTConfig, SFTTrainer
+
+BASE = '你的基座模型或本地路径'  # 生产固定到已审核 revision
+OUT = './artifacts/qloora-adapter'
+
+tokenizer = AutoTokenizer.from_pretrained(BASE)
+quant = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_quant_type='nf4',
+    bnb_4bit_compute_dtype=torch.bfloat16,
+)
+model = AutoModelForCausalLM.from_pretrained(
+    BASE,
+    quantization_config=quant,
+    device_map='auto',
+)
+peft = LoraConfig(
+    r=16,                       # 起点，不是通用最优值
+    lora_alpha=32,
+    lora_dropout=0.05,
+    target_modules=['q_proj', 'k_proj', 'v_proj', 'o_proj'],
+    task_type='CAUSAL_LM',
+)
+args = SFTConfig(
+    output_dir=OUT,
+    per_device_train_batch_size=1,
+    gradient_accumulation_steps=8,
+    learning_rate=2e-4,
+    num_train_epochs=1,
+    logging_steps=10,
+    eval_strategy='steps',
+    eval_steps=50,
+    save_strategy='steps',
+    save_total_limit=2,
+    report_to=[],
+    seed=42,
+)
+ds = load_dataset('json', data_files={
+    'train': 'train.jsonl', 'validation': 'validation.jsonl'})
+trainer = SFTTrainer(
+    model=model,
+    args=args,
+    train_dataset=ds['train'],
+    eval_dataset=ds['validation'],
+    peft_config=peft,
+    processing_class=tokenizer,
+)
+trainer.train()
+trainer.save_model(OUT)       # 默认保存 adapter；不是完整合并模型
+tokenizer.save_pretrained(OUT)
+</code></pre>
+<blockquote>
+<p>不同 TRL 版本对数据列、chat template、评估参数有差异。若安装版本与示例不一致，先运行 <code>python -c "import inspect; from trl import SFTConfig,SFTTrainer; print(inspect.signature(SFTConfig)); print(inspect.signature(SFTTrainer))"</code> 并按官方对应版本文档调整，不静默猜参数。</p>
+</blockquote>
+<p>合并 adapter 时不要用仍量化加载的训练对象硬合并。常见做法是以合适精度重新加载基座，再加载 <code>PeftModel</code> adapter、执行 <code>merge_and_unload()</code>、保存合并模型与 tokenizer，并重新跑结构/生成冒烟；也可以保留基座 + adapter 部署以减少重复权重。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 训练前后做四组对照</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>LLM judge 只负责开放质量维度；JSON、数值、引用 ID 和分类标签优先用确定性代码</li><li>人工抽查必须覆盖 judge 高分但答案错误的样本，防止假绿</li></ul></div>3
+<p>固定同一测试集、上下文、解码参数和 judge 版本：</p>
+<table>
+<thead>
+<tr>
+<th>对照</th>
+<th>必看指标</th>
+<th>阻断条件示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>基座 vs adapter</td>
+<td>任务正确率、格式通过率、指令遵循、拒答</td>
+<td>目标任务无显著提升则不进入部署</td>
+</tr>
+<tr>
+<td>adapter vs 通用回归</td>
+<td>通用问答、安全、多语言/长上下文</td>
+<td>关键能力明显下降则回滚</td>
+</tr>
+<tr>
+<td>合并模型 vs adapter</td>
+<td>输出一致性与格式</td>
+<td>合并引入异常则保留 adapter 路线</td>
+</tr>
+<tr>
+<td>高精度 vs 量化</td>
+<td>上述全部 + TTFT/TPOT/显存</td>
+<td>质量损失超过业务容忍度则换量化方案</td>
+</tr>
+</tbody>
+</table>
+<p>LLM judge 只负责开放质量维度；JSON、数值、引用 ID 和分类标签优先用确定性代码。人工抽查必须覆盖 judge 高分但答案错误的样本，防止假绿。</p>
+<h3 id="4-部署并做端到端压测">4. 部署并做端到端压测</h3>3
+<pre><code class="language-bash">pip install vllm
+vllm serve ./artifacts/merged \
+  --max-model-len 4096 \
+  --gpu-memory-utilization 0.9 \
+  --port 8000
+
+curl http://127.0.0.1:8000/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{&quot;model&quot;:&quot;./artifacts/merged&quot;,&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;输出一条合规JSON&quot;}]}'
+</code></pre>
+<p>随后按《安全、容量压测与成本治理》中的 <code>vllm bench serve</code> 流程，使用业务真实输入输出长度逐级加压，记录 p95/p99 TTFT/TPOT、goodput、KV 和失败率。保留上一版模型与配置，流量切换后仍能回滚。</p>
+<p>上线检查：模型/adapter/数据 revision 可追踪；chat template 一致；测试无泄漏；量化质量回归通过；服务健康检查、超时、取消、日志脱敏和容量门禁均已实测。未满足时只能说“训练脚本完成”，不能说“模型可生产交付”。</p>
+<p>若评估 speculative decoding，不能只看 accepted tokens/round。《Acceptance Is Not Speed》（<a href="https://arxiv.org/abs/2610.23818">arXiv:2610.23818</a>）在其实验的 relaxed/lossy 设置中发现接受率提高伴随输出变长，墙面时间与准确率未必受益。我们将完成长度、verifier rounds、端到端 wall-clock、任务准确率和 SLO 内 goodput 一起纳入部署对照；lossless 与 lossy 验证分开报告，不用单一接受率宣称部署提速。</p>
+</div></details></div></details><h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] <strong>课件</strong>：<a href="../../raw/courseware/%E5%BE%AE%E8%B0%83%E7%AF%87/day02%E5%BE%AE%E8%B0%83%E4%B9%8BPEFT__%E8%AF%BE%E4%BB%B6__%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83-2-PEFT.md">PEFT</a>、<a href="../../raw/courseware/%E5%BE%AE%E8%B0%83%E7%AF%87/day03%E5%BE%AE%E8%B0%83%E4%B9%8B%E9%87%8F%E5%8C%96__%E8%AF%BE%E4%BB%B6__%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83-3-%E9%87%8F%E5%8C%96.md">量化</a>、<a href="../../raw/courseware/%E5%BE%AE%E8%B0%83%E7%AF%87/day06%E5%BE%AE%E8%B0%83%E4%B9%8B%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5__%E8%AF%BE%E4%BB%B6__%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83-6-%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5.md">微调最佳实践</a>，分别落在 LoRA/PEFT、量化原理、数据与推理评估；本轮未重跑训练。</li>
+<li>[书1] <strong>书籍摘录</strong>：<a href="../../raw/weread/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%AE%9E%E6%88%98%EF%BC%9A%E5%BE%AE%E8%B0%83%E3%80%81%E4%BC%98%E5%8C%96%E4%B8%8E%E7%A7%81%E6%9C%89%E5%8C%96%E9%83%A8%E7%BD%B2.md">大模型实战：微调、优化与私有化部署</a>，落在私有化部署、LoRA/QLoRA 与量化；公开划线明确提示 rank 无普适最优。材料是目录与公开划线，不声称书籍全文。</li>
+<li>[业1] <strong>业内官方</strong>：<a href="https://huggingface.co/docs/trl/sft_trainer">TRL SFTTrainer</a>与<a href="https://docs.vllm.ai/en/latest/benchmarking/cli/">vLLM Benchmark CLI</a>（均 GET 200：2026-11-04），用于 API 对照和服务压测；代码仍须按安装版本签名复核，未实跑。</li>
+<li>[业2] <strong>论文</strong>：<a href="https://arxiv.org/abs/2610.22194">AutoSFT，arXiv:2610.22194</a>与<a href="https://arxiv.org/abs/2610.23818">Acceptance Is Not Speed，arXiv:2610.23818</a>（均 GET 200：2026-11-04），分别落在多类数据动作的受控对照、speculative decoding 的端到端效率口径；未把论文数值写成本地收益。</li>
+</ul></div></body></html>

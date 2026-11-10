@@ -1,0 +1,194 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>子代理驱动开发与技能编写</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 子代理驱动开发与技能编写</span></div><div class="wrap"><h1 id="子代理驱动开发与技能编写两套怎么做">子代理驱动开发与技能编写（两套"怎么做"）</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/practice/skills-%E7%B2%BE%E9%80%89/ext-obra_superpowers-subagent-driven-development.md">ext-obra_superpowers-subagent-driven-development</a> · <a href="../../raw/practice/skills-%E7%B2%BE%E9%80%89/ext-abhattacherjee_claude-code-skills-skill-authoring.md">ext-abhattacherjee_claude-code-skills-skill-authoring</a></p>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="AGENTS%E8%A7%84%E8%8C%83%E5%AE%9E%E6%88%98.html">AGENTS规范实战</a>（派单卡硬约束 · 角色权限） · <a href="../L5-Agent%E5%B7%A5%E7%A8%8B/02-Multi-Agent%E5%8D%8F%E4%BD%9C.html">Multi-Agent 协作</a> · <a href="../L3-AI%E5%8D%8F%E5%90%8C%E7%BC%96%E7%A8%8B/Harness%E5%B7%A5%E7%A8%8B%E5%88%B0%E5%BA%95%E6%98%AF%E4%BB%80%E4%B9%88.html">Harness工程到底是什么</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心结论</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>两套方法解决同一个问题——把"判断"从"执行"里切出来，让每一步都可被独立验证</li><li>子代理驱动开发（SDD）：一个任务派一个全新子代理执行，每任务后做规格 + 质量双验收，最后再做一次全分支终审</li></ul></div>2
+<p>两套方法解决同一个问题——<strong>把"判断"从"执行"里切出来，让每一步都可被独立验证</strong>。</p>
+<ul>
+<li><strong>子代理驱动开发（SDD）</strong>：一个任务派一个<strong>全新子代理</strong>执行，每任务后做<strong>规格 + 质量</strong>双验收，最后再做一次<strong>全分支终审</strong>。公式：<code>fresh subagent per task + task review + broad final review = 高质量快速迭代</code>。</li>
+<li><strong>技能编写（Skill Authoring）</strong>：把可复用的"怎么做"写成 <strong>SKILL.md（薄决策层）+ scripts/（确定性）+ references/（按需查阅）</strong>，判断交给人/Agent，流程交给脚本。</li>
+</ul>
+<p>一句话判据：<strong>"没被独立验证的产出 = 未完成"</strong>——这是 SDD 的验收底线，也是技能里为何要把确定性逻辑抽出成可复现脚本的同一动机。</p>
+<h2 id="关键细节">关键细节</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">A. 子代理驱动开发（SDD）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>A0. 何时用（判断标准）</li><li>与并行会话版的核心差异：同会话零切换、每任务换新子代理（无上下文污染）、每任务后即验收、任务间无人在环（更快）</li><li>每任务评审是任务级闸门：规格合规 AND 任务质量两个结论都必需，缺任一即不算报告完整</li></ul></div>3
+<h4 id="a0-何时用判断标准">A0. 何时用（判断标准）</h4>
+<p>按序问三个问题：<strong>① 有实施计划吗？</strong> 无 → 先脑暴/手工执行。<strong>② 任务大多独立吗？</strong> 否（强耦合）→ 不适用。<strong>③ 在同一会话内推进吗？</strong> 是 → SDD；否（并行会话）→ 走 executing-plans。与并行会话版的核心差异：<strong>同会话零切换、每任务换新子代理（无上下文污染）、每任务后即验收、任务间无人在环（更快）</strong>。</p>
+<h4 id="a1-任务怎么切给子代理派发五要素">A1. 任务怎么切给子代理（派发五要素）</h4>
+<p>一个派发 prompt 只描述<strong>一个任务</strong>，且只装五样东西：</p>
+<ol>
+<li>一行交代"这个任务在项目里的位置"；</li>
+<li><strong>任务简报路径</strong>（<code>scripts/task-brief</code> 生成的独立文件），措辞为"先读这个——它是你的需求，含要原样使用的确切取值"；</li>
+<li>简报无法知道的、来自前序任务的<strong>接口与决策</strong>；</li>
+<li>你对简报中<strong>歧义的裁决</strong>；</li>
+<li><strong>报告文件路径 + 报告契约</strong>。</li>
+</ol>
+<p>铁律：<strong>确切取值（数字、魔法串、签名、测试用例）只出现在简报里</strong>；<strong>绝不把累积的历史塞进派发</strong>（真实案例中一份派发 prompt 达 42k 字符，99% 是粘贴的历史）；<strong>绝不让子代理读整个计划文件</strong>。小而同形的批量改动（同一处一行修正、常量替换、字段新增重复到多文件）<strong>合成一个派发</strong>，不要一任务一代理；一任务一代理只留给需要独立判断/独立测试/独立验收面的活。</p>
+<p><strong>边界怎么定</strong>：派发里带 <strong>no-subagents 契约</strong>——实现者<strong>永不再派子代理</strong>（包括"帮手"，更包括自查评审）。真实会话里执行者自派的评审每次都重复了控制器的任务评审，等于每任务白多一个评审位。<strong>多个实现子代理绝不并行派发</strong>（会冲突）。若早先任务在本任务区域留有 finding，派发里带上指向该台账条目的指针。</p>
+<h4 id="a2-进度怎么记台账-ledger">A2. 进度怎么记（台账 Ledger）</h4>
+<p><strong>对话记忆不跨压缩存活</strong>——控制器丢状态后重派已完成的整段任务是实测中最贵的失败。因此<strong>进度写进台账文件</strong>（<code>&lt;workspace&gt;/progress.md</code>），首行写身份 <code># SDD ledger — plan: &lt;计划路径&gt;</code>：</p>
+<ul>
+<li>有 <code>Task &lt;N&gt;: complete</code> 行的任务即 <strong>DONE，不重派</strong>，从第一个没有该行的任务续跑；</li>
+<li>压缩后<strong>信台账与 <code>git log</code>，不信自己的记忆</strong>；</li>
+<li>修补轮次、裁决、驻留的 finding 全部落台账；单个计划一个 workspace，<strong>别的计划的目录不读不写</strong>。</li>
+</ul>
+<h4 id="a3-验收怎么做三层门缺一不算过">A3. 验收怎么做（三层门，缺一不算过）</h4>
+<ul>
+<li><strong>每任务评审是任务级闸门</strong>：<strong>规格合规 AND 任务质量两个结论都必需</strong>，缺任一即不算报告完整。<strong>实现者自查永不替代任务评审</strong>——两者都要。</li>
+<li><strong>评审输入三条路径</strong>：同一份简报、报告文件、评审包（<code>review-package PLAN_FILE BASE HEAD</code> 产出的单文件 diff）；外加<strong>绑定该任务的全局约束</strong>（逐字抄自计划的 Global Constraints / 规格：确切取值、确切格式、组件间关系）。全局约束块是评审者的<strong>注意力透镜</strong>。</li>
+<li><strong>不预判 finding</strong>：绝不指示评审者"忽略某问题""别当缺陷""至多 Minor""计划就是选的"——出现这类话说明你在预判，通常是想省一轮评审。若确信是误报，让评审者提出、在评审环里裁决。</li>
+<li><strong>重建 BASE</strong>：派发实现者前记下 <code>BASE=git rev-parse HEAD</code>；评审包用该 BASE，<strong>绝不用 <code>HEAD~1</code></strong>（会静默截断多提交任务的中间提交）。</li>
+<li>评审可能报 <code>⚠️ 无法从 diff 验证</code>（要求落在未改动代码或跨任务处）：<strong>不阻断其余评审</strong>，但<strong>控制器必须逐条自行解决</strong>（你持有计划与跨任务上下文）——确认是真缺口，就按规格失败进修补环。</li>
+</ul>
+<h4 id="a4-修补环fix-loop与断路器">A4. 修补环（Fix Loop）与"断路器"</h4>
+<p>触发条件：规格 ❌、任一 Critical/Important finding、或你确认为真缺口的 ⚠️ 项。<strong>每任务最多 5 轮</strong>（一轮 = 一次修补派发 + 一次<strong>限定范围</strong>的复审）：</p>
+<ul>
+<li><strong>第 1–3 轮</strong>：<strong>续用原实现者</strong>（上下文完整），把未决 finding 原样发给它；</li>
+<li><strong>第 4–5 轮</strong>：<strong>换新实现者 + 至少升一档模型</strong>，说"此前已尝试 N 次，现在归你，先读报告文件看试过什么"——撑过三次续跑的环，通常意味着实现者看不见自己的问题，换眼睛与升能力一步到位；</li>
+<li><strong>复审是限定的</strong>：只对每条 finding 判 <code>ADDRESSED / NOT ADDRESSED</code>，并只在修补 diff 内标记新破坏；<strong>范围外观察记为延后 minor，绝不延长环</strong>。</li>
+<li><strong>Minor 不进环</strong>：逐条记台账（<code>Task &lt;N&gt;: minor (deferred): …</code>），终审时统一分诊。<strong>plan-mandated 的 finding 归你裁决</strong>（以规格为约束权威），不得因"计划要求的"就丢弃。</li>
+<li><strong>断路器（第 5 轮仍不收敛）</strong>：停止派发，<strong>逐条自行裁决</strong>——评审者错/可争辩 → 驻留；真但无人依赖 → 驻留；<strong>真且承重（后续任务依赖它 / 暴露计划缺陷）→ 裁最小改动解锁下游，记 <code>Ruling:</code> 并带入下一任务派发</strong>。<strong>只在触顶时裁决</strong>，提前裁决=换个名字的预判；每次裁决必落台账，<strong>禁止静默丢弃</strong>。</li>
+<li><strong>控制器绝不自己动手修</strong>：保持上下文干净，且控制器直接修会跳过评审。</li>
+</ul>
+<h4 id="a5-终审与收尾">A5. 终审与收尾</h4>
+<p>全分支终审用<strong>最强模型</strong>，把评审包（<code>MERGE_BASE…HEAD</code>）、台账里的 deferred-minor 与驻留行一起给它分诊。有 finding → <strong>只派一次修补</strong>（不是一 finding 一修，真实会话里逐 finding 修的代价超过全部任务之和），再做<strong>恰好一次</strong>限定复审，残余按断路器方式裁决；<strong>没有第二轮修补</strong>。收尾时把台账里所有含 <code>Ruling:</code> 的行<strong>按发生顺序汇总进最终消息</strong>——"随 workspace 一起消失的裁决 = 秘密决策"。全绿后删除本计划 workspace（git 历史即记录）。</p>
+<h4 id="a6-模型选择判断标准">A6. 模型选择（判断标准）</h4>
+<p><strong>用能胜任该角色的最弱模型</strong>省钱提速。<strong>显式指定模型</strong>——省略会继承你（通常最贵）的会话模型，静默破坏本节。关键校准：<strong>轮数比 token 单价更重要</strong>——最便宜的模型常在多步活上多花 2–3× 轮数，总体更贵，故评审者与"读散文式描述干活"的实现者以中档为底；<strong>计划文本已含完整待写代码时</strong>，实现=抄写+测试，用最便宜档。任务信号：单/双文件且规格完整 → 便宜档；多文件带集成关注 → 标准档；需设计判断或广域理解 → 最强档。修补环 4–5 轮升档。</p>
+<h4 id="a7-为什么必须-verification-before-completion">A7. 为什么必须 verification-before-completion</h4>
+<ul>
+<li><strong>没有评审的环只是"未经验证的瞎忙"</strong>——评审是环的刹车与方向盘。</li>
+<li><strong>"规格差不多就行"= 没完成</strong>：评审查到规格缺口就得修，或触顶后裁决，别无出口。</li>
+<li><strong>未评审的修补正是回归落地的方式</strong>：每轮都以限定复审收尾，无例外。</li>
+<li><strong>"实现者自派了评审，白得一层保险"= 缺陷</strong>：那是对同一 diff 的重复评审位，任务评审才是闸门。</li>
+<li><strong>"我自己修，派发是开销"</strong>：控制器修污染自己上下文且跳过评审。</li>
+</ul>
+<p>配套的<strong>持续推进纪律</strong>：任务间<strong>不停下来请示</strong>，把全部任务跑完；计划不停下来等人。冲突/歧义/计划缺陷由你<strong>裁决而非停滞</strong>（记 <code>Ruling: &lt;决定&gt; — &lt;理由&gt; — &lt;错了的代价&gt;</code> 后继续）。<strong>只有四类事才停</strong>：不可逆或破坏性操作、安全敏感动作、工作树外需先问的副作用（合并/推共享分支/发布）、计划烂到每条路都是猜。</p>
+<h3 id="b-技能编写skill-authoring">B. 技能编写（Skill Authoring）</h3>3
+<h4 id="b1-三条核心原则">B1. 三条核心原则</h4>
+<ol>
+<li><strong>拆成 Agent</strong>：复杂技能 = <strong>纯编排者 + 专职子代理</strong>；子代理单一职责，<strong>编排者只委派/协调/汇报，绝不自己干活</strong>。</li>
+<li><strong>并行优先</strong>：相互独立的子代理在<strong>同一条 Task 消息</strong>里一起启动（3 个目录 → 3 个并行代理 ≈ 1× 延迟而非 3×，只在有依赖时才串）。</li>
+<li><strong>脚本优先（确定性）</strong>：技能价值若能用确定性脚本表达，<strong>先写脚本，再用 SKILL.md 包住它</strong>——脚本可测、可在 Claude 外运行、让 SKILL.md 变薄。<strong>Agent 管判断，脚本管流程。</strong></li>
+</ol>
+<p>其余：<strong>精简</strong>（上下文是共享资源，逐段问"值这个 token 吗"）；<strong>渐进披露</strong>（SKILL.md 是概览，正文 &lt; 500 行，引用文件按需加载）；<strong>自由度匹配脆性</strong>（灵活任务给文字指引、脆性操作给确切脚本、判断密集型给专职 Agent）。</p>
+<h4 id="b2-怎么写才可复用结构约定">B2. 怎么写才可复用：结构约定</h4>
+<p><strong>Frontmatter 只允许三类字段</strong>：<code>name</code>（kebab-case，≤64 字符）、<code>description</code>（≤1024 字符，<strong>第三人称 + 单行双引号</strong>）、<code>metadata.version</code>（semver）。<strong>不要</strong> <code>author/date/tags/allowed-tools/category</code>，也不要顶层 <code>version</code>；<code>description: |</code> 块标量会触发 VS Code linter 报错。</p>
+<p><strong>description 写法</strong>（Claude 靠它从 100+ 技能里选你）：第三人称；<strong>同时含"做什么"与"何时用"</strong>；带编号触发条件 <code>Use when: (1)…(2)…(3)…</code>；写具体症状、报错、框架名。</p>
+<p><strong>目录布局与"什么放哪"</strong>：</p>
+<pre><code>your-skill/
+├── SKILL.md        # 必需：决策工作流、when-to-use、关键规则
+├── scripts/         # 可选：可执行自动化（前/后处理）
+└── references/      # 可选：按需加载的查阅材料
+.claude/agents/      # Agent 定义放这里（跨技能复用），不放技能内
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>内容类型</th>
+<th>放哪</th>
+<th>为什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>决策流、触发条件、常用命令、编排模式</td>
+<td>SKILL.md</td>
+<td>每次都加载</td>
+</tr>
+<tr>
+<td>Agent 定义</td>
+<td><code>.claude/agents/</code></td>
+<td>标准位置、可复用</td>
+</tr>
+<tr>
+<td>查表、字段参考、代码示例、案例</td>
+<td>references/</td>
+<td>偶尔查阅，避免稀释 SKILL.md</td>
+</tr>
+<tr>
+<td>可执行流程</td>
+<td>scripts/</td>
+<td>可预测、可测、可复用</td>
+</tr>
+</tbody>
+</table>
+<p><strong>引用规则</strong>：距 SKILL.md <strong>只一层</strong>（references 不再链 references）；文件名有描述性（<code>api-field-reference.md</code> 而非 <code>ref1.md</code>）；<strong>&gt;100 行加目录</strong>。</p>
+<p><strong>脚本抽取判断</strong>：检查/校验/检测（过期、同步、覆盖）、含错误处理（缺依赖/错目录/非法参数）、同段代码出现在多技能、可与其它脚本或 CI/hooks 组合、用户可能在技能外单独运行——命中任一即抽 <code>scripts/</code>。脚本要求：必备 <code>--help</code>、运行前校验输入、有意义的退出码（0 成功/1 错误/2 用法）、适用时提供 <code>--fix</code>、<code>chmod +x</code>、<code>#!/usr/bin/env bash</code>。</p>
+<h4 id="b3-三个do-i-need-it判断表">B3. 三个"Do I need it"判断表</h4>
+<ul>
+<li><strong>拆解评估</strong>：N 个独立项 → 按项 fan-out；N 个独立关注点 → 按维度 fan-out；阶段内可并行 → 脚本→并行代理→脚本；纯串行 → 不需要编排者。</li>
+<li><strong>脚本优先评估</strong>：完全确定性 → 先写脚本、SKILL.md 做薄壳；大部分确定 + 少量判断 → 脚本管确定、Agent 管判断；纯决策指引 → 散文优先、无需脚本。</li>
+<li><strong>进度追踪评估</strong>：3+ 顺序阶段或多工作流 → 加 <code>scripts/task-manifest.sh</code>（每个工作流一个 <code>case</code> 分支，输出 <code>subject/activeForm/description</code>）；1–2 个快阶段 → 跳过。</li>
+</ul>
+<p><strong>创建 vs 更新</strong>：无相关 → 新建；同触发+同修法 → 更新（minor 升版）；同触发+不同根因 → 新建并双向 <code>See Also</code>；同域+不同触发 → 更新加变体小节；已陈旧/错误 → Notes 弃用并建替代。</p>
+<h4 id="b4-反模式照抄避坑">B4. 反模式（照抄避坑）</h4>
+<ul>
+<li><strong>能并行却顺序执行</strong>（无依赖就该同一条消息发）· <strong>单体代理</strong>（一个干五件事）· <strong>编排者亲自干活</strong> · <strong>缺结构化输出</strong>（返回散文迫使编排者猜）。</li>
+<li><strong>啰嗦解释</strong>（跳过"PDF 是什么"这类常识）· <strong>选项过多</strong>（给默认 + 逃生口，不是五个方案）· <strong>深层嵌套引用</strong>（SKILL.md→ref→detail 导致只读到一半）。</li>
+<li><strong>时间敏感信息</strong>（"2025 年 8 月后用 X"会腐烂，改用"当前方法/遗留"分节）· <strong>术语不一致</strong>（统一用 endpoint，别混 URL/route/path）· <strong>非标准 frontmatter</strong>（author/date/tags 白烧 token）。</li>
+<li><strong>Agent 里 CLI 模板不全</strong>（<code>gh issue/pr create</code> 要写全 <code>--label/--assignee/--milestone</code>，否则 Agent 用似是而非的值瞎填）。</li>
+<li><strong>长流程静默</strong>（3+ 阶段不建任务清单，用户盯着转圈；子代理 &gt;30s 就该看到哪个任务 in_progress）。</li>
+<li><strong>未测脚本当"完成"</strong>：过得了代码评审却在真实数据上失败——<strong>发布前必须对当前项目用 2–3 个变化输入做 dry-run</strong>（bug 成簇，一个启发式错往往意味着别的也错）。</li>
+<li><strong>一次性并行却上 Teams</strong>：Teams 有开销（共享任务表、消息路由）；独立 fan-out 用子代理更快更省。</li>
+</ul>
+<p><strong>优化既有技能（超 500 行/结构差/慢）</strong>：审计可并行点 → 拆单体 Agent → 抽 <code>scripts/</code> → 抽 <code>references/</code> → 内联改链接（<code>See **[references/x.md]**…</code>）→ 校验交叉引用都存在 → 修失效引用 → 升版（重组=minor，Agent 架构变更=major）。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">来源</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>raw/practice/skills-精选/ext-obra_superpowers-subagent-driven-development.md</li><li>raw/practice/skills-精选/ext-abhattacherjee_claude-code-skills-skill-authoring.md</li></ul></div>2
+<ul>
+<li>raw/practice/skills-精选/ext-obra_superpowers-subagent-driven-development.md</li>
+<li>raw/practice/skills-精选/ext-abhattacherjee_claude-code-skills-skill-authoring.md</li>
+</ul>
+<h2 id="相关术语">相关术语</h2>2
+<ul>
+<li>Orchestrator-Walker、A2A / MCP：ontology/术语表-Agent框架.md</li>
+<li>Quality Gating、Progressive Disclosure：ontology/Agent记忆术语表.md</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">相关条目</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>外部技能库精选提炼（可直接套用的角色技能包）</li></ul></div>2
+<ul>
+<li><a href="%E5%A4%96%E9%83%A8%E6%8A%80%E8%83%BD%E5%BA%93%E7%B2%BE%E9%80%89%E6%8F%90%E7%82%BC.html">外部技能库精选提炼（可直接套用的角色技能包）</a></li>
+</ul></div></details></div></body></html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>术语表-模型部署</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 术语表-模型部署</span></div><div class="wrap"><h1 id="模型部署术语表-ontology">模型部署术语表 (ontology)</h1>
+<blockquote>
+<p>入库: 2026-09-29 | 项目: wuyafang-l<br />
+每个术语 = 定义 + 适用场景 + <strong>conflict_status</strong><br />
+conflict_status 取值含义见 ontology/Agent记忆术语表.md</p>
+</blockquote>
+<hr />
+<h2 id="vllm">vLLM</h2>2
+<ul>
+<li><strong>定义</strong>: 高吞吐 LLM 推理引擎，核心是 PagedAttention（分页式 KV cache 管理）+ 连续批处理（continuous batching），主打高并发生产部署。OpenAI 兼容 API server。</li>
+<li><strong>适用场景</strong>: 服务端高并发、要开 API 给多请求同时推理、追求吞吐。本地单任务/桌面端不划算。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 Ollama — <strong>complementary</strong>: vLLM 偏"服务端高并发"，Ollama 偏"本地单机一键跑"，按部署规模二选一。</li>
+</ul>
+<hr />
+<h2 id="ollama">Ollama</h2>2
+<ul>
+<li><strong>定义</strong>: 本地一键跑开源大模型的工具/运行时，封装模型下载、格式转换、本地 API（默认 :11434）。支持 GGUF 量化模型，适合桌面/个人开发机。</li>
+<li><strong>我们的口径</strong>: RAG 管线的 LLM 生成端用 Ollama 本地 doubao-seed-2.1-lite（零 API 费）。</li>
+<li><strong>适用场景</strong>: 本地开发、零成本生成、单用户。不追求高并发。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 vLLM — <strong>complementary</strong>（见上）。</li>
+</ul>
+<hr />
+<h2 id="llamacpp">llama.cpp</h2>2
+<ul>
+<li><strong>定义</strong>: C++ 实现的纯 CPU/低资源 LLM 推理引擎，GGUF 格式的原生载体，极致轻量，可在笔记本/边缘设备跑量化模型。是 Ollama 等上层工具的底层依赖之一。</li>
+<li><strong>适用场景</strong>: 无 GPU、边缘/嵌入式、极简依赖环境。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 Ollama — <strong>complementary</strong>: llama.cpp 是底层引擎，Ollama 是它的易用封装。</li>
+</ul>
+<hr />
+<h2 id="gguf">GGUF</h2>2
+<ul>
+<li><strong>定义</strong>: llama.cpp 生态的模型量化文件格式（替代旧的 GGML），单文件打包权重 + 元数据，支持多种量化位宽（Q4_K_M / Q5_K_M / Q8 等）。Ollama 直接加载 GGUF。</li>
+<li><strong>适用场景</strong>: 本地量化部署、跨工具便携分发。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与量化 — <strong>complementary</strong>: GGUF 是"载体格式"，量化是"压缩方法"，量化后的模型以 GGUF 落盘。</li>
+</ul>
+<hr />
+<h2 id="量化-quantization">量化 (Quantization)</h2>2
+<ul>
+<li><strong>定义</strong>: 把模型权重从 FP16/BF16 压到更低比特（INT8/INT4 等）以省显存、提速、降成本，代价是轻微精度损失。常见方案：GGUF 量化（Q4_K_M 等）、AWQ、GPTQ。</li>
+<li><strong>我们的口径</strong>: 本地跑量化模型省资源；云端 API 模型（doubao 等）由服务商管，我们不自己量化。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 GGUF / AWQ — <strong>complementary</strong>: 量化是方法，GGUF/AWQ 是不同体系的落地格式。</li>
+</ul>
+<hr />
+<h2 id="awq-activation-aware-weight-quantization">AWQ (Activation-aware Weight Quantization)</h2>2
+<ul>
+<li><strong>定义</strong>: 一种 INT4 权重量化方法，按"激活幅度"识别重要权重通道、保留其精度，比朴素 INT4 精度损失小，适合 GPU 上的高效推理（常配 vLLM / Text Generation Inference）。</li>
+<li><strong>适用场景</strong>: GPU 服务端、要在可控精度损失下省显存。与 GGUF（CPU 生态）分属两大量化路线。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 GGUF — <strong>complementary</strong>: AWQ 偏 GPU/服务端，GGUF 偏 CPU/本地，按硬件选。</li>
+</ul>
+<hr />
+<h2 id="step-level-model-routing-步级模型路由">Step-level Model Routing (步级模型路由)</h2>2
+<ul>
+<li><strong>定义</strong>: 不是整个任务锁一个模型，而是按推理"步"动态选档位：planning/复杂推理走强模型，formatting/摘要走轻量模型。来源论文 AgentRouter(arXiv:2609.22951)。</li>
+<li><strong>我们的口径</strong>: 已落地为"模型能力矩阵"（AFP 系数 0.5/1/5/9），按任务类型选档位（notes/config/模型能力矩阵）。</li>
+<li><strong>conflict_status</strong>: <code>active</code></li>
+<li><strong>关系标注</strong>: 与 Budget-Tiered Routing — <strong>complementary</strong>: 步级路由决定"用哪个模型"，预算三档决定"给多少 token 上限"，二者正交可叠加。</li>
+</ul></div></body></html>

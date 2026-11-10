@@ -1,0 +1,485 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>知识库保鲜与TTL治理</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 知识库保鲜与TTL治理</span></div><div class="wrap"><h1 id="知识库保鲜与-ttl-治理">知识库保鲜与 TTL 治理</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/rag-arch/%E7%9F%A5%E8%AF%86%E5%BA%93%E4%BF%9D%E9%B2%9C%E8%B0%83%E7%A0%94-%E5%AE%8C%E6%95%B4%E7%89%88-20261009.md">知识库保鲜调研-完整版-20261009</a></p>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E6%90%AD%E5%BB%BA%E5%85%A8%E6%B5%81%E7%A8%8B.html">企业级RAG搭建全流程</a> · <a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践</a> · <a href="RAG%E8%AF%84%E4%BC%B0%E6%80%8E%E4%B9%88%E8%B7%91.html">RAG评估怎么跑</a> · <a href="../L5-Agent%E5%B7%A5%E7%A8%8B/06-Agent%E7%94%9F%E4%BA%A7%E7%BA%A7%E9%83%A8%E7%BD%B2.html">Agent 生产级部署：记忆保鲜与冲突治理</a></p>
+<p>来源: 从 <code>raw/rag-arch/知识库保鲜调研-完整版-20261009.md</code> 提炼（一手论文 + KM 权威模型）<br />
+一手源: arXiv:2609.31342（Stale-Document Poisoning）</p>
+</blockquote>
+<h1 id="why阻止旧事实继续影响回答同时保留审计和恢复能力">WHY：阻止旧事实继续影响回答，同时保留审计和恢复能力</h1>
+<h2 id="业务价值边界与不治理的后果">业务价值、边界与不治理的后果</h2>2
+<p>业务要避免的是“答案有引用，但引用已经不成立”。相关性分数不会自动判断 API、价格、政策和版本的有效期；不治理时，旧证据越多越容易挤掉新事实。保鲜的价值是把过期检测、确定性过滤与人工复核拆开，让系统既能停止传播失效事实，又不丢历史和追责线索。</p>
+<p>本篇 sources 的<a href="../../raw/rag-arch/RAG%E4%BF%9D%E9%B2%9C%E8%90%BD%E5%9C%B0%E9%AA%8C%E8%AF%81-20261009.md">落地验证</a>明确区分自动到期标记与人工归档，正文的论文攻击数字保留原样本范围，不外推为本库错误率。适用于带版本或时间敏感性的知识；永恒原理不因文件修改时间旧而判无效，历史问题也不应被“只取最新”误删证据。医疗/法律等高风险事实仍需业务审批，TTL 不提供正确性保证。</p>
+<p>质量合同是到期能发现、失效不误用、缺字段能暴露、复核后能恢复检索；误报与漏报分开报告。<code>updated</code> 仅表明编辑，不能自动当事实已验证，所以本轮只更新编辑日期，不顺手改 <code>last_verified</code>，也不把三段补齐冒充全文事实复审。</p>
+<h2 id="核心论点">核心论点</h2>2
+<p><strong>知识库的退化不是"内容变少"，而是"过期内容还在投票"——保鲜治理的对象是检索权重，不只是文件生命周期。</strong> 单条过期文档就能把 83 道医学题里 74 道从对翻成错（arXiv:2609.31342），说明 TTL/复审/降权不是锦上添花而是防"越建越错"的底线机制。判定寿命要看内容性质（版本号/价格/日期 → 快速档，纯原理 → 永久档）而不是一刀切；落地路径是"入库标 TTL → 到期降权不删除 → 人审复核"三步，并用过期投毒率等四个指标量化效果。</p>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">为什么需要保鲜治理（动机与代价）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>动机（WHY）：知识库只"增"不"减"会随时间单调变差——过期文档不会自动退出检索，而检索是按相关性投票的，过期内容靠数量/相似度压倒新文档（"多数表决陷阱"）</li><li>权衡的关键是自动动作做"加（抓新）"、"提醒（过期提示）"和"墓碑过滤（到期标 expired、检索时过滤，向量不物理删除）"，不做"物理删除"——删除/归档一律人说了算（防误删踩坑教训）</li><li>原理/方法论内容按永久档处理（"约 80% 是永久档"只是启发式假设，源里无实证，入库满 3 个月后按实际检索数据修正），永远不被自动动作碰——保鲜只针对带版本号/价格/日期的快速档内容</li></ul></div>2
+<ul>
+<li><strong>动机（WHY）</strong>：知识库只"增"不"减"会随时间单调变差——过期文档不会自动退出检索，而检索是按相关性投票的，过期内容靠数量/相似度压倒新文档（"多数表决陷阱"）。arXiv:2609.31342 实测：单条过期文档就能把 83 道医学题里 74 道从对翻成错——这不是内容质量问题，是<strong>检索权重被过期内容污染</strong>的结构性问题。保鲜治理的对象是"过期内容还在投票"，不是"文件该不该删"。</li>
+<li><strong>代价与权衡</strong>：保鲜要给内容分档定寿命（TTL）、设过期检测、定复审流程——管理成本不低。但反面代价更贵：不治理的知识库会"越建越错"且无人知晓（用户只会觉得"这库不准了"）。权衡的关键是<strong>自动动作做"加（抓新）"、"提醒（过期提示）"和"墓碑过滤（到期标 expired、检索时过滤，向量不物理删除）"，不做"物理删除"</strong>——删除/归档一律人说了算（防误删踩坑教训）。据[一手源]：RAG保鲜落地验证-20261009.md：早期设计写的是"到期只提醒、不自动降权"，该源验证后判为"过于保守"——过期文档继续被检索，正是 arXiv:2609.31342 实测的投毒来源；业界默认是"自动到期转状态 + 人审后续操作"，所以降权/墓碑过滤应自动，人审只管续期或归档。原理/方法论内容按永久档处理（"约 80% 是永久档"只是启发式假设，源里无实证，入库满 3 个月后按实际检索数据修正），永远不被自动动作碰——保鲜只针对带版本号/价格/日期的快速档内容。</li>
+</ul>
+<h1 id="whyt分清文档复审入库寿命和查询过滤的三种时钟">WHYT：分清文档复审、入库寿命和查询过滤的三种时钟</h1>
+<h2 id="三种时钟与协同关系">三种时钟与协同关系</h2>2
+<pre><code class="language-text">frontmatter ttl_days + last_verified → check_ttl.py → WARN/ERROR/缺字段
+frontmatter ttl + captured_at        → ingest metadata → 查询墓碑过滤
+source date + config expiry_days     → 查询中的过期提醒
+                                      ↓
+                        人审确认 → 更新事实/续期 → 授权增量入库
+</code></pre>
+<p>这三条链相关但不等价。<code>rag/check_ttl.py</code> 以 last_verified 计算复审年龄：超过 ttl_days 是 WARN，超过两倍是 ERROR，缺字段或 eternal 跳过。查询 <code>_is_tombstoned()</code> 则读 metadata 的 ttl 与 captured_at；来源日期加 <code>ttl.expiry_days</code> 产生提醒，又是另一口径。只把 Markdown 的 last_verified 改新，不证明旧向量 metadata 的 captured_at 同步刷新。</p>
+<p>选型对标按本篇资料：dbt 式双阈值提供可阻断的健康检查，元数据驱动分档优于按目录粗分，自动墓碑过滤优于继续让旧值投票；物理删除不是 TTL 的自动动作。衰减公式、owner 分工和 cron 是治理设计，不等于每个索引都已实现。本库具体能力以当前脚本和实际记录为准，不能因为旧表写“已实现”就宣称生产全覆盖。</p>
+<p>数据契约至少要让复审负责人能定位 source、寿命策略、上次事实核验与有效时间。更新 <code>ttl</code>/<code>ttl_days</code> 前先解释两者如何对应；ingest 的已知 ttl 字符串以 <code>parse_ttl</code> 实现为准，不自行猜测 90d 等任意字符串都被支持。文件索引和图派生边还需分别回溯源版本，续期文档不会自动修复过期关系。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">一句话结论</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>RAG 知识库越旧，被"过期内容投毒"的风险越高——保鲜不是锦上添花，是防止"越建越错"的必选项</li><li>结论是"过期文档留在索引里本身就危险"，不是"提醒一下就行"</li><li>另据该源：行业数据称 60% 的 RAG PoC 失败原因是无法在规模上维持数据新鲜度，而不是检索质量</li></ul></div>2
+<p><strong>RAG 知识库越旧，被"过期内容投毒"的风险越高——保鲜不是锦上添花，是防止"越建越错"的必选项。</strong></p>
+<p>硬证据：顶级模型（GPT-5.5 级）无检索时答对率 0.92–1.00，但<strong>单条过期文档就能把 83 道医学题里的 74 道从对翻成错</strong>（arXiv:2609.31342 实测）。</p>
+<p>据[一手源]：RAG保鲜落地验证-20261009.md —— 同一篇论文在开源模型上的翻错率：单条过期文档让 Llama 翻错 30%、Qwen 翻错 37%；提示里带"follow instructions"时翻错率升到 66–75%。结论是"过期文档留在索引里本身就危险"，不是"提醒一下就行"。另据该源：行业数据称 60% 的 RAG PoC 失败原因是无法在规模上维持数据新鲜度，而不是检索质量。</p>
+<h2 id="是什么定义与边界">是什么（定义与边界）</h2>2
+<p><strong>定义</strong>：知识库保鲜 = 让知识库内容"不因过期而误导检索/生成"的治理机制，含 TTL 分档（按内容性质定寿命：快速档 7-30 天 / 中等档 6 个月 / 永久档不碰）、过期检测、复审流程、新内容增量入库。核心原则："过期≠删除，过期只是'该复审了'"。</p>
+<p><strong>边界</strong>：<br />
+- ✅ 管：内容生命周期（TTL 分档）、过期提醒、复审决策流程、新内容自动入库闭环。<br />
+- ❌ 不管：检索算法本身（<a href="RRF%E8%9E%8D%E5%90%88%E5%8A%A0%E9%87%8D%E6%8E%92%E8%A7%A3%E5%86%B3%E6%A3%80%E7%B4%A2%E7%9F%AD%E6%9D%BF-%E6%B7%B7%E5%90%88%E6%A3%80%E7%B4%A2%E6%B5%81%E6%B0%B4%E7%BA%BF.html">RRF融合加重排</a>）、评估指标（<a href="RAG%E8%AF%84%E4%BC%B0%E6%80%8E%E4%B9%88%E8%B7%91.html">RAG评估怎么跑</a>）、语料组织（<a href="%E6%95%B4%E6%9C%AC%E4%B9%A6%E4%B8%8E%E6%95%B4%E5%A5%97%E8%AF%BE%E4%BB%B6%E6%80%8E%E4%B9%88%E5%85%A5%E5%BA%93.html">整本书与整套课件怎么入库</a>）。<br />
+- ⚠️ 自动动作的红线：系统绝不自动<strong>物理删除</strong>——误删踩坑的教训是"宁可多提醒，不可自动删"；删除/归档/续期永远是人工决策。据[一手源]：RAG保鲜落地验证-20261009.md：到期后的"墓碑标记（status: expired）+ 检索过滤"可以自动做，这与上文"绝不自动降权"的旧表述不同，以本条为准（<code>_is_tombstoned()</code> 已按此实现）。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">TTL 三分档（按内容性质定寿命）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>判定原则：内容里出现"版本号/价格/截止日期/官方公告日期"任一信号 → 快速档；只写"怎么做"不带具体数值 → 中等档；只讲原理不讲版本 → 永久档</li><li>本库 「_DIR_TTL_DEFAULTS」 正是"目录默认 + frontmatter 覆盖"的做法，frontmatter 写错（见下文 「ttl_days」 坑）才会让目录默认静默顶上</li><li>2. "80% 是永久档"是启发式假设，没有实证</li></ul></div>2
+<p>不是所有内容同寿命。判定原则：<strong>内容里出现"版本号/价格/截止日期/官方公告日期"任一信号 → 快速档；只写"怎么做"不带具体数值 → 中等档；只讲原理不讲版本 → 永久档。</strong></p>
+<table>
+<thead>
+<tr>
+<th>档位</th>
+<th>内容类型</th>
+<th>建议 TTL</th>
+<th>本库例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>快速过期</strong></td>
+<td>API 文档、模型版本、价格、政策</td>
+<td>7–30 天</td>
+<td>模型版本号、百炼价格、cron 配置</td>
+</tr>
+<tr>
+<td><strong>中等过期</strong></td>
+<td>最佳实践、框架用法、工具参数</td>
+<td>3–6 个月</td>
+<td>LangChain 用法、vLLM 参数、bge-m3 调优</td>
+</tr>
+<tr>
+<td><strong>永不过期</strong></td>
+<td>基础理论、算法原理、数学公式</td>
+<td>长期（仅复查不淘汰）</td>
+<td>RRF 公式、embedding 原理、attention 机制</td>
+</tr>
+</tbody>
+</table>
+<p>据[一手源]：RAG保鲜落地验证-20261009.md —— 两条校准：</p>
+<ol>
+<li><strong>按目录自动判 TTL 没有业界先例</strong>。Oracle WebCenter 的 retention category 由管理员按元数据建，不看文件路径；ServiceNow（5000 篇、默认 1 年审查期）按篇由 Document Owner 设置；Dynamics 365 的 expiration date 由 content reviewer 设，系统不自动推断；ARMA 说保留期依文档价值赋值。结论：入库时显式写 <code>ttl: eternal|180d|30d|7d</code>，目录路径只能当默认值提示，不能当唯一判据。本库 <code>_DIR_TTL_DEFAULTS</code> 正是"目录默认 + frontmatter 覆盖"的做法，frontmatter 写错（见下文 <code>ttl_days</code> 坑）才会让目录默认静默顶上。</li>
+<li><strong>"80% 是永久档"是启发式假设，没有实证</strong>。源里没找到任何公开研究统计知识库中永久/临时内容的比例；能引的锚点是 97% 的学术论文 half-life 超过 1 年（按下载量算，不是按 RAG 有用性算）。模型版本、价格类内容的半衰期远短于论文，要单独估算。做法：入库满 3 个月后，统计实际被检索到的文档里永久档与临时档的比例，用真实数据修正。</li>
+</ol>
+<h2 id="知识生命周期">知识生命周期</h2>2
+<p><strong>创建 → 审核 → 发布 → 监控 → 过期 → 归档</strong></p>
+<ul>
+<li>Microsoft Dynamics 365 官方模型：Draft → Approve → Publish → Expired → Archived</li>
+<li>LlamaIndex DLM 五阶段：creation / storage / sharing / archiving / disposal</li>
+</ul>
+<blockquote>
+<p><strong>对本库的启示</strong>：wuyafang-l 此前只有"创建"和"发布"（丢进 <code>raw/</code> 即入向量库），<strong>缺"监控"和"过期"两环</strong> —— 这正是保鲜要补的缺口，也是本条目存在的理由。</p>
+</blockquote>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">过期检测三层法</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>方法</th>
+<th>精度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>时间法</strong></td>
+<td>TTL 到期自动标黄，到期 2 倍标红</td>
+<td>粗</td>
+</tr>
+<tr>
+<td><strong>diff 法</strong></td>
+<td>对权威源页面做定期 diff，发现变了 → 本地对应条目触发复审</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>矛盾法</strong></td>
+<td>同一主题在库里出现"两个答案"（新旧冲突）→ 触发人工裁决</td>
+<td>精</td>
+</tr>
+</tbody>
+</table>
+<h2 id="监控什么新不新靠什么判断">监控什么（"新不新"靠什么判断）</h2>2
+<ul>
+<li><strong>一手公告源</strong>：厂商 changelog / release notes（Ollama、LangChain、vLLM 的 GitHub Releases）</li>
+<li><strong>arXiv 新论文</strong>：cs.CL / cs.IR 每日扫描，命中 RAG / poisoning / freshness 关键词</li>
+<li><strong>政策/价格页</strong>：定价页每月抓一次 diff</li>
+<li><strong>本地信号</strong>：某条被"引用但报错"的频次升高 = 大概率过期</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">效果量化（四个可测指标）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>怎么测</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>过期投毒率</td>
+<td>用 317 题知识反转 benchmark 跑检索+生成</td>
+<td>&lt;10%</td>
+</tr>
+<tr>
+<td>TTL 到期复审闭环率</td>
+<td>到期条目中按时复审的比例</td>
+<td>&gt;80%</td>
+</tr>
+<tr>
+<td>新旧冲突检出率</td>
+<td>库内矛盾条目被自动发现的比例</td>
+<td>每周新增 &gt;0 即健康</td>
+</tr>
+<tr>
+<td>引用过期文档占比</td>
+<td>回答中引用"已标黄/红"条目的次数</td>
+<td>趋近 0</td>
+</tr>
+</tbody>
+</table>
+<h2 id="rag-专用保鲜与通用-km-的差异">RAG 专用保鲜（与通用 KM 的差异）</h2>2
+<p>业界 RAG 大部分只盯 <strong>Recall@k / MRR</strong>（检索准不准），不盯 <strong>新鲜度</strong>（内容新不新）—— 这是行业缺口，也是本库差异化的点：</p>
+<ol>
+<li><strong>检索时加分</strong>：新文档加权、过期文档降权或直接过滤</li>
+<li><strong>生成时提醒</strong>：引用"到期前 N 天"的文档时，输出里附一句"此信息可能已过期，请核对"</li>
+<li><strong>基准测试</strong>：拿 Stale-Document Poisoning benchmark 当回归集定期跑，投毒率升了说明保鲜失效</li>
+</ol>
+<h1 id="how先只读查过期再按授权续期更新索引和验证">HOW：先只读查过期，再按授权续期、更新索引和验证</h1>
+</div></details><h2 id="可执行步骤与正负例验收">可执行步骤与正负例验收</h2>2
+<ol>
+<li>先只读检查本层复审状态，不调用 ingest、不修改日期：</li>
+</ol>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+/usr/bin/python3 rag/check_ttl.py --root wiki/L4-RAG工程
+rg -n '^ttl:|^ttl_days:|^last_verified:|^updated:' 'wiki/L4-RAG工程/知识库保鲜与TTL治理.md'
+</code></pre>
+<p>验收：核对 scanned/checked/warn/error/skipped；exit 0 只代表无 ERROR，不代表无 WARN 或全部字段有效；exit 1 是门禁红，exit 2 是扫描环境错误。缺失或非法字段被 skipped，不能从绿色退出推导覆盖率 100%。</p>
+<ol start="2">
+<li>对照查询与入库解析，确认同一文件到底按哪条时钟处理：</li>
+</ol>
+<pre><code class="language-bash">rg -n 'def parse_ttl|captured_at|ttl_days' rag/ingest.py
+rg -n 'def _is_tombstoned|def build_expiry_warnings|expiry_days' rag/query.py rag/config.yaml
+</code></pre>
+<p>验收：选永恒、刚过期、严重过期及缺日期四类样本核对策略；源码中的未知 TTL/日期行为须单列，不能凭目录名替代字段。只读复审报告不写 status，也不物理删除向量。</p>
+<ol start="3">
+<li>
+<p>人工核验事实后再决定更新内容/续期；有写库授权与快照后才按本篇后文流程重新入库。本次不执行这一步，也不自动批量延长所有 TTL。验收时同时核对源文与索引 metadata，防止“页面已更新、检索仍旧值”。</p>
+</li>
+<li>
+<p>在已授权模型环境里验证最终证据与到期提示：</p>
+</li>
+</ol>
+<pre><code class="language-bash">env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/query.py &quot;知识库中过期文档应如何墓碑过滤而不物理删除？&quot; --no-gen --scope structured
+env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --check-golden
+</code></pre>
+<p>验收：未到期正例仍可查，失效事实不因高相似度重新进入回答，缺日期负例有显式待审记录；历史查询按业务时间边界处理。<code>--no-gen</code> 仍可能触发路由/CRAG 模型，不能借此越过外传边界。下面生命周期、cron、四个量化指标与原执行片段全部保留，历史盘点不当作本轮监控实测。</p>
+<h2 id="自动化最佳实践">自动化最佳实践</h2>2
+<ul>
+<li><strong>入库时就标 TTL</strong>：不让"没标 TTL 的内容"进向量库（铁律候选）</li>
+<li><strong>到期自动降级不自动删</strong>：先从检索候选移出（降权），进复审队列，人审后决定更新/归档/删除</li>
+<li><strong>快照先行</strong>：任何批量动库操作前先打快照，出错可回滚</li>
+<li><strong>负例入库</strong>：已知过期的"反面例子"也要进库，带 <code>[STALE]</code> 标记，防止模型重新踩坑</li>
+</ul>
+<p>据[一手源]：RAG保鲜落地验证-20261009.md —— 到期后自动转状态（墓碑/降级）、人审只管续期或归档的业界对照（该源 §② 原标题为"系统绝不自动降权/删除"，验证后判此旧设计"过于保守"，改为自动转状态 + 人审后续；"不物理删除"是本库自己的补充约束，非该源原句）：</p>
+<table>
+<thead>
+<tr>
+<th>来源</th>
+<th>做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RAGOps 论文（arXiv:2506.03401）§4.2.2</td>
+<td>旧版本"不保留，而是归档并由新版本替代"；校验阶段自动做（质量、完整性、时效、一致性、唯一性），冲突时才引入人（按来源可信度加权或人工介入）</td>
+</tr>
+<tr>
+<td>TianPan.co 生产实践</td>
+<td>墓碑标记（元数据标删除、不物理删向量、检索时过滤）+ 延迟清理是更安全的默认</td>
+</tr>
+<tr>
+<td>ServiceNow</td>
+<td>到期自动转 retired（对终端用户不可见但保留），到期前 30/15/0 天发邮件给 owner，有 unretire 流程</td>
+</tr>
+<tr>
+<td>Dynamics 365</td>
+<td>系统 job 到期自动 Published→Expired，人审后 update→republish 或 archive</td>
+</tr>
+<tr>
+<td>Bloomfire</td>
+<td>自动到期日 + 定期核验提醒，由领域专家复核</td>
+</tr>
+</tbody>
+</table>
+<p><strong>arXiv 抓取自动入库</strong>同样有业界先例（RAGOps §4.2.1 列了 webhook、CDC、轮询、文件监听、爬虫等方式；arXiv 官方提供 RSS/Atom feed），但入库后必须接<strong>自动校验</strong>：结构完整（quality）、元数据齐全（completeness）、时间戳（recency）、hash 去重（uniqueness）。建议流程：cron 抓 → 自动 ingest → 自动 verify → 入向量库。</p>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">本库落地现状（2026-10-14 核账）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>已统一改为 「ttl: 30d」</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ingest.py::parse_ttl()</code></td>
+<td>✅ 已实现：读 frontmatter <code>ttl: 30d</code> 字段，缺省按目录推断（<code>_DIR_TTL_DEFAULTS</code>）</td>
+</tr>
+<tr>
+<td>Wiki 层 frontmatter</td>
+<td>✅ 81 篇已全部标注 <code>ttl</code>（30d 20 篇 / 180d 59 篇 / eternal 2 篇）</td>
+</tr>
+<tr>
+<td><code>query.py::_is_tombstoned()</code></td>
+<td>✅ 已实现：到期自动过滤</td>
+</tr>
+<tr>
+<td><code>query.py::build_expiry_warnings()</code></td>
+<td>✅ 已实现：回答附"可能已过期"提醒</td>
+</tr>
+<tr>
+<td><strong>重新 ingest 使 ttl 生效</strong></td>
+<td>⚠️ 待执行（TTL 在入库时写入 Chroma metadata，改 frontmatter 后需重新入库）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>踩过的坑（2026-10-14 发现）</strong>：<code>ingest.parse_ttl()</code> 的正则是 <code>ttl[:=]\s*(\w+)</code>，期望 <code>ttl: 30d</code> 形式。此前 wiki 里写的是 <code>ttl_days: 30</code>，因 <code>ttl</code> 后紧跟 <code>_</code> 而非 <code>:</code>/<code>=</code> 而<strong>匹配失败</strong>，全部回落到目录默认 <code>wiki/ → eternal</code> —— 也就是说 TTL 机制在 wiki 层<strong>从未生效</strong>。已统一改为 <code>ttl: 30d</code>。</p>
+</blockquote>
+<h2 id="与现有-cron-的关系">与现有 cron 的关系</h2>2
+<table>
+<thead>
+<tr>
+<th>现有机制</th>
+<th>原本职责</th>
+<th>保鲜升级后</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>每日熵清理（error-ledger 聚合）</td>
+<td>错误聚合</td>
+<td>不变</td>
+</tr>
+<tr>
+<td>周日大扫除</td>
+<td>清低质产物</td>
+<td><strong>+ 到期复审队列生成</strong></td>
+</tr>
+<tr>
+<td>会话启动钩</td>
+<td>加载记忆</td>
+<td>可加："今天有没有到期的高 TTL 条目？"</td>
+</tr>
+</tbody>
+</table>
+<p><strong>不新增独立 cron</strong> —— 保鲜能力寄生在现有清理节奏上，避免 WSL 睡眠下定时器不可靠的老问题。</p>
+<p>据[一手源]：知识库保鲜调研-完整版-20261009.md —— 落地 Top3（按成本从低到高）：①入库强制 TTL：新 md 第一行 frontmatter 带 <code>ttl: 7d | 30d | 180d | eternal</code>，不标不入库，只是一条规矩、不改 cron；②周日大扫除多加一步：扫 raw/ 全部 md 的 ttl 字段，到期的挑进 <code>plans/待复审/</code> 目录；③动库前快照：批量删除、重建向量库、重 ingest 前先 <code>cp -r raw/ raw/.snapshot-YYYYMMDD/</code>，依据是"删错一条和留一条过期一样危险"。该源也自陈局限：原称"11 篇 arXiv 论文集"只重新核实了 4 篇核心一手源（另 7 篇 URL 当时未落盘），主结论只依赖 arXiv:2609.31342 这一篇已独立验证的论文。</p>
+<p>据[一手源]：保鲜调研-三层转化建议-20261009.md —— 规则层的 4 条铁律候选与本库机制的对应：</p>
+<table>
+<thead>
+<tr>
+<th>候选铁律</th>
+<th>原文要点</th>
+<th>对应本库机制</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 入库必标 TTL</td>
+<td>未标 TTL 一律按 <code>ttl: 30d</code> 默认档，并在日志告警</td>
+<td><code>parse_ttl()</code> + <code>_DIR_TTL_DEFAULTS</code>（本库缺省按目录推断，不是统一 30d）</td>
+</tr>
+<tr>
+<td>2 动库前必须快照</td>
+<td><code>cp -r raw/ raw/.snapshot-YYYYMMDD-HHMM/</code>，快照路径写进派单卡 <code>snapshot_path</code> 字段，无快照不动库</td>
+<td>派单卡字段，非代码</td>
+</tr>
+<tr>
+<td>3 到期只能降权、不能自动删</td>
+<td>自动动作仅两个：从检索候选降权；进入 <code>plans/待复审/</code>。理由：过期不等于错误（政策原文过期后仍有审计价值），WSL 下自动脚本误删是反复发生过的事故类型</td>
+<td><code>_is_tombstoned()</code></td>
+</tr>
+<tr>
+<td>4 引用过期文档必须显式提醒</td>
+<td>引用文档"剩余不足 7 天"或"已到期未复审"时，输出末尾附一行"⚠️ 此回答引用了可能已过期的信息（来源日期：YYYY-MM-DD），请核对"</td>
+<td><code>build_expiry_warnings()</code></td>
+</tr>
+</tbody>
+</table>
+<p>其中 1、2 用户已认可，3、4 当时是"主对话审 + OC 审"的新增建议。源文建议的落地顺序：当天把 1、2 写进 AGENTS.md（走 OC 审）→ 本周 patch 现有 <code>knowledge-base-wuyafang</code> 技能加保鲜章节 → 本周日在大扫除 cron 里加到期队列生成 → 下个月跑一次 317 题反转 benchmark 取基线投毒率 → <code>shared-skills/rag-freshness-sop</code> 观望 2–4 周再推广。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">一手源</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>标题</th>
+<th>URL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Stale-Document Poisoning（核心）</td>
+<td>https://arxiv.org/abs/2609.31342</td>
+</tr>
+<tr>
+<td>2</td>
+<td>One Shot Dominance: Knowledge Poisoning Attack on RAG</td>
+<td>https://arxiv.org/html/2505.11548v4</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Uncovering Competing Poisoning Attacks in RAG</td>
+<td>https://arxiv.org/html/2505.12574v5</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Jamming RAG with Blocker Documents (USENIX Sec'25)</td>
+<td>https://www.usenix.org/system/files/conference/usenixsecurity25/sec25cycle1-prepub-980-shafran.pdf</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Document Lifecycle Management (LlamaIndex Glossary)</td>
+<td>https://www.llamaindex.ai/glossary/document-lifecycle-management</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Knowledge Article Lifecycle (Microsoft Dynamics 365)</td>
+<td>https://www.microsoft.com/en-us/dynamics-365/blog/business-leader/2015/12/03/knowledge-article-lifecycle-an-introduction</td>
+</tr>
+<tr>
+<td>7</td>
+<td>RAGOps: Operating and Managing RAG Pipelines（据[一手源]：RAG保鲜落地验证-20261009.md）</td>
+<td>https://arxiv.org/html/2506.03401v1</td>
+</tr>
+<tr>
+<td>8</td>
+<td>RAG Knowledge Base Freshness（TianPan.co，墓碑标记实践）</td>
+<td>https://tianpan.co/blog/2026/04/20/rag-knowledge-base-freshness-index-rot</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Knowledge Article Management Guidelines（ServiceNow Community，30/15/0 天通知）</td>
+<td>https://www.servicenow.com/community/knowledge-managers/knowledge-article-management-guidelines/m-p/2918101</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Does knowledge have a half-life?（PubMed 37217270）</td>
+<td>https://pubmed.ncbi.nlm.nih.gov/37217270</td>
+</tr>
+</tbody>
+</table>
+<h2 id="怎么用源码框架与技术栈">怎么用（源码框架与技术栈）</h2>2
+<p>TTL 保鲜在本库是三层机制，命令与函数全部真实：</p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>真实入口</th>
+<th>口径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>入库写 TTL</td>
+<td><code>rag/ingest.py::parse_ttl(text, source_name)</code>（frontmatter <code>ttl: 30d</code>，正则 <code>ttl[:=]\s*(\w+)</code>；目录默认 <code>_DIR_TTL_DEFAULTS</code>：wiki/→eternal、raw/courseware/→180d）</td>
+<td>写入 metadata <code>ttl</code>（eternal/7d/30d/180d）</td>
+</tr>
+<tr>
+<td>检索过滤过期</td>
+<td><code>rag/query.py::_is_tombstoned(meta)</code>（<code>_TTL_DAYS_MAP = {"7d":7,"30d":30,"180d":180}</code>，<code>age = today - captured_at</code>）+ <code>build_expiry_warnings(hits)</code>（<code>ttl.expiry_days: 30</code>）</td>
+<td>tombstoned chunk 不进召回；超龄来源回答附"⚠️可能已过期"</td>
+</tr>
+<tr>
+<td>复审门禁</td>
+<td><code>rag/check_ttl.py</code>（frontmatter <code>ttl_days</code> + <code>last_verified</code> 双字段；dbt 式双阈值：age&gt;ttl_days→WARN，age&gt;2*ttl_days→ERROR）</td>
+<td><code>python3 rag/check_ttl.py</code>（可 <code>--root</code> 只扫指定目录），exit=0 PASS / 1 FAIL</td>
+</tr>
+</tbody>
+</table>
+<p><strong>frontmatter 写法</strong>（两个字段体系别混：ingest 用 <code>ttl:</code>，check_ttl 用 <code>ttl_days</code>+<code>last_verified</code>）：</p>
+<pre><code class="language-yaml">ttl: 30d            # ingest 侧: eternal / 7d / 30d / 180d
+ttl_days: 30        # check_ttl 侧: 整数天或 eternal
+last_verified: 2026-10-27
+</code></pre>
+<p><strong>可执行动作</strong>：</p>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+python3 rag/check_ttl.py                      # 打印 WARN/ERROR 清单 + COUNTS 行
+# 改了 frontmatter 的 ttl 后必须重新入库（TTL 是入库时写进 Chroma metadata 的）：
+RAG_INCLUDE_PREFIX=&quot;wiki/,ontology/&quot; python rag/ingest.py
+</code></pre>
+<p>注意坑：frontmatter 写 <code>ttl_days: 30</code> 而非 <code>ttl: 30d</code> 时 <code>parse_ttl()</code> 匹配不到（<code>ttl</code> 后紧跟 <code>_</code> 不是 <code>:</code>/<code>=</code>），会回落目录默认（wiki/→eternal），TTL 形同虚设——两套字段按上表各写各的。</p>
+<blockquote>
+<p>三段结构补齐 2026-11-03</p>
+</blockquote>
+</div></details><h2 id="本库真实落地">本库真实落地</h2>2
+<blockquote>
+<p>本节 2026-11-05 补写，逐条核验路径与函数名（可 grep 复核），不复述正文。</p>
+</blockquote>
+<ul>
+<li><strong>TTL 治理三件套都是真代码</strong>：</li>
+<li>入库侧写 TTL：<code>rag/ingest.py</code> <code>parse_ttl()</code>（L941，frontmatter <code>ttl: eternal/180d/30d/7d</code>，缺省按 <code>_DIR_TTL_DEFAULTS</code> 目录默认，兜底 eternal 不误杀）——正文"两套字段各写各的"坑的根源在此（<code>ttl_days</code> 不匹配 <code>ttl[:=]</code> 正则）。</li>
+<li>检索侧判过期：<code>rag/query.py</code> <code>_is_tombstoned()</code>（L634，ttl + captured_at 算 age，超期即墓碑不进结果）+ <code>build_expiry_warnings()</code>（L668，命中内容超 <code>ttl.expiry_days</code> 时给"可能已过期"提示）。</li>
+<li>盘点侧出清单：<code>rag/check_ttl.py</code> <code>check()</code>（L122，<code>ttl_days</code>/<code>last_verified</code> 双字段，超期 WARN、超 2 倍 ERROR，eternal/缺失跳过），<code>collect_md()</code>（L64）自动排除 .bak 文件与备份目录。</li>
+<li><strong>一句话支撑</strong>：正文"改 frontmatter 后必须重新入库"是因为 TTL 写进 Chroma metadata 是入库时刻的值（<code>ingest.py</code> upsert 时带 ttl/captured_at），检索侧 <code>_is_tombstoned</code> 读的就是这份 metadata——不重灌，TTL 治理就是摆设。</li>
+</ul></div></body></html>

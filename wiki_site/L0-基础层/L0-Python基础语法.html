@@ -1,0 +1,721 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L0-Python基础语法</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L0-Python基础语法</span></div><div class="wrap"><h1 id="l0-python-基础语法变量类型流程控制与异常">L0 Python 基础语法：变量、类型、流程控制与异常</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/courseware/python/part1-python-basics.md">part1-python-basics</a></p>
+<p><strong>TL;DR</strong>：Python 是缩进定块的动态类型语言。变量是指向对象的标签而非盒子；六个基本类型（int/float/str/bool/None/complex）各有转换陷阱；流程控制靠 if-elif-else、for-else、while、break/continue；3.10+ 的 match-case 做多分支分发；异常用 try/except/else/finally 四段式且按类型捕获。本文给出变量对象模型、类型转换翻车表、控制流五种惯用法、异常分级处理、f-string 格式化、输入校验，以及三问（何时用/何时别用/翻车长什么样），全部配可直接跑的脚本。</p>
+<p><strong>金标证据</strong>：gold_tier=input_digest ｜ 产出声明=消化提炼（内容来自 part1-python-basics.md 课件的重排与深度补充，非原创调研）｜ 排他性证据=融合了 part1-python-basics.md 的"数据类型与变量""控制流语句"两章的教学顺序（变量盒子比喻→类型转换常见错误→for-else 质数判定→match-case 计算器），该教学序列只在本库 raw/courseware/python/ 下的课件中存在 ｜ 抽查入口=raw/courseware/python/part1-python-basics.md 第 2.3 节"类型检查与转换"与第 3.4 节"break、continue 和 else"</p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">1. 这篇文档解决什么问题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>语法是"把想法翻译成机器动作"的词法与句法规则</li><li>词法层面要认得变量名、关键字、缩进、注释、字符串引号；句法层面要会表达"做选择"（if）、"重复做"（for/while）、"出错怎么办"（try）</li><li>适用场景：第一次系统学 Python 语法；从其他语言转来要对照 Python 的惯用写法；写脚本前想避开语法层的高频坑</li></ul></div>2
+<p>语法是"把想法翻译成机器动作"的词法与句法规则。词法层面要认得变量名、关键字、缩进、注释、字符串引号；句法层面要会表达"做选择"（if）、"重复做"（for/while）、"出错怎么办"（try）。本篇按"表达式与变量 → 数据类型 → 流程控制 → 异常 → 输入输出 → 格式化"的顺序讲，并在每个知识点旁边给出"何时用、何时别用、翻车长什么样"。适合刚装完环境（上一篇《L0 环境与工具链》）想快速写出第一个能跑的程序的人。</p>
+<p><strong>适用场景</strong>：第一次系统学 Python 语法；从其他语言转来要对照 Python 的惯用写法；写脚本前想避开语法层的高频坑。</p>
+<p><strong>前置条件</strong>：环境已搭好，<code>python3 --version</code> 输出 3.10 以上（本文含 match-case，需要 3.10+）；会用终端运行 <code>python xxx.py</code>；知道什么是虚拟环境（不需要深入）。</p>
+<p><strong>怎么读</strong>：第 2 到 6 节是主线，建议每节的代码亲手敲一遍再跑；第 7 节三问是决策层；第 8 节术语表供回查；第 9 节自测题验收。</p>
+<h2 id="2-变量对象与类型系统">2. 变量、对象与类型系统</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.1 变量是指针，不是盒子</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>初学最容易把变量理解成"装值的盒子"，实际上 Python 的变量是贴在对象上的标签</li></ul></div>3
+<p>初学最容易把变量理解成"装值的盒子"，实际上 Python 的变量是贴在对象上的标签。赋值 <code>a = [1, 2]</code> 做两件事：在堆内存建一个列表对象 <code>[1, 2, 3]</code> 之外的空壳，再让名字 <code>a</code> 指向它。随后 <code>b = a</code> 不复制列表，只是让 <code>b</code> 也指向同一个对象，改 <code>b[0] = 99</code> 会连带看到 <code>a[0]</code> 变 99。这条规则解释了可变对象共享问题，也解释了 <code>is</code> 与 <code>==</code> 的分工：<code>is</code> 比较"是不是同一个对象"（内存地址），<code>==</code> 比较"值是否相等"。小整数（-5 到 256）和短字符串被解释器缓存复用，所以 <code>a = 256; b = 256</code> 时 <code>a is b</code> 常是 True，而 257 起就可能为 False——把 <code>is</code> 当值判断用是不可靠的写法。</p>
+<h3 id="22-六个基本类型与边界">2.2 六个基本类型与边界</h3>3
+<ul>
+<li><strong>int 整数</strong>：无大小上限，<code>2 ** 100</code> 直接算出 31 位数字；<code>0xff</code> 十六进制、<code>0b1010</code> 二进制、<code>0o17</code> 八进制字面量都能直接写。</li>
+<li><strong>float 浮点</strong>：IEEE 754 双精度，<code>0.1 + 0.2</code> 的结果是 <code>0.30000000000000004</code> 而非 0.3。比较浮点是否相等用 <code>abs(a - b) &lt; 1e-9</code> 或 <code>math.isclose(a, b)</code>。</li>
+<li><strong>complex 复数</strong>：<code>1 + 2j</code>，<code>z.real</code> 取实部、<code>z.imag</code> 取虚部，信号处理场景才用。</li>
+<li><strong>str 字符串</strong>：不可变序列，"修改"必然生成新对象；支持索引 <code>s[0]</code>、切片 <code>s[1:5]</code>、步长 <code>s[::2]</code>。</li>
+<li><strong>bool 布尔</strong>：是 int 的子类，<code>True + 1</code> 等于 2；<code>and</code>、<code>or</code>、<code>not</code> 三运算符，<code>and</code> 返回第一个假值或最后一个值，<code>or</code> 返回第一个真值或最后一个值。</li>
+<li><strong>None 空值</strong>：单例对象，判断写 <code>x is None</code> 而非 <code>x == None</code>；函数无 return 语句时返回 None。</li>
+</ul>
+<p>bytes 与 bytearray 表示二进制数据，<code>b"hello"</code> 是不可变字节串，读写网络流与二进制文件时才用。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.3 类型检查与转换</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「type(x)」 查精确类型，「isinstance(x, (int, float))」 做归属判断且支持元组多选，写库函数时优先 isinstance，因为它对子类友好</li><li>这条规则在写 「if my_list:」 判空时直接用得上，比 「if len(my_list) > 0:」 更地道</li></ul></div>3
+<p><code>type(x)</code> 查精确类型，<code>isinstance(x, (int, float))</code> 做归属判断且支持元组多选，写库函数时优先 isinstance，因为它对子类友好。转换三件套各有一个高频翻车点：</p>
+<table>
+<thead>
+<tr>
+<th>转换</th>
+<th>翻车形态</th>
+<th>正确做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>int("3.14")</code></td>
+<td>ValueError：字符串带小数点不能直转整数</td>
+<td><code>int(float("3.14"))</code> 得 3（截断非四舍五入）</td>
+</tr>
+<tr>
+<td><code>float("abc")</code></td>
+<td>ValueError：无法解析</td>
+<td>先 <code>s.replace(',', '')</code> 清洗，再 try/except 包住</td>
+</tr>
+<tr>
+<td><code>str(3.14)</code></td>
+<td>不报错但得到文本</td>
+<td>想要两位小数写 <code>f"{3.14:.2f}"</code></td>
+</tr>
+<tr>
+<td><code>int(3.99)</code></td>
+<td>不报错，结果 3</td>
+<td>要四舍五入用 <code>round(3.99)</code> 得 4</td>
+</tr>
+</tbody>
+</table>
+<p>bool 转换规则"空值皆假"：<code>bool(0)</code>、<code>bool("")</code>、<code>bool([])</code>、<code>bool({})</code>、<code>bool(set())</code>、<code>bool(None)</code> 全是 False，其余为 True。这条规则在写 <code>if my_list:</code> 判空时直接用得上，比 <code>if len(my_list) &gt; 0:</code> 更地道。</p>
+<h2 id="3-流程控制">3. 流程控制</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.1 条件：if、elif、else 与三元表达式</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-python">score = int(input(&quot;请输入成绩：&quot;))
+if score &gt;= 90:
+    grade = &quot;A (优秀)&quot;
+elif score &gt;= 80:
+    grade = &quot;B (良好)&quot;
+elif score &gt;= 70:
+    grade = &quot;C (中等)&quot;
+elif score &gt;= 60:
+    grade = &quot;D (及格)&quot;
+else:
+    grade = &quot;F (不及格)&quot;
+print(f&quot;等级：{grade}&quot;)
+
+# 三元表达式：适合二选一的短赋值
+status = &quot;成年&quot; if score &gt;= 18 else &quot;未成年&quot;
+</code></pre>
+<p>条件判断里的惯用写法：判空用 <code>if not items:</code>、判存在用 <code>if key in mapping:</code>、判非空字符串用 <code>if s.strip():</code>。反例是写 <code>if len(items) != 0:</code> 或 <code>if x == True:</code>，前者啰嗦后者把布尔对象当值比较，<code>isinstance</code> 检查能发现这类冗余。</p>
+<h3 id="32-for-循环与-rangeenumerate">3.2 for 循环与 range、enumerate</h3>3
+<p>for 遍历任何可迭代对象。<code>range</code> 三形态：<code>range(5)</code> 生成 0 到 4，<code>range(1, 6)</code> 生成 1 到 5，<code>range(0, 10, 2)</code> 带步长生成 0 2 4 6 8，倒序写 <code>range(5, 0, -1)</code>。需要"第几项"时用 <code>enumerate(names, start=1)</code>，同时拿到索引与值；需要并行遍历两个序列用 <code>zip(a, b)</code>，长度不同时以短的为准（3.10 起可写 <code>zip(a, b, strict=True)</code> 让长度不等直接报错）。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.3 while 循环与死循环控制</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>while 在条件为真时反复执行，典型形态是"读取直到某个退出条件"：「while True:」 配 「break」</li><li>排查信号：程序卡住不退出且 CPU 风扇转；改法是确保每个 while 都有明确的终止路径（break 或变量更新）</li></ul></div>3
+<p>while 在条件为真时反复执行，典型形态是"读取直到某个退出条件"：<code>while True:</code> 配 <code>break</code>。翻车现场是忘了更新循环变量造成死循环，例如 <code>count = 1; while count &lt;= 5: print(count)</code> 少写 <code>count += 1</code> 就永远打 1。排查信号：程序卡住不退出且 CPU 风扇转；改法是确保每个 while 都有明确的终止路径（break 或变量更新）。</p>
+<h3 id="34-breakcontinue-与-for-else">3.4 break、continue 与 for-else</h3>3
+<p>break 立即终止本层循环，continue 跳过本次进入下一次。for-else 是 Python 特有语法：循环没被 break 中断时执行 else 分支。它最经典的用法是质数判定——内层循环一旦找到因子就 break，没 break 说明是质数：</p>
+<pre><code class="language-python">for n in range(2, 20):
+    for x in range(2, int(n ** 0.5) + 1):
+        if n % x == 0:
+            print(f&quot;{n} = {x} × {n // x}&quot;)
+            break
+    else:
+        print(f&quot;{n} 是质数&quot;)
+</code></pre>
+<p>else 分支的位置容易看错：它和 for 对齐，不是和 if 对齐。误把 else 当成 if 的一部分是新手第二大缩进类错误。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.5 match-case（Python 3.10+）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>return "未找到"</li><li>用在 3.9 及以下会 SyntaxError，此时退回 if-elif 链</li></ul></div>3
+<p>多分支值分发用 match-case，比一长串 if-elif 清晰：</p>
+<pre><code class="language-python">def handle_status(code: int) -&gt; str:
+    match code:
+        case 200:
+            return &quot;成功&quot;
+        case 404:
+            return &quot;未找到&quot;
+        case 500:
+            return &quot;服务器错误&quot;
+        case _:
+            return f&quot;未知状态码: {code}&quot;
+</code></pre>
+<p>下划线 <code>case _</code> 是通配符分支。它还能解构数据：<code>case {"op": "add", "x": a}</code> 直接把字典字段绑到变量，<code>case [first, *rest]</code> 解构列表。用在 3.9 及以下会 SyntaxError，此时退回 if-elif 链。</p>
+<h2 id="4-异常处理">4. 异常处理</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.1 为什么要有异常</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>程序运行时会出现"文件不存在""用户输入非数字""网络断开"这类无法预先避免的情况</li><li>异常机制让错误可以被"抛出"和"捕获"，把正常逻辑和错误处理分开写</li><li>反例是不用异常而用返回值约定（如返回 -1 表示失败），调用方容易忘记检查返回值，错误被静默吞掉</li></ul></div>3
+<p>程序运行时会出现"文件不存在""用户输入非数字""网络断开"这类无法预先避免的情况。异常机制让错误可以被"抛出"和"捕获"，把正常逻辑和错误处理分开写。反例是不用异常而用返回值约定（如返回 -1 表示失败），调用方容易忘记检查返回值，错误被静默吞掉。</p>
+<h3 id="42-tryexceptelsefinally-四段式">4.2 try/except/else/finally 四段式</h3>3
+<pre><code class="language-python">def safe_div(a: str, b: str) -&gt; float | None:
+    try:
+        x, y = float(a), float(b)      # 可能 ValueError
+        result = x / y                 # 可能 ZeroDivisionError
+    except ValueError as e:
+        print(f&quot;输入不是数字: {e}&quot;)
+        return None
+    except ZeroDivisionError:
+        print(&quot;除数不能为零&quot;)
+        return None
+    else:
+        print(&quot;计算成功&quot;)              # 没异常才执行
+        return result
+    finally:
+        print(&quot;本次调用结束&quot;)           # 无论是否异常都执行
+</code></pre>
+<p>四段分工：try 放可能出错的最小代码块；except 按异常类型分别捕获，类型越具体越好；else 放"只有没异常才做"的收尾；finally 放"无论如何都要做"的清理（关文件、释放锁）。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.3 异常分级：什么时候捕获，什么时候让它冒泡</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>第一，当前层能给出有意义的恢复动作就捕获（比如换一个默认值重试），否则不要捕获</li><li>第二，捕获后要么处理掉，要么 「raise」 重新抛出，禁止写空的 「except: pass」，那是把 bug 藏进地毯</li><li>第三，自定义异常继承 Exception 而不是 BaseException，后者会连 KeyboardInterrupt 一起吞掉，导致 Ctrl+C 都停不下来</li></ul></div>3
+<p>判断规则三条。<strong>第一</strong>，当前层能给出有意义的恢复动作就捕获（比如换一个默认值重试），否则不要捕获。<strong>第二</strong>，捕获后要么处理掉，要么 <code>raise</code> 重新抛出，禁止写空的 <code>except: pass</code>，那是把 bug 藏进地毯。<strong>第三</strong>，自定义异常继承 Exception 而不是 BaseException，后者会连 KeyboardInterrupt 一起吞掉，导致 Ctrl+C 都停不下来。分级写法示例：底层函数抛 <code>ValueError("格式错误")</code>，中层转成业务异常 <code>raise DataFormatError(...) from e</code>（<code>from e</code> 保留原始堆栈），顶层统一记录日志。</p>
+<h3 id="44-常见异常类型速查">4.4 常见异常类型速查</h3>3
+<table>
+<thead>
+<tr>
+<th>异常</th>
+<th>触发场景</th>
+<th>处理建议</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ValueError</td>
+<td>值类型对但内容非法，如 <code>int("abc")</code></td>
+<td>提示用户重新输入</td>
+</tr>
+<tr>
+<td>TypeError</td>
+<td>类型不支持该操作，如 <code>"a" + 1</code></td>
+<td>检查上游类型注解</td>
+</tr>
+<tr>
+<td>KeyError</td>
+<td>字典取不存在的键</td>
+<td>改用 <code>d.get(key, default)</code></td>
+</tr>
+<tr>
+<td>IndexError</td>
+<td>序列下标越界</td>
+<td>先判长度或用 try 包住</td>
+</tr>
+<tr>
+<td>FileNotFoundError</td>
+<td>打开不存在的文件</td>
+<td>检查路径，或先 <code>Path.exists()</code></td>
+</tr>
+<tr>
+<td>ZeroDivisionError</td>
+<td>除以零</td>
+<td>除法前判分母</td>
+</tr>
+<tr>
+<td>AttributeError</td>
+<td>对象没有该属性</td>
+<td>用 <code>hasattr</code> 或 getattr 默认值</td>
+</tr>
+<tr>
+<td>ImportError</td>
+<td>模块不存在</td>
+<td>检查 pip 安装与虚拟环境</td>
+</tr>
+</tbody>
+</table>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">5. 输入与输出</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="51-input-与它的坑">5.1 input 与它的坑</h3>3
+<p><code>input("提示")</code> 永远返回字符串。用户输入 "18" 得到的是 <code>"18"</code> 不是数字，必须 <code>int(input(...))</code> 显式转换；用户直接回车得到空字符串 <code>""</code>，<code>int("")</code> 抛 ValueError。健壮写法是循环校验：</p>
+<pre><code class="language-python">while True:
+    raw = input(&quot;请输入年龄（整数）: &quot;).strip()
+    if not raw:
+        print(&quot;不能为空，请重试&quot;); continue
+    try:
+        age = int(raw)
+        if not 0 &lt;= age &lt;= 150:
+            print(&quot;年龄需在 0 到 150 之间&quot;); continue
+        break
+    except ValueError:
+        print(&quot;请输入纯数字&quot;)
+print(f&quot;你输入的年龄是 {age}&quot;)
+</code></pre>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">5.2 print 的常用参数</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>调试输出建议用 「logging」 而不是 print，因为日志带级别和时间戳，上线时可一键关掉</li></ul></div>3
+<p><code>print(*objects, sep=" ", end="\n")</code>：sep 控制多个对象间的分隔符，end 控制行尾（默认换行）。打印进度不换行写 <code>print(f"\r进度 {i}/{n}", end="")</code>，<code>\r</code> 回到行首覆盖。输出到文件用 <code>print("内容", file=open("out.txt", "w"))</code> 或直接 <code>f.write()</code>。调试输出建议用 <code>logging</code> 而不是 print，因为日志带级别和时间戳，上线时可一键关掉。</p>
+<h2 id="6-f-string-格式化与字符串细节">6. f-string 格式化与字符串细节</h2>2
+<p>f-string 是 3.6 起的主流写法：<code>f"{变量:格式}"</code>。常用格式规格：<code>:.2f</code> 保留两位小数、<code>:.1%</code> 百分比、<code>:010d</code> 补零到 10 位、<code>:,</code> 千分位、<code>&gt;20</code> 右对齐、<code>&lt;20</code> 左对齐、<code>^20</code> 居中、<code>#x</code> 十六进制。表达式可以直接进花括号：<code>f"{a + b = }"</code> 会连变量名带值一起打印（3.8+）。字符串常用方法：<code>strip()</code> 去两端空白、<code>split(",")</code> 切分、<code>",".join(list)</code> 拼接、<code>replace()</code> 替换、<code>startswith()</code>/<code>endswith()</code> 判断头尾、<code>find()</code> 找位置（找不到返回 -1）与 <code>index()</code>（找不到抛异常）分工。字符串不可变意味着 <code>s.strip()</code> 不改原串而是返回新串，必须接住返回值。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">7. 三问：什么情况用 / 什么情况别用 / 翻车长什么样</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="71-什么情况下用适用场景加前置条件">7.1 什么情况下用（适用场景加前置条件）</h3>3
+<ul>
+<li><strong>if-elif-else 链</strong>：分支少于 5 个、条件是范围或布尔组合。前置：条件表达式可读。</li>
+<li><strong>match-case</strong>：3.10+ 且分支是对离散值或数据结构的匹配。前置：Python 3.10 以上。</li>
+<li><strong>for 循环</strong>：遍历序列或已知次数的重复。前置：对象可迭代。</li>
+<li><strong>while 循环</strong>：次数未知、靠条件退出（读输入、轮询）。前置：有明确的 break 或变量更新路径。</li>
+<li><strong>try/except</strong>：操作有已知的失败模式（IO、解析、网络）。前置：知道可能抛哪些异常类型。</li>
+<li><strong>f-string</strong>：所有字符串格式化场景。前置：3.6+。</li>
+</ul>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">7.2 什么情况下别用（反例加替代方案）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>别写 「except:」 或 「except Exception: pass」：吞异常让 bug 隐形</li><li>别用字符串拼接代替 f-string：「"年龄: " + str(age)」 可读性差</li><li>别在深层函数里 「print」 做调试：污染输出且上线难清理</li></ul></div>3
+<ul>
+<li><strong>别用循环变量控制的 while 代替 for</strong>：<code>i = 0; while i &lt; 10: ... i += 1</code> 应改写 <code>for i in range(10)</code>，后者无忘更新风险。</li>
+<li><strong>别写 <code>except:</code> 或 <code>except Exception: pass</code></strong>：吞异常让 bug 隐形。替代：捕获具体类型并至少记录日志。</li>
+<li><strong>别用字符串拼接代替 f-string</strong>：<code>"年龄: " + str(age)</code> 可读性差。替代：<code>f"年龄: {age}"</code>。</li>
+<li><strong>别用 <code>== True</code>、<code>== None</code></strong>：写 <code>if flag:</code>、<code>if x is None:</code>。</li>
+<li><strong>别在深层函数里 <code>print</code> 做调试</strong>：污染输出且上线难清理。替代：<code>logging.debug</code>。</li>
+<li><strong>别把 <code>int(input())</code> 直接裸写</strong>：用户输入非数字即崩。替代：第 5.1 节的循环校验模板。</li>
+<li><strong>别依赖 <code>is</code> 判断值相等</strong>：小整数缓存会造成假象。替代：用 <code>==</code>。</li>
+</ul>
+<h3 id="73-翻车长什么样真实失败形态加排查信号加怎么改">7.3 翻车长什么样（真实失败形态加排查信号加怎么改）</h3>3
+<ol>
+<li><strong><code>SyntaxError: invalid syntax</code></strong>：常见于用了中文全角引号、括号或冒号，或 3.9 以下写 match-case。排查：看报错行的字符形状。改：全换英文半角；match-case 需要 3.10+。</li>
+<li><strong><code>IndentationError: expected an indented block</code></strong>：if/for/def 后下一行没有缩进块，或混用 Tab 与空格。排查：编辑器开"显示空白字符"。改：统一用 4 空格，不用 Tab。</li>
+<li><strong><code>ValueError: invalid literal for int()</code></strong>：把非数字字符串转整数。排查：打印原始输入看真实内容（可能带空格或小数点）。改：<code>strip()</code> 清洗后 try/except 包住。</li>
+<li><strong><code>IndexError: list index out of range</code></strong>：下标越界，典型是 <code>for i in range(len(lst))</code> 后用 <code>lst[i+1]</code>。排查：打印 len 与 i。改：用 <code>zip(lst, lst[1:])</code> 遍历相邻对，或先判长度。</li>
+<li><strong><code>KeyError</code></strong>：取不存在的字典键。排查：打印 <code>d.keys()</code>。改：<code>d.get(key, default)</code>。</li>
+<li><strong>死循环不退出</strong>：while 少了变量更新或 break。排查：程序卡住、CPU 占用高。改：加 break 条件，或改写 for。</li>
+<li><strong><code>0.1 + 0.2 == 0.3</code> 判断为 False</strong>：浮点精度。排查：打印 <code>repr(0.1 + 0.2)</code>。改：用 <code>math.isclose</code> 或 <code>round(x, 10)</code>。</li>
+<li><strong>else 分支没按预期执行</strong>：for-else 位置放错（缩进到 if 下）。排查：看 else 与谁对齐。改：else 与 for 对齐才表示"没 break 才执行"。</li>
+<li><strong>捕获了异常但程序还是崩</strong>：捕获类型不对（抓 ValueError 实际抛 TypeError）。排查：看异常类名。改：抓父类 <code>except (ValueError, TypeError)</code> 或改具体类型。</li>
+</ol>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">8. 术语表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>全称</th>
+<th>一句话解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>REPL</td>
+<td>Read-Eval-Print Loop</td>
+<td>交互式解释器，逐行执行并即时打印结果</td>
+</tr>
+<tr>
+<td>int</td>
+<td>integer</td>
+<td>Python 的整数类型，无大小上限</td>
+</tr>
+<tr>
+<td>float</td>
+<td>floating point</td>
+<td>双精度浮点类型，遵循 IEEE 754</td>
+</tr>
+<tr>
+<td>str</td>
+<td>string</td>
+<td>不可变字符序列</td>
+</tr>
+<tr>
+<td>bool</td>
+<td>boolean</td>
+<td>布尔类型，True 或 False，是 int 子类</td>
+</tr>
+<tr>
+<td>None</td>
+<td>—</td>
+<td>空值单例，表示"没有值"</td>
+</tr>
+<tr>
+<td>keyword</td>
+<td>—</td>
+<td>语言保留字，如 if、for、def，不能作变量名</td>
+</tr>
+<tr>
+<td>expression</td>
+<td>—</td>
+<td>可求值的代码片段，如有运算的式子</td>
+</tr>
+<tr>
+<td>statement</td>
+<td>—</td>
+<td>一条可执行指令，如赋值、if 语句</td>
+</tr>
+<tr>
+<td>indentation</td>
+<td>—</td>
+<td>缩进，Python 用它划分代码块</td>
+</tr>
+<tr>
+<td>syntax</td>
+<td>—</td>
+<td>语法规则，写错即 SyntaxError</td>
+</tr>
+<tr>
+<td>semantic</td>
+<td>—</td>
+<td>语义，语法对但含义错（如索引越界）</td>
+</tr>
+<tr>
+<td>runtime</td>
+<td>—</td>
+<td>运行时，程序真正执行的阶段</td>
+</tr>
+<tr>
+<td>exception</td>
+<td>—</td>
+<td>运行时错误对象，可被抛出与捕获</td>
+</tr>
+<tr>
+<td>traceback</td>
+<td>—</td>
+<td>异常发生时的调用栈回溯信息</td>
+</tr>
+<tr>
+<td>literal</td>
+<td>—</td>
+<td>字面量，直接写在代码里的值如 42、"hi"</td>
+</tr>
+<tr>
+<td>iterable</td>
+<td>—</td>
+<td>可迭代对象，能被 for 遍历</td>
+</tr>
+<tr>
+<td>iterator</td>
+<td>—</td>
+<td>迭代器，有 <code>__next__</code> 的对象，逐个产出值</td>
+</tr>
+<tr>
+<td>scope</td>
+<td>—</td>
+<td>作用域，名字可见的范围</td>
+</tr>
+<tr>
+<td>f-string</td>
+<td>formatted string literal</td>
+<td>3.6+ 的字符串格式化语法</td>
+</tr>
+</tbody>
+</table>
+<h2 id="9-自测题含答案">9. 自测题（含答案）</h2>2
+<p><strong>题 1</strong>：<code>a = [1, 2]; b = a; b.append(3)</code> 之后 <code>a</code> 是什么？答案：<code>[1, 2, 3]</code>，因为 a 和 b 指向同一列表对象。<strong>题 2</strong>：<code>int("3.14")</code> 会怎样？答案：抛 ValueError，正确写 <code>int(float("3.14"))</code> 得 3。<strong>题 3</strong>：for-else 的 else 什么时候执行？答案：循环没被 break 中断时。<strong>题 4</strong>：判断 <code>x</code> 是 None 应该写什么？答案：<code>x is None</code>。<strong>题 5</strong>：<code>0.1 + 0.2 == 0.3</code> 为什么是 False？答案：浮点精度导致 0.30000000000000004。<strong>题 6</strong>：<code>while True</code> 忘写 break 的后果？答案：死循环。<strong>题 7</strong>：<code>except: pass</code> 有什么问题？答案：吞掉所有异常，bug 被隐藏。<strong>题 8</strong>：match-case 需要哪个版本？答案：3.10 起。<strong>题 9</strong>：<code>print("a", "b", sep="-")</code> 输出什么？答案：<code>a-b</code>。<strong>题 10</strong>：<code>bool([])</code> 是什么？答案：False，空容器皆假。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">11. 四段逐行注释的可运行脚本（跟读版）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>这四段都标注 Python 版本、文件名、运行方式，每行注释解释作用</li><li>脚本 A：rule_check.py（Python 3.12）——缩进、大小写、语句四条基本规则</li><li>/usr/bin/env python3</li></ul></div>2
+<p>这四段都标注 Python 版本、文件名、运行方式，每行注释解释作用。跑通后自己改参数再跑，看输出怎么变。</p>
+<p><strong>脚本 A：rule_check.py（Python 3.12）——缩进、大小写、语句四条基本规则</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# rule_check.py —— Python 3.12
+# 运行: python rule_check.py
+if True:
+    print(&quot;这行缩进了，属于 if 代码块&quot;)   # 缩进 4 空格，属于 if 块
+print(&quot;这行不缩进，不属于 if 块&quot;)          # 与 if 同级，总会执行
+
+x = 10; y = 20          # 一行可写多条语句用分号分隔（不推荐日常用）
+print(x + y)
+
+Name = &quot;大写N&quot;          # 变量名区分大小写
+name = &quot;小写n&quot;
+print(Name, name)       # 两个不同的变量，输出: 大写N 小写n
+</code></pre>
+<p>验收标准：三行输出，第二行不受 if 影响总会出现。若报 IndentationError，检查是否混用 Tab 与空格，统一改为 4 空格。</p>
+<p><strong>脚本 B：intro.py（Python 3.12）——input 拼接与 f-string 对照</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# intro.py —— Python 3.12
+# 运行: python intro.py
+name = input(&quot;请输入你的名字：&quot;)   # input 返回字符串，无需引号
+age = input(&quot;请输入你的年龄：&quot;)
+hobby = input(&quot;请输入你的爱好：&quot;)
+
+print(&quot;\n&quot; + &quot;=&quot; * 30)             # \n 换行，&quot;=&quot; 乘 30 次画分割线
+print(f&quot;  👋 你好，我是 {name}&quot;)     # f-string，花括号放变量
+print(f&quot;  🎂 我今年 {age} 岁&quot;)
+print(f&quot;  🎨 我喜欢 {hobby}&quot;)
+print(&quot;=&quot; * 30)
+</code></pre>
+<p>验收标准：三次输入后打印带分割线的自我介绍。注意 age 此处是字符串，要做算术必须先 <code>int(age)</code>，这是新手最常见的类型坑。</p>
+<p><strong>脚本 C：calc_menu.py（Python 3.12）——菜单循环、match-case、除零保护</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# calc_menu.py —— Python 3.12
+# 运行: python calc_menu.py
+def calculate():
+    print(&quot;=&quot; * 30); print(&quot;  🧮 简易计算器&quot;)
+    while True:                                   # 死循环，靠 break 退出
+        choice = input(&quot;\n请选择操作 (1加 2减 3乘 4除 5退出): &quot;)
+        if choice == &quot;5&quot;:
+            print(&quot;👋 再见！&quot;); break
+        if choice not in (&quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;):
+            print(&quot;❌ 无效选择，请重新输入&quot;); continue   # 跳回循环开头
+        a = float(input(&quot;请输入第一个数：&quot;))
+        b = float(input(&quot;请输入第二个数：&quot;))
+        match choice:                             # 3.10+ 模式匹配分发
+            case &quot;1&quot;: print(f&quot;结果：{a} + {b} = {a + b}&quot;)
+            case &quot;2&quot;: print(f&quot;结果：{a} - {b} = {a - b}&quot;)
+            case &quot;3&quot;: print(f&quot;结果：{a} × {b} = {a * b}&quot;)
+            case &quot;4&quot;:
+                if b == 0:
+                    print(&quot;❌ 错误：除数不能为零！&quot;)   # 除法前判分母
+                else:
+                    print(f&quot;结果：{a} ÷ {b} = {a / b:.2f}&quot;)
+
+calculate()
+</code></pre>
+<p>验收标准：选 1 输入 2 和 3 输出 5；选 4 输入 8 和 0 输出"除数不能为零"；选 5 退出。在 3.9 及以下版本运行会 SyntaxError，需把 match 换回 if-elif。</p>
+<p><strong>脚本 D：safe_input.py（Python 3.12）——循环校验输入的完整模板</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# safe_input.py —— Python 3.12
+# 运行: python safe_input.py
+def read_age() -&gt; int:
+    while True:                                  # 校验不通过就一直问
+        raw = input(&quot;请输入年龄（整数）: &quot;).strip()   # 去掉两端空白
+        if not raw:
+            print(&quot;不能为空，请重试&quot;); continue
+        try:
+            age = int(raw)                       # 非数字抛 ValueError
+        except ValueError:
+            print(&quot;请输入纯数字，不要带小数点或字母&quot;); continue
+        if not 0 &lt;= age &lt;= 150:
+            print(&quot;年龄需在 0 到 150 之间&quot;); continue
+        return age                               # 合法才返回，退出循环
+
+print(f&quot;你输入的年龄是 {read_age()}&quot;)
+</code></pre>
+<p>验收标准：输入 "abc" 提示纯数字、输入 "" 提示不能为空、输入 "200" 提示范围、输入 "18" 打印结果并退出。这个模板可以直接搬去任何需要读用户数字的地方。</p>
+<h2 id="12-语法速查表按场景索引">12. 语法速查表（按场景索引）</h2>2
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>语法</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>变量赋值</td>
+<td><code>名 = 值</code></td>
+<td><code>age = 18</code></td>
+</tr>
+<tr>
+<td>多变量交换</td>
+<td><code>a, b = b, a</code></td>
+<td><code>x, y = 1, 2</code></td>
+</tr>
+<tr>
+<td>多变量赋值</td>
+<td><code>a = b = 0</code></td>
+<td>同时初始化</td>
+</tr>
+<tr>
+<td>判空</td>
+<td><code>if not lst:</code></td>
+<td>空列表、空串、None 皆假</td>
+</tr>
+<tr>
+<td>多分支</td>
+<td><code>if/elif/else</code></td>
+<td>成绩分级</td>
+</tr>
+<tr>
+<td>值匹配</td>
+<td><code>match x: case 1:</code></td>
+<td>3.10+</td>
+</tr>
+<tr>
+<td>计数循环</td>
+<td><code>for i in range(n):</code></td>
+<td>0 到 n-1</td>
+</tr>
+<tr>
+<td>遍历序列</td>
+<td><code>for item in lst:</code></td>
+<td>列表、字符串、字典键</td>
+</tr>
+<tr>
+<td>带索引遍历</td>
+<td><code>for i, v in enumerate(lst, 1):</code></td>
+<td>从 1 编号</td>
+</tr>
+<tr>
+<td>并行遍历</td>
+<td><code>for a, b in zip(l1, l2):</code></td>
+<td>长度以短为准</td>
+</tr>
+<tr>
+<td>条件循环</td>
+<td><code>while cond:</code></td>
+<td>次数未知</td>
+</tr>
+<tr>
+<td>退出循环</td>
+<td><code>break</code> / <code>continue</code></td>
+<td>跳出或跳过本次</td>
+</tr>
+<tr>
+<td>循环正常结束才做</td>
+<td><code>for-else</code></td>
+<td>质数判定</td>
+</tr>
+<tr>
+<td>捕获异常</td>
+<td><code>try/except Type as e:</code></td>
+<td>按类型捕获</td>
+</tr>
+<tr>
+<td>无异常才做</td>
+<td><code>try/else</code></td>
+<td>收尾逻辑</td>
+</tr>
+<tr>
+<td>必做清理</td>
+<td><code>try/finally</code></td>
+<td>关文件、释放锁</td>
+</tr>
+<tr>
+<td>抛异常</td>
+<td><code>raise ValueError("msg")</code></td>
+<td>主动报错</td>
+</tr>
+<tr>
+<td>字符串格式化</td>
+<td><code>f"{x:.2f}"</code></td>
+<td>保留两位小数</td>
+</tr>
+<tr>
+<td>类型转换</td>
+<td><code>int()/float()/str()</code></td>
+<td>输入处理</td>
+</tr>
+<tr>
+<td>类型判断</td>
+<td><code>isinstance(x, int)</code></td>
+<td>支持子类</td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">14. 从 part1 课件里提炼的教学细节（融合稿补充）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>【part1 补充】课件把"为什么学 Python"放在第一章开头，给出的理由是语法接近英语、生态覆盖 Web/数据/自动化/人工智能、就业面广</li><li>对本文的意义是：语法学习的目标不是背关键字，而是尽快写出能解决问题的脚本</li><li>【part1 补充】课件的"规则 1 到 4"是新手第一课：缩进定代码块（不是花括号）、一行一条语句（分号可但不推荐）、变量不用声明类型、大小写敏感</li></ul></div>2
+<p><strong>【part1 补充】课件把"为什么学 Python"放在第一章开头</strong>，给出的理由是语法接近英语、生态覆盖 Web/数据/自动化/人工智能、就业面广。对本文的意义是：语法学习的目标不是背关键字，而是尽快写出能解决问题的脚本。所以本文的每个语法点都配了"用在哪"的场景句，而不是孤立罗列语法。</p>
+<p><strong>【part1 补充】课件的"规则 1 到 4"是新手第一课</strong>：缩进定代码块（不是花括号）、一行一条语句（分号可但不推荐）、变量不用声明类型、大小写敏感。这四条里最容易被低估的是大小写敏感：<code>Name</code> 和 <code>name</code> 是两个变量，<code>true</code> 不等于 <code>True</code>，<code>none</code> 不等于 <code>None</code>。排查技巧是写完先跑一遍，SyntaxError 或 NameError 往往就是大小写打错。</p>
+<p><strong>【part1 补充】课件的练习题设计思路值得沿用</strong>：每个知识点后配 3 到 4 道小题，且参考答案折叠在 details 标签里，先自己写再看答案。本文第 9 节的自测十题沿用了这个"先答后看"结构。练习 3.2（阶乘求和）和练习 3.3（质数判定）是控制流的经典训练题，写不出来说明 for 和 break 掌握不牢。</p>
+<p><strong>【part1 补充】课件的购物计算器案例</strong>把 if 分支和类型转换串在一起：判断是否有会员卡打 8 折、按数量算总价、用 f-string 格式化金额。这类"小而全"的案例比孤立的语法示例更有记忆点，因为它同时用了输入、转换、分支、格式化四个知识点。读者可以照着写一个"成绩统计器"，输入 N 个分数后输出平均分和等级，把本文第 2 到 6 节全部串起来。</p>
+<p><strong>【part1 补充】课件对数值运算有个细节提醒</strong>：<code>7 // 2</code> 得 3 而 <code>-7 // 2</code> 得 -4（地板除向负无穷取整），不是 -3。涉及负数的整除场景（如分页计算）要特别注意，想向零取整写 <code>int(a / b)</code>。增强赋值运算符 <code>+=</code>、<code>-=</code>、<code>*=</code>、<code>/=</code> 是可读性和性能的双赢写法，<code>count += 1</code> 比 <code>count = count + 1</code> 更常见。</p>
+<h2 id="15-常见死循环与性能小坑">15. 常见死循环与性能小坑</h2>2
+<p><strong>死循环三形态</strong>。第一种是 while 少更新：<code>count = 1; while count &lt;= 5: print(count)</code>，改法是循环体里加 <code>count += 1</code>。第二种是 break 条件写错：<code>while True: if x = 0: break</code>（赋值当判断，应写 <code>x == 0</code>）。第三种是 input 校验循环里忘了 return 或 break，导致永远在问同一个问题。排查手段：加一行 <code>print("循环第 N 次", count)</code> 观察是否收敛，或用 Ctrl+C 中断看 traceback 指向哪一行。</p>
+<p><strong>性能小坑</strong>。字符串在循环里用 <code>+=</code> 拼接是反模式，每次生成新对象，10 万次拼接比 <code>"".join(list)</code> 慢一个数量级；改法是先收集进列表再 join。列表做成员检查 <code>if x in big_list</code> 是线性扫描，10 万元素的列表里查一个元素要遍历全部；改法是转成 set 或 dict 做 O(1) 查找。这两个坑在写数据处理脚本时最常踩，判断信号是"数据量一上来脚本就慢到不可用"。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">17. 字符串与数值的实战脚本两段（跟读版）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>脚本 E：str_ops.py（Python 3.12）——索引切片与常用方法全演示</li><li>/usr/bin/env python3</li></ul></div>2
+<p><strong>脚本 E：str_ops.py（Python 3.12）——索引切片与常用方法全演示</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# str_ops.py —— Python 3.12
+# 运行: python str_ops.py
+text = &quot;Hello, Python World!&quot;
+print(text[0], text[-1], text[-3])   # 索引: H ! l（负索引从右数）
+print(text[0:5], text[7:13])          # 切片含头不含尾: Hello Python
+print(text[::2])                      # 步长2: Hlo yhnWrd
+print(text[::-1])                     # 负步长反转: !dlroW nohtyP ,olleH
+
+print(text.lower(), text.upper())     # 大小写转换
+print(text.replace(&quot;World&quot;, &quot;同学&quot;))   # 替换
+print(text.split(&quot;, &quot;))               # 切分为列表
+print(text.find(&quot;Python&quot;), text.count(&quot;l&quot;))   # 找位置7, 计数3
+
+s = &quot;  hello  &quot;
+print(repr(s.strip()), repr(s.lstrip()), repr(s.rstrip()))   # 去空白三种
+print(&quot;123&quot;.isdigit(), &quot;abc&quot;.isalpha())                      # 类型判断
+print(&quot;hello&quot;.startswith(&quot;he&quot;), &quot;hello&quot;.endswith(&quot;lo&quot;))      # 头尾判断
+</code></pre>
+<p>验收标准：第一行输出 <code>H ! l</code>，find 返回 7、count 返回 3，strip 三种结果按去空白范围不同。切片结果和预期差一位时，记住"含头不含尾"。</p>
+<p><strong>脚本 F：num_ops.py（Python 3.12）——数值运算与购物计算器</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# num_ops.py —— Python 3.12
+# 运行: python num_ops.py
+import math
+print(10 + 3, 10 - 3, 10 * 3, 10 / 3)   # 13 7 30 3.3333333333333335
+print(10 // 3, 10 % 3, 10 ** 3)         # 3 1 1000
+print(-7 // 2, -7 % 2)                  # -4 1（地板除向负无穷取整！）
+print(math.sqrt(16), math.ceil(3.2), math.floor(3.8))
+print(math.pow(2, 10), math.log(100, 10), math.factorial(5))
+
+# 购物计算器：两件商品 + 会员折扣
+item1, price1, qty1 = &quot;苹果&quot;, 8.5, 3
+item2, price2, qty2 = &quot;牛奶&quot;, 12.0, 2
+sub1, sub2 = price1 * qty1, price2 * qty2
+total = sub1 + sub2
+print(f&quot;{'商品':&lt;8}{'单价':&gt;8}{'数量':&gt;6}{'小计':&gt;8}&quot;)
+print(f&quot;{item1:&lt;8}{price1:&gt;8.1f}{qty1:&gt;6}{sub1:&gt;8.1f}&quot;)
+print(f&quot;{item2:&lt;8}{price2:&gt;8.1f}{qty2:&gt;6}{sub2:&gt;8.1f}&quot;)
+print(f&quot;{'合计':&lt;22}{total:&gt;8.1f}&quot;)
+is_vip = True
+if is_vip:
+    discount = total * 0.95
+    print(f&quot;会员95折：¥{discount:.1f}，省了 ¥{total - discount:.1f}&quot;)
+</code></pre>
+<p>验收标准：<code>-7 // 2</code> 输出 -4（不是 -3），购物表三行对齐、合计 49.5、会员价 47.0 省 2.5。f-string 的 <code>:&lt;8</code> 与 <code>:&gt;8.1f</code> 是表格对齐的关键，控制台报表都靠它。</p>
+<h2 id="18-输入校验与异常的组合拳进阶脚本">18. 输入校验与异常的组合拳（进阶脚本）</h2>2
+<p><strong>脚本 G：grade_stat.py（Python 3.12）——输入 N 个分数做统计，串起本文全部知识点</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# grade_stat.py —— Python 3.12
+# 运行: python grade_stat.py
+def read_scores(n: int) -&gt; list[float]:
+    scores = []
+    while len(scores) &lt; n:
+        raw = input(f&quot;请输入第 {len(scores)+1} 个分数（0-100）: &quot;).strip()
+        try:
+            v = float(raw)                        # 转换可能抛 ValueError
+        except ValueError:
+            print(&quot;不是数字，请重试&quot;); continue
+        if not 0 &lt;= v &lt;= 100:
+            print(&quot;分数需在 0 到 100 之间&quot;); continue
+        scores.append(v)                          # 合法才收集
+    return scores
+
+def grade_of(avg: float) -&gt; str:
+    match avg:                                    # 3.10+ 模式匹配
+        case a if a &gt;= 90: return &quot;优秀&quot;
+        case a if a &gt;= 80: return &quot;良好&quot;
+        case a if a &gt;= 60: return &quot;及格&quot;
+        case _: return &quot;不及格&quot;
+
+if __name__ == &quot;__main__&quot;:
+    n = int(input(&quot;要统计几个分数？&quot;))
+    scores = read_scores(n)
+    avg = sum(scores) / len(scores)               # sum 求和
+    print(f&quot;平均分 {avg:.2f}，最高 {max(scores)}，最低 {min(scores)}&quot;)
+    print(f&quot;等级评定: {grade_of(avg)}&quot;)
+</code></pre>
+<p>验收标准：输入 3 个分数 95、82、67 输出平均 81.33、等级良好；输入 "abc" 提示重试、输入 150 提示范围。这段把 input 校验、try/except、列表收集、sum/max/min、match-case 五个知识点串在一条真实任务上，是"语法到脚本"的最小闭环。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">20. 学习路径与 REPL 习惯（素材教学设计补充）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>【part1 补充】课件给的第一个程序有两种跑法：交互式模式（敲 「python3」 进 REPL，逐行敲 「print("Hello")」 立刻看到结果，「exit()」 退出）和脚本文件模式（写进 「hello.py」 再 「python3 hello.py」）</li><li>判断标准：验证单个表达式用 REPL，写有逻辑的程序用文件</li><li>【part1 补充】课件对注释的定位是"Python 不会执行它"，写给未来的自己和队友看</li></ul></div>2
+<p><strong>【part1 补充】课件给的第一个程序有两种跑法</strong>：交互式模式（敲 <code>python3</code> 进 REPL，逐行敲 <code>print("Hello")</code> 立刻看到结果，<code>exit()</code> 退出）和脚本文件模式（写进 <code>hello.py</code> 再 <code>python3 hello.py</code>）。本文所有代码都按脚本文件模式写，因为可保存、可复现；但 REPL 适合做"验证一个小表达式"的快速试验，比如不确定 <code>text[::-1]</code> 是什么效果，就在 REPL 里敲一行看输出。判断标准：验证单个表达式用 REPL，写有逻辑的程序用文件。</p>
+<p><strong>【part1 补充】课件对注释的定位</strong>是"Python 不会执行它"，写给未来的自己和队友看。本文每段脚本都用注释标注了运行方式和预期输出，这既是教学手法也是工程习惯：好的脚本应当"不看 README 也能跑起来"。docstring（文档字符串，函数内第一段三引号字符串）比普通注释更强，它能被 <code>help(func)</code> 和 <code>func.__doc__</code> 读到，写库函数时必须写。</p>
+<p><strong>【part1 补充】课件的练习题覆盖了三个渐进层次</strong>：练习 1.x 是输入输出与算术（温度转换、圆面积），练习 2.x 是类型与字符串（秒数换算、元音统计），练习 3.x 是控制流（阶乘求和、质数、图形打印）。这三个层次正好对应本文的第 2 到 5 节。做完这三组题再看第 7 节三问，会发现"翻车形态"里的每一条都对应某道练习题没做对时的表现。</p>
+<p><strong>给学习者的节奏建议</strong>：每天 30 到 60 分钟，一次只攻一个语法点，配 2 到 3 个小练习；不要连续看完再动手，看懂和会写之间的差距只有靠敲代码抹平。语法阶段不用追求记住所有内置函数名，遇到需求再查文档（<code>help(str)</code> 或官方 docs），把"查得到"当作能力的一部分。</p>
+<h2 id="22-预习函数参数的五种形态衔接下一篇">22. 预习：函数参数的五种形态（衔接下一篇）</h2>2
+<p>下一篇《L0-Python 函数与模块》会系统讲函数，这里先给参数语法打底，因为它和本文的类型、作用域直接相关。<strong>位置参数</strong>按顺序传入，<code>add(3, 5)</code> 里 3 对应 a、5 对应 b。<strong>默认参数</strong>给参数一个缺省值，<code>greet(name, greeting="你好")</code> 允许只传名字。<strong>关键字参数</strong>用名字传，<code>profile(age=18, name="小明")</code> 可以不按顺序。<strong>可变参数 <code>*args</code></strong> 收集任意多个位置参数成元组，<code>total(1, 2, 3)</code> 里 numbers 是 <code>(1, 2, 3)</code>。<strong>关键字可变参数 <code>**kwargs</code></strong> 收集任意多个关键字参数成字典。混合使用时顺序固定为：位置参数、默认参数、<code>*args</code>、<code>**kwargs</code>，写反会 SyntaxError。</p>
+<p>返回值方面，<code>return</code> 带值返回该值；不写 return 或 <code>return</code> 后无值返回 None；<code>return a, b</code> 语法上是返回一个元组，调用方用 <code>lo, hi = min_max(...)</code> 解包。作用域方面，函数内赋值默认创建局部变量，要改全局变量必须显式 <code>global count</code>；闭包（函数内定义函数并返回）是装饰器的基础，下一篇展开。lambda 是单表达式匿名函数，常用在 <code>sort(key=lambda s: s[1])</code> 这类"一次性小函数"场景，别拿它写超过一行的逻辑。</p>
+<p>预告一个小练习：写一个 <code>make_greeting(greeting="你好")</code> 返回一个函数，调用 <code>make_greeting("早上好")("小明")</code> 输出"早上好，小明！"。答案用闭包实现，能在下一篇开篇时自查是否看懂了函数作为返回值的用法。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">23. 内置函数速查（不需要 import 就能用）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>写脚本时最常用的十来个内置函数，按用途分组</li><li>这类"生成器表达式配聚合函数"的写法是 Python 惯用法的核心之一，下一篇讲函数时会和 map/filter 对照</li><li>长度与聚合：「len(numbers)」 求元素个数、「max」/「min」 取极值、「sum(numbers)」 求和</li></ul></div>2
+<p>写脚本时最常用的十来个内置函数，按用途分组。<strong>长度与聚合</strong>：<code>len(numbers)</code> 求元素个数、<code>max</code>/<code>min</code> 取极值、<code>sum(numbers)</code> 求和。<code>sorted(numbers)</code> 返回新排序列表不改原列表，要原地排序用 <code>numbers.sort()</code>；<code>reversed(numbers)</code> 返回反转迭代器，转列表看结果写 <code>list(reversed(numbers))</code>。<strong>并行遍历</strong>：<code>zip(names, scores)</code> 把两个列表配对，3.10 起可加 <code>strict=True</code> 让长度不等直接报错，防止静默丢数据。<strong>真假判断</strong>：<code>any([0, 0, 1])</code> 有一个真就 True，<code>all([1, 2, 3])</code> 全真才 True，判"是否全部满足条件"比写循环计数清爽。<strong>类型构造</strong>：<code>list(range(5))</code> 生成列表、<code>tuple([1, 2])</code> 转元组、<code>set([1, 1, 2])</code> 去重得 <code>{1, 2}</code>、<code>dict([("a", 1)])</code> 由键值对列表建字典。</p>
+<p><strong>【part1 补充】课件的元音统计练习</strong>给了一行式解法 <code>sum(1 for char in sentence if char in vowels)</code>，比"计数器加 if 再自增"更 Pythonic。这类"生成器表达式配聚合函数"的写法是 Python 惯用法的核心之一，下一篇讲函数时会和 map/filter 对照。</p>
+<h2 id="25-预习文件读写最小闭环语法篇收尾">25. 预习：文件读写最小闭环（语法篇收尾）</h2>2
+<p>语法的最后一环是把结果存下来、把数据读回来，这样才能写出真正"有用"的脚本。<strong>核心语法只有一句</strong>：<code>with open("test.txt", "r", encoding="utf-8") as f:</code>，with 离开代码块时自动关闭文件，不需要手动 <code>f.close()</code>。<strong>打开模式七种</strong>：<code>"r"</code> 只读（文件不存在报错）、<code>"w"</code> 写入（不存在则创建、存在则从头覆盖）、<code>"a"</code> 追加（加到末尾）、<code>"x"</code> 排他创建（已存在则报错）、<code>"r+"</code> 读写、<code>"rb"</code>/<code>"wb"</code> 二进制读写。选错模式的典型翻车是"本想追加结果却用 <code>w</code> 把上次输出覆盖了"。</p>
+<p><strong>读取四法</strong>：<code>f.read()</code> 一次读全部（大文件会撑爆内存）、<code>f.readline()</code> 读一行、<code>f.readlines()</code> 读成行列表、<code>for line in f</code> 逐行遍历（内存最友好，处理日志大文件的标准写法）。<strong>编码必须显式</strong>：Windows 上读写中文文件务必写 <code>encoding="utf-8"</code>，否则默认的 gbk 或 cp936 会把中文读成乱码或写坏文件。这个坑在第 7 节翻车清单里也出现过，是 Windows 用户第一高频 IO 问题。</p>
+<p>预告脚本：写一个 <code>line_counter.py</code>，统计 <code>test.txt</code> 的行数、字符数和最长的一行，输出格式自定。完整实现放到《L0-Python 函数与模块》开篇，用文件读写加函数封装串起来。语法到此收尾，下一篇讲函数与模块——把这二十多节的语法组织成可复用、可测试的程序结构。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">27. 预习：pathlib 与 JSON（现代路径与数据交换）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>pathlib 是 3.4 起的标准库路径工具，比 「os.path」 的字符串拼接更安全</li><li>核心对象 「Path」：「p.parent」 父目录、「p.name」 文件名、「p.suffix」 扩展名、「p.stem」 去扩展名的文件名</li><li>遍历目录 「for p in Path(".").iterdir():」，递归找文件 「for p in Path(".").rglob("*.py"):」</li></ul></div>2
+<p><strong>pathlib 是 3.4 起的标准库路径工具</strong>，比 <code>os.path</code> 的字符串拼接更安全。核心对象 <code>Path</code>：<code>p.parent</code> 父目录、<code>p.name</code> 文件名、<code>p.suffix</code> 扩展名、<code>p.stem</code> 去扩展名的文件名。建目录写 <code>Path("my_folder/sub").mkdir(parents=True, exist_ok=True)</code>，<code>parents=True</code> 允许多级创建、<code>exist_ok=True</code> 目录已存在不报错。读写一行搞定：<code>Path("a.txt").write_text("内容", encoding="utf-8")</code> 与 <code>Path("a.txt").read_text(encoding="utf-8")</code>。遍历目录 <code>for p in Path(".").iterdir():</code>，递归找文件 <code>for p in Path(".").rglob("*.py"):</code>。判断 <code>p.exists()</code>、<code>p.is_file()</code>、<code>p.is_dir()</code>、<code>p.stat().st_size</code> 取字节数。</p>
+<p><strong>JSON 是数据交换的通用格式</strong>，Python 标准库 <code>json</code> 四个函数：<code>json.dumps(obj, ensure_ascii=False, indent=2)</code> 把对象转字符串（<code>ensure_ascii=False</code> 让中文直接显示不转义，<code>indent=2</code> 缩进美化）、<code>json.loads(s)</code> 反向、<code>json.dump(obj, f)</code> 写文件、<code>json.load(f)</code> 读文件。翻车点：JSON 没有元组类型，<code>json.dumps((1, 2))</code> 会变成 <code>[1, 2]</code>；也没有日期类型，<code>datetime</code> 对象要先 <code>strftime</code> 转字符串再序列化。</p>
+<p>预告脚本：把第 25 节的 <code>line_counter.py</code> 升级成 <code>line_counter_json.py</code>，把统计结果（行数、字符数、最长行）写进 <code>stats.json</code> 再读回来打印。这一步串起文件读写、pathlib、json 三个模块，是下一篇函数与模块篇的开场案例。</p>
+<h2 id="29-字面量写法补充数字字符串布尔的细节">29. 字面量写法补充（数字、字符串、布尔的细节）</h2>2
+<p><strong>【part1 补充】整数字面量可以用下划线分隔</strong>提高可读性，<code>1_000_000_000</code> 等价于 1000000000，适合写金额、ID、位掩码。浮点支持科学记数法 <code>1.5e-4</code> 表示 0.00015，处理物理量或概率时常见。复数写 <code>3 + 4j</code>，虚部后缀是 j 不是 i，<code>z.real</code> 取实部 3.0、<code>z.imag</code> 取虚部 4.0（都是浮点）。</p>
+<p><strong>字符串三种引号</strong>：单引号、双引号等价，选哪种看内容里有没有引号（<code>"It's fine"</code> 用双引号包住含单引号的内容）；三引号 <code>"""..."""</code> 保留换行，适合写多行说明文本或 docstring。字符串运算四件套：<code>len("Hello")</code> 长度、<code>"Hello" + " World"</code> 拼接、<code>"Ha" * 3</code> 重复成 "HaHaHa"、<code>"lo" in "Hello"</code> 包含检查。f-string 里可以直接放表达式：<code>f"明年我就{age + 1}岁了"</code>。</p>
+<p><strong>布尔运算的真值表</strong>：<code>True and False</code> 是 False（与）、<code>True or False</code> 是 True（或）、<code>not True</code> 是 False（非）。比较运算全部产生布尔值：<code>5 &gt; 3</code> True、<code>5 == 3</code> False、<code>5 != 3</code> True、<code>10 &gt;= 10</code> True。None 的类型是 <code>&lt;class 'NoneType'&gt;</code>，用 <code>type(result)</code> 能看到，它既不等于 0 也不等于空字符串，判断只能用 <code>is None</code>。</p>
+<p><strong>【part1 补充】类型检查推荐 isinstance 而非 type</strong>：<code>isinstance(42, int)</code> 为 True，且对子类同样成立；<code>type(x) == int</code> 只认精确类型，写库函数时会误判子类。类型转换的三个方向字符串、整数、浮点互转都熟了之后，要特别记住 <code>int(3.9)</code> 得 3 是截断不是四舍五入，四舍五入写 <code>round(3.9)</code> 得 4。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">31. 变量赋值的三种写法与命名约定</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>保留字不能作变量名：「if」、「for」、「class」、「import」、「return」、「None」、「True」、「False」、「lambda」 等约 35 个</li></ul></div>2
+<p><strong>【part1 补充】课件用"带标签的盒子"比喻变量</strong>，初学阶段够用；等写到可变对象（列表、字典）时要升级成本文第 2.1 节的"标签指向对象"模型，否则解释不了 <code>b = a</code> 后改 b 会影响 a。赋值三种写法：普通赋值 <code>name = "Python"</code>、多变量同时赋值 <code>a, b, c = 1, 2, 3</code>（等号两边元素个数必须一致，否则 ValueError）、同一值赋多变量 <code>x = y = z = 0</code>（三个名字指向同一个对象，可变对象时要小心共享）。</p>
+<p><strong>命名约定</strong>是团队协作的隐性契约：变量名和函数名用小写加下划线 <code>user_name</code>、<code>get_total</code>（蛇形命名，PEP 8 规定）；类名用大驼峰 <code>BankAccount</code>；常量全大写 <code>MAX_RETRY = 3</code>；模块名短小写 <code>my_utils.py</code>，不用连字符（会和减号混淆）。保留字不能作变量名：<code>if</code>、<code>for</code>、<code>class</code>、<code>import</code>、<code>return</code>、<code>None</code>、<code>True</code>、<code>False</code>、<code>lambda</code> 等约 35 个。判断某个词是不是保留字：<code>import keyword; keyword.iskeyword("class")</code> 返回 True。</p>
+<p><strong>命名的可读性优先级</strong>：宁可长一点也不要缩写到看不懂，<code>elapsed_seconds</code> 比 <code>es</code> 好；布尔变量习惯加 <code>is_</code>/<code>has_</code> 前缀，<code>is_valid</code>、<code>has_children</code>，读代码的人一眼知道它是真假值；避免用 <code>l</code>、<code>O</code>、<code>I</code> 这类单字母（和数字 1、0 视觉混淆）。翻车现场是三个月后自己都读不懂 <code>d = {k: v for k, v in x if f(k)}</code> 这种单字母满天飞的推导式，改法是起有意义的名字，可读性永远优先于行数少。</p>
+<h2 id="33-章节地图与下一步">33. 章节地图与下一步</h2>2
+<p>本文按"表达式与变量 → 数据类型 → 流程控制 → 异常 → 输入输出 → 格式化 → 文件与路径"七条主线展开，对应课件《part1-python-basics》的五个章节（环境搭建、数据类型、控制流、函数与模块、文件操作）里的语法部分。每条主线都配了翻车现场与修复动作，读完应当能做到三件事：看懂一段百行以内的脚本在干什么；写出带输入校验和异常处理的小工具；遇到报错能从 traceback 定位到语法层的原因。</p>
+<p><strong>下一步的学习顺序</strong>：先把本文第 11、17、18 节的九段脚本全部亲手跑通并改一遍参数；然后读《L0-Python 数据结构》（列表、字典、集合、元组的选型与性能）；再读《L0-Python 函数与模块》（封装、复用、装饰器、包结构）；最后《L0-Python OOP 与爬虫》（类与对象、继承多态、requests 与 BeautifulSoup 实战）。语法是这四篇的共同地基，地基越稳后面越快。</p>
+<p><strong>判断"语法关过了"的三个硬标准</strong>：不看文档能写出带 try/except 的输入校验循环；能解释 <code>b = a</code> 之后改 b 为什么影响 a；遇到 IndentationError 或 ValueError 能在 30 秒内定位到出错行。三条都满足就可以自信地进入数据结构篇，否则回到第 2 节和第 7 节重读对应小节。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">35. 预习：CSV 处理与日志分析（数据交换的第二形态）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>【part1 补充】CSV 是表格数据的通用交换格式，Excel 都能打开，处理成绩表、导出报表时首选</li><li>建议自己先写一遍再看参考实现，写不出来说明字符串和字典操作还不熟，回到第 6 节和下一篇数据结构篇补</li><li>判断信号是脚本启动后内存占用一路涨到物理内存上限，改法就是换成逐行处理加生成器</li></ul></div>2
+<p><strong>【part1 补充】CSV 是表格数据的通用交换格式</strong>，Excel 都能打开，处理成绩表、导出报表时首选。写入用 <code>csv.writer</code> 的 <code>writerows(students)</code> 一次写多行；读取用 <code>csv.reader</code> 逐行或 <code>csv.DictReader</code> 按表头取字段（<code>row['姓名']</code> 比 <code>row[0]</code> 可读）。两个必须记住的参数：<code>open("students.csv", "w", newline="", encoding="utf-8-sig")</code> 里 <code>newline=""</code> 防止 Windows 下多出空行，<code>encoding="utf-8-sig"</code> 带 BOM 头让 Excel 打开中文不乱码（纯 Python 互读用 <code>utf-8</code> 即可）。</p>
+<p><strong>日志分析器是语法篇的收官案例</strong>（课件 5.x 节）：读 access.log 逐行 <code>for line in f</code>，用 <code>split()</code> 拆字段，用字典统计每个 IP 的访问次数，最后排序输出 Top 10。它一次性用到文件逐行读、字符串切分、字典计数、<code>sorted(key=...)</code> 排序、f-string 输出五个知识点。建议自己先写一遍再看参考实现，写不出来说明字符串和字典操作还不熟，回到第 6 节和下一篇数据结构篇补。</p>
+<p>日志分析的一个工程细节：真实日志单行可能几百字节、文件可能几个 GB，逐行读（<code>for line in f</code>）是唯一不撑爆内存的写法，<code>f.read()</code> 会把整个文件读进内存直接把程序打挂。判断信号是脚本启动后内存占用一路涨到物理内存上限，改法就是换成逐行处理加生成器。</p>
+<h2 id="36-速查清单">36. 速查清单</h2>2
+<ol>
+<li>变量是指向对象的标签，<code>is</code> 比对象、<code>==</code> 比值。</li>
+<li>类型转换记三条：<code>int("3.14")</code> 报错、<code>int(3.9)</code> 截断为 3、浮点比较用 isclose。</li>
+<li>分支少写 if-elif，3.10+ 多值分发写 match-case。</li>
+<li>循环用 for 优先，while 必须有明确终止路径；for-else 配 break 判质数。</li>
+<li>异常四段式 try/except/else/finally，按具体类型捕获，禁止空 except。</li>
+<li>input 永远返回字符串，必须循环校验再转换；输出格式化统一用 f-string。</li>
+</ol></div></details></div></body></html>

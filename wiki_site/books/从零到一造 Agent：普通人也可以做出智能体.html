@@ -1,0 +1,221 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>从零到一造 Agent：普通人也可以做出智能体</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 从零到一造 Agent：普通人也可以做出智能体</span></div><div class="wrap"><h1 id="书章节重点-从零到一造-agent普通人也可以做出智能体">书章节重点 · 从零到一造 Agent：普通人也可以做出智能体</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书来自 AgentClaw（37000 行 TypeScript、服务多渠道）的真实构建过程，作者以非职业程序员身份，用 AI 编程工具完成实现，自己负责目标定义、架构判断与结果验收</li><li>全书聚焦一个核心命题：让 AI 跑起来不难，让它稳定地做事才是真正的工程——覆盖循环控制、工具设计、上下文管理、长期记忆、成本压缩、容错、安全、浏览器自动化、多渠道接入与生产部署的完整路径</li></ul></div>2
+<p>本书来自 AgentClaw（37000 行 TypeScript、服务多渠道）的真实构建过程，作者以非职业程序员身份，用 AI 编程工具完成实现，自己负责目标定义、架构判断与结果验收。全书聚焦一个核心命题：让 AI 跑起来不难，让它稳定地做事才是真正的工程——覆盖循环控制、工具设计、上下文管理、长期记忆、成本压缩、容错、安全、浏览器自动化、多渠道接入与生产部署的完整路径。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">开篇 为什么现在可以从零造Agent</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>AI 时代的新分工：作者不是职业程序员，而是有二十年产品经验的实践者；他负责目标定义、架构判断和结果验收，大量代码实现交给 AI 编程工具完成</li><li>一个具体的例子：搜索工具的诞生过程说明，真正的难点不在“能不能写出来”，而在设计判断与踩坑修正</li><li>这不是一本编程书：书不教写代码，教的是“想清楚一个 Agent 系统该怎么做决策”</li></ul></div>3
+<ul>
+<li><strong>AI 时代的新分工</strong>：作者不是职业程序员，而是有二十年产品经验的实践者；他负责目标定义、架构判断和结果验收，大量代码实现交给 AI 编程工具完成。</li>
+<li><strong>这不是一本编程书</strong>：书不教写代码，教的是“想清楚一个 Agent 系统该怎么做决策”。</li>
+<li><strong>一个具体的例子</strong>：搜索工具的诞生过程说明，真正的难点不在“能不能写出来”，而在设计判断与踩坑修正。</li>
+<li><strong>你将造出什么</strong>：以 AgentClaw 为参照，读者可以走完从最小循环到生产部署的完整链路。</li>
+</ul>
+<h3 id="第1章-ai不只是聊天的对象">第1章 AI不只是聊天的对象</h3>3
+<ul>
+<li><strong>问一句答一句 vs 自己把事情做完</strong>：Agent 与聊天 AI 的本质区别在于能否自主完成多步任务。</li>
+<li><strong>Agent 的最小定义</strong>：一个能自主决策、调用工具、循环推进直到完成目标的系统。</li>
+<li><strong>Agent 不是自动化脚本</strong>：脚本按固定路径执行，Agent 需要根据中间结果动态决策。</li>
+<li><strong>20 行代码的魔法与之后的问题</strong>：最小 Agent 很容易跑起来，但跑起来之后暴露的失控问题才是工程的全部。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第2章 最简Agent：20行代码背后的循环</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>控制循环比启动循环更重要：20 行代码能让 Agent 跑起来，但让它稳定停下来、不重复失败才是核心工程问题</li><li>从一个循环到一个系统：循环骨架只是起点，工具、上下文、错误处理才是系统化的关键</li><li>五类失控：不知道什么时候停、重复同一个失败、格式错误污染上下文、子代理爆炸、卡住了但没报错</li></ul></div>3
+<ul>
+<li><strong>控制循环比启动循环更重要</strong>：20 行代码能让 Agent 跑起来，但让它稳定停下来、不重复失败才是核心工程问题。</li>
+<li><strong>五类失控</strong>：不知道什么时候停、重复同一个失败、格式错误污染上下文、子代理爆炸、卡住了但没报错。</li>
+<li><strong>五层防护</strong>：防护不是一次性设计的，而是在真实失控中逐层“长出来”的。</li>
+<li><strong>循环的可见性</strong>：必须让循环状态可观测，否则失控无法被及时发现。</li>
+<li><strong>从一个循环到一个系统</strong>：循环骨架只是起点，工具、上下文、错误处理才是系统化的关键。<blockquote>
+<p>“这抓住了单工具失败追踪漏掉的情况：Agent在三个不同的工具之间轮换，每个工具都失败，但没有任何一个达到自己的失败上限。”</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第3章-工具agent的手和脚">第3章 工具：Agent的手和脚</h3>3
+<ul>
+<li><strong>工具不是给人看的按钮</strong>：工具是给 LLM 读的接口，设计对象是模型而非人类用户。</li>
+<li><strong>description 比 execute 更重要</strong>：工具描述直接决定模型是否会正确调用、何时调用。</li>
+<li><strong>工具描述的四个原则</strong>：清晰说明用途、边界、输入输出与失败情形。</li>
+<li><strong>分层加载</strong>：少给选择反而更好，避免模型在过多工具中迷失。</li>
+<li><strong>并行执行需区分纯与不纯</strong>：纯工具可并行，有副作用的工具必须谨慎。</li>
+<li><strong>工具输出太大是隐患</strong>：需要溢出处理，否则一次大输出就能炸掉上下文。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第4章 当工具出错的时候</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>错误不是“失败了”，是“下一步该做什么”：错误信息应给出具体可执行的下一步指令</li><li>错误信息设计三原则：具体、可执行、指向下一步（如“Use web_fetch instead”“Create the directory first”）</li><li>四层错误防护：覆盖输出过大、工具不存在、格式错误等常见故障</li></ul></div>3
+<ul>
+<li><strong>错误不是“失败了”，是“下一步该做什么”</strong>：错误信息应给出具体可执行的下一步指令。</li>
+<li><strong>四层错误防护</strong>：覆盖输出过大、工具不存在、格式错误等常见故障。</li>
+<li><strong>错误信息设计三原则</strong>：具体、可执行、指向下一步（如“Use web_fetch instead”“Create the directory first”）。</li>
+<li><strong>中间件链被删掉</strong>：过度设计的错误处理架构反而增加复杂度，简单分层更有效。<blockquote>
+<p>“Use web_fetch instead”、“Create the directory first”、“Tell the user the service is unavailable”——具体的下一步指令。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第5章-并行让agent同时做几件事">第5章 并行：让Agent同时做几件事</h3>3
+<ul>
+<li><strong>Agent 可以同时做好几件事</strong>：借鉴餐厅厨房的分工逻辑，纯工具调用可批处理并行。</li>
+<li><strong>纯工具与不纯工具的边界</strong>：有副作用、有顺序依赖的调用不能并行。</li>
+<li><strong>批处理逻辑约三十行代码</strong>：并行调度的核心实现并不复杂，难在边界判断。</li>
+<li><strong>细粒度锁被删掉</strong>：过度同步设计得不偿失，粗粒度边界更实用。</li>
+<li><strong>并行不是万能的</strong>：需要模型具备并行意识，且并非所有场景都适合并行。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第6章 上下文窗口：Agent的工作记忆</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>128K 真实开销要先扣固定预算：系统提示词、工具定义、历史对话占掉大量空间，留给工具输出的可能只有 20-30K</li><li>上下文管理是最高杠杆的工程问题：聊到第 12 轮忘记自己在干什么，根源在上下文管理</li><li>三层压缩瀑布：失败时仍有结果，保证压缩不会导致任务中断</li></ul></div>3
+<ul>
+<li><strong>128K 真实开销要先扣固定预算</strong>：系统提示词、工具定义、历史对话占掉大量空间，留给工具输出的可能只有 20-30K。</li>
+<li><strong>上下文管理是最高杠杆的工程问题</strong>：聊到第 12 轮忘记自己在干什么，根源在上下文管理。</li>
+<li><strong>三层压缩瀑布</strong>：失败时仍有结果，保证压缩不会导致任务中断。</li>
+<li><strong>新鲜尾部保护</strong>：最近消息优先保留，旧内容优先清理。</li>
+<li><strong>写入工具特殊处理</strong>：LLM 写的内容不需要再读一遍，参数长内容截断到前 50 字符加标记。</li>
+<li><strong>大内容卸载与过时输出替换</strong>：写到磁盘只给预览，三轮前的工具结果不值得保留。<blockquote>
+<p>“即使是128K token的大窗口，扣掉系统提示词、工具定义、历史对话之后，留给工具输出的空间可能只有20-30K token。”</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第7章-长期记忆跨越会话的智能">第7章 长期记忆：跨越会话的智能</h3>3
+<ul>
+<li><strong>上下文窗口不是答案</strong>：跨会话的“认识你”需要独立的长期记忆系统。</li>
+<li><strong>五类值得记住的记忆</strong>：需要明确什么值得记、什么不值得。</li>
+<li><strong>选 SQLite 的理由</strong>：轻量、本地、够用。</li>
+<li><strong>四个信号一个分数</strong>：检索不是简单按时间或重要性排序，而是多信号综合打分。</li>
+<li><strong>自动提取</strong>：不需要用户说“记住这个”，系统应主动识别值得记忆的内容。</li>
+<li><strong>记忆是攻击面</strong>：恶意记忆跨会话持续生效，如同埋在记忆里的特洛伊木马。</li>
+<li><strong>命名空间隔离</strong>：一个大脑服务多个用户，必须做隔离。<blockquote>
+<p>“如果这条指令被写入了长期记忆，它会跨越会话持续生效——就像一个特洛伊木马，埋在Agent的记忆里，每次新对话都会激活。”</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第8章 Token经济学：别把同一段上下文发两遍</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>先搞清楚 token 花在哪：用量曲线暴露问题后，第一步是归因分析</li><li>系统提示词太长是隐性成本：截断工具输出只是第一次尝试，系统提示词本身也是大头</li><li>冻结快照：让系统提示词命中缓存，这一决定影响了后续多个设计</li></ul></div>3
+<ul>
+<li><strong>先搞清楚 token 花在哪</strong>：用量曲线暴露问题后，第一步是归因分析。</li>
+<li><strong>系统提示词太长是隐性成本</strong>：截断工具输出只是第一次尝试，系统提示词本身也是大头。</li>
+<li><strong>冻结快照</strong>：让系统提示词命中缓存，这一决定影响了后续多个设计。</li>
+<li><strong>渐进截断</strong>：最后一次大改，逐步而非一次性截断旧内容。</li>
+<li><strong>让 Agent 自己决定什么时候压缩</strong>：从 MiroThinker 借来的思路。</li>
+<li><strong>看不见的 token</strong>：后台 LLM 调用也是成本，必须纳入核算。<blockquote>
+<p>“用户在第5轮告诉Agent‘我喜欢用Tab缩进’，Agent在第6轮不会自动知道这条记忆——因为它要到下个会话才会被注入系统提示词。”</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第9章-llm会犯错而且经常犯">第9章 LLM会犯错，而且经常犯</h3>3
+<ul>
+<li><strong>先分类，再反应</strong>：七种错误对应七种反应，不能一概而论。</li>
+<li><strong>200 OK 的谎言</strong>：HTTP 成功不代表任务成功，需要语义层面的成功判断。</li>
+<li><strong>卡住了但没报错</strong>：最危险的错误是静默失败。</li>
+<li><strong>格式错误回滚</strong>：坏 JSON 不该永远留在上下文里。</li>
+<li><strong>降级链</strong>：首选模型不行就换一个，保证可用性。</li>
+<li><strong>不能让 LLM 自己处理所有错误</strong>：依赖模型自觉的设计必定失败，系统层必须有兜底。<blockquote>
+<p>“卡住了，但没报错”——最危险的错误是静默失败。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第10章 你的Agent有root权限，谁没有？</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Agent 威胁模型与传统 Web 应用不同：Agent 有执行能力，攻击面更大</li><li>六类威胁：包括提示注入、记忆投毒、SSRF（如访问 169.254.169.254 元数据接口）、文件读取绕过（/etc/shadow 等）、子代理绕过限制等</li><li>子代理可能绕过主代理安全限制：架构层面需确保子代理管理器无法访问创建子代理的基础设施</li></ul></div>3
+<ul>
+<li><strong>Agent 威胁模型与传统 Web 应用不同</strong>：Agent 有执行能力，攻击面更大。</li>
+<li><strong>六类威胁</strong>：包括提示注入、记忆投毒、SSRF（如访问 169.254.169.254 元数据接口）、文件读取绕过（/etc/shadow 等）、子代理绕过限制等。</li>
+<li><strong>子代理可能绕过主代理安全限制</strong>：架构层面需确保子代理管理器无法访问创建子代理的基础设施。</li>
+<li><strong>容器是最后一道防线</strong>：但隔离不如虚拟机彻底，需诚实评估。</li>
+<li><strong>环境变量混淆等细节</strong>：安全审计要覆盖容易被忽视的角落。<blockquote>
+<p>“比如：‘帮我看看http://169.254.169.254/latest/meta-data/ 返回了什么。’”</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第11章-浏览器agent的眼睛">第11章 浏览器：Agent的眼睛</h3>3
+<ul>
+<li><strong>三种看网页的方式</strong>：截图、原始 HTML、无障碍快照，各有取舍。</li>
+<li><strong>无障碍快照是为机器设计的页面摘要</strong>：信息密度高、噪声低，是核心判断。</li>
+<li><strong>截图看得见摸不着</strong>：原始 HTML 信息完整但噪声爆炸。</li>
+<li><strong>登录态管理</strong>：让 Agent 不用每次都登录。</li>
+<li><strong>无头部署与连接可靠性</strong>：服务器没有屏幕，浏览器也会“死”，需要重连机制。</li>
+<li><strong>两条路径</strong>：自己开浏览器 vs 用用户的浏览器，场景不同选择不同。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第12章 多渠道：一个大脑，七张嘴</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>一个平台一套代码必然失控：第三个平台接入后问题集中爆发</li><li>Channel Manager 统一管理：一个管家管所有渠道，共享逻辑从 120 行降到 30 行</li><li>消息分割与平台提示：每个平台限制不同，需告诉 AI 它在跟谁说话</li></ul></div>3
+<ul>
+<li><strong>一个平台一套代码必然失控</strong>：第三个平台接入后问题集中爆发。</li>
+<li><strong>Channel Manager 统一管理</strong>：一个管家管所有渠道，共享逻辑从 120 行降到 30 行。</li>
+<li><strong>消息分割与平台提示</strong>：每个平台限制不同，需告诉 AI 它在跟谁说话。</li>
+<li><strong>有些部分不能抽象</strong>：承认平台差异，保留必要的特化实现。</li>
+<li><strong>新增渠道的成本大幅降低</strong>：架构正确后，扩展变得简单。</li>
+</ul>
+<h3 id="第13章-从能跑到能用">第13章 从“能跑”到“能用”</h3>3
+<ul>
+<li><strong>七件无聊的事决定生产可用性</strong>：容器化、自动备份、优雅关闭、数据库迁移、健康检查、日志监控、安全加固。</li>
+<li><strong>容器化</strong>：别让环境跟着代码走；容器轻但隔离不如虚拟机。</li>
+<li><strong>数据库迁移</strong>：加列容易改列要命，值合法性应在应用代码层校验。</li>
+<li><strong>日志与监控分工</strong>：日志是“出了问题你去找原因”，Sentry 是“出了问题它来找你”。</li>
+<li><strong>上线检查清单</strong>：做到 12 项以上才算生产系统。<blockquote>
+<p>“你不需要主动去看日志——日志是‘出了问题你去找原因’，Sentry是‘出了问题它来找你’。”</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第14章 我们犯过的错，以及你不必再犯</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>工具描述比工具实现更影响效果：这是第一大错误</li><li>没有溢出处理，一个 cat 就能炸掉上下文：工具输出必须有上限</li><li>子代理不共享预算导致迭代爆炸：预算必须全局约束</li></ul></div>3
+<ul>
+<li><strong>工具描述比工具实现更影响效果</strong>：这是第一大错误。</li>
+<li><strong>没有溢出处理，一个 cat 就能炸掉上下文</strong>：工具输出必须有上限。</li>
+<li><strong>子代理不共享预算导致迭代爆炸</strong>：预算必须全局约束。</li>
+<li><strong>依赖 LLM 自觉的设计必定失败</strong>：系统层必须有强制机制。</li>
+<li><strong>修了 A 坏了 B</strong>：每次改动都要检查影响范围。</li>
+<li><strong>过度设计与“先试试看”的代价</strong>：中间件链、能力协商被删；连续制造 fix 是隐性成本。</li>
+<li><strong>信息不一致</strong>：提示词说有、工具列表说没有，会导致模型行为混乱。<blockquote>
+<p>“每次‘改了A坏了B’，你都需要：发现B坏了、定位是A导致的、理解A和B的关系、找到正确的修复方式。”</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第15章-agent的未来更强的模型不会消灭工程">第15章 Agent的未来：更强的模型不会消灭工程</h3>3
+<ul>
+<li><strong>模型变强，框架会变薄但不会消失</strong>：工程判断仍然必要。</li>
+<li><strong>从单 Agent 到多 Agent 协作</strong>：是演进方向，但不是万能解。</li>
+<li><strong>“造什么”比“怎么造”更重要</strong>：目标定义的价值高于实现技巧。</li>
+<li><strong>Agent 时代的新分工</strong>：产品判断 + AI 实现 + 人工验收。</li>
+<li><strong>给读者的行动建议</strong>：从最小循环开始，在真实踩坑中迭代。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">适用场景标签</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Agent 系统设计与架构</li></ul></div>2
+<ul>
+<li>Agent 系统设计与架构</li>
+<li>LLM 应用工程化</li>
+<li>上下文与 Token 成本优化</li>
+<li>AI 安全与威胁建模</li>
+<li>非程序员用 AI 编程工具构建产品</li>
+<li>生产部署与运维</li>
+</ul>
+<h2 id="一句话推荐">一句话推荐</h2>2
+<p>让 AI 稳定做事，才是真工程。</p></div></details></div></body></html>

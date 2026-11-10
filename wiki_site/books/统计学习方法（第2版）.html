@@ -1,0 +1,224 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>统计学习方法（第2版）</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 统计学习方法（第2版）</span></div><div class="wrap"><h1 id="书章节重点-统计学习方法第2版">书章节重点 · 统计学习方法（第2版）</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书系统梳理统计学习的主要方法，以“模型—策略—算法”三要素为统一框架，覆盖监督学习与无监督学习两大范式</li><li>它既是机器学习的基本读物，也为理解数据驱动的预测与结构发现提供了严谨的概率统计视角</li><li>阅读全书时，应把每章都放回同一条主线：先明确数据、假设空间和输出目标，再选择损失函数或概率准则，最后用可实现的优化、动态规划、采样或迭代算法求解</li></ul></div>2
+<p>本书系统梳理统计学习的主要方法，以“模型—策略—算法”三要素为统一框架，覆盖监督学习与无监督学习两大范式。它既是机器学习的基本读物，也为理解数据驱动的预测与结构发现提供了严谨的概率统计视角。阅读全书时，应把每章都放回同一条主线：先明确数据、假设空间和输出目标，再选择损失函数或概率准则，最后用可实现的优化、动态规划、采样或迭代算法求解。模型决定“允许怎样解释数据”，策略决定“什么叫学得好”，算法决定“怎样把目标真正算出来”。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1篇 监督学习（总论）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>统计学习的定义与对象：统计学习是关于计算机基于数据构建概率统计模型并运用模型进行预测与分析的学科，研究对象是多样化的数据</li><li>监督学习的本质是学习输入到输出的映射的统计规律</li><li>数据可以是数字、文字、图像、视频、音频及其组合，方法的任务是从数据中提取特征、抽象模型、发现知识，再回到分析与预测</li></ul></div>3
+<ul>
+<li><strong>统计学习的定义与对象</strong>：统计学习是关于计算机基于数据构建概率统计模型并运用模型进行预测与分析的学科，研究对象是多样化的数据。数据可以是数字、文字、图像、视频、音频及其组合，方法的任务是从数据中提取特征、抽象模型、发现知识，再回到分析与预测。</li>
+<li><strong>三要素框架</strong>：统计学习方法由模型的假设空间、模型选择的准则和模型学习的算法构成，简称模型、策略、算法。比较两个方法时，不能只比较模型名称，还要追问损失函数、正则化方式、优化过程和停止条件。</li>
+<li><strong>基本假设</strong>：统计学习假设同类数据具有一定统计规律性；监督学习进一步假设训练数据与测试数据依联合概率分布P(X,Y)独立同分布产生。这个假设支撑了经验风险对未来风险的估计，也说明分布漂移时需要重新评估模型。</li>
+<li><strong>问题类型划分</strong>：输入输出均为连续变量为回归问题，输出为有限离散变量为分类问题，输入输出均为变量序列为标注问题。任务边界决定标签表示、评价指标以及预测时的输出结构。</li>
+<li><strong>模型评估与选择</strong>：经验风险反映训练集拟合程度，结构风险则把经验风险与模型复杂度惩罚结合起来。正则化、交叉验证和验证集的作用，都是在拟合数据与控制泛化误差之间建立可操作的平衡。</li>
+<li><strong>泛化误差上界</strong>：它是样本容量的函数（样本增加则上界趋于0），也是假设空间容量的函数（容量越大越难学，上界越大）。因此，提升训练集成绩并不自动意味着测试集更好，模型容量、样本量和噪声必须一起考虑。</li>
+<li><strong>生成模型与判别模型</strong>：生成模型先描述联合分布或数据生成过程，判别模型直接描述条件概率或决策边界。前者便于解释数据生成机制，后者往往更直接地服务于分类与标注。</li>
+</ul>
+<blockquote>
+<p>监督学习的本质是学习输入到输出的映射的统计规律。<br />
+如果一个系统能够通过执行某个过程改进它的性能，这就是学习。<br />
+从贝叶斯估计的角度来看，正则化项对应于模型的先验概率。<br />
+泛化误差上界通常具有以下性质：它是样本容量的函数，当样本容量增加时，泛化上界趋于0；它是假设空间容量（capacity）的函数，假设空间容量越大，模型就越难学，泛化误差上界就越大。</p>
+</blockquote>
+<h3 id="第2章-感知机">第2章 感知机</h3>3
+<ul>
+<li><strong>模型</strong>：二分类的线性分类模型，以分离超平面将特征空间划分为正负两类。它适合线性可分数据，不能直接表达复杂的非线性边界。</li>
+<li><strong>策略</strong>：以误分类点到超平面的总距离（等价于误分类驱动的损失）为损失函数。只有被错误分类的样本推动参数更新，因此训练目标和错误样本高度相关。</li>
+<li><strong>算法</strong>：基于随机梯度下降的误分类驱动更新，原始形式与对偶形式并存。原始形式直接更新权重，样本较少或特征维度较低时易理解；对偶形式把更新次数与样本内积联系起来，便于利用核函数思想。</li>
+<li><strong>适用边界</strong>：若数据线性不可分，感知机可能持续更新而不能得到稳定的零误分类解，此时应引入软间隔、特征变换或改用逻辑斯谛回归、支持向量机等方法。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 k近邻法</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心思想：基于实例的学习，无显式训练过程，以多数表决或平均进行预测</li><li>它把相似样本的标签当作新样本标签的局部证据</li><li>三要素：距离度量、k值选择与分类决策规则共同决定模型表现</li></ul></div>3
+<ul>
+<li><strong>核心思想</strong>：基于实例的学习，无显式训练过程，以多数表决或平均进行预测。它把相似样本的标签当作新样本标签的局部证据。</li>
+<li><strong>三要素</strong>：距离度量、k值选择与分类决策规则共同决定模型表现。欧氏距离适合尺度一致的数值特征，混合特征则需要重新定义距离或先做编码与标准化。</li>
+<li><strong>k值影响</strong>：k过小易受噪声干扰、方差大；k过大则偏差增大，需权衡。通常通过验证集选择k，并在类别不平衡时采用距离加权或调整投票规则。</li>
+<li><strong>实现重点</strong>：朴素搜索需要保存训练样本并逐一计算距离，样本量增大后预测成本高；kd树通过空间划分减少候选点，但在高维空间中剪枝效果会减弱。</li>
+</ul>
+<h3 id="第4章-朴素贝叶斯法">第4章 朴素贝叶斯法</h3>3
+<ul>
+<li><strong>生成式模型</strong>：基于贝叶斯定理与特征条件独立假设，学习联合概率分布后进行分类。预测时比较各类别的先验概率与条件概率乘积。</li>
+<li><strong>核心假设</strong>：条件独立性假设大幅简化计算，但以牺牲一定准确性为代价。即使现实特征存在相关性，只要类别间的相对排序仍然有效，模型仍可能取得实用效果。</li>
+<li><strong>后验概率最大化</strong>：分类时等价于选择使后验概率最大的类别，即期望风险最小化。对数变换可以把概率乘积改成加法，降低下溢风险并简化计算。</li>
+<li><strong>参数估计与平滑</strong>：极大似然估计直接使用频数，零频率会使整类概率归零；加入平滑可以避免这一问题，但平滑强度也会影响稀有特征的贡献。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 决策树</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>模型：以树形结构对实例进行分类，内部结点为特征测试，叶结点为类别</li><li>生成过程：从根结点开始递归选择最优特征并划分数据，直到满足停止条件</li><li>特征选择准则：信息增益、信息增益比、基尼指数分别对应ID3、C4.5、CART</li></ul></div>3
+<ul>
+<li><strong>模型</strong>：以树形结构对实例进行分类，内部结点为特征测试，叶结点为类别。路径本身提供了相对直观的解释。</li>
+<li><strong>特征选择准则</strong>：信息增益、信息增益比、基尼指数分别对应ID3、C4.5、CART。准则通过衡量划分前后的不确定性或纯度，决定优先使用哪些特征。</li>
+<li><strong>生成过程</strong>：从根结点开始递归选择最优特征并划分数据，直到满足停止条件。停止过早会欠拟合，生长过深会把噪声也记入树结构。</li>
+<li><strong>剪枝</strong>：通过预剪枝或后剪枝控制模型复杂度，防止过拟合，提升泛化能力。代价复杂度剪枝在训练误差和树规模之间做权衡，体现结构风险最小化思想。</li>
+<li><strong>CART特点</strong>：CART通常使用二叉切分，既可用于分类也可用于回归；回归树以平方误差等准则选择切分，分类树则关注节点纯度。</li>
+</ul>
+<h3 id="第6章-逻辑斯谛回归与最大熵模型">第6章 逻辑斯谛回归与最大熵模型</h3>3
+<ul>
+<li><strong>逻辑斯谛回归</strong>：以sigmoid函数建模条件概率，是经典的线性对数几率分类模型。线性部分负责组合特征，sigmoid把结果映射到概率空间。</li>
+<li><strong>最大熵原理</strong>：在满足约束的条件下选择熵最大的模型，导出最大熵模型。它不额外引入未经证实的偏好，只保留训练数据明确提供的信息。</li>
+<li><strong>统一视角</strong>：两者均属对数线性模型，可用极大似然估计与最优化方法求解。特征函数和权重把输入输出关系表达为可加的指数族形式。</li>
+<li><strong>正则化作用</strong>：L1正则化倾向于产生稀疏参数，L2正则化倾向于抑制大权重并提升稳定性。正则项既是数值优化中的约束，也是控制泛化的重要手段。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 支持向量机</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心思想：在特征空间中寻找间隔最大的分离超平面，兼顾分类正确性与泛化能力</li><li>支持向量是决定边界的关键样本，其他远离边界的样本影响较小</li><li>算法实践：序列最小最优化把大规模二次规划拆成小问题反复求解；核函数、惩罚参数和数据标准化通常需要通过验证集选择</li></ul></div>3
+<ul>
+<li><strong>核心思想</strong>：在特征空间中寻找间隔最大的分离超平面，兼顾分类正确性与泛化能力。支持向量是决定边界的关键样本，其他远离边界的样本影响较小。</li>
+<li><strong>核技巧</strong>：通过核函数隐式映射到高维空间，处理非线性可分问题。核函数把高维内积转化为原空间计算，避免显式构造高维特征。</li>
+<li><strong>软间隔与对偶</strong>：引入松弛变量处理噪声，借助拉格朗日对偶性转化为凸二次规划求解。惩罚参数控制间隔宽度与训练误差之间的平衡。</li>
+<li><strong>算法实践</strong>：序列最小最优化把大规模二次规划拆成小问题反复求解；核函数、惩罚参数和数据标准化通常需要通过验证集选择。</li>
+</ul>
+<h3 id="第8章-提升方法">第8章 提升方法</h3>3
+<ul>
+<li><strong>基本思想</strong>：将弱分类器组合为强分类器，通过改变样本权重聚焦难分样本。每轮学习都针对上一轮留下的错误，从而形成逐步修正。</li>
+<li><strong>AdaBoost</strong>：自适应地调整样本权重与分类器权重，理论上有训练误差上界保证。错误率低的弱分类器权重更大，难以分类的样本在下一轮获得更高关注。</li>
+<li><strong>前向分步算法</strong>：将提升方法解释为加法模型的逐轮优化，统一理解提升框架。它每次只加入一个基学习器，固定已得到的部分，再寻找当前最有用的增量。</li>
+<li><strong>风险提示</strong>：提升方法对异常点和噪声标签较敏感，过多轮次可能强化错误样本；实际应用要结合验证误差和早停策略判断训练轮数。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第9章 EM算法及其推广</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心思想：含隐变量概率模型的极大似然估计，通过E步求期望、M步最大化交替迭代</li><li>收敛性：每次迭代保证似然函数不减，收敛到局部最优</li><li>似然不下降不等于得到全局最优，初始化和模型假设仍会影响最终结果</li></ul></div>3
+<ul>
+<li><strong>核心思想</strong>：含隐变量概率模型的极大似然估计，通过E步求期望、M步最大化交替迭代。E步用当前参数估计隐变量分布，M步据此更新模型参数。</li>
+<li><strong>收敛性</strong>：每次迭代保证似然函数不减，收敛到局部最优。似然不下降不等于得到全局最优，初始化和模型假设仍会影响最终结果。</li>
+<li><strong>推广</strong>：GEM算法放宽M步要求，只需提升下界即可。这个思想适合复杂模型中无法精确完成最大化的情形。</li>
+<li><strong>应用方法</strong>：高斯混合模型是典型例子，隐变量表示样本所属成分；计算时要关注协方差退化、初始参数和停止阈值。</li>
+</ul>
+<h3 id="第10章-隐马尔可夫模型">第10章 隐马尔可夫模型</h3>3
+<ul>
+<li><strong>模型结构</strong>：由初始状态分布、状态转移概率与观测概率构成，描述隐藏状态序列生成观测序列。它假设当前状态主要依赖前一状态，当前观测由当前状态生成。</li>
+<li><strong>三个基本问题</strong>：概率计算（前向—后向算法）、学习（Baum-Welch/EM）、预测（维特比算法）。三者分别回答序列概率、参数估计和最可能状态路径问题。</li>
+<li><strong>算法特点</strong>：动态规划避免枚举所有状态序列，把指数级路径搜索压缩为递推计算。长序列计算时常使用对数概率或缩放因子避免数值下溢。</li>
+<li><strong>应用定位</strong>：适用于标注问题，如序列建模与语音、自然语言处理任务；当观测独立假设不合适或特征需要跨位置组合时，应考虑更灵活的条件模型。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第11章 条件随机场</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>模型：给定输入序列预测输出序列的条件概率分布模型，是判别式序列标注模型</li><li>学习与预测：学习用极大似然/正则化，预测用维特比算法求最优标注序列</li><li>它直接建模标签序列在给定观测下的条件概率</li></ul></div>3
+<ul>
+<li><strong>模型</strong>：给定输入序列预测输出序列的条件概率分布模型，是判别式序列标注模型。它直接建模标签序列在给定观测下的条件概率。</li>
+<li><strong>与HMM对比</strong>：CRF直接建模条件概率，避免HMM的观测独立假设，特征设计更灵活。它可以同时使用当前位置、上下文和标签转移等特征。</li>
+<li><strong>学习与预测</strong>：学习用极大似然/正则化，预测用维特比算法求最优标注序列。前向后向递推用于计算配分函数和边缘概率。</li>
+<li><strong>适用边界</strong>：CRF表达力强但训练和特征工程成本较高，标签空间扩大时计算压力上升；使用前应确认标注质量和特征设计是否值得这份成本。</li>
+</ul>
+<h3 id="第12章-监督学习方法总结">第12章 监督学习方法总结</h3>3
+<ul>
+<li><strong>方法谱系</strong>：从生成式（朴素贝叶斯、HMM）到判别式（逻辑斯谛回归、SVM、CRF）的对照梳理。生成式方法强调联合分布，判别式方法强调决策边界或条件分布。</li>
+<li><strong>选择依据</strong>：依据数据规模、特征性质、任务类型与可解释性需求综合权衡方法。小样本、强先验、序列依赖和高维稀疏特征往往需要不同的建模策略。</li>
+<li><strong>统一比较方法</strong>：同一任务应固定训练验证划分和评价指标，再比较偏差、方差、计算成本与解释性，不能只依据单次准确率选模型。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第2篇 无监督学习（总论）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>本质：学习数据中的统计规律或潜在结构，不依赖标注信息</li><li>无监督学习的本质是学习数据中的统计规律或潜在结构</li><li>无监督学习的输出通常不是预先给定的类别，而是簇、低维表示、主题或图结构</li></ul></div>3
+<ul>
+<li><strong>本质</strong>：学习数据中的统计规律或潜在结构，不依赖标注信息。无监督学习的输出通常不是预先给定的类别，而是簇、低维表示、主题或图结构。</li>
+<li><strong>涵盖方法</strong>：聚类、奇异值分解、主成分分析、潜在语义分析、概率潜在语义分析、MCMC、LDA、PageRank等。</li>
+<li><strong>评价思路</strong>：无监督结果缺少直接标签，评价要结合重构误差、似然、稳定性、下游任务效果以及人工可解释性，不能把单一指标当作唯一真值。</li>
+</ul>
+<blockquote>
+<p>无监督学习的本质是学习数据中的统计规律或潜在结构。</p>
+</blockquote>
+<h3 id="第14章-聚类方法">第14章 聚类方法</h3>3
+<ul>
+<li><strong>核心任务</strong>：依据样本间相似度将数据划分为若干簇，使簇内相似、簇间相异。相似度定义决定了聚类结果的含义。</li>
+<li><strong>层次聚类</strong>：通过合并或分裂构建聚类树，按距离度量与链接准则决定合并顺序。树状结构便于观察不同粒度的分组，但计算成本和异常点影响不可忽略。</li>
+<li><strong>k均值聚类</strong>：以簇中心迭代优化平方误差，简单高效但需预设k且对初值敏感。每轮先分配样本，再更新中心，目标函数通常只能保证局部下降。</li>
+<li><strong>使用边界</strong>：球状、尺度相近的簇更适合k均值；非凸形状、不同密度或大量异常点需要重新选择距离、算法和簇数判据。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第15章 奇异值分解</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>数学本质：任意实矩阵可分解为两个正交矩阵与对角奇异值矩阵的乘积</li><li>降维与压缩：保留较大奇异值可实现矩阵近似，用于降维、去噪与数据压缩</li><li>截断阶数越低，压缩越强，但被丢弃的信息也越多</li></ul></div>3
+<ul>
+<li><strong>数学本质</strong>：任意实矩阵可分解为两个正交矩阵与对角奇异值矩阵的乘积。奇异值反映不同正交方向上的信息强度。</li>
+<li><strong>降维与压缩</strong>：保留较大奇异值可实现矩阵近似，用于降维、去噪与数据压缩。截断阶数越低，压缩越强，但被丢弃的信息也越多。</li>
+<li><strong>应用关联</strong>：是主成分分析与潜在语义分析的重要数学基础。矩阵近似还可以揭示词—文档矩阵或用户—物品矩阵中的潜在结构。</li>
+</ul>
+<h3 id="第16章-主成分分析">第16章 主成分分析</h3>3
+<ul>
+<li><strong>核心思想</strong>：通过正交变换将相关变量转为线性无关的主成分，保留最大方差方向。第一主成分解释最大方差，后续成分在正交约束下继续解释剩余方差。</li>
+<li><strong>等价视角</strong>：可视为样本协方差矩阵的特征分解，或数据矩阵的奇异值分解。中心化是理解结果的关键，尺度差异很大时还要考虑标准化。</li>
+<li><strong>用途</strong>：降维、特征提取与可视化，以少数主成分概括数据主要变异。它优化的是方差保留，不保证保留分类标签最有用的信息。</li>
+<li><strong>实践边界</strong>：主成分是原始特征的线性组合，解释性可能下降；缺失值、异常值和非线性结构也会影响结果，应结合任务目标判断是否使用。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第17章 潜在语义分析</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心问题：基于词—文档矩阵发现潜在语义结构，缓解同义与多义问题</li><li>词和文档在低维空间中的接近程度，用来表达隐含主题关联</li><li>方法：对词—文档矩阵做奇异值分解，在低维语义空间中表示词与文档</li></ul></div>3
+<ul>
+<li><strong>核心问题</strong>：基于词—文档矩阵发现潜在语义结构，缓解同义与多义问题。词和文档在低维空间中的接近程度，用来表达隐含主题关联。</li>
+<li><strong>方法</strong>：对词—文档矩阵做奇异值分解，在低维语义空间中表示词与文档。截断维度决定语义概括能力与噪声保留程度。</li>
+<li><strong>应用</strong>：文本检索与主题发现，是主题模型的早期代表。它采用代数分解而非显式概率生成过程，解释与参数含义和概率主题模型不同。</li>
+</ul>
+<h3 id="第18章-概率潜在语义分析">第18章 概率潜在语义分析</h3>3
+<ul>
+<li><strong>生成式视角</strong>：假设文档—主题—词的概率生成过程，以EM算法估计参数。文档先选择主题，主题再生成词，主题分布和词分布由数据学习。</li>
+<li><strong>与LSA对比</strong>：PLSA引入概率解释，但参数随文档增长，易过拟合。新文档的主题分布还需要额外推断，模型规模也会随语料增加。</li>
+<li><strong>使用重点</strong>：EM的初始化、停止条件和主题数会影响结果；主题解释应观察高概率词的整体语义，而不是孤立地看一个词。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第19章 马尔可夫链蒙特卡罗法</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心思想：通过构造马尔可夫链使其平稳分布为目标分布，从中采样做统计推断</li><li>代表算法：Metropolis-Hastings与吉布斯采样，适用于高维复杂分布的采样</li><li>前者通过接受率修正提议分布，后者逐坐标从条件分布抽样</li></ul></div>3
+<ul>
+<li><strong>核心思想</strong>：通过构造马尔可夫链使其平稳分布为目标分布，从中采样做统计推断。它以样本近似难以直接积分的后验分布。</li>
+<li><strong>代表算法</strong>：Metropolis-Hastings与吉布斯采样，适用于高维复杂分布的采样。前者通过接受率修正提议分布，后者逐坐标从条件分布抽样。</li>
+<li><strong>应用定位</strong>：为贝叶斯推断与复杂概率模型提供通用计算工具。实际使用要检查烧入期、自相关、有效样本量和链的混合情况。</li>
+</ul>
+<h3 id="第20章-潜在狄利克雷分配">第20章 潜在狄利克雷分配</h3>3
+<ul>
+<li><strong>模型</strong>：文档—主题—词三层贝叶斯生成模型，主题分布与词分布均服从狄利克雷先验。每篇文档可以混合多个主题，每个主题也可以生成多个词。</li>
+<li><strong>推断</strong>：常用吉布斯采样或变分推断估计后验，实现主题发现。采样方法直观但迭代成本高，变分方法速度快但依赖近似族。</li>
+<li><strong>定位</strong>：PLSA的贝叶斯化推广，有效控制过拟合。先验参数影响主题稀疏程度，主题数则需要结合语料规模和解释需要选择。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第21章 PageRank算法</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心思想：将网页重要性定义为随机游走马尔可夫链的平稳分布，以链接结构衡量权威性</li><li>推广理解：PageRank的关键不是网页文字本身，而是网络关系和转移概率；把对象替换为论文、用户或知识节点后，仍可形成相似的图排序思想</li><li>被重要页面指向的页面会获得更高的结构性评价</li></ul></div>3
+<ul>
+<li><strong>核心思想</strong>：将网页重要性定义为随机游走马尔可夫链的平稳分布，以链接结构衡量权威性。被重要页面指向的页面会获得更高的结构性评价。</li>
+<li><strong>计算</strong>：通过迭代求解或幂法计算平稳分布，引入阻尼因子保证收敛。阻尼因子也模拟随机跳转，避免死胡同和不可达结构造成问题。</li>
+<li><strong>推广理解</strong>：PageRank的关键不是网页文字本身，而是网络关系和转移概率；把对象替换为论文、用户或知识节点后，仍可形成相似的图排序思想。</li>
+</ul>
+<h3 id="第22章-无监督学习方法总结">第22章 无监督学习方法总结</h3>3
+<ul>
+<li><strong>方法对照</strong>：从矩阵分解类（SVD、PCA、LSA）到概率生成类（PLSA、LDA）及采样类（MCMC）梳理脉络。矩阵方法擅长表示与近似，概率方法提供生成解释，采样方法提供后验计算工具。</li>
+<li><strong>选择依据</strong>：依据数据结构、任务目标（降维/聚类/主题发现）与计算可行性选择方法。先确定要找的是几何方向、离散簇、主题分布还是复杂后验，再选择算法。</li>
+<li><strong>综合判断</strong>：无监督方法的结果需要和业务解释、可重复性及下游效果结合，不能仅凭可视化图形就断言发现了真实结构。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">附录（A–E）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>优化基础：梯度下降法、牛顿法与拟牛顿法为模型学习提供数值优化工具</li><li>对偶理论：拉格朗日对偶性是SVM等凸优化问题求解的关键数学支撑</li><li>梯度法每步沿局部下降方向更新，牛顿法利用二阶曲率加速，拟牛顿法在计算成本与曲率信息之间折中</li></ul></div>3
+<ul>
+<li><strong>优化基础</strong>：梯度下降法、牛顿法与拟牛顿法为模型学习提供数值优化工具。梯度法每步沿局部下降方向更新，牛顿法利用二阶曲率加速，拟牛顿法在计算成本与曲率信息之间折中。</li>
+<li><strong>对偶理论</strong>：拉格朗日对偶性是SVM等凸优化问题求解的关键数学支撑。原问题和对偶问题的转换能暴露约束结构，也使核技巧得以自然出现。</li>
+<li><strong>数学补充</strong>：矩阵基本子空间、KL散度与狄利克雷分布性质为理解模型提供必要背景。KL散度衡量分布差异但不满足对称性，使用时需区分它与真正的距离。</li>
+<li><strong>学习方法</strong>：阅读附录的目的不是孤立记公式，而是理解主文中的参数更新、约束优化、概率近似和矩阵分解为何能够运行。</li>
+</ul>
+<h2 id="适用场景标签">适用场景标签</h2>2
+<ul>
+<li>机器学习系统学习</li>
+<li>统计学习理论入门</li>
+<li>算法原理复习与查阅</li>
+<li>监督/无监督方法选型参考</li>
+<li>教材配套提炼笔记</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">一句话推荐</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>统计学习三要素贯通全书，理论与算法并重</li></ul></div>2
+<p>统计学习三要素贯通全书，理论与算法并重。</p></div></details></div></body></html>

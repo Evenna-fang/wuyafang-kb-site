@@ -1,0 +1,430 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>GraphRAG最小示例</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ GraphRAG最小示例</span></div><div class="wrap"><h1 id="graphrag最小示例">GraphRAG最小示例</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="RAG%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E6%A0%87%E5%87%86%E4%B8%8E%E9%AA%8C%E8%AF%81.html">RAG知识图谱标准与验证</a></p>
+</blockquote>
+<h1 id="why用关系与全局题收益抵偿图索引成本">WHY：用关系与全局题收益抵偿图索引成本</h1>
+<h2 id="业务目标与退出条件">业务目标与退出条件</h2>2
+<p>图谱值得投入的业务目标是把“证据散在多处”变成可追溯的关系链，或把“全库共同主题”变成有依据的归纳；不是让单条款查询多绕一层工具。没有这些题型仍建全量图，后果是抽取、消歧、存储与更新开销增加，却没有相应验收收益。</p>
+<p>来源：<a href="../../raw/rag-arch/RAG%E5%9B%BE%E8%B0%B1%E8%A1%8C%E4%B8%9A%E6%A0%87%E5%87%86%E8%B0%83%E7%A0%94-20261009.md">图谱行业调研</a>与<a href="../../raw/sources/RAG%E7%9F%A5%E8%AF%86%E7%BB%84%E7%BB%87%E5%AF%B9%E6%A0%87-%E4%B8%80%E6%89%8B%E6%BA%90-20261016.md">知识组织对标 Q1</a>分别说明社区摘要与实体邻域检索。适用于真实多跳/全局题已有 supporting evidence 的试点；不适用于上游解析已缺失证据、单点事实为主或没有费用上限的全库实验。质量合同是多跳/全局有净收益、简单事实不退化、边能回原文、索引与查询费用分别记录，未达到就停。</p>
+<p>原文版本、星数、维护状态、单价与“几分钱/1000 倍”等保留为 2026-10-15 核实或估算快照，本次未重新联网或计费验证；不能用它们承诺今天的服务状态，也不能把估算倍率外推到任意数据量。</p>
+<h2 id="核心论点">核心论点</h2>2
+<p>GraphRAG 的本质不是"更好的检索"，而是用逐 chunk 的 LLM 实体抽取换多跳与全库归纳能力，这笔账必须先算清：微软官方口径是完整 GraphRAG 索引成本约向量 RAG 的 1000 倍，token 约原文 ×10~15，而 LightRAG 只做抽取（×3~6）就把学习/落地成本压到最低。三条路线的分野在于维护状态而非功能多少——microsoft/graphrag 是方法论标杆但已明示 maintenance mode，nano-graphrag 十个月未更，2026 年要跑起来就选 LightRAG。边界由问题形态决定：多跳关系和全库主题归纳才值得付图索引成本，单点事实查询上 GraphRAG 是负优化（自然语言问题 90% 是单点时尤甚）；语料 &lt;千篇、有领域 schema、要可解释时，零 LLM 抽取的人工审校轻量图谱反而完胜。判断口诀：纯向量 RAG 输在必须跨 chunk 拼答案，GraphRAG 输在一次性索引投入 + 每次查询变贵。</p>
+<p><strong>结论先行</strong>：三条开源路线里，2026 年的学习/落地首选是 <strong>LightRAG</strong>（v1.5.7，港大 HKUDS，4 万 star，活跃维护、单次抽取成本最低、pip 一装即用）；microsoft/graphrag 是方法论标杆但官方 README 已明确标注 <strong>maintenance mode（仅修 bug 不加新功能）</strong>；nano-graphrag 适合"读懂 GraphRAG 源码"但已 10 个月未更新，不建议作为生产依赖。索引成本的大头是<strong>逐 chunk 的 LLM 实体抽取</strong>，量级约等于"原始文本 token 数 × 3~15 倍"（视框架与模型而定）。如果你只是想回答"多跳关系类问题"，先试 LightRAG 或自建轻量图谱；只有当问题确实是"全库级主题归纳"时，才值得为社区摘要（community reports）付 GraphRAG 的索引成本。</p>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">为什么要先算成本再上 GraphRAG（动机与代价）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>不算清这笔账就上，会在学习/试点阶段烧掉不可预期的 API 费用；而且很多场景（单点事实查询、FAQ）GraphRAG 是负优化——纯向量 + rerank 又快又便宜</li><li>代价与权衡：GraphRAG 的代价是索引期一次性沉没成本（1MB 文本几十元级，看模型单价）+ 每次查询变贵（global 查询对几十上百个社区摘要做 map-reduce，单次可达几十次 LLM 调用）；收益是多跳关系与全库归纳能力（向量检索结构性做不到）</li><li>判断口诀：纯向量 RAG 输在"必须跨 chunk 拼答案"，GraphRAG 输在"一次性索引投入 + 每次查询变贵"——拿 20 个真实业务问题问自己：如果 80% 是单点查询，就别上</li></ul></div>2
+<ul>
+<li><strong>动机（WHY）</strong>：GraphRAG 的能力（多跳关系、全库归纳）听起来都想要，但它的成本结构与纯向量 RAG 完全不同——纯向量索引 ≈ 原文 token ×1（embedding 几乎免费），GraphRAG 全量索引 ≈ 原文 ×10~15（每 chunk 一次 LLM 抽取 + 社区摘要），微软官方口径是"约向量 RAG 的 1000 倍"。不算清这笔账就上，会在学习/试点阶段烧掉不可预期的 API 费用；而且很多场景（单点事实查询、FAQ）GraphRAG 是负优化——纯向量 + rerank 又快又便宜。成本先行的动机是<strong>用问题形态决定要不要付图索引成本</strong>，不是"要不要用 GraphRAG"这种伪问题。</li>
+<li><strong>代价与权衡</strong>：GraphRAG 的代价是索引期一次性沉没成本（1MB 文本几十元级，看模型单价）+ 每次查询变贵（global 查询对几十上百个社区摘要做 map-reduce，单次可达几十次 LLM 调用）；收益是多跳关系与全库归纳能力（向量检索结构性做不到）。三条路线的代价梯度清晰：LightRAG 只做抽取（×3~6）成本最低、microsoft/graphrag 全量最贵（×10~15）、自建轻量图谱零 LLM 成本但受人工产能约束。判断口诀：<strong>纯向量 RAG 输在"必须跨 chunk 拼答案"，GraphRAG 输在"一次性索引投入 + 每次查询变贵"</strong>——拿 20 个真实业务问题问自己：如果 80% 是单点查询，就别上。</li>
+</ul>
+<h2 id="五何时值得上-graphrag何时是过度设计">五、何时值得上 GraphRAG，何时是过度设计</h2>2
+<table>
+<thead>
+<tr>
+<th>你的问题长这样</th>
+<th>该用什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"A 公司和 B 公司什么关系？""X 的上游供应商是谁？"（<strong>多跳关系</strong>，答案分散在多个 chunk，向量检索召不全）</td>
+<td>值得上：LightRAG 或自建轻量图谱</td>
+</tr>
+<tr>
+<td>"这批文档最主要的五个主题是什么？"（<strong>全库归纳</strong>，没有任何单 chunk 能回答）</td>
+<td>值得上：graphrag global / LightRAG mix</td>
+</tr>
+<tr>
+<td>"XX 条款写了什么？"（<strong>单点事实</strong>，答案就在某个 chunk 里）</td>
+<td><strong>过度设计</strong>。纯向量 RAG + rerank 又快又便宜</td>
+</tr>
+<tr>
+<td>FAQ 客服、规章查询、检索准确率问题</td>
+<td><strong>过度设计</strong>。先排查 chunk 切分和 embedding（见 <a href="RAG%E6%A3%80%E7%B4%A2%E4%B8%8D%E5%87%86%E6%80%8E%E4%B9%88%E6%8E%92%E6%9F%A5.html">RAG检索不准怎么排查</a>）</td>
+</tr>
+<tr>
+<td>文档每天大量更新</td>
+<td>GraphRAG 重索引成本不可接受；考虑 LazyGraphRAG 思路或自建轻量方案</td>
+</tr>
+</tbody>
+</table>
+<p>判断口诀：<strong>纯向量 RAG 输在"必须跨 chunk 拼答案"，GraphRAG 输在"一次性索引投入 + 每次查询变贵"。</strong> 拿 20 个真实业务问题问自己：如果 80% 是单点查询，就别上。企业降本增效场景（库主的目标岗位）尤其要警惕：客户看到"每 MB 索引贵 10 倍、每次查询多花 5 倍 token"的账单，而问题 90% 是单点查询时，GraphRAG 就是负优化。</p>
+<h1 id="whyt图原文与检索器怎样协同怎样选路线">WHYT：图、原文与检索器怎样协同，怎样选路线</h1>
+</div></details><h2 id="两条图路线与一条共同证据契约">两条图路线与一条共同证据契约</h2>2
+<pre><code class="language-text">本库：ontology 三元组 + wiki 标签/术语 → entities/relations
+                                    → 实体命中/沿边展开 → 关联 chunk
+外部：原文 → LLM 抽取/实体消歧 → 图 +（可选）社区摘要
+                                    → local/global 查询 → 原文证据
+共同出口：文本候选 + 图上下文 → 排序/门禁 → 可核引用
+</code></pre>
+<p>组件选择有三个独立轴：抽取是否依赖 LLM、查询要实体邻域还是全局摘要、存储是否需多用户并发。人工审校 JSON 图省抽取费用但受覆盖率约束，LightRAG 的实体/关系双层检索与 Microsoft 的社区报告不是同一机制。文件数更少不等于边更正确，答得更长不等于全局综合更好。</p>
+<p>数据契约需有实体唯一标识/别名、边端点/关系、来源定位与关联 chunk；社区摘要是派生证据，应能下钻原文。本库配置 <code>retrieval.graph_slot_mode</code> 的 2026-11-03 值为 <code>after_top1</code>，它是排序策略，不是“已实现完整 GraphRAG”的证明。<a href="../../raw/sources/RAG%E7%9F%A5%E8%AF%86%E7%BB%84%E7%BB%87%E5%AF%B9%E6%A0%87-%E4%B8%80%E6%89%8B%E6%BA%90-20261016.md">知识组织对标</a>把 schema 与存储解耦，正是先验证轻量图、再决定外部框架的依据。</p>
+<h2 id="是什么定义与边界">是什么（定义与边界）</h2>2
+<p><strong>定义</strong>：GraphRAG = 用 LLM 从文档抽实体/关系建图（+ 可选社区摘要），查询时沿图做多跳推理或全库归纳的检索增强方法。本篇是其成本核算与选型指南：三条开源路线对比（microsoft/graphrag / LightRAG / nano-graphrag）、最小可运行示例（LightRAG 接 OpenAI 兼容端点）、成本量级推导、何时值得上/何时过度设计、自建轻量图谱对照。</p>
+<p><strong>边界</strong>：<br />
+- ✅ 管：GraphRAG 的成本量级、三路线选型、最小可运行代码、适用边界判断、自建方案对照。<br />
+- ❌ 不管：GraphRAG 的行业标准与验证（<a href="RAG%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E6%A0%87%E5%87%86%E4%B8%8E%E9%AA%8C%E8%AF%81.html">RAG知识图谱标准与验证</a>）、Agentic RAG 范式（<a href="Agentic-RAG%E4%B8%8E%E5%A4%9A%E6%A8%A1%E6%80%81RAG%E8%B0%83%E7%A0%94.html">Agentic-RAG与多模态RAG调研</a>）、检索流水线（<a href="RRF%E8%9E%8D%E5%90%88%E5%8A%A0%E9%87%8D%E6%8E%92%E8%A7%A3%E5%86%B3%E6%A3%80%E7%B4%A2%E7%9F%AD%E6%9D%BF-%E6%B7%B7%E5%90%88%E6%A3%80%E7%B4%A2%E6%B5%81%E6%B0%B4%E7%BA%BF.html">RRF融合加重排</a>）。<br />
+- ⚠️ 成本表是<strong>推导估算</strong>（标注"估"），不是实际计费实测——用前建议用自己的账单复核一次（见"附：核实记录"）。<br />
+- ⚠️ "多跳/全局才值得上、单点事实是过度设计"是本篇的边界核心——先统计真实 query 的多跳占比再决定，别拍脑袋（见"怎么用"节）。</p>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">一、先搞清 GraphRAG 到底多花了什么钱</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>3. 社区摘要（microsoft/graphrag 独有）：对每个社区再调 LLM 写"报告"，供 global 查询做 map-reduce——这是官方版贵 1~2 个数量级的主因</li><li>微软研究院官方博客（LazyGraphRAG 一文）给出的量化：完整 GraphRAG 索引成本约为向量 RAG 的 1000 倍（LazyGraphRAG 把索引成本压回 0.1%）</li></ul></div>2
+<p>纯向量 RAG 的索引 = chunk + embedding，几乎零 LLM 成本。GraphRAG 在此之上追加了一条 <strong>LLM 抽取管线</strong>：</p>
+<ol>
+<li><strong>实体/关系抽取</strong>：每个 chunk 调一次 LLM，输出结构化三元组——这是所有人都要付的固定成本；</li>
+<li><strong>图构建</strong>（社区发现/聚簇）：纯算法（Leiden 等），不花钱；</li>
+<li><strong>社区摘要</strong>（microsoft/graphrag 独有）：对每个社区再调 LLM 写"报告"，供 global 查询做 map-reduce——这是官方版贵 1~2 个数量级的主因。</li>
+</ol>
+<p>微软研究院官方博客（LazyGraphRAG 一文）给出的量化：<strong>完整 GraphRAG 索引成本约为向量 RAG 的 1000 倍</strong>（LazyGraphRAG 把索引成本压回 0.1%）。这条曲线决定了下面的所有选型。</p>
+<h2 id="二三条开源路线对比2026-10-15-实测核实">二、三条开源路线对比（2026-10-15 实测核实）</h2>2
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>microsoft/graphrag</th>
+<th>LightRAG（HKUDS）</th>
+<th>nano-graphrag</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>定位</td>
+<td>官方方法论参考实现</td>
+<td>工程化落地首选</td>
+<td>极简复现，读源码用</td>
+</tr>
+<tr>
+<td>GitHub</td>
+<td>36.3k star，<strong>README 明示 maintenance mode</strong></td>
+<td>40.1k star，活跃（10-14 仍有 push）</td>
+<td>4k star，最后 push 2026-01，实质停更</td>
+</tr>
+<tr>
+<td>最新版本</td>
+<td><strong>v3.3.0</strong>（2026-10-08，PyPI <code>graphrag==3.3.0</code>）</td>
+<td><strong>v1.5.7</strong>（2026-09-02，PyPI <code>lightrag-hku==1.5.7</code>）</td>
+<td>PyPI <code>nano-graphrag==0.0.8.2</code>（2024 年后无新版）</td>
+</tr>
+<tr>
+<td>安装</td>
+<td><code>pip install graphrag</code>（Python 3.10-3.12），CLI 工作流：<code>init</code>→<code>index</code>→<code>query</code></td>
+<td><code>pip install lightrag-hku</code>，Python API 一把梭</td>
+<td><code>pip install nano-graphrag</code></td>
+</tr>
+<tr>
+<td>索引成本</td>
+<td><strong>最高</strong>：实体抽取 + 实体描述摘要 + 多层社区报告，token ≈ 原文 ×10~15</td>
+<td><strong>低</strong>：每 chunk 一次实体关系抽取，token ≈ 原文 ×3~6，无社区报告</td>
+<td>与 LightRAG 同级（抽取方式仿官方），但无增量索引优化</td>
+</tr>
+<tr>
+<td>查询模式</td>
+<td><code>local</code>（实体邻域）/ <code>global</code>（社区报告 map-reduce）/ <code>drift</code>（混合）</td>
+<td><code>naive</code>/<code>local</code>/<code>global</code>/<code>hybrid</code>/<code>mix</code> 五种，<strong>默认 mix</strong>，还支持 Reranker</td>
+<td><code>local</code>/<code>global</code>/<code>naive</code> 三种</td>
+</tr>
+<tr>
+<td>对 LLM 要求</td>
+<td>苛刻：官方按 GPT-4o 级调优提示词，弱模型抽取质量崩；支持 OpenAI/Azure，改 OpenAI 兼容端点要动 <code>settings.yaml</code></td>
+<td><strong>最宽松</strong>：官方文档明确建议抽取用"便宜的非思考模型"（推荐 DeepSeek/Kimi/本地 Qwen3-30B-A3B），OpenAI 兼容端点是一等公民</td>
+<td>宽松，但社区生态停滞，遇到 bug 基本要自己修</td>
+</tr>
+<tr>
+<td>附加能力</td>
+<td>CLI + parquet 产物，Prompt Tuning 工具链</td>
+<td>WebUI、API Server、Docker 部署向导、增量更新、多存储后端（生产推荐 PostgreSQL）</td>
+<td>几乎裸奔，仅适合学习</td>
+</tr>
+</tbody>
+</table>
+<p><strong>一句话选型</strong>：要看"官方是怎么想的"→ 读 microsoft/graphrag 的文档和论文（arXiv:2404.16130）；要<strong>跑起来、用起来</strong>→ LightRAG。</p>
+<ul>
+<li><strong>LightRAG 为什么便宜</strong>（据[一手源]：RAG图谱行业标准调研-20261009 §2.4）：LightRAG 论文（arXiv 2410.05779，EMNLP 2025）实测检索 token <strong>&lt;100</strong>，GraphRAG 为 610 个社区 × 1,000 token = 610,000，且只需一次 API 调用；增量更新只重抽新增文本（T_extract），不重建全图。这是<strong>检索期</strong>对比，与上表“索引期 ×3~6 vs ×10~15”是两个口径，别混着说。</li>
+<li><strong>成本谱系与存储分野</strong>（同上）：microsoft/graphrag standard 最贵 → FastGraphRAG（NLTK/spaCy 做 NLP 抽取，砍掉约 3/4 索引成本）↓ → LightRAG（KV 索引 + 增量）↓↓ → nano-graphrag 极简。存储路线分四类：parquet（MS）/ 内存 JSON + 可选 Neo4j（LightRAG、nano）/ 强绑 Neo4j（neo4j-graphrag，需 APOC，内存开销最大）/ 可插拔（LlamaIndex、LangChain）。检索命名不统一（微软 local/global/drift/basic，LightRAG local/global/hybrid/mix），选型按“语义”对齐，不按名字。LangChain 没有官方端到端 GraphRAG，只有 LLMGraphTransformer 积木。WSL 内存受限（可用约 3.5Gi）时首选 LightRAG 与 nano-graphrag，LlamaIndex 默认存储零依赖。</li>
+<li><strong>抽取与存储解耦，schema 先行</strong>（据[一手源]：RAG知识组织对标-一手源-20261016 Q1）：LightRAG 的 <code>kg/</code> 目录把图存拆成可插拔后端（neo4j / memgraph / milvus / mongo / json_kv / nano_vector_db / faiss），抽取与查询集中在 <code>operate.py</code>，分块在 <code>chunker/</code>（token_size / recursive_character / paragraph_semantic / semantic_vector 四策略）。启示：ontology 文件与图查询可先用 json_kv 起步，schema 设计不绑存储。（local / global / hybrid / mix 四模式及 GraphRAG 的 local / global 两种范式，该源标注为 README 口径，未逐行验源码。）</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">四、成本量级：索引 1MB 文本要花多少</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>推导基准：1MB 英文 ≈ 25 万 token；1MB 中文（UTF-8）约 30~40 万 token</li><li>用 MiMo/DeepSeek 这类低价端点跑 LightRAG，10KB 示例文档一次索引大约几万 token、几分钱——学习阶段成本可忽略，放心跑</li><li>3. 知识库只读、更新频率低 → 索引贵点可摊薄；文档天天变 → GraphRAG 全量重建是灾难（LightRAG 支持增量 insert，官方版重建成本极高）</li></ul></div>2
+<p>没有公开的"每 MB 官方报价"，以下按管线推导（可自行代入你的单价复算）：</p>
+<p><strong>推导基准</strong>：1MB 英文 ≈ 25 万 token；1MB 中文（UTF-8）约 30~40 万 token。按 chunk=1200 token 切约 200~300 个 chunk，<strong>每个 chunk 一次抽取调用</strong>（输入 = chunk + 提示词 ≈ 2k token，输出 = 结构化三元组 ≈ 1~2k token）。</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>每 MB 索引总 token（估）</th>
+<th>GPT-4o 级单价下</th>
+<th>国产低价模型（约 ¥1~2/百万token）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>纯向量 RAG</td>
+<td>≈ 原文 ×1（仅 embedding，可忽略）</td>
+<td>&lt; ¥0.5</td>
+<td>≈ ¥0.1</td>
+</tr>
+<tr>
+<td>LightRAG</td>
+<td>≈ 原文 ×3~6（仅实体关系抽取）</td>
+<td>≈ $1~4</td>
+<td>≈ ¥2~8</td>
+</tr>
+<tr>
+<td>microsoft/graphrag 全量</td>
+<td>≈ 原文 ×10~15（抽取 + 描述摘要 + 社区报告）</td>
+<td>≈ $5~15</td>
+<td>≈ ¥10~30</td>
+</tr>
+</tbody>
+</table>
+<p>三个可以背下来的锚点：</p>
+<ol>
+<li>微软官方口径：<strong>完整 GraphRAG 索引成本 ≈ 向量 RAG 的 1000 倍</strong>（LazyGraphRAG 博客）；</li>
+<li><strong>索引是一次性沉没成本，查询才持续发生</strong>：graphrag global 查询每次要对几十上百个社区摘要做 map-reduce（单次查询可达几十次 LLM 调用）；LightRAG mix 单次查询仅个位数调用；</li>
+<li>知识库只读、更新频率低 → 索引贵点可摊薄；<strong>文档天天变 → GraphRAG 全量重建是灾难</strong>（LightRAG 支持增量 insert，官方版重建成本极高）。</li>
+</ol>
+<p>用 MiMo/DeepSeek 这类低价端点跑 LightRAG，10KB 示例文档一次索引大约几万 token、几分钱——<strong>学习阶段成本可忽略</strong>，放心跑。</p>
+<h2 id="六自建轻量图谱方案build_wiki_graphpyvs-开源方案">六、自建轻量图谱方案（build_wiki_graph.py）vs 开源方案</h2>2
+<p>库主已有的自建方案：<strong>实体 + 共现 + 语义边</strong>，人工审校三元组 + tag 共现构图，<strong>零 LLM 抽取成本</strong>。对照：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>自建轻量方案</th>
+<th>LightRAG</th>
+<th>microsoft/graphrag</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>构图成本</td>
+<td><strong>零</strong> LLM 调用，只有人工审校时间</td>
+<td>每 chunk 1 次抽取调用</td>
+<td>每 chunk 多次调用 + 社区报告</td>
+</tr>
+<tr>
+<td>边质量</td>
+<td>人工审校，<strong>精度高、召回受限</strong>（只覆盖你定义的 schema）</td>
+<td>LLM 自动抽取，召回高但噪声需清洗</td>
+<td>同左，且提示词调优门槛高</td>
+</tr>
+<tr>
+<td>规模上限</td>
+<td>受人工产能约束，适合<strong>百~千级文档</strong>的领域知识库</td>
+<td>百 MB 级</td>
+<td>同左但成本更高</td>
+</tr>
+<tr>
+<td>多跳查询</td>
+<td>共现边能撑 1~2 跳；语义边补长程关联</td>
+<td>2~4 跳，图遍历自动</td>
+<td>global 模式做全库归纳最强</td>
+</tr>
+<tr>
+<td>保鲜/增量</td>
+<td><strong>改一篇文档只需重跑该篇</strong>，人工审校天然增量</td>
+<td>支持 insert 增量</td>
+<td>基本要重建</td>
+</tr>
+<tr>
+<td>可控性/交付</td>
+<td>完全可控，能给客户讲清每条边怎么来的（<strong>企业交付加分项</strong>）</td>
+<td>依赖抽取质量，黑盒程度中等</td>
+<td>黑盒程度高</td>
+</tr>
+</tbody>
+</table>
+<p><strong>适用边界（建议写进你的方案话术）</strong>：</p>
+<ul>
+<li>客户语料<strong>规模可控（&lt; 千篇）、有明确领域 schema、且要可解释可审计</strong> → 自建轻量方案完胜：零索引 API 成本、增量友好、边可人工背书。这正是"企业 AI 降本增效"叙事里最好卖的部分。</li>
+<li>客户语料<strong>量大、杂、无人审校、问题以多跳关系为主</strong> → 自建产能不够，上 LightRAG（国产低价模型抽取，成本可控）。</li>
+<li><strong>只在"全库主题归纳"是刚需且预算充足</strong>时才考虑 graphrag 全家桶；或直接用 LazyGraphRAG 思路（NLP 抽名词短语替代 LLM 抽取，索引成本 ≈ 向量 RAG）把索引成本问题绕过去。</li>
+</ul>
+<p>三者不互斥，成熟做法是<strong>自建图谱做高置信主干 + LightRAG 做自动补充</strong>，Layered 混合检索。</p>
+<p><strong>自建图谱的三条加固</strong>（据[一手源]：RAG知识组织对标-一手源-20261016 落地建议 1–3、5）：<br />
+1. 纵向边用“合法边矩阵”表达：仿 LlamaIndex <code>kg_validation_schema</code>，规定哪类实体可连哪些关系（如 <code>框架:[PART_OF, USES]</code>、<code>API:[IMPLEMENTS, PART_OF]</code>），先补 5–8 条纵向边打样再批量抽；谓词与实体类型一律大写下划线（<code>PART_OF / IMPLEMENTS / USES / DEPENDS_ON / IS_A</code>，<code>TECH_STACK / FRAMEWORK / MODULE / API / IMPLEMENTATION</code>）。<br />
+2. 纵向层次双轨：显式谓词 + 二级社区聚类摘要（塔尖 = L1–L9 域摘要，塔基 = wiki 篇）。GraphRAG 的层次主要靠社区而非谓词，所以 53 条三元组硬凑 part-of 边不如建二级社区 + 逐层摘要。<br />
+3. 关系边带 strength（0–10 数值），检索时按强度加权，替代平级无权重。<br />
+   以上 OC 的“对我们的启示”是工程化推断；R@5 能抬多少该源明确标【待验证】，以 baseline_items.json 重测为准。</p>
+<p><strong>本库当前谓词状态</strong>（据[一手源]：RAG知识组织一手源对标-20261022 §二，2026-11-02 复测）：<code>ontology-triples.csv</code> 谓词仍碎片化（complementary 20 / alternative 15 / orthogonal 5 / PART_OF 5 / part-of 4 / IS_A 4 …），<code>PART_OF</code> 与 <code>part-of</code> 命名分裂未归一；该调研 10-22 记录 <code>graph/</code> 目录不存在，今日复测 <code>rag/graph/</code> 已存在（含 entities.json、entity_chunk_links.json、graphml 等），当时缺失的原因未查明，使用前仍应 <code>ls rag/graph</code> 实测。</p>
+<h1 id="how先验证本库图增强再进入隔离的小样本示例">HOW：先验证本库图增强，再进入隔离的小样本示例</h1>
+</div></details><h2 id="本库只读最小闭环外部示例之前先跑">本库只读最小闭环（外部示例之前先跑）</h2>2
+<ol>
+<li>查看本库构图候选，不写 <code>rag/graph/</code>：</li>
+</ol>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+PYTHONDONTWRITEBYTECODE=1 /home/wuyafang/ai-stack/bin/python rag/build_wiki_graph.py --dry-run
+rg -n 'graph_slot_mode:|graph_taxonomy_only:|linked_chunk:|graph_expand:' rag/config.yaml
+</code></pre>
+<p>验收：输出明确有 <code>[dry-run] 未写文件</code>，实体/关系/边族统计可解释；dry-run 只证明能构建候选，不证明磁盘图已更新或多跳答案正确。</p>
+<ol start="2">
+<li>检查题库后，对同一检索模式仅切图开关：</li>
+</ol>
+<pre><code class="language-bash">env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --check-golden
+env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --mode multi_hop --json-out /tmp/l4-graph-on.json
+env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --mode multi_hop --no-graph --json-out /tmp/l4-graph-off.json
+</code></pre>
+<p>验收：同题同索引比较 R@1/R@5，另核多跳所需的全部证据；简单题不下降。快评脚本不是完整生成评测，不能把它写成端到端答案正确率；这些命令在本次文档任务中未执行。</p>
+<ol start="3">
+<li>只有本库对照明确需要外部方案时，才使用下文保留的 LightRAG 示例。<code>sample.txt</code>、<code>min_graphrag.py</code> 和 <code>rag_data/</code> 是读者需在隔离目录准备的教学产物，不是本仓库自带入口；嵌入维度、持久化初始化和版本 API 需按当次安装核验。禁止把示例 <code>export ...="sk-..."</code> 当成真实凭据填写流程；走已有环境注入，不回显。</li>
+</ol>
+<p>验收：同一小样本文档可回答实体关系与全局题、引用回到原文，重新启动可读取索引，预算内完成；本次 Jev 文档审核授权不包含把样本文档传给 MiMo/其他抽取端点，另有数据授权后才能运行该外部试点。</p>
+<h2 id="三最小可运行示例lightrag-接小米-mimo-openai-兼容端点">三、最小可运行示例：LightRAG 接小米 MiMo OpenAI 兼容端点</h2>2
+<p>以 LightRAG <strong>v1.5.7</strong> 为例（2026-10-15 在 PyPI 核实的最新版）。完整流程：安装 → 写配置 → 索引一个 ~10KB 文本 → 五种模式各查一次。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">步骤 1：安装</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-bash">python -m pip install &quot;lightrag-hku==1.5.7&quot;
+# LightRAG 默认存储（JsonKV + NanoVectorDB + NetworkX 图）零依赖、本地落盘，
+# 10KB 级示例无需装任何向量库/图数据库。生产换 PostgreSQL 后端。
+</code></pre>
+<h3 id="步骤-2准备样本文档">步骤 2：准备样本文档</h3>3
+<p>任何 ~10KB 的纯文本都可以（一篇长文、一份爬取的产品文档）。保存为 <code>sample.txt</code>，UTF-8 编码。10KB ≈ 8~15 个 chunk，首次跑通足够了。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">步骤 3：最小代码（接 OpenAI 兼容 API）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<p>LightRAG 的 <code>openai_complete_if_cache</code> / <code>openai_embed</code> 都接受 <code>base_url + api_key</code>，所以接 MiMo 这类 OpenAI 兼容端点不需要任何 hack，直接传参即可：</p>
+<pre><code class="language-python"># min_graphrag.py —— LightRAG v1.5.7 最小示例
+import os
+from functools import partial
+from lightrag import LightRAG, QueryParam
+from lightrag.llm.openai import openai_complete_if_cache, openai_embed
+from lightrag.utils import EmbeddingFunc
+
+WORKING_DIR = &quot;./rag_data&quot;
+os.makedirs(WORKING_DIR, exist_ok=True)
+
+# ===== OpenAI 兼容端点（小米 MiMo）=====
+# base_url 和模型名以你 MiMo 控制台里给出的为准；密钥别写进代码，走环境变量
+LLM_BASE_URL = os.getenv(&quot;LLM_BASE_URL&quot;, &quot;https://&lt;MiMo接入地址&gt;/v1&quot;)
+LLM_API_KEY  = os.getenv(&quot;LLM_API_KEY&quot;)
+LLM_MODEL    = os.getenv(&quot;LLM_MODEL&quot;, &quot;&lt;你的对话模型名&gt;&quot;)
+EMB_MODEL    = os.getenv(&quot;EMB_MODEL&quot;, &quot;&lt;你的embedding模型名&gt;&quot;)
+
+rag = LightRAG(
+    working_dir=WORKING_DIR,
+    llm_model_func=partial(
+        openai_complete_if_cache,
+        model=LLM_MODEL,
+        base_url=LLM_BASE_URL,
+        api_key=LLM_API_KEY,
+    ),
+    embedding_func=EmbeddingFunc(
+        embedding_dim=1024,   # 关键坑：必须与 embedding 模型真实输出维度一致
+        max_token_size=8192,
+        func=partial(
+            openai_embed,
+            model=EMB_MODEL,
+            base_url=LLM_BASE_URL,
+            api_key=LLM_API_KEY,
+        ),
+    ),
+)
+
+# 1) 索引：insert 内部完成 chunk -&gt; LLM 实体关系抽取 -&gt; 图+向量库落盘
+with open(&quot;sample.txt&quot;, encoding=&quot;utf-8&quot;) as f:
+    rag.insert(f.read())
+
+# 2) 查询：同一个问题，对比 5 种模式
+q = &quot;文中提到的实体之间有哪些具体关系？&quot;
+for mode in [&quot;naive&quot;, &quot;local&quot;, &quot;global&quot;, &quot;hybrid&quot;, &quot;mix&quot;]:
+    print(f&quot;\n===== {mode} =====&quot;)
+    print(rag.query(q, param=QueryParam(mode=mode)))
+</code></pre>
+<pre><code class="language-bash">export LLM_BASE_URL=&quot;https://&lt;MiMo接入地址&gt;/v1&quot;
+export LLM_API_KEY=&quot;sk-...&quot;
+python min_graphrag.py
+</code></pre>
+<p>跑通标志：<code>rag_data/</code> 下生成 <code>graph_chunk_entity_relation.graphml</code>、<code>vdb_entities.json</code> 等文件；<code>local</code>/<code>mix</code> 模式的回答里出现"关系链式"的引用，而 <code>naive</code> 只回 chunk 片段。</p>
+<h3 id="关键坑readme官方文档核实">关键坑（README/官方文档核实）</h3>3
+<ul>
+<li><strong><code>embedding_dim</code> 不匹配</strong>是最常见报错，先单独调一次 embedding 确认维度再填。</li>
+<li><strong>抽取阶段用非思考（non-thinking）模型</strong>：官方明确建议，思考型模型又慢又贵还容易超时；<code>EXTRACT_LLM_TIMEOUT</code> 的实际超时是配置值的 2 倍。</li>
+<li><strong>抽取模型太慢（&lt;50 token/s）会导致大 chunk 超时</strong>：调 <code>OPENAI_LLM_MAX_TOKENS</code> 限制输出。</li>
+<li>默认存储是<strong>内存+本地文件</strong>，官方原话"仅适合小规模测试评估，不适合生产"。</li>
+<li>官方仅保证 <code>lightrag_openai_demo.py</code> 和 <code>lightrag_openai_compatible_demo.py</code> 两个示例的可用性，本节代码即按后者裁剪。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">对照：官方 graphrag CLI 三条命令（了解即可）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>graphrag init --root ./rag01 生成 .env / settings.yaml / input/</li></ul></div>3
+<pre><code class="language-bash">python -m pip install graphrag     # v3.3.0
+graphrag init --root ./rag01      # 生成 .env / settings.yaml / input/
+# 把 GRAPHRAG_API_KEY 填进 .env，模型配在 settings.yaml 的 models: 段
+graphrag index --root ./rag01     # 索引（贵，先小数据集）
+graphrag query --root ./rag01 --method global &quot;What are the top themes?&quot;
+graphrag query --root ./rag01 --method local  &quot;...&quot;   # local 走实体邻域
+</code></pre>
+<h2 id="怎么用">怎么用</h2>2
+<ul>
+<li><strong>跑本库自建轻量图谱（零 LLM 抽取成本）</strong>：<br />
+<code>bash
+  source ~/ai-stack/bin/activate
+  cd /mnt/c/MyData/Documents/wuyafang-l/rag
+  python3 build_wiki_graph.py --dry-run   # 先看统计不落盘
+  python3 build_wiki_graph.py             # 落盘 graph/entities.json / relations.json / graph_stats.json</code><br />
+  五个数据源按可信度：<code>ontology/ontology-triples.csv</code>（人工审校三元组）→ wiki frontmatter tag 共现边（<code>load_wiki_tags</code>）→ <code>ontology/术语表-*.md</code>（<code>load_glossary</code>）→ wiki 正文术语共现（<code>load_term_body_cooc</code>）→ <code>ontology/wiki-relations.csv</code>（语义边）。</li>
+<li><strong>图谱进检索路径的开关</strong>：<code>rag/config.yaml</code> <code>retrieval.graph_slot_mode</code>（<code>after_top1</code>/<code>multi_hop_only</code>/<code>always</code>/<code>never</code>）+ <code>graph_taxonomy_only: true</code>（只走 in_taxonomy=True 的边，噪音边 mentions/co_occurs 不扩展）；改动后跑 <code>python3 rag/eval/eval_recall_fast.py --mode multi_hop</code> 对比含/不含图谱（<code>--no-graph</code>）。</li>
+<li><strong>实体↔chunk 直取（ontology 层进检索）</strong>：<code>python3 rag/link_ontology_chunks.py</code> 产出 <code>graph/entity_chunk_links.json</code>，配套 <code>retrieval.linked_chunk</code>（<code>max_chunks: 6</code>、<code>ontology_boost: 1.5</code>）；此前 ontology 层只占检索 0.3%（59/6510 chunk），这步是把它真正接进 RRF 融合。</li>
+<li><strong>迁 Neo4j（可选，图查询/可视化）</strong>：<code>set -a; . ~/.config/neo4j-rag/neo4j.env; set +a &amp;&amp; python3 migrate_graph_to_neo4j.py</code>（Neo4j 5.26，幂等 MERGE，<code>--wipe</code> 重建；迁移前后对 graph_stats.json 计数 + 边 uid 集合逐条比对，不一致非零退出）。</li>
+<li><strong>多跳评测集要先补，再谈图谱收益</strong>（据[一手源]：RAG知识网-WHY-WHAT-HOW-20261014 M7 缺口）：2026-10-14 盘点时 golden-q 的 B 类多跳仅 4 条浅层两实体对比，撑不起图谱增益判断；行业口径是多跳集 = 知识库 + 多跳 query + ground-truth + supporting evidence 四件套（据[一手源]：RAG图谱行业标准调研-20261009 §6.2，MultiHop-RAG），试点按 10–20 条多跳 + 5 条全局 query 做头对头。该源对 LightRAG 的结论是“双闸门（B/C 类 query 占比 + chunk 去重完成度）过了再启动，别当保票”。</li>
+<li><strong>图谱槽别无条件置顶</strong>（据[一手源]：RAG图谱重构设计定稿v2-20261016 §3）：2026-10-16 实测含图谱槽 R@1 = 19.6%、剔除后 45.1%，原因是图谱 hit 直接拼在结果最前并豁免 rerank；<code>graph_slot_mode</code> 选 <code>always</code> 前先跑上面的 <code>--no-graph</code> 对照。</li>
+<li><strong>多跳判定别拍脑袋</strong>：先统计真实 query 里多跳/全局类占比（<code>_e2e_eval.py</code> 的 route 分布），再决定上不上 LightRAG/graphrag；本库口径：百~千篇、要可解释可审计 → 自建方案完胜，只有“全库主题归纳”刚需才考虑 graphrag 全家桶。</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">附：核实记录</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>三家 repo / 版本 / star 数：GitHub API + PyPI，2026-10-15 查询</li><li>graphrag v3.3.0（2026-10-08 发布）、lightrag-hku 1.5.7、nano-graphrag 0.0.8.2</li><li>查询模式、存储默认值、LLM 建议、超时机制：LightRAG 官方 README 与 「examples/lightrag_openai_compatible_demo.py」</li></ul></div>2
+<ul>
+<li>三家 repo / 版本 / star 数：GitHub API + PyPI，2026-10-15 查询。graphrag v3.3.0（2026-10-08 发布）、lightrag-hku 1.5.7、nano-graphrag 0.0.8.2。</li>
+<li>微软 graphrag <strong>maintenance mode</strong> 警告、CLI 用法：官方 README 与 https://microsoft.github.io/graphrag/get_started/ 。</li>
+<li>查询模式、存储默认值、LLM 建议、超时机制：LightRAG 官方 README 与 <code>examples/lightrag_openai_compatible_demo.py</code>。</li>
+<li>1000 倍索引成本差：微软研究院 LazyGraphRAG 博客。</li>
+<li>成本表为<strong>推导估算</strong>（标注"估"），未实际计费实测；跑通示例后建议用自己的账单复核一次并回填本条目。</li>
+</ul>
+<blockquote>
+<p>三段结构补齐 2026-11-03</p>
+</blockquote>
+<h2 id="本库真实落地">本库真实落地</h2>2
+<blockquote>
+<p>本节 2026-11-05 补写，逐条核验路径与函数名（可 grep 复核），不复述正文。</p>
+</blockquote>
+<ul>
+<li><strong>本库的 GraphRAG 是"自建两路"，不是 LightRAG 示例里那套 <code>min_graphrag.py</code>（教学产物，本库不带）</strong>：</li>
+<li>建图：<code>rag/lightrag_ingest.py</code> <code>build_rag()</code>（L44）真跑 LightRAG（llm=<code>mimo-v2.6-flash</code> 走 Ollama、embedding=bge-m3 1024 维），<code>export_graph_to_json()</code>（L112）导出、<code>write_ontology()</code>（L158）落 <code>ontology/</code> 层；实体抽取另一路是 <code>rag/lightrag_extract.py</code> <code>ollama_extract()</code>（L65）。</li>
+<li>图谱检索：<code>rag/query.py</code> <code>_build_graph_context()</code>（L1131）构造「实体+关系」上下文、<code>_multi_hop_retrieve()</code>（L1640）图谱+dense/sparse 融合，<code>graph_slot_mode</code> 四档（<code>_graph_slot_place()</code> L1181）控制图谱 hit 落位。</li>
+<li>图谱构建到可检索之间还有一步：<code>rag/link_ontology_chunks.py</code> <code>main()</code>（L66）产出 <code>graph/entity_chunk_links.json</code>，<code>rag/query.py::_linked_chunk_hits()</code>（L1374）据此把 ontology 实体直取 chunk（修掉旧实现命中率 0.3% 的稀释问题）。</li>
+<li><strong>可选 Neo4j 迁移是独立步骤</strong>：<code>rag/migrate_graph_to_neo4j.py</code> <code>rel_type()</code>（L48）把关系名规范成合法 Cypher 类型、<code>edge_uid()</code>（L56）幂等 MERGE。</li>
+<li><strong>和课件/示例讲法的差异</strong>：正文的 <code>min_graphrag.py</code> / <code>examples/lightrag_openai_compatible_demo.py</code> 是 LightRAG 官方教学产物，本库<strong>不自带</strong>（正文已声明）；本库用的是裁剪参数版 <code>build_rag()</code>（<code>entity_extract_max_entities=20</code>、<code>max_graph_nodes=500</code> 等），为本地小模型提速。</li>
+</ul></div></details></div></body></html>

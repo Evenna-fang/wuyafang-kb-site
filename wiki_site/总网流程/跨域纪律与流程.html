@@ -1,0 +1,232 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>跨域纪律与流程</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 跨域纪律与流程</span></div><div class="wrap"><h1 id="跨域纪律与流程跨能力域-跨文件-跨-agent">跨域纪律与流程（跨能力域 · 跨文件 · 跨 Agent）</h1>
+<blockquote>
+<p><strong>TL;DR</strong>：本篇是"跨域"维度的纪律提炼——任务/知识跨越<strong>能力域</strong>（调研/规划/执行/审查/调试/清理）、跨越<strong>文件</strong>（共享配置/总地图/全景图/知识库）、跨越 <strong>Agent</strong>（Hermes/DSH/Claude Code/Codex/OpenClaw/QwenCode）时，必须遵守的协同纪律。每条纪律都溯源到 <code>wiki/总网流程/</code> 已有文档，不新增规则、不改口径，只把散在各文档里的"跨域条款"抽出来按域归位。</p>
+<p><strong>口径声明</strong>：本篇是<strong>提炼整理</strong>，不是新裁决。凡本篇出现的规则数字（G1–G5、五级真值、零游离、轮≤2、回写闭环等）均可在"## 溯源"列出的文件里逐条 grep 命中；如与源文档冲突，以源文档为准并回写本篇。</p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心论点</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 跨域协作的失败模式不是"能力不够"，而是"边界没声明"：同一份文件被两个 Agent 同时改（跨文件竞态）、执行方自己当裁判（跨 Agent 独立性丧失）、产物散落没人收（跨能力域断链）</li><li>这是"跨能力域/跨 Agent 结论打架"时唯一的裁决口径</li><li>2. 冲突裁决有真值层级，不靠"谁先检索到"：多源冲突按 「实测命令输出 > 一手官方文档 > 台账已验证坑 > 技能库规则 > 二手总结/凭印象」 五级裁决（「总地图与资产网-N节点体系.md」 §三）</li></ul></div>2
+<ol>
+<li><strong>跨域协作的失败模式不是"能力不够"，而是"边界没声明"</strong>：同一份文件被两个 Agent 同时改（跨文件竞态）、执行方自己当裁判（跨 Agent 独立性丧失）、产物散落没人收（跨能力域断链）。对应纪律=<strong>声明域 + 互斥 + 回写 + 零游离</strong>。</li>
+<li><strong>冲突裁决有真值层级，不靠"谁先检索到"</strong>：多源冲突按 <code>实测命令输出 &gt; 一手官方文档 &gt; 台账已验证坑 &gt; 技能库规则 &gt; 二手总结/凭印象</code> 五级裁决（<code>总地图与资产网-N节点体系.md</code> §三）。这是"跨能力域/跨 Agent 结论打架"时唯一的裁决口径。</li>
+<li><strong>全景图是跨域协作的单一事实源</strong>：跨 Agent/跨会话/跨项目接力，必须走"任务完成→验收→回写三图（进度/缺口/坑）→下次照跑"闭环（<code>任务闭环优化全景图机制-20261021.md</code>）。未回写=任务未收口。</li>
+<li><strong>零游离是跨文件/跨资产协作的底线</strong>：新技能/脚本/规则必须声明挂在哪个 N 节点，<code>orphan-asset-check.py</code> exit=1 即游离报警（<code>总地图与资产网-N节点体系.md</code> §六、<code>任务闭环优化全景图机制-20261021.md</code> C4）。</li>
+</ol>
+<hr />
+<h2 id="机制拆解">机制拆解</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">A. 跨能力域（调研 → 规划 → 执行 → 审查 → 收口）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>跨能力域的两条回边（防止断链）：停手/失败/变更走回边 A 回③重新规划；验收失败走回边 B 回⑤重做（「总网协议总纲-一手」 §一规则 1）</li></ul></div>3
+<p>总网协议把六员协作凝成"N1–N6 节点图 + 机械门禁"（<code>总网协议总纲-一手-20261015.md</code> 核心结论）：</p>
+<table>
+<thead>
+<tr>
+<th>能力域</th>
+<th>节点</th>
+<th>跨域纪律（源文档口径）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>分诊/规划</td>
+<td>N1–N2</td>
+<td>读总地图 <code>raw/_task_orders/总地图.md</code>，按 N1–N6 逐项 Check，不凭记忆动手；返工&gt;1 次回 N2 重规划（<code>总网协议总纲-一手</code> §一）</td>
+</tr>
+<tr>
+<td>派单</td>
+<td>N3</td>
+<td>派单前必跑 <code>dispatch-guard.py --task "关键词"</code>，exit=1 不许派；派单前先查已有产物复用、派单前喂足上下文（<code>派单纪律三条.md</code> ③+④）</td>
+</tr>
+<tr>
+<td>执行</td>
+<td>N4</td>
+<td>白名单"只这 N 件"，单卡单目标；审查链 OC→DSH→Claude→Codex，<strong>轮 ≤2 超 2 报用户</strong>；同错 3 次/空转 5 轮/超预算 2 倍停手（<code>总网协议总纲-一手</code> §一规则 2/5）</td>
+</tr>
+<tr>
+<td>验收</td>
+<td>N5</td>
+<td>自报不采信；receipt declare→verify 全绿才完；E2E 正负例 ≥5；探测纪律 G1–G5 全过才下结论（<code>探测纪律G1-G5.md</code> + <code>总网协议总纲-一手</code> §二）</td>
+</tr>
+<tr>
+<td>收口</td>
+<td>N6</td>
+<td>收口四问（产物落位/备份清/坑记台账/进程清）；新资产当场挂节点，零游离（<code>总网协议总纲-一手</code> §一规则 12 + <code>任务闭环优化全景图机制-20261021.md</code> C4）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>跨能力域的两条回边</strong>（防止断链）：停手/失败/变更走回边 A 回③重新规划；验收失败走回边 B 回⑤重做（<code>总网协议总纲-一手</code> §一规则 1）。</p>
+<h3 id="b-跨文件共享文件配置资产的并发与归属">B. 跨文件（共享文件/配置/资产的并发与归属）</h3>3
+<ol>
+<li><strong>冲突裁决五级真值层级</strong>（跨文件多源冲突的标准答案）：<br />
+<code>① 实测命令输出 &gt; ② 一手官方文档 &gt; ③ 台账已验证坑 &gt; ④ 技能库规则 &gt; ⑤ 二手总结/凭印象</code><br />
+   反例（源文档原话）："SOP 写 30 天 vs 帮助中心写 14 天，AI 挑先检索到的那个 = 错，必须先按本层级裁决再引用"（<code>总地图与资产网-N节点体系.md</code> §三）。</li>
+<li><strong>串行边界/文件集互斥</strong>：跨 Agent 同时写文件的竞态（<code>concurrent-writer-race</code> 类问题）需"域声明 + 文件集互斥，重叠即串行/并卡"；互斥只覆盖文件系统，<strong>非文件共享面</strong>（git index/lockfile、缓存、环境变量、端口、数据库/外部 API）同样要声明（裁决依据：<code>notes/decisions/裁决-流程优化三报告-OC审-20260925.md</code> C2）。</li>
+<li><strong>动库/删数据前快照</strong>：删 chunk 前必须①备份 index ②分批删+每批 Recall 不降才继续 ③读内容判"知识 vs 垃圾"，禁按字段名间接推断（<code>总地图与资产网-N节点体系.md</code> §二）。总纲铁律同口径："知识库入库必标 TTL + 动库前必快照"（<code>总网协议总纲-一手</code> 核心结论）。</li>
+<li><strong>数字口径标注</strong>：数字附命令+口径（如"234 txt（<code>find raw/courseware -iname '*.txt'</code>）"），不裸写数字（<code>任务闭环优化全景图机制-20261021.md</code> 回写规则 5）。</li>
+</ol>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">C. 跨 Agent（Hermes / DSH / Claude Code / Codex / OpenClaw / QwenCode）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 独立性规则：分歧第三方统一为 Claude Code；若 Claude Code 本身是争议当事方，直接升用户，不找第二第三方（「notes/decisions/裁决-流程优化三报告-OC审-20260925.md」 D3）</li><li>2. 派单矛盾不上报式拍板：多份审查意见矛盾时停下来问用户，不擅自选边（「派单纪律三条.md」 ①）；成本对比必须列 AFP 系数/价格差，不能只写"贵/便宜"（②）</li></ul></div>3
+<ol>
+<li><strong>独立性规则</strong>：分歧第三方统一为 Claude Code；<strong>若 Claude Code 本身是争议当事方，直接升用户，不找第二第三方</strong>（<code>notes/decisions/裁决-流程优化三报告-OC审-20260925.md</code> D3）。执行岗（DSH）不得当第三方裁判=当事人自审。</li>
+<li><strong>派单矛盾不上报式拍板</strong>：多份审查意见矛盾时<strong>停下来问用户，不擅自选边</strong>（<code>派单纪律三条.md</code> ①）；成本对比必须列 AFP 系数/价格差，不能只写"贵/便宜"（②）。</li>
+<li><strong>派单后监督</strong>：派单后 5 分钟查 transcript、10 分钟查进度数字，发现迷路/卡住立刻 steer（<code>总网协议总纲-一手</code> §一规则 10）；真 CLI 并发（<code>openclaw agent</code>/<code>claude -p</code>/<code>codex exec</code>）优先于全走 delegate_task（<code>派单纪律三条.md</code> ④-3）。</li>
+<li><strong>审查轮次口径</strong>：计数单位=<strong>同一裁决项/同一问题上的往返</strong>，同项累计 ≤2 超即升用户；全流程总轮次硬顶 4（<code>notes/decisions/裁决-流程优化三报告-OC审-20260925.md</code> C3）。执行期改计划=强制重审并记⑦（<code>总网协议总纲-一手</code> §一规则 2）。</li>
+</ol>
+<h3 id="d-跨域收口全景图回写闭环-零游离门禁">D. 跨域收口：全景图回写闭环 + 零游离门禁</h3>3
+<pre><code>任务完成 → 验收 → 闭环优化全景图(补缺口/更新进度/修正坑) → 下次照跑 → 可复用到下个项目
+</code></pre>
+<p>（<code>任务闭环优化全景图机制-20261021.md</code> §0）</p>
+<p><strong>回写规则（每单交付强制，缺一不收口）</strong>：<br />
+1. 进度图必回写：状态 ✅/🔄/⏳ + 产物路径 + 验收凭据（receipt verify 绿 / 评测数字）<br />
+2. 缺口图必补：本任务暴露的缺口当场登记，标 P0/P1/P2 + 阻塞什么<br />
+3. 坑图必修正：根因+修复+台账指纹，同步 <code>error-ledger</code><br />
+4. <strong>总地图必挂（零游离）</strong>：新资产挂对应 N 节点，<code>orphan-asset-check.py</code> exit=0<br />
+5. 口径标注：数字附命令+口径</p>
+<p><strong>三图一致性</strong>：进度图 ✅ 必须有对应产物；缺口图缺口不与进度图 ✅ 矛盾；坑图指纹进台账（C5）。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">怎么用</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="可执行命令跨域纪律的机械化检查">可执行命令（跨域纪律的机械化检查）</h3>3
+<pre><code class="language-bash"># 1) 派单前门禁（exit=1 不许派）—— 跨 Agent/跨能力域派单的第一道闸
+python3 ~/.hermes/scripts/dispatch-guard.py --task &quot;关键词&quot;
+
+# 2) 零游离自检（exit=1 = 资产游离报警）—— 跨文件/跨资产协作收口必跑
+python3 ~/.hermes/scripts/orphan-asset-check.py
+
+# 3) 跨域冲突裁决：多源说法打架时，按五级真值层级定位证据
+grep -rn &quot;实测\|一手\|台账\|技能库&quot; wiki/总网流程/总地图与资产网-N节点体系.md   # 查层级定义原文
+
+# 4) 交付收口四问 + 回写核对（对照任务闭环全景图机制 §3）
+#    产物落位了吗 / 备份删了吗 / 坑记台账了吗 / 进程 kill 了吗
+#    + 进度图✅有产物路径吗 / 缺口图登记了吗 / 坑图指纹双写了吗 / 总地图挂了吗
+
+# 5) 数字口径标注模板（禁止裸写数字）
+echo '234 txt（find raw/courseware -iname &quot;*.txt&quot;）'
+</code></pre>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">源码框架（跨域协作状态机，最小骨架）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<p>跨域协作可落成一个显式状态机，与 N1–N6 节点一一对应（伪代码骨架，字段口径见 <code>任务闭环优化全景图机制-20261021.md</code> §1 三张图）：</p>
+<pre><code class="language-python"># 跨域任务状态机骨架（对应 N1-N6 + 全景图三图字段）
+STATE = {&quot;task&quot;: None, &quot;node&quot;: &quot;N1&quot;, &quot;档位&quot;: None, &quot;子单结果&quot;: [], &quot;验收分数&quot;: None, &quot;沉淀去向&quot;: None}
+
+def close_out(STATE, pan_orama):
+    &quot;&quot;&quot;N6 收口：四问 + 三图回写 + 零游离，缺一不收口&quot;&quot;&quot;
+    assert 产物落位 and 备份清 and 坑记台账 and 进程清          # 收口四问
+    pan_orama[&quot;进度图&quot;].append({&quot;任务&quot;: STATE[&quot;task&quot;], &quot;状态&quot;: &quot;✅&quot;,
+                                 &quot;产物路径&quot;: STATE[&quot;产物&quot;], &quot;验收凭据&quot;: STATE[&quot;receipt&quot;]})
+    pan_orama[&quot;缺口图&quot;] += STATE[&quot;新暴露缺口&quot;]                    # P0/P1/P2
+    pan_orama[&quot;坑图&quot;]   += STATE[&quot;踩坑&quot;]                          # 根因+修复+台账指纹
+    assert orphan_asset_check() == 0                             # 零游离门禁
+
+def resolve_conflict(claims: list[str]) -&gt; str:
+    &quot;&quot;&quot;跨域冲突裁决：五级真值层级（总地图与资产网-N节点体系 §三）&quot;&quot;&quot;
+    order = [&quot;实测命令输出&quot;, &quot;一手官方文档&quot;, &quot;台账已验证坑&quot;, &quot;技能库规则&quot;, &quot;二手总结/凭印象&quot;]
+    for tier in order:                    # 按层级取最高优先级证据，禁&quot;谁先检索到算谁&quot;
+        hit = [c for c in claims if c.tier == tier]
+        if hit:
+            return hit[0]
+    return &quot;升用户裁决&quot;                    # 无高层级证据 → 不下结论
+</code></pre>
+<h3 id="使用流程照跑">使用流程（照跑）</h3>3
+<ol>
+<li><strong>接到跨域任务</strong> → 读 <code>raw/_task_orders/总地图.md</code>（N1–N6），不凭记忆动手。</li>
+<li><strong>派单/派生</strong> → 跑 <code>dispatch-guard.py</code>；派单前查已有产物复用（<code>派单纪律三条.md</code> ③）。</li>
+<li><strong>多 Agent 并发写</strong> → 先声明文件集/域，重叠即串行（C2 裁决口径）；非文件共享面一并声明。</li>
+<li><strong>结论打架</strong> → 按五级真值层级裁决；仍分歧→Claude Code 第三方；Claude Code 是当事方→升用户。</li>
+<li><strong>收口</strong> → 跑 <code>orphan-asset-check.py</code> + 回写三图；数字附命令+口径。</li>
+</ol>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">溯源</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本篇所有规则均来自上表文件，未引入外部规则；「notes/decisions/裁决-流程优化三报告-OC审-20260925.md」 为"裁决记录"（source_tier 一手审查记录），仅在"五级真值层级"已在 「总地图与资产网-N节点体系.md」 §三 落定的前提下作为补充依据引用</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>纪律条目</th>
+<th>溯源文件（本库本地路径）</th>
+<th>定位</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>强制入口/N1–N6/审查链轮≤2/停手规则/收口四问/零游离铁律</td>
+<td><code>wiki/总网流程/总网协议总纲-一手-20261015.md</code></td>
+<td>核心结论 + §一（10 行压缩版）</td>
+</tr>
+<tr>
+<td>探测纪律 G1–G5（双样本/跨维度/加载路径/禁间接推断/纠错闭环）</td>
+<td><code>wiki/总网流程/探测纪律G1-G5.md</code></td>
+<td>核心结论 + 生效 4 条表</td>
+</tr>
+<tr>
+<td>派单纪律：矛盾不擅自选边 / 成本列 AFP / 查已有产物复用 / 提速四则</td>
+<td><code>wiki/总网流程/派单纪律三条.md</code></td>
+<td>①②③④</td>
+</tr>
+<tr>
+<td>全景图回写闭环（三图+五模块+回写规则+复用）</td>
+<td><code>wiki/总网流程/任务闭环优化全景图机制-20261021.md</code></td>
+<td>§0 机制总览、§1 三张图、§3 回写规则、§7 质量门禁</td>
+</tr>
+<tr>
+<td>冲突裁决五级真值层级</td>
+<td><code>wiki/总网流程/总地图与资产网-N节点体系.md</code></td>
+<td>§三 冲突源头真值层级（2026-10-13 业内调研补）</td>
+</tr>
+<tr>
+<td>零游离自检 / orphan-asset-check.py / 门禁资产索引</td>
+<td><code>wiki/总网流程/总地图与资产网-N节点体系.md</code></td>
+<td>§五 门禁资产索引、§六 零游离自检</td>
+</tr>
+<tr>
+<td>冲突裁决（第三方统一 Claude Code、轮次计数、文件集互斥、串行边界）</td>
+<td><code>notes/decisions/裁决-流程优化三报告-OC审-20260925.md</code></td>
+<td>C2 串行边界、C3 轮次计数、D3 分歧第三方统一</td>
+</tr>
+<tr>
+<td>动库删数据门禁/内容分流/数字口径</td>
+<td><code>wiki/总网流程/总地图与资产网-N节点体系.md</code> §二 + <code>wiki/总网流程/任务闭环优化全景图机制-20261021.md</code> §3-5</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>本篇所有规则均来自上表文件，未引入外部规则；<code>notes/decisions/裁决-流程优化三报告-OC审-20260925.md</code> 为"裁决记录"（source_tier 一手审查记录），仅在"五级真值层级"已在 <code>总地图与资产网-N节点体系.md</code> §三 落定的前提下作为补充依据引用。</p>
+</blockquote></div></details></div></body></html>

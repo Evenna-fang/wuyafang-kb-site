@@ -1,0 +1,223 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Few-shot和Zero-shot怎么选</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ Few-shot和Zero-shot怎么选</span></div><div class="wrap"><h1 id="few-shot和zero-shot怎么选">Few-shot和Zero-shot怎么选</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/weread/Prompt%E9%AD%94%E6%B3%95%EF%BC%9A%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B%E4%B8%8EChatGPT%E8%A1%8C%E4%B8%9A%E5%BA%94%E7%94%A8.md">Prompt魔法：提示词工程与ChatGPT行业应用</a></p>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<h1 id="why在任务效果示例成本与模型能力间取舍">WHY：在任务效果、示例成本与模型能力间取舍</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">这个问题的答案是什么</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>两者没有绝对优劣，选型要看三个维度：任务复杂度、示例成本、模型能力</li><li>简单、通用、模型能力强 → Zero-shot，省 Token、可泛化</li><li>复杂、有隐性偏好、模型能力不够或输出格式苛刻 → Few-shot，用范例把"默契"一次性对齐</li></ul></div>2
+<p><strong>Zero-shot</strong>（零示例）= 只给指令，不给范例；<strong>Few-shot</strong>（少示例）= 给 1~N 个输入/输出范例再让模型处理新输入。两者没有绝对优劣，选型要看三个维度：<strong>任务复杂度、示例成本、模型能力</strong>。</p>
+<p>一句话结论：<br />
+- <strong>简单、通用、模型能力强</strong> → Zero-shot，省 Token、可泛化。<br />
+- <strong>复杂、有隐性偏好、模型能力不够或输出格式苛刻</strong> → Few-shot，用范例把"默契"一次性对齐。<br />
+- <strong>二者之间摇摆</strong> → 先 Zero-shot 跑一版，看输出哪里飘，再针对那个点加 1~2 个 Few-shot 示例，不要一上来塞一堆。</p>
+<h1 id="whytzero-shot-与-few-shot-的判断维度与决策表">WHYT：Zero-shot 与 Few-shot 的判断维度与决策表</h1>
+<h2 id="详细内容">详细内容</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 任务复杂度：先判断"模型能不能靠常识做"</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>《Prompt魔法》被划了 30 次的一段话点明了关键机制："当你把一个问题，按照思维链的方式，一步步 Prompt 大型语言模型时，往往能够得到正确的答案</li><li>"——也就是说，对于有明确推理步骤的任务，即使不给范例，只要你在指令里把步骤拆清楚（Chain-of-Thought 式 Zero-shot），大模型自己就能走出来</li><li>任务形式通用：翻译、摘要、改写、常识问答、结构化抽取（"把这段话里的人名抽出来"）</li></ul></div>3
+<p>《Prompt魔法》被划了 30 次的一段话点明了关键机制：<strong>"当你把一个问题，按照思维链的方式，一步步 Prompt 大型语言模型时，往往能够得到正确的答案。"</strong>——也就是说，对于<strong>有明确推理步骤</strong>的任务，即使不给范例，只要你在指令里把步骤拆清楚（Chain-of-Thought 式 Zero-shot），大模型自己就能走出来。</p>
+<p>适合 Zero-shot 的任务特征：<br />
+- <strong>任务形式通用</strong>：翻译、摘要、改写、常识问答、结构化抽取（"把这段话里的人名抽出来"）。<br />
+- <strong>输出格式宽松</strong>：不要求严格 JSON、不要求匹配某种企业内部规范。<br />
+- <strong>偏好是大众共识</strong>：比如"写一封礼貌的邮件"——GPT 类模型默认就懂。</p>
+<p>适合 Few-shot 的任务特征：<br />
+- <strong>有隐性规则</strong>：例如"我们公司的周报要按'本周完成 / 下周计划 / 风险'三段，且每段不超过 80 字"——这种偏好大众不懂，必须用范例告诉模型。<br />
+- <strong>输出格式苛刻</strong>：要解析、要进下游流水线、要严格 JSON schema，靠"你输出 JSON"这种描述经常飘。<br />
+- <strong>边界 case 多</strong>：例如情感分析要区分"讽刺"和"反讽"，一个范例比一段解释管用。<br />
+- <strong>需要对齐某种风格</strong>：品牌语气、特定行话、内部术语。</p>
+<p>《如何用提问解决问题》的简介直接把这点写进了方法论：<strong>"指导用户设计包含 few-shot 示例的提示词，优化模型输出质量。"</strong>——作者的立场很清楚：复杂任务不是靠写更长的指令，而是靠<strong>补几个真实示例</strong>。</p>
+<h3 id="2-示例成本few-shot-不是免费的">2. 示例成本：Few-shot 不是免费的</h3>3
+<p>Few-shot 的隐性成本有三类，选型时要算进去：</p>
+<ul>
+<li><strong>Token 成本</strong>：每个示例都是几百到几千 Token，重复塞在每次请求里。在高频调用场景（如批量评估、RAG 流水线），这是真金白银。</li>
+<li><strong>上下文挤压</strong>：示例占了位置，留给用户输入和检索结果的空间就少了，长文档任务尤其敏感。</li>
+<li><strong>示例偏差</strong>：模型会被示例"带节奏"。如果你给的 3 个示例都偏长，它就会默认输出偏长；如果示例恰好是某种特殊 case，模型会误以为所有输入都长这样。</li>
+</ul>
+<p>《AI提示工程》里被划了 26 次的一句话提供了成本视角：<strong>"提示信息只管分配'任务'和提出'目标'，具体工作交给大语言模型去执行并完成。"</strong>——理想的 Prompt 应该是<strong>任务说明书</strong>，不是<strong>范例集</strong>。能用任务描述清楚的事，不要靠示例；只有描述不清的，才用示例兜底。</p>
+<p>实操上有个经验法则：<strong>示例数量从 1 个开始加</strong>。1 个能对齐，就不要 3 个；3 个不够，再补到 5 个。示例之间要覆盖<strong>不同类型的输入</strong>（正面、边界、反面），而不是同一个 case 的三种写法。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 模型能力：不同尺寸的模型吃不同的套路</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>《Prompt魔法》的另一句被划 28 次的话值得记住："大语言模型仅仅是通过学习文本数据中的统计规律来产生输出，缺乏真正的理解和情感体验</li><li>强模型（GPT-4 / Claude / 国产旗舰）：Zero-shot 能力已经很强，尤其在推理、摘要、代码这些"见过太多"的任务上</li><li>中等模型（7B~70B 开源）：Zero-shot 容易飘格式、漏指令</li></ul></div>3
+<p>《Prompt魔法》的另一句被划 28 次的话值得记住：<strong>"大语言模型仅仅是通过学习文本数据中的统计规律来产生输出，缺乏真正的理解和情感体验。"</strong>——这句话反过来用就是选型依据：</p>
+<ul>
+<li><strong>强模型（GPT-4 / Claude / 国产旗舰）</strong>：Zero-shot 能力已经很强，尤其在推理、摘要、代码这些"见过太多"的任务上。给示例的边际收益在递减，但给了也不会错。</li>
+<li><strong>中等模型（7B~70B 开源）</strong>：Zero-shot 容易飘格式、漏指令。Few-shot 是最有效的"对齐补丁"，比写更长的 system prompt 便宜。</li>
+<li><strong>小模型 / 边缘模型</strong>：Few-shot 也救不了逻辑复杂任务，得回到微调。</li>
+</ul>
+<p>《如何用提问解决问题》的 648 人划线句 <strong>"提问驱动思考，答案终止想象"</strong> 提醒我们一件事：选型不是一次性决定。真正稳定的流水线是——先 Zero-shot 跑基线，看输出错在哪类输入上，<strong>针对错的那一类</strong>补 Few-shot 示例，再跑一轮。这是一个"提问→验证→迭代"的闭环，而不是一上来就把 Prompt 堆成瑞士军刀。</p>
+<h3 id="一张决策表">一张决策表</h3>3
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>选 Zero-shot</th>
+<th>选 Few-shot</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>任务复杂度</td>
+<td>通用、有共识</td>
+<td>有隐性偏好/边界 case 多</td>
+</tr>
+<tr>
+<td>输出格式</td>
+<td>宽松文本</td>
+<td>严格结构化/企业规范</td>
+</tr>
+<tr>
+<td>示例成本</td>
+<td>高频调用、Token 预算紧</td>
+<td>低频但要稳、可一次性投入</td>
+</tr>
+<tr>
+<td>模型能力</td>
+<td>旗舰模型</td>
+<td>中等开源模型</td>
+</tr>
+<tr>
+<td>上下文长度</td>
+<td>输入本身已很长</td>
+<td>输入短、格式要求高</td>
+</tr>
+</tbody>
+</table>
+<h1 id="how把选型从感觉变成可复跑的实验2026-11-03-补强">HOW：把选型从"感觉"变成可复跑的实验（2026-11-03 补强）</h1>
+<p>前面三节回答"怎么判断"，这一节给出三件可直接落地的工具：一个 A/B 对照评测脚本、一条示例成本算式、一份示例编写清单。判断维度是书里的，<strong>评测代码与算式是本文编写的工程实现</strong>，可在本库 ollama / vLLM 的 OpenAI 兼容端点上直接跑。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 最小 A/B 对照：同一批评测集，只改"给不给示例"</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>原则来自 Anthropic 官方提示工程文档的"eval 先行"（先定义成功标准与评测集，再动 prompt；见 前沿精读笔记 第一节）</li></ul></div>3
+<p>原则来自 Anthropic 官方提示工程文档的"eval 先行"（先定义成功标准与评测集，再动 prompt；见 <a href="%E5%89%8D%E6%B2%BF%E7%B2%BE%E8%AF%BB%E7%AC%94%E8%AE%B0%EF%BC%88Prompt%E4%B8%8ELangChain%E4%B8%8EvLLM%EF%BC%89.html">前沿精读笔记</a> 第一节）。把 Zero-shot 与 Few-shot 当成两个候选版本，其余条件（模型、温度、system 其他部分）全部锁死：</p>
+<pre><code class="language-python"># fewshot_ab.py —— Zero-shot vs Few-shot 对照评测（本文编写，需 pip install openai）
+# 用法：OPENAI_BASE_URL=http://127.0.0.1:11434/v1 OPENAI_API_KEY=ollama \
+#       MODEL=qwen2.5:7b python3 fewshot_ab.py
+import json, os
+from openai import OpenAI
+
+client = OpenAI(base_url=os.environ.get(&quot;OPENAI_BASE_URL&quot;, &quot;http://127.0.0.1:11434/v1&quot;),
+                api_key=os.environ.get(&quot;OPENAI_API_KEY&quot;, &quot;ollama&quot;))
+MODEL = os.environ.get(&quot;MODEL&quot;, &quot;qwen2.5:7b&quot;)
+
+# 评测集：至少 20 条，覆盖正面/边界/反面三类（此处为示意，换成你的真实 badcase）
+CASES = [
+    {&quot;text&quot;: &quot;希望能增加深色模式&quot;, &quot;label&quot;: &quot;功能建议&quot;},
+    {&quot;text&quot;: &quot;App闪退了，iOS 17系统&quot;, &quot;label&quot;: &quot;Bug报告&quot;},
+    {&quot;text&quot;: &quot;付费后功能还是用不了，要求退款！&quot;, &quot;label&quot;: &quot;投诉&quot;},
+    {&quot;text&quot;: &quot;功能还行，就是这价格是在抢钱吗&quot;, &quot;label&quot;: &quot;投诉&quot;},  # 边界：带夸但主诉是价格
+]
+LABELS = &quot;[功能建议, Bug报告, 咨询, 投诉, 其他]&quot;
+EXAMPLES = (  # Few-shot 臂唯一的差异变量
+    '示例：\n&quot;希望能增加深色模式&quot; → 功能建议\n'
+    '&quot;App闪退了，iOS 17&quot; → Bug报告\n'
+    '&quot;怎么导出数据？&quot; → 咨询\n'
+    '&quot;付费后用不了，要求退款！&quot; → 投诉\n'
+    '&quot;今天天气不错&quot; → 其他\n'
+)
+
+def run_arm(use_examples: bool) -&gt; float:
+    correct = 0
+    for case in CASES:
+        prompt = f&quot;将用户反馈分类为：{LABELS}\n&quot;
+        if use_examples:
+            prompt += EXAMPLES
+        prompt += f'新输入：&quot;{case[&quot;text&quot;]}&quot;\n只输出类别名，不要解释。'
+        resp = client.chat.completions.create(
+            model=MODEL, temperature=0, max_tokens=16,
+            messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: prompt}],
+        )
+        pred = resp.choices[0].message.content.strip()
+        if pred == case[&quot;label&quot;]:
+            correct += 1
+        else:
+            print(f&quot;  错例 [{'few' if use_examples else 'zero'}] &quot;
+                  f&quot;输入={case['text']!r} 期望={case['label']} 实得={pred!r}&quot;)
+    return correct / len(CASES)
+
+if __name__ == &quot;__main__&quot;:
+    zero = run_arm(False)
+    few = run_arm(True)
+    print(f&quot;Zero-shot 准确率: {zero:.0%}\nFew-shot 准确率: {few:.0%}&quot;)
+    print(&quot;判读：提升 &lt;5 个百分点就不值得常驻示例（成本见下节）；&quot;
+          &quot;错例集中在哪一类，就只给那一类补示例，不要全量堆。&quot;)
+</code></pre>
+<p>三条纪律（否则实验无效）：</p>
+<ol>
+<li><strong>温度锁 0、max_tokens 锁小</strong>：分类任务输出只允许一个类别名，把随机性和啰嗦都排除，差异才能归因到"示例"这个变量。</li>
+<li><strong>错例必须打印出来看</strong>：准确率只告诉你差多少，错例才告诉你差在哪——错例集中在边界类，就补边界类示例；Zero-shot 已全对，就直接收工不加示例。</li>
+<li><strong>评测集与示例集分开</strong>：示例不要从评测集里挑，否则测的是"背答案"不是泛化。</li>
+</ol>
+<h3 id="2-示例成本算式few-shot-的账单是能提前算出来的">2. 示例成本算式：Few-shot 的账单是能提前算出来的</h3>3
+<p>设示例区共 <code>E</code> token（用端点返回的 <code>usage.prompt_tokens</code> 实测，不要估算），每次请求的用户输入为 <code>U</code> token，输入单价为 <code>P</code>（元/百万 token），日调用量为 <code>N</code>：</p>
+<pre><code>Few-shot 每日增量成本 = E × N × P / 1,000,000
+示例占比           = E / (E + U)        # &gt;50% 说明你在为示例打工，不在为用户输入打工
+</code></pre>
+<p>代入一组<strong>示例占位数字</strong>（单价仅为演示算式，真实单价以你所用平台账单为准）：<code>E=600</code>、<code>N=50,000</code>、<code>P=2 元/百万 token</code>，则每日增量 = 600 × 50,000 × 2 / 1e6 = <strong>60 元/天，约 1800 元/月</strong>。这就是"先 Zero-shot 跑基线、提升不明显就不加示例"的量化依据。</p>
+<p>两个降本手段（细节见 <a href="%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B-%E7%BC%93%E5%AD%98%E4%B8%8E%E5%B7%A5%E5%85%B7%E4%B8%8A%E4%B8%8B%E6%96%87-%E6%88%90%E6%9C%AC%E4%BE%A7%E5%AE%9E%E6%88%98.html">上下文工程·成本侧实战</a>）：</p>
+<ul>
+<li><strong>前缀稳定 + Prompt Caching</strong>：示例区放在 system/消息最前且逐字节不变，命中缓存后输入价按缓存价计（Anthropic 缓存读约为常规输入的 1/10，以官方价格页为准），上例可降到约 6 元/天。</li>
+<li><strong>自部署端点用 prefix caching</strong>：vLLM 对相同前缀跳过重复 prefill，省钱变成省延迟与显存（见 <a href="../L12-%E6%A8%A1%E5%9E%8B%E9%83%A8%E7%BD%B2/L12-vLLM%E6%8E%A8%E7%90%86%E5%8A%A0%E9%80%9F.html">L12 vLLM 推理加速</a>）。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 示例编写与维护清单（补"怎么选好示例"这一书里没有的操作层）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>每个示例只证明一件事：格式、语气、边界判定各配一个，不要让一个示例身兼三职——出了问题没法归因</li><li>必配一个"反例示例"：展示"看起来该判 A 实际该判 B"的输入（如带夸奖的投诉），这是 Zero-shot 最容易错、Few-shot 收益最大的一类</li><li>示例长度对齐期望输出长度：想短答，示例就必须短答；模型对示例的模仿优先于对"请简短"的服从（即正文说的"示例偏差"）</li></ul></div>3
+<ul>
+<li><strong>每个示例只证明一件事</strong>：格式、语气、边界判定各配一个，不要让一个示例身兼三职——出了问题没法归因。</li>
+<li><strong>必配一个"反例示例"</strong>：展示"看起来该判 A 实际该判 B"的输入（如带夸奖的投诉），这是 Zero-shot 最容易错、Few-shot 收益最大的一类。</li>
+<li><strong>示例长度对齐期望输出长度</strong>：想短答，示例就必须短答；模型对示例的模仿优先于对"请简短"的服从（即正文说的"示例偏差"）。</li>
+<li><strong>示例顺序会改变结果</strong>：对顺序敏感的任务（分类、抽取），把最典型/最高频的示例放最后（离新输入最近），并用上面的 A/B 脚本验证换序影响，不要凭直觉。</li>
+<li><strong>版本化</strong>：示例区与 system prompt 一起进 git，任何增删改都重跑 A/B 脚本；示例不是"内容"，是<strong>代码</strong>。</li>
+</ul>
+<h2 id="来自哪些书的哪些观点标注来源">来自哪些书的哪些观点（标注来源）</h2>2
+<ul>
+<li><strong>《Prompt魔法：提示词工程与ChatGPT行业应用》（丁博生等）</strong></li>
+<li>"在谷歌和 OpenAI 的一系列论文中已经验证，当你把一个问题，按照思维链的方式，一步步 Prompt 大型语言模型时，往往能够得到正确的答案"（30人划线）→ 支撑"简单任务用 Zero-shot + CoT 指令就够"。</li>
+<li>"大语言模型仅仅是通过学习文本数据中的统计规律来产生输出，缺乏真正的理解和情感体验"（28人划线）→ 支撑"模型能力不同，对示例的依赖度不同"这一节。</li>
+<li>第 3 章"ChatGPT 提示词高级指南"章节框架 → 本选题的方法学来源。</li>
+<li><strong>《AI提示工程：基础•应用•实例》（万欣）</strong></li>
+<li>"提示信息只管分配'任务'和提出'目标'……是一种典型的智力外包行为"（26人划线）→ 支撑"示例是最后兜底，不是默认手段"的成本视角。</li>
+<li>第 3 章"提高提示信息量 / 提升一致性" → 支撑"通过示例提升输出一致性"的论点。</li>
+<li><strong>《如何用提问解决问题：提示工程实现人机协同闭环》（沃伦·贝格尔）</strong></li>
+<li>简介明确写"指导用户设计包含 few-shot 示例的提示词，优化模型输出质量" → 支撑"复杂任务用 Few-shot 兜底"的立场。</li>
+<li>"提问驱动思考，答案终止想象"（648人划线）→ 支撑"先 Zero-shot 基线，再针对错误补示例"的迭代闭环。</li>
+<li>"所提出的问题必须是正确的，能切中复杂问题的要害"（476人划线）→ 支撑"示例要覆盖关键边界 case，而不是凑数"。</li>
+</ul>
+<blockquote>
+<p>来源：Prompt魔法：提示词工程与ChatGPT行业应用.md；AI提示工程：基础•应用•实例.md；如何用提问解决问题：提示工程实现人机协同闭环.md。</p>
+</blockquote></div></details></div></details></div></body></html>

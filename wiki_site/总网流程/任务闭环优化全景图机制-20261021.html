@@ -1,0 +1,268 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>任务闭环优化全景图机制-20261021</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 任务闭环优化全景图机制-20261021</span></div><div class="wrap"><h1 id="任务闭环优化全景图机制大模块小步骤">任务闭环优化全景图机制（大模块·小步骤）</h1>
+<blockquote>
+<p><strong>用户要求（2026-10-21）</strong>：每做完一个任务就<strong>闭环优化全景图/进度图</strong>，下次照着接着干，且下个 RAG 项目能全部复用。</p>
+<p>核心命题：<strong>全景图不是汇报材料，是"任务闭环的单一事实源"</strong>。做完任务必须回写全景图（进度图+缺口图），否则下次从头问、下个项目从头摸。本机制把它固化成可照跑的规则，跨 RAG 项目复用。</p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">0. 机制总览（一句话）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>任务完成 → 验收 → 闭环优化全景图(补缺口/更新进度/修正坑) → 下次照跑 → 可复用到下个项目</li></ul></div>2
+<pre><code>任务完成 → 验收 → 闭环优化全景图(补缺口/更新进度/修正坑) → 下次照跑 → 可复用到下个项目
+</code></pre>
+<p><strong>闭环的强制咬合点</strong>：每单交付<strong>必须回写全景图</strong>，未回写 = 任务未收口（同 <code>self-verification-blindspots</code> 规则12"落地=有机制强制发生"）。</p>
+<hr />
+<h2 id="1-全景图的三张图进度图-缺口图-坑图">1. 全景图的三张图（进度图 + 缺口图 + 坑图）</h2>2
+<p>全景图 = 三张子图，缺一不闭环：</p>
+<table>
+<thead>
+<tr>
+<th>子图</th>
+<th>回答什么</th>
+<th>字段</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>进度图</strong></td>
+<td>现在干到哪了、哪些✅/🔄/⏳</td>
+<td>任务 | 状态 | 执行者 | 产物路径 | 验收凭据</td>
+</tr>
+<tr>
+<td><strong>缺口图</strong></td>
+<td>还缺什么、优先级</td>
+<td>缺口 | P0/P1/P2 | 阻塞什么 | 下一步</td>
+</tr>
+<tr>
+<td><strong>坑图</strong></td>
+<td>踩过什么坑、怎么防</td>
+<td>坑 | 根因 | 修复 | 台账指纹 | 防法</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>现有落点：<code>raw/_task_orders/总地图.md</code>（N1-N6 节点图）、<code>raw/_task_orders/全景图-20261013-课件入库.md</code>（单任务全景）、<code>wiki/总网流程/当前主线规划总纲-20261016.md</code>（主线状态表）。本机制是<strong>统一这三处的闭环规则</strong>，不另建第四个文件。</p>
+</blockquote>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">2. 五大模块 × 小步骤（大模块小步骤，逐步照跑）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="模块-a任务完成do-收尾">模块 A：任务完成（Do 收尾）</h3>3
+<ul>
+<li><strong>A1</strong> 任务产出物落盘（文件/脚本/配置实测存在）。</li>
+<li><strong>A2</strong> E2E 真调一发（不只 grep，见 <code>self-verification-blindspots</code> PDCA 硬规则）。</li>
+<li><strong>A3</strong> 验收数字对齐（README/报告/代码硬编码三者一致，见 <code>delivery-quality-gate</code>）。</li>
+</ul>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">模块 B：验收（Check）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>B1 正例 + 负例双向验证</li><li>B2 receipt declare → verify 全绿（完成凭据）</li><li>B3 三层评测（检索/生成/端到端，动库类必跑，见 「rag-eval-three-layer」）</li></ul></div>3
+<ul>
+<li><strong>B1</strong> 正例 + 负例双向验证。</li>
+<li><strong>B2</strong> receipt declare → verify 全绿（完成凭据）。</li>
+<li><strong>B3</strong> 三层评测（检索/生成/端到端，动库类必跑，见 <code>rag-eval-three-layer</code>）。</li>
+</ul>
+<h3 id="模块-c闭环优化全景图act本机制核心">模块 C：闭环优化全景图（Act，本机制核心）</h3>3
+<ul>
+<li><strong>C1 更新进度图</strong>：把本任务状态从 ⏳→✅，填产物路径 + 验收凭据（receipt/评测数字）。</li>
+<li><strong>C2 补缺口图</strong>：本任务暴露的新缺口（做这件事时发现"还缺 X"）→ 登记缺口 + P0/P1/P2 + 阻塞什么。</li>
+<li><strong>C3 修正坑图</strong>：踩的坑 → 写根因 + 修复 + 台账指纹（同步 <code>error-ledger</code>），防法进图。</li>
+<li><strong>C4 对齐总地图</strong>：新资产（技能/脚本/规则）挂进 <code>总地图.md</code> 对应 N 节点（零游离自检）。</li>
+<li><strong>C5 三图一致性</strong>：进度图的 ✅ 必须有对应产物；缺口图的缺口不与进度图 ✅ 矛盾；坑图指纹进台账。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">模块 D：下次照跑（复用）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>D1 新会话开局读全景图（「当前主线规划总纲」 + 本机制），不从头问用户</li><li>D2 对着进度图逐项勾（"全景图 Check（N项）：✅X/🔄X/⬜X"），派单时对着文件逐项勾，不靠记忆</li><li>D3 缺口图就是下批任务的派单来源（P0 先派）</li></ul></div>3
+<ul>
+<li><strong>D1</strong> 新会话开局读全景图（<code>当前主线规划总纲</code> + 本机制），<strong>不从头问用户</strong>。</li>
+<li><strong>D2</strong> 对着进度图逐项勾（"全景图 Check（N项）：✅X/🔄X/⬜X"），派单时<strong>对着文件逐项勾</strong>，不靠记忆。</li>
+<li><strong>D3</strong> 缺口图就是下批任务的派单来源（P0 先派）。</li>
+</ul>
+<h3 id="模块-e可复用到下个-rag-项目泛化">模块 E：可复用到下个 RAG 项目（泛化）</h3>3
+<ul>
+<li><strong>E1</strong> 把本机制的<strong>结构</strong>（三图 + 五模块）复制到新项目，字段/命名沿用。</li>
+<li><strong>E2</strong> 项目特定内容（具体任务/缺口）替换，<strong>机制骨架不动</strong>。</li>
+<li><strong>E3</strong> 新项目的全景图路径：<code>&lt;项目根&gt;/raw/_task_orders/全景图-&lt;项目&gt;-&lt;日期&gt;.md</code>，总入口 <code>&lt;项目根&gt;/wiki/总网流程/当前主线规划总纲.md</code>。</li>
+</ul>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">3. 回写规则（每单交付时强制，缺一不收口）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 进度图必回写：状态 ✅/🔄/⏳ + 产物路径 + 验收凭据（receipt verify 绿 / 评测数字）</li><li>3. 坑图必修正：踩的坑写根因+修复+指纹，同步 「error-ledger」</li><li>2. 缺口图必补：本任务暴露的缺口当场登记（"我做 X 时发现还缺 Y"），标 P0/P1/P2</li></ul></div>2
+<blockquote>
+<p><strong>铁律</strong>：任务交付 = 产出物 + 验收凭据 + <strong>全景图回写</strong>。只交产出物不回写 = 任务未完成。</p>
+</blockquote>
+<ol>
+<li><strong>进度图必回写</strong>：状态 ✅/🔄/⏳ + 产物路径 + 验收凭据（receipt verify 绿 / 评测数字）。</li>
+<li><strong>缺口图必补</strong>：本任务暴露的缺口当场登记（"我做 X 时发现还缺 Y"），标 P0/P1/P2。</li>
+<li><strong>坑图必修正</strong>：踩的坑写根因+修复+指纹，同步 <code>error-ledger</code>。</li>
+<li><strong>总地图必挂</strong>：新资产挂对应 N 节点（<code>orphan-asset-check.py</code> exit=0）。</li>
+<li><strong>口径标注</strong>：数字附命令+口径（如"234 txt（<code>find raw/courseware -iname '*.txt'</code>）"），不裸写数字。</li>
+</ol>
+<hr />
+<h2 id="4-与现有流程的咬合不另建流程融入已有">4. 与现有流程的咬合（不另建流程，融入已有）</h2>2
+<blockquote>
+<p>用户 2026-10-12 纠正："这个应该和我们原本的流程融为一个而不是好几个工作流程。"本机制<strong>融入</strong> <code>operating-blueprint</code> 的 PDCA 与 <code>总地图.md</code> 的 N1-N6，不另起炉灶。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>现有节点</th>
+<th>本机制咬合点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>N2 规划</td>
+<td>开局读全景图（D1）</td>
+</tr>
+<tr>
+<td>N3 派单</td>
+<td>对缺口图逐项勾（D2/D3）</td>
+</tr>
+<tr>
+<td>N5 验收</td>
+<td>模块 B（receipt/三层评测）</td>
+</tr>
+<tr>
+<td>N6 收口</td>
+<td><strong>模块 C（回写全景图）</strong> ← 本机制核心</td>
+</tr>
+<tr>
+<td>总地图.md</td>
+<td>C4 挂资产（零游离自检）</td>
+</tr>
+<tr>
+<td>error-ledger</td>
+<td>C3 坑图指纹</td>
+</tr>
+<tr>
+<td>operating-blueprint A1 回流</td>
+<td>本机制 = A1 的"全景图回写"细化</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">5. 复用到下个 RAG 项目的操作（照抄）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 复制机制骨架（本文 §2 三图五模块）到 「 /wiki/总网流程/任务闭环全景图机制.md」</li><li>3. 每单交付走模块 A→B→C，回写三图</li><li>4. 新会话开局走模块 D，照进度图/缺口图接着干</li></ul></div>2
+<p>新项目启动时：<br />
+1. 复制机制骨架（本文 §2 三图五模块）到 <code>&lt;新项目&gt;/wiki/总网流程/任务闭环全景图机制.md</code>。<br />
+2. 建 <code>&lt;新项目&gt;/raw/_task_orders/全景图-&lt;项目&gt;-&lt;日期&gt;.md</code>，填三图初始态（进度图=全⏳，缺口图=启动缺口，坑图=空）。<br />
+3. 每单交付走模块 A→B→C，回写三图。<br />
+4. 新会话开局走模块 D，照进度图/缺口图接着干。</p>
+<p><strong>复用判据</strong>：换项目时，本机制的字段/命名/规则<strong>一字不改能用</strong>，只替换项目特定内容 = 复用成功。若发现规则要改 → 改本机制（回流），不是在新项目另写一套。</p>
+<hr />
+<h2 id="6-反面清单不这么做就断链">6. 反面清单（不这么做就断链）</h2>2
+<table>
+<thead>
+<tr>
+<th>❌ 反面</th>
+<th>后果</th>
+<th>✅ 正确</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>做完任务不回写全景图</td>
+<td>下次从头问、下个项目从头摸</td>
+<td>回写三图（模块 C）</td>
+</tr>
+<tr>
+<td>只回写进度图不补缺口图</td>
+<td>新缺口丢失，下次才发现</td>
+<td>C1+C2 都做</td>
+</tr>
+<tr>
+<td>坑只记台账不进坑图</td>
+<td>台账查得到但全景图看不到防法</td>
+<td>C3 台账+坑图双写</td>
+</tr>
+<tr>
+<td>新资产不挂总地图</td>
+<td>游离资产（orphan-check 报警）</td>
+<td>C4 挂节点</td>
+</tr>
+<tr>
+<td>数字裸写不标口径</td>
+<td>口径差误判（见 self-verification 规则18）</td>
+<td>附命令+口径</td>
+</tr>
+<tr>
+<td>下个项目另写一套机制</td>
+<td>机制碎片化、不可复用</td>
+<td>沿用骨架（模块 E）</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">7. 质量门禁</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>[ ] 每单交付都回写了三图（进度/缺口/坑），不是只交产出物</li><li>[ ] 坑图指纹进了 error-ledger（双写）</li><li>[ ] 进度图 ✅ 项都有产物路径 + 验收凭据</li></ul></div>2
+<ul>
+<li>[ ] 每单交付都回写了三图（进度/缺口/坑），不是只交产出物</li>
+<li>[ ] 进度图 ✅ 项都有产物路径 + 验收凭据</li>
+<li>[ ] 缺口图缺口有 P0/P1/P2 优先级 + 阻塞说明</li>
+<li>[ ] 坑图指纹进了 error-ledger（双写）</li>
+<li>[ ] 新资产挂进总地图 N 节点（orphan-asset-check.py exit=0）</li>
+<li>[ ] 数字附命令+口径</li>
+<li>[ ] 新会话开局读全景图接着干，不从头问用户</li>
+</ul>
+<hr />
+<h2 id="8-失败回退">8. 失败回退</h2>2
+<ul>
+<li>回写漏了 → 下次开局对照三图时补（缺口图会暴露"上次没登记的"）。</li>
+<li>三图不一致（✅ 项无产物 / 缺口与 ✅ 矛盾）→ 以实测产物为准修正图，标修正日期。</li>
+<li>机制本身不适用新项目 → 回流改本机制（模块 E3），不另起炉灶。</li>
+</ul>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">自优化</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>触发场景：哪次任务闭环用了它</li></ul></div>2
+<p>使用后记录到 <code>~/.hermes/skills/_usage/</code>（若转为技能）或本文件尾"变更记录"：<br />
+- 触发场景：哪次任务闭环用了它<br />
+- 执行偏差：哪步回写漏了/图不一致<br />
+- 改进建议：下次怎么改</p>
+<h2 id="变更记录">变更记录</h2>2
+<table>
+<thead>
+<tr>
+<th>日期</th>
+<th>改动</th>
+<th>依据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-10-21</td>
+<td>首建：三图+五模块+回写规则+复用操作</td>
+<td>用户任务闭环优化全景图要求 + 现有全景图/总地图实践</td>
+</tr>
+</tbody>
+</table></div></details></div></body></html>

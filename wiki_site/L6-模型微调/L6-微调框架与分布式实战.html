@@ -1,0 +1,477 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L6-微调框架与分布式实战</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L6-微调框架与分布式实战</span></div><div class="wrap"><h1 id="l6-微调框架与分布式实战">L6 微调框架与分布式实战</h1>
+<blockquote>
+<p>知识网挂接：总地图“四之一知识层”的 L6 模型微调内容，服务 N2 技术选型与 N4 模型工程化执行。</p>
+<p><strong>运行边界：本文所有安装、训练、导出、分布式启动命令，以及 YAML、JSON、Python 片段均为“示例，未实跑”。本文没有安装依赖、下载模型、启动 GPU 训练或验证产物。示例只说明流程和排错结构，具体参数名、兼容组合与目录布局必须以所用版本的官方样本和 <code>--help</code> 为准。</strong></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>微调项目失败，常见原因不是“少知道一个框架”，而是把四个不同问题揉成了一件事：任务该用全参还是 LoRA，数据怎样变成带正确标签的批次，训练状态怎样放进显存，产物怎样保存、恢复和评估</li><li>LLaMA-Factory、ModelScope SWIFT、TRL+PEFT 主要解决前两类中的工程组织问题；DeepSpeed 主要解决分布式执行、状态切分和卸载问题</li><li>微调框架不等于分布式框架，装上 DeepSpeed 也不会自动完成数据模板、标签掩码和业务评测</li></ul></div>2
+<p>微调项目失败，常见原因不是“少知道一个框架”，而是把四个不同问题揉成了一件事：任务该用全参还是 LoRA，数据怎样变成带正确标签的批次，训练状态怎样放进显存，产物怎样保存、恢复和评估。LLaMA-Factory、ModelScope SWIFT、TRL+PEFT 主要解决前两类中的工程组织问题；DeepSpeed 主要解决分布式执行、状态切分和卸载问题。<strong>微调框架不等于分布式框架，装上 DeepSpeed 也不会自动完成数据模板、标签掩码和业务评测。</strong></p>
+<p>需要先建立一条小而完整的主路径，原因是长训练会放大早期错误。模板错一位、答案全被截掉、LoRA 没有命中目标模块、把适配器目录当完整模型、ZeRO-3 保存时聚合权重导致内存峰值，这些问题都可能在“训练终于启动”之后才暴露。小样本流程的价值是尽早走通“数据—训练—保存—恢复—合并—固定输入回归”，不是用小样本证明业务效果。</p>
+<p>本文还要纠正三个资源误区：</p>
+<ol>
+<li>梯度累积只把多次微批次合并成一次更新，不能消除参数、单样本激活或优化器状态本身的占用。</li>
+<li>多卡不天然等于单卡容量增加。普通数据并行会复制模型；ZeRO-1/2 也仍保留完整参数副本。</li>
+<li>ZeRO 不是“省所有显存”。激活、通信桶、临时聚合、CUDA 工作区和碎片仍可能占显存，卸载还会引入主存、磁盘和通信成本。</li>
+</ol>
+<p>稳定性与超参诊断另见<a href="L6-%E6%8D%9F%E5%A4%B1%E5%87%BD%E6%95%B0%E4%B8%8E%E4%BC%98%E5%8C%96%E5%99%A8.html">《L6 损失函数与优化器》</a>。</p>
+<h2 id="what">WHAT</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 先按职责选型，不按功能数量选型</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>当前功能核对入口应回到官方项目页：LLaMA-Factory、ModelScope SWIFT</li><li>需要自行拼装训练链路时，核对 PEFT LoRA 指南与 TRL SFTTrainer 文档</li><li>本文不声称任何一个是“事实标准”，也不把旧篇固定版本的参数当作当前版承诺</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>在栈中的位置</th>
+<th>更适合的情形</th>
+<th>主要代价与核对点</th>
+<th>不应把它当成</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LLaMA-Factory</td>
+<td>配置驱动的上层微调框架</td>
+<td>希望用数据注册表、YAML 和统一入口组织 SFT/LoRA，重视模板化实验管理</td>
+<td>数据注册、模型模板和参数名随版本演进；要固定代码版本并保存完整配置</td>
+<td>DeepSpeed 的替代品，或无需检查数据模板的“自动微调器”</td>
+</tr>
+<tr>
+<td>ModelScope SWIFT</td>
+<td>覆盖训练及相邻模型工程流程的上层框架</td>
+<td>团队已使用 ModelScope 模型来源，或希望沿用其 CLI、数据预处理和模型适配体系</td>
+<td>二代、三代及后续接口不能混抄；模型适配与支持后端要逐项核对</td>
+<td>只按“支持模型数量”就能决定的通用最优解</td>
+</tr>
+<tr>
+<td>TRL + PEFT</td>
+<td>可编程训练组件</td>
+<td>需要自定义样本流、标签、训练逻辑，或将 SFT 嵌入既有 Python 工程</td>
+<td>自己承担数据模板、配置记录、保存恢复和更多兼容性工作</td>
+<td>比上层框架天然更省显存的运行时</td>
+</tr>
+<tr>
+<td>DeepSpeed</td>
+<td>分布式训练运行时</td>
+<td>全参或大状态训练需要 ZeRO 切分、CPU/NVMe 卸载及分布式启动能力</td>
+<td>集合通信、分片初始化、检查点和保存聚合更复杂；需要逐 rank 排错</td>
+<td>数据清洗、SFT 模板或 LoRA 算法本身</td>
+</tr>
+</tbody>
+</table>
+<p>当前功能核对入口应回到官方项目页：<a href="https://github.com/hiyouga/LLaMA-Factory">LLaMA-Factory</a>、<a href="https://github.com/modelscope/ms-swift">ModelScope SWIFT</a>。需要自行拼装训练链路时，核对 <a href="https://huggingface.co/docs/peft/main/en/developer_guides/lora">PEFT LoRA 指南</a>与 <a href="https://huggingface.co/docs/trl/sft_trainer">TRL SFTTrainer 文档</a>。本文不声称任何一个是“事实标准”，也不把旧篇固定版本的参数当作当前版承诺。</p>
+<p>一个实用决策顺序是：先确定训练方式，再确定数据与模型适配，最后确定分布式。单卡 LoRA 能清楚完成的任务，不必为了“看起来正式”先上 ZeRO-3；全参模型加载已经失败，也不应只在数据批量上反复试错。</p>
+<h3 id="2-lora全参与分布式是三组独立开关">2. LoRA、全参与分布式是三组独立开关</h3>3
+<ul>
+<li><strong>全参 SFT</strong>：更新全部或大部分模型参数，梯度与优化器状态随之增长，适合有充分数据、算力和回归预算的任务。</li>
+<li><strong>LoRA</strong>：冻结基础权重，训练注入的低秩增量。它显著减少可训练参数及其优化器状态，但仍要加载基础模型并计算激活。</li>
+<li><strong>QLoRA</strong>：在 LoRA 思路上以低比特表示冻结基座，减少基座权重占用；不代表激活、适配器梯度和所有中间计算都变成低比特。</li>
+<li><strong>分布式并行</strong>：决定参数、梯度、优化器状态和计算怎样跨设备组织。它可以与全参或参数高效训练组合，但每种组合都要核对当前版本支持情况。</li>
+</ul>
+<p>课件将 LoRA 放在参数高效微调语境中，强调低秩、模块化和可合并；书摘目录则把“全量参数微调”“低参数量微调”“分布式训练与内存优化”分在不同章节。这个划分比把框架名堆在一起更有助于定位问题。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. ZeRO 三个阶段切的是什么</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>ZeRO-Offload 主要面向 Stage 2；ZeRO-Infinity 面向 Stage 3，并将分层内存扩展到 CPU/NVMe</li><li>可卸载对象、设备和字段必须以当前 DeepSpeed 配置文档为准</li><li>卸载不是免费扩容：CPU 卸载消耗主存和主机—设备带宽，NVMe 还依赖本地盘吞吐、容量及异步 I/O 支持</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>优化器状态</th>
+<th>梯度</th>
+<th>参数</th>
+<th>典型判断</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ZeRO-1</td>
+<td>按数据并行组切分</td>
+<td>每卡完整</td>
+<td>每卡完整</td>
+<td>参数和梯度的副本尚可接受，先削减优化器状态</td>
+</tr>
+<tr>
+<td>ZeRO-2</td>
+<td>按数据并行组切分</td>
+<td>再按组切分</td>
+<td>每卡完整</td>
+<td>需要进一步削减梯度状态，但完整参数仍能放入设备</td>
+</tr>
+<tr>
+<td>ZeRO-3</td>
+<td>按数据并行组切分</td>
+<td>按组切分</td>
+<td>再按组切分</td>
+<td>参数副本本身成为瓶颈，能够接受更多通信和保存复杂度</td>
+</tr>
+</tbody>
+</table>
+<p>ZeRO-Offload 主要面向 Stage 2；ZeRO-Infinity 面向 Stage 3，并将分层内存扩展到 CPU/NVMe。可卸载对象、设备和字段必须以当前 DeepSpeed 配置文档为准。卸载不是免费扩容：CPU 卸载消耗主存和主机—设备带宽，NVMe 还依赖本地盘吞吐、容量及异步 I/O 支持。</p>
+<p>PyTorch FSDP 也提供参数、梯度和优化器状态分片，适合已有 PyTorch 原生分布式工程、希望减少外部运行时依赖的团队。选型时应比较模型兼容、检查点工具、运维经验和实测吞吐，而不是另起一套“ZeRO 与 FSDP 谁绝对更快”的口号。</p>
+<h2 id="how">HOW</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 输入与环境：先把复现材料定义清楚</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>主路径目标：用配置驱动的 LoRA SFT 小样本流程验证工程链路</li><li>输入为一个公开的小型指令模型、两至数十条经过检查的单轮指令样本、独立保留的固定测试问题，以及一台具有兼容 CUDA 环境的训练机</li><li>BF16 只有在硬件和软件栈支持时才启用；否则根据官方样本另建精度基线，不能盲目同时打开 FP16 与 BF16</li></ul></div>3
+<p><strong>主路径目标</strong>：用配置驱动的 LoRA SFT 小样本流程验证工程链路。输入为一个公开的小型指令模型、两至数十条经过检查的单轮指令样本、独立保留的固定测试问题，以及一台具有兼容 CUDA 环境的训练机。BF16 只有在硬件和软件栈支持时才启用；否则根据官方样本另建精度基线，不能盲目同时打开 FP16 与 BF16。</p>
+<p>开始之前，应在一个实验记录文件中确定：</p>
+<ul>
+<li>基础模型来源与 revision、tokenizer 来源、对话模板；</li>
+<li>框架、Transformers、PEFT、TRL、Accelerate、PyTorch、DeepSpeed 的实际版本；</li>
+<li>GPU 型号与数量、驱动、PyTorch CUDA 构建、主存和磁盘空间；</li>
+<li>数据文件哈希、训练/验证切分、随机种子、输出目录；</li>
+<li>冒烟实验只验证链路，业务测试集才用于判断效果。</li>
+</ul>
+<p>以下环境与依赖检查均为<strong>示例，未实跑</strong>：</p>
+<pre><code class="language-bash"># 示例，未实跑：只读检查，不自动修复依赖
+python -m pip check
+nvidia-smi
+python - &lt;&lt;'PY'
+import torch
+print(&quot;torch:&quot;, torch.__version__)
+print(&quot;torch CUDA build:&quot;, torch.version.cuda)
+print(&quot;CUDA available:&quot;, torch.cuda.is_available())
+if torch.cuda.is_available():
+    print(&quot;BF16 supported:&quot;, torch.cuda.is_bf16_supported())
+PY
+</code></pre>
+<p>驱动报告的 CUDA 能力、PyTorch wheel 的 CUDA 构建和本机 CUDA Toolkit 是不同概念。若 <code>pip check</code> 通过但首次 CUDA 运算失败，仍应检查二进制兼容；不要一看到报错就升级所有包。</p>
+<h3 id="2-一条配置驱动的-lora-小样本主路径">2. 一条配置驱动的 LoRA 小样本主路径</h3>3
+<h4 id="步骤-a准备最小数据与独立问题集">步骤 A：准备最小数据与独立问题集</h4>
+<p>将下面内容保存为实验目录下的 <code>data/tech_tiny.json</code>。数据仅为格式示范，不用于证明效果：</p>
+<pre><code class="language-json">[
+  {
+    &quot;instruction&quot;: &quot;解释梯度累积的用途。&quot;,
+    &quot;input&quot;: &quot;单卡只能容纳一条训练样本。&quot;,
+    &quot;output&quot;: &quot;它让多个微批次依次完成前向和反向传播，再统一更新参数，从而增大有效批量；它不会消除模型权重和单个样本激活的显存需求。&quot;
+  },
+  {
+    &quot;instruction&quot;: &quot;LoRA 适配器目录等于完整模型吗？&quot;,
+    &quot;input&quot;: &quot;&quot;,
+    &quot;output&quot;: &quot;不等于。适配器需要与相同基础模型及配套 tokenizer 一起加载，也可以按支持流程合并后导出完整模型。&quot;
+  }
+]
+</code></pre>
+<p>若所用 LLaMA-Factory 版本仍采用仓库的数据注册方式，可参考下面的 <code>data/dataset_info.json</code> 片段；<strong>示例，未实跑，字段须与当前官方数据说明核对</strong>：</p>
+<pre><code class="language-json">{
+  &quot;tech_tiny&quot;: {
+    &quot;file_name&quot;: &quot;tech_tiny.json&quot;,
+    &quot;columns&quot;: {
+      &quot;prompt&quot;: &quot;instruction&quot;,
+      &quot;query&quot;: &quot;input&quot;,
+      &quot;response&quot;: &quot;output&quot;
+    }
+  }
+}
+</code></pre>
+<p>检查原始答案非空、训练输入没有把标准答案重复塞入用户侧，并按真实 tokenizer 与模板检查截断后是否仍有答案 token。验证问题应按来源或会话与训练数据隔离，不能仅把两条演示样本复制一份当验证集。</p>
+<h4 id="步骤-b保存一份可审阅的实验配置">步骤 B：保存一份可审阅的实验配置</h4>
+<p>下面是 <code>configs/lora_sft_smoke.yaml</code> 的<strong>字段形态示例，未实跑</strong>。它借用旧篇已经核对的常见字段，但不承诺当前版均可直接使用；执行前必须与所固定版本的 <code>examples</code>、参数定义和帮助信息逐项对照。</p>
+<pre><code class="language-yaml"># 示例，未实跑：以当前官方样本为准
+model_name_or_path: Qwen/Qwen2.5-0.5B-Instruct
+stage: sft
+do_train: true
+finetuning_type: lora
+lora_rank: 8
+lora_alpha: 16
+lora_target: q_proj,v_proj
+
+dataset_dir: data
+dataset: tech_tiny
+template: qwen
+cutoff_len: 512
+
+output_dir: outputs/lora-smoke
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 2
+learning_rate: 1.0e-4  # 仅作小实验起点，不是普适推荐
+max_steps: 2
+warmup_steps: 0
+bf16: true
+gradient_checkpointing: true
+
+logging_steps: 1
+save_steps: 1
+save_total_limit: 2
+report_to: none
+seed: 42
+</code></pre>
+<p>这里的两条样本和两步训练只用于观察初始化、前后向、保存是否可达。<code>lora_target</code> 是否真的命中模型模块，要看模型结构与日志中的可训练参数；<code>cutoff_len</code> 要覆盖提示、模板控制符、答案和结束符；学习率只是开始诊断的小实验值，不应直接外推到正式数据。</p>
+<p>启动命令为<strong>示例，未实跑</strong>：</p>
+<pre><code class="language-bash"># 示例，未实跑：先核对当前安装版本的 CLI 与配置字段
+llamafactory-cli train configs/lora_sft_smoke.yaml
+</code></pre>
+<p>若选择 SWIFT，应在其官方项目页对应版本的 SFT 示例上替换模型、数据和 LoRA 参数，而不是把上述 YAML 改个扩展名交给 SWIFT。若选择 TRL+PEFT，则用 PEFT 的 <code>LoraConfig</code> 定义适配器，用 TRL 当前版 <code>SFTConfig</code>/<code>SFTTrainer</code> 组织训练，并自行保留同等详细的环境、模板和产物记录。</p>
+<h4 id="步骤-c检查预期产物而不是只看进程退出">步骤 C：检查预期产物，而不是只看进程退出</h4>
+<p>产物检查清单如下，具体文件名以所用版本为准：</p>
+<ul>
+<li>输出目录中有可识别的 LoRA 适配器配置与权重；</li>
+<li>至少一个训练检查点包含恢复所需的训练状态，而不是只有最终适配器；</li>
+<li>日志或训练状态中有 step、loss、learning rate、grad norm 等记录；</li>
+<li>基础模型路径、模板、数据配置和软件版本被一并保存；</li>
+<li>日志显示可训练参数数量符合 LoRA 预期，且没有“零个目标模块”一类警告；</li>
+<li>loss 与梯度是有限数值，但不能仅凭两条样本上的 loss 下降宣布有效。</li>
+</ul>
+<p><strong>验证方法</strong>：用相同基础模型分别做“基座单独加载”和“基座+适配器加载”，在固定问题、相同解码参数下比较输出；再检查训练时答案 token 数，排除只对提示计算损失或标签全部被忽略。固定输出回归能发现加载与模板错误，却仍不是充分的质量评测。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 单卡 OOM：按发生阶段定位，不盲目堆开关</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>先保存最早错误 rank 的完整堆栈、当时的序列长度和配置，再判断 OOM 出现在哪个阶段</li><li>其他进程占用也要先查清，但不要终止不属于自己的任务</li><li>1. 记录 GPU 真实进程、失败阶段和最长样本，建立不改代码的容量基线</li></ul></div>3
+<p>先保存最早错误 rank 的完整堆栈、当时的序列长度和配置，再判断 OOM 出现在哪个阶段。其他进程占用也要先查清，但不要终止不属于自己的任务。</p>
+<table>
+<thead>
+<tr>
+<th>OOM 时点</th>
+<th>优先怀疑</th>
+<th>第一轮动作</th>
+<th>无效或危险动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>模型加载</td>
+<td>参数副本、加载精度、临时双副本</td>
+<td>换更小模型做链路基线；核对加载精度；全参场景再评估参数分片</td>
+<td>只增加梯度累积；反复调用缓存清理</td>
+</tr>
+<tr>
+<td>第一次前向</td>
+<td>微批量、序列长度、注意力与激活</td>
+<td>微批量降到小实验最小值；缩短异常长样本；确认答案未被截没</td>
+<td>把 ZeRO 当成激活压缩器</td>
+</tr>
+<tr>
+<td>反向传播</td>
+<td>激活、梯度、通信缓冲</td>
+<td>开梯度检查点；降低长度或微批量；再检查状态切分</td>
+<td>同时改多个变量导致无法归因</td>
+</tr>
+<tr>
+<td>第一次优化器更新</td>
+<td>优化器状态延迟初始化</td>
+<td>全参时考虑 ZeRO-1/2；LoRA 时确认可训练参数范围</td>
+<td>以为 LoRA 不需要加载基座</td>
+</tr>
+<tr>
+<td>保存或导出</td>
+<td>ZeRO-3 权重聚合、CPU 合并中间副本</td>
+<td>预留保存峰值；先保存分片检查点，再按官方方式离线导出</td>
+<td>把“训练没 OOM”等同于“保存也不会 OOM”</td>
+</tr>
+</tbody>
+</table>
+<p>有序处理步骤：</p>
+<ol>
+<li>记录 GPU 真实进程、失败阶段和最长样本，建立不改代码的容量基线。</li>
+<li>减小微批量；如需保持有效批量，用梯度累积补偿。有效批量约为“每卡微批量 × 累积步数 × 数据并行副本数”。</li>
+<li>缩短序列或拆分异常长样本，同时抽查有效答案 token，避免用删除监督信号换训练成功。</li>
+<li>开启梯度检查点，以重算换激活显存，并记录吞吐变化。</li>
+<li>如果任务允许改变训练方式，再比较全参、LoRA、QLoRA；这是新实验，不是同一实验的无损开关。</li>
+<li>多卡且状态确为瓶颈时选择 ZeRO；仍不足才评估 offload。</li>
+</ol>
+<p><code>torch.cuda.empty_cache()</code> 只能处理部分未使用缓存，不能释放仍被引用的张量，也不能让物理上放不下的模型变为可训练。所谓碎片优化同样不增加物理显存。</p>
+<h3 id="4-zero-阶段选择与配置衔接">4. ZeRO 阶段选择与配置衔接</h3>3
+<p>选择顺序应是：<strong>参数能否放入单卡 → 梯度是否成为主要副本 → 优化器状态是否成为主要副本 → 激活是否仍超预算 → 保存是否产生新峰值</strong>。实际排错常反过来先优化器、再梯度、再参数，但必须以 OOM 时点为准。</p>
+<p>下面两份 JSON 是 Hugging Face 集成语境下的<strong>示例，未实跑</strong>；<code>auto</code> 是否能由上层训练器补齐，要以当前集成文档为准。保存为不同文件，不要边训练边覆盖同一配置。</p>
+<pre><code class="language-json">{
+  &quot;train_batch_size&quot;: &quot;auto&quot;,
+  &quot;train_micro_batch_size_per_gpu&quot;: &quot;auto&quot;,
+  &quot;gradient_accumulation_steps&quot;: &quot;auto&quot;,
+  &quot;gradient_clipping&quot;: &quot;auto&quot;,
+  &quot;bf16&quot;: {&quot;enabled&quot;: &quot;auto&quot;},
+  &quot;zero_optimization&quot;: {
+    &quot;stage&quot;: 2,
+    &quot;contiguous_gradients&quot;: true,
+    &quot;overlap_comm&quot;: true
+  }
+}
+</code></pre>
+<pre><code class="language-json">{
+  &quot;train_batch_size&quot;: &quot;auto&quot;,
+  &quot;train_micro_batch_size_per_gpu&quot;: &quot;auto&quot;,
+  &quot;gradient_accumulation_steps&quot;: &quot;auto&quot;,
+  &quot;gradient_clipping&quot;: &quot;auto&quot;,
+  &quot;bf16&quot;: {&quot;enabled&quot;: &quot;auto&quot;},
+  &quot;zero_optimization&quot;: {
+    &quot;stage&quot;: 3,
+    &quot;contiguous_gradients&quot;: true,
+    &quot;overlap_comm&quot;: true,
+    &quot;stage3_gather_16bit_weights_on_model_save&quot;: true
+  }
+}
+</code></pre>
+<p>Stage 3 的 <code>stage3_gather_16bit_weights_on_model_save</code> 用于保存时聚合完整低精度权重，便于得到可独立加载的模型；聚合会增加额外内存与通信成本。首次排错可把“可续训分片检查点”和“可部署完整权重”分开验收，不要在保存失败时丢失整个训练目录。</p>
+<p>若使用 ZeRO-Offload/Infinity，先确认主存、NVMe 挂载点、每节点路径权限和异步 I/O 算子，再增加卸载字段。GPU 利用率下降可能是在等 CPU 或磁盘，不一定还是显卡容量问题。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5. 多卡启动、保存、合并与恢复</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>上层框架可能自行调用 「torchrun」，手写 TRL/Trainer 脚本则常由用户显式启动</li><li>两者选一种，不要嵌套两个启动器造成重复进程</li></ul></div>3
+<h4 id="启动">启动</h4>
+<p>上层框架可能自行调用 <code>torchrun</code>，手写 TRL/Trainer 脚本则常由用户显式启动。两者选一种，不要嵌套两个启动器造成重复进程。</p>
+<p>以下是启动结构的<strong>示例，未实跑</strong>，不是当前版兼容保证：</p>
+<pre><code class="language-bash"># 示例，未实跑：框架自动进入多进程路径时，字段以官方样本为准
+CUDA_VISIBLE_DEVICES=0,1 FORCE_TORCHRUN=1 NPROC_PER_NODE=2 \
+  llamafactory-cli train configs/lora_sft_smoke.yaml \
+  deepspeed=configs/ds_zero2.json output_dir=outputs/lora-z2
+
+# 示例，未实跑：手写 Trainer/TRL 脚本的另一种入口，不与上一条叠加
+CUDA_VISIBLE_DEVICES=0,1 torchrun --standalone --nproc_per_node=2 \
+  train_sft.py --deepspeed configs/ds_zero2.json
+</code></pre>
+<p>主路径是 LoRA，并不意味着 LoRA 与任意 ZeRO 阶段在所有版本都可直接组合。若为了全参训练选择 ZeRO-3，应另建全参配置并重新估算资源；不要只把 <code>finetuning_type</code> 改一个词就沿用全部学习率、保存和显存假设。</p>
+<p>多卡卡住时先找最早失败的 rank。一个 rank 先 OOM 或数据异常，其他 rank 最后才报告 NCCL 超时；单纯延长超时不能修复最初错误。多节点还要核对代码、环境、路径、主节点地址和端口的一致性。</p>
+<h4 id="保存与恢复">保存与恢复</h4>
+<ul>
+<li><strong>最终适配器</strong>：用于加载或合并，不一定包含优化器、调度器和随机数状态。</li>
+<li><strong>可续训 checkpoint</strong>：用于从同一实验继续训练，应保留完整目录和各 rank 分片。</li>
+<li><strong>合并模型</strong>：用于独立部署，应包含完整权重、config、tokenizer 等必要文件。</li>
+</ul>
+<p>恢复命令是<strong>示例，未实跑</strong>：</p>
+<pre><code class="language-bash"># 示例，未实跑：替换为真实存在且属于本实验的检查点
+llamafactory-cli train configs/lora_sft_smoke.yaml \
+  resume_from_checkpoint=outputs/lora-smoke/checkpoint-2
+</code></pre>
+<p>恢复后检查起始 step、学习率、数据推进和随机状态，不能只看进程能启动。跨框架迁移通常先导出普通模型，再在新框架重新建立优化器，不能混用各自 checkpoint 目录。</p>
+<h4 id="合并与回归">合并与回归</h4>
+<p>LLaMA-Factory 合并配置的<strong>示例，未实跑</strong>如下；当前字段仍须对照官方导出样本：</p>
+<pre><code class="language-yaml"># 示例，未实跑：基础模型、模板与训练保持一致
+model_name_or_path: Qwen/Qwen2.5-0.5B-Instruct
+adapter_name_or_path: outputs/lora-smoke
+template: qwen
+finetuning_type: lora
+export_dir: outputs/lora-merged
+export_device: cpu
+</code></pre>
+<pre><code class="language-bash"># 示例，未实跑
+llamafactory-cli export configs/lora_export.yaml
+</code></pre>
+<p>合并通常需要重新加载未量化基础模型；QLoRA 训练时节省的显存不代表合并也不需要内存。合并后应使用完整模型路径独立加载，不再叠加同一适配器。验证至少包括：文件完整性检查、固定输入下合并前后输出回归、基础模型与微调模型的独立业务测试集对比。</p>
+<h3 id="6-产物验证常见坑与回退">6. 产物、验证、常见坑与回退</h3>3
+<p><strong>一次实验应收口的产物</strong>：不可变的数据版本、完整配置、环境与模型 revision 记录、训练日志、可续训 checkpoint、最终适配器或合并模型、固定问题回归结果、独立验证集报告。小样本冒烟与正式效果实验分目录保存。</p>
+<table>
+<thead>
+<tr>
+<th>常见坑</th>
+<th>最早证据</th>
+<th>回退方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>混抄不同版本 CLI/YAML</td>
+<td>未知参数、解析失败、同名字段语义变化</td>
+<td>回到固定版本官方最小样本，只逐项加入业务配置</td>
+</tr>
+<tr>
+<td>模板或数据映射错误</td>
+<td>预处理后只剩提示、有效标签为空、角色警告</td>
+<td>回退到一条人工构造样本，打印模板化结果与标签</td>
+</tr>
+<tr>
+<td>多卡有效批量被悄悄放大</td>
+<td>更新步数、warmup 与单卡不可比</td>
+<td>固定全局批量重算累积步数，再比较实验</td>
+</tr>
+<tr>
+<td>ZeRO 后仍 OOM</td>
+<td>激活或通信桶峰值未变、保存时聚合失败</td>
+<td>回到最近可运行阶段；分别处理激活、状态和保存</td>
+</tr>
+<tr>
+<td>把适配器当完整模型</td>
+<td>缺少 config/tokenizer/完整权重或加载报错</td>
+<td>回到“基座+适配器”加载，重新按官方流程导出</td>
+</tr>
+<tr>
+<td>合并后效果异常</td>
+<td>基座 revision、模板或 tokenizer 不一致</td>
+<td>保留原适配器，回到合并前固定输入回归</td>
+</tr>
+<tr>
+<td>NCCL 超时掩盖根因</td>
+<td>其他 rank 最后才报错</td>
+<td>查最早 rank 日志，回退到单机两卡短流程</td>
+</tr>
+</tbody>
+</table>
+<p>任何失败都保留输出目录和日志，以新目录做下一次单变量实验。回退的优先顺序是：最近可运行配置 → 最近完整 checkpoint → 官方最小样本 → 更小模型。不要用删除旧产物来“解决”无法解释的失败。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7. 验收清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>[ ] 选型记录区分了上层框架、PEFT 算法和分布式运行时</li><li>[ ] 小样本结果只用于链路结论，没有被写成业务效果证明</li><li>[ ] 固定版本、模型 revision、模板、数据哈希与随机种子均已记录</li></ul></div>3
+<ul>
+<li>[ ] 选型记录区分了上层框架、PEFT 算法和分布式运行时。</li>
+<li>[ ] 固定版本、模型 revision、模板、数据哈希与随机种子均已记录。</li>
+<li>[ ] 至少一条样本经过真实模板和标签检查，截断后仍有有效答案监督。</li>
+<li>[ ] 单卡 LoRA 冒烟能走到保存边界，且可训练参数不是零。</li>
+<li>[ ] OOM 记录包含发生阶段，而非只有最后一行错误。</li>
+<li>[ ] ZeRO 阶段选择对应具体状态瓶颈，没有宣称它节省所有显存。</li>
+<li>[ ] 多卡启动没有嵌套启动器，有效全局批量经过重算。</li>
+<li>[ ] 最终适配器、可续训 checkpoint 与合并模型没有混为一谈。</li>
+<li>[ ] 已实际走到一次保存并从该 checkpoint 恢复到后续更新，才称恢复链路可用。</li>
+<li>[ ] Stage 3 保存已考虑权重聚合的额外内存和通信成本。</li>
+<li>[ ] 合并前后与基座/微调前后均使用固定输入及独立测试集回归。</li>
+<li>[ ] 小样本结果只用于链路结论，没有被写成业务效果证明。</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>"版本钉死 + 可对照"的等价物：副本 sha256 全量比对（<code>/home/wuyafang/.hermes/scripts/config-drift-check.py</code>，grep 可验）</strong>：<br />
+<code>python
+  def check_pairs(pairs):
+      """模式 1：文件级 sha256 比对"""
+      print("【模式 1】文件级副本比对（sha256）")
+      ...
+          ha, hb = sha256_of(fa), sha256_of(fb)</code><br />
+  推理/训练环境同理：改任何依赖或配置，只认"sha256 相同"才算同一环境；<code>--pairs A:B</code> 用法见其 <code>--help</code>。</li>
+<li><strong>依赖/环境体检的脚本化（<code>/home/wuyafang/.hermes/scripts/check-model-config.py</code>）</strong>：逐员读配置做存在性/一致性检查（<code>check_openclaw()</code> / <code>check_codex()</code> / <code>check_hermes()</code> / <code>check_dsh()</code>），把"依赖和配置能不能跑起来"变成可复跑的检查而不是肉眼确认。</li>
+<li><strong>和课件讲法的差异</strong>：课件用 <code>pip show torch</code> / <code>nvidia-smi</code> 人工核对版本；本库没有训练环境，<strong>也没有 deepspeed/FSDP/accelerate 相关实现（本库暂无）</strong>——分布式训练的对应物是六员"任务分发 + 在途登记"（<code>/home/wuyafang/.hermes/scripts/inflight-check.py</code>），这是不同层面的东西，不能混说成已具备分布式训练能力。</li>
+<li><strong>实操建议</strong>：真要上多卡，按课件 <code>torchrun + DeepSpeed ZeRO-2/3</code>，并把 <code>accelerate config</code> 生成的 yaml 当"配置副本"纳入 sha256 比对口径。</li>
+</ul>
+<h2 id="来源与口径">来源与口径</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">本地材料</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「/mnt/c/MyData/Documents/wuyafang-l/raw/courseware/微调篇/day02微调之PEFT__课件__大模型微调-2-PEFT.md」：用于 LoRA 的低秩、参数高效、模块化与可合并概念，以及指令数据组织背景；课件中的视频和代码演示未在本文复现</li></ul></div>3
+<ul>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/courseware/微调篇/day02微调之PEFT__课件__大模型微调-2-PEFT.md</code>：用于 LoRA 的低秩、参数高效、模块化与可合并概念，以及指令数据组织背景；课件中的视频和代码演示未在本文复现。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/courseware/微调篇/day06微调之最佳实践__课件__大模型微调-6-最佳实践.md</code>：用于基座选择、模型/数据/软件质量核对和人工评测、基准评测并重的工程视角；未照搬课件中的部署性能数字。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/weread/大语言模型：原理、应用与优化.md</code>：仅按目录与热门划线书摘，使用第 6 章分布式训练/内存优化、第 7 章全参与低参数微调的知识框架，以及混合精度、层内/层间切分的书摘观点；未冒充阅读完整原书。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/weread/深度学习详解.md</code>：仅按目录与书摘，使用训练集/验证集分离和“训练损失大也可能源于优化”的诊断口径。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/weread/从零构建大模型.md</code>：仅按目录与热门划线书摘，使用第 5 至 7 章关于预训练、分类微调、指令微调及评估的章节框架；未声称获得附录 LoRA 的完整正文。</li>
+<li><code>/mnt/c/MyData/Documents/wuyafang-l/raw/fullstack/微调实战-2026.md</code>：仅作经验材料，采用“数据质量优先、before/after 独立评测、适配器可合并”的实践提示；其中框架地位、倍数、时间和固定超参说法未作为本文事实依据。</li>
+<li>合并旧篇 <code>/mnt/c/MyData/Documents/wuyafang-l/wiki/L6-模型微调/L6-微调框架-LLaMA-Factory.md</code>、<code>L6-微调框架-SWIFT.md</code>、<code>L6-微调框架-DeepSpeed与分布式.md</code>：继承数据模板、CLI 版本纪律、OOM 分层、ZeRO 配置和检查点问题清单；删除历史版本长篇操作手册式罗列，旧文件未修改或删除。</li>
+</ul>
+<h3 id="官方入口">官方入口</h3>3
+<ul>
+<li><a href="https://github.com/hiyouga/LLaMA-Factory">LLaMA-Factory 官方项目页</a>：当前安装、数据、配置、训练与导出样本的核对入口。</li>
+<li><a href="https://github.com/modelscope/ms-swift">ModelScope SWIFT 官方项目页</a>：当前模型适配、CLI、SFT 与分布式能力的核对入口。</li>
+<li><a href="https://huggingface.co/docs/peft/main/en/developer_guides/lora">PEFT LoRA 官方指南</a>：LoRA 配置、目标模块与适配器使用口径。</li>
+<li><a href="https://huggingface.co/docs/trl/sft_trainer">TRL SFTTrainer 官方文档</a>：可编程 SFT 主路径的当前接口核对入口。</li>
+<li><a href="https://www.deepspeed.ai/tutorials/zero/">DeepSpeed ZeRO 官方教程</a>：Stage 1/2/3 的切分顺序、Offload/Infinity 定位及 Stage 3 保存聚合选项与成本口径。</li>
+</ul>
+<p>本地书摘用于建立知识框架，官方文档用于核对当前接口，经验材料只生成待验证建议。三者冲突时，以固定版本的官方文档、源码和实际最小实验为准。</p></div></details></div></details></div></body></html>

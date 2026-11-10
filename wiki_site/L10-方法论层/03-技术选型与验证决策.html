@@ -1,0 +1,280 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>03-技术选型与验证决策</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 03-技术选型与验证决策</span></div><div class="wrap"><h1 id="技术选型与验证决策在同一业务契约上比较最小方案代价与退出路径">技术选型与验证决策：在同一业务契约上比较最小方案、代价与退出路径</h1>
+<blockquote>
+<p>本篇是 L10 的技术选型唯一正文，输入是<a href="02-%E9%9C%80%E6%B1%82%E8%AE%BF%E8%B0%88%E4%B8%8E%E9%97%AE%E9%A2%98%E5%A5%91%E7%BA%A6.html">需求访谈与问题契约</a>，输出交给<a href="01-FDE%E4%BB%B7%E5%80%BC%E9%97%AD%E7%8E%AF%E4%B8%8E%E4%BA%A4%E4%BB%98%E9%97%A8%E7%A6%81.html">FDE 价值闭环与交付门禁</a>。文中能力阶梯、筛选器、成本算例和 ADR 字段是综合建议，不是任何厂商的标准配置。示例候选和数字均为合成数据，不构成模型排名、报价或采购建议；书籍只使用本地目录与划线。</p>
+</blockquote>
+<h2 id="why为什么功能榜单和单次-demo-经常选错方案">WHY：为什么功能榜单和单次 Demo 经常选错方案</h2>2
+<p>技术选型不是寻找功能最多或排行榜最高的产品，而是在确定目的、约束和资源下，选择一个能验证、能运行、能维护、也能退出的方案。相同模型用于离线草稿和自动业务执行，风险结构不同；相同向量库用于个人资料和跨租户知识，权限要求不同；相同 Agent 框架用于教学与长期生产，恢复、观测和升级成本也不同。脱离任务条件谈“最佳”，实际上删掉了决定答案的约束。</p>
+<p>常见失误有三种替代：用产品名替代问题，用厂商基准替代本地实验，用调用单价替代总成本。团队还可能因为已经熟悉某个框架，就把所有任务改写成该框架擅长的形式。正确顺序应是：先确认问题契约和硬约束，再比较最小架构，最后选择具体产品和实现。</p>
+<p>课件给出三条实现入口：表结构与自然语言生成 SQL 的直接调用、带规划/记忆/工具的 Agent 循环、Dify 平台部署。[课1][课2][课3] 书摘提醒应同时考虑成本、效果和延迟，并从端到端价值流避免局部优化。[书1][书2] 官方工程文章又区分固定路径 workflow 与模型动态决定路径的 agent，建议从满足需求的简单结构开始。[业1] 融合后的判断不是“哪条路线更先进”，而是：<strong>哪条最小路线能在同一业务尺子下给出足够净收益，新增复杂度能否被证据偿还。</strong></p>
+<p>选错的代价并不只是一笔采购费。数据清洗、权限改造、失败接管、评测维护、值班、迁移和再培训都可能超过模型账单；等到上线后才发现无法导出权限与评测资产，退出成本会把早期“快速搭建”变成长期锁定。因此候选集必须保留现状、流程调整、规则或搜索，以及“暂不扩大”。</p>
+<h2 id="what-whyt选型是带证据的约束决策不是加权打分竞赛">WHAT / WHYT：选型是带证据的约束决策，不是加权打分竞赛</h2>2
+<h3 id="1-硬约束优化目标和团队偏好必须分开">1. 硬约束、优化目标和团队偏好必须分开</h3>3
+<p>硬约束是不满足就不能进入候选集的条件，例如特定数据不得外发、必须接入现有身份体系、关键写入必须人工确认。目标是可优化的结果，例如任务成功、尾部延迟、单位有效任务成本和运维负担。偏好是团队熟悉度、语言生态和界面习惯，它有价值，但不能偷偷升级成硬约束。</p>
+<p>每条硬约束要有来源和裁决人。客户说“必须私有化”，应继续确认禁止外发什么、批准哪些环境、更新和支持怎样进行。真正要求可能是数据驻留、合同约束或现场无网，不同原因导向不同架构。硬约束采用“通过/失败/未知”三态：失败即淘汰，未知就安排验证，不能给中间分掩盖；也不能因为方案便宜、速度快，就让平均总分抵消权限失败。</p>
+<p>AWS Well-Architected 公开介绍强调从安全、可靠性、效率、成本、可持续性与运行实践等方面理解决策取舍，架构评审是一种建设性讨论而非审计。[业2] 本篇据此使用六维候选档案：业务适配、数据与安全、运行可靠性、性能容量、工程维护、总成本。它不要求使用 AWS，也不意味着六维可以互相抵扣。</p>
+<h3 id="2-比较单位是端到端业务结果不是组件峰值">2. 比较单位是端到端业务结果，不是组件峰值</h3>3
+<p>模型单题得分、向量库 QPS、平台节点数量都只是局部属性。SQL 语法正确仍可能用错收入口径；检索召回很高仍可能返回无权资料；工具调用成功仍可能重复写入。候选必须围绕同一问题契约，在同样任务、权限、负载和评价口径下比较，并记录完整组合：数据准备、检索、模型、提示词、工具、权限、界面、观测和运维。</p>
+<p>证据等级也不能混用：官方文档证明公开支持范围，发布说明证明某版变化，论文证明特定实验条件下的结果，维护者 issue 提供缺陷线索，本地复现证明本环境表现。论文的提升比例不自动复现到中文客户语料；官方声明也不证明本地已经启用。候选档案要写版本、来源日期、适用条件和本地核验状态。</p>
+<h3 id="3-能力阶梯是搜索顺序不是成熟度排名">3. 能力阶梯是搜索顺序，不是成熟度排名</h3>3
+<table>
+<thead>
+<tr>
+<th>任务条件</th>
+<th>首先验证的结构</th>
+<th>升级前必须看到的证据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>规则清楚、数据结构稳定</td>
+<td>普通代码、规则、SQL 模板</td>
+<td>规则维护或覆盖确实阻碍业务</td>
+</tr>
+<tr>
+<td>需要语言理解，资料已在输入</td>
+<td>单次模型调用与结构校验</td>
+<td>单次调用达不到契约要求</td>
+</tr>
+<tr>
+<td>需要可更新的私有知识</td>
+<td>过滤搜索或 RAG</td>
+<td>直接上下文不足以解决</td>
+</tr>
+<tr>
+<td>步骤固定，需调用外部工具</td>
+<td>显式 workflow 或状态机</td>
+<td>固定路径存在大量不可预见分支</td>
+</tr>
+<tr>
+<td>路径随现场反馈变化</td>
+<td>有界单 Agent</td>
+<td>动态规划净收益超过成本和风险</td>
+</tr>
+<tr>
+<td>子任务独立或有权限隔离需求</td>
+<td>受控多 Agent</td>
+<td>并行/分工在同尺子上有净收益</td>
+</tr>
+</tbody>
+</table>
+<p>课件《Agent智能体》把规划、记忆和工具循环放在一起，适合学习组件关系；生产方案可以只取其中一部分。[课2] 任务只做查询和摘要，就不必增加长期记忆与自动写入；路径明确，就不必让模型反复规划。选择微调前先区分需要改变行为还是补充经常变化的事实；选择 RAG 前先确认知识可获得、可更新、可授权和可解释。</p>
+<h3 id="4-论文融合一拒答是成本策略不是笼统谨慎">4. 论文融合一：拒答是成本策略，不是笼统“谨慎”</h3>3
+<p><strong>论文怎么说。</strong>《Cost-Aware Abstention for LLM-Based IT Ticket Classification》（arXiv:2610.31657）在 47,837 张、八类 IT 工单语料上比较非 LLM 分类器与提示式 LLM。它在校准数据上按显式成本选择路由策略，冻结后只在留出测试集评估一次；示意成本 <code>(c_ok, c_triage, c_wrong)=(0,1,5)</code> 下，TF-IDF+逻辑回归加 0.60 阈值把测试成本从 0.763 降到 0.472，错误路由从 15.3% 降到 3.5%。最强提示配置在同一千条分层测试子集上准确率 0.477，微调 DistilBERT 为 0.879。作者明确这只是特定数据、提示、端点和示意成本下的评估框架，不是通用部署认证。[业3]</p>
+<p><strong>我们怎么用。</strong>候选集必须包括训练/规则基线和“转人工”，不能只比较几个 LLM。把正确自动处理、人工分诊、错误自动路由的业务代价分别估计；若正确概率为 <code>p</code>、正确成本为 0，则自动路由期望成本为 <code>(1-p)*c_wrong</code>，当 <code>p &gt; 1-c_triage/c_wrong</code> 才优于直接转人工。阈值在校准集选择，策略冻结后在独立测试集评估，不能一边看测试结果一边调阈值再声称独立通过。上述 0.60 是论文特定策略阈值，不可照搬；0.80 只来自该论文示意成本的解析平衡点。</p>
+<h3 id="5-论文融合二记忆价值看避免的任务损失不看存了多少">5. 论文融合二：记忆价值看避免的任务损失，不看存了多少</h3>3
+<p><strong>论文怎么说。</strong>《The Value of Memory in Language Agents》（arXiv:2610.31303）把记忆价值沿“原始历史—持久状态—操作使用— costly recovery/revision”展开，用避免的任务损失表达价值，并用反例说明信息时机、检索访问、组件交互、反馈和需求不确定性的影响。一个与答案互信息为零的指针，仍可能降低精确恢复成本；固定检索证据时，保存的 ledger 会改变后续回答，固定输出时，评测依据修订也会改变分数。[业4]</p>
+<p><strong>我们怎么用。</strong>不要因为平台支持长期记忆就默认开启。先问未来什么任务会用到过去哪项区分、检索不到能否恢复、事实变化如何修订、保存和删除成本由谁承担。记忆实验分别观察“是否保存正确、能否取回、取回后是否改善任务、更新后旧事实是否被取代、删除后能否恢复或撤销”，并和“不带记忆但重新提供资料”的基线比较。保留恢复选项本身有价值，但不是保存一切的理由。</p>
+<h3 id="6-论文融合三缓存优化必须同时验正确性和状态语义">6. 论文融合三：缓存优化必须同时验正确性和状态语义</h3>3
+<p><strong>论文怎么说。</strong>《Cache Engineering for Agents》（arXiv:2610.28577）指出，裁剪或摘要历史会修改轨迹前缀，使后续缓存失效并触发 re-prefill；其 cache 操作又带来历史依赖——相同 token 序列在不同 cache 操作序列后可能对应不同状态，单纯 prefix matching 不足以保证正确复用。论文报告 rolling-drop 策略相对阈值摘要在其基准上平均分提高 1.7、平均成本降低 27.7%，AKV 最高带来 1.2x 输出吞吐和 1.5x P95 延迟加速。[业5]</p>
+<p><strong>我们怎么用。</strong>缓存选型不能只报 token 单价和命中比例。测试要记录轨迹与操作序列、缓存键、租户和权限、失效规则，以及“相同文本、不同历史”是否被错误复用；性能报告分开冷启动、re-prefill、网络、检索和生成。论文数字仅属于其实现与基准，不能承诺本地同样收益；普通 prompt cache 与论文的主动 KV-cache 操作也不是同一能力。</p>
+<h2 id="how硬筛同尺实验成本敏感性与-adr-六步落地">HOW：硬筛、同尺实验、成本敏感性与 ADR 六步落地</h2>2
+<h3 id="第一步建立候选档案先淘汰再权衡">第一步：建立候选档案，先淘汰再权衡</h3>3
+<p>候选至少包含现状/流程调整、规则或搜索、最小 AI、较复杂 AI。为每个候选建立如下档案：关联问题编号、组合与版本、数据流、硬约束证据、维护人、许可证与弃用入口、备份恢复、导出能力、成本变量、未解决未知。权重应在看实验结果前由相关负责人确认，评分锚点要可观察，例如“维护性高”意味着另一维护者可定位故障、导出配置并跑升级测试。</p>
+<p>资料不足给区间和置信程度，不打精确到小数点的主观分。做敏感性检查：权重略变、流量上涨、复核比例增加时排序是否翻转。如果翻转，优先补最影响决定的证据，或选择更容易退出的方案。若甲在所有关键目标不差且退出成本更低，乙没有清晰额外价值，就不应仅因品牌偏好保留。</p>
+<h3 id="第二步用最小实验回答最大未知">第二步：用最小实验回答最大未知</h3>3
+<p>先写最可能改变决定的未知，例如权限过滤是否有效、资料更新是否及时、动态规划是否必要、离线环境能否完整启动，再设计能推翻它的实验。漂亮 UI 不能回答隔离问题，普通问题高分不能回答多跳价值，单用户冒烟不能回答并发容量。</p>
+<p>样本按真实任务分层，覆盖高频普通、低频高风险、无答案、脏数据、过期资料、越权与依赖故障；区分开发集和独立验收集。所有候选共享任务与评价口径，特殊适配也计入成本。至少记录：</p>
+<pre><code class="language-text">问题契约版本、数据/证据标注/量尺版本
+候选组合及代码、模型、提示词、索引、配置、依赖版本
+负载、并发、预热、重复次数、超时和停止条件
+任务成功、质量护栏、失败明细、轮数、工具次数和副作用
+端到端延迟与分阶段耗时；是否含网络、检索、排队和人工复核
+现金支出、人员机会成本、重试与失败处理；缺失项明确写未知
+</code></pre>
+<p>对不稳定输出重复运行并报告波动，不能只取最好一轮。简单方案达到约定目标后，复杂方案必须证明新增净收益；所有方案都失败时，先回到问题、数据和评价口径，不要无限换模型。</p>
+<p>离线与迁移需专项实验。私有化应在批准隔离环境阻断出站后走主路径，核对模型、分词资源、前端静态资源、身份、日志、更新与备份；设置一个“离线”变量不等于隔离证明。迁移要实际导出少量文档、元数据、权限和评测样本，在替代实现恢复主路径；向量维度相同不代表语义空间相同。本单未执行这些环境实验。</p>
+<h3 id="第三步用可运行脚本做硬筛与有效任务成本比较">第三步：用可运行脚本做硬筛与有效任务成本比较</h3>3
+<p>下面的标准库脚本把“硬约束不能被平均分抵消”和“按有效业务结果计算成本”写成可复跑逻辑。保存为 <code>compare_candidates.py</code> 与 <code>candidates.json</code>，运行 <code>python3 compare_candidates.py candidates.json</code>。本次已对合成数据实跑；它没有连接任何真实供应商，也不产生采购结论。</p>
+<pre><code class="language-python">import json
+import sys
+
+
+def effective_cost(candidate):
+    attempts = candidate[&quot;monthly_attempts&quot;]
+    successes = candidate[&quot;successful_tasks&quot;]
+    if not 0 &lt;= successes &lt;= attempts:
+        raise ValueError(f&quot;{candidate['name']}: successful_tasks 越界&quot;)
+    if successes == 0:
+        return None
+    total = (
+        candidate[&quot;monthly_fixed_cost&quot;]
+        + attempts * candidate[&quot;cost_per_attempt&quot;]
+        + candidate[&quot;monthly_ops_cost&quot;]
+        + candidate[&quot;monthly_review_cost&quot;]
+        + candidate[&quot;monthly_failure_cost&quot;]
+    )
+    return total / successes
+
+
+def decide(document):
+    rows = []
+    for candidate in document[&quot;candidates&quot;]:
+        checks = candidate[&quot;hard_checks&quot;]
+        bad = {name: state for name, state in checks.items() if state != &quot;pass&quot;}
+        if bad:
+            rows.append({&quot;name&quot;: candidate[&quot;name&quot;], &quot;decision&quot;: &quot;HOLD&quot;, &quot;hard_checks&quot;: bad})
+            continue
+        cost = effective_cost(candidate)
+        rows.append({
+            &quot;name&quot;: candidate[&quot;name&quot;],
+            &quot;decision&quot;: &quot;ELIGIBLE_FOR_TASK_EVAL&quot;,
+            &quot;synthetic_cost_per_effective_task&quot;: None if cost is None else round(cost, 4),
+        })
+    return rows
+
+
+if __name__ == &quot;__main__&quot;:
+    with open(sys.argv[1], encoding=&quot;utf-8&quot;) as handle:
+        payload = json.load(handle)
+    print(json.dumps(decide(payload), ensure_ascii=False, indent=2))
+    triage = payload[&quot;abstention_costs&quot;][&quot;triage&quot;]
+    wrong = payload[&quot;abstention_costs&quot;][&quot;wrong&quot;]
+    if wrong &lt;= 0 or triage &lt; 0:
+        raise ValueError(&quot;成本参数无效&quot;)
+    print(f&quot;示意拒答平衡点 p &gt; {1 - triage / wrong:.4f}；仅在本文成本假设下成立&quot;)
+</code></pre>
+<pre><code class="language-json">{
+  &quot;abstention_costs&quot;: {&quot;triage&quot;: 1, &quot;wrong&quot;: 5},
+  &quot;candidates&quot;: [
+    {
+      &quot;name&quot;: &quot;synthetic-rules&quot;,
+      &quot;hard_checks&quot;: {&quot;data_boundary&quot;: &quot;pass&quot;, &quot;tenant_isolation&quot;: &quot;pass&quot;},
+      &quot;monthly_attempts&quot;: 1000,
+      &quot;successful_tasks&quot;: 760,
+      &quot;monthly_fixed_cost&quot;: 1000,
+      &quot;cost_per_attempt&quot;: 0.2,
+      &quot;monthly_ops_cost&quot;: 300,
+      &quot;monthly_review_cost&quot;: 200,
+      &quot;monthly_failure_cost&quot;: 100
+    },
+    {
+      &quot;name&quot;: &quot;synthetic-agent&quot;,
+      &quot;hard_checks&quot;: {&quot;data_boundary&quot;: &quot;pass&quot;, &quot;tenant_isolation&quot;: &quot;pass&quot;},
+      &quot;monthly_attempts&quot;: 1000,
+      &quot;successful_tasks&quot;: 850,
+      &quot;monthly_fixed_cost&quot;: 1300,
+      &quot;cost_per_attempt&quot;: 0.5,
+      &quot;monthly_ops_cost&quot;: 400,
+      &quot;monthly_review_cost&quot;: 300,
+      &quot;monthly_failure_cost&quot;: 200
+    },
+    {
+      &quot;name&quot;: &quot;unknown-permission-agent&quot;,
+      &quot;hard_checks&quot;: {&quot;data_boundary&quot;: &quot;unknown&quot;, &quot;tenant_isolation&quot;: &quot;pass&quot;},
+      &quot;monthly_attempts&quot;: 1000,
+      &quot;successful_tasks&quot;: 950,
+      &quot;monthly_fixed_cost&quot;: 100,
+      &quot;cost_per_attempt&quot;: 0.1,
+      &quot;monthly_ops_cost&quot;: 100,
+      &quot;monthly_review_cost&quot;: 100,
+      &quot;monthly_failure_cost&quot;: 100
+    }
+  ]
+}
+</code></pre>
+<p>输出 <code>ELIGIBLE_FOR_TASK_EVAL</code> 只表示可以进入任务质量评审，不表示业务验收通过。成本分母是真正达到业务标准的任务，拒答、重试、人工复核和失败处理不能从账上消失；现金与人员机会成本应分开记录，避免重复计算。再分别提高请求量、输入长度、Agent 轮数、复核比例和运维工时做敏感性实验，找出最影响结论的变量。</p>
+<h3 id="第四步专项比较记忆缓存与退出能力">第四步：专项比较记忆、缓存与退出能力</h3>3
+<p>记忆候选使用固定事实演化轨迹，逐步检查创建、更新、强化、取代、删除和恢复；对照组在每次请求中重新提供必要资料。报告不仅看最终 QA，还看保存和检索是否造成假象。arXiv:2610.31303 的落地价值在于让团队先计算“保留哪项区分能避免什么任务损失”，再购买记忆能力。</p>
+<p>缓存候选用同一任务重放正常、过期、权限改变、轨迹改写和“同文本不同历史”场景，先验正确性再测成本。arXiv:2610.28577 的历史依赖结论提示缓存键不能只包含可见 token 前缀。缓存命中若返回过期资料或跨租户内容，不是性能优化，而是验收失败。</p>
+<p>退出成本包括数据导出、格式转换、重新标注、索引重建、流程改写、权限重建、用户培训和双跑。能导出文档不等于能导出能力；提示词、工具契约、工作流、版本记录和评测集同样重要。为高不确定组件保留适配层是合理投资，但不要为假想的可替换性抽象所有细节，使系统无人理解。</p>
+<h3 id="第五步由另一名维护者做离开原作者测试">第五步：由另一名维护者做“离开原作者”测试</h3>3
+<p>当差异主要来自编排框架或低代码平台，不只看是否有某个节点。让另一名具备基本背景的维护者依据文档完成一次真实变更：替换模型、增加权限判断、恢复失败任务或导出应用。观察要改哪里、怎样测试、如何定位错误。若原作者必须不断口头补充，隐性知识应计入维护与交接成本。</p>
+<p>Dify 课件可成为部署起点，但“服务已启动”不证明团队能升级、备份与恢复；Agent 示例能调用工具，也不证明复杂任务能在预算内稳定终止。[课2][课3] 选型评审必须邀请真正负责维护的人，不只由做 Demo 的人决定未来支持成本。</p>
+<h3 id="第六步用-adr-固化理由代价与重评触发">第六步：用 ADR 固化理由、代价与重评触发</h3>3
+<p>Michael Nygard 的原始文章建议用短小的架构决策记录保存重要决定的背景、决定、状态与后果，并保留被替代记录的历史。[业6] 本篇增加证据版本和重评条件：</p>
+<pre><code class="language-text">ADR 编号、日期与状态：提议/试验性接受/接受/被替代
+关联问题契约、任务范围与非目标：
+背景：业务、数据、权限、团队、时间条件
+硬约束、来源与裁决人：
+候选：现状/非 AI/最小 AI/复杂方案
+证据：官方能力声明、论文适用边界、本地实验、未知项
+决定：选择什么，仅在哪个范围内生效
+取舍：收益、负担、残余风险、被否决方案及原因
+成本与退出：假设、敏感变量、导出、恢复和双跑
+实施与验收：负责人、产物、交付门禁
+重评触发：范围、流量、规则、版本、价格、维护状态改变
+替代关系：旧记录不删除，由新记录指向
+</code></pre>
+<p>ADR 不证明当初永远正确，而是让后来者知道当时条件下为什么这样选。证据弱就标试验性接受并限制范围；业务负责人接受某项风险，应写具名裁决，不伪装成纯技术最优。新闻、论文月报和价格页只是重评线索，回溯原文并通过同尺实验才成为决策证据。剩余未知不再改变有限试点决定时就应收口，不能让“调研到所有维度最优”本身成为无限项目。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库把「选型结论要带回滚路径」写进了配置文件本身（<code>rag/config.yaml</code> L126-136，本次读源码）</strong>：<br />
+<code>yaml
+  generation:
+    # [2026-10-21] 切回火山豆包(实测200/2.2s通)。回退小米: 改回下面注释三行
+    model: "doubao-seed-2.1-lite"
+    api_url: "https://ark.cn-beijing.volces.com/api/plan/v3/chat/completions"
+    api_key_env: "VOLCENGINE_ARK_PLAN_KEY"
+    # 回退（小米 MiMo, TokenPlan 订阅池）：
+    #   model: "mimo-v2.6-flash"</code><br />
+<strong>「实测200/2.2s通」是选型证据，「回退小米改回下面注释三行」是回滚指令</strong>——两者必须在同一处，否则半年后没人记得为什么选它、怎么退。</li>
+<li><strong>选型验收的判据是「双端采样定阈值」而不是「跑通了」</strong>：rerank 阈值 0.45 来自 19 个正样本 + 5 个负样本的分布（config L105-112），并且明确记录了「Q056 是假阳，抬到 0.87 会误拒 3/19 正样本，得不偿失」——<strong>选型的终点是「接受哪些不完美」，不是「证明它完美」</strong>。</li>
+<li><strong>本次实跑还验证了「选型的隐含成本」</strong>：云端生成主路可用（<code>[gen] model=doubao-seed-2.1-lite</code>），但本地 bge-m3 冷加载要 224.7 秒——<strong>选云端还是本地，要算的是启动时间与网络依赖，不只是单价</strong>。</li>
+<li><strong>和课件讲法的差异</strong>：课件选型常用打分矩阵（功能/成本/生态）；本库的实操是「<strong>每个候选都要有一条能一键回退的路径</strong>」，不能回退的候选不进入决策。</li>
+<li><strong>本库暂无</strong>：没有正式的选型决策记录（ADR）目录；选型理由散落在 <code>config.yaml</code> 注释与 <code>notes/decisions/</code> 下的零散记录里。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库最近一次真实选型是生成模型：<code>doubao-seed-2.1-lite</code>（配置 L128-130）作为主路，小米 <code>mimo-v2.6-flash</code> 写在注释里作回退，切换只改三行配置——选型结论带着回滚路径落盘。</li>
+<li><strong>读源码</strong>：选型判据；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] 课件：<a href="../../raw/courseware/%E9%A3%9E%E4%B9%A6%E6%96%B0%E7%A9%BA%E9%97%B4/Prompt%20Engineering%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98.md">《Prompt Engineering项目实战》</a>，实战2。落点：直接模型调用与 SQL 生成基线；生产语义、只读权限和对账属于本文扩展。</li>
+<li>[课2] 课件：<a href="../../raw/courseware/%E9%A3%9E%E4%B9%A6%E6%96%B0%E7%A9%BA%E9%97%B4/Agent%E6%99%BA%E8%83%BD%E4%BD%93.md">《Agent智能体》</a>，规划、工具、记忆与 ReAct 教学。落点：理解复杂候选的组件，不把组件齐全当生产必要性。</li>
+<li>[课3] 课件：<a href="../../raw/courseware/%E9%A3%9E%E4%B9%A6%E6%96%B0%E7%A9%BA%E9%97%B4/Dify%E6%9C%AC%E5%9C%B0%E9%83%A8%E7%BD%B2.md">《Dify本地部署》</a>，安装、配置、启动与初始化。落点：平台候选的部署起点，不据此证明当前版本兼容、可恢复或可维护。</li>
+<li>[书1] 书籍划线摘录：<a href="../../raw/weread/FDE%EF%BC%9AAI%E8%90%BD%E5%9C%B0%E5%AE%9E%E6%88%98%E6%8C%87%E5%8D%97.md">樊中恺《FDE：AI落地实战指南》</a>，第8、9、15、17章相关目录与划线。落点：真实工作流、接口责任、检索分层及成本—效果—延迟取舍；不声称书籍全文。</li>
+<li>[书2] 书籍划线摘录：<a href="../../raw/weread/%E6%8C%81%E7%BB%AD%E4%BA%A4%E4%BB%982.0%EF%BC%9A%E4%B8%9A%E5%8A%A1%E5%BC%95%E9%A2%86%E7%9A%84DevOps%E7%B2%BE%E8%A6%81%EF%BC%88%E5%A2%9E%E8%AE%A2%E6%9C%AC%EF%BC%89.md">乔梁《持续交付2.0：业务引领的DevOps精要（增订本）》</a>，前言、第1、2章相关划线。落点：端到端整体优化、尽早验证、质量内建；目录未当正文。</li>
+<li>[业1] 业内作者官方工程文章：Anthropic，<em>Building effective agents</em>，2026-11-04 GET 200。落点：workflow/agent 区分与简单结构优先，不用于编造 2026 产品榜单。<code>https://www.anthropic.com/research/building-effective-agents</code></li>
+<li>[业2] 官方架构文档：AWS，<em>Well-Architected Framework</em>，2026-11-04 GET 200。落点：多维架构权衡和建设性评审，不要求使用 AWS。<code>https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html</code></li>
+<li>[业3] 论文：Sachin Gupta，<em>Cost-Aware Abstention for LLM-Based IT Ticket Classification</em>，arXiv:2610.31657；<a href="../../raw/sources/arxiv-daily/2026-10-22-2610.31657.md">本地摘要</a>。落点：非 LLM 基线、显式成本、校准选策略/冻结后独立测试、拒答平衡点；不照搬其阈值与效果。</li>
+<li>[业4] 论文：Zehao Lin 等，<em>The Value of Memory in Language Agents</em>，arXiv:2610.31303；<a href="../../raw/sources/arxiv-daily/2026-10-22-2610.31303.md">本地摘要</a>。落点：用避免任务损失评价记忆，分项验证保存、使用、恢复与修订。</li>
+<li>[业5] 论文：Tianyu Fu 等，<em>Cache Engineering for Agents</em>，arXiv:2610.28577；<a href="../../raw/sources/arxiv-daily/2026-10-20-2610.28577.md">本地摘要</a>。落点：缓存键与历史状态、正确性先于性能；论文收益未在本库复现。</li>
+<li>[业6] 业内作者原文：Michael Nygard，<em>Documenting Architecture Decisions</em>，2026-11-04 GET 200。落点：ADR 的背景、决定、状态、后果与替代历史。<code>https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions</code></li>
+</ul>
+<p>本次仅实跑候选硬筛与成本脚本的合成样例；真实模型、数据库、缓存服务、记忆系统、离线部署、迁移、性能和采购价格均未实跑。论文依据为本地保存的标题、作者与摘要，未声称阅读论文全文；公开业内页面仅做只读 GET 核验。</p></div></body></html>

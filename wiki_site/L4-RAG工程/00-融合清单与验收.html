@@ -1,0 +1,721 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>00-融合清单与验收</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 00-融合清单与验收</span></div><div class="wrap"><h1 id="l4-三源融合主题收敛保留与验收记录">L4 三源融合：主题收敛、保留与验收记录</h1>
+<p>本文件为维护清单，不是主题正文，节点归属为总地图 N5 验收 / N6 收口，知识层归属为 L4-RAG工程。<br />
+任务开始时目录有 23 篇正文；核对期间另一执行者新增《向量库现状-Zilliz与Chroma位置索引.md》，故本次实际审计 24 篇正文。<br />
+本次不修改任何已有正文。独立只读复审发现拟删篇目仍有未被接收的独有内容，部分篇目还有正文或 golden-q 引用，因此 <strong>正文删除 0 篇、保留 24 篇</strong>，不把主题重叠伪报为融合完成。<br />
+操作范围限定为 L4-RAG工程 下的本清单与 <code>.fusion-work</code>；实际仅新增本清单，快照因安全钩子拦截未删除。未修改 raw、ontology、其他层、RAG 索引或 HTML 产物。</p>
+<h2 id="主题收敛与字数">主题收敛与字数</h2>2
+<p>汉字数：去掉 frontmatter 和 fenced code 后，统计 Unicode U+4E00—U+9FFF；非空白字符：全文含元数据、代码、标点。<br />
+“合并旧篇数”沿用 L3 口径，包含唯一正文自身。本轮没有可安全删除的重复正文，所以每行均为 1；下表是当前唯一去向基线，<strong>不声称 24 篇已经收敛为少量深文</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>主题</th>
+<th>唯一正文</th>
+<th style="text-align: right;">合并旧篇数</th>
+<th style="text-align: right;">正文汉字数</th>
+<th style="text-align: right;">全文非空白字符</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RAG 总体架构与生产治理</td>
+<td><a href="01-RAG%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E4%B8%8E%E7%94%9F%E4%BA%A7%E8%90%BD%E5%9C%B0.html">01-RAG系统架构与生产落地.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">10376</td>
+<td style="text-align: right;">25104</td>
+</tr>
+<tr>
+<td>Agentic、多模态与向量库调研</td>
+<td><a href="Agentic-RAG%E4%B8%8E%E5%A4%9A%E6%A8%A1%E6%80%81RAG%E8%B0%83%E7%A0%94.html">Agentic-RAG与多模态RAG调研.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">4536</td>
+<td style="text-align: right;">12550</td>
+</tr>
+<tr>
+<td>Agentic RAG 六模式代码</td>
+<td><a href="Agentic-RAG%E5%85%AD%E6%A8%A1%E5%BC%8F%E4%BB%A3%E7%A0%81%E6%A8%A1%E6%9D%BF.html">Agentic-RAG六模式代码模板.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">4773</td>
+<td style="text-align: right;">32128</td>
+</tr>
+<tr>
+<td>分块尺寸与策略</td>
+<td><a href="Chunk%E5%A4%A7%E5%B0%8F%E6%80%8E%E4%B9%88%E9%80%89.html">Chunk大小怎么选.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">3343</td>
+<td style="text-align: right;">11300</td>
+</tr>
+<tr>
+<td>Contextual Retrieval 官方方法</td>
+<td><a href="Contextual-Retrieval%E5%AE%98%E6%96%B9%E6%96%B9%E6%B3%95-20261009.html">Contextual-Retrieval官方方法-20261009.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1426</td>
+<td style="text-align: right;">5138</td>
+</tr>
+<tr>
+<td>RAGFlow / MinerU 路线情报</td>
+<td><a href="E5-RAG-Agentic%E5%8C%96%E8%B7%AF%E7%BA%BF-20261026.html">E5-RAG-Agentic化路线-20261026.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">792</td>
+<td style="text-align: right;">2558</td>
+</tr>
+<tr>
+<td>Embedding 模型选型</td>
+<td><a href="Embedding%E6%A8%A1%E5%9E%8B%E9%80%89%E5%9E%8B%E5%AF%B9%E6%AF%94.html">Embedding模型选型对比.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1852</td>
+<td style="text-align: right;">5944</td>
+</tr>
+<tr>
+<td>GraphRAG 最小实现</td>
+<td><a href="GraphRAG%E6%9C%80%E5%B0%8F%E7%A4%BA%E4%BE%8B.html">GraphRAG最小示例.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">4829</td>
+<td style="text-align: right;">14943</td>
+</tr>
+<tr>
+<td>RAG 课件实操</td>
+<td><a href="L4-RAG%E5%B7%A5%E7%A8%8B-%E8%AF%BE%E4%BB%B6%E5%AE%9E%E6%93%8D.html">L4-RAG工程-课件实操.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">4632</td>
+<td style="text-align: right;">49000</td>
+</tr>
+<tr>
+<td>LlamaIndex 节点、存储与索引实操</td>
+<td><a href="LlamaIndex%E5%AE%9E%E6%93%8D-%E8%8A%82%E7%82%B9%E5%88%86%E5%89%B2%E5%99%A8%E5%AD%98%E5%82%A8%E7%B4%A2%E5%BC%95.html">LlamaIndex实操-节点分割器存储索引.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2075</td>
+<td style="text-align: right;">12783</td>
+</tr>
+<tr>
+<td>Milvus 架构与案例</td>
+<td><a href="Milvus%E5%90%91%E9%87%8F%E5%BA%93%E7%99%BD%E7%9A%AE%E4%B9%A6-%E6%9E%B6%E6%9E%84%E9%80%89%E5%9E%8B%E4%B8%8E%E6%A1%88%E4%BE%8B.html">Milvus向量库白皮书-架构选型与案例.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1762</td>
+<td style="text-align: right;">4017</td>
+</tr>
+<tr>
+<td>RAG 与微调决策</td>
+<td><a href="RAG%E5%92%8C%E5%BE%AE%E8%B0%83%E5%88%B0%E5%BA%95%E9%80%89%E5%93%AA%E4%B8%AA.html">RAG和微调到底选哪个.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2168</td>
+<td style="text-align: right;">5412</td>
+</tr>
+<tr>
+<td>检索故障诊断</td>
+<td><a href="RAG%E6%A3%80%E7%B4%A2%E4%B8%8D%E5%87%86%E6%80%8E%E4%B9%88%E6%8E%92%E6%9F%A5.html">RAG检索不准怎么排查.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">9226</td>
+<td style="text-align: right;">33004</td>
+</tr>
+<tr>
+<td>生产架构量化与排错实录</td>
+<td><a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践-2026.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">9447</td>
+<td style="text-align: right;">34535</td>
+</tr>
+<tr>
+<td>知识图谱标准与验证</td>
+<td><a href="RAG%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E6%A0%87%E5%87%86%E4%B8%8E%E9%AA%8C%E8%AF%81.html">RAG知识图谱标准与验证.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">7154</td>
+<td style="text-align: right;">19458</td>
+</tr>
+<tr>
+<td>行业标准与本地差距</td>
+<td><a href="RAG%E8%A1%8C%E4%B8%9A%E6%A0%87%E5%87%86%E4%B8%8E%E7%8E%B0%E7%8A%B6%E5%B7%AE%E8%B7%9D.html">RAG行业标准与现状差距.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">6171</td>
+<td style="text-align: right;">18130</td>
+</tr>
+<tr>
+<td>RAG 三层评估</td>
+<td><a href="RAG%E8%AF%84%E4%BC%B0%E6%80%8E%E4%B9%88%E8%B7%91.html">RAG评估怎么跑.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">3310</td>
+<td style="text-align: right;">9159</td>
+</tr>
+<tr>
+<td>RRF、重排与多路改写流水线</td>
+<td><a href="RRF%E8%9E%8D%E5%90%88%E5%8A%A0%E9%87%8D%E6%8E%92%E8%A7%A3%E5%86%B3%E6%A3%80%E7%B4%A2%E7%9F%AD%E6%9D%BF-%E6%B7%B7%E5%90%88%E6%A3%80%E7%B4%A2%E6%B5%81%E6%B0%B4%E7%BA%BF.html">RRF融合加重排解决检索短板-混合检索流水线.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1981</td>
+<td style="text-align: right;">5953</td>
+</tr>
+<tr>
+<td>pgvector 参数与规模阈值</td>
+<td><a href="pgvector%E4%B8%A4%E7%99%BE%E4%B8%87%E5%90%91%E9%87%8F%E5%86%85%E5%85%8D%E8%B0%83%E4%BC%98-ef_search%E4%B8%8E%E8%A7%84%E6%A8%A1%E9%98%88%E5%80%BC.html">pgvector两百万向量内免调优-ef_search与规模阈值.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1401</td>
+<td style="text-align: right;">4139</td>
+</tr>
+<tr>
+<td>企业级搭建操作手册</td>
+<td><a href="%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E6%90%AD%E5%BB%BA%E5%85%A8%E6%B5%81%E7%A8%8B.html">企业级RAG搭建全流程.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">9513</td>
+<td style="text-align: right;">40291</td>
+</tr>
+<tr>
+<td>本地 Chroma 与云端 Zilliz 现状</td>
+<td><a href="%E5%90%91%E9%87%8F%E5%BA%93%E7%8E%B0%E7%8A%B6-Zilliz%E4%B8%8EChroma%E4%BD%8D%E7%BD%AE%E7%B4%A2%E5%BC%95.html">向量库现状-Zilliz与Chroma位置索引.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">298</td>
+<td style="text-align: right;">1705</td>
+</tr>
+<tr>
+<td>整本书与多期课件入库</td>
+<td><a href="%E6%95%B4%E6%9C%AC%E4%B9%A6%E4%B8%8E%E6%95%B4%E5%A5%97%E8%AF%BE%E4%BB%B6%E6%80%8E%E4%B9%88%E5%85%A5%E5%BA%93.html">整本书与整套课件怎么入库.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">4302</td>
+<td style="text-align: right;">12247</td>
+</tr>
+<tr>
+<td>知识库保鲜与 TTL</td>
+<td><a href="%E7%9F%A5%E8%AF%86%E5%BA%93%E4%BF%9D%E9%B2%9C%E4%B8%8ETTL%E6%B2%BB%E7%90%86.html">知识库保鲜与TTL治理.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">4471</td>
+<td style="text-align: right;">11497</td>
+</tr>
+<tr>
+<td>结构感知切分四件套</td>
+<td><a href="%E7%BB%93%E6%9E%84%E6%84%9F%E7%9F%A5%E5%88%87%E5%88%86%E6%98%AF%E5%88%86%E5%9D%97%E7%AC%AC%E4%B8%80%E6%9D%A0%E6%9D%86-%E5%9B%9B%E4%BB%B6%E5%A5%97%E6%96%B9%E6%B3%95%E8%AE%BA.html">结构感知切分是分块第一杠杆-四件套方法论.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2152</td>
+<td style="text-align: right;">5980</td>
+</tr>
+</tbody>
+</table>
+<h2 id="24-篇逐项去向与原始-sha-256">24 篇逐项去向与原始 SHA-256</h2>2
+<p>前 23 篇的 SHA-256 均从 <code>.fusion-work/original/</code> 实算，且清理前与当前正文逐篇一致。任务期间新增的向量库现状篇没有快照，明确标记 <code>NO_SNAPSHOT</code>，只记录当前文件 SHA，不冒充原始副本。</p>
+<table>
+<thead>
+<tr>
+<th>原文件</th>
+<th>处理</th>
+<th>唯一去向</th>
+<th>原始 SHA-256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01-RAG系统架构与生产落地.md</td>
+<td>保留；三段齐，指定来源段缺失</td>
+<td><a href="01-RAG%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E4%B8%8E%E7%94%9F%E4%BA%A7%E8%90%BD%E5%9C%B0.html">01-RAG系统架构与生产落地.md</a></td>
+<td><code>3649e545f9ebfd930670d55661adc830d4b0eb273e87f30f90558e79d7efb8f7</code></td>
+</tr>
+<tr>
+<td>Agentic-RAG与多模态RAG调研.md</td>
+<td>保留；三段齐，指定来源段缺失</td>
+<td><a href="Agentic-RAG%E4%B8%8E%E5%A4%9A%E6%A8%A1%E6%80%81RAG%E8%B0%83%E7%A0%94.html">Agentic-RAG与多模态RAG调研.md</a></td>
+<td><code>f895cd38580591c8d39c1da131bd2d55e9ddbcaa2616f1f1b6bf9743ba8d6c96</code></td>
+</tr>
+<tr>
+<td>Agentic-RAG六模式代码模板.md</td>
+<td>保留；三段齐，指定来源段缺失</td>
+<td><a href="Agentic-RAG%E5%85%AD%E6%A8%A1%E5%BC%8F%E4%BB%A3%E7%A0%81%E6%A8%A1%E6%9D%BF.html">Agentic-RAG六模式代码模板.md</a></td>
+<td><code>ff9ba5d651b4f857ff1abdb713aba961362e5e14a3a3e292978c8545f8b83174</code></td>
+</tr>
+<tr>
+<td>Chunk大小怎么选.md</td>
+<td>保留；三段齐，指定来源段缺失</td>
+<td><a href="Chunk%E5%A4%A7%E5%B0%8F%E6%80%8E%E4%B9%88%E9%80%89.html">Chunk大小怎么选.md</a></td>
+<td><code>ca983e9d4a294a94d70f623a6c019b6183024029a92ba8290d1c6d403c246c27</code></td>
+</tr>
+<tr>
+<td>Contextual-Retrieval官方方法-20261009.md</td>
+<td>保留；官方 prompt 与成本口径仍有独立内容</td>
+<td><a href="Contextual-Retrieval%E5%AE%98%E6%96%B9%E6%96%B9%E6%B3%95-20261009.html">Contextual-Retrieval官方方法-20261009.md</a></td>
+<td><code>5360c498be179e0050ef245a30536e9b900ce5aa6e5d5abca089654949279e94</code></td>
+</tr>
+<tr>
+<td>E5-RAG-Agentic化路线-20261026.md</td>
+<td>保留；产品版本情报未被完整接收</td>
+<td><a href="E5-RAG-Agentic%E5%8C%96%E8%B7%AF%E7%BA%BF-20261026.html">E5-RAG-Agentic化路线-20261026.md</a></td>
+<td><code>8103c390dff4988f7f2c6418ae86164cc3feed0534ea631e44152fa85a5093fe</code></td>
+</tr>
+<tr>
+<td>Embedding模型选型对比.md</td>
+<td>保留；模型横评与索引重建流程仍有独立内容</td>
+<td><a href="Embedding%E6%A8%A1%E5%9E%8B%E9%80%89%E5%9E%8B%E5%AF%B9%E6%AF%94.html">Embedding模型选型对比.md</a></td>
+<td><code>4e6919a00f6c2570af3ad703e23478c78a05947cdd318accbfa3a9e0b13dcaa8</code></td>
+</tr>
+<tr>
+<td>GraphRAG最小示例.md</td>
+<td>保留；三段齐，指定来源段缺失</td>
+<td><a href="GraphRAG%E6%9C%80%E5%B0%8F%E7%A4%BA%E4%BE%8B.html">GraphRAG最小示例.md</a></td>
+<td><code>3bbe47f50fb5d76281f3413f6cf7be3b7ed44f22f9894b2b505f55f5ea35a2db</code></td>
+</tr>
+<tr>
+<td>L4-RAG工程-课件实操.md</td>
+<td>保留；三段齐，指定来源段缺失</td>
+<td><a href="L4-RAG%E5%B7%A5%E7%A8%8B-%E8%AF%BE%E4%BB%B6%E5%AE%9E%E6%93%8D.html">L4-RAG工程-课件实操.md</a></td>
+<td><code>3a740547791e4b1942fee63215cff1b0077c2e5dd6ef9c375080643f4e0d1293</code></td>
+</tr>
+<tr>
+<td>LlamaIndex实操-节点分割器存储索引.md</td>
+<td>保留；课件总页明确跳转本专页，完整代码与实测未合并</td>
+<td><a href="LlamaIndex%E5%AE%9E%E6%93%8D-%E8%8A%82%E7%82%B9%E5%88%86%E5%89%B2%E5%99%A8%E5%AD%98%E5%82%A8%E7%B4%A2%E5%BC%95.html">LlamaIndex实操-节点分割器存储索引.md</a></td>
+<td><code>5911791c5e605589cbdc5fdc5f4dbb9273b4d86c6207819626d55cd781bcb380</code></td>
+</tr>
+<tr>
+<td>Milvus向量库白皮书-架构选型与案例.md</td>
+<td>保留；存算分离、读写分离与案例仍有独立内容</td>
+<td><a href="Milvus%E5%90%91%E9%87%8F%E5%BA%93%E7%99%BD%E7%9A%AE%E4%B9%A6-%E6%9E%B6%E6%9E%84%E9%80%89%E5%9E%8B%E4%B8%8E%E6%A1%88%E4%BE%8B.html">Milvus向量库白皮书-架构选型与案例.md</a></td>
+<td><code>fa5424ffb15e02f2869631d5ce3e57f05a96bfb8fab80e32e925135927d66fe0</code></td>
+</tr>
+<tr>
+<td>RAG和微调到底选哪个.md</td>
+<td>保留；组合决策、embedding 微调与 bad case 路线未完整接收</td>
+<td><a href="RAG%E5%92%8C%E5%BE%AE%E8%B0%83%E5%88%B0%E5%BA%95%E9%80%89%E5%93%AA%E4%B8%AA.html">RAG和微调到底选哪个.md</a></td>
+<td><code>51ce654829bc48cc6e1e04d7d5b59bbe6c441cc41a85f0b64c6544672981c22a</code></td>
+</tr>
+<tr>
+<td>RAG检索不准怎么排查.md</td>
+<td>保留；三段齐，指定来源段缺失</td>
+<td><a href="RAG%E6%A3%80%E7%B4%A2%E4%B8%8D%E5%87%86%E6%80%8E%E4%B9%88%E6%8E%92%E6%9F%A5.html">RAG检索不准怎么排查.md</a></td>
+<td><code>5f8677bbd0fb93e092bf113ecedcf14f604241f8c3857679103cf804a9a42f13</code></td>
+</tr>
+<tr>
+<td>RAG生产级架构最佳实践-2026.md</td>
+<td>保留；量化对照与排错未完整接收，且被 8 条 golden-q 标签引用</td>
+<td><a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践-2026.md</a></td>
+<td><code>3716b8e2f13830053c964e6f9c9bd3d953821470239ec3c3f02940bd104a5b0f</code></td>
+</tr>
+<tr>
+<td>RAG知识图谱标准与验证.md</td>
+<td>保留；三段齐，指定来源段缺失</td>
+<td><a href="RAG%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E6%A0%87%E5%87%86%E4%B8%8E%E9%AA%8C%E8%AF%81.html">RAG知识图谱标准与验证.md</a></td>
+<td><code>c2e7b0518a377dc9e91cfc36614b9892840125847bfdb18a9f018bb2c0f4ca95</code></td>
+</tr>
+<tr>
+<td>RAG行业标准与现状差距.md</td>
+<td>保留；三段齐，指定来源段缺失</td>
+<td><a href="RAG%E8%A1%8C%E4%B8%9A%E6%A0%87%E5%87%86%E4%B8%8E%E7%8E%B0%E7%8A%B6%E5%B7%AE%E8%B7%9D.html">RAG行业标准与现状差距.md</a></td>
+<td><code>f8be08c46b88129702998975d8814d89d43b3b050306756d86b89536d7e04ef6</code></td>
+</tr>
+<tr>
+<td>RAG评估怎么跑.md</td>
+<td>保留；三段齐，指定来源段缺失</td>
+<td><a href="RAG%E8%AF%84%E4%BC%B0%E6%80%8E%E4%B9%88%E8%B7%91.html">RAG评估怎么跑.md</a></td>
+<td><code>0853f13806276025681547499aace309c940dab0e1a81d3c7da25b60075d47e6</code></td>
+</tr>
+<tr>
+<td>RRF融合加重排解决检索短板-混合检索流水线.md</td>
+<td>保留；多 rewrite 合并与观测分工未完整接收</td>
+<td><a href="RRF%E8%9E%8D%E5%90%88%E5%8A%A0%E9%87%8D%E6%8E%92%E8%A7%A3%E5%86%B3%E6%A3%80%E7%B4%A2%E7%9F%AD%E6%9D%BF-%E6%B7%B7%E5%90%88%E6%A3%80%E7%B4%A2%E6%B5%81%E6%B0%B4%E7%BA%BF.html">RRF融合加重排解决检索短板-混合检索流水线.md</a></td>
+<td><code>af3fe10a9454410b84c85d50a9939fbf83b69153dfb91dcde1f31cb1e6882ccf</code></td>
+</tr>
+<tr>
+<td>pgvector两百万向量内免调优-ef_search与规模阈值.md</td>
+<td>保留；覆盖度高，但直接操作 SQL 未被接收</td>
+<td><a href="pgvector%E4%B8%A4%E7%99%BE%E4%B8%87%E5%90%91%E9%87%8F%E5%86%85%E5%85%8D%E8%B0%83%E4%BC%98-ef_search%E4%B8%8E%E8%A7%84%E6%A8%A1%E9%98%88%E5%80%BC.html">pgvector两百万向量内免调优-ef_search与规模阈值.md</a></td>
+<td><code>84bf04aeba2b3cc9175bd9c7728079ed9afbe00a7cf9d3051f06385d9b7b8971</code></td>
+</tr>
+<tr>
+<td>企业级RAG搭建全流程.md</td>
+<td>保留；字段实例、安全与固定验收细节未完整接收</td>
+<td><a href="%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E6%90%AD%E5%BB%BA%E5%85%A8%E6%B5%81%E7%A8%8B.html">企业级RAG搭建全流程.md</a></td>
+<td><code>09bbacd02f917cdbbb2bbd955baeb171627f3257d4cc4abb57945f8aab16b6df</code></td>
+</tr>
+<tr>
+<td>向量库现状-Zilliz与Chroma位置索引.md</td>
+<td>保留；任务期间并发新增，无原始快照，不删除</td>
+<td><a href="%E5%90%91%E9%87%8F%E5%BA%93%E7%8E%B0%E7%8A%B6-Zilliz%E4%B8%8EChroma%E4%BD%8D%E7%BD%AE%E7%B4%A2%E5%BC%95.html">向量库现状-Zilliz与Chroma位置索引.md</a></td>
+<td><code>NO_SNAPSHOT</code>；当前文件 SHA-256：<code>0863b46aa59f16f782560290ddbb59fbd0c2052e462e8df5798c67e0ec3c9093</code></td>
+</tr>
+<tr>
+<td>整本书与整套课件怎么入库.md</td>
+<td>保留；三段齐，指定来源段缺失</td>
+<td><a href="%E6%95%B4%E6%9C%AC%E4%B9%A6%E4%B8%8E%E6%95%B4%E5%A5%97%E8%AF%BE%E4%BB%B6%E6%80%8E%E4%B9%88%E5%85%A5%E5%BA%93.html">整本书与整套课件怎么入库.md</a></td>
+<td><code>4a8825f29bf857967ca7d54284f9ca5f9ab9bb19959d7d067a91052db1c4b787</code></td>
+</tr>
+<tr>
+<td>知识库保鲜与TTL治理.md</td>
+<td>保留；三段齐，指定来源段缺失</td>
+<td><a href="%E7%9F%A5%E8%AF%86%E5%BA%93%E4%BF%9D%E9%B2%9C%E4%B8%8ETTL%E6%B2%BB%E7%90%86.html">知识库保鲜与TTL治理.md</a></td>
+<td><code>a6297d49ef1f25bfe1c115093a658cd9e338c37a4e3ddb30cd434681cc69a1c8</code></td>
+</tr>
+<tr>
+<td>结构感知切分是分块第一杠杆-四件套方法论.md</td>
+<td>保留；四件套统一框架及量化证据未完整接收</td>
+<td><a href="%E7%BB%93%E6%9E%84%E6%84%9F%E7%9F%A5%E5%88%87%E5%88%86%E6%98%AF%E5%88%86%E5%9D%97%E7%AC%AC%E4%B8%80%E6%9D%A0%E6%9D%86-%E5%9B%9B%E4%BB%B6%E5%A5%97%E6%96%B9%E6%B3%95%E8%AE%BA.html">结构感知切分是分块第一杠杆-四件套方法论.md</a></td>
+<td><code>151590a68348e9c81daa19728b60f0c9a3bcb87d2dcb0d1d6bdae21a4c1595c4</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="后续拟收敛主归属与当前阻断">后续拟收敛主归属与当前阻断</h2>2
+<p>下表只记录后续若允许补写正文时的建议主归属，<strong>不是本次已经执行的合并去向</strong>。在独有内容迁入并重新验收前，不应删除左列文件。</p>
+<table>
+<thead>
+<tr>
+<th>保留文件</th>
+<th>后续建议主归属</th>
+<th>当前阻断</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>E5-RAG-Agentic化路线-20261026.md</td>
+<td>Agentic-RAG与多模态RAG调研.md</td>
+<td>RAGFlow、Agentic mode、Pipeline parser、MinerU 4 等版本情报未覆盖</td>
+</tr>
+<tr>
+<td>RAG和微调到底选哪个.md</td>
+<td>01-RAG系统架构与生产落地.md</td>
+<td>微调场景、组合决策、embedding 微调与标注对路线未覆盖</td>
+</tr>
+<tr>
+<td>RAG生产级架构最佳实践-2026.md</td>
+<td>01-RAG系统架构与生产落地.md</td>
+<td>量化对照、fix-order、排错未完整覆盖；8 条 golden-q 标签直接引用</td>
+</tr>
+<tr>
+<td>企业级RAG搭建全流程.md</td>
+<td>01-RAG系统架构与生产落地.md</td>
+<td>chunk 字段实例、索引侧注入防护与固定验收细节未覆盖</td>
+</tr>
+<tr>
+<td>RRF融合加重排解决检索短板-混合检索流水线.md</td>
+<td>01-RAG系统架构与生产落地.md</td>
+<td>多 rewrite 合并、原始文本重排与观测工具分工未覆盖</td>
+</tr>
+<tr>
+<td>pgvector两百万向量内免调优-ef_search与规模阈值.md</td>
+<td>Agentic-RAG与多模态RAG调研.md</td>
+<td><code>SET hnsw.ef_search</code> 与 halfvec 建表 SQL 未覆盖</td>
+</tr>
+<tr>
+<td>结构感知切分是分块第一杠杆-四件套方法论.md</td>
+<td>Chunk大小怎么选.md</td>
+<td>四件套统一框架及重复率、MRR 量化证据未覆盖</td>
+</tr>
+</tbody>
+</table>
+<h2 id="三源边界说明">三源边界说明</h2>2
+<ul>
+<li><strong>课件</strong>：指本地飞书课程文档、源码与课程笔记。正文引用课件不等于本次重新运行全部课程代码，也不把教学路径、账号或演示配置当生产默认。</li>
+<li><strong>书籍</strong>：指本地书籍重点笔记、目录与划线摘录；未把摘录声称为书籍全文，未见的案例背景和收益不补写成事实。</li>
+<li><strong>业内</strong>：指官方文档、官方仓库、arXiv 论文及带来源分层的行业调研。版本、性能和成本数字保留日期与场景，不外推为普遍保证。</li>
+<li>本次只核对文本是否出现来源和 arXiv ID，未联网复核每篇论文的真实性、论点支持关系或全部外链可访问性。</li>
+<li>24 篇均没有标题含「来源与三源融合落点」的文末段；因此即使正文已有课件、书籍、业内来源或 arXiv ID，也不能判该项通过。</li>
+</ul>
+<h2 id="验收记录">验收记录</h2>2
+<h3 id="三段标题与论文引用逐篇核对">三段标题与论文引用逐篇核对</h3>3
+<p>判定口径：独立标题以 <code>WHY：</code>、<code>WHAT：</code> 或 <code>WHYT：</code>、<code>HOW：</code> 开头；指定来源段必须是标题含「来源与三源融合落点」。arXiv ID 只统计明确写作 <code>arXiv:&lt;ID&gt;</code> 或 arXiv URL 的编号，不把普通日期数字误算为论文。</p>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th style="text-align: center;">WHY</th>
+<th style="text-align: center;">WHAT / WHYT</th>
+<th style="text-align: center;">HOW</th>
+<th style="text-align: center;">指定来源段</th>
+<th>arXiv ID 检出</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01-RAG系统架构与生产落地.md</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td>8 个，例 <code>2310.11511</code></td>
+</tr>
+<tr>
+<td>Agentic-RAG与多模态RAG调研.md</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td>7 个，例 <code>2501.09136</code></td>
+</tr>
+<tr>
+<td>Agentic-RAG六模式代码模板.md</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td>5 个，例 <code>2401.15884</code></td>
+</tr>
+<tr>
+<td>Chunk大小怎么选.md</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td>未检出</td>
+</tr>
+<tr>
+<td>Contextual-Retrieval官方方法-20261009.md</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>3 个，例 <code>2409.04701</code></td>
+</tr>
+<tr>
+<td>E5-RAG-Agentic化路线-20261026.md</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>未检出</td>
+</tr>
+<tr>
+<td>Embedding模型选型对比.md</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>未检出</td>
+</tr>
+<tr>
+<td>GraphRAG最小示例.md</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td>2 个，例 <code>2404.16130</code></td>
+</tr>
+<tr>
+<td>L4-RAG工程-课件实操.md</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td>1 个：<code>2410.05779</code></td>
+</tr>
+<tr>
+<td>LlamaIndex实操-节点分割器存储索引.md</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>未检出</td>
+</tr>
+<tr>
+<td>Milvus向量库白皮书-架构选型与案例.md</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>未检出</td>
+</tr>
+<tr>
+<td>RAG和微调到底选哪个.md</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>1 个：<code>2604.01733</code></td>
+</tr>
+<tr>
+<td>RAG检索不准怎么排查.md</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td>7 个，例 <code>2005.11401</code></td>
+</tr>
+<tr>
+<td>RAG生产级架构最佳实践-2026.md</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>3 个，例 <code>2402.03216</code></td>
+</tr>
+<tr>
+<td>RAG知识图谱标准与验证.md</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td>24 个，例 <code>2404.16130</code></td>
+</tr>
+<tr>
+<td>RAG行业标准与现状差距.md</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td>5 个，例 <code>2309.15217</code></td>
+</tr>
+<tr>
+<td>RAG评估怎么跑.md</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td>1 个：<code>2604.01733</code></td>
+</tr>
+<tr>
+<td>RRF融合加重排解决检索短板-混合检索流水线.md</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>1 个：<code>2604.01733</code></td>
+</tr>
+<tr>
+<td>pgvector两百万向量内免调优-ef_search与规模阈值.md</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>未检出</td>
+</tr>
+<tr>
+<td>企业级RAG搭建全流程.md</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>12 个，例 <code>2005.11401</code></td>
+</tr>
+<tr>
+<td>向量库现状-Zilliz与Chroma位置索引.md</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>未检出</td>
+</tr>
+<tr>
+<td>整本书与整套课件怎么入库.md</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td>4 个，例 <code>2504.19754</code></td>
+</tr>
+<tr>
+<td>知识库保鲜与TTL治理.md</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td>2 个，例 <code>2506.03401</code></td>
+</tr>
+<tr>
+<td>结构感知切分是分块第一杠杆-四件套方法论.md</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>2 个，例 <code>2608.00824</code></td>
+</tr>
+</tbody>
+</table>
+<p>汇总：独立 WHY / WHAT(WHYT) / HOW 三段齐全 <strong>12/24</strong>；指定「来源与三源融合落点」段 <strong>0/24</strong>；明确 arXiv ID <strong>17/24</strong>。论文 ID 检出不是引用质量通过。</p>
+<h3 id="未达标篇目清单诚实保留未补写正文">未达标篇目清单（诚实保留，未补写正文）</h3>3
+<p><strong>三段齐、但指定来源段缺失（12 篇）</strong>：</p>
+<ol>
+<li>01-RAG系统架构与生产落地.md</li>
+<li>Agentic-RAG与多模态RAG调研.md</li>
+<li>Agentic-RAG六模式代码模板.md</li>
+<li>Chunk大小怎么选.md</li>
+<li>GraphRAG最小示例.md</li>
+<li>L4-RAG工程-课件实操.md</li>
+<li>RAG检索不准怎么排查.md</li>
+<li>RAG知识图谱标准与验证.md</li>
+<li>RAG行业标准与现状差距.md</li>
+<li>RAG评估怎么跑.md</li>
+<li>整本书与整套课件怎么入库.md</li>
+<li>知识库保鲜与TTL治理.md</li>
+</ol>
+<p><strong>三段与指定来源段均缺失（12 篇）</strong>：</p>
+<ol>
+<li>Contextual-Retrieval官方方法-20261009.md</li>
+<li>E5-RAG-Agentic化路线-20261026.md</li>
+<li>Embedding模型选型对比.md</li>
+<li>LlamaIndex实操-节点分割器存储索引.md</li>
+<li>Milvus向量库白皮书-架构选型与案例.md</li>
+<li>RAG和微调到底选哪个.md</li>
+<li>RAG生产级架构最佳实践-2026.md</li>
+<li>RRF融合加重排解决检索短板-混合检索流水线.md</li>
+<li>pgvector两百万向量内免调优-ef_search与规模阈值.md</li>
+<li>企业级RAG搭建全流程.md</li>
+<li>向量库现状-Zilliz与Chroma位置索引.md</li>
+<li>结构感知切分是分块第一杠杆-四件套方法论.md</li>
+</ol>
+<h3 id="删除确认与快照清理">删除确认与快照清理</h3>3
+<ul>
+<li>独立只读复审对原拟删方案给出 <code>REQUEST_CHANGES</code>；本次采纳复核意见，未把“主题重叠”当作“完整替代”。<strong>正文删除确认：0 篇；24 篇均保留。</strong></li>
+<li>原拟删 7 篇均有实质独有内容未接收；生产架构篇另有 Q001、Q002、Q003、Q006、Q028、Q030、Q042、Q043 共 8 条 golden-q 来源标签，删除会破坏评测来源。</li>
+<li>清理前 23 个快照文件与当前对应正文 SHA-256 全部一致；并发新增的向量库现状篇无快照，已单独标记。</li>
+<li><code>.fusion-work</code> 删除状态：<strong>未删除（阻塞）</strong>。<code>rm -rf</code> 与非强制 <code>rm -r</code> 均被 PreToolUse 安全钩子拦截；未改用其他命令绕过，未修改钩子配置。因此“快照已删”验收项未通过。</li>
+<li>本任务不创建 <code>.bak</code> 或其他备份副本；快照清理后只保留上表 SHA-256 作为来源追溯记录。</li>
+</ul>
+<h2 id="本库真实落地">本库真实落地</h2>2
+<blockquote>
+<p>本节核对 2026-11-04，逐条 <code>os.path.exists</code> 核验路径、逐字比对代码块（可 grep 复核）。范围仅限"本篇的验收清单在这套 RAG 里对应哪几个真文件"，不复述正文。</p>
+</blockquote>
+<ul>
+<li><strong>26 篇正文的验收证据落在这里</strong>：<code>rag/eval/</code> 下 9 份报告（<code>统一评测报告-20261028.md</code>、<code>baseline-report-20261010.md</code>、<code>B1-生成层双件验证报告-20261021.md</code>、<code>S5验收报告-20261021.md</code>、<code>contextual-ab-test-20261010.md</code> 等）＋评测脚本 20 余个；总地图"四之一知识层"B 类登记的就是这批资产。</li>
+<li><strong>评测口径分三层，别混用</strong>（三层各对应一个脚本）：<br />
+  | 层 | 脚本 | 测什么 | 本案证据 |<br />
+  |---|---|---|---|<br />
+  | 检索层 | <code>rag/eval/eval_recall_fast.py</code> | 单进程复用模型，调 <code>retrieve_hybrid()</code>/<code>_multi_hop_retrieve()</code> | 与旧版 <code>eval_recall.py</code> 的差别写在 docstring：旧版每题 subprocess 拉起一次 <code>query.py</code>，56 次重复加载 |<br />
+  | 端到端层 | <code>rag/eval/_e2e_eval.py</code> | 直接调 <code>retrieve_node</code>/<code>rerank_node</code>，报 rerank 之后的最终召回 | docstring：<em>"本脚本直接调用真实的 query.retrieve_node / query.rerank_node"</em><br />
+  | 生成层 | <code>rag/eval/eval_gen_5metrics.py</code> / <code>rag/eval_ragas.py</code> | Faithfulness、Answer Relevancy 等 RAGAS 五指标 | 五指标共用一份 (answer, contexts) 缓存，避免每题跑五次生成 |</li>
+<li><strong>golden 集就是验收基准，当前 56 条（本次直接读 <code>rag/eval/golden-q.jsonl</code> 计数）</strong>：A 类 26、B 类 15、C 类 10、负例 5（<code>is_no_answer: true</code>，Q052–Q056，Django ORM / Spring <code>@Transactional</code> / K8s Ingress / Neo4j Cypher / Snowflake —— 全部是本库没有的技术，用来验拒答）。</li>
+<li><strong>评测信度有个必须说清的坑（<code>rag/eval/_sweep_ablation.py</code> 文件头，逐字）</strong>：<br />
+<code>text
+  _sweep_boost.py 发现: 生产顺序(baseline) R@1=7.8%/R@5=58.8%, 远低于裸RRF的
+  51%/82.4%。</code><br />
+  即"检索能力"和"生产链路的最终排序"差一个量级，验收只看裸 RRF 数字会严重高估本库。</li>
+<li><strong>和本篇清单的关系</strong>：清单核对的是"文档够不够、内容重不重叠"，评测核对的是"检索答得准不准"，两件事互不替代——本次 L4 复审恰恰证明文档层面 0 篇可删，而检索层面仍有短板。</li>
+</ul>
+<h2 id="收口">收口</h2>2
+<p>本次完成的是“补维护清单、诚实记录未达标、清理临时快照”，不是正文三源融合本身。三段和指定来源段缺口仍需后续在允许修改正文时处理；独有内容未迁移前，不应按拟收敛表删除保留篇。<br />
+未重建总入口、能力图谱或 RAG 索引，未修改评测标签，未执行外部模型、云端向量库或付费 API 实验。</p>
+<p>完成凭据：<code>receipt declare</code> 被已知开放门禁 <code>gate:steps-json-evidence-mtime-stale</code> 拦截（审查证据 mtime 早于 reviewed_at）；未伪造证据时间，未运行 <code>verify</code>，本任务无全绿完成凭据。</p></div></body></html>

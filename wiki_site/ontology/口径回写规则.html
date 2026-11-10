@@ -1,0 +1,166 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>口径回写规则</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 口径回写规则</span></div><div class="wrap"><h1 id="ontology-口径回写规则">ontology 口径回写规则</h1>
+<blockquote>
+<p>目的：代码常量变了，ontology 术语表的「我们的口径」字段必须同步回写，否则查术语会得到与代码事实矛盾的答案。</p>
+</blockquote>
+<h2 id="触发条件任一命中即回写">触发条件（任一命中即回写）</h2>2
+<ol>
+<li>修改 <code>rag/ingest.py</code> / <code>rag/query.py</code> 中的检索、分块、精排、改写相关常量。</li>
+<li>重新灌库（embeddings 条数变化）。</li>
+<li>新增/删除 metadata 字段，或字段填充率变化。</li>
+</ol>
+<h2 id="必须回写的常量清单实测锚点">必须回写的常量清单（实测锚点）</h2>2
+<table>
+<thead>
+<tr>
+<th>常量</th>
+<th>文件</th>
+<th>当前值</th>
+<th>对应术语条目</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>COLLECTION</code></td>
+<td>ingest.py:40</td>
+<td><code>wuyafang_kb</code></td>
+<td>Hybrid Retrieval</td>
+</tr>
+<tr>
+<td><code>BGE_VERSION</code></td>
+<td>ingest.py:44</td>
+<td><code>bge-m3-hier-v2</code></td>
+<td>Contextual Retrieval</td>
+</tr>
+<tr>
+<td><code>CHUNK_SIZE</code></td>
+<td>ingest.py:48</td>
+<td><code>384</code>（<code>RAG_CHUNK_SIZE</code> 可覆盖）</td>
+<td>Hierarchical Chunking</td>
+</tr>
+<tr>
+<td><code>CHUNK_OVERLAP</code></td>
+<td>ingest.py:49</td>
+<td><code>80</code>（<code>RAG_CHUNK_OVERLAP</code> 可覆盖）</td>
+<td>Hierarchical Chunking</td>
+</tr>
+<tr>
+<td><code>TOP_K</code></td>
+<td>query.py:36</td>
+<td><code>4</code></td>
+<td>Reranker</td>
+</tr>
+<tr>
+<td><code>RERANK_TOP_N</code></td>
+<td>query.py:41</td>
+<td><code>10</code></td>
+<td>Reranker</td>
+</tr>
+<tr>
+<td><code>RERANK_THRESHOLD</code></td>
+<td>query.py:42</td>
+<td><code>0.45</code></td>
+<td>Reranker</td>
+</tr>
+<tr>
+<td><code>REWRITE_TIMEOUT</code> / <code>REWRITE_DAILY_LIMIT</code> / <code>REWRITE_CACHE_DIR</code></td>
+<td>query.py:56-58</td>
+<td>常量在，但 <code>rewrite_query()</code> 直接 return None → 改写/HyDE 关闭</td>
+<td>HyDE</td>
+</tr>
+<tr>
+<td><code>DENSE_TOP_N</code></td>
+<td>query.py:130</td>
+<td><code>20</code></td>
+<td>Hybrid Retrieval</td>
+</tr>
+<tr>
+<td><code>SPARSE_TOP_N</code></td>
+<td>query.py:131</td>
+<td><code>20</code></td>
+<td>Hybrid Retrieval</td>
+</tr>
+<tr>
+<td>向量库条数</td>
+<td>chroma.sqlite3 <code>embeddings</code></td>
+<td><code>6033</code></td>
+<td>Hybrid Retrieval / Source Tier</td>
+</tr>
+<tr>
+<td><code>source_tier</code> 填充率</td>
+<td>chroma <code>embedding_metadata</code></td>
+<td><code>0%</code>（值全为 NULL）</td>
+<td>Source Tier</td>
+</tr>
+<tr>
+<td><code>parent_text</code></td>
+<td>ingest.py 写入、query.py:440-446/484/536-538 读取</td>
+<td>链路已通，收益未做端到端基准</td>
+<td>Hierarchical Chunking</td>
+</tr>
+</tbody>
+</table>
+<h2 id="回写步骤">回写步骤</h2>2
+<ol>
+<li><code>cp -a 术语表-&lt;X&gt;.md 术语表-&lt;X&gt;.md.bak.口径修正-$(date +%Y%m%d-%H%M%S)</code></li>
+<li>只改「我们的口径」及其紧跟的过时陈述，<strong>不改定义 / conflict_status / 关系标注 / 章节顺序，不删条目</strong>。</li>
+<li><code>diff -u 备份 新文件</code> 贴出证据。</li>
+<li>核对字段计数未变：<code>grep -c '定义\|我们的口径\|conflict_status\|关系标注'</code>，并确认每个 <code>##</code> 术语卡都有 <code>conflict_status</code>。</li>
+<li>每条口径数字必须来自当次实测输出，不许写「预计 / 应为」。</li>
+</ol>
+<h2 id="诚实表述要求">诚实表述要求</h2>2
+<ul>
+<li>代码链路存在 ≠ 效果已验证。未跑端到端基准的能力，写「代码链路已通，收益待验证」，不写「已完成」。</li>
+<li>字段存在 ≠ 字段有值。必须同时给出<strong>填充率</strong>。</li>
+<li>开关状态不明时，先读代码确认再写；确认不了就写「开关状态未确认」，不猜。</li>
+</ul>
+<h2 id="边界">边界</h2>2
+<ul>
+<li>不改 <code>raw/</code>、<code>wiki/</code> 任何文件。</li>
+<li>不改 <code>rag/</code> 下任何文件（只读参考）。</li>
+<li>不改抽炼模板 / 字段结构 / 章节顺序。</li>
+</ul></div></body></html>

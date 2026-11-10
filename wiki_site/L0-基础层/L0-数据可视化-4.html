@@ -1,0 +1,467 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L0-数据可视化-4</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L0-数据可视化-4</span></div><div class="wrap"><h1 id="数据可视化体系四从业务问题到可交付图表">数据可视化体系（四）：从业务问题到可交付图表</h1>
+<h2 id="why">WHY</h2>2
+<h3 id="1-为什么可视化必须从业务问题走向可复核交付">1. 为什么可视化必须从业务问题走向可复核交付</h3>3
+<p>可视化项目的成果不是“成功画出一张图”，而是读者能够准确理解数据、复核指标，并据此做出合理判断。完整流程包含问题定义、数据契约、清洗、聚合、图型选择、视觉编码、文字解释和交付核验。任何一步发生偏差，都可能得到技术上能运行、业务上却误导的结果。例如，取消订单混入销售额，会让促销日表现虚高；把金额缺失填零，会制造不存在的低客单价；只展示总额而忽略工作日数量，会把月份天数差异解释为增长。</p>
+<p>本篇提供图型选择决策、配色与可访问性规范，并实现一个完全离线、可复现的销售分析案例。示例使用 NumPy 生成模拟交易，使用 Pandas 清洗和聚合，再用 Matplotlib 与 Seaborn 绘图。模拟数据便于学习处理方法，但案例结论不能当成真实企业的经营证据。正式项目应替换数据来源，同时保留口径、校验和解释流程。</p>
+<p>如果只学习绘图接口而跳过分析契约与交付核验，图表越精美，错误口径反而越容易传播。因此，本篇先明确“算什么、何时用什么图”，再给出可以照做、可以核对、可以复现的完整实施链路。</p>
+<h2 id="what-whyt">WHAT / WHYT</h2>2
+<h3 id="2-先定义分析契约">2. 先定义分析契约</h3>3
+<h4 id="从问题到可计算指标">从问题到可计算指标</h4>
+<p>在写绘图代码前先写一句完整的问题：“在同一统计期间内，哪些渠道的已完成订单净销售额更高，变化来自订单数量还是客单价？”这句话限定了时间范围、订单状态、分析维度和解释方向。接着定义观察单位是一张订单，销售额是数量乘单价再减折扣后的金额。若一张订单有多行商品明细，必须先明确按订单聚合，避免订单量被明细行数放大。</p>
+<table>
+<thead>
+<tr>
+<th>契约项</th>
+<th>本案例定义</th>
+<th>正式项目需补充</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>观察单位</td>
+<td>每行一张订单</td>
+<td>多行订单的去重与归并规则</td>
+</tr>
+<tr>
+<td>时间口径</td>
+<td>订单创建日期，按自然月</td>
+<td>时区、结算时间、迟到数据</td>
+</tr>
+<tr>
+<td>销售额</td>
+<td>数量乘单价乘一减折扣</td>
+<td>税费、退款、汇率和收入确认</td>
+</tr>
+<tr>
+<td>有效订单</td>
+<td>状态为 <code>completed</code></td>
+<td>部分退款与取消的处理方式</td>
+</tr>
+<tr>
+<td>客单价</td>
+<td>销售额除有效订单数</td>
+<td>订单编号是否跨系统重复</td>
+</tr>
+<tr>
+<td>缺失类别</td>
+<td>保留为 <code>Unknown</code></td>
+<td>追溯来源并评估偏差</td>
+</tr>
+</tbody>
+</table>
+<p>指标命名应包含必要单位。图上写“销售额”时，纵轴还要注明元、万元或其他币种。百分数需要说明分母，是全部订单、有效订单，还是某个渠道内部订单。涉及同比或环比时，比较区间应具有相近的覆盖程度，未结束月份不能直接与完整月份比较。</p>
+<pre><code class="language-mermaid">flowchart TD
+    A[提出业务问题] --&gt; B[声明观察单位]
+    B --&gt; C[定义有效数据范围]
+    C --&gt; D[明确指标公式与单位]
+    D --&gt; E[清洗并记录剔除原因]
+    E --&gt; F[聚合并校验总量]
+    F --&gt; G[选择图型与配色]
+    G --&gt; H[写出证据支持的解读]
+    H --&gt; I[导出复核与归档]
+</code></pre>
+<h3 id="3-图型选择决策树">3. 图型选择决策树</h3>3
+<h4 id="先看数据类型再看分析目的">先看数据类型，再看分析目的</h4>
+<p>同一组数值可以画成直方图、折线图或箱线图，但这些图回答不同的问题。时间序列关心顺序和变化，分布图关心集中程度和尾部，分类图关心组间差异。图型选择应由问题决定，不能因为某种图好看就把数据硬套进去。</p>
+<pre><code class="language-mermaid">flowchart TD
+    A[数据类型与任务] --&gt; B{是否有时间顺序}
+    B --&gt;|有，观察趋势| C[折线图或面积图]
+    B --&gt;|无或不关注时间| D{比较对象是什么}
+    D --&gt;|类别与数值| E[条形图或点图]
+    D --&gt;|单个连续变量| F[直方图或密度图]
+    D --&gt;|多个组的分布| G[箱线图或小提琴图]
+    D --&gt;|两个连续变量| H[散点图]
+    D --&gt;|二维网格| I[热力图]
+    D --&gt;|部分与整体| J[百分比堆叠条形图]
+    H --&gt; K{点是否严重重叠}
+    K --&gt;|是| L[透明度 抽样或六边形分箱]
+    K --&gt;|否| M[增加类别形状或趋势线]
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>输入类型</th>
+<th>主要问题</th>
+<th>推荐图型</th>
+<th>常见误用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>时间加数值</td>
+<td>趋势、季节性、突变</td>
+<td>折线图</td>
+<td>时间未排序就连接</td>
+</tr>
+<tr>
+<td>类别加汇总值</td>
+<td>排名、差距</td>
+<td>水平条形图</td>
+<td>类别太多仍用饼图</td>
+</tr>
+<tr>
+<td>连续数值</td>
+<td>偏态、集中、长尾</td>
+<td>直方图、密度图</td>
+<td>不报告分箱规则</td>
+</tr>
+<tr>
+<td>类别加原始数值</td>
+<td>分布差异</td>
+<td>箱线图、散点叠加</td>
+<td>只用均值柱状图隐藏差异</td>
+</tr>
+<tr>
+<td>两个连续数值</td>
+<td>关联与离群</td>
+<td>散点图</td>
+<td>把相关性写成因果关系</td>
+</tr>
+<tr>
+<td>两个类别加数值</td>
+<td>二维强弱结构</td>
+<td>热力图</td>
+<td>多张图使用不同色域却直接比较</td>
+</tr>
+<tr>
+<td>类别占比</td>
+<td>组成变化</td>
+<td>百分比堆叠条形图</td>
+<td>混用不同分母</td>
+</tr>
+</tbody>
+</table>
+<p>饼图并非绝对不能用，但类别应少，比例差异明显，且总和确实代表完整整体。精确比较细小差异时，条形图更容易读数。三维柱状图通常会引入遮挡和透视失真，业务报告中优先使用二维表达。双轴图需要特别谨慎，因为改变两个轴的范围就可能让无关曲线看起来同步；优先考虑上下对齐的两个子图。</p>
+<h3 id="4-配色体系与可访问性">4. 配色体系与可访问性</h3>3
+<h4 id="三种颜色语义">三种颜色语义</h4>
+<p>定性色用于无序类别，例如渠道和地区；顺序色用于从小到大的数量，例如销售额；发散色用于存在有意义中点的数值，例如相对预算的正负偏差。不能用随机彩虹色带表达连续金额，因为视觉明暗不一定与数值大小对应。对于相关系数，固定范围为负一到一并把零设为中心，读者才能在不同图之间比较。</p>
+<table>
+<thead>
+<tr>
+<th>语义</th>
+<th>示例配色</th>
+<th>适用对象</th>
+<th>约束</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>定性</td>
+<td><code>colorblind</code> 或固定字典</td>
+<td>渠道、产品、地区</td>
+<td>同类跨图保持同色</td>
+</tr>
+<tr>
+<td>顺序</td>
+<td><code>viridis</code>、<code>YlGnBu</code></td>
+<td>销售规模、频次</td>
+<td>高低关系对应明确明暗变化</td>
+</tr>
+<tr>
+<td>发散</td>
+<td><code>RdBu_r</code>、<code>vlag</code></td>
+<td>盈亏、偏差、相关性</td>
+<td>必须明确中点与两端范围</td>
+</tr>
+<tr>
+<td>强调</td>
+<td>灰色背景加单个强调色</td>
+<td>异常月份、重点渠道</td>
+<td>强调必须对应分析目的</td>
+</tr>
+</tbody>
+</table>
+<p>可访问性不能只依赖“选择色盲友好调色板”。折线图应增加点形、线型或直接标签；柱状图可以标注关键数值；热力图应保留颜色条和单位。图表在黑白打印时也要能够区分类别。文本与背景要有足够对比，不能把浅灰小字放在白底上，再认为它只是辅助信息。图例的含义应该可以通过文字完整理解，而不是写成“红色部分表现较好”。</p>
+<pre><code class="language-mermaid">flowchart LR
+    A[识别字段语义] --&gt; B{类别还是连续数值}
+    B --&gt;|类别| C[稳定的定性颜色字典]
+    B --&gt;|连续且有中点| D[发散色带并固定中心]
+    B --&gt;|连续无中点| E[顺序色带]
+    C --&gt; F[增加形状线型和直接标签]
+    D --&gt; F
+    E --&gt; F
+    F --&gt; G[灰度检查与目标尺寸检查]
+</code></pre>
+<h2 id="how">HOW</h2>2
+<h3 id="5-运行配色示例让颜色与形状共同编码">5. 运行配色示例：让颜色与形状共同编码</h3>3
+<pre><code class="language-python">import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+data = pd.DataFrame({&quot;month&quot;: np.tile(np.arange(1, 7), 2),
+                     &quot;channel&quot;: np.repeat([&quot;Online&quot;, &quot;Store&quot;], 6),
+                     &quot;revenue&quot;: [80, 92, 89, 110, 120, 124,
+                                 75, 78, 84, 83, 92, 98]})
+palette = {&quot;Online&quot;: &quot;#0072B2&quot;, &quot;Store&quot;: &quot;#D55E00&quot;}
+fig, axis = plt.subplots(figsize=(7, 4))
+sns.lineplot(data=data, x=&quot;month&quot;, y=&quot;revenue&quot;, hue=&quot;channel&quot;,
+             style=&quot;channel&quot;, markers=True, dashes=True,
+             palette=palette, estimator=None, ax=axis)
+axis.set(xlabel=&quot;Month&quot;, ylabel=&quot;Revenue (thousand)&quot;)
+fig.tight_layout()
+plt.show()
+</code></pre>
+<p>这段示例通过颜色与形状同时标识渠道，因此即使读者无法分辨两种颜色，也可以利用标记读取曲线。正式项目把颜色字典放在统一配置位置，避免不同分析人员各自为同一渠道分配颜色。</p>
+<h3 id="6-销售分析完整案例">6. 销售分析完整案例</h3>3
+<h4 id="第一步生成数据并引入可追踪的质量问题">第一步：生成数据并引入可追踪的质量问题</h4>
+<p>下面代码是一个完整脚本。保存运行后会在 <code>sales_visualization_output</code> 中生成清洗数据、指标表和三种格式的分析图。代码不依赖网络，随机种子固定，图中使用英文标签以便在没有中文字体的机器上运行。正文解释采用中文，正式中文报告可按目标环境安装并配置字体。</p>
+<pre><code class="language-python">from pathlib import Path
+import json
+import numpy as np
+import pandas as pd
+import matplotlib
+matplotlib.use(&quot;Agg&quot;)
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+rng = np.random.default_rng(20261029)
+order_count = 1200
+orders = pd.DataFrame({
+    &quot;order_id&quot;: [f&quot;ORD-{index:05d}&quot; for index in range(order_count)],
+    &quot;order_date&quot;: pd.Timestamp(&quot;2026-01-01&quot;) + pd.to_timedelta(
+        rng.integers(0, 181, order_count), unit=&quot;D&quot;),
+    &quot;region&quot;: rng.choice([&quot;East&quot;, &quot;West&quot;, &quot;North&quot;, &quot;South&quot;], order_count),
+    &quot;channel&quot;: rng.choice([&quot;Online&quot;, &quot;Store&quot;], order_count, p=[0.6, 0.4]),
+    &quot;quantity&quot;: rng.integers(1, 8, order_count),
+    &quot;unit_price&quot;: np.round(rng.lognormal(4.2, 0.4, order_count), 2),
+    &quot;discount&quot;: rng.choice([0.0, 0.05, 0.10, 0.15], order_count),
+    &quot;status&quot;: rng.choice([&quot;completed&quot;, &quot;cancelled&quot;], order_count, p=[0.94, 0.06]),
+})
+orders.loc[5, &quot;region&quot;] = None
+orders.loc[12, &quot;unit_price&quot;] = np.nan
+orders.loc[20, &quot;quantity&quot;] = -1
+raw = pd.concat([orders, orders.iloc[[3, 8]]], ignore_index=True)
+
+# 第二步：清洗，并以订单编号作为唯一性边界。
+duplicate_count = int(raw.duplicated(&quot;order_id&quot;).sum())
+clean = raw.drop_duplicates(&quot;order_id&quot;, keep=&quot;first&quot;).copy()
+clean[&quot;order_date&quot;] = pd.to_datetime(clean[&quot;order_date&quot;], errors=&quot;coerce&quot;)
+for column in [&quot;quantity&quot;, &quot;unit_price&quot;, &quot;discount&quot;]:
+    clean[column] = pd.to_numeric(clean[column], errors=&quot;coerce&quot;)
+clean[&quot;region&quot;] = clean[&quot;region&quot;].fillna(&quot;Unknown&quot;)
+valid_mask = (
+    clean[&quot;order_date&quot;].notna()
+    &amp; clean[&quot;quantity&quot;].gt(0)
+    &amp; clean[&quot;unit_price&quot;].gt(0)
+    &amp; clean[&quot;discount&quot;].between(0, 1)
+)
+invalid_count = int((~valid_mask).sum())
+valid = clean.loc[valid_mask].copy()
+completed = valid.loc[valid[&quot;status&quot;].eq(&quot;completed&quot;)].copy()
+completed[&quot;net_sales&quot;] = (
+    completed[&quot;quantity&quot;] * completed[&quot;unit_price&quot;]
+    * (1 - completed[&quot;discount&quot;])
+).round(2)
+completed[&quot;month&quot;] = completed[&quot;order_date&quot;].dt.to_period(&quot;M&quot;).astype(str)
+
+# 第三步：生成业务聚合，并保留分母。
+monthly = completed.groupby(&quot;month&quot;, as_index=False).agg(
+    sales=(&quot;net_sales&quot;, &quot;sum&quot;), orders=(&quot;order_id&quot;, &quot;nunique&quot;)
+)
+monthly[&quot;average_order_value&quot;] = monthly[&quot;sales&quot;] / monthly[&quot;orders&quot;]
+region = completed.groupby(&quot;region&quot;, as_index=False).agg(
+    sales=(&quot;net_sales&quot;, &quot;sum&quot;), orders=(&quot;order_id&quot;, &quot;nunique&quot;)
+).sort_values(&quot;sales&quot;, ascending=False)
+month_order = pd.period_range(&quot;2026-01&quot;, &quot;2026-06&quot;, freq=&quot;M&quot;).astype(str)
+region_order = [&quot;East&quot;, &quot;West&quot;, &quot;North&quot;, &quot;South&quot;, &quot;Unknown&quot;]
+matrix = completed.pivot_table(index=&quot;region&quot;, columns=&quot;month&quot;,
+                                values=&quot;net_sales&quot;, aggfunc=&quot;sum&quot;)
+matrix = matrix.reindex(index=region_order, columns=month_order)
+assert completed[&quot;order_id&quot;].is_unique
+assert np.isclose(monthly[&quot;sales&quot;].sum(), completed[&quot;net_sales&quot;].sum())
+assert np.isclose(region[&quot;sales&quot;].sum(), completed[&quot;net_sales&quot;].sum())
+assert monthly[&quot;orders&quot;].sum() == len(completed)
+
+# 第四步：四张图分别回答趋势、排名、分布与结构问题。
+sns.set_theme(style=&quot;whitegrid&quot;, context=&quot;notebook&quot;)
+palette = {&quot;Online&quot;: &quot;#0072B2&quot;, &quot;Store&quot;: &quot;#D55E00&quot;}
+fig, axes = plt.subplots(2, 2, figsize=(14, 10), layout=&quot;constrained&quot;)
+sns.lineplot(data=monthly, x=&quot;month&quot;, y=&quot;sales&quot;, marker=&quot;o&quot;,
+             estimator=None, color=&quot;#0072B2&quot;, ax=axes[0, 0])
+axes[0, 0].set(title=&quot;Monthly net sales&quot;, xlabel=&quot;Month&quot;, ylabel=&quot;Sales (CNY)&quot;)
+axes[0, 0].tick_params(axis=&quot;x&quot;, rotation=30)
+sns.barplot(data=region, x=&quot;sales&quot;, y=&quot;region&quot;, color=&quot;#009E73&quot;,
+            errorbar=None, ax=axes[0, 1])
+axes[0, 1].set(title=&quot;Regional ranking&quot;, xlabel=&quot;Sales (CNY)&quot;, ylabel=&quot;Region&quot;)
+sns.boxplot(data=completed, x=&quot;channel&quot;, y=&quot;net_sales&quot;, hue=&quot;channel&quot;,
+            palette=palette, legend=False, ax=axes[1, 0])
+axes[1, 0].set(title=&quot;Order value distribution&quot;, xlabel=&quot;Channel&quot;,
+               ylabel=&quot;Order net sales (CNY)&quot;)
+sns.heatmap(matrix, mask=matrix.isna(), cmap=&quot;YlGnBu&quot;, annot=True,
+            fmt=&quot;.0f&quot;, cbar_kws={&quot;label&quot;: &quot;Sales (CNY)&quot;}, ax=axes[1, 1])
+axes[1, 1].set(title=&quot;Region and month&quot;, xlabel=&quot;Month&quot;, ylabel=&quot;Region&quot;)
+fig.suptitle(&quot;Sales review: completed orders, January–June 2026&quot;, fontsize=16)
+
+# 第五步：保存数据、证据和图形，关闭画布。
+output = Path(&quot;sales_visualization_output&quot;)
+output.mkdir(exist_ok=True)
+completed.to_csv(output / &quot;clean_completed_orders.csv&quot;, index=False)
+monthly.to_csv(output / &quot;monthly_metrics.csv&quot;, index=False)
+region.to_csv(output / &quot;regional_metrics.csv&quot;, index=False)
+audit = {
+    &quot;raw_rows&quot;: len(raw),
+    &quot;duplicate_rows_removed&quot;: duplicate_count,
+    &quot;invalid_rows_removed&quot;: invalid_count,
+    &quot;valid_noncompleted_rows&quot;: len(valid) - len(completed),
+    &quot;completed_orders&quot;: len(completed),
+    &quot;net_sales_cny&quot;: round(float(completed[&quot;net_sales&quot;].sum()), 2),
+    &quot;amount_rounding&quot;: &quot;round each order to 2 decimals, then sum&quot;,
+}
+(output / &quot;audit.json&quot;).write_text(
+    json.dumps(audit, ensure_ascii=False, indent=2), encoding=&quot;utf-8&quot;)
+for extension in [&quot;png&quot;, &quot;svg&quot;, &quot;pdf&quot;]:
+    fig.savefig(output / f&quot;sales_dashboard.{extension}&quot;, dpi=180,
+                bbox_inches=&quot;tight&quot;, facecolor=&quot;white&quot;)
+plt.close(fig)
+print(monthly.round(2).to_string(index=False))
+print(json.dumps(audit, ensure_ascii=False, indent=2))
+</code></pre>
+<h4 id="第二步的关键解释不要让清洗规则偷偷改变业务">第二步的关键解释：不要让清洗规则偷偷改变业务</h4>
+<p>示例把完全重复的订单编号保留第一条，仅适合这里明确构造的重复副本。真实业务中，同一订单编号可能对应状态更新、支付分次或不同商品明细，因此必须先比较冲突字段，再根据更新时间和业务规则确定保留记录。直接执行 <code>drop_duplicates</code> 可能丢失有效退款或修订信息。</p>
+<p>金额缺失和负数量被记录为无效后排除，地区缺失则保留在未知类别中。两种处理的理由不同：没有金额无法可靠计算销售额，而地区未知不影响该订单的销售额总量。不能为了让图形看起来整齐就把未知地区整行删除，否则总额和渠道分析也会受到影响。若无效比例很高，应停止业务解读并修复数据来源。</p>
+<p>代码按每张订单保留两位小数后汇总，这是明确的教学口径。实际财务系统可能使用整数分或十进制定点数，以避免浮点计算的舍入差异。正式对账应采用业务账本一致的金额类型和舍入顺序，不能仅凭 <code>np.isclose</code> 就认定财务核对完成。</p>
+<h4 id="第三步的关键解释总额订单量和客单价一起看">第三步的关键解释：总额、订单量和客单价一起看</h4>
+<p>销售额上升可能来自订单数量增加，也可能来自客单价提高。月度表同时保存三个指标，便于用“销售额等于订单量乘客单价”进行拆解。比较渠道时也应报告有效订单数，因为大量低金额订单和少量高金额订单可能产生相近总额，但运营策略完全不同。</p>
+<p>热力图保留没有观测记录的空白，不自动把它填成零。这里不知道某地区某月是否营业完整，也没有覆盖日历表，因此不能声称缺失就是零销售。正式项目应结合门店营业日历、渠道上线日期和数据采集状态，只有确认完整覆盖且没有交易时才能填零。</p>
+<h4 id="第四步的关键解释如何写可靠结论">第四步的关键解释：如何写可靠结论</h4>
+<p>趋势图首先描述哪几个月较高或较低，然后结合月度表区分订单数与客单价的贡献。地区排名只能说明本期有效订单的销售规模，不能直接说明地区经营效率，因为人口、门店数、投入和营业天数尚未控制。箱线图描述订单金额分布，不能把较高的箱体自动解释为利润更高，因为案例没有成本字段。</p>
+<p>每条解读建议使用“观察事实、支持指标、解释边界、下一步核查”的结构。例如：某渠道订单金额中位数较高，箱线图与分位数表支持这一观察；但渠道客户构成可能不同，应进一步按客户类型或产品组合比较。不要编造促销、季节、天气等数据中没有的信息。示例中的随机波动尤其不能写成真实经营规律。</p>
+<h3 id="7-最佳实践清单">7. 最佳实践清单</h3>3
+<h4 id="数据与统计检查">数据与统计检查</h4>
+<ul>
+<li>写明时间范围、时区、观察单位、过滤规则和指标公式，并记录数据提取时间。</li>
+<li>核验唯一键、缺失值、类型、异常范围及分组样本量，保留清洗数量与原因。</li>
+<li>保证汇总表与原始有效数据的总量一致，核对占比总和与百分比的分母。</li>
+<li>对分箱数量、异常值处理和尺度选择做敏感性检查，避免结论依赖单个参数。</li>
+<li>区分置信区间、标准差和预测区间；时间序列与重复测量不能随意当作独立样本。</li>
+</ul>
+<h4 id="视觉与文字检查">视觉与文字检查</h4>
+<ul>
+<li>柱状图一般从零开始，若截断坐标轴必须显著说明；折线图可按任务调整范围，但不能隐藏范围变化。</li>
+<li>同一个维度保持顺序、颜色和单位一致，多图比较时固定有意义的色域和坐标尺度。</li>
+<li>标题说明对象与期间，轴标签说明单位，图注交代过滤规则及缺失处理。</li>
+<li>保留必要上下文，避免装饰遮挡数据，减少没有分析作用的网格、阴影和三维效果。</li>
+<li>在实际导出尺寸下检查字号、图例、文字裁切和颜色区分，不只在交互窗口检查。</li>
+</ul>
+<h4 id="可复现与交付检查">可复现与交付检查</h4>
+<p>项目应保留依赖版本、随机种子、输入快照标识、运行脚本、指标表和导出文件。图形生成与数据清洗尽量放在同一个可执行流程中，避免手工修改表格后忘记重新绘图。若报告需要长期更新，应把颜色、类别排序和指标公式集中管理，并在数据字段变化时给出清晰失败信息。</p>
+<h3 id="8-常见错误与排错">8. 常见错误与排错</h3>3
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>常见原因</th>
+<th>排查与处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>中文显示为方框</td>
+<td>缺少字体或字体名错误</td>
+<td>列出本机字体，选择实际存在且许可合适的中文字体</td>
+</tr>
+<tr>
+<td>保存的图是空白</td>
+<td>保存时引用错误画布或已关闭</td>
+<td>用创建时保存的 <code>fig</code> 导出，保存后再关闭</td>
+</tr>
+<tr>
+<td>折线回折或顺序异常</td>
+<td>日期是字符串或数据未排序</td>
+<td>先转日期，再按时间排序；检查重复时间点</td>
+</tr>
+<tr>
+<td>柱状图数值与总额不一致</td>
+<td>默认均值聚合与业务求和不同</td>
+<td>先在 Pandas 明确聚合，再关闭不需要的估计行为</td>
+</tr>
+<tr>
+<td>同一渠道颜色变化</td>
+<td>每张图自行分配颜色</td>
+<td>使用固定颜色字典和类别顺序</td>
+</tr>
+<tr>
+<td>密度曲线出现负金额</td>
+<td>核平滑越过自然边界</td>
+<td>设置 <code>cut=0</code>，必要时改直方图并说明边界偏差</td>
+</tr>
+<tr>
+<td>热力图空白或全零</td>
+<td>透视字段错误或误填缺失</td>
+<td>检查透视前行数、矩阵类型、缺失与零的语义</td>
+</tr>
+<tr>
+<td>文件很大或批处理内存增长</td>
+<td>点太多、分辨率过高、画布未关闭</td>
+<td>使用合理抽样或聚合，保存后关闭画布</td>
+</tr>
+<tr>
+<td>SVG 中字体与本机不同</td>
+<td>阅读环境没有对应字体</td>
+<td>按交付要求选择文字转路径或提供允许分发的字体</td>
+</tr>
+<tr>
+<td>对数轴报错或缺点</td>
+<td>数据含零或负值</td>
+<td>检查业务含义，不能为画图随意加常数</td>
+</tr>
+</tbody>
+</table>
+<p>排错应该先检查输入数据和口径，再检查绘图参数。若某地区销售额突然变为零，先确认数据采集和筛选条件，而不是立即更换色带。若代码升级后出现警告，阅读对应版本的官方迁移说明，确认默认统计方式是否改变。屏蔽警告不能替代修复，也不应在教程中把弃用接口继续包装成推荐用法。</p>
+<h3 id="9-交付复核小结">9. 交付复核小结</h3>3
+<p>可视化体系的价值在于建立可复核的分析链路。图型选择围绕问题与数据类型，配色服务于语义和可访问性，代码明确清洗与聚合口径，文字只陈述数据能够支持的结论。销售案例展示了从模拟原始交易到审计记录、指标表和多格式图形的完整流程。把这些步骤固化后，每次更新都能减少人为漂移，让读者同时获得清晰图形和可信依据。</p>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li><strong>[业1] 业内</strong>：本篇的绘图接口、统计聚合、数据处理和随机模拟分别对照 Matplotlib、Seaborn、Pandas 与 NumPy 官方文档，落点为图型选择、颜色语义、离线销售案例、质量校验和多格式交付。</li>
+<li>Matplotlib 官方文档：https://matplotlib.org/stable/</li>
+<li>Seaborn 官方文档：https://seaborn.pydata.org/</li>
+<li>Pandas 官方文档：https://pandas.pydata.org/docs/</li>
+<li>NumPy 官方文档：https://numpy.org/doc/stable/</li>
+</ul>
+<p>参考官方文档：<a href="https://matplotlib.org/stable/users/index.html">Matplotlib 用户指南</a>、<a href="https://seaborn.pydata.org/tutorial.html">Seaborn 教程</a>、<a href="https://pandas.pydata.org/docs/user_guide/index.html">Pandas 用户指南</a>。维护日期：2026-10-29；依赖升级后重新验证图像与聚合结果。</p></div></body></html>

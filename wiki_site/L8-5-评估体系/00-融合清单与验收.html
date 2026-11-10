@@ -1,0 +1,373 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>00-融合清单与验收</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 00-融合清单与验收</span></div><div class="wrap"><h1 id="l8-5-三源融合主题收敛替换与验收记录">L8-5 三源融合：主题收敛、替换与验收记录</h1>
+<p>本文件为维护清单，不是第五篇主题正文。10 篇旧文按主题收敛为 4 篇唯一正文；本次只补清单并删除旧散篇，没有生成、重写或修改已有正文。<br />
+三源为本地课件、书籍目录/简介/划线摘录、公开官方文档及业内论文。未把目录或摘录声称为书籍全文，也未把本地论文摘要声称为全文复现实验。<br />
+只写 <code>wiki/L8-5-评估体系</code> 下的本清单并处理本目录旧散篇与 <code>.fusion-work</code>；未修改 raw、ontology、其他层、RAG 索引或 HTML 产物。</p>
+<h2 id="主题收敛与字数">主题收敛与字数</h2>2
+<p>汉字数：去掉 frontmatter 和 fenced code 后，统计 Unicode U+4E00—U+9FFF；非空白字符：全文含元数据、代码、标点。以下为写入本清单前的正文实算值。</p>
+<table>
+<thead>
+<tr>
+<th>主题</th>
+<th>唯一正文</th>
+<th style="text-align: right;">合并旧篇数</th>
+<th style="text-align: right;">正文汉字数</th>
+<th style="text-align: right;">全文非空白字符</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>通用基准与 Evals</td>
+<td><a href="01-%E9%80%9A%E7%94%A8%E5%9F%BA%E5%87%86%E4%B8%8EEvals.html">01-通用基准与Evals.md</a></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">2457</td>
+<td style="text-align: right;">5522</td>
+</tr>
+<tr>
+<td>RAG 三层评估与数据集</td>
+<td><a href="02-RAG%E4%B8%89%E5%B1%82%E8%AF%84%E4%BC%B0%E4%B8%8E%E6%95%B0%E6%8D%AE%E9%9B%86.html">02-RAG三层评估与数据集.md</a></td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2402</td>
+<td style="text-align: right;">5838</td>
+</tr>
+<tr>
+<td>RAGAS 核心指标</td>
+<td><a href="03-RAGAS%E6%A0%B8%E5%BF%83%E6%8C%87%E6%A0%87.html">03-RAGAS核心指标.md</a></td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">2196</td>
+<td style="text-align: right;">5992</td>
+</tr>
+<tr>
+<td>生产 CI 与线上评估</td>
+<td><a href="04-%E7%94%9F%E4%BA%A7CI%E4%B8%8E%E7%BA%BF%E4%B8%8A%E8%AF%84%E4%BC%B0.html">04-生产CI与线上评估.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2420</td>
+<td style="text-align: right;">5724</td>
+</tr>
+</tbody>
+</table>
+<p>“合并”指主题级收敛与唯一入口归并，不表示旧文全部细节逐句无损搬运。原始 SHA-256 只用于识别来源内容，不能用于恢复旧文。</p>
+<h2 id="10-篇逐项去向与删除清单">10 篇逐项去向与删除清单</h2>2
+<p>以下 SHA-256 均从 <code>.fusion-work/original/</code> 的同名副本实算，并与 <code>.fusion-work/original-sha256.txt</code> 记录一致。删除前另已确认 10 篇当前旧文件均与各自快照哈希一致。</p>
+<table>
+<thead>
+<tr>
+<th>原文件</th>
+<th>处理</th>
+<th>唯一去向</th>
+<th>原始 SHA-256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L8-5-测评基准-C-Eval.md</td>
+<td>删除旧散篇</td>
+<td><a href="01-%E9%80%9A%E7%94%A8%E5%9F%BA%E5%87%86%E4%B8%8EEvals.html">01-通用基准与Evals.md</a></td>
+<td><code>1fce25135aa33de56e9b2f8af05fcbdb7ea2af12a8574cdb7ebddb3621fc04fa</code></td>
+</tr>
+<tr>
+<td>L8-5-测评基准-MMLU-CMMLU.md</td>
+<td>删除旧散篇</td>
+<td><a href="01-%E9%80%9A%E7%94%A8%E5%9F%BA%E5%87%86%E4%B8%8EEvals.html">01-通用基准与Evals.md</a></td>
+<td><code>aa2e34d4a8fda632165c9b48125f7661bae5bd84e98dd4c780a20a8dab8eee09</code></td>
+</tr>
+<tr>
+<td>LLM评估体系-Evals-2026.md</td>
+<td>删除旧散篇</td>
+<td><a href="01-%E9%80%9A%E7%94%A8%E5%9F%BA%E5%87%86%E4%B8%8EEvals.html">01-通用基准与Evals.md</a></td>
+<td><code>3cc0a90768d692e9916ddef6d4d011fae39b79e0428e0d08cdac127659cf7a2e</code></td>
+</tr>
+<tr>
+<td>L8-5-评估体系-最佳答案.md</td>
+<td>删除旧散篇</td>
+<td><a href="01-%E9%80%9A%E7%94%A8%E5%9F%BA%E5%87%86%E4%B8%8EEvals.html">01-通用基准与Evals.md</a></td>
+<td><code>dbc918dbc802ad258ea9da4cf66f4f1e1e0e207d9c9ecc0987673a4e9ca2ffed</code></td>
+</tr>
+<tr>
+<td>RAG评测三层方法论-20261009.md</td>
+<td>删除旧散篇</td>
+<td><a href="02-RAG%E4%B8%89%E5%B1%82%E8%AF%84%E4%BC%B0%E4%B8%8E%E6%95%B0%E6%8D%AE%E9%9B%86.html">02-RAG三层评估与数据集.md</a></td>
+<td><code>da0952c6ab55fff431a7a98ba6dc8532ca0ae49d731a0a44440ee61bb6e1cf37</code></td>
+</tr>
+<tr>
+<td>RAG管线现状与阈值标定.md</td>
+<td>删除旧散篇</td>
+<td><a href="02-RAG%E4%B8%89%E5%B1%82%E8%AF%84%E4%BC%B0%E4%B8%8E%E6%95%B0%E6%8D%AE%E9%9B%86.html">02-RAG三层评估与数据集.md</a></td>
+<td><code>e2555f7fb2a3a037203f02048bd579eaab503e8bd6b1be4ce4dac14f8d18f7ee</code></td>
+</tr>
+<tr>
+<td>RAGAS三层评测落地-指标原理与代码实战-20261030.md</td>
+<td>删除旧散篇</td>
+<td><a href="03-RAGAS%E6%A0%B8%E5%BF%83%E6%8C%87%E6%A0%87.html">03-RAGAS核心指标.md</a></td>
+<td><code>dcac0aa56e7ef2fd144c8cd99e8a9d9c74c390c9cba1ff4301d4f3da9535b1aa</code></td>
+</tr>
+<tr>
+<td>RAGAS-Faithfulness深度-生成层忠实度的原理局限与本库实测-20261102.md</td>
+<td>删除旧散篇</td>
+<td><a href="03-RAGAS%E6%A0%B8%E5%BF%83%E6%8C%87%E6%A0%87.html">03-RAGAS核心指标.md</a></td>
+<td><code>b8a693e9f47011347ff8b5b28ac8db45a34a1070c561c0b5c3e43f07f9db25a0</code></td>
+</tr>
+<tr>
+<td>RAGAS-AnswerCorrectness深度-端到端评测的构成口径与reference建设-20261102.md</td>
+<td>删除旧散篇</td>
+<td><a href="03-RAGAS%E6%A0%B8%E5%BF%83%E6%8C%87%E6%A0%87.html">03-RAGAS核心指标.md</a></td>
+<td><code>c3620297f81068ecf7c1406f0e16e7ef63ce04805c63b7906bb8ef344e4b8223</code></td>
+</tr>
+<tr>
+<td>RAGAS生产级评估-CI集成与线上流量评估-20261030.md</td>
+<td>删除旧散篇</td>
+<td><a href="04-%E7%94%9F%E4%BA%A7CI%E4%B8%8E%E7%BA%BF%E4%B8%8A%E8%AF%84%E4%BC%B0.html">04-生产CI与线上评估.md</a></td>
+<td><code>e64e7e134bbad910d5ce4571096f4164b66bee64805bfbc9db1d0ea5fa927749</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="三源边界说明">三源边界说明</h2>2
+<ul>
+<li><strong>课件</strong>：用于评估分层、指标输入、工具链与反馈闭环的本地课程背景；历史 API 和调用示例不因此成为当前版本已验证事实。</li>
+<li><strong>书籍</strong>：只使用本地目录、简介和热门划线；用于任务卡、质量内建、持续反馈、badcase 回流等结构，不声称读过或复核书籍全文。</li>
+<li><strong>业内与论文</strong>：官方文档、固定版本源码和公开作者原文用于协议及实现边界；arXiv 条目用于标明论文来源。新正文明确区分原始论文指标、RAGAS 库后续扩展和本库工程框架。</li>
+<li><strong>证据边界</strong>：4 篇新正文中的模型评测、RAGAS 官方库调用、CI、影子评估及线上实验示例均未因本次收尾而获得新的实跑凭据；本次只做只读结构核对、字数/哈希计算和文件收尾。</li>
+<li><strong>独立复审</strong>：删除方案经独立只读复审，10→4 映射、验收口径、快照条件和删除范围均无阻塞项；复审未修改文件。</li>
+</ul>
+<h2 id="逐篇结构指定来源段与论文验收删除前">逐篇结构、指定来源段与论文验收（删除前）</h2>2
+<p>“指定来源段”专指独立标题「来源与三源融合落点」，不是泛指文中任何普通来源列表。三段必须有独立 WHY、WHAT 或 WHYT、HOW 标题。</p>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>独立 WHY</th>
+<th>独立 WHAT / WHYT</th>
+<th>独立 HOW</th>
+<th>指定来源段</th>
+<th>文中 arXiv ID</th>
+<th>判定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01-通用基准与Evals.md</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td>有，含课件/书籍/业内</td>
+<td>2009.03300；2305.08322；2306.09213；2610.22187；2610.22333</td>
+<td>达标，保留</td>
+</tr>
+<tr>
+<td>02-RAG三层评估与数据集.md</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td>有，含课件/书籍/业内</td>
+<td>2309.15217；2610.23845；2610.31606</td>
+<td>达标，保留</td>
+</tr>
+<tr>
+<td>03-RAGAS核心指标.md</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td>有，含课件/书籍/业内</td>
+<td>2309.15217；2610.22187；2610.31467</td>
+<td>达标，保留</td>
+</tr>
+<tr>
+<td>04-生产CI与线上评估.md</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td>有，含课件/书籍/业内</td>
+<td>2610.22333；2610.23845</td>
+<td>达标，保留</td>
+</tr>
+<tr>
+<td>L8-5-测评基准-C-Eval.md</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>2009.03300；2305.08322；2306.09212</td>
+<td>未达标，删除</td>
+</tr>
+<tr>
+<td>L8-5-测评基准-MMLU-CMMLU.md</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>2009.03300；2305.08322；2306.09212</td>
+<td>未达标，删除</td>
+</tr>
+<tr>
+<td>L8-5-评估体系-最佳答案.md</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td>无</td>
+<td>2604.01733</td>
+<td>未达标，删除</td>
+</tr>
+<tr>
+<td>LLM评估体系-Evals-2026.md</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>2604.01733</td>
+<td>未达标，删除</td>
+</tr>
+<tr>
+<td>RAGAS-AnswerCorrectness深度-端到端评测的构成口径与reference建设-20261102.md</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>2309.15217</td>
+<td>未达标，删除</td>
+</tr>
+<tr>
+<td>RAGAS-Faithfulness深度-生成层忠实度的原理局限与本库实测-20261102.md</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>2309.15217</td>
+<td>未达标，删除</td>
+</tr>
+<tr>
+<td>RAGAS三层评测落地-指标原理与代码实战-20261030.md</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td>无</td>
+<td>无</td>
+<td>未达标，删除</td>
+</tr>
+<tr>
+<td>RAGAS生产级评估-CI集成与线上流量评估-20261030.md</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>未达标，删除</td>
+</tr>
+<tr>
+<td>RAG管线现状与阈值标定.md</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>无</td>
+<td>2604.01733</td>
+<td>未达标，删除</td>
+</tr>
+<tr>
+<td>RAG评测三层方法论-20261009.md</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td>无</td>
+<td>2309.15217</td>
+<td>未达标，删除</td>
+</tr>
+</tbody>
+</table>
+<p>汇总：保留的 4/4 篇三段、指定三源来源段和 arXiv 引用齐全；旧文 3/10 三段齐全、7/10 三段不齐，10/10 均缺指定「来源与三源融合落点」段。这里的“未达标”只针对本单结构与来源段口径，不否定旧文可能含有的普通来源记录。</p>
+<h3 id="未达标篇目清单">未达标篇目清单</h3>3
+<ul>
+<li><strong>三段不齐，且缺指定来源段（7 篇）</strong>：<code>L8-5-测评基准-C-Eval.md</code>、<code>L8-5-测评基准-MMLU-CMMLU.md</code>、<code>LLM评估体系-Evals-2026.md</code>、<code>RAGAS-AnswerCorrectness深度-端到端评测的构成口径与reference建设-20261102.md</code>、<code>RAGAS-Faithfulness深度-生成层忠实度的原理局限与本库实测-20261102.md</code>、<code>RAGAS生产级评估-CI集成与线上流量评估-20261030.md</code>、<code>RAG管线现状与阈值标定.md</code>。</li>
+<li><strong>三段齐全，但缺指定来源段（3 篇）</strong>：<code>L8-5-评估体系-最佳答案.md</code>、<code>RAGAS三层评测落地-指标原理与代码实战-20261030.md</code>、<code>RAG评测三层方法论-20261009.md</code>。</li>
+<li>按要求未自行补写或修改上述旧正文；它们均由表中唯一正文进行主题级取代。保留的 4 篇正文没有未达标项。</li>
+</ul>
+<h2 id="正文保护与删除确认">正文保护与删除确认</h2>2
+<p>四篇保留正文在执行删除前的 SHA-256：</p>
+<table>
+<thead>
+<tr>
+<th>唯一正文</th>
+<th>删除前 SHA-256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01-通用基准与Evals.md</td>
+<td><code>82afb9c4bea63b548116c967c9da459cc333115b46914975a978645b455f5369</code></td>
+</tr>
+<tr>
+<td>02-RAG三层评估与数据集.md</td>
+<td><code>daef0091532ce7572bb2b074439aec782da325977c7b9f877acb7fd214cf3a65</code></td>
+</tr>
+<tr>
+<td>03-RAGAS核心指标.md</td>
+<td><code>cfec6386dc8bf53720afd4940b1b4a89220c590aa85dba96fc5d7feffb90f550</code></td>
+</tr>
+<tr>
+<td>04-生产CI与线上评估.md</td>
+<td><code>0c7ca19ffcd4109230a99dd64574a99672a22db6981c2bb1e75b21ddfc2a15fb</code></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>[x] 删除前 10/10 同名原始副本存在，且当前旧文与对应快照逐一哈希一致。</li>
+<li>[x] 10 篇旧散篇已删除，4 篇唯一正文与本维护清单保留。</li>
+<li>[x] <code>.fusion-work</code> 整个目录已删除，未留下原始副本。</li>
+<li>[x] 未创建或遗留 <code>.bak</code> / 备份副本；既有 <code>.claude/logs/tool_audit.log</code> 不属于本单清理对象。</li>
+<li>[x] 删除后四篇正文 SHA-256 与上表一致，证明本次收尾未修改正文。</li>
+</ul>
+<h2 id="目录外引用影响">目录外引用影响</h2>2
+<p>只读扫描 wiki、raw、ontology 后，检出 16 个目录外 Markdown 文件仍提及被删除旧文件名；本单边界禁止修改这些文件，因此它们是已知残留，<strong>不宣称全库链接通过</strong>。后续可按“10 篇逐项去向”表统一换链；本次未重建入口、RAG 或图谱。</p>
+<ul>
+<li><code>wiki/00-知识库总入口.md</code>：提及全部 10 篇旧文。</li>
+<li><code>wiki/AI应用工程师能力知识图谱-终版-20261014.md</code>、<code>wiki/CONVERT-INVENTORY-20261030.md</code>、<code>wiki/L1-软件工程/LLM生产化实战-2026.md</code>：含相关旧文引用。</li>
+<li><code>wiki/L4-RAG工程/RAG评估怎么跑.md</code>、<code>wiki/L4-RAG工程/RAG行业标准与现状差距.md</code>：含三层方法论或阈值标定旧文引用。</li>
+<li><code>raw/_task_orders/总地图.md</code>、<code>raw/_task_orders/RAG下一步优化计划-20261026.md</code>：含深度篇或阈值标定旧文引用。</li>
+<li><code>raw/fullstack/2026全栈交付案例-Nextjs-Supabase-Vercel.md</code>、<code>raw/practice/notes-20261023/知识图谱重构方案-修订版-三份大纲结合-20261023.md</code>：含相关旧文引用。</li>
+<li><code>raw/rag-arch/RAG基线评测-20261013.md</code>、<code>raw/rag-arch/RAG知识网-WHY-WHAT-HOW-20261014.md</code>：含相关旧文引用。</li>
+<li>既有历史备份中的 4 个文件也含旧名：<code>wiki/.bak-linksources-20261030/L4-RAG工程/RAG行业标准与现状差距.md</code>、<code>wiki/.bak-linksources-20261030/L8-5-评估体系/RAGAS三层评测落地-指标原理与代码实战-20261030.md</code>、<code>wiki/.bak-linksources-20261030/L8-5-评估体系/RAG评测三层方法论-20261009.md</code>、<code>wiki/.bak-linksources-20261030/L9-全栈工程/LLM生产监控与Eval观测.md</code>。它们不是本任务创建的备份，不在授权删除范围内。</li>
+</ul>
+<h2 id="收口">收口</h2>2
+<p>最终目标状态为 4 篇主题正文加 1 篇维护清单，共 5 篇顶层 Markdown；10 篇旧散篇及 <code>.fusion-work</code> 均不存在。删除后实际复核结果以上方勾选项和本次验收命令输出为准。</p></div></body></html>

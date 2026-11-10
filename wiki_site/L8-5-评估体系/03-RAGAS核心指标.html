@@ -1,0 +1,219 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>03-RAGAS核心指标</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 03-RAGAS核心指标</span></div><div class="wrap"><h1 id="ragas-核心指标faithfulnessanswer-relevancy-与-answer-correctness">RAGAS 核心指标：Faithfulness、Answer Relevancy 与 Answer Correctness</h1>
+<blockquote>
+<p>本篇是本层“RAGAS 核心指标”的唯一正文。源码口径核对到 <strong>RAGAS v0.3.9</strong>，不把它冒充为以后所有版本的不变行为。文中教学数值用于验证公式，不是本库生产实测；官方库调用示例未实跑。</p>
+</blockquote>
+<h2 id="why为什么一个答案质量分不够">WHY：为什么一个“答案质量分”不够</h2>2
+<p>RAG 回答可能“每句话都能在材料中找到依据，却完全没回答用户问题”，也可能“答到了主题，却遗漏了决定性条件”，还可能“整体语义接近参考答案，但把日期或否定词写反”。一个总分会掩盖这些相反故障。</p>
+<p>三个常用指标分别回答：</p>
+<ul>
+<li><strong>Faithfulness</strong>：回答中的可核查陈述是否受给定上下文支持。</li>
+<li><strong>Answer Relevancy</strong>：回答是否对准原问题，而不是只追求形式上像答案。</li>
+<li><strong>Answer Correctness</strong>：相对 reference，答案在事实与语义上有多正确。</li>
+</ul>
+<p>三者需要联合使用。Faithfulness 高不代表没有漏答；Relevancy 高不代表事实正确；Correctness 高也不自动证明答案只使用了给定材料。评估的目的不是追求“三个都接近 1”的展示图，而是定位具体故障、发现指标失效样本并推动修复。</p>
+<p>如果裁判抽取失败返回空列表，再把空列表默认记成满分，最差的系统输出反而可能得到最高忠实度。如果裁判异常被静默记为 0，则基础设施故障会被误判成模型回归。因此，<strong>状态处理与公式本身同等重要</strong>。</p>
+<h2 id="what-whyt指标口径来源与不能回答的问题">WHAT / WHYT：指标口径、来源与不能回答的问题</h2>2
+<h3 id="1-faithfulness支持率不是完整性和材料真理性">1. Faithfulness：支持率，不是完整性和材料真理性</h3>3
+<p>在 v0.3.9 的典型流程中，系统先把答案拆成可核查陈述，再让裁判逐条判断是否由上下文支持。教学化表达为：</p>
+<p>[<br />
+Faithfulness = \frac{\text{受上下文支持的陈述数}}{\text{全部可核查陈述数}}<br />
+]</p>
+<p>边界必须写清：</p>
+<ul>
+<li>看不到遗漏：回答只说了材料中的一半事实，也可能全部受支持。</li>
+<li>不验证材料本身：材料过时或错误时，“忠实于材料”不等于现实正确。</li>
+<li>不等于拒答质量：合理拒答、空答案和不可解析输出要按任务策略单独标注。</li>
+<li>受拆分与裁判影响：陈述粒度、上下文截断、裁判提示和尺度都会改变结果。</li>
+</ul>
+<p>本库旧稿曾记录历史自写实现的缺陷：裁判抽取失败返回空列表后可能记为 <code>1.0</code>，以及上下文截断、空输出误判。历史出现的 28.1%、47.0% 等数字因此<strong>不能当成官方 RAGAS 可直接比较的基线</strong>，本篇也不复用它们证明当前质量。</p>
+<h3 id="2-answer-relevancy对题程度不是事实正确性">2. Answer Relevancy：对题程度，不是事实正确性</h3>3
+<p>v0.3.9 的实现思路是依据答案生成若干候选问题，再比较它们与原问题的语义相似度，并处理 noncommittal 等情况。它适合发现答非所问、绕开问题或空泛回答。</p>
+<p>但它不能证明回答中的事实为真：一个错误答案也可能与原问题非常相关。向量模型、生成问题数量和裁判失败都要进入运行记录，不能只留最后的浮点数。</p>
+<h3 id="3-answer-correctness事实-f1-与语义相似度的组合">3. Answer Correctness：事实 F1 与语义相似度的组合</h3>3
+<p>在 v0.3.9 源码中，该指标把事实部分与语义相似度组合，默认 <code>weights=[0.75, 0.25]</code>。教学化表达：</p>
+<p>[<br />
+F1_{fact} = \frac{2TP}{2TP+FP+FN}<br />
+]</p>
+<p>[<br />
+Correctness = 0.75 \times F1_{fact} + 0.25 \times Similarity<br />
+]</p>
+<p>其中 TP/FP/FN 来自答案与 reference 的事实项比对，不是检索结果的 TP/FP/FN。默认权重来自该版本库源码，<strong>不是原始 RAGAS 论文规定的普适常数</strong>。</p>
+<p>还要特别区分来源：Answer Correctness 是 RAGAS 库后续扩展指标，不是原始论文 arXiv:2309.15217 最初提出的三个无参考指标之一。它需要 <code>reference</code>，不能与无参考的 Faithfulness 混用数据契约。</p>
+<h3 id="4-论文怎么说我们怎么用">4. 论文怎么说，我们怎么用</h3>3
+<p><strong>临床摘要语义对齐（arXiv:2610.31467）</strong>。本地摘要报告：研究涉及 4500 条摘要；grounding constraints 改善临床对齐，但对遗漏的影响依模型而变，且可读性存在代价。证据边界是本地摘要，不声称复现其临床实验。</p>
+<p>我们的用法：Faithfulness 必须与遗漏率、不确定性保持和可读性联合评估。对高风险摘要增加“必需事实覆盖率”和人工复核，不因支持率提高就自动发布；把“更 grounded 但更难读”作为真实 trade-off 报告。</p>
+<p><strong>评分尺度敏感性（arXiv:2610.22187）</strong>。本地摘要提示归一化分和类别会随尺度设计变化。我们的用法是固定裁判提示与尺度，用人工标注的正负双端样本校准；换尺度时做配对敏感性分析，不能直接比较两种尺度下的绝对分。</p>
+<h2 id="how先保证状态正确再接入官方指标">HOW：先保证状态正确，再接入官方指标</h2>2
+<h3 id="第一步用可测的确定性函数明确公式和空输入行为">第一步：用可测的确定性函数明确公式和空输入行为</h3>3
+<pre><code class="language-python">import math
+
+
+def safe_ratio(numerator, denominator):
+    return numerator / denominator if denominator else math.nan
+
+
+def faithfulness_from_verdicts(verdicts):
+    if not verdicts:
+        return math.nan
+    if any(v not in (0, 1) for v in verdicts):
+        raise ValueError(&quot;verdict 只能是 0 或 1&quot;)
+    return sum(verdicts) / len(verdicts)
+
+
+def factual_f1(tp, fp, fn):
+    if min(tp, fp, fn) &lt; 0:
+        raise ValueError(&quot;TP/FP/FN 不能为负&quot;)
+    return safe_ratio(2 * tp, 2 * tp + fp + fn)
+
+
+def correctness_from_counts(tp, fp, fn, similarity):
+    if not 0.0 &lt;= similarity &lt;= 1.0:
+        raise ValueError(&quot;similarity 必须位于 [0, 1]&quot;)
+    fact_score = factual_f1(tp, fp, fn)
+    if not math.isfinite(fact_score):
+        return math.nan
+    return 0.75 * fact_score + 0.25 * similarity
+</code></pre>
+<p>教学例：<code>verdicts=[1,1,0]</code> 得 Faithfulness=<code>0.666666...</code>；<code>tp=3, fp=1, fn=1, similarity=0.8</code> 时事实 F1=<code>0.75</code>，Correctness=<code>0.7625</code>。这些只是公式单元测试值，不是模型或本库生产结果。</p>
+<p>空 verdicts 返回 <code>NaN</code> 是刻意设计：上层必须把它转成 <code>metric_status=not_applicable</code> 或 <code>judge_error</code>，不能在 JSON 汇总时静默变成 0 或 1。</p>
+<h3 id="第二步为每条指标建立显式状态机">第二步：为每条指标建立显式状态机</h3>3
+<pre><code class="language-text">input_valid?
+  ├─ 否 → invalid_input，不进入评分分母
+  └─ 是 → 答案可解析?
+            ├─ 否 → invalid_output
+            └─ 是 → 裁判/嵌入调用成功?
+                      ├─ 否 → judge_error 或 embedding_error
+                      └─ 是 → 输出有限且定义域合法?
+                                ├─ 否 → invalid_metric
+                                └─ 是 → scored
+</code></pre>
+<p>对空答案是否 <code>not_applicable</code>，要由任务卡决定：无答案问题上的规范拒答可以单独评“拒答正确”，但不能直接获得 Faithfulness=1。每批报告给出 <code>scored / total</code>、缺失原因和失败样本 ID。</p>
+<h3 id="第三步正确映射-reference保留可追溯字段">第三步：正确映射 reference，保留可追溯字段</h3>3
+<p>本库 golden-q 的正确字段是 <code>reference_answer</code>，不是 <code>answer</code>；<code>answer</code> 应保留给系统候选输出：</p>
+<pre><code class="language-python">def to_ragas_row(row, candidate_answer, contexts):
+    return {
+        &quot;question&quot;: row[&quot;query&quot;],
+        &quot;answer&quot;: candidate_answer,
+        &quot;contexts&quot;: contexts,
+        &quot;reference&quot;: row[&quot;reference_answer&quot;],
+        &quot;query_id&quot;: row[&quot;query_id&quot;],
+        &quot;qrels_version&quot;: row[&quot;qrels_version&quot;],
+    }
+</code></pre>
+<p>冲突题、无答案题和多参考答案题先单独分桶。无 reference 的样本不能运行 Answer Correctness 后再把缺失值当 0；应标 <code>not_applicable</code>，或先补建 reference。</p>
+<h3 id="第四步固定版本接入-ragas并保存原始输出">第四步：固定版本接入 RAGAS，并保存原始输出</h3>3
+<p>以下是常见的高层调用形态，<strong>未实跑</strong>；实际使用前必须核对安装版本的 <code>evaluate</code>、数据集和本地模型适配接口：</p>
+<pre><code class="language-python"># 未实跑：需要自行配置本地 LLM 与 embeddings，不在这里读取或写入任何凭据。
+from datasets import Dataset
+from ragas import evaluate
+from ragas.metrics import answer_correctness, answer_relevancy, faithfulness
+
+
+def run_ragas(rows, llm, embeddings):
+    dataset = Dataset.from_list(rows)
+    return evaluate(
+        dataset=dataset,
+        metrics=[faithfulness, answer_relevancy, answer_correctness],
+        llm=llm,
+        embeddings=embeddings,
+    )
+</code></pre>
+<p>安装与版本核对命令：</p>
+<pre><code class="language-bash"># 未实跑：建议在隔离虚拟环境中执行，不安装到系统 Python。
+python -m pip install 'ragas==0.3.9' datasets
+python -c &quot;import ragas; print(ragas.__version__)&quot;
+</code></pre>
+<p>本地回环适配器必须满足：输入与输出显式映射、异常向上传递、每次调用有 ID、原始响应落本地、失败不自动补分。不要用旧稿里的云端密钥、隐式外部数据流或未标定阈值替代这些约束。</p>
+<h3 id="第五步用样本而非总分校准指标">第五步：用样本而非总分校准指标</h3>3
+<ol>
+<li><strong>正例</strong>：答案完整、受支持、对题，用于检查指标是否能识别好样本。</li>
+<li><strong>幻觉负例</strong>：添加材料外事实，观察 Faithfulness 是否下降。</li>
+<li><strong>遗漏负例</strong>：只保留部分受支持事实，检查 Faithfulness 为何可能仍高，并由 Correctness/必需事实覆盖补位。</li>
+<li><strong>答非所问负例</strong>：材料内真实但不回答问题的句子，用于检验 Relevancy。</li>
+<li><strong>拒答与空输出</strong>：分别标注合理拒答、异常空输出，禁止共享默认分。</li>
+<li><strong>裁判扰动</strong>：固定样本更换尺度或提示做敏感性检查，分歧样本送人工。</li>
+</ol>
+<p>最终报告除均值外，还应给逐指标有效分母、分桶结果和原始 badcase 链接。只有这样，指标变化才能转化为修复动作。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>RAGAS 四指标的真实调用（<code>rag/eval_ragas.py</code> L79 <code>main()</code>，grep 可验）</strong>：<br />
+<code>python
+  ds = build_dataset()
+  result = evaluate(ds, metrics=[context_precision, context_recall, faithfulness, answer_relevancy],
+                    llm=ragas_llm, embeddings=ragas_emb, raise_exceptions=False)
+  df = result.to_pandas()
+  print("\n===== RAGAS 评估结果（列均值） =====")
+  metric_cols = [c for c in df.columns if c in
+                 ("context_precision", "context_recall", "faithfulness", "answer_relevancy")]</code></li>
+<li><strong>"NaN 要归因，不许静默跳过"（同文件 main 末尾）</strong>：<br />
+<code>python
+  for i, row in df.iterrows():
+      missing = [c for c in metric_cols if row.get(c) is None or (isinstance(row.get(c), float) and row.get(c) != row.get(c))]
+      if missing:
+          print(f"  [FAIL] q{i+1} \"{str(row.get('user_input'))[:30]}\" 指标缺失={missing} 归因=LLM评分调用超时/失败(评价端点慢), 非静默跳过")</code><br />
+  这是 RAGAS 最常见的坑：<code>raise_exceptions=False</code> 让评分失败的样本变成 NaN，均值会被<strong>只算成功的样本</strong>抬高。本库强制逐条打印归因，并写 <code>eval_ragas_report.csv</code> 留明细。</li>
+<li><strong>和课件讲法的差异</strong>：课件用 <code>ragas.evaluate</code> + <code>Dataset.from_pandas</code>，embedding 直接给 HF/OpenAI 模型；本库因 <strong>Ollama 的 <code>/v1/embeddings</code> 与 langchain <code>OpenAIEmbeddings</code> 参数不兼容（invalid input type）</strong>，手写了 <code>OllamaBgeEmbeddings</code> 按已验证的 curl 格式直连；LLM 侧必须 <code>LangchainLLMWrapper(chat, bypass_n=True)</code>（小米端点不支持 <code>n</code> 参数，报 400）。这两处是课件没覆盖的适配坑。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<h3 id="课件用于-ragas-输入与指标的基础概念">课件：用于 RAGAS 输入与指标的基础概念</h3>3
+<ul>
+<li>[课1] <a href="../../raw/courseware/RAG%E7%AF%87/_merged/06-RAG%E8%AF%84%E4%BC%B0%E4%B8%8E%E5%BA%94%E7%94%A8%E5%B9%B3%E5%8F%B0-%E5%90%88%E5%B9%B6%E7%89%88.md">RAG 评估与应用平台合并课件</a>：用于问题、上下文、答案和响应忠实度/相关性的基本概念，未把课件历史代码当作 v0.3.9 已运行示例。</li>
+<li>[课2] <a href="../../raw/courseware/RAG%E7%AF%87/day10__%E8%AF%BE%E4%BB%B6__05-RAG%E8%AF%84%E4%BC%B0%E4%B8%8E%E5%BA%94%E7%94%A8%E6%A1%86%E6%9E%B6.md">RAG 评估与应用框架</a>：用于把工具调用放回数据、指标和评估流程中，而不是只展示一次库调用。</li>
+</ul>
+<h3 id="书籍只使用目录简介与本地高亮不声称读过全文">书籍：只使用目录、简介与本地高亮，不声称读过全文</h3>3
+<ul>
+<li>[书1] <a href="../../raw/weread/%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E6%9E%84%E5%BB%BA%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E7%B3%BB%E7%BB%9F.md">《从零开始构建企业级RAG系统》本地简介、大纲与高亮</a>：忠实度相关高亮用于解释“回答受材料支持”的含义，用户反馈主题用于把指标异常回流到 badcase。</li>
+<li>[书2] <a href="../../raw/weread/AI%E5%B7%A5%E7%A8%8B%EF%BC%9A%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%E5%AE%9E%E6%88%98.md">《AI工程：大模型应用开发实战》本地目录与热门划线</a>：评估方法论的目录主题用于支撑先定义任务与评分边界，再使用模型裁判。</li>
+</ul>
+<h3 id="业内与论文用于固定版本实现与指标边界">业内与论文：用于固定版本实现与指标边界</h3>3
+<ul>
+<li>[业1] RAGAS 原始论文：arXiv:2309.15217；<a href="https://aclanthology.org/2024.eacl-demo.16/">EACL 2024 Demo 官方页</a>（GET 200，2026-11-04）：用于区分原始论文指标与库后续扩展。</li>
+<li>[业2] RAGAS v0.3.9 固定源码：<a href="https://github.com/vibrantlabsai/ragas/blob/v0.3.9/src/ragas/metrics/_faithfulness.py">Faithfulness</a>、<a href="https://github.com/vibrantlabsai/ragas/blob/v0.3.9/src/ragas/metrics/_answer_relevance.py">Answer Relevancy</a>、<a href="https://github.com/vibrantlabsai/ragas/blob/v0.3.9/src/ragas/metrics/_answer_correctness.py">Answer Correctness</a>（均 GET 200，2026-11-04）：用于实现流程、noncommittal 处理和默认权重口径。</li>
+<li>[业3] <a href="https://docs.ragas.io/">RAGAS 官方文档</a>（GET 200，2026-11-04）：作为当前文档入口；与固定源码冲突时，本篇只声称 v0.3.9 口径，不混写版本。</li>
+<li>[业4] 临床摘要语义对齐：arXiv:2610.31467；评分尺度敏感性：arXiv:2610.22187。只阅读本地摘要，已分别落入遗漏/可读性联合评估和裁判尺度敏感性步骤。</li>
+</ul></div></body></html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>从零构建大模型</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 从零构建大模型</span></div><div class="wrap"><h1 id="书章节重点-从零构建大模型">书章节重点 · 从零构建大模型</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书以“从零手写”为主线，系统拆解大语言模型从文本处理、注意力机制、GPT架构实现，到预训练与指令微调的完整构建流程</li><li>核心理念是：理解大模型的最佳方式是亲手编写一个模型，而非仅调用API</li><li>全书把复杂系统拆成可观察的组件：先把文本变成词元和向量，再让注意力建立上下文关系，随后组装Transformer块、训练下一词预测模型，最后通过分类微调和指令微调把基础模型变成更实用的任务模型</li></ul></div>2
+<p>本书以“从零手写”为主线，系统拆解大语言模型从文本处理、注意力机制、GPT架构实现，到预训练与指令微调的完整构建流程。核心理念是：理解大模型的最佳方式是亲手编写一个模型，而非仅调用API。全书把复杂系统拆成可观察的组件：先把文本变成词元和向量，再让注意力建立上下文关系，随后组装Transformer块、训练下一词预测模型，最后通过分类微调和指令微调把基础模型变成更实用的任务模型。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 理解大语言模型</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：大语言模型的本质是基于深度神经网络的下一词预测系统，其“理解”能力指生成连贯且符合语境的文本，并不等同于人类意识或人类式理解</li><li>核心观点2：大语言模型通常采用两阶段构建范式：先在大规模无标注语料上进行自监督下一词预测，再用较小的带标注数据集微调，使模型适配特定任务或指令格式</li><li>核心观点3：GPT系列主要用于生成任务，而BERT及其变体专注于掩码预测；理解不同训练目标，有助于解释模型结构和适用场景为何不同</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：大语言模型的本质是基于深度神经网络的下一词预测系统，其“理解”能力指生成连贯且符合语境的文本，并不等同于人类意识或人类式理解。</li>
+<li><strong>核心观点2</strong>：大语言模型通常采用两阶段构建范式：先在大规模无标注语料上进行自监督下一词预测，再用较小的带标注数据集微调，使模型适配特定任务或指令格式。</li>
+<li><strong>核心观点3</strong>：GPT系列主要用于生成任务，而BERT及其变体专注于掩码预测；理解不同训练目标，有助于解释模型结构和适用场景为何不同。</li>
+<li><strong>核心观点4</strong>：Transformer架构提供了高效建模序列关系的基础，海量且多样的训练数据则提供了学习语言规律所需的覆盖范围，二者共同支撑能力提升。</li>
+<li><strong>核心观点5</strong>：从零实现的学习路径不是为了复制商业模型规模，而是为了通过可运行的小模型观察分词、前向传播、损失、反向传播和生成之间的因果关系。</li>
+</ul>
+<blockquote>
+<p>“我坚信，理解大语言模型的最佳方式是从零开始编写一个模型——你会发现这件事充满乐趣！”</p>
+</blockquote>
+<h3 id="第2章-处理文本数据">第2章 处理文本数据</h3>3
+<ul>
+<li><strong>核心观点1</strong>：神经网络无法直接处理离散文本，必须将词元映射为连续向量空间中的点，也就是嵌入，才能执行矩阵运算和梯度更新。</li>
+<li><strong>核心观点2</strong>：词元是模型读取文本的基本单位，文本需要经过分词、词元到词元ID的映射，并引入特殊上下文词元来标记文本边界、文档结束或填充位置。</li>
+<li><strong>核心观点3</strong>：BPE算法通过把词汇表外的单词分解为更小的子词单元甚至单字符，解决未登录词问题，同时控制词汇表规模；词表越大，嵌入参数和计算开销也会增加。</li>
+<li><strong>核心观点4</strong>：滑动窗口从长文本中切分训练样本，窗口长度决定一次预测能看到的上下文范围，步幅则决定样本数量与不同批次之间的重叠程度。</li>
+<li><strong>核心观点5</strong>：自注意力机制本质上与位置无关，因此需要额外编码单词位置信息。位置嵌入让相同词元在不同顺序中拥有可区分的表示，避免模型把句子当成无序集合。</li>
+<li><strong>核心观点6</strong>：数据预处理既要保证编码可复现，也要关注训练样本边界、特殊词元和批次形状；任何一处ID错位都会在后续训练中表现为难以定位的损失异常。</li>
+</ul>
+<blockquote>
+<p>“嵌入的本质是将离散对象（如单词、图像甚至整个文档）映射到连续向量空间中的点，其主要目的是将非数值的数据转换为神经网络可以处理的格式。”</p>
+</blockquote>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 编码注意力机制</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：传统序列模型在长序列中难以捕捉远距离依赖，注意力机制通过直接建模任意位置间的关系，让当前位置可以选择性关注上下文</li><li>核心观点2：自注意力让序列中每个位置关注输入的所有其他位置，并根据相关性动态组合信息；这种权重不是固定规则，而是由输入和可训练参数共同决定</li><li>核心观点3：查询、键、值三组表示构成注意力的核心</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：传统序列模型在长序列中难以捕捉远距离依赖，注意力机制通过直接建模任意位置间的关系，让当前位置可以选择性关注上下文。</li>
+<li><strong>核心观点2</strong>：自注意力让序列中每个位置关注输入的所有其他位置，并根据相关性动态组合信息；这种权重不是固定规则，而是由输入和可训练参数共同决定。</li>
+<li><strong>核心观点3</strong>：查询、键、值三组表示构成注意力的核心。查询与键计算匹配程度，得到权重后对值加权求和，因此模型可以根据当前需求从上下文中提取信息。</li>
+<li><strong>核心观点4</strong>：因果注意力通过掩码隐藏未来词元，确保生成第N个词时只能看到当前位置及之前的内容，避免训练时偷看答案。</li>
+<li><strong>核心观点5</strong>：多头注意力把表示空间拆成多个头并行计算，使模型能从不同子空间捕捉语法、指代、位置和语义等多种依赖模式。</li>
+<li><strong>核心观点6</strong>：从无训练参数的简单自注意力逐步加入可训练权重，是理解Q、K、V如何学习的有效路径；代码实验应检查张量形状、掩码位置和归一化后的权重。</li>
+</ul>
+<blockquote>
+<p>“为什么要用查询、键和值”</p>
+</blockquote>
+<h3 id="第4章-从头实现gpt模型进行文本生成">第4章 从头实现GPT模型进行文本生成</h3>3
+<ul>
+<li><strong>核心观点1</strong>：完整GPT架构由词元嵌入、位置嵌入、注意力层、前馈网络、层归一化、残差连接和输出头逐步组装而成，模块边界清楚才便于调试与替换。</li>
+<li><strong>核心观点2</strong>：层归一化对激活值进行归一化以稳定训练；残差连接把输入直接传到后续层，缓解深层网络中的梯度消失并帮助信息流动。</li>
+<li><strong>核心观点3</strong>：前馈网络采用GELU而不是简单的ReLU，提供更平滑的激活特性。注意力负责跨位置混合信息，前馈层则对每个位置进行非线性变换。</li>
+<li><strong>核心观点4</strong>：训练时模型为每个位置预测下一个词元，推理时把新生成的词元追加回输入，循环执行直到达到长度限制或生成结束标记。</li>
+<li><strong>核心观点5</strong>：文本生成并非只有一个确定答案，温度、top-k等解码策略会影响随机性、重复程度和多样性；调参时要结合任务对稳定性或创造性的要求。</li>
+<li><strong>核心观点6</strong>：从模型配置到张量维度都应保持一致，词表大小、上下文长度、嵌入维度和头数任何一项不匹配，都会导致加载权重或前向计算失败。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 在无标签数据上进行预训练</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：预训练目标是在大量无标注的文本语料库上进行下一单词预测</li><li>核心观点2：训练循环包括取批次、前向计算、计算损失、反向传播、更新参数和记录指标；困惑度等指标可用来衡量下一词预测能力和生成质量变化</li><li>核心观点3：数据集的规模、质量和多样性会影响模型学到的语言规律</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：预训练目标是在大量无标注的文本语料库上进行下一单词预测。模型从输入数据本身生成训练标签，因此不需要人工逐条标注每个预测位置。</li>
+<li><strong>核心观点2</strong>：训练循环包括取批次、前向计算、计算损失、反向传播、更新参数和记录指标；困惑度等指标可用来衡量下一词预测能力和生成质量变化。</li>
+<li><strong>核心观点3</strong>：数据集的规模、质量和多样性会影响模型学到的语言规律。重复、噪声或领域偏斜的语料可能导致模型泛化能力下降，数据准备不能被训练代码替代。</li>
+<li><strong>核心观点4</strong>：温度缩放、top-k采样等解码策略可以调节生成文本的多样性与确定性；评估时应固定提示、随机种子和解码参数，才能比较不同训练阶段。</li>
+<li><strong>核心观点5</strong>：PyTorch权重保存与加载让训练可以断点续作，也可以加载已有预训练权重跳过昂贵的预训练阶段，把精力放到架构理解和下游任务上。</li>
+<li><strong>核心观点6</strong>：训练损失下降不等于模型所有能力都提升。应同时观察验证集、生成样例和过拟合迹象，并区分数据、优化器、学习率和实现错误等不同原因。</li>
+</ul>
+<blockquote>
+<p>“大语言模型的预训练目标是在大量无标注的文本语料库（原始文本）上进行下一单词预测。预训练完成后，可以使用较小的带标注的数据集对大语言模型进行微调”</p>
+</blockquote>
+<h3 id="第6章-针对分类的微调">第6章 针对分类的微调</h3>3
+<ul>
+<li><strong>核心观点1</strong>：分类微调与指令微调目标不同，前者把预训练模型适配为特定类别的判别器，输出通常是固定标签或类别概率，而不是开放式长文本。</li>
+<li><strong>核心观点2</strong>：分类头添加在预训练模型之上，把选定位置的隐藏表示映射到类别标签；分类头和主体网络可以共同训练，也可以按资源情况采用不同冻结策略。</li>
+<li><strong>核心观点3</strong>：有监督微调流程包括加载预训练权重、替换分类头、用标注数据训练、计算分类损失并评估准确率。标签质量和类别分布会直接影响结果。</li>
+<li><strong>核心观点4</strong>：垃圾消息分类案例展示了预训练模型在下游判别任务上的迁移能力；模型不再只预测下一个词，而是利用上下文表示完成任务决策。</li>
+<li><strong>核心观点5</strong>：特定领域或任务量身打造的大语言模型在性能上往往优于面向多种场景的通用大语言模型，但这种优势依赖领域数据质量和任务定义清晰。</li>
+</ul>
+<blockquote>
+<p>“针对特定领域或任务量身打造的大语言模型在性能上往往优于ChatGPT等为多种应用场景而设计的通用大语言模型。”</p>
+</blockquote>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 通过微调遵循人类指令</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：指令微调用“指令—回复”格式的有监督数据训练模型，使其学会按用户意图组织回答，而不是只把任务当作普通下一词预测</li><li>核心观点2：指令数据集需要整理为统一结构，并创建专用数据加载器处理变长序列的填充、截断、标签对齐和批次组织，避免输入和目标错位</li><li>核心观点3：微调完成后要抽取模型回复进行质量评估，检查是否遵循任务要求、是否保持格式、是否出现无关续写或重复输出，不能只看训练损失</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：指令微调用“指令—回复”格式的有监督数据训练模型，使其学会按用户意图组织回答，而不是只把任务当作普通下一词预测。</li>
+<li><strong>核心观点2</strong>：指令数据集需要整理为统一结构，并创建专用数据加载器处理变长序列的填充、截断、标签对齐和批次组织，避免输入和目标错位。</li>
+<li><strong>核心观点3</strong>：微调完成后要抽取模型回复进行质量评估，检查是否遵循任务要求、是否保持格式、是否出现无关续写或重复输出，不能只看训练损失。</li>
+<li><strong>核心观点4</strong>：指令微调建立在预训练语言能力之上，数据规模不一定越大越好；示例的任务覆盖、表达清晰度和答案质量更重要。</li>
+<li><strong>核心观点5</strong>：附录引入LoRA等参数高效微调方法，在有限算力下只训练低秩适配参数，减少可训练参数量，降低领域定制门槛，同时保留基础模型权重。</li>
+<li><strong>核心观点6</strong>：从分类微调到指令微调体现了模型适配目标的变化：前者强调判别边界，后者强调遵循自然语言任务描述和生成符合要求的输出。</li>
+</ul>
+<h3 id="第8章-从零实现的学习闭环">第8章 从零实现的学习闭环</h3>3
+<ul>
+<li><strong>核心观点1</strong>：本书各章不是彼此孤立的算法介绍，而是从文本输入一路连接到模型输出；前面得到的词元ID、嵌入和位置表示，会在注意力层中继续流动并最终参与损失计算。</li>
+<li><strong>核心观点2</strong>：调试小型语言模型应按数据、形状、数值和行为四层排查。先确认词元与标签对齐，再检查Q、K、V和掩码形状，随后观察损失是否为有限值，最后用固定提示检查生成是否符合预期。</li>
+<li><strong>核心观点3</strong>：预训练、分类微调和指令微调共享底层表示，但监督信号不同。理解监督信号如何改变输出头、标签组织和评估指标，是从“能运行”走向“知道为何有效”的关键。</li>
+<li><strong>核心观点4</strong>：从零实现的模型规模可以很小，但工程习惯不能缩水。配置、权重、数据处理和评估结果都应可保存、可复现，才能在修改一个组件后判断性能变化来自哪里。</li>
+<li><strong>核心观点5</strong>：学习大模型既要掌握数学计算，也要能阅读张量代码。把公式映射为矩阵乘法、掩码、归一化和批处理操作，才能真正理解框架封装背后的执行过程。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第9章 词元、向量与上下文的关系</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：词元ID本身只是离散索引，不携带可直接计算的语义；嵌入矩阵把ID查表为连续向量，模型再通过训练让向量表示逐渐承载上下文规律</li><li>核心观点2：相同词元出现在不同句子中时，经过注意力层后的表示可以不同，因为它会结合周围词元和位置；这说明静态词表和动态上下文表示承担不同职责</li><li>核心观点3：滑动窗口把连续文本变成大量输入—目标样本，窗口与步幅的组合决定了哪些词元被反复看到</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：词元ID本身只是离散索引，不携带可直接计算的语义；嵌入矩阵把ID查表为连续向量，模型再通过训练让向量表示逐渐承载上下文规律。</li>
+<li><strong>核心观点2</strong>：相同词元出现在不同句子中时，经过注意力层后的表示可以不同，因为它会结合周围词元和位置；这说明静态词表和动态上下文表示承担不同职责。</li>
+<li><strong>核心观点3</strong>：滑动窗口把连续文本变成大量输入—目标样本，窗口与步幅的组合决定了哪些词元被反复看到。步幅过小会产生更多重叠和计算，步幅过大则可能浪费上下文变化。</li>
+<li><strong>核心观点4</strong>：位置编码不是可有可无的装饰。没有位置线索，模型难以区分词序不同的表达；位置表示和词元嵌入相加后，才形成Transformer可以处理的初始序列表示。</li>
+<li><strong>核心观点5</strong>：词表、上下文长度和嵌入维度是相互关联的设计选择。扩大词表可以减少分词长度，但会增加嵌入参数；扩大上下文可以看到更远信息，也会增加注意力计算负担。</li>
+</ul>
+<h2 id="适用场景标签">适用场景标签</h2>2
+<ul>
+<li>大模型原理入门</li>
+<li>手写GPT实践</li>
+<li>Transformer架构学习</li>
+<li>预训练与微调流程</li>
+<li>NLP工程实践</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">一句话推荐</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<p>手写一遍，胜过调用千遍。</p></div></details></div></body></html>

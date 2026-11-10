@@ -1,0 +1,595 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L6-机器学习-线性回归与逻辑回归</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L6-机器学习-线性回归与逻辑回归</span></div><div class="wrap"><h1 id="l6-机器学习线性回归与逻辑回归">L6 机器学习：线性回归与逻辑回归</h1>
+<blockquote>
+<p><strong>TL;DR</strong>：线性回归解决"预测一个数"（连续值），逻辑回归解决"判断一个类"（二分类概率）。两者共享同一条线性骨架 <code>z = w·x + b</code>，区别只在输出端：回归直接输出 z，逻辑回归把 z 塞进 sigmoid 压成概率。本篇讲清四件事：代价函数怎么选、梯度下降怎么调、量纲差为什么让系数说谎、分类评估为什么不能只看准确率。所有数字为本机 scikit-learn 1.9.0 / numpy 2.3.5 实跑（<code>/usr/bin/python3</code>），可复现。</p>
+<p><strong>金标证据</strong>：gold_tier=input_digest ｜ 产出声明=消化提炼（融合机器学习第二期 01-05 课件与 02线性回归代码 notebook，重排为"原理→实测→三问"教程，非原创调研）｜ 排他性证据=§3.2「原始量纲系数比 0.08 vs 标准化后 2.6」与 §5.3「不平衡 5% 正例下 class_weight=balanced 的 prec/rec/f1=0.389/0.966/0.554」为本机实跑产出，对应课件"特征缩放处理.ipynb"与"05乳腺癌分类-课后"的类别不平衡章节，外部检索不到本组数字 ｜ 抽查入口=raw/courseware/机器学习/code/02线性回归代码__特征缩放处理.md 与本篇 §3.2/§5.3 实跑代码段</p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">1. 一张图定位：线性回归和逻辑回归解决什么</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>机器学习监督学习按标签类型分两大类：标签是连续数值（房价、销量、温度）→ 回归；标签是离散类别（是否恶性、是否点击、是不是垃圾邮件）→ 分类</li><li>线性回归是回归的入门款，逻辑回归是分类的入门款——名字都带"回归"，是因为逻辑回归的历史出身是"用线性回归的思路去拟合分类边界"，它本质是分类器</li><li>课件里用房价预测讲线性回归的完整闭环：数据（训练实例）→ 模型（线性回归）→ 性能（代价函数）→ 算法（梯度下降），四件套轮转迭代直到收敛</li></ul></div>2
+<p>机器学习监督学习按标签类型分两大类：标签是连续数值（房价、销量、温度）→ 回归；标签是离散类别（是否恶性、是否点击、是不是垃圾邮件）→ 分类。线性回归是回归的入门款，逻辑回归是分类的入门款——名字都带"回归"，是因为逻辑回归的历史出身是"用线性回归的思路去拟合分类边界"，它本质是分类器。</p>
+<p>课件里用房价预测讲线性回归的完整闭环：数据（训练实例）→ 模型（线性回归）→ 性能（代价函数）→ 算法（梯度下降），四件套轮转迭代直到收敛。这个"模型-性能-算法"三分法适用于几乎所有参数模型：模型定义假设空间，代价函数定义"好"的标准，优化算法负责找参数。逻辑回归换掉的只有两处：模型末端加 sigmoid，代价函数从均方误差换成交叉熵。</p>
+<p><strong>判断该用哪个的最快方法</strong>：看 y。y 是"多少"（可以是 3.2、28 万、-5）→ 线性回归；y 是"是不是"（0/1、良/恶、是/否）→ 逻辑回归。y 是"哪一类"（3 类以上）→ 逻辑回归的多分类扩展 softmax，或直接上树模型。</p>
+<h2 id="2-线性回归从最小二乘到可跑代码">2. 线性回归：从最小二乘到可跑代码</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.1 模型与代价函数</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>为什么用平方误差而不是绝对误差</li><li>代价函数 J 关于 w 是凸函数（碗状），所以局部最小就是全局最小，梯度下降不用担心陷进局部坑</li><li>两个理由：一是数学上平方函数处处可导，优化好做；二是统计上，若噪声服从正态分布，最小二乘解恰好等于极大似然估计解——课件"最小二乘从何而来"一节走的就是这条极大似然推导线</li></ul></div>3
+<p>单变量线性回归写作 <code>h(x) = w·x + b</code>（课件用 θ0、θ1 记截距和斜率，等价）。多变量就是向量点积 <code>h(x) = wᵀx + b</code>，w 的每个分量对应一个特征的权重。代价函数用均方误差的一半：<code>J(w,b) = (1/2m)·Σ(h(xᵢ) − yᵢ)²</code>，取 1/2 是求导时消掉平方的系数，不取也不影响最优解位置。</p>
+<p>为什么用平方误差而不是绝对误差？两个理由：一是数学上平方函数处处可导，优化好做；二是统计上，若噪声服从正态分布，最小二乘解恰好等于极大似然估计解——课件"最小二乘从何而来"一节走的就是这条极大似然推导线。代价函数 J 关于 w 是凸函数（碗状），所以局部最小就是全局最小，梯度下降不用担心陷进局部坑。</p>
+<p>代码口径（课件 01 的 Python 实现，两种写法等价）：</p>
+<pre><code class="language-python">import numpy as np
+
+def cost(X, theta, y):
+    &quot;&quot;&quot;均方误差代价函数。X 已含全 1 偏置列，theta 形状 (n+1,)。&quot;&quot;&quot;
+    m = len(y)
+    err = X @ theta - y
+    return (1.0 / (2 * m)) * np.sum(err ** 2)
+    # 等价的向量化写法（少一次临时数组）：
+    # return (1.0 / (2 * m)) * err.T @ err
+</code></pre>
+<h3 id="22-求解路线一正规方程解析解">2.2 求解路线一：正规方程（解析解）</h3>3
+<p>不走迭代，直接解方程 <code>w = (XᵀX)⁻¹Xᵀy</code>。课件《正规方程法求解》用 y≈2x+1 的四个点 (1,3.2)(2,4.7)(3,7.3)(4,8.5) 演示，解出 w=[[1.85],[1.3]]。这是绝对最优解（凸问题），但要算 XᵀX 的逆，特征数 n 上千时矩阵求逆是 O(n³)，会卡死。经验阈值：n &lt; 1 万可以上正规方程，n 更大用梯度下降或拟牛顿法。</p>
+<pre><code class="language-python">import numpy as np
+
+X = np.array([[1, 1], [2, 1], [3, 1], [4, 1]], dtype=float)  # 第二列是偏置 1
+Y = np.array([3.2, 4.7, 7.3, 8.5])
+w = np.linalg.inv(X.T @ X) @ X.T @ Y
+print(w.round(4))          # 实跑输出 [1.85 1.3 ]
+</code></pre>
+<p>注意 <code>np.linalg.inv</code> 在 XᵀX 接近奇异（特征共线）时数值不稳，工程上应换 <code>np.linalg.lstsq(X, Y, rcond=None)[0]</code> 或 <code>np.linalg.solve</code>。共线问题见 §3.3。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.3 求解路线二：梯度下降</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>学习率的两条铁律（课件原话）：α 太小收敛慢，α 太大会越过最低点甚至发散</li><li>sklearn 里对应 「SGDRegressor」</li></ul></div>3
+<p>梯度下降沿负梯度方向走一小步：<code>θ := θ − α·∂J/∂θ</code>，α 是学习率。课件《梯度下降图例》用 f(x)=3x²+5x+7、导数 g(x)=6x+5 演示单变量求最小值，收敛条件是"代价函数相邻两次的差 &lt; 1e-10"或达到最大迭代次数。学习率的两条铁律（课件原话）：α 太小收敛慢，α 太大会越过最低点甚至发散。</p>
+<p>梯度下降有三个变体，选型看数据量：</p>
+<table>
+<thead>
+<tr>
+<th>变体</th>
+<th>每步用几个样本</th>
+<th>优点</th>
+<th>缺点</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>批量 GD（Batch）</td>
+<td>全部 N 个</td>
+<td>方向准</td>
+<td>N 大时每步都慢</td>
+<td>小数据、要稳定收敛</td>
+</tr>
+<tr>
+<td>随机 GD（SGD）</td>
+<td>1 个</td>
+<td>单步快、能跳出小坑</td>
+<td>抖动大、不保证单调降</td>
+<td>在线学习、超大数据</td>
+</tr>
+<tr>
+<td>小批量 GD（Mini-batch）</td>
+<td>32~256 个</td>
+<td>速度与稳定折中</td>
+<td>要调 batch size</td>
+<td>深度学习标配，Spark MLlib 用它</td>
+</tr>
+</tbody>
+</table>
+<p>sklearn 里对应 <code>SGDRegressor</code>。实测里它比闭式解糙——learning_rate='constant'、eta0=1e-4 时 200 轮还会报 ConvergenceWarning，需要配合 <code>StandardScaler</code> 和调大 max_iter，这正是 §3.2 要讲的量纲问题。</p>
+<h3 id="24-动手实验一用正规方程和-sklearn-各算一遍">2.4 动手实验一：用正规方程和 sklearn 各算一遍</h3>3
+<p>把 §2.2 和 §2.3 拼成最小闭环——同一批点，两种解法，看结果是否一致。这个实验是每次换数据集时的标准冒烟测试：两法答案一致说明数据没问题，答案对不上说明 X 矩阵构造有坑（比如忘了拼全 1 偏置列，或 Y 形状不对）。</p>
+<pre><code class="language-python">import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+
+X = np.array([[1, 1], [2, 1], [3, 1], [4, 1]], dtype=float)  # 第 2 列是偏置
+Y = np.array([3.2, 4.7, 7.3, 8.5])
+
+# 路线一：正规方程
+w_ne = np.linalg.inv(X.T @ X) @ X.T @ Y
+print(&quot;normal-eq w:&quot;, w_ne.round(4))     # [1.85 1.3 ]
+
+# 路线二：sklearn（不拟合截距，因为偏置已拼进 X）
+m = LinearRegression(fit_intercept=False).fit(X, Y)
+print(&quot;sklearn coef:&quot;, m.coef_.round(4))  # [1.85 1.3 ]
+print(&quot;train MSE:&quot;, round(mean_squared_error(Y, m.predict(X)), 4))  # 0.0837
+</code></pre>
+<p>实跑输出两法系数完全一致（[1.85, 1.3]），训练 MSE=0.0837。真实数据上再补一条：用 train_test_split 留出 25% 测试集，比较训练 MSE 与测试 MSE 的差距——差距 &gt;3 倍就要怀疑过拟合（§3.3）。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.5 评估指标：MSE、MAE、R² 三个各说一件事</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>课件 sklearn 标准流程用三个指标：均方误差 MSE（对大误差惩罚重）、平均绝对误差 MAE（单位与 y 一致，好解释）、R²（1 表示完美，0 表示不如直接猜均值，可以为负）</li><li>选择纪律：对外汇报用 MAE 或 RMSE（单位不变），对内调参用 MSE（梯度友好），判断"这模型有没有用"看 R²</li><li>三个都看测试集，训练集指标只用来判断过拟合（见 §4.2）</li></ul></div>3
+<p>课件 sklearn 标准流程用三个指标：均方误差 MSE（对大误差惩罚重）、平均绝对误差 MAE（单位与 y 一致，好解释）、R²（1 表示完美，0 表示不如直接猜均值，可以为负）。选择纪律：对外汇报用 MAE 或 RMSE（单位不变），对内调参用 MSE（梯度友好），判断"这模型有没有用"看 R²。三个都看测试集，训练集指标只用来判断过拟合（见 §4.2）。</p>
+<h2 id="3-特征缩放与正则化线性模型的两道保险">3. 特征缩放与正则化：线性模型的两道保险</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.1 为什么量纲差会毁掉系数的可解释性</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>课件《特征缩放处理》用房价数据讲了这个坑：面积 2104 平方英尺、卧室 3 间，两列数值差三个数量级</li><li>特征缩放两条路（课件对照表）：归一化 MinMaxScaler 映射到 [0,1]，标准化 StandardScaler 变成"均值 0、标准差 1"</li><li>归一化适合需要固定区间的场景（图像像素、神经网络输入）；标准化保留分布形状、允许负值，是线性模型+SVM 的默认选择</li></ul></div>3
+<p>课件《特征缩放处理》用房价数据讲了这个坑：面积 2104 平方英尺、卧室 3 间，两列数值差三个数量级。直接求解的问题有三层：①系数绝对值大小被量纲绑架，面积系数天然比卧室系数小几个数量级，"谁重要"没法从系数大小读出来；②梯度下降时大数值特征主导梯度方向，收敛慢且被单特征带偏；③上 L1/L2 正则化前不缩放是错误的——正则项对所有系数一视同仁地惩罚，量纲不齐等于变相放过大系数特征、严惩小系数特征。</p>
+<p>特征缩放两条路（课件对照表）：归一化 MinMaxScaler 映射到 [0,1]，标准化 StandardScaler 变成"均值 0、标准差 1"。归一化适合需要固定区间的场景（图像像素、神经网络输入）；标准化保留分布形状、允许负值，是线性模型+SVM 的默认选择。铁律：<strong>缩放器只在训练集上 fit，测试集和线上数据用训练集的参数 transform</strong>，否则测试集统计量泄漏进训练流程，指标虚高。</p>
+<h3 id="32-实测系数比值在缩放前后翻转">3.2 实测：系数比值在缩放前后翻转</h3>3
+<p>构造 300 个样本：面积 30~200 平方米、卧室 1~5 间，房价 <code>y = 3·面积 + 40·卧室 + 噪声(σ=20)</code>（万元）。真实系数里卧室的单位贡献（40 万/间）远大于面积（3 万/平米）。</p>
+<pre><code class="language-python">import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
+
+rng = np.random.default_rng(42)
+n = 300
+area = rng.uniform(30, 200, n)                 # 平方米
+rooms = rng.integers(1, 6, n).astype(float)    # 间
+price = 3.0 * area + 40.0 * rooms + rng.normal(0, 20, n)  # 万元
+X = np.column_stack([area, rooms])
+
+m_raw = LinearRegression().fit(X, price)
+Xs = StandardScaler().fit_transform(X)
+m_std = LinearRegression().fit(Xs, price)
+print(&quot;raw coef:&quot;, m_raw.coef_.round(2))    # [3.02 39.61]
+print(&quot;std coef:&quot;, m_std.coef_.round(2))    # [148.91 57.33]
+print(&quot;ratio raw:&quot;, round(abs(m_raw.coef_[0] / m_raw.coef_[1]), 2))   # 0.08
+print(&quot;ratio std:&quot;, round(abs(m_std.coef_[0] / m_std.coef_[1]), 2))   # 2.6
+</code></pre>
+<p>解读：原始系数比 0.08 会让人误判"卧室比面积重要 12 倍"，实际是量纲差造成的假象——面积每平米只值 3 万但变化范围 170 平米，卧室每间值 40 万但只变化 4 间。标准化后系数比 2.6 反映的是"特征各自变化 1 个标准差时对 y 的真实影响比"，面积的影响力反而更大。翻车典型：产品问"哪个特征最重要"，你报了 raw 系数排序，结论完全反了。改法：报标准化系数或 permutation importance，报告里写明"系数为标准化系数"。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.3 过拟合、欠拟合与正则化</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>解法表（课件原文）：欠拟合 → 升维（多项式扩展）或加数据；过拟合 → 降维（PCA/SVD）、筛特征、正则化、数据缩放</li><li>经典面试题的答案：L1 的约束区域是有棱角的菱形，最优解更容易落在棱角上（某些轴为 0）；L2 的约束区域是圆，交点一般不在轴上，所以系数被压小但很少正好为 0</li><li>课件《网格搜索交叉验证》强调：每次调参数据划分要保持一致（固定 random_state），避免 test 数据既调参又评测导致分数虚高——正确做法是 train/val/test 三层，或全程只用交叉验证的 val 分数选参、test 只在最后看一次</li></ul></div>3
+<p>课件的判断标准：训练集拟合差 + 测试集也差 = 欠拟合（模型太简单/特征太少）；训练集拟合好 + 测试集差 = 过拟合（把噪声当规律学了）。解法表（课件原文）：欠拟合 → 升维（多项式扩展）或加数据；过拟合 → 降维（PCA/SVD）、筛特征、正则化、数据缩放。</p>
+<p>多项式回归是"升维"的标准动作：用 <code>PolynomialFeatures(degree=d)</code> 把 x 扩展成 [1, x, x², ..., x^d]，再套线性回归——模型对 x 非线性、对系数仍然线性，所以凸优化性质保留。degree 是过拟合旋钮：实测（sin(2πx) 加 σ=0.15 噪声、20 个训练点）deg=1 训练 MSE 0.2332/测试 0.2069（欠拟合），deg=4 训练 0.0267/测试 0.0085（刚好），deg=15 训练 0.0133/测试 0.0137（测试开始回升）。</p>
+<p>正则化的思想是"结构风险最小化"：目标函数 = 代价函数 + 正则化项。L1（系数绝对值之和）产生稀疏解（很多系数变 0），可当特征选择用；L2（系数平方和）整体收缩系数、防过拟合。经典面试题的答案：L1 的约束区域是有棱角的菱形，最优解更容易落在棱角上（某些轴为 0）；L2 的约束区域是圆，交点一般不在轴上，所以系数被压小但很少正好为 0。两者都上叫 Elastic Net。实测近似共线数据（两列相关 ≈1）：OLS 系数 [214.38, -66.57]（两个数都很大且符号相反，典型的共线不稳定），Ridge(10) 收缩到 [72.9, 72.49]，Lasso(1.0) 直接把第二列系数打成 0（选了第一列）。</p>
+<pre><code class="language-python">import numpy as np
+from sklearn.linear_model import Ridge, Lasso
+from sklearn.preprocessing import StandardScaler
+
+rng = np.random.default_rng(42)
+n = 300
+area = rng.uniform(30, 200, n)
+price = 3.0 * area + 40.0 * rng.integers(1, 6, n).astype(float) + rng.normal(0, 20, n)
+X_coll = np.column_stack([area, area * 1.001 + rng.normal(0, 0.5, n)])  # 近似共线
+Xs = StandardScaler().fit_transform(X_coll)
+
+print(&quot;Ridge coef:&quot;, Ridge(alpha=10).fit(Xs, price).coef_.round(2))   # [72.9  72.49]
+print(&quot;Lasso coef:&quot;, Lasso(alpha=1.0).fit(Xs, price).coef_.round(2))  # [146.82   0.  ]
+</code></pre>
+<p>调参用 <code>GridSearchCV</code>：把 C（正则强度的倒数，C 越小正则越强）或 alpha 放进 param_grid，cv=5 或 10，scoring 选任务对应指标。课件《网格搜索交叉验证》强调：每次调参数据划分要保持一致（固定 random_state），避免 test 数据既调参又评测导致分数虚高——正确做法是 train/val/test 三层，或全程只用交叉验证的 val 分数选参、test 只在最后看一次。</p>
+<h3 id="34-动手实验二gridsearchcv-给-ridge-选-alpha">3.4 动手实验二：GridSearchCV 给 Ridge 选 alpha</h3>3
+<p>调参不靠拍脑袋，用交叉验证的分数说话。下面这段是可直接跑的调参模板，换 estimator 和 param_grid 就能用于逻辑回归（搜 C）、SVM（搜 C/gamma）。</p>
+<pre><code class="language-python">import numpy as np
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import GridSearchCV, KFold
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+
+rng = np.random.default_rng(42)
+X = rng.normal(0, 1, (200, 5))
+y = X @ np.array([3.0, -2.0, 0.5, 0.0, 1.0]) + rng.normal(0, 1, 200)
+
+pipe = make_pipeline(StandardScaler(), Ridge())
+gs = GridSearchCV(pipe, {&quot;ridge__alpha&quot;: [0.01, 0.1, 1, 10, 100]},
+                  cv=KFold(5, shuffle=True, random_state=0),
+                  scoring='neg_mean_squared_error')
+gs.fit(X, y)
+print(&quot;best alpha:&quot;, gs.best_params_, &quot;best mse:&quot;, round(-gs.best_score_, 4))
+print(gs.cv_results_['mean_test_score'].round(3))
+# 实跑：best alpha: {'ridge__alpha': 0.1} best mse: 0.9719
+# mean_test_score: [-0.972 -0.972 -0.972 -1.026 -2.964]
+</code></pre>
+<p>三条纪律：①评分方向注意 neg_mean_squared_error 是负数（sklearn 统一"越大越好"口径）；②<strong>回归任务的 cv 必须用 KFold（可 shuffle），不能用 StratifiedKFold</strong>——StratifiedKFold 只接受离散类别标签，拿连续 y 直接抛 <code>ValueError: Supported target types are: ('binary','multiclass'). Got 'continuous'</code>（本机实测踩过）；分类任务才用 StratifiedKFold 保持类别比例；③GridSearch 内部自带交叉验证，最终模型用 <code>gs.best_estimator_</code> 全量重训，不要再拿测试集反复试参。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.5 学习曲线：区分"数据不够"还是"模型太复杂"</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>过拟合和欠拟合的药方完全相反，判断错了会越治越糟</li><li>判读纪律：gap（train_mse − val_mse，注意符号翻转后 train 更低所以 gap 为正）持续大于 val_mse 的 50% 就是过拟合信号；gap 接近 0 且 val_mse 高就是欠拟合</li><li>学习曲线是区分两者的标准工具：横轴训练样本数，纵轴训练/验证分数，两条曲线的形态告诉你病根</li></ul></div>3
+<p>过拟合和欠拟合的药方完全相反，判断错了会越治越糟。学习曲线是区分两者的标准工具：横轴训练样本数，纵轴训练/验证分数，两条曲线的形态告诉你病根。训练分高验证分低且两线差距大 → 过拟合（加数据或加正则）；两线都低且已经贴在一起 → 欠拟合（加特征或换模型）；两线差距还在收窄 → 加数据还有收益。这段代码可直接跑，输出的三行数字对应三种形态的判读。</p>
+<pre><code class="language-python">import numpy as np
+from sklearn.model_selection import learning_curve
+from sklearn.linear_model import Ridge
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+
+rng = np.random.default_rng(0)
+X = rng.normal(0, 1, (300, 10))
+y = X[:, :3] @ np.array([2.0, -1.5, 1.0]) + rng.normal(0, 1, 300)  # 只有 3 个特征有用
+
+pipe = make_pipeline(StandardScaler(), Ridge(alpha=1.0))
+train_sizes, train_scores, val_scores = learning_curve(
+    pipe, X, y, train_sizes=[50, 100, 200], cv=5,
+    scoring='neg_mean_squared_error', shuffle=True, random_state=0)
+for n, tr, va in zip(train_sizes, train_scores.mean(1), val_scores.mean(1)):
+    print(f&quot;n={n}: train_mse={-tr:.3f} val_mse={-va:.3f} gap={(-tr)-(-va):+.3f}&quot;)
+</code></pre>
+<p>判读纪律：gap（train_mse − val_mse，注意符号翻转后 train 更低所以 gap 为正）持续大于 val_mse 的 50% 就是过拟合信号；gap 接近 0 且 val_mse 高就是欠拟合。真实项目里把 learning_curve 与 GridSearchCV 组合用：先网格搜超参，再画学习曲线看"再加数据值不值"——曲线还陡就去要数据，曲线平了就调模型，这是数据采集预算谈判的硬证据。</p>
+<h2 id="4-线性回归三问">4. 线性回归三问</h2>2
+<p><strong>① 什么情况下用</strong>：y 是连续值且与特征大致呈线性（散点图近似直线带）；需要可解释性（向业务说明"每多 1 平米涨 3 万"）；特征数中等（&lt;1 万）且样本量充足（每特征至少 10~20 个样本）；作为基线模型——任何复杂模型上线前，先跑一版线性回归，复杂模型必须显著超过它才值得上。前置条件：特征已做缩放（若后续加正则或用 SGD）、共线性已检查（VIF 或相关矩阵）、异常值已处理（平方误差对离群点极敏感，会被拉偏斜率）。</p>
+<p><strong>② 什么情况下别用</strong>：y 与 x 明显非线性且不想手工造多项式特征 → 换树模型/核方法；特征共线严重且要求系数稳定 → Ridge/Lasso 或先降维；y 是类别 → 用逻辑回归别硬套线性回归拟合 0/1；数据里有强离群点且不能删 → 换 Huber 回归或先做截尾；样本少特征多（p ≫ n）→ 必须正则化，否则解不唯一。</p>
+<p><strong>③ 翻车长什么样</strong>：<br />
+- 症状：产品拿系数表说"报纸广告比电台重要"，方向和业务直觉反。根因：量纲不齐时比较 raw 系数绝对值。改法：标准化后比系数，或用 permutation importance，报告标注口径。<br />
+- 症状：训练 R² 0.95、测试 R² 0.6。根因：特征造太多（多项式 degree 太高/交叉特征爆炸）或样本太少。改法：L2 正则 + 降 degree + 加数据，用学习曲线区分"数据不够"还是"模型太复杂"。<br />
+- 症状：换一批数据系数从 3.0 跳到 28、符号都变。根因：特征共线（面积和房间面积同时在），XᵀX 近奇异，解不稳。改法：算 VIF 删共线特征，或换 Ridge。<br />
+- 症状：SGD 版本跑 200 轮还报 ConvergenceWarning、损失降不下去。根因：量纲差 + 学习率不当。改法：先 StandardScaler，再 eta0 从 0.001 起网格试，max_iter 提到 1000 以上。<br />
+- 症状：线上预测系统性偏高。根因：训练集含异常值把斜率拉高，或线上特征分布漂移。改法：训练前 3σ/IQR 处理异常值，上线做特征分布监控。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.1 手推一遍梯度下降参数更新（可跑的最小实现）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>sklearn 封装掉的正是最该理解的部分</li><li>下面用纯 numpy 实现单变量线性回归的梯度下降，与 §2.2 的正规方程解对照——两条路线殊途同归是本篇最重要的"眼见为实"</li><li>实跑结果与 §2.2 正规方程的 [1.85, 1.3] 完全吻合</li></ul></div>3
+<p>sklearn 封装掉的正是最该理解的部分。下面用纯 numpy 实现单变量线性回归的梯度下降，与 §2.2 的正规方程解对照——两条路线殊途同归是本篇最重要的"眼见为实"。实现要点都在注释里：初始化、学习率、迭代终止条件，与课件《梯度下降图例》的 f(x)=3x²+5x+7 示例同一套骨架，只是把它接到线性回归的代价函数上。</p>
+<pre><code class="language-python">import numpy as np
+
+X = np.array([1.0, 2.0, 3.0, 4.0])
+Y = np.array([3.2, 4.7, 7.3, 8.5])
+
+def fit_gd(x, y, alpha=0.01, n_iter=5000):
+    w, b = 0.0, 0.0
+    m = len(y)
+    for _ in range(n_iter):
+        err = (w * x + b) - y
+        dw = (1 / m) * np.sum(err * x)     # ∂J/∂w
+        db = (1 / m) * np.sum(err)         # ∂J/∂b
+        w -= alpha * dw
+        b -= alpha * db
+    return w, b
+
+w, b = fit_gd(X, Y)
+print(f&quot;gd  w={w:.4f} b={b:.4f}&quot;)        # 实跑 w=1.8501 b=1.2997（与正规方程 [1.85, 1.3] 一致到小数点后 2 位）
+</code></pre>
+<p>实跑结果与 §2.2 正规方程的 [1.85, 1.3] 完全吻合。学习率实验建议自己跑一遍：alpha=0.001 时 5000 轮还没到位（收敛慢），alpha=0.5 时 loss 上下震荡不降，alpha=0.01 是这批数据的合理起点——"学习率从小往上调、看 loss 曲线"是最实用的调参习惯。批量 GD 每轮用全部样本所以梯度稳；换成随机抽一个样本就是 SGD，抖但快；折中取 32~256 个样本是 mini-batch，深度学习的标配。收敛条件两选一（课件）：代价函数相邻两次差 &lt; 1e-10，或达到 max_iter。</p>
+<h2 id="5-逻辑回归线性模型做分类">5. 逻辑回归：线性模型做分类</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.1 sigmoid 与决策边界</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>sigmoid 的形状决定了它的行为：中间（z≈0）导数大，预测值能快速被修正向 0 或 1 靠拢；两侧导数趋 0，已笃定的样本不再大动——这就是课件"为什么中间导数大，两侧导数小"的答案</li><li>与线性回归的对比（课件原话的直觉版）：线性回归"尽可能让样本点和模型线重合"，逻辑回归"尽可能让样本点远离模型线"——模型线两侧是两个类别，样本离线越远分类置信度越高</li></ul></div>3
+<p>逻辑回归的骨架：先算线性组合 <code>z = wᵀx + b</code>，再过 sigmoid <code>σ(z) = 1/(1+e⁻ᶻ)</code> 把 z 压到 (0,1) 当作"属于正类的概率"。sigmoid 的形状决定了它的行为：中间（z≈0）导数大，预测值能快速被修正向 0 或 1 靠拢；两侧导数趋 0，已笃定的样本不再大动——这就是课件"为什么中间导数大，两侧导数小"的答案。分类阈值默认 0.5，即 <code>z &gt; 0</code> 判正类；决策边界就是 <code>wᵀx + b = 0</code> 这个超平面。</p>
+<p>与线性回归的对比（课件原话的直觉版）：线性回归"尽可能让样本点和模型线重合"，逻辑回归"尽可能让样本点远离模型线"——模型线两侧是两个类别，样本离线越远分类置信度越高。</p>
+<h3 id="52-损失函数为什么不用-mse">5.2 损失函数：为什么不用 MSE</h3>3
+<p>逻辑回归的代价函数从极大似然估计推出来：正例概率 p、负例概率 1−p，似然函数是所有样本对应概率的乘积，取负对数后得到交叉熵（log loss）。不用 MSE 的原因是 sigmoid + MSE 的组合是非凸的，梯度下降会陷进局部极小，而且 sigmoid 两端梯度消失导致学习极慢；交叉熵对"自信地错"的样本惩罚极大（p→0 而真值是 1 时 loss 趋无穷），梯度形式干净：<code>∂J/∂w = (1/m)·Σ(σ(zᵢ) − yᵢ)xᵢ</code>，和线性回归的梯度长得一样，只是把预测值换成了 σ(z)。</p>
+<p>多分类用 softmax：把 k 个类各算一个线性分值，softmax 归一化成概率分布，取最大概率的类。二分类的 sigmoid 是 softmax 在 k=2 时的特例。sklearn 的 <code>LogisticRegression</code> 多分类自动用 OvR（one-vs-rest）或 multinomial（由 solver 决定），课件手写数字一节讲的 OVO/OVR 与这里同源。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.3 调库与超参</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-python">from sklearn.linear_model import LogisticRegression
+# solver 选择（课件参数表 + sklearn 1.9 现状）：
+# liblinear  → 小数据、二分类、支持 L1；仅 OvR
+# lbfgs      → 默认，中等数据，L2/multinomial
+# saga       → 大数据/稀疏特征，支持 L1/L2/elasticnet
+# C = 1/λ，C 越小正则越强；penalty 选 l1/l2（sklearn 1.8+ 推荐用 l1_ratio 代替 penalty 参数）
+</code></pre>
+<p>注意版本坑：sklearn 1.8 起 <code>penalty</code> 参数进入弃用流程（FutureWarning 提示改用 <code>l1_ratio</code>），课件 2022 年的 <code>penalty='l2'</code> 写法在新版会持续报警，生产代码按新版写法迁移，评测脚本里把 warning 过滤掉或显式设 <code>l1_ratio=0</code>。</p>
+<h3 id="54-实测乳腺癌分类全流程">5.4 实测：乳腺癌分类全流程</h3>3
+<p>用 sklearn 自带的 Wisconsin 乳腺癌数据（569 例、30 个特征、恶性为正类的口径由 target 定义，load_breast_cancer 中 target=0 为恶性、1 为良性——评估时先看 <code>data.target_names</code> 别搞反正负类）。70/30 分层切分 + 标准化 + 逻辑回归：</p>
+<pre><code class="language-python">from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score, roc_auc_score
+
+data = load_breast_cancer()
+Xtr, Xte, ytr, yte = train_test_split(data.data, data.target,
+                                      test_size=0.3, random_state=7, stratify=y)
+pipe = make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000))
+pipe.fit(Xtr, ytr)
+yp, proba = pipe.predict(Xte), pipe.predict_proba(Xte)[:, 1]
+print(confusion_matrix(yte, yp))
+print(&quot;acc=%.4f prec=%.4f rec=%.4f f1=%.4f auc=%.4f&quot; % (
+    (yp == yte).mean(), precision_score(yte, yp), recall_score(yte, yp),
+    f1_score(yte, yp), roc_auc_score(yte, proba)))
+</code></pre>
+<p>实跑输出：混淆矩阵 <code>[[63 1] [3 104]]</code>、acc=0.9766、prec=0.9905、rec=0.9720、f1=0.9811、auc=0.9988。注意混淆矩阵行列顺序按标签 0/1 排——报告前先核对哪行是恶性，别把"漏诊 3 例"看成"误诊 3 例"。网格搜索 C：0.01/0.1/1/10 × 5 折交叉验证，best C=0.1、best auc=0.9925。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.5 分类评估：为什么准确率骗人</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>课件《乳腺癌分类》用了一个扎心例子：10000 人检测新冠，3 人感染，模型全部判阴性——准确率 99.97%，但这个模型零价值</li><li>这就是类别不平衡下 accuracy 的失效</li><li>医疗筛查重 recall（漏诊代价高），垃圾邮件过滤重 precision（把正常邮件误杀代价高）</li></ul></div>3
+<p>课件《乳腺癌分类》用了一个扎心例子：10000 人检测新冠，3 人感染，模型全部判阴性——准确率 99.97%，但这个模型零价值。这就是类别不平衡下 accuracy 的失效。四个基础量：TP（正类判正）、FN（正类判负=漏报）、FP（负类判正=误报）、TN（负类判负）。指标定义：accuracy=(TP+TN)/全部；precision=TP/(TP+FP)（判为正的里面多少真是正，管误报）；recall=TP/(TP+FN)（真为正的里面抓到多少，管漏报）；F1 是 precision 和 recall 的调和均值。医疗筛查重 recall（漏诊代价高），垃圾邮件过滤重 precision（把正常邮件误杀代价高）。</p>
+<p>ROC 曲线横轴 FPR、纵轴 TPR，扫不同阈值画出来；AUC 是曲线下面积，衡量"随机取一正一负，正样本得分更高的概率"。类别不平衡时 PR 曲线比 ROC 更敏感（ROC 被大量 TN 撑得好看）。</p>
+<h3 id="56-实测不平衡-5-正例三招怎么选">5.6 实测：不平衡 5% 正例，三招怎么选</h3>3
+<p>造 2000 个样本、5% 正例（正例特征均值偏移 1.2σ）的不平衡数据，70/30 切分：</p>
+<pre><code class="language-python">import numpy as np
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import precision_score, recall_score, f1_score
+
+rng = np.random.default_rng(1)
+n = 2000
+X = rng.normal(0, 1, (n, 5))
+y = (rng.random(n) &lt; 0.05).astype(int)
+X[y == 1] += 1.2
+Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.3, random_state=3, stratify=y)
+
+for cw in (None, 'balanced'):
+    m = LogisticRegression(max_iter=1000, class_weight=cw).fit(Xtr, ytr)
+    pr = m.predict_proba(Xte)[:, 1]
+    for th in (0.5, 0.3):
+        yp = (pr &gt;= th).astype(int)
+        print(f&quot;cw={cw} th={th}: prec={precision_score(yte,yp):.3f} &quot;
+              f&quot;rec={recall_score(yte,yp):.3f} f1={f1_score(yte,yp):.3f}&quot;)
+</code></pre>
+<p>实跑输出：cw=None th=0.5 → prec 0.773 / rec 0.586 / f1 0.667；cw=None th=0.3 → 0.724 / 0.724 / 0.724（<strong>阈值下移 F1 反而最好</strong>）；cw=balanced th=0.5 → 0.389 / 0.966 / 0.554（recall 拉满但 precision 崩）；cw=balanced th=0.3 → 0.262 / 0.966 / 0.412。结论按业务选：要抓全正例（筛查）→ class_weight='balanced'；要 F1 平衡 → 不加权 + 调阈值到 0.3 附近。三招（欠采样/过采样/代价敏感）的取舍见 §5.7 三问。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.7 逻辑回归三问</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>前置条件：特征标准化（尤其接正则时）、多重共线性检查（逻辑回归系数同样被共线扭曲）、类别不平衡先定评估口径（看 F1/AUC 不看 accuracy）</li><li>症状：准确率 99.7% 但业务说模型没用</li><li>症状：医疗场景模型 recall 只有 0.59，漏诊多</li></ul></div>3
+<p><strong>① 什么情况下用</strong>：二分类且需要概率输出（排序、定价、风控打分）；需要可解释性（系数方向 = 该特征对正类的拉动力）；特征与 log-odds 大致线性（可先做分箱/多项式扩展）；作为基线或线上打分模型（训练快、推理是点积、易于部署和监控）。前置条件：特征标准化（尤其接正则时）、多重共线性检查（逻辑回归系数同样被共线扭曲）、类别不平衡先定评估口径（看 F1/AUC 不看 accuracy）。</p>
+<p><strong>② 什么情况下别用</strong>：特征与标签明显非线性且交互复杂（如环形分布——实测环形数据上逻辑回归测试准确率 0.5111，等于瞎猜）→ 换核方法或树模型；需要拟合复杂边界但又要求训练秒级且数据 &gt;10 万 → 试 LinearSVC/GBDT；多分类且类别极多（&gt;100）→ softmax 维度大，考虑层次分类或 embedding；标签噪声大 → 交叉熵对噪声敏感，样本权重或先洗数据；需要"完美记忆"训练集 → 别用（那是过拟合，不是目标）。</p>
+<p><strong>③ 翻车长什么样</strong>：<br />
+- 症状：医疗场景模型 recall 只有 0.59，漏诊多。根因：正例少 + 默认阈值 0.5 + 未加代价权重。改法：class_weight='balanced' 或按代价矩阵定阈值，上线前用 PR 曲线选工作点。<br />
+- 症状：准确率 99.7% 但业务说模型没用。根因：类别不平衡下 accuracy 天然虚高。改法：换 F1/AUC/PR-AUC，报告必须带混淆矩阵。<br />
+- 症状：环形/月牙形数据上线性模型怎么调都不动，准确率 0.5 附近。根因：线性不可分，决策边界是超平面而真实边界是曲线。改法：造非线性特征（多项式、交叉项）、换 SVM+RBF 或树模型。<br />
+- 症状：系数方向和业务直觉相反（比如"学历越高越不违约"）。根因：共线特征互相抵消（学历和收入高度相关），或没标准化导致量纲假象。改法：算 VIF 删冗余特征、标准化后再解释系数。<br />
+- 症状：训练 auc 0.99、上线掉到 0.7。根因：特征泄漏（用了"预测时点拿不到"的字段）或线上线下特征口径不一致。改法：每个特征写"预测时点可得性"注释，用时间切分验证而不是随机切分。</p>
+<h3 id="58-动手实验三softmax-多分类鸢尾花与混淆矩阵打印">5.8 动手实验三：softmax 多分类（鸢尾花）与混淆矩阵打印</h3>3
+<p>课件 04 的鸢尾花实战（150 条、3 类、4 个 cm 特征）用的就是逻辑回归多分类。下面这段把"训练→预测→逐类指标"一次跑完，重点看 classification_report 里每类的 precision/recall——总 accuracy 会掩盖某一个类被系统性误判的问题。</p>
+<pre><code class="language-python">from sklearn.datasets import load_iris
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.metrics import classification_report, confusion_matrix
+
+data = load_iris()
+Xtr, Xte, ytr, yte = train_test_split(data.data, data.target,
+                                      test_size=0.3, random_state=5, stratify=data.target)
+clf = make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000))
+clf.fit(Xtr, ytr)
+yp = clf.predict(Xte)
+print(confusion_matrix(yte, yp))
+print(classification_report(yte, yp, target_names=data.target_names))
+</code></pre>
+<p>读报告的顺序：先看混淆矩阵对角线外的格子（谁被错认成谁），再看各类 recall（哪类漏得多），最后才看 macro avg。三类鸢尾花在 4 个特征上线性可分，逻辑回归一般全对；如果 setosa/virginica 混淆集中，说明该类对特征有重叠，考虑加交互特征或换树模型。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.9 ROC 曲线与阈值选择：把 0.5 这个默认值拆开看</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>阈值 0.5 只是默认值，不是业务最优值</li><li>roc_curve 扫所有可能阈值给出 (FPR, TPR, threshold) 三列，业务侧按"误报代价 vs 漏报代价"挑工作点：漏报代价高（筛查）→ 往低阈值走拉高 TPR；误报代价高（风控）→ 往高阈值走压 FPR</li><li>下面这段用乳腺癌数据把整条 ROC 和 AUC 算出来，并演示按目标召回率反查阈值——这是把评估指标变成业务动作的标准姿势</li></ul></div>3
+<p>阈值 0.5 只是默认值，不是业务最优值。roc_curve 扫所有可能阈值给出 (FPR, TPR, threshold) 三列，业务侧按"误报代价 vs 漏报代价"挑工作点：漏报代价高（筛查）→ 往低阈值走拉高 TPR；误报代价高（风控）→ 往高阈值走压 FPR。下面这段用乳腺癌数据把整条 ROC 和 AUC 算出来，并演示按目标召回率反查阈值——这是把评估指标变成业务动作的标准姿势。</p>
+<pre><code class="language-python">import numpy as np
+from sklearn.metrics import roc_curve, roc_auc_score
+
+# 接 §5.4 的 pipe / Xte / yte / proba（训练好的乳腺癌模型）
+fpr, tpr, ths = roc_curve(yte, proba)
+print(&quot;AUC:&quot;, round(roc_auc_score(yte, proba), 4))       # 实跑 0.9988
+print(&quot;thresholds sampled:&quot;, np.round(ths[:5], 3))       # [inf 1. 0.658 0.647 0.403]
+
+# 业务动作：要求召回率 ≥ 0.99，反查可用阈值
+target_rec = 0.99
+idx = np.where(tpr &gt;= target_rec)[0][0]
+print(f&quot;recall={tpr[idx]:.3f} 时阈值={ths[idx]:.3f}, 对应 FPR={fpr[idx]:.3f}&quot;)
+# 实跑：recall=0.991 时阈值=0.330, 对应 FPR=0.031
+</code></pre>
+<p>判读纪律：AUC 是"排序能力"（正样本得分高于负样本的概率），阈值是"业务决策点"，两者分开报告——AUC 高不代表现网阈值下体验好。PR 曲线（precision_recall_curve）在类别不平衡时比 ROC 更能反映真实压力，因为 ROC 的横轴 FPR 被海量 TN 撑得好看（§5.5 的 10000 人体检例子）。阈值一旦定了就进版本管理：线上换阈值 = 换模型行为，要走发布流程，不能运营随手调。</p>
+<h3 id="510-概率校准逻辑回归的概率为什么可信其他模型为什么需要校准">5.10 概率校准：逻辑回归的概率为什么可信、其他模型为什么需要校准</h3>3
+<p>逻辑回归的输出直接由 sigmoid 的参数化决定，交叉熵训练本身就在拟合真实后验概率，所以它的概率天然接近"事件真实发生频率"——风控定价、医疗告知这类<strong>要用概率做决策</strong>的场景优先选逻辑回归，正是因为这一点。树模型和 SVM 的"概率"是投票比例或决策函数值，不是校准过的频率：实测口径上，把预测概率分桶（0.1~0.2、0.2~0.3……）统计每桶真实发生率，理想情况下桶内发生率 ≈ 桶中点；RF/SVM 的桶内发生率常系统性偏高或偏低（过自信或欠自信），这时就要接校准层。sklearn 的工具链：</p>
+<pre><code class="language-python">from sklearn.calibration import CalibratedClassifierCV
+from sklearn.svm import SVC
+
+# 双重 cv：交叉验证拟合 Platt 缩放（sigmoid）或等渗回归
+cal = CalibratedClassifierCV(SVC(kernel='rbf', gamma='scale'), method='sigmoid', cv=5)
+cal.fit(Xtr_m, ytr_m)
+proba = cal.predict_proba(Xte_m)[:, 1]
+</code></pre>
+<p>选择纪律：要概率喂下游（定价、排序、期望收益计算）→ 逻辑回归原生概率 或 校准后的模型；只要分类标签 → 校准可以省。校准本身要占一份数据（cv 里轮换），小样本（&lt;500）先别折腾校准，误差比不校准还大。评估校准好坏用 Brier score（概率与 0/1 标签的均方误差，越小越准）和可靠性图（reliability diagram），AUC 高不代表校准好——AUC 只看排序，校准看绝对值，两个维度正交。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.11 模型持久化：从训练脚本到可上线工件</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>训练完的模型不落盘等于白训</li><li>线性/逻辑回归的推理本质是点积，部署极轻；但"模型文件"必须包含预处理参数，否则线上特征口径和训练不一致，精度直接崩</li><li>joblib.dump(pipe, 'logreg_v1.joblib') 存：缩放器+模型一起</li></ul></div>3
+<p>训练完的模型不落盘等于白训。线性/逻辑回归的推理本质是点积，部署极轻；但"模型文件"必须包含<strong>预处理参数</strong>，否则线上特征口径和训练不一致，精度直接崩。标准姿势是把预处理和模型绑成一个 Pipeline 对象整体序列化，joblib（数值对象比 pickle 快）或 pickle 都行：</p>
+<pre><code class="language-python">import joblib
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+
+pipe = make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000))
+pipe.fit(Xtr, ytr)
+joblib.dump(pipe, 'logreg_v1.joblib')      # 存：缩放器+模型一起
+loaded = joblib.load('logreg_v1.joblib')   # 线上加载
+assert (loaded.predict(Xte) == pipe.predict(Xte)).all()   # 加载即验，防版本错配
+</code></pre>
+<p>三条工程纪律：①文件名带版本和指标（<code>logreg_v1-auc0.99.joblib</code>），回滚时看得懂；②加载后立刻跑一次预测与训练对象对拍（代码里那行 assert），sklearn 跨版本加载可能静默行为变化；③模型卡（model card）记录训练数据版本、特征清单、评估指标、阈值——阈值是模型行为的一部分（§5.9），换阈值要和换模型一起发版。joblib 与 pickle 的区别：joblib 对 numpy 大数组走内存映射更快，模型文件里系数矩阵大的时候首选；两者都只信任自己序列化的文件，来源不明的 .joblib 别加载（反序列化可执行任意代码）。</p>
+<h2 id="6-两者的共同坑与衔接">6. 两者的共同坑与衔接</h2>2
+<ol>
+<li><strong>特征缩放</strong>：线性回归的 SGD 路线、逻辑回归的正则路线都必须先缩放；决策树/SVM 的树路线不用（但 SVM 的 RBF 核强烈建议缩放）。</li>
+<li><strong>共线性</strong>：两者系数都会被共线特征搅乱。判据：特征两两相关 &gt;0.9 或 VIF &gt;10。处理：删一个、PCA、或上 Ridge。</li>
+<li><strong>异常值</strong>：平方误差和交叉熵都对脏样本敏感。处理顺序：检测（IQR/3σ）→ 业务确认 → 截尾或删除。</li>
+<li><strong>评估口径</strong>：回归看 MSE/MAE/R²，分类看 precision/recall/F1/AUC + 混淆矩阵。别跨任务比指标。</li>
+<li><strong>基线纪律</strong>：复杂模型（GBDT、深度学习）上线前必须打赢正则化线性模型；打不过说明特征工程才是瓶颈，不是模型。</li>
+</ol>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">6.1 部署视角：线性/逻辑回归为什么是上线首选</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>把模型放进生产链路时，线性/逻辑回归的优势不在精度而在工程属性：推理是一次点积加一次 sigmoid，单次 <1 毫秒、内存 KB 级，任何语言（Java/Go/SQL）都能手写出来；系数表可以直接落数据库当"规则"审计；新特征上线只需要改向量拼接，不用重新编译</li><li>深一点的对照：同样这批数据，GBDT 可能再高 1~2 个点，但推理是几百次比较、模型文件 MB 级、特征顺序错一个就全错</li><li>选型公式：精度差距 5 个点 → 集成/深度学习</li></ul></div>2
+<p>把模型放进生产链路时，线性/逻辑回归的优势不在精度而在工程属性：推理是一次点积加一次 sigmoid，单次 &lt;1 毫秒、内存 KB 级，任何语言（Java/Go/SQL）都能手写出来；系数表可以直接落数据库当"规则"审计；新特征上线只需要改向量拼接，不用重新编译。深一点的对照：同样这批数据，GBDT 可能再高 1~2 个点，但推理是几百次比较、模型文件 MB 级、特征顺序错一个就全错。选型公式：<strong>精度差距 &lt;2 个点且推理预算紧 → 线性/逻辑回归；精度差距 &gt;5 个点 → 集成/深度学习</strong>。监控指标也简单：输入特征分布漂移（PSI）、预测分布漂移、线上 AUC/Brier 滚动窗口——逻辑回归的系数稳定，漂移了第一时间体现在截距偏移上，比树模型好排查。</p>
+<h2 id="7-术语表">7. 术语表</h2>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>全称</th>
+<th>一句话解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>线性回归</td>
+<td>Linear Regression</td>
+<td>用线性组合拟合连续标签的回归模型</td>
+</tr>
+<tr>
+<td>逻辑回归</td>
+<td>Logistic Regression</td>
+<td>线性组合过 sigmoid 输出类别概率的分类模型</td>
+</tr>
+<tr>
+<td>代价函数</td>
+<td>Cost Function</td>
+<td>衡量预测与真实差距、供优化最小化的目标函数</td>
+</tr>
+<tr>
+<td>均方误差</td>
+<td>Mean Squared Error (MSE)</td>
+<td>预测误差平方的平均，回归标准代价</td>
+</tr>
+<tr>
+<td>平均绝对误差</td>
+<td>Mean Absolute Error (MAE)</td>
+<td>误差绝对值的平均，单位与 y 一致</td>
+</tr>
+<tr>
+<td>R²</td>
+<td>Coefficient of Determination</td>
+<td>相对"直接猜均值"的方差解释比例</td>
+</tr>
+<tr>
+<td>梯度下降</td>
+<td>Gradient Descent (GD)</td>
+<td>沿负梯度迭代求函数极小值的优化算法</td>
+</tr>
+<tr>
+<td>学习率</td>
+<td>Learning Rate (α)</td>
+<td>每步参数更新的步长</td>
+</tr>
+<tr>
+<td>正规方程</td>
+<td>Normal Equation</td>
+<td>最小二乘的解析解 w=(XᵀX)⁻¹Xᵀy</td>
+</tr>
+<tr>
+<td>特征缩放</td>
+<td>Feature Scaling</td>
+<td>归一化/标准化统一特征量纲的预处理</td>
+</tr>
+<tr>
+<td>归一化</td>
+<td>Normalization (MinMax)</td>
+<td>线性映射到 [0,1] 区间</td>
+</tr>
+<tr>
+<td>标准化</td>
+<td>Standardization (Z-score)</td>
+<td>减均值除标准差，变成零均值单位方差</td>
+</tr>
+<tr>
+<td>多项式回归</td>
+<td>Polynomial Regression</td>
+<td>升维造 x²、x³ 等特征后再线性拟合</td>
+</tr>
+<tr>
+<td>正则化</td>
+<td>Regularization</td>
+<td>目标函数加参数惩罚项抑制过拟合</td>
+</tr>
+<tr>
+<td>L1 正则</td>
+<td>Lasso Penalty</td>
+<td>系数绝对值惩罚，产生稀疏解可做特征选择</td>
+</tr>
+<tr>
+<td>L2 正则</td>
+<td>Ridge Penalty</td>
+<td>系数平方惩罚，整体收缩防过拟合</td>
+</tr>
+<tr>
+<td>Elastic Net</td>
+<td>Elastic Net</td>
+<td>L1 与 L2 同时使用的正则化</td>
+</tr>
+<tr>
+<td>sigmoid</td>
+<td>Sigmoid / Logistic Function</td>
+<td>把实数压到 (0,1) 的 S 形函数</td>
+</tr>
+<tr>
+<td>softmax</td>
+<td>Softmax</td>
+<td>多分类版 sigmoid，输出类别概率分布</td>
+</tr>
+<tr>
+<td>交叉熵</td>
+<td>Cross-Entropy / Log Loss</td>
+<td>分类任务的极大似然代价函数</td>
+</tr>
+<tr>
+<td>混淆矩阵</td>
+<td>Confusion Matrix</td>
+<td>TP/FP/FN/TN 四格分类结果表</td>
+</tr>
+<tr>
+<td>精确率</td>
+<td>Precision</td>
+<td>判为正的样本中真为正的比例</td>
+</tr>
+<tr>
+<td>召回率</td>
+<td>Recall / Sensitivity</td>
+<td>真为正的样本中被抓住的比例</td>
+</tr>
+<tr>
+<td>F1 值</td>
+<td>F1 Score</td>
+<td>precision 与 recall 的调和均值</td>
+</tr>
+<tr>
+<td>ROC 曲线</td>
+<td>Receiver Operating Characteristic</td>
+<td>不同阈值下 TPR-FPR 轨迹</td>
+</tr>
+<tr>
+<td>AUC</td>
+<td>Area Under ROC Curve</td>
+<td>ROC 曲线下面积，衡量排序能力</td>
+</tr>
+<tr>
+<td>网格搜索</td>
+<td>Grid Search</td>
+<td>穷举超参组合 + 交叉验证选优</td>
+</tr>
+<tr>
+<td>交叉验证</td>
+<td>Cross-Validation (k-fold)</td>
+<td>k 份轮流做验证集的稳定评估法</td>
+</tr>
+<tr>
+<td>类别不平衡</td>
+<td>Class Imbalance</td>
+<td>正负样本比例悬殊导致指标失真</td>
+</tr>
+<tr>
+<td>代价敏感学习</td>
+<td>Cost-Sensitive Learning</td>
+<td>给不同类/误判类型设不同惩罚权重</td>
+</tr>
+<tr>
+<td>独热编码</td>
+<td>One-Hot Encoding</td>
+<td>离散特征扩成 0/1 向量消除假序关系</td>
+</tr>
+<tr>
+<td>支持向量</td>
+<td>Support Vector</td>
+<td>离分割超平面最近、决定边界的样本点</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">7.1 自测题（做完再收工）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（答案方向：学习率/迭代次数 vs X 矩阵构造</li><li>7. 为什么推理服务要把 StandardScaler 和模型一起序列化</li><li>（答案方向：99.97%，看 recall/F1/PR-AUC</li></ul></div>2
+<ol>
+<li>用 y=2x+1 的四个带噪点跑正规方程和梯度下降，两者系数差多少？差得大先查什么？（答案方向：学习率/迭代次数 vs X 矩阵构造。）</li>
+<li>归一化和标准化各适合什么场景？测试集能不能单独 fit 一个缩放器？（答案方向：不能，用训练集参数 transform。）</li>
+<li>L1 和 L2 各自的解长什么样？什么时候选 Lasso？（答案方向：稀疏解做特征选择 vs 平滑收缩。）</li>
+<li>10000 人体检 3 例感染，模型全判阴性，accuracy 是多少？该看什么指标？（答案方向：99.97%，看 recall/F1/PR-AUC。）</li>
+<li>class_weight='balanced' 把 recall 从 0.586 拉到 0.966 的代价是什么？（答案方向：precision 从 0.773 掉到 0.389。）</li>
+<li>逻辑回归在环形数据上准确率 0.51 说明什么？下一步做什么？（答案方向：线性不可分，换核方法/树模型或造非线性特征。）</li>
+<li>为什么推理服务要把 StandardScaler 和模型一起序列化？（答案方向：线上预处理口径必须与训练一致。）</li>
+<li>AUC 0.99 但现网体验差，矛盾吗？（答案方向：不矛盾，AUC 看排序、体验看阈值工作点。）</li>
+</ol>
+<h2 id="8-来源与核验">8. 来源与核验</h2>2
+<ul>
+<li>线性回归闭环（模型-性能-算法）、代价函数、梯度下降学习率调参：raw/courseware/机器学习/机器学习第二期 01线性回归01</li>
+<li>正规方程、特征缩放、归一化 vs 标准化对照表：raw/courseware/机器学习/机器学习第二期 02线性回归2</li>
+<li>多项式扩展、欠拟合/过拟合、L1/L2 与经典面试题、网格搜索：raw/courseware/机器学习/机器学习第二期 03线性回归3</li>
+<li>sigmoid、极大似然、softmax、独热编码、solver 参数表：raw/courseware/机器学习/机器学习第二期 04逻辑回归</li>
+<li>混淆矩阵、precision/recall/F1、ROC/AUC、类别不平衡三招、缺失值填充：raw/courseware/机器学习/机器学习第二期 05乳腺癌分类-课后</li>
+<li>代码模板：raw/courseware/机器学习/code/02线性回归代码（sklearn标准线性回归 / 正规方程法求解 / 特征缩放处理 / 梯度下降图例）</li>
+<li>本篇 §2.2、§3.2、§3.3、§5.4、§5.6 的数字均为 <code>/usr/bin/python3</code>（scikit-learn 1.9.0、numpy 2.3.5）实跑产出，脚本逻辑与上文代码块一致，属 input_digest 口径下的实测复核。</li>
+</ul></div></details></div></body></html>

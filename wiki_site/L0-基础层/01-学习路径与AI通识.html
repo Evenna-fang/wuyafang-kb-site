@@ -1,0 +1,293 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>01-学习路径与AI通识</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 01-学习路径与AI通识</span></div><div class="wrap"><h1 id="学习路径与-ai-通识从概念判断到可验收的最小路线">学习路径与 AI 通识：从概念判断到可验收的最小路线</h1>
+<p>本文是「AI 通识 + AI 通识导航 + 学习路径导航 + 课程结构对标」的唯一正文。目标不是让读者背完术语，而是能回答三个实践问题：下一步学什么、当前问题该用 Prompt/RAG/微调中的哪一种、怎样证明这一阶段真的学会。</p>
+<blockquote>
+<p>验证边界：文中的本地路径检查可离线执行；<code>tiktoken</code> 安装与 Token 计数示例<strong>未实跑</strong>，不连接模型、不需要 API Key。论文结果属于原作者实验设置，不当作本机或所有模型的收益承诺。</p>
+</blockquote>
+<h2 id="why">WHY</h2>2
+<h3 id="1-为什么先建立地图而不是直接追工具">1. 为什么先建立地图，而不是直接追工具</h3>3
+<p>零基础最常见的浪费不是学得慢，而是顺序错误：不会读写 JSON 就开始搭 RAG，不理解 Token 就比较上下文价格，把「模型不知道私有资料」误判成「提示词不够长」，或者在还没有评测集时直接微调。工具名称几个月就换，数据表示、概率生成、检索与评估这些底层概念却能反复复用。《AI 工程》划线摘录也提醒「工具更新换代很快，底层知识的生命力更为持久」；这里据此把路线组织为能力而不是产品清单。</p>
+<p>不建立地图会有四种直接后果：</p>
+<ol>
+<li><strong>学习目标不可验收</strong>：「看完 Python」无法判断能否解析模型返回；「能读 JSON、处理嵌套字典、写出测试」才可以。</li>
+<li><strong>问题层级混淆</strong>：知识缺失、行为不稳定、参数能力不足是三类问题，分别对应检索、提示/流程约束、训练，不可互相替代。</li>
+<li><strong>只追求能跑</strong>：模型能流畅生成不等于内容正确，Demo 成功不等于可交付。</li>
+<li><strong>课程大纲代替个人路径</strong>：课程覆盖广不等于每个人都要顺序学完。2026-10-26 的两份课程大纲对标显示，博学谷偏技术纵深，黑马偏阶段化项目与工程落地；这是当时大纲的结构比较，不是教学质量排名，也不是当前招生承诺。</li>
+</ol>
+<h3 id="2-为什么-ai-通识必须落到工程决策">2. 为什么 AI 通识必须落到工程决策</h3>3
+<p>课件的符号主义与联结主义对比，不只是历史故事。符号系统把人写清的规则交给机器执行，优点是规则显式、易审计，难点是规则覆盖；神经网络从数据调整参数，优点是学习复杂模式，难点是数据、泛化和解释。现实中的 AI 应用往往把两者组合：模型负责语义表示与生成，代码负责权限、 Schema、阈值、检索条件和验收规则。</p>
+<p>不理解生成机制，就会把「像真的」当成「是真的」。书籍《大模型是怎样跑起来的》的划线摘录把生成描述为根据前文反复预测下一个 Token，并特别提醒冷门、过时、模糊或需要严密推理的问题可能「答得流畅但并不一定正确」。因此，AI 通识的最终产出应是验证意识：要求来源、检查边界、抽样复核，而不是对模型人格化。</p>
+<h2 id="what-whyt">WHAT / WHYT</h2>2
+<h3 id="3-一条最小能力链表示-计算-生成-应用-验证">3. 一条最小能力链：表示 → 计算 → 生成 → 应用 → 验证</h3>3
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>核心概念</th>
+<th>与相邻概念的区别</th>
+<th>能指导什么实践</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>表示</td>
+<td>Token、Embedding</td>
+<td>Token 是模型处理序列的离散单位；Embedding 是数值向量表示</td>
+<td>Token 影响上下文与计费；向量用于相似度检索</td>
+</tr>
+<tr>
+<td>计算</td>
+<td>矩阵变换、自注意力</td>
+<td>矩阵运算是计算形式；注意力是按内容分配信息权重的机制</td>
+<td>理解为什么需要向量化计算与 GPU</td>
+</tr>
+<tr>
+<td>生成</td>
+<td>预训练、解码、采样</td>
+<td>预训练学参数；解码用已有参数生成；采样从候选分布选输出</td>
+<td>温度等参数改变输出分布，不补充可靠事实</td>
+</tr>
+<tr>
+<td>应用</td>
+<td>Prompt、RAG、Agent、微调</td>
+<td>四者作用层不同，不是同一功能的竞品</td>
+<td>按知识、流程、工具、行为问题选型</td>
+</tr>
+<tr>
+<td>验证</td>
+<td>单元测试、检索评测、答案评测</td>
+<td>代码正确、证据找对、答案可信是不同问题</td>
+<td>每阶段留可复跑证据，不靠肉眼一句「挺好」</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Token 不是字，也不是词。</strong>不同分词器、语言和模型会得到不同切分；不能用字符数乘固定系数冒充精确 Token 数。上下文窗口是模型可处理的序列预算，通常同时受输入与输出占用，具体口径看所用模型文档。API Key 是访问凭据，不是「模型账号密码」的同义词，也不应写入源码、课件、日志或派单文本。</p>
+<p><strong>自注意力不是数据库检索。</strong>注意力在当前模型计算的上下文中学习关联；RAG 则从外部集合查出证据并放入上下文。前者是模型内部计算，后者是应用系统的数据管线。二者可以组合，不能互相解释。</p>
+<h3 id="4-promptrag微调与-agent-的适用边界">4. Prompt、RAG、微调与 Agent 的适用边界</h3>3
+<table>
+<thead>
+<tr>
+<th>当前症状</th>
+<th>首选动作</th>
+<th>何时不用这条路</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>输出格式、语气、任务定义不稳定</td>
+<td>改 Prompt，加明确输入、约束、输出 Schema 和反例</td>
+<td>私有事实缺失时，继续堆指令不会创造事实</td>
+</tr>
+<tr>
+<td>需要最新或私有资料，并要求引用</td>
+<td>建 RAG：解析、切块、索引、检索、组装、答案校验</td>
+<td>数据本身错误或无权限时，检索只会放大问题</td>
+</tr>
+<tr>
+<td>要让模型调用工具、按状态推进流程</td>
+<td>建 Agent/工作流，并设置权限、超时、人工确认与恢复</td>
+<td>单次确定性转换不需要开放式自主循环</td>
+</tr>
+<tr>
+<td>已证明知识供给和 Prompt 足够，但稳定行为仍不达标</td>
+<td>有数据与评测后再考虑 SFT/偏好优化等训练</td>
+<td>没有评测集、只想补实时事实时，不应先微调</td>
+</tr>
+</tbody>
+</table>
+<p>「RAG 解决知识、微调解决行为」是有用的第一层分工，但不是绝对定律：训练也可能改变知识关联，RAG 的提示模板也会影响行为。工程上仍需用对照实验判定瓶颈。</p>
+<h3 id="5-论文怎么说我们怎么用">5. 论文怎么说，我们怎么用</h3>3
+<p><strong>个性化学习不是多给内容，而是让目标、活动、评价和修订形成闭环。</strong>Agentic University（<strong>arXiv:2610.40492</strong>）提出学习者参与的可修订 Capability Program，用反馈与表现决定后续支持；论文报告其评估中的平均增益为 12.19 对 5.61（50 分制），这是该研究设置的结果，不证明任意多智能体课程都有效。我们借鉴的是组织原则：每一阶段都保留「目标—练习—测评—修订」，不照搬多智能体架构，也不把论文分数当本路线承诺。</p>
+<p><strong>生成加速是独立工程问题，不是「Token 越少就一定越快」。</strong>ReaDy（<strong>arXiv:2610.20503</strong>）研究混合线性注意力模型中的推测解码，利用循环状态辅助草稿，并报告特定模型、B200 GPU 与七项基准上的平均加速。我们用它纠正两个入门误区：一是生成不止简单的「逐字打印」，底层可采用草稿—验证等优化；二是论文加速数字有硬件、模型和任务边界，学习阶段先建立正确性基线，不能为追速度牺牲验收。</p>
+<h3 id="6-课程结构怎么取舍">6. 课程结构怎么取舍</h3>3
+<p>两份大纲的可复用结论是「骨架阶段化、专题按需加深」：入门可以借低代码或 AI 编程获得正反馈，但 Python、数据与 Transformer 基本机制不能永久跳过；RAG/Agent 可作为应用主线，微调、多模态、底层训练按目标选修。本库不复制任何一家的 95 天或 200+ 知识点安排，而采用下面的过关制路线。</p>
+<h2 id="how">HOW</h2>2
+<h3 id="7-六阶段路线每步都有产物与回退条件">7. 六阶段路线：每步都有产物与回退条件</h3>3
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>唯一正文/下一站</th>
+<th>必做产物</th>
+<th>过关标准</th>
+<th>卡住时回退</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 环境</td>
+<td><a href="02-%E7%8E%AF%E5%A2%83%E4%B8%8E%E5%B7%A5%E5%85%B7%E9%93%BE.html">02-环境与工具链</a></td>
+<td>隔离环境 + 验证输出</td>
+<td>解释器、pip、依赖目录一致，能从空目录重建</td>
+<td>查 PATH 与虚拟环境</td>
+</tr>
+<tr>
+<td>2 Python</td>
+<td><a href="03-Python%E6%A0%B8%E5%BF%83%E7%BC%96%E7%A8%8B.html">03-Python核心编程</a></td>
+<td>JSON 日志处理器 + 测试</td>
+<td>会容器、函数、异常、类与模块，能读 traceback</td>
+<td>先补语法再学框架</td>
+</tr>
+<tr>
+<td>3 数学与数据</td>
+<td><a href="05-%E6%95%B0%E5%AD%A6%E4%B8%8E%E7%BB%9F%E8%AE%A1%E7%9B%B4%E8%A7%89.html">05-数学与统计直觉</a>、<a href="06-%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90%E4%B8%8E%E5%8F%AF%E8%A7%86%E5%8C%96.html">06-数据分析与可视化</a></td>
+<td>相似度计算 + EDA 报告</td>
+<td>会核对形状、口径、分布和总量，不把相关写成因果</td>
+<td>用二维小数据手算</td>
+</tr>
+<tr>
+<td>4 数据存取</td>
+<td><a href="07-%E6%95%B0%E6%8D%AE%E5%B7%A5%E7%A8%8B%E4%B8%8ESQL.html">07-数据工程与SQL</a></td>
+<td>SQLite 数据库 + 参数化查询</td>
+<td>能建约束、事务写入、 JOIN 查询、保留数据来源</td>
+<td>先用 SQLite，暂缓服务端数据库</td>
+</tr>
+<tr>
+<td>5 异步与服务</td>
+<td><a href="04-Python%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B.html">04-Python异步编程</a></td>
+<td>有超时和并发上限的模拟批处理</td>
+<td>能区分 I/O 并发与 CPU 并行，无失控后台任务</td>
+<td>先写同步正确版本</td>
+</tr>
+<tr>
+<td>6 应用与评估</td>
+<td>L2 提示词 → L4 RAG → L5 Agent；需要改参数再去 L6</td>
+<td>小型知识库 + 固定问题集 + 失败记录</td>
+<td>回答能引用证据，检索与答案分别评测</td>
+<td>回查数据、Python 或问题层级</td>
+</tr>
+</tbody>
+</table>
+<p>时间不写成统一的「三周必会」。每天可投入时间、既有编程基础和练习质量不同；以产物过关为准。若做快速 Demo，可先从 L7 低代码获得正反馈，再回到第 2—4 步补可维护性。</p>
+<h3 id="8-第一步核对本层路线与建立学习记录">8. 第一步：核对本层路线与建立学习记录</h3>3
+<p>以下命令在仓库根目录执行，<strong>已实跑</strong>；它不读取凭据、不访问网络：</p>
+<pre><code class="language-bash">for f in \
+  wiki/L0-基础层/01-学习路径与AI通识.md \
+  wiki/L0-基础层/02-环境与工具链.md \
+  wiki/L0-基础层/03-Python核心编程.md \
+  wiki/L0-基础层/04-Python异步编程.md \
+  wiki/L0-基础层/05-数学与统计直觉.md \
+  wiki/L0-基础层/06-数据分析与可视化.md \
+  wiki/L0-基础层/07-数据工程与SQL.md
+do
+  test -s &quot;$f&quot; || { printf '缺失：%s\n' &quot;$f&quot;; exit 1; }
+done
+printf 'L0 七篇唯一正文均在\n'
+</code></pre>
+<p>每周只维护一张表，不另建散篇：</p>
+<pre><code class="language-text">周目标 | 可运行产物 | 固定测试题 | 首次结果 | 错误原因 | 修订后结果 | 下一步
+</code></pre>
+<p>「首次结果」必须保留失败，不能只填最好的一次。修订依据应落到具体错误，例如「JSON 解析失败：把模型 Markdown 围栏直接交给 json.loads」，而不是「状态不好」。</p>
+<h3 id="9-第二步用同一问题做技术分界实验">9. 第二步：用同一问题做技术分界实验</h3>3
+<p>选一个固定问题，例如「根据公司 2026 年差旅制度，住宿上限是多少，并给出来源」。按顺序实验：</p>
+<ol>
+<li><strong>无资料 Prompt</strong>：要求只根据已知回答；若没有可靠来源，应允许回答不知道。</li>
+<li><strong>提供原文的 Prompt</strong>：给一小段制度，检查答案是否逐字受证据支持。</li>
+<li><strong>小型 RAG</strong>：把多份制度切块检索，记录召回片段与答案引用。</li>
+<li><strong>固定评测</strong>：至少准备「答案存在、答案不存在、跨文档、旧版本干扰、无权限资料」五类问题。</li>
+<li><strong>是否训练的决策</strong>：只有当知识已正确提供、输出合同清楚、失败仍呈稳定行为模式时，才评估微调；否则先修数据或流程。</li>
+</ol>
+<p>这个实验比背定义更能区分 Prompt、RAG 与微调。真实模型调用因需要外部服务与凭据，<strong>未实跑</strong>；这里给的是可照做的实验协议，不宣称已获得某项准确率。</p>
+<h3 id="10-第三步用真实分词器测-token不用字符数猜">10. 第三步：用真实分词器测 Token，不用字符数猜</h3>3
+<p>下面是兼容 <code>o200k_base</code> 分词器的示例，不代表其他模型分词结果。安装与运行<strong>未实跑</strong>：</p>
+<pre><code class="language-bash">python -m venv .venv
+source .venv/bin/activate        # Windows PowerShell 改用 .venv\Scripts\Activate.ps1
+python -m pip install tiktoken
+python token_budget.py
+</code></pre>
+<pre><code class="language-python"># token_budget.py
+import tiktoken
+
+encoding = tiktoken.get_encoding(&quot;o200k_base&quot;)
+prompt = &quot;只依据给定资料回答；资料不足时说不知道。&quot;
+context = &quot;住宿上限以审批时有效制度为准。&quot;
+max_output_tokens = 200
+used = len(encoding.encode(prompt + context))
+budget = 4096  # 仅作演示，必须替换为目标模型官方上下文口径
+
+print({&quot;input_tokens&quot;: used, &quot;reserved_output&quot;: max_output_tokens,
+       &quot;total_planned&quot;: used + max_output_tokens})
+assert used + max_output_tokens &lt;= budget
+</code></pre>
+<p>实际项目还要把系统消息、工具定义、历史消息和检索片段计入，并以目标服务商返回的 usage 为账单核对依据。不要把本示例的 4096 当成任何现役模型参数。</p>
+<h3 id="11-阶段验收与停止条件">11. 阶段验收与停止条件</h3>3
+<ul>
+<li><strong>概念关</strong>：能不用类比准确区分 Token/Embedding、RAG/微调、并发/并行、模型/产品。</li>
+<li><strong>代码关</strong>：能在新虚拟环境运行自己的脚本，错误时有 traceback 和最小复现。</li>
+<li><strong>数据关</strong>：能说明每条记录来源、清洗规则、时间范围和权限边界。</li>
+<li><strong>应用关</strong>：能分别提供检索命中与答案忠实的证据，而不是只展示一条成功问答。</li>
+<li><strong>停止扩项</strong>：固定评测未建立前，不增加自主 Agent、多模型路由或微调；正确性基线未通过前，不以论文加速比为优化目标。</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库的学习路径不是一条，而是被两条运行时切开（<code>/home/wuyafang/.venv-hermes/bin/python -V</code> 本次实打印 <code>Python 3.14.4</code>；<code>rag/.venv</code> 则是 <code>/home/wuyafang/.local/share/uv/python/cpython-3.12.14-linux-x86_64-gnu/lib/python3.12</code>）</strong>：<br />
+  第一步先定「你在给哪套系统写代码」——给 Hermes 体系（<code>~/.hermes/</code>）写，就按 3.14 的口径学；碰知识库代码（<code>rag/</code>），必须进 <code>rag/.venv</code>。<br />
+  本次实跑正好撞上这个坑：先从 <code>rag/</code> 目录用 <code>/usr/bin/python3</code>、再用 <code>rag/.venv/bin/python</code> 跑 <code>query.py</code>，两次都在 import 阶段失败（<code>ImportError: cannot import name '_ExtendedAttributes' from 'opentelemetry.util.types'</code> / <code>ImportError: cannot import name 'ArgsKwargs' from 'pydantic_core._pydantic_core'</code>），<br />
+  原因是 shell 里挂着 Hermes 内核的 <code>PYTHONPATH</code>（本次实打印：<code>.../6aa14c4d456e3a44/environments/698c77abcb5a4924bf64547d0923d7e7/venv/lib/python3.14/site-packages</code>），3.12 的解释器去 import 了 3.14 的二进制扩展。<br />
+<strong>可操作的修正命令</strong>（本次验证通过，<code>exit 0</code>）：<br />
+<code>bash
+  cd rag &amp;&amp; env -u PYTHONPATH OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 .venv/bin/python query.py "MCP 和 A2A 什么区别" --topk 3</code></li>
+<li><strong>学习路径里该有的 Artifact（本库自己产的）</strong>：<code>wiki/00-知识库总入口.md</code>（总入口）→ 各层 <code>00-融合清单与验收.md</code>（层内目录与验收结论）→ 具体篇（本文）→ 篇末「来源与三源融合落点」（一手源/课件/书籍落点）。<br />
+  想从「学」直接转「用」，最短路径是 <code>rag/query.py</code>（2727 行，检索+生成全链）——读完 <code>01-</code>/<code>02-</code> 两篇的路径后，建议先读它而不是先读框架文档。</li>
+<li><strong>和课件讲法的差异</strong>：课件/通用教程的路径是「Python 3.10-3.12 单环境学完再上项目」；本库是 <strong>3.12 与 3.14 两套解释器并存、靠 <code>PYTHONPATH</code> 隔离</strong>，学到第 02 篇「环境与工具链」时必须补上「按项目激活环境、跑之前 <code>env -u PYTHONPATH</code>」这一条，否则后面所有实跑都会失败。</li>
+<li><strong>本库暂无</strong>：统一的学习进度登记（哪个路径学到哪一步）没有落库；路径是否学完只能靠 <code>wiki/&lt;层&gt;/00-融合清单与验收.md</code> 的人工勾选。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库的实跑环境是 WSL Ubuntu + Python 3.14.4（<code>/home/wuyafang/.venv-hermes/bin/python -V</code> 本次实打印 Python 3.14.4），但 <code>rag/</code> 项目在自己的 <code>rag/.venv</code> 里 pin 了 3.12（<code>rag/pyproject.toml</code> L4 <code>requires-python = "&gt;=3.12"</code>，<code>.python-version</code> 为 3.12）。</li>
+<li><strong>读源码</strong>：学习路径里该有的 Artifact；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li><strong>[课1] 课件</strong>：<a href="../../raw/courseware/%E5%9F%BA%E7%A1%80%E7%AF%87/2603%E6%9C%9FAI%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%9F%BA%E7%A1%80%E7%AF%87__2603%E6%9C%9FAI%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%9F%BA%E7%A1%80%E7%AF%87__1-AI%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%9F%BA%E7%A1%80%E8%AE%A4%E7%9F%A5-2026-1-12-%E6%A5%BC%E5%85%B0__%E4%B8%80_AI%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%9F%BA%E7%A1%80%E8%AE%A4%E7%9F%A5.md">AI 大模型基础认知</a>、<a href="../../raw/courseware/%E5%9F%BA%E7%A1%80%E7%AF%87/2-%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%95%E5%B1%82%E6%9C%BA%E5%88%B6-2026-5-27-%E6%83%8A%E8%9B%B0__day02__%E7%AC%AC%E4%BA%8C%E8%8A%82-%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%95%E5%B1%82%E6%9C%BA%E5%88%B6.md">大模型底层机制</a>：提供符号主义/联结主义、Transformer 与应用方向的教学骨架；医疗问答等外推案例未被当作模型能力证据。</li>
+<li><strong>[课2] 课程大纲对标一手抽取</strong>：<a href="../../raw/sources/%E8%AF%BE%E7%A8%8B%E7%BB%93%E6%9E%84%E5%AF%B9%E6%A0%87-%E5%8D%9A%E5%AD%A6%E8%B0%B7vs%E9%BB%91%E9%A9%AC-20261026.md">课程结构对标</a>：用于阶段化骨架与专题选修的取舍，结论限定于 2026-10-26 所见大纲。</li>
+<li><strong>[书1] 书籍摘录</strong>：<a href="../../raw/weread/3300209402/best_bookmarks.md">《大模型是怎样跑起来的》目录与划线</a>：用于 Token、注意力、逐 Token 生成与事实核验边界；只使用目录和划线，不声称读过书籍全文。</li>
+<li><strong>[书2] 书籍摘录</strong>：<a href="../../raw/weread/3300195041/best_bookmarks.json">《AI 工程：大模型应用开发实战》划线 JSON</a>、<a href="../../raw/weread/3300195041/chapters.json">目录 JSON</a>：用于「底层知识优先、采样与评估」的学习原则；不声称书籍全文。</li>
+<li><strong>[业1] 业内官方文档</strong>：<a href="https://huggingface.co/learn/llm-course/chapter1/1">Hugging Face LLM Course：Transformer models</a>（GET 200，2026-11-04）：用于模型与 Transformer 的官方入门入口。</li>
+<li><strong>[业2] 论文</strong>：<a href="../../raw/sources/arxiv-daily/2026-10-29-2610.40492.md">Agentic University 本地摘要</a>，<strong>arXiv:2610.40492</strong>：融入目标—活动—评估—修订的学习闭环，未把论文评分外推为本路线效果。</li>
+<li><strong>[业3] 论文</strong>：<a href="../../raw/sources/arxiv-daily/2026-10-14-2610.20503.md">ReaDy 本地摘要</a>，<strong>arXiv:2610.20503</strong>：融入解码优化与实验边界，未在本机复现加速结果。</li>
+</ul></div></body></html>

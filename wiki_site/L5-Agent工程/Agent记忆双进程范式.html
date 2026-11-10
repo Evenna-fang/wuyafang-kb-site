@@ -1,0 +1,131 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent记忆双进程范式</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/Agent记忆双进程范式</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="agent-system-1-system-2">Agent 记忆双进程范式 (System-1 / System-2)</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a>
+相关：<a href="Agent框架实操选型-2026.html">Agent框架选型</a> · <a href="Agent框架与协议进展-2026.html">Agent框架进展</a> · <a href="多智能体协作流程.html">多智能体协作</a> · <a href="多智能体共享记忆G-Memory.html">G-Memory共享记忆</a> · <a href="Agent记忆保鲜与冲突治理.html">记忆保鲜与冲突治理</a></p>
+<p>来源: 从 raw/Agent记忆论文-JevMem-GMem-BudgetMem-DMem-20260928.md 提炼
+关联论文: Jev-Mem(arXiv:2609.23986) / D-Mem(arXiv:2603.18631) / PRIME(arXiv:2509.22315, 待精读)
+入库: 2026-09-28</p>
+</blockquote>
+<h2 id="_1">范式一句话</h2>
+<p><strong>模仿人类快思考/慢思考双系统, 把记忆和推理里的高频决策拆成两层: System-1 轻量快检索/快路由, System-2 重读原始历史/慢推理, 中间用一个低开销的门控器决定"这次要不要慢下来"。</strong></p>
+<h2 id="_2">三个论文都在讲同一件事</h2>
+<table>
+<thead>
+<tr>
+<th>论文</th>
+<th>System-1 是什么</th>
+<th>System-2 是什么</th>
+<th>门控在哪</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Jev-Mem</strong> (写入+查询)</td>
+<td>小分类器/规则做类型判定、图视图路由、候选打分、自适应停止</td>
+<td>LLM 做最后答案合成</td>
+<td>System-One 控制面输出 typed 概率, 不生成自然语言</td>
+</tr>
+<tr>
+<td><strong>D-Mem</strong> (查询期)</td>
+<td>向量近邻检索 (embedding top-k) 出摘要事实</td>
+<td>从原始会话/事件历史 reraw 片段重读</td>
+<td>Quality Gating: 置信度+证据稀疏度+查询复杂度 → 升级概率</td>
+</tr>
+<tr>
+<td><strong>PRIME</strong> (推理期, 待精读)</td>
+<td>快推理 Agent 日常走</td>
+<td>慢思考 Agent 自省触发</td>
+<td>自省信号(推理步数/矛盾数/假设空间)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="agent">为什么这个范式对 Agent 重要</h2>
+<ul>
+<li><strong>成本</strong>: 90% 的查询/决策不需要翻原始历史或走重推理, 硬塞进去只是烧 token。D-Mem 实测 35.8% token 拿 96.7% 上限效果。</li>
+<li><strong>质量</strong>: 但有 10% 的复杂查询(时序/因果/矛盾/多跳)必须慢下来, 否则向量召回会"像但不是"。</li>
+<li><strong>门控是关键</strong>: 不是简单分档, 而是动态判定"这次该不该升级"。门控本身必须极轻(不调 LLM), 否则省下来的 token 又被门控吃掉。</li>
+</ul>
+<h2 id="_3">六员落地映射</h2>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>对应六员现状</th>
+<th>升级方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>System-1 快</td>
+<td>fact_store.search / holographic 三层检索 / shared-skills grep</td>
+<td>已经是, 不用重建</td>
+</tr>
+<tr>
+<td>System-2 慢</td>
+<td>翻 state.db 会话历史 / OpenClaw 深度审查 / Claude 多跳 debug</td>
+<td>缺自动触发, 现在靠人拍脑袋</td>
+</tr>
+<tr>
+<td>门控</td>
+<td>无</td>
+<td>G-DMem1 (质量门控脚本, τ=0.5 起步) + G-PRIME1 (自省触发信号)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">反例 (不要这么做)</h2>
+<ul>
+<li>❌ 每轮都把全量会话历史塞进上下文 = 没有 System-1, 纯 System-2, token 爆炸</li>
+<li>❌ 只用向量召回, 从不重读原文 = 纯 System-1, 复杂问题答不准</li>
+<li>❌ 门控用 LLM 做自然语言判定 = 门控本身比省下来的还贵</li>
+</ul>
+<h2 id="_5">相关术语</h2>
+<ul>
+<li>System-1 / System-2: 见 ontology/Agent记忆术语表.md</li>
+<li>Quality Gating: 见 ontology</li>
+<li>自适应停止: 见 ontology (Jev-Mem 每轮评估证据充分性即停)</li>
+</ul></div></body></html>

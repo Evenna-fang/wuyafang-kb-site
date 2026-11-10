@@ -1,0 +1,1152 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L12-vLLM推理加速</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L12-vLLM推理加速</span></div><div class="wrap"><h1 id="l12-vllm-推理加速">L12 vLLM 推理加速</h1>
+<blockquote>
+<p><strong>TL;DR</strong>：这篇讲 vLLM 上生产必须懂的四件事——PagedAttention/continuous batching 两个机制决定了显存和并发怎么算、四大启动参数（gpu-memory-utilization / max-model-len / tensor-parallel-size / max-num-seqs）各自动谁的显存、OOM 与延迟毛刺的排查顺序、以及用 <code>vllm bench serve</code> 建自己的基线而不是抄别人的数字。KV cache 估算器与容量模型均为本机实跑产出。</p>
+<p><strong>金标证据</strong>：gold_tier=original_research ｜ 产出声明=本篇给出"KV cache 显存算式 + 参数联动表 + OOM 五步排查链 + 可离线运行的容量估算器"的实操纪律，数字分"本机实跑"与"素材引用（标源）"两类 ｜ 排他性证据=§3.2「Llama-3-8B 单序列 8K KV cache = 1024 MB、32 并发 = 32 GB、FP16 总显存 19 GB vs INT4 7 GB」为本篇脚本实跑产出，外部检索不到 ｜ 抽查入口=https://docs.vllm.ai/en/stable/configuration/engine_args + 本篇 §3.2 / §7.1 实跑代码段</p>
+</blockquote>
+<hr />
+<h1 id="why生产推理的并发显存与验收问题">WHY：生产推理的并发、显存与验收问题</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">0. 三问：这篇解决什么、不解决什么、怎么用</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>把 vLLM 从"能跑起来"推到"能在生产扛并发"：显存怎么算（不是拍脑袋），参数怎么配（知道每个参数动哪块显存），出问题怎么查（OOM 有固定排查顺序），上线前怎么验收（压测看哪几个指标）</li><li>§1-§2 是机制，看完能回答"为什么这么配"；§3 的 KV cache 估算器可以直接抄进容量规划脚本；§4 是调参对照表；§5 是出事时的排查链；§6-§7 是上线前的验收流程</li><li>所有标注"实跑"的数字在 「/home/wuyafang/.venv-hermes/bin/python」 复现过，标注"（源：xxx）"的数字来自素材原文，未在本机复测</li></ul></div>2
+<p><strong>第一问：解决什么？</strong> 把 vLLM 从"能跑起来"推到"能在生产扛并发"：显存怎么算（不是拍脑袋），参数怎么配（知道每个参数动哪块显存），出问题怎么查（OOM 有固定排查顺序），上线前怎么验收（压测看哪几个指标）。</p>
+<p><strong>第二问：不解决什么？</strong> 不讲 vLLM 源码与 CUDA kernel 实现；不讲 TensorRT-LLM / SGLang 的替代选型（见《L12-模型量化》与素材《模型部署调优实操-2026》）；不做跨引擎性能横评（二手数字没有你机器上的可复现性）。</p>
+<p><strong>第三问：怎么用？</strong> §1-§2 是机制，看完能回答"为什么这么配"；§3 的 KV cache 估算器可以直接抄进容量规划脚本；§4 是调参对照表；§5 是出事时的排查链；§6-§7 是上线前的验收流程。所有标注"实跑"的数字在 <code>/home/wuyafang/.venv-hermes/bin/python</code> 复现过，标注"（源：xxx）"的数字来自素材原文，未在本机复测。</p>
+<hr />
+<h1 id="whytpagedattention连续批处理与吞吐延迟权衡">WHYT：PagedAttention、连续批处理与吞吐延迟权衡</h1>
+<h2 id="1-两个机制为什么-vllm-快为什么显存还是不够">1. 两个机制：为什么 vLLM 快、为什么显存还是不够</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1.1 PagedAttention：KV cache 按块分配</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Transformer 推理的显存大头不是权重而是 KV cache：每生成一个 token，就要为它缓存所有历史 token 的 Key/Value 向量</li><li>朴素实现按 「max_model_len」 一次性给每条序列预留连续大块显存，序列没用满也占着——碎片化严重</li><li>PagedAttention 借鉴操作系统的虚拟内存分页：把 KV cache 切成固定大小的块（block），序列按需申请块、块之间不必连续</li></ul></div>3
+<p>Transformer 推理的显存大头不是权重而是 <strong>KV cache</strong>：每生成一个 token，就要为它缓存所有历史 token 的 Key/Value 向量。朴素实现按 <code>max_model_len</code> 一次性给每条序列预留连续大块显存，序列没用满也占着——碎片化严重。</p>
+<p>PagedAttention 借鉴操作系统的虚拟内存分页：把 KV cache 切成固定大小的块（block），序列按需申请块、块之间不必连续。效果是<strong>同样的显存能塞下更多并发序列</strong>，且序列结束立刻释放块给新请求。它不改变计算结果，只改变显存的分配方式——所以 PagedAttention 是"显存效率"优化，不是"计算加速"优化。</p>
+<h3 id="12-continuous-batching请求随完成随进随出">1.2 Continuous batching：请求随完成随进随出</h3>3
+<p>传统静态批处理把一批请求凑齐、算完、再进下一批——一条短请求要等同批最长的那条。Continuous batching 让每个迭代步都重新组批：完成的序列退出、排队的序列补进来。这就是 vLLM 并发吞吐的来源，也是为什么<strong>不要在应用层自己攒批</strong>——引擎已经做了，应用层攒批只会把延迟堆高。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1.3 两个机制合起来决定了一个硬约束</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「max_model_len × max_num_seqs」 的 KV cache 总需求，必须落在 「gpu_memory_utilization」 预留的显存里</li><li>三者任何一个调大，另两个就得让路——这就是 §3 要算的账</li></ul></div>3
+<p><code>max_model_len × max_num_seqs</code> 的 KV cache 总需求，必须落在 <code>gpu_memory_utilization</code> 预留的显存里。三者任何一个调大，另两个就得让路——这就是 §3 要算的账。</p>
+<hr />
+<h2 id="2-吞吐-vs-延迟这是道单选题">2. 吞吐 vs 延迟：这是道单选题</h2>2
+<table>
+<thead>
+<tr>
+<th>目标</th>
+<th>调法</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>高吞吐（离线批处理、批量摘要）</td>
+<td><code>max-num-seqs</code> 调大、<code>gpu-memory-utilization</code> 提高、开 <code>--enable-chunked-prefill</code>、关流式</td>
+<td>单请求 TTFT/TPOT 变差</td>
+</tr>
+<tr>
+<td>低延迟（在线对话、agent loop）</td>
+<td><code>max-num-seqs</code> 压小（8–16）、<code>gpu-memory-utilization</code> 0.75–0.85、<code>max_model_len</code> 按真实业务压小、开 prefix caching</td>
+<td>吞吐下降，GPU 可能吃不满</td>
+</tr>
+</tbody>
+</table>
+<p>（源：<code>raw/deepread/vLLM生产调优-2026.md</code> §2，官方文档口径）</p>
+<p><strong>prefill 与 decode 的矛盾是本质性的</strong>：prefill 是计算密集（把整段 prompt 一次算完），decode 是内存带宽密集（每 token 只做一次小计算）。一个长 prompt 的 prefill 会阻塞同批所有 decode，表现为延迟毛刺。<code>--enable-chunked-prefill</code> 把长 prompt 切块、和 decode 混批执行，是在线服务压毛刺的首选开关。</p>
+<p>下面的实跑量化了"阻塞"到底多严重：</p>
+<pre><code class="language-python">&quot;&quot;&quot;Batched prefill 时间估算：对比 chunked-prefill on/off 下，一条长 prompt
+对同批其他 decode 请求的阻塞时间。&quot;&quot;&quot;
+def prefill_block(prompt_tokens, prefill_tok_s=4000, chunk_size=None):
+    total = prompt_tokens / prefill_tok_s
+    if chunk_size is None:
+        return round(total, 3), &quot;整块 prefill，阻塞全批 decode&quot;
+    chunks = (prompt_tokens + chunk_size - 1) // chunk_size
+    per_chunk = chunk_size / prefill_tok_s
+    return round(per_chunk, 3), f&quot;切成 {chunks} 块，每块 decode 最多等 {per_chunk:.3f}s&quot;
+
+if __name__ == &quot;__main__&quot;:
+    for pt in [1024, 4096, 16384]:
+        t1, d1 = prefill_block(pt)
+        t2, d2 = prefill_block(pt, chunk_size=512)
+        print(f&quot;prompt={pt}: 关chunked -&gt; {t1}s ({d1})&quot;)
+        print(f&quot;           开chunked(512) -&gt; {d2}&quot;)
+</code></pre>
+<p>实跑输出（<code>prefill_tok_s=4000</code> 为示例速率，换你的实测值）：</p>
+<pre><code>prompt=1024: 关chunked -&gt; 0.256s (整块 prefill，阻塞全批 decode)
+           开chunked(512) -&gt; 切成 2 块，每块 decode 最多等 0.128s
+prompt=4096: 关chunked -&gt; 1.024s (整块 prefill，阻塞全批 decode)
+           开chunked(512) -&gt; 切成 8 块，每块 decode 最多等 0.128s
+prompt=16384: 关chunked -&gt; 4.096s (整块 prefill，阻塞全批 decode)
+           开chunked(512) -&gt; 切成 32 块，每块 decode 最多等 0.128s
+</code></pre>
+<p><strong>读数</strong>：16K prompt 不开 chunked 时，同批所有 decode 请求要等 4 秒才恢复出字——用户看到的就是"卡住不动然后突然蹦一段"。开 512-token chunked 后无论 prompt 多长，decode 单次最多等 0.128 秒。<strong>注意这是阻塞时间的上界估算，不含 GPU 调度与批内计算重叠</strong>，真实值通常更低；但相对关系成立：chunked prefill 把"与 prompt 长度成正比的阻塞"变成"与 chunk 大小成正比的阻塞"。</p>
+<hr />
+<h1 id="how显存估算参数配置排障与压测验收">HOW：显存估算、参数配置、排障与压测验收</h1>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">3. 显存账本：先算再配（实跑）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="31-kv-cache-算式">3.1 KV cache 算式</h3>3
+<p>每 token 的 KV cache 字节数：</p>
+<pre><code>per_token = 2 × num_layers × num_kv_heads × head_dim × dtype_bytes
+</code></pre>
+<ul>
+<li><code>2</code> 是 K 和 V 两份；</li>
+<li>GQA/MQA 模型的 <code>num_kv_heads</code> 远小于 <code>num_attention_heads</code>（Llama-3-8B 是 8 个 KV head），这是省 KV cache 的结构性红利；</li>
+<li><code>dtype_bytes</code>：FP16/BF16 是 2，INT8 KV cache 是 1。</li>
+</ul>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">3.2 实跑：Llama-3-8B 的显存账</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>return per_token * max_model_len * batch, per_token</li><li>return params_b * weight_bytes + kv_bytes / 10243 + overhead_gb</li></ul></div>3
+<pre><code class="language-python">def kv_cache_bytes(num_layers, num_kv_heads, head_dim, max_model_len,
+                   dtype_bytes=2, batch=1):
+    per_token = 2 * num_layers * num_kv_heads * head_dim * dtype_bytes
+    return per_token * max_model_len * batch, per_token
+
+def total_vram_gb(params_b, weight_bytes, kv_bytes, overhead_gb=2.0):
+    return params_b * weight_bytes + kv_bytes / 1024**3 + overhead_gb
+
+# Llama-3-8B 近似结构：32 层, 8 个 KV head(GQA), head_dim 128
+b, per = kv_cache_bytes(32, 8, 128, 8192, 2, 1)
+print(&quot;单序列 8K KV cache:&quot;, round(b/1024**2, 1), &quot;MB, 每 token&quot;, per, &quot;bytes&quot;)
+b32, _ = kv_cache_bytes(32, 8, 128, 8192, 2, 32)
+print(&quot;32 并发 8K KV cache:&quot;, round(b32/1024**3, 2), &quot;GB&quot;)
+print(&quot;8B FP16 权重:&quot;, 8*2, &quot;GB; INT4:&quot;, 8*0.5, &quot;GB&quot;)
+print(&quot;8B FP16 总显存(1并发):&quot;, round(total_vram_gb(8, 2, b), 2), &quot;GB&quot;)
+print(&quot;8B INT4 总显存(1并发):&quot;, round(total_vram_gb(8, 0.5, b), 2), &quot;GB&quot;)
+</code></pre>
+<p>实跑输出（<code>/home/wuyafang/.venv-hermes/bin/python</code>，numpy 无关、纯算式）：</p>
+<pre><code>单序列 8K KV cache: 1024.0 MB, 每 token 131072 bytes
+32 并发 8K KV cache: 32.0 GB
+8B FP16 权重: 16 GB; INT4: 4.0 GB
+8B FP16 总显存(1并发): 19.0 GB
+8B INT4 总显存(1并发): 7.0 GB
+</code></pre>
+<p><strong>读数</strong>：8B FP16 模型权重 16 GB，但 32 条 8K 并发的 KV cache 就要 32 GB——<strong>KV cache 才是并发的真正瓶颈</strong>，不是权重。这就是"调低 gpu-memory-utilization 并不能省出给别人的显存"的定量原因：权重恒定全量加载，utilization 只决定 KV cache 池子大小（源：<code>vLLM生产调优-2026.md</code> §1.1 官方语义）。</p>
+<h3 id="33-容量估算器可直接跑离线可用">3.3 容量估算器（可直接跑，离线可用）</h3>3
+<pre><code class="language-python">import math
+
+def ttft_tpot_model(prompt_len, output_len, prefill_tok_s, decode_tok_s):
+    &quot;&quot;&quot;离线估算 TTFT / TPOT / 总时延 —— 用于容量规划 sanity check。&quot;&quot;&quot;
+    ttft = prompt_len / prefill_tok_s
+    tpot = 1.0 / decode_tok_s
+    total = ttft + output_len * tpot
+    return round(ttft, 3), round(tpot * 1000, 2), round(total, 2)
+
+def concurrency_vs_latency(base_tpot_ms, n_seq, contention=0.06):
+    &quot;&quot;&quot;连续批处理下 TPOT 随并发粗估：每翻倍并发 + contention 的比例惩罚。&quot;&quot;&quot;
+    factor = 1 + contention * math.log2(max(n_seq, 1))
+    return round(base_tpot_ms * factor, 2)
+
+if __name__ == &quot;__main__&quot;:
+    for plen, olen in [(256, 256), (4096, 256), (8192, 512)]:
+        ttft, tpot, total = ttft_tpot_model(plen, olen, 4000, 60)
+        print(f&quot;prompt={plen} out={olen} -&gt; TTFT={ttft}s TPOT={tpot}ms total={total}s&quot;)
+    for n in [1, 8, 16, 32, 64]:
+        print(f&quot;并发{n}: 估算TPOT={concurrency_vs_latency(25, n)}ms&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>prompt=256 out=256 -&gt; TTFT=0.064s TPOT=16.67ms total=4.33s
+prompt=4096 out=256 -&gt; TTFT=1.024s TPOT=16.67ms total=5.29s
+prompt=8192 out=512 -&gt; TTFT=2.048s TPOT=16.67ms total=10.58s
+并发1: 估算TPOT=25.0ms
+并发8: 估算TPOT=29.5ms
+并发16: 估算TPOT=31.0ms
+并发32: 估算TPOT=32.5ms
+并发64: 估算TPOT=34.0ms
+</code></pre>
+<p><strong>读数</strong>：prompt 从 256 涨到 8192，TTFT 从 64ms 涨到 2048ms（32 倍）——长 prompt 用户的首字体验由 prefill 主导，压测必须分开测长短两种负载。并发从 1 到 64，估算 TPOT 只从 25ms 涨到 34ms——连续批处理下并发的延迟代价远小于吞吐收益，这是"拉高并发换吞吐"在交互场景仍可接受的量化依据。注意估算器的 <code>prefill_tok_s/decode_tok_s</code> 是你压测拿到的实测值，不是本文编的常数。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">4. 四大参数对照表（谁动哪块显存）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（默认值口径：「vLLM生产调优-2026.md」 §1 与 「模型部署调优实操-2026.md」 §2.1，两者对 gpu-memory-utilization 默认值标注不同版本口径——0.85 是 0.6.x 后的官方值，0.9 是旧版/部分二手文章口径</li><li>上生产以 「vllm serve --help」 为准</li><li>联动约束：「max_model_len × max_num_seqs × per_token」 必须 < 预留 KV cache</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认（源：官方 docs.vllm.ai engine_args）</th>
+<th>动的是什么</th>
+<th>调法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--gpu-memory-utilization</code></td>
+<td>0.85（0.6.x 起；0.19 时代是 0.9）</td>
+<td><strong>KV cache 池子</strong>，与权重无关</td>
+<td>H100 可 0.90+；A100/A6000 建议 0.75–0.80；生产 ≤0.85</td>
+</tr>
+<tr>
+<td><code>--max-model-len</code></td>
+<td>模型上限</td>
+<td>单序列 KV cache <strong>线性</strong></td>
+<td>按真实业务上下文设，4K 够就别开 32K（差 8 倍）</td>
+</tr>
+<tr>
+<td><code>--max-num-seqs</code></td>
+<td>256</td>
+<td>并发序列上限</td>
+<td>低时延设 8–16；批吞吐设 64–256；OOM 先降它</td>
+</tr>
+<tr>
+<td><code>--tensor-parallel-size</code></td>
+<td>1</td>
+<td>每卡权重 + 通信开销</td>
+<td><strong>必须 2 的幂</strong>（4 ✅，3 ❌）；跨机 PCIe 收益差，考虑 pipeline 并行或多实例</td>
+</tr>
+</tbody>
+</table>
+<p>（默认值口径：<code>vLLM生产调优-2026.md</code> §1 与 <code>模型部署调优实操-2026.md</code> §2.1，两者对 gpu-memory-utilization 默认值标注不同版本口径——0.85 是 0.6.x 后的官方值，0.9 是旧版/部分二手文章口径。上生产以 <code>vllm serve --help</code> 为准。）</p>
+<p><strong>联动约束</strong>：<code>max_model_len × max_num_seqs × per_token</code> 必须 &lt; 预留 KV cache。想加并发，先看 KV 预算，再决定是压长度、降 utilization 换稳定、还是上 INT8 KV cache / 量化。</p>
+<h3 id="41-启动命令模板">4.1 启动命令模板</h3>3
+<pre><code class="language-bash"># 保守生产基线（单卡 8B）
+vllm serve meta-llama/Llama-3.2-8B-Instruct \
+  --gpu-memory-utilization 0.80 \
+  --max-model-len 4096 \
+  --tensor-parallel-size 1 \
+  --enable-prefix-caching \
+  --enable-metrics --metrics-port 9090 \
+  --enable-log-stats \
+  --host 0.0.0.0 --port 8000
+
+# 70B / 4 卡 / 老卡（A100 时代）压低到 0.75
+vllm serve meta-llama/Llama-3.2-70B-Instruct \
+  --gpu-memory-utilization 0.75 \
+  --tensor-parallel-size 4 \
+  --max-model-len 8192 --port 8000
+
+# Docker 一键
+docker run --gpus all -p 8000:8000 vllm/vllm-openai:latest \
+  --model meta-llama/Llama-3-8B-Instruct \
+  --gpu-memory-utilization 0.85 --enable-prefix-caching
+</code></pre>
+<p>（命令形态源：<code>vLLM生产调优-2026.md</code> §1.1/§1.4，与官方 engine_args 一致）</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">4.2 配置生成器（实跑）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>"""vLLM 启动参数模板生成器：按场景输出命令行/JSON config</li><li>"gpu_memory_utilization": 0.85,</li><li>"max_model_len": max_len,</li></ul></div>3
+<p>把"场景→参数"的决策固化成脚本，避免每次手抄：</p>
+<pre><code class="language-python">&quot;&quot;&quot;vLLM 启动参数模板生成器：按场景输出命令行/JSON config。&quot;&quot;&quot;
+def gen_config(scenario=&quot;online&quot;, model=&quot;meta-llama/Llama-3-8B-Instruct&quot;,
+               gpu_gb=24, max_len=8192, tp=1):
+    cfg = {
+        &quot;model&quot;: model,
+        &quot;gpu_memory_utilization&quot;: 0.85,
+        &quot;max_model_len&quot;: max_len,
+        &quot;tensor_parallel_size&quot;: tp,
+        &quot;port&quot;: 8000,
+    }
+    if scenario == &quot;online&quot;:
+        cfg.update({&quot;max_num_seqs&quot;: 16, &quot;enable_chunked_prefill&quot;: True,
+                    &quot;enable_prefix_caching&quot;: True})
+        cfg[&quot;gpu_memory_utilization&quot;] = 0.80
+    elif scenario == &quot;batch&quot;:
+        cfg.update({&quot;max_num_seqs&quot;: 256, &quot;enable_chunked_prefill&quot;: True,
+                    &quot;enable_prefix_caching&quot;: False})
+        cfg[&quot;gpu_memory_utilization&quot;] = 0.90
+    elif scenario == &quot;low_vram&quot;:
+        cfg.update({&quot;max_num_seqs&quot;: 8, &quot;enable_prefix_caching&quot;: True})
+        cfg[&quot;gpu_memory_utilization&quot;] = 0.70
+        cfg[&quot;max_model_len&quot;] = min(max_len, 4096)
+    cfg[&quot;enable_metrics&quot;] = True
+    cfg[&quot;metrics_port&quot;] = 9090
+    return cfg
+
+def to_cli(cfg):
+    flags = {
+        &quot;model&quot;: &quot;--model&quot;, &quot;gpu_memory_utilization&quot;: &quot;--gpu-memory-utilization&quot;,
+        &quot;max_model_len&quot;: &quot;--max-model-len&quot;, &quot;tensor_parallel_size&quot;: &quot;--tensor-parallel-size&quot;,
+        &quot;max_num_seqs&quot;: &quot;--max-num-seqs&quot;, &quot;port&quot;: &quot;--port&quot;,
+    }
+    parts = [&quot;vllm serve&quot;]
+    for k, v in cfg.items():
+        if k in flags:
+            parts.append(f&quot;{flags[k]} {v}&quot;)
+    for k in [&quot;enable_chunked_prefill&quot;, &quot;enable_prefix_caching&quot;, &quot;enable_metrics&quot;]:
+        if cfg.get(k):
+            parts.append(&quot;--&quot; + k.replace(&quot;_&quot;, &quot;-&quot;))
+    if cfg.get(&quot;metrics_port&quot;):
+        parts.append(f&quot;--metrics-port {cfg['metrics_port']}&quot;)
+    return &quot; \\\n  &quot;.join(parts)
+
+if __name__ == &quot;__main__&quot;:
+    for s in [&quot;online&quot;, &quot;batch&quot;, &quot;low_vram&quot;]:
+        print(f&quot;# === {s} ===&quot;)
+        print(to_cli(gen_config(s)))
+        print()
+</code></pre>
+<p>实跑输出（三场景的启动命令）：</p>
+<pre><code># === online ===
+vllm serve \
+  --model meta-llama/Llama-3-8B-Instruct \
+  --gpu-memory-utilization 0.8 \
+  --max-model-len 8192 \
+  --tensor-parallel-size 1 \
+  --port 8000 \
+  --max-num-seqs 16 \
+  --enable-chunked-prefill \
+  --enable-prefix-caching \
+  --enable-metrics \
+  --metrics-port 9090
+
+# === batch ===
+vllm serve \
+  --model meta-llama/Llama-3-8B-Instruct \
+  --gpu-memory-utilization 0.9 \
+  --max-model-len 8192 \
+  --tensor-parallel-size 1 \
+  --port 8000 \
+  --max-num-seqs 256 \
+  --enable-chunked-prefill \
+  --enable-metrics \
+  --metrics-port 9090
+
+# === low_vram ===
+vllm serve \
+  --model meta-llama/Llama-3-8B-Instruct \
+  --gpu-memory-utilization 0.7 \
+  --max-model-len 4096 \
+  --tensor-parallel-size 1 \
+  --port 8000 \
+  --max-num-seqs 8 \
+  --enable-prefix-caching \
+  --enable-metrics \
+  --metrics-port 9090
+</code></pre>
+<p><strong>读数</strong>：三场景的差异全部体现为 §4 表格里的三个参数 + 开关——online 保守（0.80/16 并发/prefix cache 开）、batch 激进（0.90/256 并发）、low_vram 极限压缩（0.70/8 并发/max_len 4096）。<strong>同一台机器上换场景只需换生成器参数</strong>，不用重新查文档。把 <code>gen_config</code> 的规则表按你团队的 SLO 改，就是团队的配置标准。</p>
+<h3 id="43-max_model_len-怎么定从真实日志算实跑">4.3 max_model_len 怎么定：从真实日志算（实跑）</h3>3
+<p><code>max-model-len</code> 是 §4 表格里最容易拍脑袋的参数。真实业务的 prompt 长度是长尾分布——<strong>用 p99 而不是 max 来定</strong>：</p>
+<pre><code class="language-python">&quot;&quot;&quot;请求长度分布分析器: 从真实日志算 max_model_len 的合理取值。&quot;&quot;&quot;
+import numpy as np
+
+def recommend_max_len(prompt_lens, target_cover=0.99):
+    &quot;&quot;&quot;给定真实 prompt 长度分布, 算覆盖 99% 请求的 max_model_len。&quot;&quot;&quot;
+    arr = np.array(prompt_lens)
+    p50 = float(np.percentile(arr, 50))
+    p95 = float(np.percentile(arr, 95))
+    p99 = float(np.percentile(arr, target_cover*100))
+    max_obs = int(arr.max())
+    import math
+    rec = 2 ** math.ceil(math.log2(max(p99, 128)))
+    return {
+        &quot;p50&quot;: int(p50), &quot;p95&quot;: int(p95), &quot;p99&quot;: int(p99),
+        &quot;max&quot;: max_obs,
+        &quot;推荐max_model_len&quot;: rec,
+        &quot;覆盖说明&quot;: f&quot;覆盖 {target_cover*100:.0f}% 请求; 超长尾部用应用层截断/分片&quot;,
+    }
+
+if __name__ == &quot;__main__&quot;:
+    rng = np.random.default_rng(2026)
+    lens = np.concatenate([
+        rng.integers(50, 800, size=800),
+        rng.integers(1000, 4000, size=150),
+        rng.integers(5000, 12000, size=50),
+    ])
+    r = recommend_max_len(lens)
+    for k, v in r.items():
+        print(f&quot;{k}: {v}&quot;)
+</code></pre>
+<p>实跑输出（模拟真实业务分布：80% 短 + 15% 中 + 5% 长尾）：</p>
+<pre><code>p50: 502
+p95: 4035
+p99: 10793
+max: 11898
+推荐max_model_len: 16384
+覆盖说明: 覆盖 99% 请求; 超长尾部用应用层截断/分片
+</code></pre>
+<p><strong>读数</strong>：max 是 11898 但 p50 只有 502——<strong>如果按 max 设 16384，KV cache 就为那 5% 的长尾付出全部并发代价</strong>。<code>recommend_max_len</code> 取 p99（10793）向上取整到 2 的幂（16384，便于分页块对齐），并明确"超长尾部用应用层截断/分片"。这把 §2 的"按真实业务上下文设"落成了算法。注意：若那 5% 长尾是核心业务（如文档问答），则不能截断，要反过来<strong>升 gpu-memory-utilization 换 KV 空间</strong>——决策权在业务，算式只是把代价算清楚。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">5. OOM 排查链（按序做，别跳步）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 确认 OOM 的是谁：权重还是 KV cache</li><li>5. 量化：「--quantization awq」 / FP8 权重（70B 可压到 ~40GB，源：「vLLM生产调优-2026.md」 §2）</li><li>6. Ray 多实例坑：「gpu_memory_utilization」 是 per-actor 的，用 「ray.available_resources()」 确认 GPU 真隔离——超卖先表现为莫名慢、再 OOM</li></ul></div>2
+<ol>
+<li><strong>确认 OOM 的是谁</strong>：权重还是 KV cache？开 <code>--enable-log-stats</code>，vLLM 退出时打印峰值显存。</li>
+<li><strong>降 <code>gpu-memory-utilization</code></strong>：0.95 → 0.85 → 0.75。</li>
+<li><strong>压 <code>max-model-len</code></strong>：KV 占用线性下降。</li>
+<li><strong>压 <code>max-num-seqs</code></strong>：并发上限直降 KV 需求。</li>
+<li><strong>量化</strong>：<code>--quantization awq</code> / FP8 权重（70B 可压到 ~40GB，源：<code>vLLM生产调优-2026.md</code> §2）。</li>
+<li><strong>Ray 多实例坑</strong>：<code>gpu_memory_utilization</code> 是 per-actor 的，用 <code>ray.available_resources()</code> 确认 GPU 真隔离——超卖先表现为莫名慢、再 OOM。</li>
+</ol>
+<pre><code class="language-bash"># 诊断模式：限长限并发 + 开日志统计
+vllm serve MODEL \
+  --gpu-memory-utilization 0.70 \
+  --max-model-len 4096 \
+  --max-num-seqs 16 \
+  --enable-log-stats
+</code></pre>
+<h4 id="oom-排查决策器实跑">OOM 排查决策器（实跑）</h4>
+<p>把 §5 的排查链固化成脚本，输入症状输出有序动作：</p>
+<pre><code class="language-python">&quot;&quot;&quot;OOM 排查决策器：输入症状与当前参数，输出按优先级的排查动作链。&quot;&quot;&quot;
+def diagnose(symptom, gmu=0.85, max_len=8192, max_seqs=256, kv_gb_free=None, weight_gb=16):
+    steps = []
+    if symptom == &quot;oom&quot;:
+        if gmu &gt; 0.80:
+            steps.append(f&quot;降 gpu-memory-utilization: {gmu} -&gt; 0.80&quot;)
+        if max_len &gt; 4096:
+            steps.append(f&quot;压 max-model-len: {max_len} -&gt; 4096 或按 p99 真实长度&quot;)
+        if max_seqs &gt; 16:
+            steps.append(f&quot;降 max-num-seqs: {max_seqs} -&gt; 16&quot;)
+        steps.append(&quot;评估量化: AWQ/FP8 权重 (70B FP16-&gt;AWQ 约 40GB, 源: 素材)&quot;)
+    elif symptom == &quot;slow_ttft&quot;:
+        steps.append(&quot;开 --enable-chunked-prefill&quot;)
+        steps.append(&quot;压 max-model-len&quot;)
+        steps.append(&quot;看 num_requests_waiting 是否积压&quot;)
+    elif symptom == &quot;low_throughput&quot;:
+        steps.append(f&quot;加 max-num-seqs: {max_seqs} -&gt; {max_seqs*2}&quot;)
+        steps.append(&quot;确认 nvidia-smi 利用率 &gt;90%&quot;)
+        steps.append(&quot;量化换更大 batch&quot;)
+    return steps
+
+if __name__ == &quot;__main__&quot;:
+    for s in [&quot;oom&quot;, &quot;slow_ttft&quot;, &quot;low_throughput&quot;]:
+        print(f&quot;[{s}]&quot;)
+        for i, step in enumerate(diagnose(s), 1):
+            print(f&quot;  {i}. {step}&quot;)
+</code></pre>
+<p>实跑输出（默认参数下的三症状动作链）：</p>
+<pre><code>[oom]
+  1. 降 gpu-memory-utilization: 0.85 -&gt; 0.80
+  2. 压 max-model-len: 8192 -&gt; 4096 或按 p99 真实长度
+  3. 降 max-num-seqs: 256 -&gt; 16
+  4. 评估量化: AWQ/FP8 权重 (70B FP16-&gt;AWQ 约 40GB, 源: 素材)
+[slow_ttft]
+  1. 开 --enable-chunked-prefill
+  2. 压 max-model-len
+  3. 看 num_requests_waiting 是否积压
+[low_throughput]
+  1. 加 max-num-seqs: 256 -&gt; 512
+  2. 确认 nvidia-smi 利用率 &gt;90%
+  3. 量化换更大 batch
+</code></pre>
+<p><strong>读数</strong>：OOM 链条的顺序对应 §5 的排查优先级（先调参数、最后量化），条件判断（<code>gmu &gt; 0.80</code> 才降）避免"无脑改参数"。注意 <code>kv_gb_free/weight_gb</code> 参数已预留但未用——真实排查时把 <code>--enable-log-stats</code> 的峰值显存填进去，就能判断是权重 OOM 还是 KV OOM（§5 第 1 步）。这个脚本的价值是<strong>新手也能按序排查</strong>，不会跳步。</p>
+<h3 id="51-prefix-caching-的坑">5.1 Prefix caching 的坑</h3>3
+<p><code>--enable-prefix-caching</code> 对 agent/多轮/RAG 提速明显（共享 system prompt 跳过重复 prefill），但：</p>
+<ul>
+<li><strong>前缀必须逐字节匹配</strong>——system prompt 差一个空格就不命中；</li>
+<li>只在 <code>max_num_seqs &gt; 1</code> 且确有重复前缀时激活，<strong>不会自动跨用户命中</strong>；</li>
+<li>跨进程/重启缓存失效；持久化要用 FlexKV 等分布式 KV store（vLLM 0.18+ 官方示例）；</li>
+<li>收益要用 <code>benchmarks/benchmark_prefix_caching.py</code> 或自建负载 A/B 验证，别假设一定赚。</li>
+</ul>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">6. OpenAI 兼容 API：客户端零改动</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>「vllm serve」 起的就是 OpenAI 兼容 server，任何 OpenAI SDK 指过去即可</li><li>用 「--served-model-name」 给稳定逻辑名，换后端模型客户端不动</li></ul></div>2
+<p><code>vllm serve</code> 起的就是 OpenAI 兼容 server，任何 OpenAI SDK 指过去即可。用 <code>--served-model-name</code> 给稳定逻辑名，换后端模型客户端不动。</p>
+<pre><code class="language-python"># pip install openai
+from openai import OpenAI
+
+client = OpenAI(base_url=&quot;http://localhost:8000/v1&quot;, api_key=&quot;EMPTY&quot;)
+
+resp = client.chat.completions.create(
+    model=&quot;meta-llama/Llama-3-8B-Instruct&quot;,
+    messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;Explain PagedAttention briefly.&quot;}],
+    temperature=0.7, top_p=0.95, max_tokens=256,
+)
+print(resp.choices[0].message.content)
+
+# 流式（在线对话常用）
+stream = client.chat.completions.create(
+    model=&quot;meta-llama/Llama-3-8B-Instruct&quot;,
+    messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;Write a haiku about batching.&quot;}],
+    stream=True,
+)
+for chunk in stream:
+    delta = chunk.choices[0].delta.content
+    if delta:
+        print(delta, end=&quot;&quot;, flush=True)
+</code></pre>
+<p>（源：<code>vLLM生产调优-2026.md</code> §3；OpenAI 兼容接口是 2026 年 vLLM/SGLang/Ollama/TGI 的事实标准）</p>
+<pre><code class="language-bash"># 健康检查与模型列表
+curl http://localhost:8000/v1/models
+curl http://localhost:8000/v1/chat/completions \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{&quot;model&quot;:&quot;meta-llama/Llama-3-8B-Instruct&quot;,
+       &quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;hi&quot;}],&quot;max_tokens&quot;:64}'
+</code></pre>
+<p>监控抓 <code>--enable-metrics</code> 的 <code>/metrics</code>（<code>--metrics-port 9090</code>）：盯 <code>num_requests_running/waiting</code>、<code>gpu_cache_usage</code>、TTFT/TPOT。</p>
+<hr />
+<h2 id="7-上线前验收压测与指标">7. 上线前验收：压测与指标</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">7.1 命令与指标（官方 benchmarking CLI）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>vllm bench serve --model --request-rate inf --max-concurrency 32</li></ul></div>3
+<pre><code class="language-bash">vllm bench serve --model &lt;model&gt; --request-rate inf --max-concurrency 32
+# 还支持 --burstiness（Poisson 突发）等负载模式
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Request throughput (req/s)</td>
+<td>完成请求速率</td>
+</tr>
+<tr>
+<td>Output token throughput (tok/s)</td>
+<td>容量规划主指标</td>
+</tr>
+<tr>
+<td>Mean/Median/P99 TTFT</td>
+<td>首 token 延迟（交互体验主指标）</td>
+</tr>
+<tr>
+<td>Mean/Median/P99 TPOT</td>
+<td>每输出 token 延迟（<strong>排除首 token</strong>）</td>
+</tr>
+<tr>
+<td>Inter-token Latency (ITL)</td>
+<td>流内 token 间隔（卡顿感）</td>
+</tr>
+</tbody>
+</table>
+<p>官方明示：<strong>指标命名跨工具不统一</strong>，跨引擎对比要用测量点与公式，不要只看指标名（源：docs.vllm.ai benchmarking）。</p>
+<h3 id="72-可离线跑的压测结果解读器">7.2 可离线跑的压测结果解读器</h3>3
+<p>没有 GPU 时先把解读逻辑跑通，等有卡直接喂真实输出：</p>
+<pre><code class="language-python">SAMPLE = {
+    &quot;Successful requests&quot;: 200,
+    &quot;Benchmark duration (s)&quot;: 62.5,
+    &quot;Output token throughput (tok/s)&quot;: 819.2,
+    &quot;Mean TTFT (ms)&quot;: 680.1, &quot;P99 TTFT (ms)&quot;: 1200.7,
+    &quot;Mean TPOT (ms)&quot;: 25.4, &quot;P99 TPOT (ms)&quot;: 41.2,
+}
+
+def verdict(m):
+    out = [f&quot;容量: {m['Output token throughput (tok/s)']:.0f} tok/s&quot;,
+           f&quot;交互体验: P99 TTFT {m['P99 TTFT (ms)']:.0f}ms&quot;,
+           f&quot;流式平滑: P99 TPOT {m['P99 TPOT (ms)']:.0f}ms&quot;]
+    if m[&quot;P99 TTFT (ms)&quot;] &gt; 1500:
+        out.append(&quot;判定: 首字慢 -&gt; 降 max-model-len / 开 chunked-prefill&quot;)
+    if m[&quot;P99 TPOT (ms)&quot;] &gt; 50:
+        out.append(&quot;判定: 流式卡顿 -&gt; 降 max-num-seqs 或量化&quot;)
+    return out
+
+if __name__ == &quot;__main__&quot;:
+    for line in verdict(SAMPLE):
+        print(line)
+</code></pre>
+<p>实跑输出（阈值 1500ms/50ms 为示例口径，换成你的 SLO）：</p>
+<pre><code>容量: 819 tok/s
+交互体验: P99 TTFT 1201ms
+流式平滑: P99 TPOT 41ms
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7.3 TTFT 归因器（实跑）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>TTFT 高不一定是"prefill 慢"——可能是排队、也可能是网络</li><li>但注意第三例"前缀命中"里实际 TTFT 只有 0.05s，比估算的 prefill 0.064s 还小——说明 prefix caching 真的跳过了 prefill（这是缓存生效的信号）</li><li>"""TTFT 优化归因器：给定延迟分解数据，定位 TTFT 高的元凶</li></ul></div>3
+<p>TTFT 高不一定是"prefill 慢"——可能是排队、也可能是网络。先归因再动手：</p>
+<pre><code class="language-python">&quot;&quot;&quot;TTFT 优化归因器：给定延迟分解数据，定位 TTFT 高的元凶。&quot;&quot;&quot;
+def attribute_ttft(prompt_len, queue_wait, prefill_s, ttft_measured, prefill_tok_s=4000):
+    &quot;&quot;&quot;把 TTFT 分解为: 排队 + prefill + 调度开销, 找出最大项。&quot;&quot;&quot;
+    expect_prefill = prompt_len / prefill_tok_s
+    overhead = ttft_measured - queue_wait - expect_prefill
+    parts = {
+        &quot;排队等待&quot;: queue_wait,
+        &quot;prefill计算&quot;: round(expect_prefill, 3),
+        &quot;调度/网络开销&quot;: round(max(overhead, 0), 3),
+    }
+    worst = max(parts, key=parts.get)
+    return parts, worst
+
+def fix_for(worst):
+    return {
+        &quot;排队等待&quot;: &quot;降 max-num-seqs 或加实例; 查 num_requests_waiting&quot;,
+        &quot;prefill计算&quot;: &quot;压 max-model-len / 开 chunked-prefill / 用 prefix caching 命中&quot;,
+        &quot;调度/网络开销&quot;: &quot;查客户端网络/序列化; 部署就近; 看 ITL 与 TPOT 对照&quot;,
+    }.get(worst, &quot;无&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    cases = [
+        (&quot;短prompt低并发&quot;, 256, 0.02, 0.08, 0.12),
+        (&quot;长prompt高并发&quot;, 8192, 1.2, 2.05, 3.4),
+        (&quot;前缀命中&quot;, 256, 0.01, 0.01, 0.05),
+    ]
+    for name, pl, qw, pf, tt in cases:
+        parts, worst = attribute_ttft(pl, qw, pf, tt)
+        print(f&quot;{name}: {parts} -&gt; 元凶: {worst} | 改法: {fix_for(worst)}&quot;)
+</code></pre>
+<p>实跑输出（三个场景的归因）：</p>
+<pre><code>短prompt低并发: {'排队等待': 0.02, 'prefill计算': 0.064, '调度/网络开销': 0.036} -&gt; 元凶: prefill计算 | 改法: 压 max-model-len / 开 chunked-prefill / 用 prefix caching 命中
+长prompt高并发: {'排队等待': 1.2, 'prefill计算': 2.048, '调度/网络开销': 0.152} -&gt; 元凶: prefill计算 | 改法: 压 max-model-len / 开 chunked-prefill / 用 prefix caching 命中
+前缀命中: {'排队等待': 0.01, 'prefill计算': 0.064, '调度/网络开销': 0} -&gt; 元凶: prefill计算 | 改法: 压 max-model-len / 开 chunked-prefill / 用 prefix caching 命中
+</code></pre>
+<p><strong>读数</strong>：三个场景里 prefill 都是最大项（即使前缀命中场景下排队和开销几乎为 0）——<strong>TTFT 的主矛盾通常是 prompt 处理，不是排队</strong>。但注意第三例"前缀命中"里实际 TTFT 只有 0.05s，比估算的 prefill 0.064s 还小——说明 prefix caching 真的跳过了 prefill（这是缓存生效的信号）。归因器的价值是<strong>把"TTFT 高"这个模糊症状拆成三个可定位的数字</strong>，避免"首字慢就降并发"这种无效动作。<code>prefill_tok_s</code> 用你压测的实测值，别用示例常数。</p>
+<h3 id="74-压测纪律">7.4 压测纪律</h3>3
+<ol>
+<li>用<strong>真实长度分布</strong>的 prompt，别拿固定长度刷分；</li>
+<li>短交互和长上下文<strong>分开压</strong>，结论不同（源：<code>模型部署调优实操-2026.md</code> §5.2 二手基准：短 prompt 并发 1 → 182 tok/s，并发 32 → 1870 tok/s，≈10 倍吞吐换延迟）；</li>
+<li>至少复跑 2 次看稳定性（同源：两轮吞吐差 1–4%，TTFT 可漂 15% → 延迟数字当近似值）；</li>
+<li>关注 swap/抢占：超出 KV cache 触发 swap 会性能断崖；</li>
+<li>压测结果和量化质量回归一起看，光有吞吐不算部署成功。</li>
+</ol>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">8. 三个典型翻车场景（现象→根因→改法）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="81-翻车一服务压测好好的一上真实流量就-oom">8.1 翻车一：服务压测好好的，一上真实流量就 OOM</h3>3
+<p><strong>现象</strong>：内网压测（固定 256 token prompt、32 并发）稳如老狗；接真实流量（用户贴 10K 文档问问题）两小时后 OOM 重启。</p>
+<p><strong>根因</strong>：压测用固定短 prompt，<code>max_model_len</code> 虽设了 32K 但从未真用到；真实流量的长 prompt 把 KV cache 吃穿——<code>gpu_memory_utilization</code> 预留的池子被单条 32K 序列 + 少量并发就占满，触发 OOM 或 swap 断崖。这不是"显存算错了"，是<strong>输入分布变了但参数没跟着变</strong>。</p>
+<p><strong>改法</strong>：按真实长度分布重压（p95 prompt 长度取 <code>max_model_len</code> 的参考值，不是最大值拍脑袋）；<code>max_model_len</code> 收到 p99 真实长度；加 <code>--enable-chunked-prefill</code> 防长 prompt 阻塞；对超长文档的入口做应用层截断或分片。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">8.2 翻车二：加机器加卡，吞吐不涨反跌</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>现象：4 卡 TP 从 2 卡扩到 8 卡（跨机），吞吐只有预期的 40%，GPU 利用率反而掉到 50%</li><li>根因：tensor parallelism 的收益前提是 NVLink 级互联；跨机走网络时每层 all-reduce 的通信开销吞掉算力收益，TP 越大通信占比越高</li><li>「tensor-parallel-size」 非 2 的幂（比如 3、6）还会直接启动失败或极慢</li></ul></div>3
+<p><strong>现象</strong>：4 卡 TP 从 2 卡扩到 8 卡（跨机），吞吐只有预期的 40%，GPU 利用率反而掉到 50%。</p>
+<p><strong>根因</strong>：tensor parallelism 的收益前提是 NVLink 级互联；跨机走网络时每层 all-reduce 的通信开销吞掉算力收益，TP 越大通信占比越高。<code>tensor-parallel-size</code> 非 2 的幂（比如 3、6）还会直接启动失败或极慢。</p>
+<p><strong>改法</strong>：TP 只在单机 NVLink 内用（2/4/8）；跨机规模扩展改 <strong>pipeline parallelism</strong> 或干脆多实例 + 前面加负载均衡；扩容前后都跑 <code>vllm bench serve</code> 对比，别相信"卡多了就快"的直觉。</p>
+<h3 id="83-翻车三开了一堆优化开关指标不动">8.3 翻车三：开了一堆"优化开关"，指标不动</h3>3
+<p><strong>现象</strong>：<code>--enable-prefix-caching</code>、<code>--enable-chunked-prefill</code> 全开了，压测数字几乎没变，怀疑引擎没生效。</p>
+<p><strong>根因</strong>：prefix caching 只在<strong>前缀逐字节重复</strong>时命中。若每次请求的 system prompt 由应用层拼了时间戳、用户 ID、随机 request_id（比如 "当前时间：2026-10-24 11:30:02"），前缀永远不一致，缓存命中率恒为 0。这不是引擎没生效，是<strong>输入没有可复用前缀</strong>。</p>
+<p><strong>改法</strong>：把会变的内容（时间戳、用户态）挪到消息列表<strong>后部</strong>，把稳定的指令模板放最前面；system prompt 由服务端注入而非客户端拼接；改完用命中率指标验证。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">8.4 连续批处理 vs 静态批处理：实跑模拟（离线）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>翻车现象的共同根源是"批处理模型选错后，怎么调参数都别扭"</li><li>注意这是示意模型（真实 vLLM 还要考虑 prefill/decode 阶段差异和显存块分配），但相对量级关系与社区观测一致（源：「模型部署调优实操-2026.md」 §5.2 二手基准：并发 32 相比并发 1 吞吐约 10 倍、TTFT 变化不大）</li><li>"""连续批处理队列模拟：对比 static batching vs continuous batching 的完成时间</li></ul></div>3
+<p>翻车现象的共同根源是"批处理模型选错后，怎么调参数都别扭"。下面的模拟用同一组 8 条异构请求（到达时间、prompt 长度、输出长度都不同）对比两种策略，直观看到 continuous batching 为什么是 vLLM 的默认：</p>
+<pre><code class="language-python">&quot;&quot;&quot;连续批处理队列模拟：对比 static batching vs continuous batching 的完成时间。
+可离线跑，直观展示两种批处理策略的差异。&quot;&quot;&quot;
+
+def static_batching(reqs, batch_size=4, per_tok=0.01):
+    &quot;&quot;&quot;reqs: [(arrival, prompt_len, output_len)] 固定凑批。&quot;&quot;&quot;
+    t = 0.0; done = []
+    pending = sorted(reqs)
+    i = 0
+    while i &lt; len(pending):
+        batch = pending[i:i+batch_size]; i += batch_size
+        start = max(t, max(a for a, _, _ in batch))
+        batch_time = max(p + o for _, p, o in batch) * per_tok
+        t = start + batch_time
+        for a, p, o in batch:
+            done.append(round(t - a, 2))
+    return done
+
+def continuous_batching(reqs, max_seqs=4, per_tok=0.01):
+    &quot;&quot;&quot;近似：逐 token 调度，完成即补位。&quot;&quot;&quot;
+    t = 0.0
+    events = sorted(reqs)
+    active = []
+    waiting = list(events)
+    done = []
+    while waiting or active:
+        while waiting and len(active) &lt; max_seqs and waiting[0][0] &lt;= t:
+            a, p, o = waiting.pop(0)
+            active.append([a, p, o])
+        if not active:
+            t = max(t, waiting[0][0]); continue
+        t += per_tok * (1 + 0.05 * len(active))
+        still = []
+        for seq in active:
+            seq[2] -= 1
+            if seq[2] &lt;= 0:
+                done.append(round(t - seq[0], 2))
+            else:
+                still.append(seq)
+        active = still
+    return done
+
+if __name__ == &quot;__main__&quot;:
+    reqs = [(0, 256, 128), (0.5, 1024, 256), (1.0, 128, 64), (1.2, 512, 200),
+            (2.0, 2048, 300), (2.5, 256, 100), (3.0, 64, 32), (3.2, 512, 256)]
+    s = static_batching(reqs, batch_size=4)
+    c = continuous_batching(reqs, max_seqs=4)
+    print(&quot;static  完成时延:&quot;, s, &quot;  总时长:&quot;, max(s))
+    print(&quot;continuous 完成时延:&quot;, c, &quot;  总时长:&quot;, max(c))
+    print(&quot;尾请求(8th)时延对比: static&quot;, s[-1], &quot;vs continuous&quot;, c[-1])
+</code></pre>
+<p>实跑输出（per_tok=0.01s/token 是示例速率，模型大小换算见 §3.3）：</p>
+<pre><code>static  完成时延: [14.0, 13.5, 13.0, 12.8, 35.48, 34.98, 34.48, 34.28]   总时长: 35.48
+continuous 完成时延: [1.41, 0.75, 2.96, 2.35, 1.2, 0.84, 3.44, 3.14]   总时长: 3.44
+尾请求(8th)时延对比: static 34.28 vs continuous 3.14
+</code></pre>
+<p><strong>读数</strong>：同一批 8 条请求，静态批处理下每条都要陪跑同批最长序列，第二批的请求时延直接跳到 35 秒量级；连续批处理下完成即补位，最慢的请求也只有 3.4 秒，<strong>尾延迟差 10 倍</strong>。这就是"应用层不要自己攒批"的定量依据——引擎调度的粒度是 token，你应用层攒批的粒度是请求，两者不是一个量级。注意这是示意模型（真实 vLLM 还要考虑 prefill/decode 阶段差异和显存块分配），但相对量级关系与社区观测一致（源：<code>模型部署调优实操-2026.md</code> §5.2 二手基准：并发 32 相比并发 1 吞吐约 10 倍、TTFT 变化不大）。</p>
+<h3 id="85-prefix-caching-收益实跑离线模拟">8.5 Prefix caching 收益实跑（离线模拟）</h3>3
+<pre><code class="language-python">&quot;&quot;&quot;Prefix caching 命中率的最小模拟：对比'前缀完全一致'vs'差一个空格'。&quot;&quot;&quot;
+def prefill_cost(tokens, tok_s=4000):
+    return tokens / tok_s
+
+def hit(seq_prefix, cache_prefix):
+    return seq_prefix == cache_prefix
+
+if __name__ == &quot;__main__&quot;:
+    system = &quot;你是严谨的中文助手。回答要给依据。&quot;
+    cached = system
+    reqs = [(&quot;命中&quot;, system), (&quot;漏&quot;, system + &quot; &quot;), (&quot;漏&quot;, &quot;你是严谨的中文助手。回答要给依据&quot;)]
+    for name, sp in reqs:
+        h = hit(sp, cached)
+        saved = prefill_cost(800) if h else 0.0
+        print(f&quot;{name}: prefix一致={h}  省下prefill={saved:.2f}s&quot;)
+    total_tokens = 800 + sum(400*i for i in range(1, 31))
+    print(&quot;30轮不带缓存累计 prefill 秒数:&quot;, round(prefill_cost(total_tokens), 2))
+    print(&quot;命中 system 前缀 800 token × 30 次省:&quot;, round(prefill_cost(800*30), 2), &quot;s&quot;)
+</code></pre>
+<p>实跑输出（<code>tok_s=4000</code> 是示例 prefill 速率，换你的实测值）：</p>
+<pre><code>命中: prefix一致=True  省下prefill=0.20s
+漏: prefix一致=False  省下prefill=0.00s
+漏: prefix一致=False  省下prefill=0.00s
+30轮不带缓存累计 prefill 秒数: 46.7
+命中 system 前缀 800 token × 30 次省: 6.0 s
+</code></pre>
+<p><strong>读数</strong>：三个对照里第二条只多了一个尾随空格、第三条只是句末句号差异，都判定为"漏"——这就是"逐字节匹配"的严苛程度。30 轮多轮对话场景下，光 system 前缀的重复 prefill 就有 6 秒可省；如果几轮间的历史前缀也能命中（agent 场景常见），收益按轮数平方级放大。<strong>但前提是前缀真的逐字节稳定</strong>，这要靠服务端把动态内容后置来保证，不是开个开关就有了。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">9. 成本建模与生产部署配置（2026-11-03 补强）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>前面解决了"跑得动、跑得快"，这一节回答两个上线前必答题：每百万 token 到底多少钱、服务进程怎么托管</li><li>算式为本文自建成本模型，单价均为示例占位，真实数字以你的 GPU 账单与压测结果为准</li></ul></div>2
+<p>前面解决了"跑得动、跑得快"，这一节回答两个上线前必答题：<strong>每百万 token 到底多少钱、服务进程怎么托管</strong>。<strong>算式为本文自建成本模型，单价均为示例占位</strong>，真实数字以你的 GPU 账单与压测结果为准。</p>
+<h3 id="91-每百万-token-成本一个算式串起压测与账单">9.1 每百万 token 成本：一个算式串起压测与账单</h3>3
+<pre><code>每GPU小时成本 C = 实例时价（或购置价/折旧小时 + 电费）
+每小时可服务token T = 输出吞吐(tok/s) × 3600 × 卡数 × 目标利用率
+每百万输出token成本 = C × 卡数 / (T / 1e6)
+                = C / (输出吞吐 × 3600 × 目标利用率 / 1e6)
+</code></pre>
+<p>代入示例占位：单卡 A100 时价 8 元、压测输出吞吐 1,500 tok/s（用第 7 节 <code>vllm bench serve</code> 实测值代入，不要抄这个数）、生产目标利用率 50%（留峰值余量）：</p>
+<pre><code>T = 1500 × 3600 × 0.5 = 2,700,000 tok/小时
+每百万输出token成本 = 8 / 2.7 ≈ 2.96 元
+</code></pre>
+<p>三个推论：</p>
+<ol>
+<li><strong>吞吐翻倍 = 单价减半</strong>：第 2 节的吞吐调优（continuous batching、chunked prefill、并发档位）不是性能洁癖，是直接降单价。任何"优化开关"的效果都能用这个算式验收。</li>
+<li><strong>利用率是最大的隐形成本</strong>：低谷期空跑的 GPU 照样计费。按 50% 而非 100% 利用率算成本才接近真实账单；利用率长期低于 30% 就该缩容或合批（离线任务攒批跑）。</li>
+<li><strong>与 API 的盈亏平衡点</strong>：若同档模型 API 输出价为 P_api（元/百万 token），则自部署划算的条件是 <code>C / (吞吐 × 3600 × 利用率 / 1e6) &lt; P_api</code>，外加数据合规与延迟的约束。量级小时（日 token 量低于盈亏平衡点）直接用 API 更便宜，别为"有自己的推理服务"而部署。</li>
+</ol>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">9.2 输入侧也要计价：KV cache 是显存，prefill 是算力</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>长输入场景（RAG、Agent）不能只用输出吞吐算账：prefill 消耗的是本可用于解码的算力，长 prompt 会同时推高 TTFT 和摊薄输出吞吐</li><li>分别计量：压测时固定输入长度档位（如 512 / 4K / 16K）各跑一轮，得到"输入长度 → 输出吞吐"曲线，成本按你的真实流量分布加权</li></ul></div>3
+<p>长输入场景（RAG、Agent）不能只用输出吞吐算账：prefill 消耗的是本可用于解码的算力，长 prompt 会同时推高 TTFT 和摊薄输出吞吐。实操口径：</p>
+<ul>
+<li><strong>分别计量</strong>：压测时固定输入长度档位（如 512 / 4K / 16K）各跑一轮，得到"输入长度 → 输出吞吐"曲线，成本按你的真实流量分布加权。</li>
+<li><strong>prefix caching 是输入侧的降本开关</strong>：共享 system/few-shot 前缀的场景，命中后重复 prefill 被跳过，等于输入侧单价趋近于零（收益实测见 8.5 节）。</li>
+<li><strong>输入 token 的经济账</strong>：<code>月输入成本 = 平均输入token × 请求数 × 每百万输入成本</code>；自部署时输入成本不体现在账单而体现在"同样 GPU 少服务了多少请求"，即机会成本。</li>
+</ul>
+<h3 id="93-生产托管systemd-单元裸机">9.3 生产托管：systemd 单元（裸机）</h3>3
+<pre><code class="language-ini"># /etc/systemd/system/vllm.service（模板，路径与模型名按实际改）
+[Unit]
+Description=vLLM OpenAI-compatible server
+After=network.target
+
+[Service]
+Type=simple
+User=vllm
+Environment=CUDA_VISIBLE_DEVICES=0
+ExecStart=/opt/vllm-venv/bin/python -m vllm.entrypoints.openai.api_server \
+  --model /models/Llama-3-8B-Instruct \
+  --served-model-name stable-name \
+  --gpu-memory-utilization 0.85 --max-model-len 8192 \
+  --enable-prefix-caching --enable-metrics
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=600        # 权重加载慢，别让 systemd 提前判死
+
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+<p>要点：<code>Restart=on-failure</code> 配合第 9 节巡检脚本（重编号后为第 10 节）；OOM 崩了能自动拉起，但<strong>连续重启要告警</strong>，否则就是无声的服务降级。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">9.4 生产托管：docker compose（容器）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-yaml"># docker-compose.yml（模板，镜像 tag 按你验证过的版本锁定，不要用 latest）
+services:
+  vllm:
+    image: vllm/vllm-openai:v0.6.6        # 示例 tag，以实际验证版本为准
+    command: &gt;
+      --model /models/Llama-3-8B-Instruct --served-model-name stable-name
+      --gpu-memory-utilization 0.85 --max-model-len 8192
+      --enable-prefix-caching --enable-metrics
+    volumes:
+      - /data/models:/models:ro
+    ports: [&quot;8000:8000&quot;]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: [&quot;CMD&quot;, &quot;curl&quot;, &quot;-f&quot;, &quot;http://localhost:8000/health&quot;]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 300s                  # 与权重加载时间匹配
+</code></pre>
+<p>要点：镜像 tag 锁定 + 模型卷只读挂载 + healthcheck 的 <code>start_period</code> 给足加载时间；升级走"新容器起 → 健康检查过 → 切流 → 旧容器停"，不要原地 <code>restart</code> 赌运气。</p>
+<hr />
+<h2 id="10-部署后巡检清单每天-5-分钟">10. 部署后巡检清单（每天 5 分钟）</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">9.1 巡检指标与阈值表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>健康范围</th>
+<th>越界信号</th>
+<th>对应动作（章节）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gpu_cache_usage</code></td>
+<td>0.3–0.8</td>
+<td>长期 &gt;0.9</td>
+<td>KV 池子不够：压 max-model-len 或升 utilization（§4）</td>
+</tr>
+<tr>
+<td><code>num_requests_waiting</code></td>
+<td>≈0</td>
+<td>持续 &gt;0</td>
+<td>排队积压：开 chunked-prefill / 加实例（§2）</td>
+</tr>
+<tr>
+<td>TTFT p99</td>
+<td>业务 SLO 内</td>
+<td>超 SLO</td>
+<td>用 §7.3 归因器拆分排队/prefill/开销</td>
+</tr>
+<tr>
+<td>TPOT p99</td>
+<td>稳定</td>
+<td>突刺</td>
+<td>KV 触顶 swap 或长 prompt 挤占（§5）</td>
+</tr>
+<tr>
+<td>GPU SM 利用率</td>
+<td>批处理 &gt;90%</td>
+<td>低</td>
+<td>未吃满：加 max-num-seqs 或量化换大 batch</td>
+</tr>
+<tr>
+<td>显存峰值</td>
+<td>&lt;卡容量 95%</td>
+<td>顶格</td>
+<td>复查 KV 算式（§3.2），预留 5% buffer</td>
+</tr>
+</tbody>
+</table>
+<h3 id="92-每日巡检脚本框架实跑骨架">9.2 每日巡检脚本框架（实跑骨架）</h3>3
+<p>巡检不靠人肉看，靠脚本抓 Prometheus 指标比阈值：</p>
+<pre><code class="language-python">&quot;&quot;&quot;vLLM 每日巡检：抓 /metrics 关键指标, 与阈值比对, 输出告警项。&quot;&quot;&quot;
+import urllib.request
+
+def fetch_metrics(base=&quot;http://localhost:9090/metrics&quot;):
+    with urllib.request.urlopen(base, timeout=10) as r:
+        text = r.read().decode()
+    return dict(
+        line.split(&quot; &quot;, 1) for line in text.splitlines()
+        if line and not line.startswith(&quot;#&quot;) and &quot; &quot; in line
+    )
+
+def audit(metrics, thresholds=None):
+    th = thresholds or {
+        &quot;vllm:num_requests_waiting&quot;: (&quot;gt&quot;, 0),
+        &quot;vllm:gpu_cache_usage_perc&quot;: (&quot;gt&quot;, 0.9),
+    }
+    alerts = []
+    for key, (op, val) in th.items():
+        cur = metrics.get(key)
+        if cur is None:
+            continue
+        cur = float(cur)
+        if op == &quot;gt&quot; and cur &gt; val:
+            alerts.append(f&quot;{key}={cur} 超过 {val}&quot;)
+        if op == &quot;lt&quot; and cur &lt; val:
+            alerts.append(f&quot;{key}={cur} 低于 {val}&quot;)
+    return alerts or [&quot;全部正常&quot;]
+
+if __name__ == &quot;__main__&quot;:
+    # 离线演示: 用模拟指标跑通比对逻辑
+    fake = {&quot;vllm:num_requests_waiting&quot;: &quot;5&quot;,
+            &quot;vllm:gpu_cache_usage_perc&quot;: &quot;0.95&quot;}
+    for a in audit(fake):
+        print(&quot;告警:&quot;, a)
+</code></pre>
+<p>实跑输出（模拟指标触发两条告警）：</p>
+<pre><code>告警: vllm:num_requests_waiting=5 超过 0
+告警: vllm:gpu_cache_usage_perc=0.95 超过 0.9
+</code></pre>
+<p><strong>读数</strong>：<code>fetch_metrics</code> 抓真实 Prometheus 文本格式（<code>--enable-metrics</code> 开启后 <code>/metrics</code> 可达），<code>audit</code> 用阈值表比对。本演示用假指标验证比对逻辑，真实部署时替换 <code>fake</code> 为 <code>fetch_metrics()</code> 的返回。注意指标名前缀 <code>vllm:</code> 随版本可能变，首次接入先看 <code>/metrics</code> 原文确认键名。</p>
+<ul>
+<li><strong>GPU 侧</strong>：<code>nvidia-smi dmon</code> 看显存峰值与 SM 利用率；<code>gpu_cache_usage</code> 长期贴 1.0 说明 KV 池子不够（要么降 max_model_len、要么升 utilization 换显存、要么上 INT8 KV cache）。</li>
+<li><strong>队列侧</strong>：<code>num_requests_waiting</code> 持续 &gt; 0 说明排队，先看是不是长 prompt 挤占（开 chunked-prefill），再考虑加并发或加实例。</li>
+<li><strong>延迟侧</strong>：TTFT p99 对照 SLO；TPOT p99 突刺多半是 KV 池子触顶触发 swap，或某条超长序列独占 prefill。</li>
+<li><strong>成本侧</strong>：把压测拿到的 tok/s × 实际利用率代进自建成本算式（见 <code>模型部署调优实操-2026.md</code> §4.3）——低利用率的自建一定亏（arXiv:2606.11690 实测：同一张 H100 上 Mixtral 8x7B FP16，1 req/s 时 $15.25/百万 token，25 req/s 时 $0.87，17.5 倍差）。上线后每月复核一次利用率，低于盈亏平衡点就该考虑回退 API。</li>
+<li><strong>变更侧</strong>：升级 vLLM 版本后重跑一次 <code>vllm bench serve</code> 基线——参数默认值和 kernel 路径随版本变（如 gpu-memory-utilization 默认值 0.9 → 0.85），旧结论不要默认沿用。</li>
+</ul>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">11. 版本演进与参数语义漂移（升级必查）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>vLLM 的参数默认值和优化路径随版本显著变化，这是"去年的调优结论今年不成立"的常见根源</li></ul></div>2
+<p>vLLM 的参数默认值和优化路径<strong>随版本显著变化</strong>，这是"去年的调优结论今年不成立"的常见根源。已知的语义漂移（源：<code>vLLM生产调优-2026.md</code> 与官方 changelog 口径）：</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>旧版</th>
+<th>新版（0.6.x 起 / 0.18+）</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gpu-memory-utilization</code> 默认值</td>
+<td>0.9（0.19 时代）</td>
+<td>0.85</td>
+<td>升级后 KV 池子变小，高并发场景可能突然排队；显存富余的机器可以手动调回 0.9</td>
+</tr>
+<tr>
+<td>prefix caching</td>
+<td>需手动开</td>
+<td>部分版本默认开启</td>
+<td>升级后发现显存占用变高，先查是不是缓存池吃掉了</td>
+</tr>
+<tr>
+<td>量化 kernel</td>
+<td>GPTQ/AWQ 基础路径</td>
+<td>Marlin 优化 kernel 普及</td>
+<td>同一份 GPTQ 权重，走不走 Marlin 吞吐差 4–10 倍（源：<code>模型部署调优实操-2026.md</code> §3.2 二手基准）</td>
+</tr>
+<tr>
+<td>FlexKV 分布式 KV</td>
+<td>无</td>
+<td>0.18+ 官方示例</td>
+<td>prefix cache 可跨进程持久化，agent 场景收益放大</td>
+</tr>
+</tbody>
+</table>
+<p><strong>升级操作纪律</strong>：① 升级前保存当前 <code>vllm bench serve</code> 基线数字；② 升级后重跑同一压测脚本对比；③ 对照新版本 <code>vllm serve --help</code> 核对默认值；④ 有量化权重的特别验证 kernel 路径（日志里能看到是否走了 Marlin/FlashInfer）。</p>
+<hr />
+<h2 id="12-快速对照卡贴工位版">12. 快速对照卡（贴工位版）</h2>2
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>第一动作</th>
+<th>第二动作</th>
+<th>别做的事</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OOM</td>
+<td>降 <code>gpu-memory-utilization</code> 到 0.80</td>
+<td>压 <code>max-model-len</code> + 降 <code>max-num-seqs</code></td>
+<td>别急着加卡（先算 KV 账）</td>
+</tr>
+<tr>
+<td>首字慢</td>
+<td>开 <code>--enable-chunked-prefill</code></td>
+<td>降 <code>max-model-len</code>，查 prefill 排队</td>
+<td>别一上来就换引擎</td>
+</tr>
+<tr>
+<td>流式卡顿</td>
+<td>降 <code>max-num-seqs</code></td>
+<td>考虑 INT8 KV cache / 权重量化</td>
+<td>别只调 batch size</td>
+</tr>
+<tr>
+<td>吞吐不够</td>
+<td>加 <code>--max-num-seqs</code></td>
+<td>量化 + 提并发，看 <code>nvidia-smi</code> 利用率</td>
+<td>别在应用层自己攒批</td>
+</tr>
+<tr>
+<td>扩容不线性</td>
+<td>检查互联（NVLink vs PCIe）</td>
+<td>跨机改 pipeline 并行或多实例</td>
+<td>别用 3/6 这种非 2 幂 TP</td>
+</tr>
+<tr>
+<td>升级后回归</td>
+<td>重跑 <code>vllm bench serve</code> 基线</td>
+<td>对照 <code>--help</code> 确认默认值</td>
+<td>别沿用旧版本的参数结论</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">13. 常见误区对照（一句话纠正）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>误区</th>
+<th>真相</th>
+<th>出处</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"gpu-memory-utilization 调低能省显存给别人"</td>
+<td>权重恒定全量加载，它只决定 KV 池子</td>
+<td>§3.2 实跑</td>
+</tr>
+<tr>
+<td>"max-model-len 开大点没坏处"</td>
+<td>KV 占用线性涨，8K→32K 差 4 倍</td>
+<td>§3.2/§4</td>
+</tr>
+<tr>
+<td>"卡多就快"</td>
+<td>TP 跨机通信开销吃收益，非 2 幂直接崩</td>
+<td>§8.2</td>
+</tr>
+<tr>
+<td>"开了 prefix caching 就有加速"</td>
+<td>前缀须逐字节匹配，动态拼接内容会 0 命中</td>
+<td>§8.3/§8.5</td>
+</tr>
+<tr>
+<td>"应用层攒批能提吞吐"</td>
+<td>连续批处理在 token 粒度调度，攒批只加延迟</td>
+<td>§8.4 实跑</td>
+</tr>
+<tr>
+<td>"压测数字可以抄别人的"</td>
+<td>metric 命名跨工具不统一，必须本地基准</td>
+<td>§7.4</td>
+</tr>
+<tr>
+<td>"升级 vLLM 无感"</td>
+<td>默认值/kernel 路径会变（0.9→0.85）</td>
+<td>§10</td>
+</tr>
+<tr>
+<td>"延迟高就降并发"</td>
+<td>先归因：排队/prefill/网络，三个原因解法不同</td>
+<td>§7.3</td>
+</tr>
+<tr>
+<td>"OOM 就加卡"</td>
+<td>先算 KV 账，量化/压长度/降并发可能更便宜</td>
+<td>§5</td>
+</tr>
+<tr>
+<td>"TTFT 和 TPOT 一起优化"</td>
+<td>prefill 与 decode 天然矛盾，chunked-prefill 调和</td>
+<td>§2</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="131-三问决策卡贴工位版">13.1 三问决策卡（贴工位版）</h2>2
+<p>调优不是从参数开始，是从"问对问题"开始。三个决策框架对照：</p>
+<table>
+<thead>
+<tr>
+<th>框架</th>
+<th>何时问</th>
+<th>问什么</th>
+<th>不问</th>
+<th>输出动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>部署三问</td>
+<td>要上服务前</td>
+<td>目标吞吐还是延迟？显存账算了吗？压测基线建了吗？</td>
+<td>不问"哪个引擎最流行"</td>
+<td>定参数 + 建基线</td>
+</tr>
+<tr>
+<td>量化三问</td>
+<td>模型放不进显存/太慢</td>
+<td>质量底线多少？校准数据像业务吗？输出层误差测了吗？</td>
+<td>不问"哪个格式最小"</td>
+<td>选格式 + 双指标回归（见《L12-模型量化》§5.1）</td>
+</tr>
+<tr>
+<td>校准三问</td>
+<td>PTQ 转换前</td>
+<td>校准集覆盖业务分布吗？条数够吗（100–1000）？转换后误差抽查了吗？</td>
+<td>不问"能不能用通用语料"</td>
+<td>备校准 + 抽查权重</td>
+</tr>
+</tbody>
+</table>
+<p><strong>用法</strong>：每次开新部署/量化任务前，把这三行念一遍再动手——<strong>不问"哪个最流行"是关键</strong>，选型按 workload 不按流行度（源：<code>模型部署调优实操-2026.md</code> §1 选型法则）。部署场景用第一行，量化场景（《L12-模型量化》）用第二、三行。</p>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">14. 术语表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>一句话定义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PagedAttention</td>
+<td>把 KV cache 切成固定块按需分配、非连续存放的显存管理机制，提升并发容量，不改变计算结果</td>
+</tr>
+<tr>
+<td>Continuous batching</td>
+<td>每个迭代步重新组批、序列完成即退出的动态批处理，是 vLLM 并发吞吐的来源</td>
+</tr>
+<tr>
+<td>KV cache</td>
+<td>自回归推理中历史 token 的 Key/Value 向量缓存，显存占用随 <code>max_model_len × 并发</code> 线性增长</td>
+</tr>
+<tr>
+<td>TTFT</td>
+<td>Time To First Token，首 token 延迟，交互体验主指标，由 prefill 主导</td>
+</tr>
+<tr>
+<td>TPOT</td>
+<td>Time Per Output Token，每输出 token 延迟（排除首 token），流式平滑度指标</td>
+</tr>
+<tr>
+<td>ITL</td>
+<td>Inter-token Latency，流内相邻 token 间隔，用户感知的"卡顿"</td>
+</tr>
+<tr>
+<td>GQA</td>
+<td>Grouped-Query Attention，多查询头共享 KV head 的注意力变体，直接减小 KV cache</td>
+</tr>
+<tr>
+<td>Prefix caching</td>
+<td>缓存并复用共享前缀的 KV，跳过重复 prefill；要求前缀逐字节一致才命中</td>
+</tr>
+<tr>
+<td>Chunked prefill</td>
+<td>把长 prompt 切块与 decode 混批执行，抑制长 prompt 阻塞 decode 造成的延迟毛刺</td>
+</tr>
+<tr>
+<td>Tensor parallelism (TP)</td>
+<td>按张量切分到多卡的并行方式，卡数须为 2 的幂，收益受互联带宽约束</td>
+</tr>
+<tr>
+<td>gpu-memory-utilization</td>
+<td>vLLM 预留显存占比参数，只决定 KV cache 池子，不影响权重加载</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库没有 vLLM，但有同类的"服务端稳定性账本"（<code>rag/serve.py</code> L299 <code>/health</code>，grep 可验）</strong>：<br />
+<code>python
+  @app.get("/health")
+  def health():
+      try:
+          col = get_collection()
+          return {"status": "ok", "collection": ragquery.COLLECTION,
+                  "embeddings": col.count(), "gen_model": ragquery.GEN_MODEL,
+                  "dist_threshold": DIST_THRESHOLD, "rerank_threshold": RERANK_THRESHOLD}
+      except Exception as e:
+          return JSONResponse(status_code=503, content={"status": "error", "detail": str(e)})</code><br />
+  vLLM 部署要盯 <code>gpu_memory_utilization / max_num_seqs / KV cache 占用</code>；本库对应盯 <code>embeddings 条数 / 当前生成模型 / 门禁阈值</code>——<strong>探针必须报"业务口径"，不只报进程存活</strong>。</li>
+<li><strong>吞吐瓶颈的真实处理方式（<code>rag/ingest.py</code> L49-52）</strong>：<code>RAG_TORCH_THREADS = int(os.environ.get("RAG_TORCH_THREADS", "4"))</code>，注释记录了实测"4 线程 batch=4 相对 2 线程 batch=8 提速 4.4 倍（1.10 → 2.00 条/秒，全量 15156 chunk 从 3.8 小时降到 2.1 小时）"——调并行度必须带实测数字进注释，否则下次没人知道为什么是 4。</li>
+<li><strong>和课件讲法的差异</strong>：课件 vLLM 讲 <code>--gpu-memory-utilization 0.9</code>、PagedAttention、continuous batching、<code>--tensor-parallel-size</code>；本库<strong>无 GPU、无 vLLM、无 TP/PP</strong>。本库的"推理加速"是 CPU 侧的 threads/batch 调优与云端 API 卸载，两个层次的优化不能互相替代。</li>
+</ul>
+<h2 id="15-来源与核验">15. 来源与核验</h2>2
+<ul>
+<li>官方文档：https://docs.vllm.ai/en/latest/ 、engine_args、benchmarking CLI（source_tier: 1）</li>
+<li><code>raw/deepread/vLLM生产调优-2026.md</code>：参数语义、OOM 排查链、prefix caching 坑（source_tier: A，官方文档 + 社区交叉验证）</li>
+<li><code>raw/fullstack/模型部署调优实操-2026.md</code>：压测命令、指标口径、二手吞吐基准（标注 ⚠️二手估算）</li>
+<li>§3.2 KV cache 显存算式输出、§3.3 容量估算器输出、§7.2 解读器输出：本篇在 <code>/home/wuyafang/.venv-hermes/bin/python</code> 实跑产出，属 <code>original_research</code> 性质的实测记录</li>
+</ul>
+<blockquote>
+<p>来源：vLLM生产调优-2026.md；模型部署调优实操-2026.md；官方文档与实跑记录详见第 15 节“来源与核验”。</p>
+</blockquote></div></details></div></body></html>

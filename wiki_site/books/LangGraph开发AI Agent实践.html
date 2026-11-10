@@ -1,0 +1,156 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LangGraph开发AI Agent实践</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ LangGraph开发AI Agent实践</span></div><div class="wrap"><h1 id="书章节重点-langgraph开发ai-agent实践">书章节重点 · LangGraph开发AI Agent实践</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书系统讲解 LangGraph 这一面向复杂工作流的有状态 Agent 开发框架，覆盖从环境搭建、工具与记忆集成、RAG 检索、状态持久化到多类实战项目的全流程</li><li>核心价值在于用“状态图 + 节点 + 条件边”的方式把智能体从固定流水线升级为可调度、可监督、可追踪的工程化系统</li><li>全书学习路径从最小聊天机器人开始，逐步加入检查点、检索、外部 API、异常恢复和 Supervisor，最后用客服、旅行、退款、股票四类任务说明如何将抽象组件落到业务流程</li></ul></div>2
+<p>本书系统讲解 LangGraph 这一面向复杂工作流的有状态 Agent 开发框架，覆盖从环境搭建、工具与记忆集成、RAG 检索、状态持久化到多类实战项目的全流程。核心价值在于用“状态图 + 节点 + 条件边”的方式把智能体从固定流水线升级为可调度、可监督、可追踪的工程化系统。全书学习路径从最小聊天机器人开始，逐步加入检查点、检索、外部 API、异常恢复和 Supervisor，最后用客服、旅行、退款、股票四类任务说明如何将抽象组件落到业务流程。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 LangGraph基础技术</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：LangGraph 以有状态图模型组织智能体流程，节点是执行单元，边定义流转关系，适合复杂工作流而非单轮问答；显式状态使每一步输入、输出和责任边界可检查</li><li>核心观点2：人机协作（Human-in-the-loop）是框架关键能力，可在任意节点插入人类监督与干预，实时检查、修改智能体状态，缓解复杂场景下的决策偏差</li><li>核心观点4：智能体开发的关键不是让模型自由发挥，而是把模型、工具、状态和控制流组合成可测试的闭环，并为错误、超时和人工接管预留出口</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：LangGraph 以有状态图模型组织智能体流程，节点是执行单元，边定义流转关系，适合复杂工作流而非单轮问答；显式状态使每一步输入、输出和责任边界可检查。</li>
+<li><strong>核心观点2</strong>：人机协作（Human-in-the-loop）是框架关键能力，可在任意节点插入人类监督与干预，实时检查、修改智能体状态，缓解复杂场景下的决策偏差。</li>
+<li><strong>核心观点3</strong>：框架选型需匹配需求——团队任务自动化、人机协同、非技术人员参与或快速原型场景，CrewAI 更为合适，说明 LangGraph 并非唯一解；需要细粒度状态、恢复和自定义控制时再优先考虑 LangGraph。</li>
+<li><strong>核心观点4</strong>：智能体开发的关键不是让模型自由发挥，而是把模型、工具、状态和控制流组合成可测试的闭环，并为错误、超时和人工接管预留出口。</li>
+<li>•　人机协作(Human-in-the-loop)：支持在智能体执行流程的任意节点插入人类监督和干预逻辑，开发者或用户可实时检查、修改智能体状态，实现人类智慧与AI能力的深度融合，解决智能体在复杂场景下决策偏差的问题，提升智能体的可靠性。</li>
+</ul>
+<h3 id="第2章-开发环境搭建">第2章 开发环境搭建</h3>3
+<ul>
+<li><strong>核心观点1</strong>：环境搭建的核心是 API 密钥与依赖的正确配置，<code>.env</code> 文件中的密钥填写错误或含多余空格是调用失败的常见原因；排查时应先核对变量名、加载路径和网络。</li>
+<li><strong>核心观点2</strong>：依赖版本需精确控制（如 faiss-cpu==1.8.0），版本不符会导致检索组件不可用，应确认安装后再执行后续流程。</li>
+<li><strong>核心观点3</strong>：排错应遵循分层思路——先查密钥与网络连通性，再排查框架组件，避免把模型调用失败误判为记忆或状态组件问题。</li>
+<li><strong>核心观点4</strong>：环境验证应以最小调用为准：先让模型返回一条简单结果，再接入图、工具和向量库，逐层增加变量才能快速定位失败环节。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 构建带工具与记忆功能的聊天机器人</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：记忆功能由检查点存储器实现，MemorySaver 是官方内存版方案，轻量无外部依赖，适合开发调试场景；它保存对话状态，不负责替代模型</li><li>核心观点2：记忆与模型调用逻辑解耦——切换模型（如 Qwen-plus）无须改动记忆配置，因为检查点只负责保存对话状态</li><li>核心观点3：是否传入 「checkpointer」 决定对话是否有上下文：不传则每轮独立，模型仅基于当前输入回复；传入后即可获得历史上下文，还要用稳定的 thread 标识区分会话</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：记忆功能由检查点存储器实现，MemorySaver 是官方内存版方案，轻量无外部依赖，适合开发调试场景；它保存对话状态，不负责替代模型。</li>
+<li><strong>核心观点2</strong>：记忆与模型调用逻辑解耦——切换模型（如 Qwen-plus）无须改动记忆配置，因为检查点只负责保存对话状态。</li>
+<li><strong>核心观点3</strong>：是否传入 <code>checkpointer</code> 决定对话是否有上下文：不传则每轮独立，模型仅基于当前输入回复；传入后即可获得历史上下文，还要用稳定的 thread 标识区分会话。</li>
+<li><strong>核心观点4</strong>：开发阶段可用内存检查点快速验证逻辑，生产环境需要更可靠的持久化存储、并发控制和备份策略。</li>
+<li>•　无记忆与有记忆：不传入checkpointer=memory时，每次对话都是独立的，Qwen-plus无法获取历史上下文，仅能基于当前输入回复；</li>
+</ul>
+<h3 id="第4章-构建自定义rag检索agent">第4章 构建自定义RAG检索Agent</h3>3
+<ul>
+<li><strong>核心观点1</strong>：LangGraph 通过状态管理与节点决策实现 RAG 流程的智能调度，解决传统 RAG 流程固定、缺乏灵活性的问题；是否检索、检索几次以及何时生成都可以由图控制。</li>
+<li><strong>核心观点2</strong>：RAG Agent 至少需定义三个核心节点——“判断是否需要检索”“执行检索”“生成最终回答”，每个节点接收状态、执行逻辑、修改状态输出。</li>
+<li><strong>核心观点3</strong>：文档处理质量决定检索效果，应按文档结构（标题、段落）自定义分割符，避免切断完整语义段落；切分、嵌入、向量搜索和上下文拼装必须作为一条可调试链路观察。</li>
+<li><strong>核心观点4</strong>：生产化需补齐缓存（如 Redis）、权限控制、批量调用与多格式文档支持，以提升响应速度、降低成本并防止敏感信息泄露；还应对空召回和低置信度回答设置降级。</li>
+<li><strong>核心观点5</strong>：RAG 的故障定位应区分加载、切分、向量化、检索和生成环节，不能看到答案不佳就只调整提示词。</li>
+<li>文本分割优化：根据PDF文档的内容结构（如标题、段落），自定义分割符，避免将完整的语义段落分割开；</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 构建智能体工作流</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：线性工作流通过 StateGraph 定义状态，并用 「add_edge」 指定节点间单向依赖，形成 A→B→C→END 的流水线结构</li><li>核心观点2：工作流设计应先明确状态结构与节点职责，再确定边关系，保证流程可预测、可维护；节点过大将削弱重试和断点恢复的价值</li><li>核心观点3：非线性流程需要条件边和动态路由，根据分类结果进入不同节点；复杂路由应返回有限枚举并设置未知分支的安全处理</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：线性工作流通过 StateGraph 定义状态，并用 <code>add_edge</code> 指定节点间单向依赖，形成 A→B→C→END 的流水线结构。</li>
+<li><strong>核心观点2</strong>：工作流设计应先明确状态结构与节点职责，再确定边关系，保证流程可预测、可维护；节点过大将削弱重试和断点恢复的价值。</li>
+<li><strong>核心观点3</strong>：非线性流程需要条件边和动态路由，根据分类结果进入不同节点；复杂路由应返回有限枚举并设置未知分支的安全处理。</li>
+<li><strong>核心观点4</strong>：多智能体协作可以把工作流拆成多个专长节点，但必须定义共享数据、交接格式和终止条件，避免角色互相调用形成循环。<blockquote>
+<p>在LangGraph中，线性工作流通过StateGraph定义状态，并通过add_edge指定节点之间的单向依赖关系，形成类似A→B→C→END的流水线。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第6章-集成外部工具与api">第6章 集成外部工具与API</h3>3
+<ul>
+<li><strong>核心观点1</strong>：外部工具是智能体能力的延伸，集成时需明确工具的输入输出契约与调用边界；参数校验和超时设置应在工具层完成。</li>
+<li><strong>核心观点2</strong>：工具调用失败应有兜底策略，避免单点故障中断整个智能体流程；可按错误类型选择重试、降级、人工处理或明确告知用户。</li>
+<li><strong>核心观点3</strong>：RESTful API、数据库和自定义工具都应统一封装，节点只依赖稳定的数据契约而不依赖外部响应的偶然文本格式。</li>
+<li><strong>核心观点4</strong>：工具返回值最好用字典或 Pydantic 模型表达成功、错误、数据和来源，便于下游节点解析、测试和记录日志。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 状态管理与持久化</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：状态管理是 LangGraph 的中枢，图执行过程中的状态需可保存、可恢复，持久化支撑多轮对话与长流程；线程标识决定恢复哪一次任务</li><li>核心观点2：异常处理是流程健壮性的关键，应在图执行中捕获错误并采取重试、降级、记录日志、通知等策略，避免整个流程崩溃</li><li>核心观点3：本地存储适合开发和轻量场景，云端或数据库存储更适合并发、长期保存和跨实例恢复；选择时要同时评估一致性、成本和运维负担</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：状态管理是 LangGraph 的中枢，图执行过程中的状态需可保存、可恢复，持久化支撑多轮对话与长流程；线程标识决定恢复哪一次任务。</li>
+<li><strong>核心观点2</strong>：异常处理是流程健壮性的关键，应在图执行中捕获错误并采取重试、降级、记录日志、通知等策略，避免整个流程崩溃。</li>
+<li><strong>核心观点3</strong>：本地存储适合开发和轻量场景，云端或数据库存储更适合并发、长期保存和跨实例恢复；选择时要同时评估一致性、成本和运维负担。</li>
+<li><strong>核心观点4</strong>：断点续跑要求节点尽量幂等，外部副作用要有请求标识或去重机制，否则重试可能重复扣款、重复写入或重复发送通知。<blockquote>
+<p>目标：在图执行过程中发生异常时，捕获错误并采取适当策略（如重试、降级、记录日志、通知等），避免整个流程崩溃。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第8章-智能体agent集成">第8章 智能体(Agent)集成</h3>3
+<ul>
+<li><strong>核心观点1</strong>：工具执行结果（API 响应、数据库查询结果）需封装为统一格式（字典或 Pydantic 模型），保证下游节点可稳定消费。</li>
+<li><strong>核心观点2</strong>：结构化封装是智能体集成的基础，统一数据契约可降低节点间耦合、提升可测试性；错误结果也应遵守同一结构。</li>
+<li><strong>核心观点3</strong>：智能体主管负责拆分任务、调用专长 Agent 并汇总结果，子 Agent 应获得自包含的任务上下文，避免依赖不可见的全局变量。</li>
+<li><strong>核心观点4</strong>：输出解析不能只依靠字符串截取，应该通过结构化字段、类型校验和失败重试保证结果可被主流程使用。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第9章 构建客户支持聊天机器人</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：节点间通过条件边实现动态路由，意图识别结果决定后续处理路径，所有路径单向终止于 END，避免循环、保障单次推理的确定性与安全性</li><li>核心观点2：该项目是轻量级、可追踪、意图路由型工作流，集中展示 LangGraph 基础能力（节点 + 条件边 + 状态传递）</li><li>核心观点3：结合 LangSmith 实现可观测性，使工作流执行过程可追踪、可调试；应记录意图判断、路由结果、工具耗时和最终响应</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：节点间通过条件边实现动态路由，意图识别结果决定后续处理路径，所有路径单向终止于 END，避免循环、保障单次推理的确定性与安全性。</li>
+<li><strong>核心观点2</strong>：该项目是轻量级、可追踪、意图路由型工作流，集中展示 LangGraph 基础能力（节点 + 条件边 + 状态传递）。</li>
+<li><strong>核心观点3</strong>：结合 LangSmith 实现可观测性，使工作流执行过程可追踪、可调试；应记录意图判断、路由结果、工具耗时和最终响应。</li>
+<li><strong>核心观点4</strong>：客服系统要把查询、操作和咨询分流，并为无法确定意图的请求提供澄清或人工接管，而不是强行选择一个路径。<blockquote>
+<p>本项目构建的是一个轻量级、可追踪、意图路由型客户支持工作流，完美展示了LangGraph的基础能力（节点+条件边+状态传递），并结合LangSmith实现了可观测性。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第10章-构建旅行规划智能体">第10章 构建旅行规划智能体</h3>3
+<ul>
+<li><strong>核心观点1</strong>：旅行规划属于多约束、多步骤任务，适合用状态图拆分“收集需求—检索信息—生成方案”等阶段；日期、地点、预算和偏好应进入显式状态。</li>
+<li><strong>核心观点2</strong>：外部工具（如天气、地图、票务 API）的集成质量直接决定规划结果的可用性；实时数据应标注来源和获取时间。</li>
+<li><strong>核心观点3</strong>：规划结果需要经过约束检查，发现天气、时间或交通冲突时回到调整节点，而不是直接输出看似完整但无法执行的行程。</li>
+<li><strong>核心观点4</strong>：多工具调用要控制并发、超时与失败分支，保留用户可修改的中间方案，便于重新规划。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第11章 构建电商客服退款处理智能体</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：退款处理涉及规则判断与风险控制，需用条件边按订单状态、退款原因等分流处理路径</li><li>核心观点2：高风险或边界场景应引入人机协作，由人工审核介入，兼顾自动化效率与业务合规；不可逆动作前必须明确审批状态</li><li>核心观点3：订单查询、资格判断、金额计算和通知发送应拆成不同节点，便于审计、重试和回放</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：退款处理涉及规则判断与风险控制，需用条件边按订单状态、退款原因等分流处理路径。</li>
+<li><strong>核心观点2</strong>：高风险或边界场景应引入人机协作，由人工审核介入，兼顾自动化效率与业务合规；不可逆动作前必须明确审批状态。</li>
+<li><strong>核心观点3</strong>：订单查询、资格判断、金额计算和通知发送应拆成不同节点，便于审计、重试和回放。</li>
+<li><strong>核心观点4</strong>：系统必须防止重复退款和状态错乱，外部支付接口调用要使用幂等标识，并将失败结果写回状态。</li>
+</ul>
+<h3 id="第12章-构建股票趋势预测智能分析系统">第12章 构建股票趋势预测智能分析系统</h3>3
+<ul>
+<li><strong>核心观点1</strong>：金融分析系统需整合数据获取、指标计算、模型分析与报告生成多个环节，体现 LangGraph 编排复杂分析流水线的能力。</li>
+<li><strong>核心观点2</strong>：预测类系统应重视结果的可解释性与风险提示，避免将模型输出直接作为决策依据；数据时间、指标来源和假设条件都应展示。</li>
+<li><strong>核心观点3</strong>：数据获取失败、指标缺失和模型不确定性都应进入异常分支，不能用空数据生成确定性结论。</li>
+<li><strong>核心观点4</strong>：最终报告可以由多个节点协作生成，但必须区分事实、计算结果、推断和风险提示，方便复核。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">适用场景标签</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>AI Agent 开发入门</li></ul></div>2
+<ul>
+<li>AI Agent 开发入门</li>
+<li>LangGraph 框架学习</li>
+<li>RAG 检索增强应用</li>
+<li>智能体工作流编排</li>
+<li>企业级客服/业务自动化</li>
+</ul>
+<h2 id="一句话推荐">一句话推荐</h2>2
+<p>从状态图到实战，系统掌握 LangGraph 智能体开发。</p></div></details></div></body></html>

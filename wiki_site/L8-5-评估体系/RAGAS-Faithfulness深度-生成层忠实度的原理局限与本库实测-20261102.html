@@ -1,0 +1,328 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RAGAS-Faithfulness深度-生成层忠实度的原理局限与本库实测-20261102</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ RAGAS-Faithfulness深度-生成层忠实度的原理局限与本库实测-20261102</span></div><div class="wrap"><h1 id="ragas-faithfulness-深度生成层忠实度的原理局限与本库实测">RAGAS Faithfulness 深度：生成层忠实度的原理、局限与本库实测</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="RAGAS%E4%B8%89%E5%B1%82%E8%AF%84%E6%B5%8B%E8%90%BD%E5%9C%B0-%E6%8C%87%E6%A0%87%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BB%A3%E7%A0%81%E5%AE%9E%E6%88%98-20261030.html">RAGAS三层评测落地</a>（三层总览） · <a href="RAG%E8%AF%84%E6%B5%8B%E4%B8%89%E5%B1%82%E6%96%B9%E6%B3%95%E8%AE%BA-20261009.html">RAG评测三层方法论</a> · <a href="RAGAS-AnswerCorrectness%E6%B7%B1%E5%BA%A6-%E7%AB%AF%E5%88%B0%E7%AB%AF%E8%AF%84%E6%B5%8B%E7%9A%84%E6%9E%84%E6%88%90%E5%8F%A3%E5%BE%84%E4%B8%8Ereference%E5%BB%BA%E8%AE%BE-20261102.html">Answer Correctness 深度</a>（端到端姊妹篇） · <a href="RAGAS%E7%94%9F%E4%BA%A7%E7%BA%A7%E8%AF%84%E4%BC%B0-CI%E9%9B%86%E6%88%90%E4%B8%8E%E7%BA%BF%E4%B8%8A%E6%B5%81%E9%87%8F%E8%AF%84%E4%BC%B0-20261030.html">RAGAS生产级评估</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心论点</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Faithfulness 只回答一个问题：答案里的每个说法，检索到的上下文撑不撑得住</li><li>但"最可靠的指标"不等于"最全面的指标"</li><li>所以 Faithfulness 必须和检索层、端到端指标联合读，不能单独当成"质量分"</li></ul></div>2
+<p>Faithfulness 只回答一个问题：<strong>答案里的每个说法，检索到的上下文撑不撑得住</strong>。它由 RAGAS 论文（arXiv:2309.15217）第 3 节定义，是论文三个原始指标之一（另两个是 Answer Relevance 和 Context Relevance），也是论文里与人工标注吻合度最高的一个：在 WikiEval 上成对比较的准确率 0.95，对比 GPT Score 的 0.72 和 GPT Ranking 的 0.54。</p>
+<p>但"最可靠的指标"不等于"最全面的指标"。本库的实测暴露出三件事：①Faithfulness 完全看不到漏答，10-15 那轮 RAGAS 库评测 5 题 Faithfulness 全是 1.0，其中两题的答案自己写着"语料中只给出 N3–N6 四个节点""第六个成员语料中没有相关信息"，对照标准答案是漏了一半；②零 claim（拒答）时分数没有定义，官方实现返回 NaN，而本库 10-10 基线脚本硬编码成 1.0，把它平均进总分后总分失去意义；③裁判一旦失效（输出被截断、解析把空输出当 NO），分数会静默地变成随机数，本库 10-28 的裁判自一致率曾经只有 40%。所以 Faithfulness 必须和检索层、端到端指标联合读，不能单独当成"质量分"。</p>
+<h2 id="为什么要单独测-faithfulness动机与代价">为什么要单独测 Faithfulness（动机与代价）</h2>2
+<p><strong>动机</strong>：RAG 的卖点是"答案有据可查"。检索层指标（Recall、Context Precision）只证明材料找到了，不证明模型用对了材料。模型可能在材料之外自由发挥（脑补一个数字、混入训练记忆里的旧知识），也可能把材料里的矛盾内容拼在一起。这类问题在检索指标上完全不可见。Faithfulness 把"生成是否越界"变成一个 0 到 1 的数，并且<strong>不需要标准答案</strong>，因此线上流量也能测，这是它在生产评估里最便宜好用的原因。</p>
+<p><strong>代价</strong>：每条样本至少两次裁判调用（抽取 claim、逐条验证），上下文越长、claim 越多越贵；分数依赖裁判模型，换裁判后绝对值不可比；且它的取值范围天然偏乐观，因为拒答和空洞回答也可以拿高分（见局限一节）。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">是什么（定义与边界）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>官方定义：官方文档写道："A response is considered faithful if all its claims can be supported by the retrieved context."分数范围 0 到 1，越高越好</li><li>论文第 3 节的说法是答案是 faithful 的，当且仅当答案里的 claims 能够从上下文推断出来</li><li>S 是从答案中抽出的 statement 总数，V 是裁判判定为"被上下文支持"的 statement 数</li></ul></div>2
+<p><strong>官方定义</strong>：官方文档写道："A response is considered faithful if all its claims can be supported by the retrieved context."分数范围 0 到 1，越高越好。论文第 3 节的说法是答案是 faithful 的，当且仅当答案里的 claims 能够从上下文推断出来。</p>
+<p><strong>公式</strong>：F = |V| / |S|。S 是从答案中抽出的 statement 总数，V 是裁判判定为"被上下文支持"的 statement 数。</p>
+<p><strong>边界</strong>：<br />
+- ✅ 管：答案相对检索上下文的一致性，即"有没有越界"。<br />
+- ❌ 不管：答案对不对（上下文本身可能是错的或过时的）、答案全不全（漏答不扣分）、答案切不切题（那是 Answer Relevancy）、检索得好不好。<br />
+- ⚠️ "忠实"针对的是<strong>送进生成模型的那几段文本</strong>，不是整个知识库。把文档全文当 <code>retrieved_contexts</code> 传入会让分数虚高。</p>
+<h2 id="论文里的机制与证据">论文里的机制与证据</h2>2
+<p>以下内容读自论文第 3、4、5 节原文。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">两步流水线</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 抽取 statement：用一个 LLM 提示词把答案拆开</li><li>2. 逐条验证：把上下文和 statement 列表一起给 LLM，要求判断每条 statement 是否被上下文支持，先给简短解释再给 Yes/No</li><li>论文所有提示词都用 gpt-3.5-turbo-16k 评测（这是 2023 年的模型）</li></ul></div>3
+<ol>
+<li><strong>抽取 statement</strong>：用一个 LLM 提示词把答案拆开。论文给出的提示词是："Given a question and answer, create one or more statements from each sentence in the given answer."</li>
+<li><strong>逐条验证</strong>：把上下文和 statement 列表一起给 LLM，要求判断每条 statement 是否被上下文支持，先给简短解释再给 Yes/No。</li>
+</ol>
+<p>论文所有提示词都用 gpt-3.5-turbo-16k 评测（这是 2023 年的模型）。这点很重要：论文证明的是"这套流水线配当时的裁判能和人对上"，不是"任何裁判都行"。换成本库的 mimo-v2.6-flash、doubao 或本地小模型，吻合度要自己重测。</p>
+<p><strong>图：Faithfulness 的计算流水线与可能出错的环节</strong></p>
+<pre><code class="language-mermaid">flowchart LR
+    A[&quot;答案 response&quot;] --&gt; S[&quot;步骤1 抽取 statements&quot;]
+    S --&gt; L[&quot;statement 列表 S&quot;]
+    CTX[&quot;检索上下文 retrieved_contexts&quot;] --&gt; V[&quot;步骤2 逐条验证 Yes或No&quot;]
+    L --&gt; V
+    V --&gt; N[&quot;被支持数 V&quot;]
+    N --&gt; F[&quot;F 等于 V 除以 S&quot;]
+    S -.-&gt;|&quot;失败或为空&quot;| E1[&quot;零 statement 无定义&quot;]
+    V -.-&gt;|&quot;截断或解析错&quot;| E2[&quot;静默变成随机分&quot;]
+</code></pre>
+<h3 id="wikieval-与吻合度">WikiEval 与吻合度</h3>3
+<p>论文自建了 WikiEval 数据集：选取 50 个涵盖 2022 年初以来事件的维基百科页面，由两名标注员对三个维度标注。Faithfulness 的标注方式是让标注员比较两个候选答案，其中一个带上下文生成、一个不带上下文生成，选出更忠实的那个。标注员一致率：Faithfulness 和 Context Relevance 约 95%，Answer Relevance 约 90%。</p>
+<p>论文表 1 报告各方法与人工判断的吻合准确率：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>Faithfulness</th>
+<th>Answer Relevance</th>
+<th>Context Relevance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ragas</td>
+<td><strong>0.95</strong></td>
+<td>0.78</td>
+<td>0.70</td>
+</tr>
+<tr>
+<td>GPT Score（让 ChatGPT 直接打 0 到 10 分）</td>
+<td>0.72</td>
+<td>0.52</td>
+<td>0.63</td>
+</tr>
+<tr>
+<td>GPT Ranking（让 ChatGPT 直接选更优的）</td>
+<td>0.54</td>
+<td>0.40</td>
+<td>0.52</td>
+</tr>
+</tbody>
+</table>
+<p>读这张表要注意三点。第一，任务形式是<strong>成对比较</strong>：给两个答案，看指标是否选中人选的那个。它证明指标的<strong>相对排序能力</strong>，不证明"0.85 以上就安全"这类绝对阈值。第二，GPT Ranking 只有 0.54，接近随机，说明"直接让大模型整体评判"远不如"拆 statement 再逐条验证"。这是 Faithfulness 设计的核心价值：把一个模糊的整体判断拆成一组更容易判的小判断。第三（我的推断，论文未讨论），WikiEval 里的两个候选答案差异很大（有上下文 vs 无上下文），比线上"两个都有上下文、只差一点"的情形容易分辨，所以 0.95 不宜直接外推到细微差异的场景。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">官方文档与实现细节</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>API 现状：文档推荐 「ragas.metrics.collections」 下的新接口，旧的 「SingleTurnSample」 + 「single_turn_ascore」 写法标注"将在 0.4 弃用、1.0 移除"</li><li>两个提示词类是 「StatementGeneratorPrompt」 和 「NLIStatementPrompt」</li><li>抽取不出任何 statement，或验证结果为空时，返回 NaN</li></ul></div>2
+<p><strong>文档示例</strong>：上下文写爱因斯坦生于 1879 年 3 月 14 日，答案是"Einstein was born in Germany on 20th March 1879"，拆成两条 statement：出生在德国（被支持）、出生日期 3 月 20 日（不被支持），得分 1/2 = 0.5。</p>
+<p><strong>API 现状</strong>：文档推荐 <code>ragas.metrics.collections</code> 下的新接口，旧的 <code>SingleTurnSample</code> + <code>single_turn_ascore</code> 写法标注"将在 0.4 弃用、1.0 移除"。</p>
+<p><strong>源码行为</strong>（读自 <code>collections/faithfulness/metric.py</code>）：<br />
+- 两个提示词类是 <code>StatementGeneratorPrompt</code> 和 <code>NLIStatementPrompt</code>。<br />
+- 每条 statement 的 verdict 是布尔值，分数 = 支持数 / 总数。<br />
+- 抽取不出任何 statement，或验证结果为空时，返回 <strong>NaN</strong>。<br />
+- <code>user_input</code>、<code>response</code>、<code>retrieved_contexts</code> 任一为空会直接抛 ValueError，不会产生 NaN。</p>
+<p><strong>HHEM 变体</strong>：文档提供 <code>FaithfulnesswithHHEM</code>，用 Vectara 的 HHEM-2.1-Open（基于 T5 的幻觉检测分类器）替换第二步的逐条验证，免费、模型小、适合生产。可设 <code>device</code>（默认 CPU）和 <code>batch_size</code>（默认 10）。它把"裁判调用"换成本地分类器，省钱且更稳定，代价是它主要面向英文训练，中文场景要先自测。</p>
+<h2 id="局限faithfulness-看不到什么">局限：Faithfulness 看不到什么</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">局限一：漏答不扣分</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Faithfulness 只统计答案里出现了的说法</li><li>仅看 5 题全是 1.0，会得出"生成层完美"的错误结论</li><li>答案只回答一半，只要那一半有据，就是满分</li></ul></div>3
+<p>Faithfulness 只统计答案里<strong>出现了</strong>的说法。答案只回答一半，只要那一半有据，就是满分。</p>
+<p>本库 10-15 的 RAGAS 库评测（<code>rag/eval_ragas_report.csv</code>，5 题）是现成例子：</p>
+<table>
+<thead>
+<tr>
+<th>题目</th>
+<th>Faithfulness</th>
+<th>Context Recall</th>
+<th>答案实际情况</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>总地图工作流有哪六个节点</td>
+<td>1.00</td>
+<td>0.00</td>
+<td>答案开头写"语料中只给出了 N3–N6 四个节点，N1、N2 的内容语料中没有相关信息"</td>
+</tr>
+<tr>
+<td>六员指的是哪六个智能体</td>
+<td>1.00</td>
+<td>0.00</td>
+<td>答案写"明确提到的只有五个角色分层，第六个成员的名称与职责在语料中没有相关信息"</td>
+</tr>
+<tr>
+<td>其余 3 题</td>
+<td>1.00</td>
+<td>1.0 / 1.0 / 0.0</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>两道漏答题的 Faithfulness 都是满分，因为模型老实地只说了检索到的内容。病根在检索（Context Recall 为 0），Faithfulness 对此毫无反应。<strong>这类问题必须靠 Context Recall 和 Answer Correctness 发现</strong>。仅看 5 题全是 1.0，会得出"生成层完美"的错误结论。</p>
+<h3 id="局限二忠于错误的上下文">局限二：忠于错误的上下文</h3>3
+<p>如果检索到的片段本身是旧版本或错误的，模型原样复述它，按定义这些说法都是"被上下文支持"的，Faithfulness 不会扣分。本库的 Q004 型案例（据 <a href="RAG%E8%AF%84%E6%B5%8B%E4%B8%89%E5%B1%82%E6%96%B9%E6%B3%95%E8%AE%BA-20261009.html">RAG评测三层方法论</a> 记录：上下文含正确值 0.45，答案却被同文档旧值 0.465 带偏）Faithfulness 为 0.667，说明只有"夹带的 1 条无据说法"被抓到，而"答成旧值"这个错误本身是否被扣分，取决于旧值是否出现在上下文里。这类错误最终要靠 Answer Correctness 暴露。该案例的原始报告 <code>/tmp/ragas_answer_eval_report.md</code> 已被清理，我无法复核其 claim 明细。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">局限三：拒答与空答案的取值</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>答案是"语料中没有相关信息"时，几乎抽不出可验证的事实声明</li><li>原则：拒答是一个独立的行为，要单独统计拒答率，不要用一个人为设定的 1.0 掺进 Faithfulness 的均值</li><li>官方实现这时返回 NaN，也就是没有定义</li></ul></div>3
+<p>答案是"语料中没有相关信息"时，几乎抽不出可验证的事实声明。官方实现这时返回 NaN，也就是<strong>没有定义</strong>。本库 10-10 基线脚本（<code>rag/eval/run_baseline.py</code>）的处理是：负例题（qtype=N）只要判定为拒答，Faithfulness 直接写死为 1.0；正例题抽取不出 claim 时也写 1.0。</p>
+<p>后果见下一节的数字核对。原则：<strong>拒答是一个独立的行为，要单独统计拒答率，不要用一个人为设定的 1.0 掺进 Faithfulness 的均值</strong>。</p>
+<h3 id="局限四粒度影响分数">局限四：粒度影响分数</h3>3
+<p>一句话里塞三个事实，抽取时拆不拆、拆几条，都会改变分母。同一个答案在不同裁判下可能得到不同的 claim 数。答案越是"一句一事实"，分数越稳定。这也是为什么对比两个版本时必须用<strong>同一个裁判、同一套提示词</strong>。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">局限五：依赖裁判，且裁判会静默失效</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>分数的每一步都是 LLM 在判断</li><li>裁判能力不够、输出被截断、解析逻辑有 bug，都不会报错，只会让分数偏离</li></ul></div>3
+<p>分数的每一步都是 LLM 在判断。裁判能力不够、输出被截断、解析逻辑有 bug，都不会报错，只会让分数偏离。这是本库实际踩过的，下一节展开。</p>
+<h2 id="本库实测与核对">本库实测与核对</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">实测一：10-10 基线的 28.1% 和 47.0% 都不能当 RAGAS 分数引用</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>所以 28.1% 不能和 RAGAS 论文或官方文档的分数直接对比</li><li>结论：引用这组基线时只能说"14 条正例、自写流水线、no-rerank 配置下的 Faithfulness 为 28.1%"，并且不要引用 47.0% 的 「all」 数字</li><li>注意"忠实复述无关内容"在 Faithfulness 的定义下会得高分而不是低分；低分意味着答案里出现了上下文不支持的说法</li></ul></div>3
+<p><code>baseline-report-20261010.md</code> 报告生成层 Faithfulness = 28.1%。核对后有三个口径问题：</p>
+<ol>
+<li><strong>不是 RAGAS 库算的</strong>。<code>run_baseline.py</code> 用的是本库自写的流水线（<code>eval_faithfulness.py</code> 的 <code>extract_claims</code> + 自写的 <code>verify_all_claims</code>，提示词是自己写的"YES=编号/NO=编号"格式），不是 <code>ragas</code> 包。所以 28.1% 不能和 RAGAS 论文或官方文档的分数直接对比。</li>
+<li><strong>样本数标注矛盾</strong>。报告明确写"成功跑通的正例：14 条"，28.1% 对应这 14 条；但同批产物 <code>baseline_summary.json</code> 把同一个 0.2811 标在 <code>pos</code> 组下，且 <code>n</code> 字段写 51。同一份汇总里的 <code>all</code> 组 Faithfulness = 0.4703，我重新核算：(0.2811 × 14 + 1.0 × 5) / 19 = 0.4703，说明它其实是 14 条正例加 5 条负例共 19 条的加权均值，而不是 56 条。<strong>汇总文件里的 n 是错的</strong>。</li>
+<li><strong>负例的 1.0 是硬编码</strong>。5 条负例的 Faithfulness 100% 来自 <code>faith = 1.0 if refused else 0.0</code>（<code>run_baseline.py:159</code>），没有经过任何裁判判断。它把 <code>all</code> 组均值从 28.1% 拉到了 47.0%，抬高了将近 19 个百分点，但这 19 个点反映的是"拒答了"，不是"忠实"。</li>
+</ol>
+<p>结论：引用这组基线时只能说"14 条正例、自写流水线、no-rerank 配置下的 Faithfulness 为 28.1%"，并且不要引用 47.0% 的 <code>all</code> 数字。</p>
+<p>这个 28.1% 的归因，报告里写的是"--no-rerank 召回了无关 chunk，LLM 把无关内容也'忠实复述'"。注意"忠实复述无关内容"在 Faithfulness 的定义下会得<strong>高分</strong>而不是低分；低分意味着答案里出现了上下文<strong>不支持</strong>的说法。所以这条归因与指标定义对不上，更可能的原因是检索到的材料不含答案、模型靠自己的知识补全，或者裁判过严（<code>context_text[:2000]</code> 把上下文截到 2000 字，后面的片段裁判看不到）。这是一个<strong>待验证的疑点</strong>，需要拉 claim 明细确认，本文不下结论。</p>
+<h3 id="实测二自写实现里的三个静默失败口">实测二：自写实现里的三个静默失败口</h3>3
+<p>读 <code>run_baseline.py</code> 和 <code>eval_faithfulness.py</code> 发现：<br />
+- <code>extract_claims</code> 调用 LLM 失败时 <code>return []</code>（<code>eval_faithfulness.py</code> 的异常分支），随后正例分支走到 <code>faith = 1.0</code>（<code>run_baseline.py:156</code>）。<strong>裁判一出故障，分数就变成满分</strong>。<br />
+- <code>verify_all_claims</code> 失败时返回全部 False，对应分数 0。方向相反，同样不报错。<br />
+- 验证时 <code>context_text[:2000]</code> 截断，长上下文的后半部分不参与判定，会系统性压低分数。</p>
+<p>这三处和官方实现的取舍不同：官方在抽取不出 statement 时返回 NaN，让后续统计能把它单独剔出来并计失败率。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">实测三：裁判自一致率 40% → 100%</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「_g2_judge_rerun_report_20261028.md」 记录了生成层裁判 mimo-v2.6-flash 的自一致率重测</li><li>对 Faithfulness 来说，"能判出 NO"恰恰是核心能力（要识别无据说法），所以这个裁判在 Faithfulness 上的可靠性目前没有被证明</li></ul></div>3
+<p><code>_g2_judge_rerun_report_20261028.md</code> 记录了生成层裁判 mimo-v2.6-flash 的自一致率重测。根因：mimo 是推理模型，推理 token 计入 <code>max_tokens</code>，原先设成 10，结果推理没写完配额就用光，<code>content</code> 为空；解析代码又把空输出一律当 NO，判定变成随机的截断结果。修复后（<code>max_tokens</code> 调到 2048，只解析 content 里最后一个 YES/NO，空输出记 ERROR 不计票，网络错误重试 2 次）自一致率 5/5 = 100%，准确率 5/5 = 100%。</p>
+<p>这份报告自己写明了局限：样本只有 5 条且全部应判 YES，<strong>测不出裁判能否正确判 NO</strong>；30 次调用里仍有 1 次 <code>finish_reason=stop</code> 但 content 为空。对 Faithfulness 来说，"能判出 NO"恰恰是核心能力（要识别无据说法），所以这个裁判在 Faithfulness 上的可靠性<strong>目前没有被证明</strong>。</p>
+<h2 id="怎么用">怎么用</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">在本机的运行现状</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>本机 「ragas」 版本为 0.4.3</li><li>因此下面第一段官方写法按官方文档编写，未在本机运行，上线前必须先在隔离环境验证；第二段是纯 Python 的审计工具，已在本机运行通过</li></ul></div>3
+<p>本机 <code>ragas</code> 版本为 0.4.3。直接 <code>from ragas.llms import llm_factory</code> 会报 <code>ModuleNotFoundError: No module named 'langchain_community.chat_models.vertexai'</code>，这是 ragas 与当前 langchain 版本的依赖冲突；<code>rag/eval_ragas.py</code> 靠文件开头"注入空壳"绕过。因此下面第一段官方写法<strong>按官方文档编写，未在本机运行</strong>，上线前必须先在隔离环境验证；第二段是纯 Python 的审计工具，已在本机运行通过。</p>
+<h3 id="官方-collections-接口按文档未在本机运行">官方 collections 接口（按文档，未在本机运行）</h3>3
+<pre><code class="language-python">from openai import AsyncOpenAI
+from ragas.llms import llm_factory
+from ragas.metrics.collections import Faithfulness
+
+client = AsyncOpenAI(base_url=&quot;&lt;云端 OpenAI 兼容端点&gt;&quot;, api_key=&quot;&lt;从环境变量读取&gt;&quot;)
+llm = llm_factory(&quot;&lt;强模型名&gt;&quot;, client=client)
+
+scorer = Faithfulness(llm=llm)
+result = await scorer.ascore(
+    user_input=&quot;爱因斯坦在哪里、哪天出生？&quot;,
+    response=&quot;Einstein was born in Germany on 20th March 1879.&quot;,
+    retrieved_contexts=[&quot;Albert Einstein (born 14 March 1879) was a German-born theoretical physicist.&quot;],
+)
+print(result.value)   # 文档示例此类答案得 0.5；抽不出 statement 时为 nan
+</code></pre>
+<p>要点：密钥走环境变量，不写进代码或日志；裁判用云端强模型，temperature 设 0，<code>max_tokens</code> 留足（推理模型尤其要大）；逐条保存分数和 claim 明细，不只存均值。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">纯 Python 审计工具（已在本机运行）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>"""verdicts: 每条 claim 是否被上下文支持；无 claim 返回 nan，与官方实现一致"""</li><li>return sum(verdicts) / len(verdicts)</li><li>print(faithfulness([True, False])) 0.5，对应官方 Einstein 示例</li></ul></div>3
+<p>处理 NaN、单独统计失败率、对拒答单独计数：</p>
+<pre><code class="language-python">import math
+
+def faithfulness(verdicts):
+    &quot;&quot;&quot;verdicts: 每条 claim 是否被上下文支持；无 claim 返回 nan，与官方实现一致&quot;&quot;&quot;
+    if not verdicts:
+        return math.nan
+    return sum(verdicts) / len(verdicts)
+
+def summarize(scores):
+    ok = [s for s in scores if not math.isnan(s)]
+    return {&quot;mean&quot;: sum(ok) / len(ok) if ok else math.nan,
+            &quot;n&quot;: len(scores), &quot;n_nan&quot;: len(scores) - len(ok)}
+
+print(faithfulness([True, False]))        # 0.5，对应官方 Einstein 示例
+print(faithfulness([]))                   # nan
+print(summarize([1.0, 0.5, math.nan, 0.0]))  # {'mean': 0.5, 'n': 4, 'n_nan': 1}
+</code></pre>
+<p>用法：均值只在有效样本上算，<code>n_nan</code> 作为独立的健康指标一并报告（占比高说明裁判失败或拒答多，要分开看）；拒答率另算。</p>
+<h2 id="判读与处置">判读与处置</h2>2
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>最可能的原因</th>
+<th>下一步</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Faithfulness 低，Context Recall 高</td>
+<td>材料找到了但生成越界</td>
+<td>拉低分题的 claim 明细，看哪些说法无据；收紧"只依据给定材料作答"的提示词</td>
+</tr>
+<tr>
+<td>Faithfulness 低，Context Recall 低</td>
+<td>材料没找到，模型靠自己补全</td>
+<td>先修检索，不要先调生成提示词</td>
+</tr>
+<tr>
+<td>Faithfulness 满分，Answer Correctness 低</td>
+<td>漏答，或忠于错误/过时的上下文</td>
+<td>查 Context Recall；查上下文里是否有新旧并存的值</td>
+</tr>
+<tr>
+<td>Faithfulness 异常高（接近 1），且答案很短或多为拒答</td>
+<td>可验证的说法太少</td>
+<td>看 NaN 占比和拒答率，不要被均值骗</td>
+</tr>
+<tr>
+<td>同一数据集两次分数差 0.05 以上</td>
+<td>裁判不稳定或 temperature 非 0</td>
+<td>固定 temperature=0，做三次投票，重测自一致率</td>
+</tr>
+<tr>
+<td>分数突然整体上升</td>
+<td>裁判降级为空输出/解析 bug</td>
+<td>先查失败率，再查是否有"异常分支返回满分"的代码路径</td>
+</tr>
+</tbody>
+</table>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">动库门禁怎么用它</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Faithfulness 在动库门禁里的角色是护栏：改检索、去重、换模型之后，同一份 golden set、同一个裁判、同一套提示词前后各跑一遍，逐题对比，不降才放行</li><li>LLM 裁判有噪声，均值掩盖不了个别题的突变</li><li>2. 本库目前没有为 Faithfulness 标定过阈值</li></ul></div>2
+<p>Faithfulness 在动库门禁里的角色是<strong>护栏</strong>：改检索、去重、换模型之后，同一份 golden set、同一个裁判、同一套提示词前后各跑一遍，逐题对比，不降才放行。注意三点：</p>
+<ol>
+<li><strong>逐题配对比较</strong>，不要只比均值。LLM 裁判有噪声，均值掩盖不了个别题的突变。</li>
+<li><strong>本库目前没有为 Faithfulness 标定过阈值</strong>。<code>RAG管线现状与阈值标定.md</code> 里只有检索和 rerank 的阈值，没有生成层指标。三层评测落地篇给出的"0.85 放行"是经验值，生产级篇的"跌超 0.05 阻断"是规则设定，二者都没有本库的校准数据支撑。采用前应先用 20 到 30 条带人工判断的样本，测出本库裁判在"有据/无据"上的实际准确率，再定线。</li>
+<li>基线本身要先可信：先解决上面三个静默失败口，再谈对比。</li>
+</ol>
+<h2 id="验收清单">验收清单</h2>2
+<ul>
+<li>[ ] 裁判为云端强模型，temperature=0，<code>max_tokens</code> 足够，三次投票自一致率 ≥ 80%</li>
+<li>[ ] 裁判在<strong>反例</strong>（答案含无据说法）上的判 NO 能力被单独测过，不只测正例</li>
+<li>[ ] <code>retrieved_contexts</code> 与生成时真实输入逐字一致，未被二次截断</li>
+<li>[ ] 抽取失败、验证失败、空输出都显式记为 ERROR/NaN，没有任何分支默认返回 1.0 或 0</li>
+<li>[ ] NaN 占比、拒答率作为独立指标报告</li>
+<li>[ ] 报告里写明：评测实现（RAGAS 库 or 自写）、裁判模型、样本数、是否含 rerank</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">术语表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Statement / Claim</td>
+<td>从答案里拆出的最小可验证陈述，Faithfulness 的计分单位</td>
+</tr>
+<tr>
+<td>NLI</td>
+<td>自然语言推断，判断"前提是否支持假设"</td>
+</tr>
+<tr>
+<td>Reference-free</td>
+<td>不需要标准答案即可计算</td>
+</tr>
+<tr>
+<td>WikiEval</td>
+<td>RAGAS 论文自建的人工标注数据集，50 个 2022 年后的维基页面</td>
+</tr>
+<tr>
+<td>HHEM</td>
+<td>Vectara 的幻觉评估模型，可替代逐条验证步骤</td>
+</tr>
+<tr>
+<td>静默失败</td>
+<td>出错后不报错、返回一个看似正常的分数</td>
+</tr>
+</tbody>
+</table>
+<h2 id="来源">来源</h2>2
+<ul>
+<li>论文：Es, James, Espinosa-Anke, Schockaert. <em>Ragas: Automated Evaluation of Retrieval Augmented Generation</em>. arXiv:2309.15217（2023-09-26 提交，2025-04-28 修订 v2）；收录于 EACL 2024 System Demonstrations（aclanthology.org/2024.eacl-demo.16）。本文第 3、4、5 节内容读自该论文，表 1 数值逐项核对原表。</li>
+<li>官方文档：docs.ragas.io 的 Faithfulness 页（定义、公式、Einstein 示例、collections 接口、HHEM 变体）。</li>
+<li>源码：ragas 仓库 <code>src/ragas/metrics/collections/faithfulness/metric.py</code>（NaN 与 ValueError 行为），经网络抓取读取，未在本机运行。</li>
+<li>本库产物：<code>rag/eval/baseline-report-20261010.md</code>、<code>rag/eval/baseline_summary.json</code>、<code>rag/eval_ragas_report.csv</code>、<code>rag/eval/_g2_judge_rerun_report_20261028.md</code>、<code>rag/eval/run_baseline.py</code>、<code>rag/eval/eval_faithfulness.py</code>。</li>
+</ul></div></details></div></body></html>

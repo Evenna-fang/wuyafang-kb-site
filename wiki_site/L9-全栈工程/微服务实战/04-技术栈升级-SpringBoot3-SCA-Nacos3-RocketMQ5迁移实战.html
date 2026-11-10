@@ -1,0 +1,596 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>04-技术栈升级-SpringBoot3-SCA-Nacos3-RocketMQ5迁移实战</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../../index.html">🏠 总入口</a><a href="../../graph.html">🕸 关联图谱</a><a href="../../ontology/index.html">📖 术语表</a><span class="cur">/ 04-技术栈升级-SpringBoot3-SCA-Nacos3-RocketMQ5迁移实战</span></div><div class="wrap"><h2 id="why">WHY</h2>2
+<h3 id="1-目标范围与版本选线">1. 目标、范围与版本选线</h3>3
+<p>01-03 篇的基线是 JDK 17、Spring Boot 2.7.18、Spring Cloud 2021.0.8、Spring Cloud Alibaba 2021.0.5.0、Nacos 2.2.3、RocketMQ 4.9.7。本篇回答一个具体问题：智链云途物流与云岚到家这套"秒杀 + 派单调度 + 支付"系统，怎样从这组基线迁到仍在维护的版本线，每一步改什么、怎么灰度、怎么回滚。</p>
+<p>写作约束先说清楚。本篇所有版本号只取自 2026-11-02 实际抓取的官方页面，页面没写的一律标"未能核实，以官方为准"。本机没有 Java 工程环境，文中代码均未实跑，只保证与所引官方页面里的 API 一致。引用用方括号序号，对应文末"官方参考"。</p>
+<h2 id="what">WHAT</h2>2
+<h3 id="11-官方版本对应表">1.1 官方版本对应表</h3>3
+<p>Spring Cloud Alibaba 官方版本说明页给出了两张表[2][7]，合并如下：</p>
+<table>
+<thead>
+<tr>
+<th>SCA 版本</th>
+<th>Spring Cloud</th>
+<th>Spring Boot</th>
+<th>Sentinel</th>
+<th>Nacos</th>
+<th>RocketMQ</th>
+<th>Seata</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2023.0.1.0</td>
+<td>2023.0.1</td>
+<td>3.2.4</td>
+<td>1.8.6</td>
+<td>2.3.2</td>
+<td>5.1.4</td>
+<td>2.0.0</td>
+</tr>
+<tr>
+<td>2025.0.0.0</td>
+<td>2025.0.0</td>
+<td>3.5.0</td>
+<td>1.8.9</td>
+<td>3.0.3</td>
+<td>5.3.1</td>
+<td>2.5.0</td>
+</tr>
+<tr>
+<td>2025.1.0.0</td>
+<td>2025.1.0</td>
+<td>4.0.0</td>
+<td>1.8.9</td>
+<td>3.1.1</td>
+<td>5.3.1</td>
+<td>2.5.0</td>
+</tr>
+</tbody>
+</table>
+<p>SCA 的 FAQ 页同时说明：2023.x 适配 Spring Boot 3.2.x，2025.0.x 适配 Boot 3.5.x，2025.1.x 适配 Boot 4.0.x，上述分支都标为"活跃维护"[22]。两张版本表都没有写 JDK 要求，JDK 要以各组件自己的文档为准。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1.2 选哪条线</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>三条线的差别在于"一次要吃下多少变化"</li><li>本篇的推荐是第二条线（2025.0.x）</li><li>Nacos 仍是 2.x 服务端，迁移面最小，但 Spring Boot 3.2 线更老，是否仍在 OSS 支持期需自行到 Spring 官网核对（本次未核实）</li></ul></div>3
+<p>三条线的差别在于"一次要吃下多少变化"。</p>
+<ul>
+<li>2023.0.1.0：Boot 3.2、Nacos 2.3.2。Nacos 仍是 2.x 服务端，迁移面最小，但 Spring Boot 3.2 线更老，是否仍在 OSS 支持期需自行到 Spring 官网核对（本次未核实）。</li>
+<li>2025.0.0.0：Boot 3.5、Nacos 3.0.3、RocketMQ 5.3.1、Seata 2.5.0。仍在 Boot 3 大版本内，Jakarta EE 10 的迁移只做一次，同时拿到 Nacos 3 与 Seata 2.5。</li>
+<li>2025.1.0.0：Boot 4.0、Spring Cloud 2025.1。Spring Cloud Gateway 官方文档当前已是 5.0.4，基于 Spring Framework 7 与 Spring Boot 4[10]。这条线要同时吃下 Boot 3 和 Boot 4 两次大版本变化。</li>
+</ul>
+<p>本篇的推荐是第二条线（2025.0.x）。理由是它把变化控制在一个大版本之内，而且 Spring Cloud 2025.0 发布说明页记录的最新补丁是 2025.0.3（2026-06-11），其中 Gateway 为 4.3.5、OpenFeign 为 4.3.3[9]，说明这条线仍有补丁。落到 pom 上，Spring Cloud 版本应取 2025.0.x 的最新补丁而不是表里的 2025.0.0。以上是对比后的选择，不是官方建议。</p>
+<h3 id="13-迁移顺序总原则">1.3 迁移顺序总原则</h3>3
+<p>先升"服务端基础设施"，后升"应用"。Nacos 3 服务端兼容 2.x 与 3.x 客户端[6]，所以可以先把 Nacos 服务端升到 3.x，旧应用不动；RocketMQ 5 的 Broker 同理可以先升。应用侧的 Boot 3 升级是一次性的"跨代"改动，放在基础设施稳定之后，并通过灰度逐服务切换。</p>
+</div></details><h2 id="how">HOW</h2>2
+<h3 id="2-升级路线与分步清单">2. 升级路线与分步清单</h3>3
+<p>Spring Boot 官方迁移指南给出了应用侧的建议顺序[1]，本篇在它前后各加基础设施步骤：</p>
+<ol>
+<li>阶段 0，应用前置：把 01-03 篇的工程先升到最新的 2.7.x；清理 2.x 中已弃用、3.0 已移除的 API；对比 2.7 与 3.0 的依赖管理表，检查 Spring Cloud 等非托管依赖的兼容版本[1]。</li>
+<li>阶段 1，基础设施：升级 Nacos 服务端到 3.x（第 5 节），验证旧应用不受影响。</li>
+<li>阶段 2，基础设施：部署 RocketMQ 5.x Broker 与 Proxy（第 6 节），旧 4.x 客户端先不动，新旧并存。</li>
+<li>阶段 3，应用：加入 <code>spring-boot-properties-migrator</code>（runtime 范围），切到 Java 17 或更高版本，升级到 Boot 3.x，替换 javax 为 jakarta，处理配置属性变化[1]。</li>
+<li>阶段 4，应用：升级 Spring Cloud 与 SCA，处理 bootstrap、Gateway starter、Sentinel 与 Feign 的变化（第 4 节）。</li>
+<li>阶段 5，应用：消息客户端迁移到 5.x SDK 或确认兼容（第 6 节）。</li>
+<li>阶段 6，事务与观测：升级 Seata，调整 Micrometer 与 Actuator（第 3、7 节）。</li>
+<li>阶段 7，收尾：移除 properties-migrator，按第 9 节灰度放量，保留回滚窗口。</li>
+</ol>
+<p>每个阶段独立发布、独立回滚。最容易出事故的做法，是把"JDK、Boot、Cloud、Nacos、消息、Seata"在同一次发布里一起换。</p>
+<h3 id="3-spring-boot-3-迁移">3. Spring Boot 3 迁移</h3>3
+<h4 id="31-基线与依赖坐标对比">3.1 基线与依赖坐标对比</h4>
+<p>Boot 3.0 要求 Java 17 或更高，Spring Framework 6.0，Spring Security 6.0，规范层面转到 Jakarta EE 10（Servlet 6.0、JPA 3.1）[1]。01 篇基线已是 JDK 17，这一步省去了 JDK 升级。</p>
+<p>pom 的核心差异（Cloud 与 SCA 的 BOM 坐标按 Maven 惯例书写，抓取页面未直接展示，落地前请对照官方 BOM 核实）：</p>
+<pre><code class="language-xml">&lt;!-- 旧：01 篇基线 --&gt;
+&lt;parent&gt;
+  &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-boot-starter-parent&lt;/artifactId&gt;
+  &lt;version&gt;2.7.18&lt;/version&gt;
+&lt;/parent&gt;
+&lt;properties&gt;
+  &lt;spring-cloud.version&gt;2021.0.8&lt;/spring-cloud.version&gt;
+  &lt;sca.version&gt;2021.0.5.0&lt;/sca.version&gt;
+&lt;/properties&gt;
+
+&lt;!-- 新：选 2025.0 线，版本号取自 [7]；Cloud 实际取 2025.0.x 最新补丁（[9] 记录为 2025.0.3） --&gt;
+&lt;parent&gt;
+  &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-boot-starter-parent&lt;/artifactId&gt;
+  &lt;version&gt;3.5.0&lt;/version&gt;
+&lt;/parent&gt;
+&lt;properties&gt;
+  &lt;java.version&gt;17&lt;/java.version&gt;
+  &lt;spring-cloud.version&gt;2025.0.3&lt;/spring-cloud.version&gt;
+  &lt;sca.version&gt;2025.0.0.0&lt;/sca.version&gt;
+&lt;/properties&gt;
+</code></pre>
+<p>Starter 名称在这条线上基本保持：Nacos 配置中心用 <code>spring-cloud-starter-alibaba-nacos-config</code>[17]，Sentinel 用 <code>spring-cloud-starter-alibaba-sentinel</code>[20]。Gateway 的 starter 名称变了，见 4.2。</p>
+<h4 id="32-javax-到-jakarta">3.2 javax 到 jakarta</h4>
+<p>官方指南的要求是：依赖坐标改为 jakarta 系列（例如 <code>jakarta.servlet:jakarta.servlet-api</code> 取代 <code>javax.servlet:javax.servlet-api</code>），源码里的 <code>javax</code> 包导入改为 <code>jakarta</code>；迁移工具可以用 OpenRewrite 配方、Spring Boot Migrator 或 IntelliJ IDEA 的迁移支持[1]。注意 Ehcache 需加 <code>jakarta</code> classifier，Jetty 当时尚不支持 Servlet 6.0，需要把 Servlet API 降到 5.0[1]。</p>
+<p>秒杀网关前的"请求去重过滤器"是典型改动点（示例未实跑）：</p>
+<pre><code class="language-java">// 旧：Boot 2.7
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.http.HttpServletRequest;
+import javax.validation.constraints.NotNull;
+
+// 新：Boot 3.x
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.NotNull;
+</code></pre>
+<p>一个容易漏的点：只改自己的源码不够，所有传递依赖都得是 jakarta 版本。排查时用 <code>mvn dependency:tree | grep javax</code> 找残留，凡是仍带 <code>javax.servlet</code> 的第三方库（老版本的签名 SDK、日志拦截库）要么升级，要么替换。</p>
+<h4 id="33-配置属性变化">3.3 配置属性变化</h4>
+<p>本系统用到的变更，摘自官方迁移指南[1]：</p>
+<table>
+<thead>
+<tr>
+<th>旧属性</th>
+<th>新属性</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>spring.redis.*</code></td>
+<td><code>spring.data.redis.*</code></td>
+<td>秒杀库存、派单 GEO 都用 Redis，必改</td>
+</tr>
+<tr>
+<td><code>management.metrics.export.&lt;product&gt;</code></td>
+<td><code>management.&lt;product&gt;.metrics.export</code></td>
+<td>如 Prometheus 移到 <code>management.prometheus.metrics.export</code></td>
+</tr>
+<tr>
+<td><code>server.max-http-header-size</code></td>
+<td><code>server.max-http-request-header-size</code></td>
+<td>只作用于请求头</td>
+</tr>
+<tr>
+<td><code>spring.session.store-type</code></td>
+<td>已不支持</td>
+<td>框架按固定顺序选 SessionRepository</td>
+</tr>
+<tr>
+<td><code>management.endpoints.jmx.exposure.*</code></td>
+<td>默认只暴露 health</td>
+<td>行为变化</td>
+</tr>
+<tr>
+<td><code>/env</code>、<code>/configprops</code></td>
+<td>默认全部值脱敏</td>
+<td>用 <code>management.endpoint.env.show-values</code> 等控制</td>
+</tr>
+</tbody>
+</table>
+<p>另外，日志日期格式默认改为 ISO-8601，要恢复旧格式设置 <code>logging.pattern.dateformat</code>；<code>@ConfigurationProperties</code> 类不再需要 <code>@ConstructorBinding</code>；<code>spring.factories</code> 里 <code>EnableAutoConfiguration</code> 键注册自动配置的方式不再支持，改写到 <code>META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</code>[1]。公司内部若有自研 starter，这一条会直接导致自动配置不生效，且没有明显报错。</p>
+<p>迁移期间建议加入 properties-migrator：</p>
+<pre><code class="language-xml">&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-boot-properties-migrator&lt;/artifactId&gt;
+  &lt;scope&gt;runtime&lt;/scope&gt;
+&lt;/dependency&gt;
+</code></pre>
+<p>启动时它会打印属性诊断，告诉你哪些旧键已改名[1]；迁完必须移除。Spring Cloud 的发布说明也说明 Gateway 旧前缀可借助它兼容[9]。</p>
+<h4 id="34-actuator-与-micrometer">3.4 Actuator 与 Micrometer</h4>
+<p>基于 Micrometer 1.10 的新观测体系带来了几处破坏性变化[1]：<code>httptrace</code> 端点改名为 <code>httpexchanges</code>；<code>WebMvcMetricsFilter</code> 被删除，由 <code>ServerHttpObservationFilter</code> 替代；<code>MetricsRestTemplateCustomizer</code> 被删除，由 <code>ObservationRestTemplateCustomizer</code> 替代；<code>TagProvider</code>、<code>TagContributor</code> 及 <code>*Tags</code> 类弃用，改用 Observation 的 convention 或 <code>ObservationFilter</code>。01 篇提到的自定义指标标签、支付回调耗时指标若用了这些类，需要逐个改写。脱敏策略也从"按键名"改为"按角色"，运维大盘如果依赖 <code>/env</code> 原值，需要显式配置 <code>show-values</code>。</p>
+<h3 id="4-spring-cloud-与-sca-层的变化">4. Spring Cloud 与 SCA 层的变化</h3>3
+<h4 id="41-nacos-配置bootstrap-退场">4.1 Nacos 配置：bootstrap 退场</h4>
+<p>01 篇用 <code>bootstrap.yml</code> 加 <code>spring-cloud-starter-bootstrap</code> 读取 Nacos 配置。SCA 官方 Nacos 快速开始页写明：从 2025.1.x 起不再支持 <code>bootstrap.yml</code> 与 <code>bootstrap.properties</code>，Nacos 设置应放在 <code>application.yml</code>；自 2023.0.1.3 起 <code>shared-configs</code>、<code>extension-configs</code> 以及默认按 <code>application.name</code> 加载的方式已弃用，改用 <code>spring.config.import</code>[17]。2025.0 线虽未到 2025.1，但提前改掉可以避免下一次升级再改。</p>
+<pre><code class="language-yaml"># application.yml（示例改自官方页[17]，未实跑）
+spring:
+  application:
+    name: order-service
+  cloud:
+    nacos:
+      serverAddr: 127.0.0.1:8848
+  config:
+    import:
+      - nacos:order-service-dev.yaml?refreshEnabled=true
+</code></pre>
+<p><code>?refreshEnabled=true</code> 控制该配置能否动态刷新[17]。namespace、group、用户名密码的配置键，该页面没有给出，需在 SCA 配置项文档中核实后再写，不要凭 01 篇的旧键名直接沿用。</p>
+<h4 id="42-gatewaystarter-改名与前缀变化">4.2 Gateway：starter 改名与前缀变化</h4>
+<p>这是 2025.0 线最容易被忽略的改动。Spring Cloud 2025.0 发布说明记录[9]：</p>
+<table>
+<thead>
+<tr>
+<th>已弃用构件</th>
+<th>新构件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>spring-cloud-starter-gateway</code></td>
+<td><code>spring-cloud-starter-gateway-server-webflux</code></td>
+</tr>
+<tr>
+<td><code>spring-cloud-starter-gateway-mvc</code></td>
+<td><code>spring-cloud-starter-gateway-server-webmvc</code></td>
+</tr>
+<tr>
+<td><code>spring-cloud-gateway-server</code></td>
+<td><code>spring-cloud-gateway-server-webflux</code></td>
+</tr>
+</tbody>
+</table>
+<p>旧名称仍可用但日志会输出警告。配置前缀同步改变：WebFlux 网关的 <code>spring.cloud.gateway.*</code> 改为 <code>spring.cloud.gateway.server.webflux.*</code>，MVC 网关的 <code>spring.cloud.gateway.mvc.*</code> 改为 <code>spring.cloud.gateway.server.webmvc.*</code>，可借助 properties-migrator 兼容旧前缀[9]。</p>
+<pre><code class="language-yaml"># 新前缀写法（路由部分按前缀映射规则推出，未实跑）
+spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: seckill
+              uri: lb://seckill-service
+              predicates:
+                - Path=/api/seckill/**
+</code></pre>
+<p>安全相关还有一条：X-Forwarded-* 与 Forwarded 头的处理默认禁用，需要时用受信任代理的 Java 正则开启，WebFlux 网关的键是 <code>spring.cloud.gateway.server.webflux.trusted-proxies</code>[9]。秒杀的限流与防刷按客户端 IP 做，如果 IP 来自 <code>X-Forwarded-For</code>，升级后不配置这一项，取到的会是上游 LB 的地址，所有用户会被当成同一个 IP 限流。发布说明里 MVC 网关该键正文与示例写法不一致，以实际版本文档为准[9]。</p>
+<h4 id="43-sentinel-与-openfeign">4.3 Sentinel 与 OpenFeign</h4>
+<p>Sentinel 版本在 2025.0 线是 1.8.9[7]。官方高级指南列出的集成点没有结构性变化：规则持久化到 Nacos 用 <code>spring.cloud.sentinel.datasource.&lt;名称&gt;.nacos.*</code>，<code>rule-type</code> 可选 <code>flow</code>、<code>degrade</code>、<code>authority</code>、<code>system</code>、<code>param-flow</code>、<code>gw-flow</code>、<code>gw-api-group</code>；规则加载失败不会阻止应用启动，只在日志报错[21]。这点要加监控：规则没加载但服务看起来健康，是秒杀场景最危险的状态。</p>
+<p>Gateway 接入 Sentinel 需要 <code>spring-cloud-starter-alibaba-sentinel</code>、<code>spring-cloud-alibaba-sentinel-gateway</code> 与 <code>spring-cloud-starter-gateway</code> 三个依赖，后者用来让网关适配模块的自动配置生效[21]。该页面写的仍是旧 starter 名，而 4.2 的发布说明已把它标为弃用。这两份官方资料目前并不一致，升级时应以实测为准：把 starter 换成新名后，确认 Sentinel 网关的自动配置是否仍然生效，并观察 <code>gw-flow</code> 规则能否命中。Feign 整合仍用 <code>feign.sentinel.enabled=true</code>，资源名规则为 <code>httpmethod:protocol://requesturl</code>[21]。</p>
+<p>OpenFeign 在 2025.0 线的版本是 4.3.3[9]。本次没有取得 OpenFeign 官方文档的变更清单，它与 LoadBalancer 的细节变化标"未能核实"。</p>
+<h3 id="5-nacos-2x-升级到-3x">5. Nacos 2.x 升级到 3.x</h3>3
+<h4 id="51-兼容矩阵">5.1 兼容矩阵</h4>
+<p>官方升级手册（针对 3.0.1）的结论[6]：</p>
+<ul>
+<li>0.x 与 1.x 服务端不能直接升级，需先升到 2.0 或 2.1。</li>
+<li>2.0.x 到 2.5.x 均可升级到 3.x，但 2.0.x 到 2.4.x 数据库表结构有变化，要先执行新的 <code>mysql-schema.sql</code> 差异。</li>
+<li>客户端：0.x 不兼容；1.x 暂时兼容但 v3.2 之后不再支持；2.x 与 3.x 客户端都兼容。</li>
+</ul>
+<p>01 篇的 Nacos 2.2.3 属于"2.1.x 到 2.4.x"一档，需要补表结构。升级手册还给出了具体增量：从 2.1.x 起升级只需执行最后三条语句，为 <code>his_config_info</code> 增加 <code>publish_type</code>、<code>gray_name</code>、<code>ext_info</code> 列[6]。</p>
+<h4 id="52-升级步骤">5.2 升级步骤</h4>
+<p>按手册，发布包方式的流程是：对比新旧 <code>mysql-schema.sql</code> 先改库；下载新版；替换 <code>nacos-server.jar</code>；逐行对比配置文件，注意 <code>server.port</code> 改为 <code>nacos.server.main.port</code>，<code>server.servlet.contextPath</code> 改为 <code>nacos.server.contextPath</code>；对比启动脚本；每个节点先 shutdown 再 startup[6]。容器方式则要检查环境变量，新增 <code>NACOS_AUTH_TOKEN</code>（Base64 编码、长度超过 32 个字符的串）、<code>NACOS_AUTH_IDENTITY_KEY</code> 与 <code>NACOS_AUTH_IDENTITY_VALUE</code>，再改镜像版本[3][6]。这些值属于密钥，只放环境变量或密钥管理，不要写进 yaml 或仓库。</p>
+<h4 id="53-三个必须提前处理的变化">5.3 三个必须提前处理的变化</h4>
+<ol>
+<li>默认开启鉴权。3.0 发布说明明确写"Nacos 3.0 默认开启鉴权"[3]；但另一份面向后续版本的鉴权文档写的是"3.3 默认开启 Client 鉴权"，并给出 <code>nacos.plugin.auth.type</code>、<code>nacos.plugin.auth.nacos.token.secret.key</code> 等配置项[5]。不同版本默认值不同，必须以你部署版本的文档为准。客户端侧 Java SDK 通过 <code>PropertyKeyConst.USERNAME</code> 与 <code>PropertyKeyConst.PASSWORD</code> 提供账号，SDK 登录后自动携带 accessToken[5]。所有老应用在升级前都要先确认拿到了账号，否则服务端一升，注册与配置拉取同时失败。</li>
+<li>控制台独立。3.0 的控制台有自己的 Web 容器与端口，可用网络 ACL 限制访问[3]。运维入口与健康检查地址需要同步调整。</li>
+<li>空命名空间与 <code>public</code> 合并。升级后 <code>public</code> 成为默认命名空间，原空命名空间下的配置迁入其中；兼容模式默认开启，双向同步两个命名空间，有一定性能代价，由 <code>nacos.config.namespace.compatible.mode</code> 控制[6]。手册明确提示：关闭兼容模式后无法回滚[6]；<code>public</code> 命名空间的配置只能用 2.x 客户端发布或删除，控制台与 1.x 客户端做不到[6]。</li>
+</ol>
+<p>首次启动时若出现 <code>[migrate] config_info namespace migrate insert failed</code>，说明两个命名空间存在同 dataId、同 group 的重复配置，需要删掉其中一份后重启；约 2 万条配置的迁移在手册测试里耗时约 2 分钟，批量大小由 <code>nacos.namespace.migrate.batch.size</code> 控制，默认 100[6]。物流与到家两套系统共用一套 Nacos 时，这一步要在低峰期做。</p>
+<h3 id="6-rocketmq-4x-到-5x">6. RocketMQ 4.x 到 5.x</h3>3
+<h4 id="61-架构变化与两条迁移路径">6.1 架构变化与两条迁移路径</h4>
+<p>5.x 的部署形态是 NameServer + Broker + Proxy。官方快速开始推荐 Local 模式，即 Broker 与 Proxy 在同一进程，启动命令为 <code>sh bin/mqbroker -n localhost:9876 --enable-proxy</code>；5.x 客户端通过 Proxy 地址接入，示例里的接入点为 <code>localhost:8081</code>[11]。Maven 坐标为 <code>org.apache.rocketmq:rocketmq-client-java</code>[11]。</p>
+<p>02、03 篇使用的是 <code>rocketmq-spring</code> 的 <code>RocketMQTemplate</code> 与 <code>RocketMQListener</code>。迁移有两条路径：</p>
+<ul>
+<li>路径 A：保持 <code>rocketmq-spring</code> 与旧客户端，只升级 Broker。这条路径依赖"5.x 服务端兼容 4.x 客户端"，以及 <code>rocketmq-spring</code> 对 Boot 3 的适配状态，两点本次均未在抓取页面中核实，需要先查 <code>apache/rocketmq-spring</code> 仓库的发布说明再决定。</li>
+<li>路径 B：业务代码改用 5.x 的 <code>rocketmq-client-java</code>，经 Proxy 接入。改动大，但能用上 SimpleConsumer 与新的事务消息接口。</li>
+</ul>
+<p>推荐先按路径 A 平稳升 Broker，等应用升到 Boot 3 稳定后，再逐个业务点切到路径 B。不要在同一次发布里既换 Boot 又换消息 SDK。</p>
+<h4 id="62-topic-消息类型校验">6.2 Topic 消息类型校验</h4>
+<p>5.x 增加了消息类型校验：每个 Topic 只允许发送单一类型的消息（NORMAL、FIFO、TRANSACTION、DELAY），该校验的默认开启状态用于兼容 4.x，页面没有展开细节[8]。事务消息尤其要注意：只能发到 MessageType 为 Transaction 的 Topic，发到 NORMAL Topic 会报错[12]。建 Topic 命令：</p>
+<pre><code class="language-sh">./bin/mqadmin updatetopic -n localhost:9876 -t TestTopic -c DefaultCluster -a +message.type=TRANSACTION
+</code></pre>
+<p>这意味着秒杀下单的事务消息需要独立 Topic，不能与普通订单通知共用。运维上要把"Topic 与消息类型的对应表"纳入 CMDB。</p>
+<h4 id="63-秒杀事务消息替代本地消息表">6.3 秒杀：事务消息替代本地消息表</h4>
+<p>02 篇用请求事实表加补偿任务保证"扣库存"与"发消息"的一致。5.x 官方事务消息流程是：发送半消息，Broker 存为不可见的半消息并回 ACK；生产者执行本地事务后提交 Commit 或 Rollback；若 Broker 没收到第二次确认，会向生产者发起回查，由 TransactionChecker 按业务 ID（如订单号）判断本地事务结果[12]。以下代码改自官方示例，补上了快速开始里的 <code>setClientConfiguration</code> 与 <code>setTopics</code>，导入路径以 IDE 为准，未实跑：</p>
+<pre><code class="language-java">ClientServiceProvider provider = ClientServiceProvider.loadService();
+ClientConfiguration configuration = ClientConfiguration.newBuilder()
+        .setEndpoints(&quot;localhost:8081&quot;).build();
+
+Producer producer = provider.newProducerBuilder()
+        .setClientConfiguration(configuration)
+        .setTopics(&quot;seckill-order-tx&quot;)
+        .setTransactionChecker(messageView -&gt; {
+            String orderId = messageView.getProperties().get(&quot;OrderId&quot;);
+            if (orderId == null || orderId.isEmpty()) {
+                return TransactionResolution.ROLLBACK;
+            }
+            // 查订单表：订单已落库则 COMMIT，否则 ROLLBACK
+            return orderRepository.exists(orderId)
+                    ? TransactionResolution.COMMIT : TransactionResolution.ROLLBACK;
+        })
+        .build();
+
+Transaction transaction = producer.beginTransaction();
+Message message = provider.newMessageBuilder()
+        .setTopic(&quot;seckill-order-tx&quot;)
+        .setKeys(orderId)
+        .setTag(&quot;create&quot;)
+        .addProperty(&quot;OrderId&quot;, orderId)
+        .setBody(payload)
+        .build();
+producer.send(message, transaction);
+if (createOrderLocally(orderId)) {
+    transaction.commit();
+} else {
+    transaction.rollback();
+}
+</code></pre>
+<p>官方还有三条使用限制要写进规范[12]：事务消息只保证最终一致，下游消费与上游结果之间没有一致性保证，所以消费者必须配置重试并做幂等（02 篇的消费幂等表继续保留）；本地事务仍在执行时，回查不要返回 Commit 或 Rollback，应保持 Unknown；应尽量避免大量 Unknown，否则回查会拖慢性能。</p>
+<h4 id="64-派单simpleconsumer-与不可见时间">6.4 派单：SimpleConsumer 与不可见时间</h4>
+<p>03 篇的派单超时重新调度用延迟消息加 <code>RocketMQListener</code>。5.x 官方区分两类消费者[13]：PushConsumer 只能在监听器里同步处理，处理时长需可预估；SimpleConsumer 由业务代码 <code>receive</code> 拉取、处理、<code>ack</code>，适合处理时长不可控、需要异步或批量、自控消费速率的场景。不可见时间（invisibleDuration）是消息被取走后对其他消费者不可见的时长，也是单条消息的最长处理时间；未 ack 则到期后重新投递，可通过 <code>ChangeInvisibleDuration</code> 延长[13]。</p>
+<p>骑手接单这类"等待外部响应"的步骤，PushConsumer 的同步模型会因处理超时产生重复消息，SimpleConsumer 更合适。示例改自官方页，未实跑：</p>
+<pre><code class="language-java">SimpleConsumer simpleConsumer = provider.newSimpleConsumerBuilder()
+        .setConsumerGroup(&quot;dispatch-group&quot;)
+        .setClientConfiguration(configuration)
+        .setSubscriptionExpressions(Collections.singletonMap(
+                &quot;dispatch-topic&quot;, new FilterExpression(&quot;assign&quot;, FilterExpressionType.TAG)))
+        .setAwaitDuration(Duration.ofSeconds(1))
+        .build();
+List&lt;MessageView&gt; views = simpleConsumer.receive(10, Duration.ofSeconds(30));
+for (MessageView view : views) {
+    try {
+        dispatchService.handle(view);
+        simpleConsumer.ack(view);
+    } catch (ClientException e) {
+        log.error(&quot;ack failed, messageId={}&quot;, view.getMessageId(), e);
+    }
+}
+</code></pre>
+<p>这里第二个参数 30 秒就是不可见时间（据官方示例推断）[13]。派单处理超过 30 秒不 ack，消息会被重新投递，所以派单服务必须沿用 03 篇的"订单号 + 派单轮次"幂等键。官方文档还描述了 Pop 相关机制，本次抓取的页面没有展开其实现，标"未能核实"。</p>
+<h4 id="65-支付回调pushconsumer">6.5 支付回调：PushConsumer</h4>
+<p>支付异步通知处理时长可预估，用 PushConsumer 即可，监听器返回 <code>ConsumeResult.SUCCESS</code> 由 SDK 提交结果[11]：</p>
+<pre><code class="language-java">PushConsumer pushConsumer = provider.newPushConsumerBuilder()
+        .setClientConfiguration(configuration)
+        .setConsumerGroup(&quot;pay-notify-group&quot;)
+        .setSubscriptionExpressions(Collections.singletonMap(
+                &quot;pay-notify&quot;, new FilterExpression(&quot;*&quot;, FilterExpressionType.TAG)))
+        .setMessageListener(messageView -&gt; {
+            payService.handleNotify(messageView);
+            return ConsumeResult.SUCCESS;
+        })
+        .build();
+</code></pre>
+<h3 id="7-seata-与虚拟线程">7. Seata 与虚拟线程</h3>3
+<h4 id="71-seata-版本间的变化">7.1 Seata 版本间的变化</h4>
+<p>SCA 2023.0.1.0 对应 Seata 2.0.0，2025.0.0.0 对应 2.5.0[2][7]。Seata 升级指南中 2.x 相关的变化[16]：</p>
+<ul>
+<li>2.0：2.0.0 服务端的 AT 模式存在资源重入问题，同一全局事务内多个本地事务对同一数据做不同的重复修改时，分支注册可能导致二阶段提交顺序异常，页面建议不要停在 2.0.0；TCC 注解位置变化，<code>@LocalTCC</code> 加在实现类上，<code>@TwoPhaseBusinessAction</code> 加在实现类的 prepare 方法上。</li>
+<li>2.4：服务端移除了控制台，要访问控制台需部署 namingserver 并让 seata-server 注册进去。</li>
+<li>2.5：服务端移除 spring-boot-web 相关组件，HTTP 端口合并到事务端口，两者都使用 8091，需把 <code>server.port</code> 改成一致。</li>
+</ul>
+<p>03 篇的 AT 下单扣库存用的是 <code>@GlobalTransactional</code>，不涉及 TCC 注解；但服务端 8091 端口合并会影响 Kubernetes 的 Service 与探针配置。升级指南对 2.x 数据库脚本变化没有记载，<code>undo_log</code> 表结构仍是 03 篇的那组列[15][16]，指南也未提及 Spring Boot 3 适配，需在 Seata 的 SCA 集成文档中另行核实。</p>
+<h4 id="72-jdk-21-与虚拟线程">7.2 JDK 21 与虚拟线程</h4>
+<p>Spring Boot 开启虚拟线程需要 Java 21 及以上，并设置 <code>spring.threads.virtual.enabled=true</code>；开启后，未自定义 <code>Executor</code> 时自动配置的任务执行器变为使用虚拟线程的 <code>SimpleAsyncTaskExecutor</code>，调度器变为 <code>SimpleAsyncTaskScheduler</code>，且会忽略线程池相关属性[14]。该页是 Boot 4.1.2 的文档，3.5 的具体行为需对照 3.5 文档。Tomcat 在开启后的行为，本次抓取的 Servlet 文档页没有找到相关说明，未能核实。</p>
+<p>对 Feign 等阻塞调用的影响，我没有取得 OpenFeign 官方文档的说明，只有 JDK 层的事实：虚拟线程在 <code>synchronized</code> 内阻塞会 pin 住承载线程，这个问题由 JEP 491 在 JDK 24 解决；但栈上有 native 帧、类加载、类初始化等情形仍会 pin[19]。由此推断：JDK 21 下，如果 Feign 调用链路中的第三方库在 <code>synchronized</code> 块里做网络读写，开启虚拟线程不但不增加吞吐，还可能耗尽承载线程。这是推断，不是官方结论，要靠压测验证。建议把虚拟线程放在 Boot 3 升级稳定之后单独做一轮灰度，并监控 <code>jdk.VirtualThreadPinned</code> 事件[19]。</p>
+<h3 id="8-配置项变更速查">8. 配置项变更速查</h3>3
+<table>
+<thead>
+<tr>
+<th>位置</th>
+<th>旧写法（01-03 篇）</th>
+<th>新写法</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Redis</td>
+<td><code>spring.redis.*</code></td>
+<td><code>spring.data.redis.*</code></td>
+<td>[1]</td>
+</tr>
+<tr>
+<td>指标导出</td>
+<td><code>management.metrics.export.*</code></td>
+<td><code>management.&lt;product&gt;.metrics.export</code></td>
+<td>[1]</td>
+</tr>
+<tr>
+<td>Nacos 配置</td>
+<td><code>bootstrap.yml</code> + starter-bootstrap</td>
+<td><code>spring.config.import: nacos:...</code></td>
+<td>[17]</td>
+</tr>
+<tr>
+<td>Nacos 服务端口</td>
+<td><code>server.port</code></td>
+<td><code>nacos.server.main.port</code></td>
+<td>[6]</td>
+</tr>
+<tr>
+<td>Gateway 前缀</td>
+<td><code>spring.cloud.gateway.*</code></td>
+<td><code>spring.cloud.gateway.server.webflux.*</code></td>
+<td>[9]</td>
+</tr>
+<tr>
+<td>Gateway starter</td>
+<td><code>spring-cloud-starter-gateway</code></td>
+<td><code>spring-cloud-starter-gateway-server-webflux</code></td>
+<td>[9]</td>
+</tr>
+<tr>
+<td>转发头信任</td>
+<td>默认信任</td>
+<td><code>...webflux.trusted-proxies</code> 显式配置</td>
+<td>[9]</td>
+</tr>
+<tr>
+<td>事务消息 Topic</td>
+<td>普通 Topic</td>
+<td><code>message.type=TRANSACTION</code> 的 Topic</td>
+<td>[12]</td>
+</tr>
+<tr>
+<td>Seata HTTP 端口</td>
+<td>独立 server.port</td>
+<td>与事务端口同为 8091</td>
+<td>[16]</td>
+</tr>
+<tr>
+<td>虚拟线程</td>
+<td>无</td>
+<td><code>spring.threads.virtual.enabled=true</code></td>
+<td>[14]</td>
+</tr>
+</tbody>
+</table>
+<h3 id="9-灰度与回滚策略">9. 灰度与回滚策略</h3>3
+<h4 id="91-分层灰度">9.1 分层灰度</h4>
+<ol>
+<li>Nacos：先升一个节点，观察 <code>logs/nacos.log</code> 里的迁移结果与 <code>[migrate] finish migrate config namespace</code>[6]，再滚动其余节点。兼容模式在整个迁移周期内保持开启。</li>
+<li>RocketMQ：新 Broker 与 Proxy 独立部署，新业务用新 Topic 与新消费组，不与旧消费组混用，旧链路在新链路稳定前保持不动。</li>
+<li>应用：按服务逐个切换，顺序为"边缘服务、支付、派单、订单、秒杀"，秒杀最后切，因为它对错误最敏感。网关层可用 Header 灰度或权重把少量流量导到新版本实例（具体谓词写法需查 Gateway 新版文档，本次未核实）。</li>
+<li>观测：每个阶段设置明确放量阈值，例如 5xx 比例、Sentinel 拒绝数、消息积压量、重复消息数，任一超线即回退。</li>
+</ol>
+<h4 id="92-回滚清单">9.2 回滚清单</h4>
+<ul>
+<li>应用：保留 2.7 版镜像与旧配置，回滚就是镜像切回；但要确认新版本没有写入旧版本读不了的数据（例如序列化格式变化）。</li>
+<li>Nacos：升级前备份数据库；兼容模式未关闭时可以回退服务端 jar 和表结构；关闭兼容模式后无法回滚，这个开关要在整个系统稳定运行一个完整业务周期后再动[6]。</li>
+<li>RocketMQ：新旧并存期间，回滚就是把流量切回旧 Topic 与旧消费组；事务消息半消息尚未决议时不要直接下线生产者，先等回查完成，否则半消息会按默认超时回滚[12]。</li>
+<li>Seata：服务端升级前备份 <code>undo_log</code> 与全局事务表；2.1 起 Raft 存储模式升级后不可降回 2.0[16]。</li>
+</ul>
+<h3 id="10-踩坑排查表">10. 踩坑排查表</h3>3
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>可能原因</th>
+<th>排查方式</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>升级后应用启动但自研 starter 不生效</td>
+<td>自动配置仍写在 <code>spring.factories</code> 的 <code>EnableAutoConfiguration</code> 键</td>
+<td>改写到 <code>AutoConfiguration.imports</code></td>
+<td>[1]</td>
+</tr>
+<tr>
+<td>启动报 <code>ClassNotFoundException: javax.servlet...</code></td>
+<td>传递依赖仍是 javax 版本</td>
+<td><code>mvn dependency:tree</code> 查残留并升级</td>
+<td>[1]</td>
+</tr>
+<tr>
+<td>配置读取为空</td>
+<td>Redis 等属性前缀已改</td>
+<td>加 properties-migrator 看启动诊断</td>
+<td>[1]</td>
+</tr>
+<tr>
+<td>所有用户被同一 IP 限流</td>
+<td>转发头默认禁用</td>
+<td>配置 <code>trusted-proxies</code></td>
+<td>[9]</td>
+</tr>
+<tr>
+<td>网关日志出现 starter 弃用警告</td>
+<td>仍用旧 starter 名</td>
+<td>换新 starter，复测 Sentinel 网关规则</td>
+<td>[9][21]</td>
+</tr>
+<tr>
+<td>Sentinel 规则不生效但服务正常</td>
+<td>规则加载失败只打日志</td>
+<td>检查 datasource 配置，规则加载加监控</td>
+<td>[21]</td>
+</tr>
+<tr>
+<td>Nacos 升级后客户端报鉴权失败</td>
+<td>服务端默认开启鉴权</td>
+<td>客户端配置账号，或按版本文档调整</td>
+<td>[3][5]</td>
+</tr>
+<tr>
+<td>Nacos 首启迁移失败</td>
+<td>空命名空间与 public 有重复配置</td>
+<td>删重复项后重启</td>
+<td>[6]</td>
+</tr>
+<tr>
+<td>向 Topic 发事务消息报错</td>
+<td>Topic 消息类型不是 Transaction</td>
+<td>用 <code>message.type=TRANSACTION</code> 重建</td>
+<td>[12]</td>
+</tr>
+<tr>
+<td>派单消息重复投递</td>
+<td>SimpleConsumer 未在不可见时间内 ack</td>
+<td>延长不可见时间，保证幂等</td>
+<td>[13]</td>
+</tr>
+<tr>
+<td>Seata 升到 2.5 后探针失败</td>
+<td>HTTP 端口合并到 8091</td>
+<td>调整 Service 与探针端口</td>
+<td>[16]</td>
+</tr>
+<tr>
+<td>开虚拟线程后吞吐无提升</td>
+<td>阻塞库在 synchronized 内被 pin</td>
+<td>压测，观察 <code>jdk.VirtualThreadPinned</code></td>
+<td>[19]</td>
+</tr>
+</tbody>
+</table>
+<h3 id="11-验收清单与小结">11. 验收清单与小结</h3>3
+<p>验收按五项走：依赖树无 javax 残留；<code>properties-migrator</code> 启动日志无未处理键；秒杀压测库存不超卖、订单不重复；派单超时重调度与支付回调幂等通过 01-03 篇原有用例；回滚演练实际执行一次。</p>
+<p>小结：迁移的主线是"基础设施先升、应用后升、一次只换一类"。版本上，2025.0 线把变化收敛在 Boot 3 内；Nacos 3 的鉴权默认值与命名空间合并、Gateway 的 starter 与前缀改名、RocketMQ 5 的 Topic 消息类型校验，是三个最容易在升级当天出事故的点。</p>
+<p>代码未实跑：本机没有 Java 工程环境，本文的 pom、yaml 与 Java 片段均未编译运行。未能核实项：OpenFeign 与 LoadBalancer 的变更清单、<code>rocketmq-spring</code> 对 Boot 3 与 5.x 的支持状态、Tomcat 开启虚拟线程后的行为、Seata 的 Boot 3 适配、Gateway 权重灰度谓词的新写法、Pop 消费的实现细节、各组件的 JDK 要求。</p>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] <strong>课程内容落点</strong>：<a href="../../../raw/sources/%E8%AF%BE%E7%A8%8B%E5%A4%A7%E7%BA%B2-%E9%BB%91%E9%A9%AC-AI%E5%BA%94%E7%94%A8%E6%99%BA%E8%83%BD%E4%BD%93v6-20261026.md">黑马 AI 应用智能体课程项目大纲</a>；<code>raw/courseware/</code> 未检索到对应 Java 微服务原始课件，故不虚构课件路径。</li>
+<li>[业1] <strong>业内官方</strong>：以下 Spring、SCA、Nacos、RocketMQ、Seata 与 OpenJDK 官方资料，落在版本对应、迁移 API、升级限制和回滚条件。</li>
+</ul>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">官方参考</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>访问日期均为 2026-11-02</li></ul></div>3
+<p>访问日期均为 2026-11-02。</p>
+<ol>
+<li>https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-3.0-Migration-Guide</li>
+<li>https://sca.aliyun.com/docs/2023/overview/version-explain/</li>
+<li>https://nacos.io/blog/nacos-gvr7dx_awbbpb_gg16sv97bgirkixe/</li>
+<li>https://nacos.io/docs/v3.0/overview/（未含升级内容，仅用于确认文档入口）</li>
+<li>https://nacos.io/docs/next/manual/user/auth/</li>
+<li>https://nacos.io/docs/v3.0/manual/admin/upgrading/</li>
+<li>https://sca.aliyun.com/en/docs/2025.x/overview/version-explain/</li>
+<li>https://rocketmq.apache.org/docs/introduction/02concepts/</li>
+<li>https://github.com/spring-cloud/spring-cloud-release/wiki/Spring-Cloud-2025.0-Release-Notes</li>
+<li>https://docs.spring.io/spring-cloud-gateway/reference/</li>
+<li>https://rocketmq.apache.org/docs/quickStart/01quickstart/</li>
+<li>https://rocketmq.apache.org/docs/featureBehavior/04transactionmessage/</li>
+<li>https://rocketmq.apache.org/docs/featureBehavior/06consumertype/</li>
+<li>https://docs.spring.io/spring-boot/reference/features/task-execution-and-scheduling.html</li>
+<li>https://seata.apache.org/docs/overview/what-is-seata/</li>
+<li>https://seata.apache.org/docs/ops/upgrade/</li>
+<li>https://sca.aliyun.com/en/docs/2025.x/user-guide/nacos/quick-start/</li>
+<li>https://docs.spring.io/spring-boot/reference/web/servlet.html（未找到虚拟线程相关内容）</li>
+<li>https://openjdk.org/jeps/491</li>
+<li>https://sca.aliyun.com/en/docs/2025.x/user-guide/sentinel/quick-start/</li>
+<li>https://sca.aliyun.com/en/docs/2025.x/user-guide/sentinel/advanced-guide/</li>
+<li>https://sca.aliyun.com/en/docs/2025.x/overview/faq/</li>
+</ol></div></details></div></body></html>

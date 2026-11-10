@@ -1,0 +1,354 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L7-LangFlow可视化编排-20261103</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L7-LangFlow可视化编排-20261103</span></div><div class="wrap"><h1 id="langflow-可视化编排组件图双子流-rag自定义-python-组件与-api">LangFlow 可视化编排：组件图、双子流 RAG、自定义 Python 组件与 API</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+配套：<a href="L7-%E4%BD%8E%E4%BB%A3%E7%A0%81%E5%B9%B3%E5%8F%B0-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">最佳答案与选型</a> · <a href="L7-Coze%E5%B9%B3%E5%8F%B0%E5%AE%9E%E6%88%98-20261103.html">Coze 平台实战</a> · <a href="L7-Dify%E9%83%A8%E7%BD%B2%E4%B8%8ERAG%E9%9B%86%E6%88%90-20261103.html">Dify 部署与 RAG 集成</a></p>
+</blockquote>
+<p><strong>证据边界</strong>：本文融合原 LangFlow 深篇与实操手册 LangFlow 部分，并纳入 arXiv 论文观点。本地现有课件和书籍重点笔记主要讲 Coze、Dify 与 LangChain，<strong>没有足够材料证明 LangFlow 的具体组件、端口、命令或版本能力</strong>。因此本文只借用它们的「获取→识别→输出」和显式变量传递方法；LangFlow 的所有功能事实均来自 2026-11-03 读取的 <code>langflow-ai/langflow</code> 官方仓库当前文档。<strong>本机没有启动 LangFlow，也没有连接 OpenAI、Astra DB 或内部微服务</strong>，示例是可执行模板，不是实跑成绩。旧散篇中的「LangFlow 2.0」「BaseNode 插件路径」「节点级 ACL」等说法没有官方依据，本文不沿用。</p>
+<h2 id="why为什么开发者还需要可视化而不是直接写-langchain">WHY：为什么开发者还需要可视化，而不是直接写 LangChain</h2>2
+<h3 id="1-可视化的价值是让数据流可讨论可单点调试">1. 可视化的价值是让数据流可讨论、可单点调试</h3>3
+<p>纯代码适合精确控制，但一个包含文档加载、切片、Embedding、向量库、检索、Prompt 和模型的链路，在评审时常常被埋在函数调用里。LangFlow 把处理步骤变成组件，把数据传递变成端口连线，开发者可以直接运行某个组件及其上游、检查原始输出，再决定改切片、换模型还是修解析。</p>
+<p>这并不是「不会写代码也能做所有 AI 系统」。组件本质上仍由 Python 驱动，类型不匹配、Embedding 维度、数据库连接、凭据和部署持久化都需要工程知识。它更像「可视化 IDE + 可调用运行时」，不是把工程问题消灭的魔法盒。</p>
+<h3 id="2-langflow-最适合的三类工作">2. LangFlow 最适合的三类工作</h3>3
+<ul>
+<li><strong>快速比较组件组合</strong>：同一批文档换切片参数、Embedding 或 Prompt，观察中间结果；</li>
+<li><strong>需要 Python 扩展的可视化流程</strong>：现有组件缺少内部协议时，自己继承 <code>Component</code> 写节点；</li>
+<li><strong>把实验流程服务化</strong>：流程调通后通过 <code>/api/v1/run/{flow_id}</code> 被业务后端调用。</li>
+</ul>
+<p>如果核心需求是复杂事务、严格高并发调度或长期可维护的大型代码工程，不能把画布当代码架构的替代品。应当把稳定流程封装成服务，保留自动化测试、版本管理和运行时治理。</p>
+<h3 id="3-长上下文与记忆需要主动设计">3. 长上下文与记忆需要主动设计</h3>3
+<p><strong>论文怎么说</strong>：<code>arXiv:2610.22273</code>（Librarian Agents）指出，标准检索方法本质上是反应式的，在推理时才检索，限制了 Agent 做复杂跨文档推理的能力；该论文让 builder agent 在推理前把原始文档重组成层级文件系统与引用链接，形成面向未来查询的工作空间，在 BrowseComp-Plus 上比最强检索基线高出 33 个百分点。<br />
+<strong>我们怎么用</strong>：LangFlow 的「双子流 RAG」天然支持这种思路：Load Data Flow 不只是「上传文档」，而是可以加入文档重组、摘要、索引预处理等自定义组件，把原始资料加工成更适合检索的结构。Retriever Flow 则专注于查询时的证据获取。入库与检索分离，让「预组织知识」成为可迭代、可评估的独立环节。</p>
+<p><strong>论文怎么说</strong>：<code>arXiv:2610.31303</code>（The Value of Memory in Language Agents）用决策理论框架分析记忆价值：记忆的价值取决于哪些区分被保留、有界 Agent 能否使用、以及需求变化时能恢复或修订什么；即使一个指针与答案没有互信息，也可能降低精确恢复的成本。<br />
+<strong>我们怎么用</strong>：LangFlow 的会话、变量和持久化设计不应追求「保存所有历史」，而应明确「保存什么区分、何时过期、如何修订」。flow JSON、数据库、secret key、上传文件的备份策略，本质上是在保存「恢复选项」，而不是简单保存数据。</p>
+<h3 id="4-本篇实战目标">4. 本篇实战目标</h3>3
+<p>做一条最小但完整的链路：先用官方 <strong>Vector Store RAG</strong> 模板分离「文档入库」和「问题检索」两条子流，再添加一个调用内部只读服务的自定义组件，最后通过 API 运行流程。验收标准包括：入库与查询使用同一向量集合和同一 Embedding 模型；检索原文可检查；自定义组件能被编辑器发现；容器重建后流程与凭据仍在；API 能取到答案而不是只返回 HTTP 200。</p>
+<h2 id="what组件类型双子流和运行契约">WHAT：组件、类型、双子流和运行契约</h2>2
+<h3 id="1-组件图的本质是受类型约束的数据流">1. 组件图的本质是受类型约束的数据流</h3>3
+<p>官方自定义组件文档说明，一个组件由继承 <code>Component</code> 的 Python 类、类级描述属性、<code>inputs</code>/<code>outputs</code> 列表和执行方法构成。输入既能在 UI 填值，也能接收上游连线；输出通过 <code>Output(method="...")</code> 绑定方法。引擎负责实例化、赋值、校验和调用输出方法。</p>
+<p>端口类型不是装饰。<code>Message</code> 适合聊天，<code>Data</code>/JSON 适合结构化数据，<code>DataFrame</code>/Table 适合表格。给输出方法写 <code>-&gt; Data</code> 或 <code>-&gt; Message</code> 等注解，可以帮助编辑器校验连线和标色。返回普通 <code>dict</code> 虽可能运行，却会让类型表达变弱，官方更推荐包装成结构化类型。</p>
+<p>组件执行时的两个观测点也很实用：<code>self.status</code> 在 UI 显示短状态，<code>self.log()</code> 写组件级日志；它们不同于应用级 structlog 日志。调试时先用 Inspect output 看原始对象，再看最终聊天答案，否则容易把检索错误误判成模型错误。</p>
+<h3 id="2-为什么官方-rag-模板拆成两条子流">2. 为什么官方 RAG 模板拆成两条子流</h3>3
+<p>当前官方 <strong>Vector Store RAG</strong> 模板包含：</p>
+<ul>
+<li><strong>Load Data Flow</strong>：Read File → Split Text → Embedding Model → 向量库写入；</li>
+<li><strong>Retriever Flow</strong>：Chat Input → Embedding Model → 向量库相似检索 → Parser → Prompt → Language Model → Chat Output。</li>
+</ul>
+<p>入库流只在首次加载或文档更新时运行，检索流每次回答问题都运行。把两者分开，避免每次提问都重复切片、嵌入和写入，也让「更新知识」和「使用知识」拥有不同权限与调度。</p>
+<p>两条流必须连接同一个向量存储/集合，并使用兼容的 Embedding 模型。官方特别提醒，混用 Embedding 模型会导致检索不准确；如果向量库中已有向量，查询侧也必须使用同一模型。当前文档还指出旧截图中的 Chroma 组件在 LangFlow 1.13 已退休，不能继续照搬旧教程；可配置 Astra DB，或换成官方支持的其他向量库组件，但入库与检索要成对替换。</p>
+<h3 id="3-parser-与-prompt-是检索到生成的桥">3. Parser 与 Prompt 是检索到生成的桥</h3>3
+<p>向量库输出通常包含文本、分数和元数据的结构化结果，不应整段 JSON 不加处理地塞给模型。官方模板使用 Parser 从结果中提取 <code>text</code> 字符串，再以 Message 形式交给 Prompt。这样 Prompt 收到的是可读上下文，而不是数据库包装格式。</p>
+<p>Prompt 仍需承担证据约束：只依据上下文回答、缺证据就拒答、不要编来源。若需要引用标题和分数，就要在解析阶段保留对应元数据，不能只提取 text 后又要求模型「列出原文件名」。</p>
+<h3 id="4-持久化不是挂载一个目录就自动完成">4. 持久化不是挂载一个目录就自动完成</h3>3
+<p>官方部署文档给出的关键警告是：未设置 <code>LANGFLOW_DATABASE_URL</code> 或 <code>LANGFLOW_SAVE_DB_IN_CONFIG_DIR=true</code> 时，SQLite 数据库可能留在容器内部；未把 <code>LANGFLOW_CONFIG_DIR</code> 指到挂载路径时，secret key 和上传文件也可能留在容器内部。即使挂载了 volume，只要这些变量没配对，删除或重建容器仍会丢数据。</p>
+<p>secret key 尤其重要：丢失后，已保存的 Credential 全局变量可能无法解密。因此备份不能只导出 flow JSON，还要包含数据库、配置目录、上传文件和 secret key，并限制备份访问权限。</p>
+<p><strong>论文怎么说</strong>：<code>arXiv:2610.28577</code>（Cache Engineering for Agents）指出，修改轨迹前缀会使后续缓存状态失效并触发重新预填充；KV cache 的 I/O 与存储成本会随轨迹变长而主导。<br />
+<strong>我们怎么用</strong>：LangFlow 的 Agent 循环、多轮 Playground 会话、长文档处理都要控制上下文预算。持久化不仅要保存「数据不丢」，还要保存「可重建的上下文状态」；否则即使流程还在，长会话的缓存与记忆也可能因前缀变化而反复重算，成本失控。</p>
+<h2 id="how从安装到可维护的可视化服务">HOW：从安装到可维护的可视化服务</h2>2
+<h3 id="第一步选择安装路径并设置登录">第一步：选择安装路径并设置登录</h3>3
+<p>官方 OSS Python 包支持 Python 3.10—3.14，最低 2 核 CPU、2 GB RAM，推荐多核和至少 4 GB RAM；<code>langflow</code> 包含应用与精选供应商扩展，<code>langflow-base</code> 提供同一 UI/API 但不含这些供应商扩展。普通本地开发可用 <code>uv</code>：</p>
+<pre><code class="language-bash">uv venv .venv
+source .venv/bin/activate
+uv pip install langflow
+# 在 .env 中设置 LANGFLOW_SUPERUSER_PASSWORD，不要把真实密码提交到 Git
+uv run langflow run --env-file .env
+</code></pre>
+<p>访问 <code>http://127.0.0.1:7860</code>。当前官方安装文档说明发行包和 Docker 镜像默认关闭自动登录，必须准备超管密码。从旧版自动登录升级时，不要通过删除或重装来「修登录」，那可能永久删除流程。</p>
+<p>Docker 更适合统一环境。下面是带 SQLite 持久化的最小启动方式，镜像版本使用官方部署文档示例中的 1.13.0；实际项目可换成经过验证的明确版本，不建议生产长期追 <code>latest</code>：</p>
+<pre><code class="language-bash">docker volume create langflow-data
+docker run -d \
+  --name langflow \
+  -p 7860:7860 \
+  -v langflow-data:/app/langflow \
+  -e LANGFLOW_CONFIG_DIR=/app/langflow \
+  -e LANGFLOW_SAVE_DB_IN_CONFIG_DIR=true \
+  -e LANGFLOW_AUTO_LOGIN=false \
+  --env-file .env \
+  langflowai/langflow:1.13.0
+</code></pre>
+<p><code>.env</code> 至少含 <code>LANGFLOW_SUPERUSER_PASSWORD</code>，并应限制文件权限。浏览器打开 <code>http://localhost:7860</code>。这里挂载路径、数据库位置和配置目录三项同时设置，才覆盖官方提醒的持久化边界。</p>
+<h3 id="第二步先跑官方-simple-agent确认运行时和模型链路">第二步：先跑官方 Simple Agent，确认运行时和模型链路</h3>3
+<p>在空白 RAG 之前，先用官方 Quickstart 的 <strong>Simple Agent</strong> 模板排除基础环境问题：</p>
+<ol>
+<li>New Flow → Simple Agent；</li>
+<li>在 Agent 组件选择模型供应商和模型，或使用全局 Models 配置；</li>
+<li>打开 Playground，先问一个不需要工具的问题；</li>
+<li>再问「4 加 4 等于多少」，观察 Agent 是否选择 Calculator；</li>
+<li>查看组件输出和 Agent Steps，而不只看最终文本。</li>
+</ol>
+<p>这个步骤能区分「LangFlow 本身不可用」和「RAG 配置错误」。没有可用模型时，应先在供应商与凭据层解决，不要继续堆向量库组件。</p>
+<h3 id="第三步用-vector-store-rag-模板建立两条子流">第三步：用 Vector Store RAG 模板建立两条子流</h3>3
+<ol>
+<li>New Flow → <strong>Vector Store RAG</strong>。</li>
+<li>在两个 Embedding 组件中配置同一供应商、同一模型和相应凭据。若向量库自带 vectorize 集成，可按官方文档移除两个 Embedding 组件，由数据库为写入和查询生成向量，但仍要确保两侧配置一致。</li>
+<li>配置两个向量库组件连接同一数据库与 collection。Load Data 侧负责写入，Retriever 侧负责 Similarity Search，查询数量等搜索参数主要在检索侧配置。</li>
+<li>在 Split Text 中设置切片。官方建议根据 Embedding 模型的 token 上限确定 Chunk Size，例如上限为 512 tokens 时，切片参数不能超过该限制；用户查询也应做长度检查。具体切片值先用文档样本比较，不存在通用最优数。</li>
+<li>配置 Language Model。Prompt 中加入「只依据检索上下文，证据不足就明确拒答」。</li>
+<li>在 Load Data 的 Read File 中选择实验文档，点击向量库组件的 <strong>Run component</strong>，运行该组件及其上游依赖。</li>
+<li>打开 Retriever 的 Playground 提问，并在向量库组件上选择 <strong>Inspect output</strong> 查看原始检索结果。</li>
+</ol>
+<p>第一批测试至少包含：文档原句问题、同义改写、精确编号、需要多段上下文的问题、文档外问题。若检索结果为空，先查入库是否完成、集合是否一致、Embedding 是否一致；若有正确文本但回答错误，再查 Parser、Prompt 和生成模型。</p>
+<h3 id="第四步把-rag-参数调整变成可比较实验">第四步：把 RAG 参数调整变成可比较实验</h3>3
+<p>复制一份实验 flow JSON，固定同一文档和问题集，每轮只改一个变量：</p>
+<table>
+<thead>
+<tr>
+<th>轮次</th>
+<th>改动</th>
+<th>观察指标</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>当前基线</td>
+<td>每题是否检索到正确片段、排名、最终回答</td>
+</tr>
+<tr>
+<td>B</td>
+<td>只改 Chunk Size / overlap</td>
+<td>跨边界问题是否改善、重复片段是否增加</td>
+</tr>
+<tr>
+<td>C</td>
+<td>只改检索返回数量</td>
+<td>正确片段覆盖与无关上下文是否同时上升</td>
+</tr>
+<tr>
+<td>D</td>
+<td>只改 Parser / Prompt</td>
+<td>已有正确证据时，回答是否更忠实</td>
+</tr>
+</tbody>
+</table>
+<p>不要把「回答更流畅」当检索变好。至少记录检索命中和回答忠实两个维度。更换 Embedding 后应重建对应向量集合，不要直接复用旧向量。文档更新时只重跑 Load Data，并确认旧版本片段是否仍留在集合中造成冲突。</p>
+<h3 id="第五步编写一个安全的自定义-python-组件">第五步：编写一个安全的自定义 Python 组件</h3>3
+<p>以下组件调用内部只读查询服务，返回官方推荐的 <code>Data</code> 类型。它校验目标主机，避免让任意用户输入变成 SSRF 入口；<code>query_text</code> 和 <code>service_url</code> 也避开了官方列出的 <code>run</code>、<code>log</code>、<code>validate</code>、<code>variables</code> 等方法名冲突。</p>
+<pre><code class="language-python">import os
+from urllib.parse import urlparse
+
+import httpx
+from lfx.custom import Component
+from lfx.io import MessageTextInput, Output, StrInput
+from lfx.schema import Data
+
+class InternalLookup(Component):
+    display_name = &quot;Internal Readonly Lookup&quot;
+    description = &quot;Call an allowlisted internal read-only service&quot;
+    icon = &quot;globe&quot;
+    name = &quot;internal_lookup&quot;
+
+    inputs = [
+        MessageTextInput(
+            name=&quot;query_text&quot;,
+            display_name=&quot;Query&quot;,
+            info=&quot;Text sent to the internal service&quot;,
+        ),
+        StrInput(
+            name=&quot;service_url&quot;,
+            display_name=&quot;Service URL&quot;,
+            value=&quot;http://kb.internal.example/lookup&quot;,
+        ),
+    ]
+    outputs = [
+        Output(name=&quot;result&quot;, display_name=&quot;Result&quot;, method=&quot;call_service&quot;)
+    ]
+
+    def call_service(self) -&gt; Data:
+        allowed_host = os.environ.get(&quot;INTERNAL_SERVICE_HOST&quot;, &quot;kb.internal.example&quot;)
+        parsed = urlparse(self.service_url)
+        if parsed.scheme not in {&quot;http&quot;, &quot;https&quot;} or parsed.hostname != allowed_host:
+            raise ValueError(&quot;Service URL is not allowlisted&quot;)
+
+        response = httpx.post(
+            self.service_url,
+            json={&quot;query&quot;: self.query_text},
+            timeout=(3, 10),
+        )
+        response.raise_for_status()
+        payload = response.json()
+        self.status = &quot;Internal query completed&quot;
+        self.log(&quot;Internal read-only query completed&quot;, name=&quot;internal_lookup&quot;)
+        return Data(data={&quot;result&quot;: payload, &quot;source&quot;: self.service_url})
+</code></pre>
+<p>这是依据当前官方 <code>Component</code>、<code>inputs</code>、<code>Output</code> 和 <code>Data</code> 契约编写的模板，未连接你的真实服务。内部服务仍应使用只读权限、鉴权、超时和审计；主机允许列表只是应用层一道防线，不能替代网络策略。返回内容不要包含 Token 或完整敏感记录。</p>
+<h3 id="第六步按官方目录规则加载组件">第六步：按官方目录规则加载组件</h3>3
+<p>自定义组件默认发现目录为 <code>src/lfx/src/lfx/components</code>。Docker 场景更适合独立目录，通过 <code>LANGFLOW_COMPONENTS_PATH</code> 挂载：</p>
+<pre><code class="language-text">custom_components/
+└── company/
+    ├── __init__.py
+    └── internal_lookup.py
+</code></pre>
+<p><code>__init__.py</code> 写：</p>
+<pre><code class="language-python">from .internal_lookup import InternalLookup
+
+__all__ = [&quot;InternalLookup&quot;]
+</code></pre>
+<p>启动时增加以下配置：</p>
+<pre><code class="language-bash">-v ./custom_components:/app/custom_components \
+-e LANGFLOW_COMPONENTS_PATH=/app/custom_components
+</code></pre>
+<p>组件必须放在分类子目录中，不能直放根目录；分类目录必须有 <code>__init__.py</code>；发现深度最多两层，<code>company/internal_lookup.py</code> 可以，<code>company/tools/internal_lookup.py</code> 默认不可以。刷新 UI 后应在 Core components 的对应分类中看到组件。若不可见，按「路径→<code>__init__.py</code>→深度→Python 导入错误→容器挂载」顺序排查，不要先改业务代码。</p>
+<h3 id="第七步通过-api-运行流程并处理-tweaks">第七步：通过 API 运行流程并处理 tweaks</h3>3
+<p>在 LangFlow 用户设置中创建 API Key，流程编辑器打开 Share → API access，复制当前 flow 的地址与 ID。官方运行端点为 <code>POST /api/v1/run/{flow_id}</code>，认证头是 <code>x-api-key</code>；旧的 <code>/process</code> 和 <code>/predict</code> 已弃用。</p>
+<pre><code class="language-python">import os
+import requests
+
+server = os.getenv(&quot;LANGFLOW_SERVER&quot;, &quot;http://localhost:7860&quot;).rstrip(&quot;/&quot;)
+flow_id = os.environ[&quot;LANGFLOW_FLOW_ID&quot;]
+api_key = os.environ[&quot;LANGFLOW_API_KEY&quot;]
+
+response = requests.post(
+    f&quot;{server}/api/v1/run/{flow_id}&quot;,
+    headers={&quot;Content-Type&quot;: &quot;application/json&quot;, &quot;x-api-key&quot;: api_key},
+    json={
+        &quot;input_value&quot;: &quot;出差住宿超标后能报销吗？&quot;,
+        &quot;input_type&quot;: &quot;chat&quot;,
+        &quot;output_type&quot;: &quot;chat&quot;,
+        &quot;session_id&quot;: &quot;employee-demo-001&quot;,
+    },
+    timeout=(5, 120),
+)
+response.raise_for_status()
+data = response.json()
+text = data[&quot;outputs&quot;][0][&quot;outputs&quot;][0][&quot;results&quot;][&quot;message&quot;][&quot;data&quot;][&quot;text&quot;]
+if not text.strip():
+    raise RuntimeError(&quot;运行完成但输出为空&quot;)
+print(text)
+</code></pre>
+<p>不同输出组件的 JSON 路径可能不同，最稳妥的做法是从当前流程的 API access 示例复制并检查实际响应。不要只判断状态码。需要流式 token 时，可加 <code>?stream=true</code>，处理 <code>token</code> 事件直到最终 <code>end</code>；客户端必须处理断流和空流。</p>
+<p><code>tweaks</code> 可对单次运行临时覆盖组件参数，不修改流程本身。先在组件 Parameters 中把允许覆盖的字段暴露为 API，再从生成的示例复制组件 ID。不要开放任意 Key、URL 或代码字段给不可信调用方；官方也提供 tweaks 拒绝策略，生产应只开放必要字段。</p>
+<h3 id="第八步逐端口调试而不是反复点运行整个图">第八步：逐端口调试，而不是反复点运行整个图</h3>3
+<p>画布连上只说明编辑器允许传递某类对象，不说明业务内容正确。建议沿 Retriever Flow 从 Chat Input 向下逐组件检查：输入是不是完整问题；查询向量是否由预期模型生成；向量库返回了几条记录；Parser 是否提取了文本；Prompt 的变量是否真的被替换；Language Model 收到的上下文是否包含证据。每到一个组件都保存一条正常输出和一条边界输出，后续换组件时才有对照。</p>
+<p>类型问题要按契约处理。例如自定义组件返回 <code>Data</code>，而下游需要 Message 时，应增加明确转换并选择要展示的字段，不要把整个对象直接字符串化后交给模型。结构化输出里有 <code>content</code>、<code>title</code>、<code>score</code> 时，转换模板可以只保留标题与正文，并把分数留给评测日志；这样模型看到的是干净证据，调试者仍能看到排序依据。若多个上游输出汇合，确认端口语义和空列表行为，避免把「无检索结果」和「检索组件没运行」都变成空字符串。</p>
+<p>自定义组件的错误也应可见。参数校验失败直接抛出包含修复方向的异常，网络错误保留状态码和超时类别，但不要返回响应头、凭据或完整内部报文。组件运行成功后用 <code>self.status</code> 显示简短结果，用 Inspect output 检查 <code>Data.data</code>。修改 Python 文件后按当前运行方式重新加载组件并刷新编辑器；如果画布仍使用旧配置，先确认组件版本和输入字段是否已更新，再判断逻辑错误。</p>
+<h3 id="第九步管理知识更新实验与生产调用">第九步：管理知识更新、实验与生产调用</h3>3
+<p>文档入库不是一次性的演示动作。为 collection 记录源文件版本、Embedding 模型、切片参数和入库时间。更新同一制度时，先明确是追加新版本还是替换旧版本：追加会同时召回冲突条款，替换则需要删除旧向量再入库。最稳妥的实验方式是用新 collection 完整重建，跑过固定问题集后再切换检索流指向；失败时仍能切回旧集合。不要让 Load Data 每次问答都运行，否则既浪费 Embedding 调用，也可能制造重复记录。</p>
+<p>每个 RAG 实验都保存 flow JSON、模型与向量库配置摘要、文档版本和问题集结果。评价至少分「正确片段是否被检索到」和「回答是否忠实于片段」两项。一次只改切片、Embedding、检索数量、Parser 或 Prompt 中的一项；更换 Embedding 必须同时考虑写入与查询两侧，旧向量不能被视为新模型的等价索引。文档外问题必须保留在测试集中，否则不断放大检索范围只会得到更敢回答、而非更可靠的系统。</p>
+<p>业务后端调用 API 时，应设置连接和读取超时、限制输入长度、校验响应结构，并把 <code>session_id</code> 与真实终端用户稳定对应。并发用户不能共用一个固定会话，否则上下文可能串线。<code>tweaks</code> 适合受控实验，不适合让前端任意改组件；生产仅暴露确有必要且经过校验的参数。流式调用要同时处理 token、结束事件、网络中断和空输出，重试前确认该流程有没有外部写副作用。</p>
+<p>还要把组件依赖纳入交付清单。官方精选供应商扩展不等于企业所有依赖都已预装，自定义组件若新增第三方包，应写入受控的镜像构建或环境锁定文件，而不是登录运行中的容器临时 <code>pip install</code>。后者重建即消失，也会让不同实例行为不一致。升级 LangFlow 或组件库前，先复制流程到测试环境，重点检查端口类型、组件 ID、输出 JSON 路径和自定义组件导入；任何一项变化都可能让「同一画布」产生不同运行结果。</p>
+<p>安全边界则沿输入、执行和输出三层检查：输入侧限制文件类型、大小和用户文本长度；执行侧限制自定义组件网络出口、文件路径和超时；输出侧过滤敏感字段，避免把数据库元数据、内部 URL 或堆栈直接交给终端用户。API Key 仅放业务后端，Playground 的演示链接也不应被当作生产鉴权方案。自定义组件能执行 Python 是扩展能力，同时也是供应链和代码执行责任，必须像评审普通后端代码一样评审它。</p>
+<p>常见故障可按下面顺序定位：</p>
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>优先检查</th>
+<th>验证动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>自定义组件不出现</td>
+<td>挂载路径、分类目录、<code>__init__.py</code>、深度、导入错误</td>
+<td>在容器内确认文件可见，再看组件日志</td>
+</tr>
+<tr>
+<td>RAG 永远无结果</td>
+<td>两条子流是否同集合、是否真入库、Embedding 是否一致</td>
+<td>先 Inspect 向量库输出，不运行 LLM</td>
+</tr>
+<tr>
+<td>检索正确但回答错误</td>
+<td>Parser 文本、Prompt 变量、模型上下文</td>
+<td>对比原始检索结果与最终 Prompt</td>
+</tr>
+<tr>
+<td>重建容器后流程消失</td>
+<td>数据库位置与配置目录是否都持久化</td>
+<td>用测试环境执行一次重建恢复演练</td>
+</tr>
+<tr>
+<td>凭据无法解密</td>
+<td>secret key 是否随配置目录备份和恢复</td>
+<td>用非生产副本验证恢复，不重置真实数据</td>
+</tr>
+<tr>
+<td>API 200 但业务失败</td>
+<td>输出路径、组件状态、空文本、会话和 tweaks</td>
+<td>保存脱敏响应并按当前流程结构解析</td>
+</tr>
+</tbody>
+</table>
+<h3 id="第十步版本化备份和验收">第十步：版本化、备份和验收</h3>3
+<ul>
+<li><strong>流程版本</strong>：导出 flow JSON 进 Git，提交前检查是否含凭据、内部域名和个人数据；模型和组件版本另写环境清单。</li>
+<li><strong>数据备份</strong>：备份 PostgreSQL/SQLite、<code>LANGFLOW_CONFIG_DIR</code>、上传文件和 secret key；仅导出 JSON 不等于完整恢复。</li>
+<li><strong>升级回滚</strong>：先停服务并备份，再升级镜像。官方提醒，仅安装旧 Python 包不会撤销数据库迁移；回滚要同时恢复目标版本对应的数据库和应用文件。</li>
+<li><strong>权限安全</strong>：生产关闭自动登录，API Key 只放后端，自定义组件按不可信代码治理，限制组件可以访问的网络和文件。</li>
+<li><strong>完整 E2E</strong>：Simple Agent 可运行；Load Data 成功入库；Retriever 文档内问题正确、文档外问题拒答；自定义组件正常与非法 URL 两例都符合预期；API 正例、错误 Key、空输出均可识别；重建容器后 flow、上传文件和凭据可用。</li>
+</ul>
+<p>最后保留一份验收表，逐项写「已测/未测、输入、预期、实际、证据」。本文只完成官方资料核对和教程设计，因此你的运行结果必须另行产生，不能引用本文当作平台已通过验证的证明。</p>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<h3 id="课1-课件通用工作流方法">[课1] 课件：通用工作流方法</h3>3
+<ul>
+<li><code>../../raw/courseware/飞书批量抓取/Coze可视化AI开发框架.md</code> 与 <code>../../raw/courseware/RAG篇/_merged/RAG应用平台-合并版.md</code>：只借用工作流、知识检索和「先验检索再验生成」的通用方法，不作为 LangFlow 组件证据。</li>
+<li>落点：数据流思维、先验检索再验生成、变量显式传递。</li>
+</ul>
+<h3 id="书1-书籍摘录ai-agent-智能体零基础搭建">[书1] 书籍摘录：AI Agent 智能体零基础搭建</h3>3
+<ul>
+<li><code>../../raw/weread/AI Agent智能体零基础搭建：Coze+Dify+LangChain（零基础入门AI Agent工作流程搭建）.md</code>：这是<strong>书籍重点笔记，不是原书全文</strong>；只采用第 2、6、9 章的模块化、工作流、检索与回调观测思路。该书不证明 LangFlow 的版本或 API。</li>
+<li>落点：模块化拆法、工作流与检索的通用原则。</li>
+</ul>
+<h3 id="业1-业内官方文档get-2002026-11-03">[业1] 业内官方文档（GET 200：2026-11-03）</h3>3
+<ul>
+<li>安装：Python/uv、资源要求、Docker、登录与版本升级。https://docs.langflow.org/get-started-installation</li>
+<li>Quickstart：Simple Agent、Playground、API access 与响应提取。https://docs.langflow.org/get-started-quickstart</li>
+<li>Vector Store RAG：双子流、组件清单、同一集合/Embedding、Chroma 退休、Parser。https://docs.langflow.org/chat-with-rag</li>
+<li>自定义组件：<code>Component</code>、输入输出、类型、目录深度、<code>__init__.py</code>、日志与错误。https://docs.langflow.org/components-custom-components</li>
+<li>Flow API：<code>/api/v1/run/{flow_id}</code>、<code>x-api-key</code>、stream、tweaks 和弃用端点。https://docs.langflow.org/api-flows-run</li>
+<li>Docker 部署：PostgreSQL/SQLite、配置目录、secret key、volume、UID 与升级。https://docs.langflow.org/deployment-docker</li>
+<li>上述页面同时核对了 <code>langflow-ai/langflow</code> 仓库 <code>main</code> 下对应 MDX 原文，避免网页抓取通道差异。https://github.com/langflow-ai/langflow/tree/main/docs/docs</li>
+<li>落点：安装命令、双子流结构、自定义组件契约、API 端点、持久化与备份边界。</li>
+</ul>
+<h3 id="业2-论文arxiv-一手摘要get-2002026-10-18-至-2026-10-25">[业2] 论文：arXiv 一手摘要（GET 200：2026-10-18 至 2026-10-25）</h3>3
+<ul>
+<li><code>arXiv:2610.22273</code> Librarian Agents：预组织长上下文工作空间 → LangFlow Load Data Flow 可加入文档重组与预处理。</li>
+<li><code>arXiv:2610.31303</code> The Value of Memory in Language Agents：记忆价值与恢复选项 → LangFlow 会话/持久化/备份设计。</li>
+<li><code>arXiv:2610.28577</code> Cache Engineering for Agents：KV cache 成本与前缀失效 → LangFlow 长会话与 Agent 循环的上下文预算。</li>
+<li>落点：每篇正文已分别写出「论文怎么说 + 我们怎么用」，不只罗列 ID。</li>
+</ul></div></body></html>

@@ -1,0 +1,394 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>03-MCP协议实战</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 03-MCP协议实战</span></div><div class="wrap"><h1 id="mcp-协议实战从能力连接到-fastmcp-与-fastapi-落地">MCP 协议实战：从能力连接到 FastMCP 与 FastAPI 落地</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关新篇：<a href="04-A2A%E5%8D%8F%E8%AE%AE.html">A2A 协议：任务协作与工程落地</a></p>
+</blockquote>
+<p>本文把 MCP 放在 Agent 工具层的真实调用链中讲：模型负责提出结构化调用意图，Host 负责交互与治理，Client 负责协议连接，Server 负责把业务系统封装成可发现的能力。示例以飞书课件 day17 的 FastMCP Server、Client、<code>MultiServerMCPClient</code> 为主线，补充两本 MCP 书籍的章节重点笔记，以及官方规范和 FastMCP 集成资料中的工程约束。</p>
+<p><strong>版本口径先说清。</strong> 2026-11-03 的业内完整扫描记录 MCP <code>latest</code> 入口跳转到 <strong>2026-07-28</strong>。扫描第 4 节只核对了规范入口与版本，第 8 节又通过官方 Streamable HTTP 传输页补充核实了无状态化变化。因此，本文把 2026-07-28 作为新协议机制的讨论目标，同时保留 2025-11-25 作为旧教程对照；这不表示课件所用 FastMCP 版本已经自动支持新版。真正开发时，应选定服务端、SDK、客户端共同支持的目标版本，通读该版本的生命周期、传输、授权和具体能力章节，不以跨版本教程拼出实现。</p>
+<h2 id="why">WHY</h2>2
+<h3 id="1-mcp-解决的是连接碎片化不是模型不够聪明">1. MCP 解决的是连接碎片化，不是模型不够聪明</h3>3
+<p>一个 Agent 要查数据库、读文件、搜索网页、创建工单时，最朴素的做法是在应用里分别写适配器。单个 Demo 这样最快，但客户机和工具增多后，每个 Host 都要重复理解同一批 API 的认证、参数、分页、错误和返回格式。若有 N 类 AI 应用与 M 类工具，定制连接可能走向 N×M；MCP 的目标是让工具提供方实现一个标准 Server，让应用实现标准 Client，把重复适配收敛为接近 N+M 的连接层。</p>
+<p>这里的“标准化”至少包含四件事：能力如何描述和发现，调用参数如何约束，结果与错误如何返回，连接生命周期和安全边界如何治理。MCP 并不替代业务 API。数据库、Git、云平台仍然是原有系统，Server 是面向模型应用的协议适配与权限收口层。它也不替代 Agent 框架：规划、循环、记忆、检查点和多 Agent 编排仍在 Host 或上层框架里。</p>
+<p>两本 MCP 书的章节笔记提供了互补视角。《MCP原理与实战》强调 Host、Client、Server 的工程分工和具体服务器实战；《一本书讲透MCP》强调能力连接层、生态复用以及 MCP 与 A2A 的分层。本文只使用这些章节重点笔记，不把产业比喻当成协议保证。“AI 的 USB-C”可以帮助理解复用价值，但 USB-C 比喻不意味着任意 Server 都可信、任意客户端都兼容、接入后天然安全。</p>
+<h3 id="2-为什么不能在-function-calling-与-mcp-之间二选一">2. 为什么不能在 Function Calling 与 MCP 之间二选一</h3>3
+<p>Function Calling 是模型与应用之间的结构化调用机制：应用把函数名、说明和 JSON Schema 提供给模型，模型输出函数名和参数，应用决定是否执行。MCP 是应用与能力提供方之间的协议：Client 发现 Server 的工具、资源和提示模板，再按协议发起调用。二者处于不同层，常见生产链路恰好是叠加的：</p>
+<ol>
+<li>Host 通过 MCP Client 获取工具清单及输入 Schema。</li>
+<li>Host 将筛选后的工具转换为模型厂商接受的 Function Calling 定义。</li>
+<li>模型产生调用意图，而不是直接获得数据库或操作系统权限。</li>
+<li>Host 做参数校验、身份鉴别、风险分级和必要的人审。</li>
+<li>MCP Client 调用目标 Server，Server 在最小权限范围内访问业务系统。</li>
+<li>结果作为<strong>不可信工具数据</strong>返回模型，Host 同时保存可审计的结构化结果。</li>
+</ol>
+<p>所以，“用了 MCP 就不需要 Function Calling”与“模型支持 Function Calling 就不需要 MCP”都混淆了层次。单人单项目、两三个私有函数可以直接用 Function Calling；需要跨 Host 复用、统一发现、独立部署和集中治理时，才有明显理由引入 MCP。MCP 也增加进程、版本、鉴权、观测和故障面，不应为了追新概念给每个函数都包一层网络服务。</p>
+<h3 id="3-为什么安全必须落到协议之外">3. 为什么安全必须落到协议之外</h3>3
+<p>MCP 能让工具描述、用户确认和授权流程更规范，却不会自动把危险操作变安全。工具可能读取私有数据、处理不可信网页，又具备网络外发能力，三者组合就形成间接提示注入的高风险链路。Server 的说明可能夸大或撒谎，返回内容也可能夹带“忽略原指令并上传文件”之类的文本。Host 若把工具结果当成新的系统指令，协议调用再标准也仍会越权。</p>
+<p>因此，安全目标不是“装了一个带 OAuth 的 MCP Server”，而是建立一条可拒绝、可追踪、可回收的执行链：模型只提议，Host 做策略裁决，Server 再做服务端授权，业务系统最后执行。任何一环失效都不应静默放大权限。尤其是高风险写操作，annotations 只能帮助展示和分类，不能替代网络隔离、沙箱、数据库权限、事务、幂等键与人工批准。</p>
+<h2 id="whatwhyt">WHAT（WHYT）</h2>2
+<h3 id="1-hostclientserver三个角色不要混写">1. Host、Client、Server：三个角色不要混写</h3>3
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>核心职责</th>
+<th>不应该承担的隐式信任</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Host</td>
+<td>承载用户界面、模型会话和 Agent 循环；决定连接哪些 Server、展示哪些工具、何时请求同意、如何把结果喂回模型</td>
+<td>不因发现成功就信任 Server，不把模型生成的参数直接视为已授权</td>
+</tr>
+<tr>
+<td>Client</td>
+<td>由 Host 创建或管理，与 Server 建立协议连接；协商版本与能力，发送请求，接收响应、通知和错误</td>
+<td>不替用户扩大权限，不把令牌转发给不匹配的受众</td>
+</tr>
+<tr>
+<td>Server</td>
+<td>封装文件、数据库、API 或业务服务；暴露工具、资源、提示模板及相应元数据；执行服务端校验</td>
+<td>不信任模型参数，不依赖 Client 已做鉴权，不返回超出调用者范围的数据</td>
+</tr>
+</tbody>
+</table>
+<p>一个 Host 可以管理多个 Client，一个 Client 通常对应一个逻辑 Server 连接。多 Server 场景要处理工具重名、描述污染、连接超时和故障隔离，不能简单把全部工具无命名空间地塞进模型上下文。课件中的 <code>MultiServerMCPClient</code> 是适配层示例，不代表权限治理已经自动完成。</p>
+<p>Client 与 Server 还可能支持其他能力，例如 Server 提供 Tools、Resources、Prompts，Client 侧按目标规范支持 Sampling、Roots、Elicitation 等。是否声明某种能力，应依据双方实际实现与目标版本，不能由“ FastMCP 能写工具”反推出所有高级能力都可用。Host 应只启用真正需要且已审查的能力。</p>
+<h3 id="2-toolsresourcesprompts动作数据与模板">2. Tools、Resources、Prompts：动作、数据与模板</h3>3
+<p><strong>Tools</strong> 是可执行操作。查询天气、计算 BMI、创建 Issue 都可以是工具，但风险并不相同。工具定义至少要有稳定名称、面向模型的用途说明、合法 JSON Schema 输入、清晰的输出或错误约定。描述应写明何时使用、何时不要使用、是否产生外部副作用、返回什么，不要把整段产品文档塞进说明。</p>
+<p><strong>Resources</strong> 是应用可读取的上下文数据，例如制度文本、订单快照、日志片段。资源用 URI 标识，可以有静态资源和由参数决定的资源模板。资源并非天然“无风险”：读取敏感文件虽然不改外部状态，也可能造成隐私泄露；动态资源内部若调用写 API，就更不能仅凭资源类别推断安全。</p>
+<p><strong>Prompts</strong> 是可复用的提示模板或消息工作流，适合统一“健康分析”“代码评审”等任务输入。模板可以降低团队成员各写一套提示造成的漂移，但模板中的变量仍是数据，不应因为来自 Server 就获得高于用户或系统策略的指令优先级。</p>
+<p>选择原语时看交互意图，而不是看实现语言：希望模型请求一个动作，用 Tool；希望应用按 URI 取上下文，用 Resource；希望用户或应用显式选择一套可复用任务开场，用 Prompt。若一个“资源”实际上会发邮件、删记录，就应重新建模为高风险 Tool。</p>
+<h3 id="3-能力发现生命周期与版本协商">3. 能力发现、生命周期与版本协商</h3>3
+<p>典型接入先确认双方协议版本与能力，再进入正常调用，最后关闭连接或释放子进程。能力发现不仅包括 <code>tools/list</code>、<code>resources/list</code>、<code>prompts/list</code> 等清单，还包括 Server 声明支持哪些特性、Client 声明能处理哪些交互。工具清单不是静态全局真理：权限、租户、功能开关或版本变化都可能让清单变化，Host 应按目标版本支持的通知或刷新策略更新缓存。</p>
+<p>2025-11-25 生命周期资料以 <code>initialize</code> 阶段说明能力协商和 <code>protocolVersion</code>。2026-07-28 versioning 资料改为在请求元数据中表达版本，并以不支持版本错误携带受支持版本列表；业内调研同时记录了 <code>server/discover</code> 能力发现入口。字段细节必须以目标版本规范与所用 SDK 生成的请求为准，不要把旧 <code>initialize</code> 代码换一个版本字符串后继续用。</p>
+<p>工程上应遵守四条原则：固定 SDK 与 Server 的已验证版本组合；记录实际协议版本和能力集合；遇到不支持版本时按目标规范错误结构处理，不悄悄假设兼容；升级前用真实客户端做发现、调用、取消、错误和重连测试。版本号相同不代表可选能力相同，版本协商成功更不代表业务授权成功。</p>
+<h3 id="4-2026-07-28-streamable-http无状态请求而非旧会话续接">4. 2026-07-28 Streamable HTTP：无状态请求而非旧会话续接</h3>3
+<p>官方传输资料的本地调研摘录给出了以下新版硬边界，针对的是 <strong>2026-07-28 Streamable HTTP</strong>，不能反推 stdio 或旧版本：</p>
+<ol>
+<li><strong>每条 JSON-RPC 独立 HTTP POST。</strong> 旧版连接级 <code>initialize</code> 握手、协议级 session、<code>Mcp-Session-Id</code> 和 GET stream 假设不能继续作为新版时序。服务端应答可以是单个 JSON 对象，也可以是仅属于该请求作用域的 SSE 流。</li>
+<li><strong>服务器反向交互嵌入 MRTR。</strong> Sampling、Elicitation、Roots 等服务器到客户端的多轮交互按 MRTR（Multi Round-Trip Requests）嵌入结果，不再假设在一条长期 SSE 上独立发起另一方向请求。</li>
+<li><strong>取消绑定请求流。</strong> Streamable HTTP 上通过关闭该请求的 SSE 响应流表达取消，不再照旧教程发送连接级 <code>notifications/cancelled</code>。Client 取消后仍要处理服务端已经产生的副作用，取消不是事务回滚。</li>
+<li><strong>安全是传输验收项。</strong> 服务端校验 <code>Origin</code>，非法来源返回 403，降低 DNS rebinding 风险；本地服务只绑 <code>127.0.0.1</code>，所有远程连接执行认证。代理不能擅自恢复已删除的长连接语义，也不能无限缓冲请求作用域 SSE。</li>
+</ol>
+<p>一个新版本地验收序列应是：发现 Server 与版本能力→独立 POST 调用工具→分别接收 JSON 与请求作用域 SSE→在流式调用中关闭响应并观察取消→发送不支持版本并检查错误中的支持列表→伪造 Origin 检查 403→重启服务端后确认旧会话 ID 不再是正确性前提。课件 day17 的 stdio 示例仍可解释 Tool/Resource/Prompt，但远程传输不能照搬旧版握手图。</p>
+<h3 id="5-stdio-与远程-http部署边界决定运维方式">5. stdio 与远程 HTTP：部署边界决定运维方式</h3>3
+<p><strong>stdio</strong> 适合本地工具和桌面 Host。Client 拉起 Server 子进程，通过标准输入输出交换协议消息。优点是少一个网络监听端口、文件与进程边界清楚、开发反馈快；代价是 Host 要管理命令路径、工作目录、环境变量、子进程退出和僵尸进程。协议 stdout 不能被普通 <code>print</code>、调试横幅或依赖日志污染，诊断日志应走 stderr 或独立日志系统。凭据只通过受控环境或 secret-ref 注入，不能写进命令示例、配置快照和派单文本。</p>
+<p><strong>远程 HTTP</strong> 适合共享服务、集中鉴权与跨机器部署。它引入 TLS、反向代理、认证授权、Origin 校验、请求大小、并发、超时、取消、负载均衡和多副本状态等问题。客户端应依据目标版本构造 Accept、Content-Type、版本元数据和错误处理，代理要支持相应流式响应且避免无限缓冲。</p>
+<p>选择不是“本地永远 stdio、生产永远 HTTP”。本机多 Host 复用也可能选本地受控 HTTP；远程高敏工具也可能因为网络面过大而不开放。判断依据应是信任边界、复用范围、部署责任和可观测性，而非示例代码长短。</p>
+<h3 id="6-fastapi-两条路径的本质差异">6. FastAPI 两条路径的本质差异</h3>3
+<p><code>FastMCP.from_fastapi(app=app)</code> 从 OpenAPI 描述生成 MCP 组件，适合已有 REST API 的快速原型。<code>operation_id</code> 会影响工具名，所以原型阶段也应显式命名；否则模型看到的是路由拼接式名称，选择效果和后续兼容性都差。RouteMap 能调整端点映射，却不能自动把面向前端的细粒度 CRUD 变成面向任务的领域工具。</p>
+<p>生产更推荐 purpose-built MCP：围绕“检索制度并返回引用”“创建待审批工单”设计少量稳定工具，再把 <code>mcp.http_app()</code> 挂到 FastAPI。这样 REST 与 MCP 可共享业务服务，但分别拥有适合调用者的契约。挂载时 <code>lifespan</code> 不可省，否则 MCP 会话或应用生命周期管理可能未初始化；已有应用与 MCP 子应用各有 lifespan 时，按 FastMCP 当前文档使用组合机制，而不是覆盖其中一个。</p>
+<p>CORS 只控制浏览器跨源读取，不是认证机制，也不保护非浏览器 Client。官方集成资料提示全局 CORS 中间件可能与 OAuth 保护及发现路由发生冲突，因此应把 MCP 子应用、发现端点和授权链作为整体测试，不能用“放开所有源”换暂时连通。OAuth 还要单独核对发行方、受众、作用域、过期和令牌交换边界。</p>
+<h2 id="how">HOW</h2>2
+<h3 id="1-最小工程结构与依赖固定">1. 最小工程结构与依赖固定</h3>3
+<p>下面是一套用于本地验证的最小结构，强调契约、服务实现和传输入口分离：</p>
+<pre><code class="language-text">health-mcp-demo/
+├── pyproject.toml                 # 固定依赖版本与项目元数据
+├── src/health_mcp/
+│   ├── __init__.py
+│   ├── models.py                  # 输入输出模型、结构化业务错误
+│   ├── service.py                 # 纯业务逻辑，不依赖 MCP
+│   ├── server.py                  # Tool、Resource、Prompt 注册
+│   ├── client.py                  # 本地发现与调用验收
+│   └── fastapi_app.py             # purpose-mounted HTTP 入口
+└── tests/
+    ├── test_service.py            # 业务单元测试
+    ├── test_contract.py           # Schema、发现、结果与错误契约
+    └── test_security.py           # 越权、注入、超限等负例
+</code></pre>
+<p>依赖示例只表达范围，不表示本次解析过最新兼容组合。实际使用前应把 <code>x.y.z</code> 换成经过官方兼容说明和本地验证的精确版本，并生成锁文件与哈希；不要使用无约束的 <code>latest</code>。</p>
+<pre><code class="language-text">fastmcp==x.y.z
+fastapi==x.y.z
+uvicorn==x.y.z
+pydantic==x.y.z
+httpx==x.y.z
+pytest==x.y.z
+pytest-asyncio==x.y.z
+</code></pre>
+<h3 id="2-fastmcp-server工具资源提示与参数约束">2. FastMCP Server：工具、资源、提示与参数约束</h3>3
+<p>以下代码由课件 day17 示例扩展，展示 Schema 约束、只读提示、结构化输出和明确错误。它是教学示例，本次未运行；不同 FastMCP 版本的 annotations、结构化输出字段和异常导入路径应以所固定版本的 API 文档为准。</p>
+<pre><code class="language-python">from typing import Annotated
+
+from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
+from pydantic import BaseModel, Field
+
+mcp = FastMCP(name=&quot;health_server&quot;)
+
+
+class BmiResult(BaseModel):
+    bmi: float
+    category: str
+    disclaimer: str
+
+
+@mcp.tool(annotations={
+    &quot;readOnlyHint&quot;: True,
+    &quot;destructiveHint&quot;: False,
+    &quot;idempotentHint&quot;: True,
+    &quot;openWorldHint&quot;: False,
+})
+async def calculate_bmi(
+    weight_kg: Annotated[float, Field(gt=0, le=500, description=&quot;体重，千克&quot;)],
+    height_m: Annotated[float, Field(gt=0.3, le=2.8, description=&quot;身高，米&quot;)],
+) -&gt; BmiResult:
+    &quot;&quot;&quot;仅根据体重和身高计算 BMI；不用于疾病诊断。&quot;&quot;&quot;
+    try:
+        bmi = weight_kg / (height_m ** 2)
+    except (ArithmeticError, ValueError) as exc:
+        # 不泄露堆栈和内部路径，给 Client 稳定、可展示的错误语义
+        raise ToolError(&quot;BMI_CALCULATION_FAILED: 无法计算，请检查输入&quot;) from exc
+
+    category = &quot;偏低&quot; if bmi &lt; 18.5 else &quot;常见范围&quot; if bmi &lt; 24 else &quot;偏高&quot;
+    return BmiResult(
+        bmi=round(bmi, 2),
+        category=category,
+        disclaimer=&quot;仅为教学计算，不构成医疗建议&quot;,
+    )
+
+
+@mcp.resource(&quot;resource://health-guidelines&quot;, mime_type=&quot;text/plain&quot;)
+async def get_health_guidelines() -&gt; str:
+    &quot;&quot;&quot;读取可公开的通用健康说明。&quot;&quot;&quot;
+    return &quot;保持规律作息并适量运动；个体问题请咨询专业人员。&quot;
+
+
+@mcp.prompt()
+async def analyze_my_health(
+    name: Annotated[str, Field(min_length=1, max_length=40)],
+    weight_kg: Annotated[float, Field(gt=0, le=500)],
+    height_m: Annotated[float, Field(gt=0.3, le=2.8)],
+) -&gt; str:
+    &quot;&quot;&quot;生成健康分析任务模板，变量只作为数据插入。&quot;&quot;&quot;
+    return (
+        f&quot;用户名为 {name}，体重 {weight_kg} kg，身高 {height_m} m。&quot;
+        &quot;请计算 BMI，说明局限，不作疾病诊断。&quot;
+    )
+
+
+if __name__ == &quot;__main__&quot;:
+    # 默认 stdio；远程入口与传输参数按固定版本文档配置
+    mcp.run()
+</code></pre>
+<p>真实项目还应把业务逻辑放入 <code>service.py</code>，在 Server 边界做调用者身份与租户检查。类型约束只解决“形状合法”，不解决“这个用户能否访问这条记录”。错误建议分为四层：协议或传输错误、参数 Schema 错误、可预期业务错误、未预期内部错误。前三类给稳定代码和可行动说明，第四类记录内部 trace，对模型只返回泛化信息。不要把数据库连接串、堆栈、文件绝对路径和其他租户标识放入错误文本。</p>
+<h3 id="3-client发现调用读资源与超时">3. Client：发现、调用、读资源与超时</h3>3
+<pre><code class="language-python">import asyncio
+from fastmcp import Client
+
+
+async def main() -&gt; None:
+    async with Client(&quot;src/health_mcp/server.py&quot;) as client:
+        await client.ping()
+
+        tools = await client.list_tools()
+        print([tool.name for tool in tools])
+
+        # 用外层 deadline 防止单次业务调用无限等待
+        async with asyncio.timeout(5):
+            result = await client.call_tool(
+                &quot;calculate_bmi&quot;, {&quot;weight_kg&quot;: 60, &quot;height_m&quot;: 1.65}
+            )
+        # structured_content 是否可用及名称随 SDK 版本核对
+        print(result.content)
+        print(getattr(result, &quot;structured_content&quot;, None))
+
+        resources = await client.list_resources()
+        print([str(item.uri) for item in resources])
+        contents = await client.read_resource(&quot;resource://health-guidelines&quot;)
+        print(contents[0].text)
+
+        prompts = await client.list_prompts()
+        print([item.name for item in prompts])
+        prompt = await client.get_prompt(
+            &quot;analyze_my_health&quot;,
+            {&quot;name&quot;: &quot;Alice&quot;, &quot;weight_kg&quot;: 60, &quot;height_m&quot;: 1.65},
+        )
+        print(prompt.messages[0].content.text)
+
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+<p>验收不能只打印一次成功结果。Client 应断言工具名与 Schema 快照一致，合法输入返回预期结构，非法数值被稳定拒绝，资源 MIME 与内容匹配，Prompt 参数没有逃逸成高优先级指令。超时后还要区分“本地不再等待”与“Server 已停止执行”；若 Tool 有副作用，超时不代表未执行，重试前必须用请求标识或幂等键查询真实结果。</p>
+<h3 id="4-multiservermcpclient统一适配但不合并信任域">4. MultiServerMCPClient：统一适配但不合并信任域</h3>3
+<p>课件使用 <code>langchain-mcp-adapters</code> 把多个 Server 的工具转换为 LangChain Tool。下面只展示配置形态；传输枚举、认证配置和会话生命周期以所安装版本为准。</p>
+<pre><code class="language-python">from langchain_mcp_adapters.client import MultiServerMCPClient
+
+client = MultiServerMCPClient({
+    &quot;health&quot;: {
+        &quot;transport&quot;: &quot;stdio&quot;,
+        &quot;command&quot;: &quot;python&quot;,
+        &quot;args&quot;: [&quot;src/health_mcp/server.py&quot;],
+    },
+    &quot;knowledge&quot;: {
+        &quot;transport&quot;: &quot;streamable_http&quot;,
+        &quot;url&quot;: &quot;http://127.0.0.1:8000/analytics/mcp/&quot;,
+        # 生产认证经受控配置或 secret-ref 注入，不在此处写令牌
+    },
+})
+
+tools = await client.get_tools()
+</code></pre>
+<p>接入后至少增加四项治理：给工具保留 Server 命名空间，避免同名覆盖；按任务筛选工具而不是全部注入；为每个 Server 独立设置连接和调用 deadline；一个 Server 超时或返回恶意描述时，不让它污染其他信任域。多 Server 共享同一个高权限令牌会让最小权限失效，应该按受众分别授权。工具描述、清单哈希或版本变化后，应重新审查而不是静默沿用旧批准。</p>
+<h3 id="5-fastapi原型自动转换与生产-purpose-mounted">5. FastAPI：原型自动转换与生产 purpose-mounted</h3>3
+<p>路径 A 只用于快速观察现有 API 被模型看到后的形态：</p>
+<pre><code class="language-python">from fastapi import FastAPI
+from fastmcp import FastMCP
+
+app = FastAPI()
+
+
+@app.get(&quot;/users/{user_id}&quot;, operation_id=&quot;get_user_by_id&quot;)
+async def get_user(user_id: str) -&gt; dict[str, str]:
+    return {&quot;user_id&quot;: user_id, &quot;display_name&quot;: &quot;demo&quot;}
+
+
+# 原型入口；不要据此把所有 REST 写端点直接暴露给模型
+mcp = FastMCP.from_fastapi(app=app)
+</code></pre>
+<p>路径 B 手工定义面向任务的 MCP 工具，再挂入 FastAPI：</p>
+<pre><code class="language-python">from fastapi import FastAPI
+from fastmcp import FastMCP
+
+mcp = FastMCP(&quot;Knowledge Tools&quot;)
+
+
+@mcp.tool()
+async def search_policy(query: str, limit: int = 5) -&gt; list[dict]:
+    &quot;&quot;&quot;检索当前调用者有权读取的制度片段并返回引用。&quot;&quot;&quot;
+    # 示例占位：真实实现必须加入身份、租户、限流和引用校验
+    return [{&quot;query&quot;: query, &quot;limit&quot;: limit, &quot;citation&quot;: &quot;demo://policy/1&quot;}]
+
+
+mcp_app = mcp.http_app(path=&quot;/mcp&quot;)
+app = FastAPI(title=&quot;Knowledge Service&quot;, lifespan=mcp_app.lifespan)
+app.mount(&quot;/analytics&quot;, mcp_app)
+# MCP 示例地址：/analytics/mcp/；REST 路由可独立挂载
+</code></pre>
+<p>生产落地还需把 OAuth 资源元数据、发现端点、MCP 端点和回调链纳入同一套集成测试。校验 JWT 时至少检查签名、可信发行方、预期受众、有效期、必要 scope 与租户声明；不要把接收到的其他服务令牌原样转发。CORS 按实际浏览器客户端精确配置，不将 <code>allow_origins=["*"]</code> 当排障终点。若已有 FastAPI lifespan，应按固定版本的 <code>combine_lifespans</code> 方式组合，并验证启动顺序与逆序清理。</p>
+<h3 id="6-可操作安全基线">6. 可操作安全基线</h3>3
+<ol>
+<li><strong>最小权限到业务对象。</strong> 每个 Server 使用独立身份；数据库优先只读、限定表和行数，文件限定单一工作目录，云平台限定项目、命名空间和动作。Server 内再次检查用户、租户和资源归属，不能只靠 Host 隐藏工具。</li>
+<li><strong>OAuth 校验完整。</strong> 明确授权服务器、资源服务器和 Client 的角色；核对 audience 与 scope，短时令牌、可撤销、可轮换。禁止示例、日志和错误响应出现真实凭据；禁止把 A 服务令牌透传给 B 服务。</li>
+<li><strong>高风险按影响与可逆性分级。</strong> 纯公开计算可自动；内部只读查询可记录后放行；写数据库、发消息、改权限要求通知或人审；删除、转账、生产发布和批量外发默认拒绝，必须经过明确批准与必要时二次校验。</li>
+<li><strong>人审展示完整动作。</strong> 审批界面应显示真实 Server、工具、关键参数、目标对象、影响范围和差异预览，不能只显示“模型想调用一个工具”。批准应绑定参数哈希与有效期，参数改变后重新批准。</li>
+<li><strong>annotations 只是提示。</strong> <code>readOnlyHint</code>、<code>destructiveHint</code>、<code>idempotentHint</code>、<code>openWorldHint</code> 可帮助 Host 展示风险，但不可信 Server 可以标错。真正强制来自沙箱、网络策略、数据库角色、服务端授权和业务规则。</li>
+<li><strong>固定供应链与描述版本。</strong> 固定包、镜像和 Server revision，保存工具清单及描述哈希；升级或描述改变触发重新审计。限制安装来源，不执行来源不明的 Server 安装脚本。</li>
+<li><strong>工具响应一律不可信。</strong> 将返回文本标记为数据，不提升为系统指令；对 HTML、Markdown 链接、文件路径和结构化字段分别校验。限制返回大小与嵌套深度，网页抓取工具增加 SSRF 与出口域名控制。</li>
+<li><strong>失败默认关闭。</strong> 鉴权服务异常、策略配置缺失、参数畸形、审计不可写时，高风险工具不应自动放行。超时、重试和取消必须结合幂等键，防止重复创建、重复发送和重复扣款。</li>
+</ol>
+<h3 id="7-本批论文怎么用把工具改名与记法变化纳入契约回归">7. 本批论文怎么用：把工具改名与记法变化纳入契约回归</h3>3
+<p><a href="../../raw/sources/arxiv-daily/2026-10-14-2610.20576.md">arXiv:2610.20576</a> 指出，Agent 的后训练能力可能绑定到训练时见过的接口：即使动作语义不变，只改动作名或表示记法，held-out 接口扰动仍使文中所测 post-trained function-calling Agent 的准确率下降近 25%；其 CIPR 训练目标恢复了 10.5%，且未损害原接口准确率。这个结果属于论文的训练设置，不表示任意 MCP 工具一改名就必降同样幅度，也不能由 MCP Schema 合法推出模型选择一定稳健。</p>
+<p>我们怎么用：即便不训练模型，也能把论文思路变成黑盒 MCP 回归。固定同一批业务任务和预期动作，生成三组<strong>语义保持</strong>变体——只改工具名、等价改写字段说明、改变等价参数记法或展示顺序——分别经真实 Client 获取 <code>tools/list</code> 后让模型选择；逐例核对工具选择、参数 Schema、权限拒绝和最终业务结果，而不只看 HTTP 200。工具描述版本进入 trace 与发布清单，改名按破坏性变更处理。若原接口成功而变体显著失败，先收敛工具数量、统一命名和参数语义；拥有模型训练权时再评估 CIPR，不能把“提示词加一句保持一致”当成论文方法复现。</p>
+<h3 id="8-启动与本地客户端验收命令示例">8. 启动与本地客户端验收命令示例</h3>3
+<p>以下命令只是后续执行手册，<strong>本次未安装依赖、未启动 Server、未运行 Client 或测试</strong>。Windows、WSL、虚拟环境和 IDE 的工作目录要分别核对。</p>
+<pre><code class="language-bash"># 在项目根目录创建隔离环境并安装已锁定的依赖
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+
+# 方式一：直接以 stdio 启动，供 Client 拉取或调试
+python src/health_mcp/server.py
+
+# 方式二：purpose-mounted FastAPI 入口，仅绑回环地址
+uvicorn health_mcp.fastapi_app:app \
+  --app-dir src --host 127.0.0.1 --port 8000
+
+# 另开受控终端运行本地 Client 验收
+python src/health_mcp/client.py
+
+# 契约、安全负例与业务测试
+pytest -q tests/test_contract.py tests/test_security.py tests/test_service.py
+</code></pre>
+<p>验收记录应包含实际依赖版本、Python 版本、启动命令、工作目录、协商版本、工具清单哈希、正负例结果和 trace 标识。远程验收还要检查 TLS、Token 受众与 scope、跨租户拒绝、Origin 拒绝、超时取消和代理流式行为，不能用 <code>curl</code> 返回 200 代替完整 MCP 客户端互通。</p>
+<h3 id="9-测试与排坑清单">9. 测试与排坑清单</h3>3
+<p><strong>契约测试：</strong> 工具、资源、Prompt 清单符合快照；输入 Schema 是合法 JSON Schema；必填、边界和默认值正确；输出结构化字段稳定；业务错误代码可机读；工具名变化被视为破坏性变更。多 Server 测试同名工具、空清单、清单更新和一个 Server 失联。</p>
+<p><strong>传输测试：</strong> stdio 下 stdout 无杂日志、子进程能退出、路径含空格可处理、异常环境变量不泄露；HTTP 下检查启动与关闭 lifespan、Content-Type、Accept、版本不支持、长请求、取消、断连、重连和代理缓冲。不要拿旧版 session 假设解释新版行为。</p>
+<p><strong>安全测试：</strong> 无令牌、错误受众、过期令牌、scope 不足、跨租户、路径穿越、SSRF、超大结果、工具描述注入、返回内容注入、审批后参数篡改都必须产生预期拒绝或隔离。另测“鉴权通过但业务无权”，避免把认证当成全部授权。</p>
+<p><strong>常见排坑：</strong> 工具名冗长先查 <code>operation_id</code>；挂载后无法建立会话先查 lifespan；OAuth 发现 404 或 OPTIONS 异常检查子应用与全局 CORS 顺序；stdio 一启动就协议解析失败检查 stdout 污染；工具能被列出但调用拒绝检查 Server 端授权；调用超时后结果又出现检查异步副作用和幂等；模型频繁选错工具先减少工具数量、改写用途边界和输出契约，而不是先扩提示词。</p>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li><strong>[课1] 课件原文：</strong><a href="../../raw/courseware/Agent%E7%AF%87/code/day17__01-first_mcp_server.py">day17 FastMCP Server</a>、<a href="../../raw/courseware/Agent%E7%AF%87/code/day17__02-first_mcp_client.py">day17 Client</a>、<a href="../../raw/courseware/Agent%E7%AF%87/code/day17__04-langchain%E8%BF%9E%E6%8E%A5mcp.py">day17 LangChain 连接 MCP</a>。落点是 WHAT 的 Host/Client/Server 与三类原语、HOW 的最小 Server/Client 和多 Server 适配；课件 stdio 示例不被当作新版远程传输证明。</li>
+<li><strong>[书1] 书籍目录与公开划线摘录：</strong><a href="../../raw/weread/MCP%E5%8E%9F%E7%90%86%E4%B8%8E%E5%AE%9E%E6%88%98%EF%BC%9A%E9%AB%98%E6%95%88AI%20Agent%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%80%E5%8F%91.md">MCP原理与实战</a>、<a href="../../raw/weread/%E4%B8%80%E6%9C%AC%E4%B9%A6%E8%AE%B2%E9%80%8FMCP%EF%BC%9AAI%20Agent%E4%BA%92%E8%81%94%E7%BD%91%E6%96%B0%E7%BA%AA%E5%85%83.md">一本书讲透MCP</a>。章节目录用于组织架构、Function Calling、传输、安全和 MCP/A2A 分层，案例目录用于展开最小权限检查项。只使用本库存有的书籍信息与划线摘录，<strong>不声称阅读书籍全文</strong>。</li>
+<li><strong>[业1] 官方规范与文档：</strong><a href="https://modelcontextprotocol.io/specification/2026-07-28">MCP Specification 2026-07-28</a>、<a href="https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle">Lifecycle 2025-11-25</a>、<a href="https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning">Versioning</a>、<a href="https://gofastmcp.com/integrations/fastapi">FastMCP FastAPI Integration</a>。<a href="../../raw/sources/%E4%B8%9A%E5%86%85%E6%8A%80%E6%9C%AF%E6%A0%88%E6%89%AB%E6%8F%8F-20261103.md">业内技术栈扫描</a>记录相关官方 URL <strong>GET 200：2026-11-03</strong>，<a href="../../raw/sources/FastMCP-FastAPI%E9%9B%86%E6%88%90-20261022.md">FastMCP/FastAPI 本地调研</a>提供集成路径；本次未复跑请求。版本协商、传输、lifespan 与 OAuth 分别进入 WHAT/HOW 的可执行验收清单。</li>
+<li><strong>[业2] 本批论文：</strong><a href="../../raw/sources/arxiv-daily/2026-10-14-2610.20576.md">arXiv:2610.20576</a> 落入 HOW 第 7 节，转化为工具改名、等价说明与参数记法扰动测试；论文只支持接口鲁棒性风险及其实验内的 CIPR 改善，不被当作 MCP 协议条款。</li>
+<li><strong>[业3] 旧总述融合：</strong>《L5-Agent工程-最佳答案》的 Function Calling/MCP/自定义工具分层和 N×M 连接问题，已由 WHY 与 WHAT 保留并补上版本、安全及测试边界；“每 Agent 活跃 MCP ≤6”等无通用依据的固定阈值不作为规范保留。</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库确实写了一个 MCP Server，且它复用生产链路而不是另写一套（<code>rag/mcp_server.py</code>，grep 可验）</strong>：<br />
+  ```python<br />
+  server = MCPServer(<br />
+      name="rag-kb",<br />
+      instructions="本地RAG知识库(wuyafang-l, raw/wiki/ontology 三层)检索问答。"<br />
+                   "回答依赖库内语料, 每个结论带 [来源: 文件] 标注。",<br />
+  )</li>
+</ul>
+<p>@server.tool()<br />
+  def query_knowledge(question: str, top_k: int = 5) -&gt; QueryKnowledgeResult:<br />
+      """查询本地RAG知识库并生成答案 (检索+rerank+生成全链路)。</p>
+<pre><code>  Args:
+      question: 自然语言问题 (中文/英文均可)
+      top_k: 检索片段数, 1-20, 默认5 (越大越全但越慢)
+  """
+  top_k = max(_TOP_K_MIN, min(top_k, _TOP_K_MAX))     # L172: 1..20 夹紧, 不信任客户端入参
+</code></pre>
+<p><code>``
+  工具 docstring 第一行写清"返回什么/边界在哪"，</code>top_k = max(_TOP_K_MIN, min(top_k, _TOP_K_MAX))<code>机械夹紧——这两点正是课件里"工具 schema 即契约"的要求。
+- **stdio 传输纪律（</code>rag/mcp_server.py<code>末尾</code>server.run(transport="stdio")<code>）**：stdout 是协议通道，所有日志强制走</code>_log()<code>→stderr，</code>main()<code>里先打一行启动日志再</code>server.run<code>；import 失败则降级 subprocess 调同目录的</code>rag/query.py<code>CLI（</code>_run_via_subprocess<code>），**服务不会因为依赖装错就整体不可用**。
+- **和课件讲法的差异**：课件用</code>from mcp.server.fastmcp import FastMCP<code>；本库用</code>from mcp.server.mcpserver import MCPServer<code>（mcp 2.x，FastMCP 已更名），API 形状仍是</code>@server.tool()<code>装饰器，迁移只改 import。另加了两处课件没有的防御：启动期剥离</code>PYTHONPATH<code>/</code>PYTHONHOME<code>并剔除</code>~/.hermes/installs<code>的 sys.path（否则 chromadb 会 import 到版本不匹配的 opentelemetry 直接崩）。
+- **本库暂无**：MCP 的 resource/prompt 原语与 OAuth 授权未接，只暴露了</code>query_knowledge` 一个 tool；需要高风险管理工具（写库/删文件）时按课件补"人工确认"层。</p>
+<h2 id="证据边界与未验证项">证据边界与未验证项</h2>2
+<ol>
+<li>本次仅整合指定本地资料和其中引用的一手官方入口，没有联网补查，也没有完整逐条阅读 MCP 2026-07-28 全部规范；latest 版本号来自 2026-11-03 业内扫描。</li>
+<li>本文只整理本地调研核实的 2026-07-28 Streamable HTTP 关键差异，不构成完整迁移清单；这些边界不能外推到 stdio、旧版本或任意 SDK。旧教程中的连接级握手、会话和取消方式不能未经验证搬进新版，但也不能据此声称其他协议版本或传输中的同名机制全部失效。</li>
+<li>所有 FastMCP、FastAPI、Client、MultiServerMCPClient、安装、启动和测试代码均为示例，<strong>本次未实跑、未做协议互通、未验证当前 SDK 的精确签名</strong>。实际实施必须固定版本后按官方 API 调整并端到端验收。</li>
+<li>两本 MCP 书只使用本库章节重点笔记，本次未通读原书；书籍中的案例数量和产业判断未作为当前生态统计。</li>
+<li>安全清单是可执行的工程基线，不表示部署后自动满足合规；OAuth 配置、 threat model、租户隔离、红队、取消语义与副作用幂等仍需在目标环境实测。</li>
+</ol></div></body></html>

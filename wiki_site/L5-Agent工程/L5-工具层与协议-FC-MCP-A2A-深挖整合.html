@@ -1,0 +1,556 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L5-工具层与协议-FC-MCP-A2A-深挖整合</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/L5-工具层与协议-FC-MCP-A2A-深挖整合</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="l5-function-callingmcp-a2a">L5 工具层与协议：Function Calling、MCP、自定义工具与 A2A</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a>
+相关：<a href="L5-Agent核心循环与业务落地-深挖整合.html">Agent 核心循环与业务落地</a> · <a href="L5-多Agent协作与编排-深挖整合.html">多 Agent 协作与编排</a> · <a href="L5-Agent框架选型与平台生态-深挖整合.html">Agent 框架选型与平台生态</a> · <a href="L5-Agent记忆与自进化-深挖整合.html">Agent 记忆与自进化</a> · <a href="L5-Agent生产化可靠性与评估-深挖整合.html">Agent 生产化可靠性与评估</a> · <a href="L5-OpenClaw模块协同-深挖整合.html">OpenClaw 模块协同</a></p>
+</blockquote>
+<h2 id="_1">导读</h2>
+<p>Agent 要靠工具才能动手，工具层因此是 Agent 工程的基础设施。这一层通常被问成"用 Function Calling 还是用 MCP"，但两者不在同一层。下面几条是本篇的核心结论：</p>
+<ol>
+<li><strong>三者是叠加关系，不是三选一。</strong> Function Calling（FC）决定模型"调哪个函数、传什么参数"；MCP 决定工具"怎么被标准化发现、授权、复用"；自定义工具是业务里那段真正做事的函数。</li>
+<li><strong>选择看复用范围和副作用。</strong> 单人单次的 demo 直接写 FC；工具要被多个 Agent 或客户端复用，就包成 MCP server；工具会改外部状态，就必须有授权和确认环节。</li>
+<li><strong>MCP 的价值是把 N×M 的集成降到 N+M，并内建 OAuth、人工确认和副作用标注。</strong> 这些能力裸 FC 不带，要自己实现。</li>
+<li><strong>FastMCP 能把工具写成 server 或挂进 FastAPI。</strong> 手工设计的 MCP 工具效果明显优于从 REST 接口自动转换的工具。MCP 与 A2A 分工明确：MCP 管 Agent 与工具之间的连接，A2A 管 Agent 与 Agent 之间的协作。</li>
+</ol>
+<h2 id="fcmcp">一、工具层分层：FC、MCP、自定义工具不是三选一</h2>
+<h3 id="11">1.1 三层各自解决的问题</h3>
+<p>工具层可以拆成三层，每层由不同的角色定义，解决的问题也不同：</p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>解决的问题</th>
+<th>谁定义</th>
+<th>典型形态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Function Calling（FC）</strong></td>
+<td>模型怎么决定"现在该调哪个函数、传什么参数"</td>
+<td>模型厂商（OpenAI、Anthropic、GLM 等）</td>
+<td>在 prompt 里塞 JSON schema，模型输出 <code>{"name":"...","arguments":{...}}</code></td>
+</tr>
+<tr>
+<td><strong>MCP（Model Context Protocol）</strong></td>
+<td>工具怎么被标准化发现、授权、复用</td>
+<td>Anthropic 主导的开放协议</td>
+<td>工具服务器暴露 <code>tools/list</code>、<code>tools/call</code>，客户端（Claude Desktop、Cursor）统一接入</td>
+</tr>
+<tr>
+<td><strong>自定义工具</strong></td>
+<td>业务里"查库存、开发票"这类函数怎么写</td>
+<td>使用方自己</td>
+<td>Python 函数加 docstring 加装饰器，被 FC 或 MCP 注册</td>
+</tr>
+</tbody>
+</table>
+<p>三层分别回答三个问题：模型会不会选，工具怎么接入，业务函数怎么实现。因为回答的问题不同，三者没有替代关系。</p>
+<h3 id="12-fc-mcp">1.2 FC 与 MCP 的分工</h3>
+<p>FC 与 MCP 经常被放在一起比较，两本 MCP 书的口径一致：Function Calling 是模型能力，模型输出结构化 JSON，告诉应用"我要调这个函数"。MCP 是传输和发现协议，规定 server 怎么暴露工具、客户端怎么发现工具、怎么鉴权、怎么传参。</p>
+<p>可以用餐厅来类比。Function Calling 是"模型会点菜"。MCP 是"整个餐厅的菜单系统、传菜口和结账流程"。<strong>MCP 建立在 Function Calling 之上，并不取代它。</strong> 模型仍然靠 FC 能力决定调用哪个工具，MCP 负责把这些工具按统一方式提供出来。</p>
+<p>FC 的价值在于执行权留在应用代码手里。模型只负责选函数和填参数，真正的调用由应用层完成。这是目前把 LLM 接到外部 API 最可靠的做法，比让模型自己拼 curl 更可控。</p>
+<h3 id="13">1.3 判断口诀</h3>
+<p>按三个条件选层：</p>
+<ul>
+<li>单次 demo，且只有自己一个人用：<strong>直接写 FC</strong>，一个 <code>@tool</code> 装饰器就够用。</li>
+<li>工具要给多个 Agent 或多个客户端复用：<strong>包成 MCP server</strong>。</li>
+<li>工具会改变外部状态，例如删库、发邮件、转账：<strong>必须走 MCP 的授权与确认弹窗</strong>，不能裸跑 FC。</li>
+</ul>
+<h3 id="14">1.4 本库六员的工具层现状</h3>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>工具层现状</th>
+<th>对应概念</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Hermes</strong></td>
+<td>主对话直接调 <code>terminal</code>、<code>web_search</code>、<code>read_file</code>、<code>patch</code></td>
+<td>自定义工具（@tool 风格），由模型自己判断何时调用</td>
+</tr>
+<tr>
+<td><strong>Claude Code</strong></td>
+<td>内置 Bash、Edit、Read、Grep，支持接入 MCP server</td>
+<td>MCP 原生客户端，已接入多个 MCP</td>
+</tr>
+<tr>
+<td><strong>Codex</strong></td>
+<td>OpenAI 官方沙箱，由 FC 驱动</td>
+<td>纯 FC 路线</td>
+</tr>
+<tr>
+<td><strong>OpenClaw</strong></td>
+<td>图像生成、视频生成、浏览器自动化等高级功能</td>
+<td>自定义工具集，计划包成 MCP server 复用</td>
+</tr>
+<tr>
+<td><strong>DSH</strong></td>
+<td>通过 Hermes 派发任务</td>
+<td>不直接持有工具，是任务路由层</td>
+</tr>
+<tr>
+<td><strong>QwenCode</strong></td>
+<td>通义系，由 FC 驱动</td>
+<td>自定义工具</td>
+</tr>
+</tbody>
+</table>
+<p>下一步动作是把 OpenClaw 的浏览器自动化、Hermes 的 <code>browser_exec</code> 这类高频工具包成统一 MCP server。这样 Claude Desktop、Cursor 和其他客户端都能复用，不必每个 Agent 各写一遍。</p>
+<h2 id="_2">二、选工具的原则</h2>
+<h3 id="21">2.1 实操共识：三条基本规则</h3>
+<p>几本书对工具设计的建议高度一致，可以归纳成三条：</p>
+<ol>
+<li><strong>工具粒度要小。</strong> 一个工具只做一件事，模型选错的概率才低。</li>
+<li><strong>工具描述里写清"什么时候用、什么时候不用"。</strong> 这比函数实现本身更影响调用准确率。FC 的价值很大程度取决于 schema 的描述质量，docstring 写得越清楚，模型选错的概率越低。</li>
+<li><strong>只读工具和写工具要分开。</strong> 写工具必须有人审、有日志、有回滚。</li>
+</ol>
+<p>工具是可插拔的，Agent 主脑是稳定的。《零基础搭建 Coze+Dify+LangChain》把插件比作智能体的工具箱，并强调模块化解耦："想用就装，不用就卸，不影响核心系统"。自定义工具的设计哲学正是如此。</p>
+<h3 id="22-anthropic">2.2 Anthropic 工具设计原则</h3>
+<p>Anthropic 的工具设计原则适用于任何框架，不论选哪种 SDK：</p>
+<ol>
+<li><strong>简单优先。</strong> 工具文档和测试花的功夫，应当超过花在 prompt 上的功夫。</li>
+<li><strong>控制 token 预算。</strong> 58 个工具的定义约 55K token 起步。优化前，工具定义可能吃掉 134K token。对策是 <code>defer_loading</code> 或 Tool Search：按需加载，延迟加载的工具不进入初始 prompt，也不破坏 prompt caching。</li>
+<li><strong>限制响应长度。</strong> Claude Code 默认把单次工具响应限制在 25,000 token。</li>
+<li><strong>抽象层级越高，细粒度控制越贵。</strong> 选框架或封装工具前，先确认要调的那个参数，在该层是否暴露。</li>
+</ol>
+<p>第一条和第二条都在提醒同一件事：工具越多，模型负担越重。这也是后面 MCP 安全章节"每个 Agent 活跃 MCP 数不超过 6"的依据。</p>
+<h3 id="23-demo">2.3 从 demo 到生产：工具层的位置</h3>
+<p>工具层是 Agent 落地的一个环节。《最佳答案》给出的落地 5 步中，第 3 步是"选工具"：判断哪些需求用 RAG 查知识库，哪些用 FC 调 API，哪些用代码执行做计算。第 5 步是"接日志和回调"，每次用户提问、链的运行状态、模型输出都要记录，这一步是从 demo 到生产的分水岭。工具调用本身属于 Agent 循环的一部分，循环怎么设计见<a href="L5-Agent核心循环与业务落地-深挖整合.html">核心循环与业务落地</a>。</p>
+<h2 id="mcp">三、MCP 解决什么问题</h2>
+<h3 id="31-nm-nm">3.1 N×M 集成爆炸与 N+M 降维</h3>
+<p>《MCP原理与实战》开篇给出典型场景：5 种 AI 应用要接 5 种数据源，传统做法要写 25 套定制接入。这个数字还要乘以"每个工具都要重新做鉴权、错误处理、参数解析"，工程成本接近指数增长。</p>
+<p>MCP 把这一层抽成统一协议。每个工具写一份 server，每个客户端实现一份协议适配，总量从 N×M 降到 N+M。</p>
+<p>《一本书讲透 MCP》从产业视角补充了一点：传统 Agent 的瓶颈不是"模型不够聪明"，而是 Agent 之间、Agent 与工具之间连不起来。Agent 要自己爬 API、自己拼 prompt、自己维护工具描述库，等于每个 Agent 都把同样的活重干一遍。MCP 把这一层抽成独立的连接层。</p>
+<h3 id="32-api-mcp">3.2 API 与 MCP 的三点区别</h3>
+<p>MCP 不是"又一个 API 协议"。它与直接调用 API 的区别有三层：</p>
+<ol>
+<li><strong>API 面向人和前端，MCP 面向 LLM。</strong> 工具描述里要写清副作用（只读还是会改状态）、参数 schema、权限等级，LLM 才能安全地选工具。</li>
+<li><strong>API 只解决"调得通"，MCP 还解决"调得安全、调得可发现、调得可授权"。</strong> OAuth 流程、高风险操作的确认弹窗、资源发现（Resources、Tools、Prompts 三类原语）都是协议内建的。</li>
+<li><strong>API 是点对点的，MCP 是通用接口式的。</strong> 实现一次，所有兼容客户端都能用。这是 MCP 被称为"AI 应用的 USB-C"的原因。</li>
+</ol>
+<h3 id="33">3.3 三类原语</h3>
+<p>MCP server 对外暴露三类原语。两本 MCP 书的分类一致：</p>
+<table>
+<thead>
+<tr>
+<th>原语</th>
+<th>形态</th>
+<th>典型例子</th>
+<th>副作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Resources（资源）</strong></td>
+<td>只读，"万物皆资源"，包括文档全文、数据库记录、一次 API 返回、截图、日志</td>
+<td>读取一份 PDF，查询一条订单</td>
+<td>无状态，LLM 读取后不改变外部世界</td>
+</tr>
+<tr>
+<td><strong>Tools（工具）</strong></td>
+<td>可执行、动态，有副作用</td>
+<td><code>create_repo</code>、<code>pods_exec</code>、<code>send_email</code></td>
+<td>会改变外部系统状态</td>
+</tr>
+<tr>
+<td><strong>Prompts（提示模板）</strong></td>
+<td>可复用的指令片段</td>
+<td>"简历筛选模板"、"代码评审 prompt"</td>
+<td>团队统一输出风格</td>
+</tr>
+</tbody>
+</table>
+<p>工程上的关键细节是：<strong>工具描述里必须标注"只读"还是"会修改数据"。</strong> 这一标注既是 LLM 安全选工具的基础，也是主机端弹出确认框的依据。</p>
+<h3 id="34-mcp-fc">3.4 MCP 与 FC 的分层关系</h3>
+<p>FC 与 MCP 的关系已在 1.2 节说明：FC 是模型能力，MCP 是传输和发现协议，两者叠加使用。实际接入时，LangChain 这类框架会把 MCP server 暴露的工具转换成框架自身的 Tool 对象，交给 Agent 使用。见第五节的集成示例。</p>
+<h3 id="35">3.5 两本书的定位差异</h3>
+<p>《MCP原理与实战》把 MCP 当作"工具接入标准"，偏工程视角。《一本书讲透 MCP》把它上升到"AI 互联网的 TCP/IP"，偏产业视角。工程上按前者落地，产业判断可以参考后者。</p>
+<h2 id="mcp_1">四、MCP 的安全与治理</h2>
+<h3 id="41">4.1 协议内建的安全机制</h3>
+<p>MCP 相对直接写 FC 的最大增量在安全。以下四项是协议或主机端提供的能力：</p>
+<ol>
+<li><strong>OAuth 内建。</strong> 访问第三方服务走标准 OAuth 授权，不暴露用户名和密码，用令牌通信。</li>
+<li><strong>高风险操作人审。</strong> 主机端可以弹出确认框，"大模型想执行删除操作，是否允许"。用户同意后才放行。</li>
+<li><strong>权限分级。</strong> 工具在描述里声明自己只读还是会改状态，主机据此决定是否需要人审。</li>
+<li><strong>沙箱与权限裁剪。</strong> 以 <code>MCP Run Python</code> 为例，网络访问和 node_modules 读写需要用 <code>-N -R</code> 参数显式打开，默认收紧。</li>
+</ol>
+<p>这些能力都是 FC 原生不带的，需要自己写。这也是把"工具描述要写清副作用"当作硬性规范的原因。Claude Code 是 MCP 客户端的标杆实现，Anthropic 自己也这样要求。</p>
+<h3 id="42-rest-api-mcp-server">4.2 把已有 REST API 包成 MCP server</h3>
+<p>《MCP原理与实战》给出的例子是 Gitea MCP。它内置近 30 个工具，每个工具映射到一个 Gitea REST 接口，例如 <code>POST /repos/{owner}/{repo}/issues</code>。调用后返回 JSON，由大模型判断下一步。这就是"把已有 REST API 包成 MCP server"的标准做法：一个 server 供所有客户端使用。</p>
+<p>后面第六节会说明，这种自动转换适合做原型，不适合直接作为面向 LLM 的最终工具集。</p>
+<h3 id="43">4.3 生态层面的硬约束</h3>
+<p>2026 年的 MCP 生态已经很大。外部调研显示，公开 MCP server 已超过 10,000 个，头部集中度高：前 17 个覆盖约 80% 的搜索量。头部包括 Playwright、Figma、GitHub、Jira、Context7 等。这些数字来自榜单式的二手综合，只能作为生态规模的参考，不能当作精确统计。</p>
+<p>数量多也带来风险。2026 年 4 月披露过一件事：下载量达 1.5 亿的某个 MCP server 存在 RCE 漏洞。因此，调研结论给出了五条硬约束：</p>
+<ol>
+<li><strong>只用官方 vendor server，并固定版本号，不用 latest。</strong></li>
+<li><strong>API token 按最小权限配置。</strong> 数据库账号只读，GitHub token 只勾选必要的 scope。</li>
+<li><strong>文件访问范围限定在单一项目目录，不开放整个 home 目录。</strong></li>
+<li><strong>Web fetch 类工具开启 SSRF 防护。</strong></li>
+<li><strong>每个 Agent 活跃的 MCP 数不超过 6 个。</strong> 超过后，模型工具选择会陷入困惑。</li>
+</ol>
+<p>这五条与前面的安全机制互为补充。协议保证鉴权和确认流程能走通，这五条决定工具面的范围和来源。</p>
+<h3 id="44-mcp">4.4 本库的 MCP 落地状态</h3>
+<table>
+<thead>
+<tr>
+<th>MCP</th>
+<th>状态</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>codebase-memory-mcp</td>
+<td>已落地</td>
+<td>代码图，覆盖 158 种语言，5 员已接入</td>
+</tr>
+<tr>
+<td>GitHub MCP</td>
+<td>已落地</td>
+<td>PR、Issue、代码搜索</td>
+</tr>
+<tr>
+<td>Docker MCP</td>
+<td>已落地</td>
+<td>由 docker-container-ops 技能调用</td>
+</tr>
+<tr>
+<td>Playwright MCP</td>
+<td>调研待评估，P0</td>
+<td>Microsoft 官方，替代零散的 curl 与 selenium</td>
+</tr>
+<tr>
+<td>Tavily MCP</td>
+<td>调研待评估，P0</td>
+<td>搜索与正文一体，省去单独 fetch，每月 1000 次免费额度</td>
+</tr>
+<tr>
+<td>Context7 MCP</td>
+<td>调研待评估，P0</td>
+<td>第三方库文档实时检索，免 key</td>
+</tr>
+<tr>
+<td>PostgreSQL MCP</td>
+<td>调研待评估，P1</td>
+<td>只读账号，用于 error-ledger 数据分析</td>
+</tr>
+<tr>
+<td>Sequential Thinking、Memory、SQLite、Supabase</td>
+<td>明确不做</td>
+<td>已有等效技能或无对应项目</td>
+</tr>
+</tbody>
+</table>
+<p>本库的 Hermes 已在做 MCP 风格的客户端调用，browser、xurl、notion 等工具本质上是 MCP 风格的封装，但 server 端对外暴露还没有标准化。把 Hermes 的自定义工具按 Resources、Tools、Prompts 三类原语重新梳理，让六员通过同一套 server 互相调用，列为待办。</p>
+<h2 id="fastmcp">五、动手：FastMCP 实操</h2>
+<p>FastMCP 是 Python 的高层 MCP 框架。它把装饰器与 JSON Schema 生成封装在一起，写一个 server 的成本很低。以下三段代码对应课件第六节的三个步骤。</p>
+<h3 id="51-mcp-server">5.1 MCP Server 最小示例</h3>
+<pre><code class="language-python">from fastmcp import FastMCP
+from typing import Annotated
+from pydantic import Field
+
+mcp = FastMCP(name=&quot;health_server&quot;)
+
+# 1) Tool：给 LLM 当&quot;手&quot;
+@mcp.tool()
+async def add(a: int, b: int) -&gt; int:
+    &quot;&quot;&quot;计算两数之和&quot;&quot;&quot;
+    return a + b
+
+@mcp.tool()
+async def calculate_bmi(weight_kg: float, height_m: float) -&gt; str:
+    &quot;&quot;&quot;计算 BMI 指数并返回健康建议&quot;&quot;&quot;
+    if height_m &lt;= 0:
+        return &quot;错误：身高必须大于 0&quot;
+    bmi = weight_kg / (height_m ** 2)
+    tip = &quot;偏瘦&quot; if bmi &lt; 18.5 else &quot;正常&quot; if bmi &lt; 24.9 else &quot;偏胖&quot;
+    return f&quot;BMI: {bmi:.2f} ({tip})&quot;
+
+# 2) Resource：给 LLM 当&quot;眼睛&quot;（静态/动态数据）
+@mcp.resource(&quot;resource://health-guidelines&quot;, mime_type=&quot;text/plain&quot;)
+async def get_health_guidelines() -&gt; str:
+    &quot;&quot;&quot;通用健康指南&quot;&quot;&quot;
+    return &quot;1. 每天 8 小时睡眠  2. 多吃蔬菜水果  3. 每周运动 150 分钟&quot;
+
+# 3) Prompt：给 LLM 当&quot;模板&quot;
+@mcp.prompt()
+async def analyze_my_health(
+    name: Annotated[str, Field(description=&quot;用户姓名&quot;)],
+    weight: Annotated[float, Field(description=&quot;体重 kg&quot;)],
+    height: Annotated[float, Field(description=&quot;身高 m&quot;)],
+) -&gt; str:
+    &quot;&quot;&quot;生成健康分析提示词&quot;&quot;&quot;
+    return f&quot;用户 {name}，体重 {weight}kg，身高 {height}m。请计算 BMI 并给出建议。&quot;
+
+if __name__ == &quot;__main__&quot;:
+    mcp.run()   # 默认 stdio 传输；也可以 mcp.run(transport=&quot;http&quot;)
+</code></pre>
+<p>代码要点如下：</p>
+<ul>
+<li><code>@mcp.tool()</code>、<code>@mcp.resource(uri)</code>、<code>@mcp.prompt()</code> 三个装饰器分别对应 MCP 的三类原语。</li>
+<li><code>FastMCP</code> 是高层封装，会自动生成 JSON Schema。需要动态生成工具时，可以退到底层写法：用 <code>mcp.server.Server</code> 手动编写 <code>@server.list_tools()</code>。课件也讲了这种写法，但只在动态场景下使用。</li>
+<li>传输方式默认是 stdio，即通过子进程通信，适合本地工具。HTTP 或 SSE 适合远程 server。</li>
+</ul>
+<h3 id="52-mcp-client-server">5.2 MCP Client 调用 Server</h3>
+<pre><code class="language-python">import asyncio
+from fastmcp import Client
+
+async def main():
+    # Client 直接传 server 脚本路径，自动拉起子进程
+    async with Client(&quot;01-first_mcp_server.py&quot;) as client:
+        await client.ping()
+
+        # 1) 列出并调用工具
+        tools = await client.list_tools()
+        print(&quot;可用工具:&quot;, [t.name for t in tools])
+        r = await client.call_tool(&quot;add&quot;, {&quot;a&quot;: 10, &quot;b&quot;: 5})
+        print(&quot;add 结果:&quot;, r.content[0].text)
+
+        # 2) 读资源
+        resources = await client.list_resources()
+        r = await client.read_resource(&quot;resource://health-guidelines&quot;)
+        print(&quot;健康指南:&quot;, r[0].text)
+
+        # 3) 取提示词模板
+        prompt = await client.get_prompt(&quot;analyze_my_health&quot;,
+                                         {&quot;name&quot;: &quot;Alice&quot;, &quot;weight&quot;: &quot;60&quot;, &quot;height&quot;: &quot;1.65&quot;})
+        print(prompt.messages[0].content.text)
+
+asyncio.run(main())
+</code></pre>
+<p>Client 的三步对应 server 的三类原语。先用 <code>list_tools</code> 发现工具，再用 <code>call_tool</code> 调用；用 <code>read_resource</code> 读取资源；用 <code>get_prompt</code> 取模板。</p>
+<h3 id="53-langchain-agent-mcp">5.3 LangChain Agent 集成 MCP</h3>
+<pre><code class="language-python">import asyncio, os
+from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
+from langchain.agents import create_agent
+from langchain_mcp_adapters.client import MultiServerMCPClient
+
+load_dotenv()
+llm = ChatOpenAI(model=&quot;kimi-k2.5&quot;,
+                 api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+                 base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;))
+
+async def main():
+    # 一个 client 可以连多个 MCP server
+    client = MultiServerMCPClient({
+        &quot;health_server&quot;: {
+            &quot;transport&quot;: &quot;stdio&quot;,
+            &quot;command&quot;: &quot;python&quot;,
+            &quot;args&quot;: [&quot;./01-first_mcp_server.py&quot;],
+        },
+    })
+    tools = await client.get_tools()    # 自动把所有 server 的 tool 拉成 LangChain Tool
+
+    agent = create_agent(model=llm, tools=tools)
+    r = await agent.ainvoke({&quot;messages&quot;: [
+        {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;我体重 75kg，身高 1.80m，算一下 BMI&quot;}]})
+    print(r[&quot;messages&quot;][-1].content)
+
+asyncio.run(main())
+</code></pre>
+<h3 id="54">5.4 三段代码的意义</h3>
+<p>这组示例体现了 MCP 的几个工程效果：</p>
+<ul>
+<li>工具定义从业务代码中抽离，变成独立的 server 进程。</li>
+<li>同一个 MCP server 可以被 Claude Desktop、Cursor、LangChain Agent 和自研 Agent 同时复用。</li>
+<li><code>MultiServerMCPClient</code> 允许一个 Agent 同时挂载 N 个工具 server。课件把这种做法视为生产架构的标准做法。</li>
+</ul>
+<h2 id="fastmcp-fastapi">六、FastMCP 与 FastAPI 的两条集成路径</h2>
+<p>如果要把 RAG 检索或知识库查询做成 MCP server 供六员调用，FastMCP 是官方首选框架。FastMCP 与 FastAPI 的集成有两条路径，适用场景完全不同。用错会导致 LLM 调用工具的效果变差，也会出现 session 不初始化、CORS 冲突等问题。</p>
+<h3 id="61-a-fastapi-mcp-server">6.1 路径 A：从 FastAPI 生成 MCP server</h3>
+<p>路径 A 的作用是把现有 API 转成 MCP 工具：</p>
+<pre><code class="language-python">from fastmcp import FastMCP
+mcp = FastMCP.from_fastapi(app=app)  # 一行转换
+mcp.run()
+</code></pre>
+<p>要点如下：</p>
+<ul>
+<li>底层基于 OpenAPIProvider（v3.0.0 及以上），从 FastAPI 的 OpenAPI spec 抽取工具。</li>
+<li>工具名取自 FastAPI 的 <code>operation_id</code>。必须显式指定，否则会生成类似 <code>list_products_products_get</code> 的难看名字。</li>
+<li>转换后得到的仍是完整的 FastMCP 实例，可以继续用 <code>@mcp.tool</code> 添加新工具或资源。</li>
+<li>支持 RouteMap，可以自定义端点到 MCP 组件的映射，例如 GET 映射为 Resource，POST、PUT、DELETE 映射为 Tool。</li>
+<li>支持通过 <code>httpx_client_kwargs</code> 传入认证头。</li>
+</ul>
+<p>官方明确警告：LLM 对手工设计的 MCP server 效果显著优于自动转换的 server，对复杂 API（多端点、多参数）尤其明显。因此路径 A 只建议用于 bootstrap 或原型阶段，不建议把 REST API 原样搬到 LLM 客户端。</p>
+<h3 id="62-b-mcp-server-fastapi">6.2 路径 B：把 MCP server 挂进 FastAPI</h3>
+<p>路径 B 的作用是给已有的 Web 应用增加 MCP 能力：</p>
+<pre><code class="language-python">from fastmcp import FastMCP
+from fastapi import FastAPI
+
+mcp = FastMCP(&quot;Analytics Tools&quot;)
+mcp_app = mcp.http_app(path='/mcp')
+
+# 必须传 lifespan（否则 session manager 不初始化）
+app = FastAPI(title=&quot;E-commerce API&quot;, lifespan=mcp_app.lifespan)
+app.mount(&quot;/analytics&quot;, mcp_app)
+# 现在：REST API 在 /products/*，MCP 在 /analytics/mcp/
+</code></pre>
+<p>要点如下：</p>
+<ul>
+<li>如果两个 app 各自有 lifespan，用 <code>combine_lifespans</code> 合并。合并后按顺序进入、逆序退出。</li>
+<li>这条路径可以组成"REST 加 MCP 双入口"：同一个代码库同时提供传统 API 和 MCP 端点。</li>
+</ul>
+<h3 id="63">6.3 四个关键坑</h3>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>说明</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>operation_id 决定 MCP 工具名</strong></td>
+<td>不显式指定，会生成 <code>list_products_products_get</code></td>
+<td>写成 <code>operation_id="get_user_by_id"</code></td>
+</tr>
+<tr>
+<td><strong>lifespan 必须传</strong></td>
+<td>不传，MCP session manager 不初始化</td>
+<td><code>FastAPI(lifespan=mcp_app.lifespan)</code></td>
+</tr>
+<tr>
+<td><strong>不要全局加 CORSMiddleware</strong></td>
+<td>与 OAuth 保护的 MCP server 冲突，表现为 <code>.well-known</code> 路由 404、OPTIONS 请求失败</td>
+<td>采用 sub-app 模式挂载，不做全局 CORS</td>
+</tr>
+<tr>
+<td><strong>FastAPI 需单独安装</strong></td>
+<td>FastMCP 不包含 FastAPI</td>
+<td><code>pip install fastmcp fastapi uvicorn</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="64">6.4 本项目的落地方案</h3>
+<p>对本库的 RAG 检索而言，路径 B 更合适。理由是：</p>
+<ul>
+<li>REST 加 MCP 双入口可以同时服务两类调用方。DSH、Codex 等 Agent 用 REST，Claude、OpenClaw 等 LLM 用 MCP。</li>
+<li>现有的 rag-kb-mcp 已经用 FastMCP 构建，运行在 8770 端口。如果要增加 REST 入口，可以按路径 B 重构。</li>
+<li>RAG 检索工具要做成 purpose-built，即手工设计 MCP 工具，而不是从 REST 接口自动转换。这与官方"手工设计效果更好"的结论一致。</li>
+</ul>
+<p>仍有两个问题待验证：</p>
+<ul>
+<li>[ ] 本地 rag-kb-mcp 改造成 FastAPI 加 MCP 双入口，收益是否大于重构成本。</li>
+<li>[ ] 路径 A 的"自动转换效果差"，在 RAG 检索场景下是否同样成立。RAG 工具通常参数较少，影响可能较小，但尚未验证。</li>
+</ul>
+<h2 id="a2a-mcp">七、A2A 与 MCP 的分工</h2>
+<h3 id="71-a2a">7.1 A2A 协议的三件核心</h3>
+<p>A2A（Agent2Agent）是 Google 在 2025 年 4 月提出的 Agent 间互操作协议，基于 HTTP(S)、JSON-RPC 2.0 和 SSE。它有三件核心：</p>
+<ul>
+<li><strong>Agent Card。</strong> 每个 Agent 在 <code>/.well-known/agent.json</code> 声明身份、能力（skills）、支持的模态和认证要求，供其他 Agent 发现。</li>
+<li><strong>Task Lifecycle。</strong> 标准任务状态机：submitted、working、input-required、completed、failed、canceled。支持长时任务和异步推送。</li>
+<li><strong>Rich Artifacts。</strong> 结果可以是文本、文件或结构化 JSON，中途还能动态协商模态。Client 与 Server 对称，只暴露能力边界，不暴露内部 memory 和 tools。</li>
+</ul>
+<h3 id="72-mcp-a2a">7.2 MCP 与 A2A 的分工</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>MCP</th>
+<th>A2A</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>解决的问题</td>
+<td>Agent 与工具之间的连接</td>
+<td>Agent 与 Agent 之间的协作</td>
+</tr>
+<tr>
+<td>交互模式</td>
+<td>结构化同步调用</td>
+<td>对话式，可异步，基于 SSE</td>
+</tr>
+<tr>
+<td>能力发现</td>
+<td>tool list（<code>list_tools</code>）</td>
+<td>Agent Card</td>
+</tr>
+<tr>
+<td>任务生命周期</td>
+<td>无，单次调用</td>
+<td>完整状态机，支持长时任务</td>
+</tr>
+</tbody>
+</table>
+<p>《一本书讲透 MCP》第 11 章专门讨论了两者的关系。MCP 解决 Agent 怎么连工具，是人与系统之间的连接层，好比"手"。A2A 解决 Agent 怎么连 Agent，是 Agent 之间的协作协议，好比"嘴"。两者是互补关系，不是竞争关系。未来的形态大概率是 MCP 和 A2A 并存。</p>
+<h3 id="73">7.3 本库的落地口径</h3>
+<p>六员都在本机运行。当前的协作本质上是 Hermes 硬编码派单（delegate_task，或 shell 调 CLI），可以说是"伪 A2A"。短期内不上 JSON-RPC server，因为本机 CLI 的开销更小。本库只借用 A2A 的两个产物：</p>
+<ol>
+<li><strong>每个 Agent 写一份 <code>agent_card.md</code></strong>，写明能力边界、输入契约、输出契约、典型任务。</li>
+<li><strong>派单走 task envelope。</strong> 用 <code>{task_id, status, input, artifacts}</code> 结构落盘到 <code>~/.hermes/tasks/</code>，而不是散在 prompt 里。</li>
+</ol>
+<p>长期规划是跨机器协作，例如把审查任务发到云端 OpenClaw 时，再上真正的 A2A 协议。这一点在调研里仍是"待评估"，并未进入实施。</p>
+<h2 id="_3">小结</h2>
+<p>工具层由 FC、MCP、自定义工具三层叠加而成。FC 让模型会选工具，MCP 让工具可以标准化地被发现、授权和复用，自定义工具承载业务逻辑。选择时按复用范围和副作用判断：单人 demo 用 FC，多方复用用 MCP，改写外部状态的工具必须有确认环节。</p>
+<p>MCP 的价值在于把 N×M 集成降到 N+M，并内建 OAuth、人审弹窗与副作用标注。它的安全效果依赖工具描述的准确性，以及固定版本、最小权限、限定目录范围、SSRF 防护和活跃 server 数不超过 6 这些治理措施。</p>
+<p>动手层面，FastMCP 提供 <code>tool</code>、<code>resource</code>、<code>prompt</code> 三个装饰器，Client 与 LangChain 的 <code>MultiServerMCPClient</code> 负责调用。把 FastAPI 与 MCP 结合时，路径 B 适合双入口服务，路径 A 只适合原型。A2A 负责 Agent 之间的协作，MCP 负责 Agent 与工具之间的连接，两者分工明确。</p>
+<h2 id="_4">来源</h2>
+<ul>
+<li><a href="Agent怎么选工具.html">Agent怎么选工具.md</a></li>
+<li><a href="MCP到底解决什么问题.html">MCP到底解决什么问题.md</a></li>
+<li><a href="FastMCP-FastAPI集成两条路径-202610.html">FastMCP-FastAPI集成两条路径-202610.md</a></li>
+<li><a href="Agent框架与协议进展-2026.html">Agent框架与协议进展-2026.md</a>（取 MCP、A2A 相关部分）</li>
+<li><a href="多智能体协作工作流调研.html">多智能体协作工作流调研.md</a>（取 A2A 协议一节）</li>
+<li><a href="L5-Agent工程-最佳答案.html">L5-Agent工程-最佳答案.md</a>（取 Anthropic 工具设计原则、FC 与 MCP 段）</li>
+<li><a href="L5-Agent工程-课件实操.html">L5-Agent工程-课件实操.md</a>（取第六节 MCP）</li>
+</ul>
+<h2 id="_5">相关条目</h2>
+<ul>
+<li><a href="L5-Agent核心循环与业务落地-深挖整合.html">L5 Agent 核心循环与业务落地</a></li>
+<li><a href="L5-多Agent协作与编排-深挖整合.html">L5 多 Agent 协作与编排</a></li>
+<li><a href="L5-Agent框架选型与平台生态-深挖整合.html">L5 Agent 框架选型与平台生态</a></li>
+<li><a href="L5-Agent记忆与自进化-深挖整合.html">L5 Agent 记忆与自进化</a></li>
+<li><a href="L5-Agent生产化可靠性与评估-深挖整合.html">L5 Agent 生产化可靠性与评估</a></li>
+<li><a href="L5-OpenClaw模块协同-深挖整合.html">L5 OpenClaw 模块协同</a></li>
+</ul></div></body></html>

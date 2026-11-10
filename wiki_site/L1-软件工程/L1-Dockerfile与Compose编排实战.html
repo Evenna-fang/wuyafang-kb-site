@@ -1,0 +1,1220 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L1-Dockerfile与Compose编排实战</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L1-Dockerfile与Compose编排实战</span></div><div class="wrap"><h1 id="dockerfile-与-compose-编排实战">Dockerfile 与 Compose 编排实战</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<p><strong>能力域</strong>：软件工程 / DevOps / 单机容器交付。<br />
+<strong>关键词</strong>：构建上下文、镜像分层、多阶段构建、就绪检查、网络隔离、命名卷、配置优先级。<br />
+<strong>来源说明</strong>：根据 Docker 官方 Dockerfile reference、Compose Specification 与操作指南编写；下文项目为教学示例，不声称取自某个现有生产系统。版本号用于建立可复现基线，不代表截至更新日的最新安全版本。上线前应更新受支持的补丁版本并扫描镜像。</p>
+<p>本文面向已经会使用 <code>docker run</code>、<code>docker logs</code> 的工程师。目标是把一个后端 API、数据库、缓存和静态前端组合成可以构建、启动、验证、回退的交付单元。示例适合单机部署的起点；公网生产还要补齐 TLS、认证、备份恢复、漏洞扫描和监控告警。</p>
+<h2 id="what-whyt从一个镜像到一组服务及其边界">WHAT / WHYT：从一个镜像到一组服务，及其边界</h2>2
+<h3 id="1-dockerfile上下文与镜像层">1. Dockerfile、上下文与镜像层</h3>3
+<p>Dockerfile 是镜像构建配方。基础镜像、依赖安装、代码复制、运行身份和默认命令都能进入版本控制。<code>docker build -t my-api:1.0 .</code> 最后的点是<strong>构建上下文</strong>，不是 Dockerfile 路径；构建器只能访问上下文中允许进入构建的文件以及明确提供的其他输入。<code>COPY ../secret /app</code> 不能任意读取父目录。上下文选仓库根目录还是后端子目录，会直接决定可复制范围和缓存失效范围。</p>
+<p>镜像由只读文件系统层以及配置元数据组成。<code>RUN</code>、<code>COPY</code> 等通常产生文件系统变化；<code>ENV</code>、<code>CMD</code> 等主要写入配置，不能简单理解成“每条指令都有一份完整文件系统”。各层以内容寻址方式存储，相同内容可以被不同镜像复用；容器启动时再叠加自己的可写层，常见存储驱动通过写时复制处理修改。容器可写层随容器删除而消失，因此业务数据不能依赖这一层。</p>
+<p>删除上层文件不会抹去下层已经包含的内容。例如先 <code>COPY</code> 私钥、下一条 <code>RUN rm</code>，私钥仍可能存在于历史层。正确方法是在进入上下文前排除凭据，构建期认证使用 BuildKit secret mount，运行期凭据使用单独挂载。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2. Compose Specification 与服务、网络、卷</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Compose 用 YAML 描述一个应用的服务集合</li><li>服务规定镜像、命令和运行配置；网络规定哪些服务互通；卷负责容器生命周期之外的数据保存</li><li>Compose Specification 是持续演进的规范，如今不必再写顶层 「version: "3.8"」；新插件中该字段仅为兼容而保留，可能提示已经过时</li></ul></div>3
+<p>Compose 用 YAML 描述一个应用的服务集合。<strong>服务</strong>规定镜像、命令和运行配置；<strong>网络</strong>规定哪些服务互通；<strong>卷</strong>负责容器生命周期之外的数据保存。Compose Specification 是持续演进的规范，如今不必再写顶层 <code>version: "3.8"</code>；新插件中该字段仅为兼容而保留，可能提示已经过时。</p>
+<p>同一网络上的服务可以用服务名通信。API 访问 PostgreSQL 应连接 <code>postgres:5432</code>，而不是 <code>localhost:5432</code>；容器里的 localhost 指向容器自身。<code>ports</code> 是向宿主机发布端口，服务之间通信不需要发布端口，<code>EXPOSE</code> 也不会自动向宿主机开放端口。</p>
+<h3 id="3-v1-与-v2命令迁移">3. v1 与 v2：命令迁移</h3>3
+<p>旧的 <code>docker-compose</code> 是 Python 实现的独立程序，v1 已停止维护；本教程锁定 Go 实现的 Compose v2 CLI 插件，命令写成 <code>docker compose</code>。软件包常叫 <code>docker-compose-plugin</code>，包名中带连字符不意味着命令也带连字符。</p>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>v1 命令</th>
+<th>v2 命令</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>查看版本</td>
+<td><code>docker-compose version</code></td>
+<td><code>docker compose version</code></td>
+</tr>
+<tr>
+<td>构建并启动</td>
+<td><code>docker-compose up -d --build</code></td>
+<td><code>docker compose up -d --build</code></td>
+</tr>
+<tr>
+<td>查看状态</td>
+<td><code>docker-compose ps</code></td>
+<td><code>docker compose ps</code></td>
+</tr>
+<tr>
+<td>查看日志</td>
+<td><code>docker-compose logs -f api</code></td>
+<td><code>docker compose logs -f api</code></td>
+</tr>
+<tr>
+<td>校验配置</td>
+<td><code>docker-compose config</code></td>
+<td><code>docker compose config --quiet</code></td>
+</tr>
+<tr>
+<td>停止并删除容器</td>
+<td><code>docker-compose down</code></td>
+<td><code>docker compose down</code></td>
+</tr>
+</tbody>
+</table>
+<p>迁移时修改脚本中的命令，并检查容器名由下划线转为连字符的影响。程序使用服务 DNS 名，不依赖自动生成的容器名。数据库卷是否继续使用取决于项目名和卷配置；迁移前先记录项目名与真实卷名，不能把“启动成功但数据库为空”误当成数据已自动迁移。</p>
+</div></details><h2 id="why为什么环境也需要可审查可重复">WHY：为什么环境也需要可审查、可重复</h2>2
+<h3 id="1-把环境写成代码减少手工状态">1. 把环境写成代码，减少手工状态</h3>3
+<p>手动进服务器安装依赖，最终得到的是一台难以复制的机器。用 Dockerfile 固定运行时和依赖，用 Compose 声明网络、数据卷、资源限制，代码审查就能覆盖环境变化。所谓不可变基础设施，是把应用更新表达为“构建新镜像并替换容器”，而不是进入旧容器修文件。否则镜像里的代码和实际运行代码分离，下一次重建就把修复覆盖了。</p>
+<p>《持续交付 2.0》目录中的部署流水线、软件配置管理、不可变基础设施与低风险发布，为这类环境代码提供了交付背景；公开摘录“质量内建”说明配置检查、集成测试和安全检查应在交付过程中完成，而不是部署后补验。书籍材料只提供原则与章节指引，具体 Compose 字段仍以官方规范为准。</p>
+<p>不可变并不意味着数据库不可变。应用镜像负责程序，持久卷负责状态；数据库升级、迁移和备份有自己的生命周期。配置也应区分公共参数与凭据，让同一镜像在开发、预发布和生产使用不同运行配置，而不必重新构建。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2. 分层顺序为什么影响速度</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>构建缓存会考虑指令及其相关输入</li><li>若先 「COPY . .」 再安装依赖，任何一个源文件变化都可能使依赖安装重新执行</li><li>正确顺序通常是先复制依赖清单、安装依赖，再复制源码</li></ul></div>3
+<p>构建缓存会考虑指令及其相关输入。若先 <code>COPY . .</code> 再安装依赖，任何一个源文件变化都可能使依赖安装重新执行。正确顺序通常是先复制依赖清单、安装依赖，再复制源码。这样业务代码频繁变化时可以复用依赖层。<code>.dockerignore</code> 还应排除虚拟环境、日志、前端 node_modules 和本地 Git 数据，减少输入、传输与无关变动。</p>
+<p>缓存命中不等于软件已经更新。未改变的依赖清单可能继续命中旧层，基础镜像标签也可能发生变化。应在受控更新任务中使用 <code>--pull</code>、更新锁文件并重新扫描，而不是每次发布都粗暴 <code>--no-cache</code>。本示例钉住直接依赖；严格生产复现还应锁住传递依赖并记录包哈希，避免同一份 requirements 在不同日期解析出不同结果。</p>
+<h3 id="3-多阶段构建为什么缩小交付范围">3. 多阶段构建为什么缩小交付范围</h3>3
+<p>编译器、头文件、包管理缓存只在构建时需要。多阶段构建让 builder 生成 wheel、二进制或前端静态资源，最终 runtime 只复制运行所需产物。它减少最终镜像里不必要的工具，也降低攻击面。收益取决于项目：本例使用预编译 Python wheel，体积收益可能有限；包含 C 编译链、Node 构建依赖的项目通常更明显。</p>
+<p>多阶段本身不保证镜像小。如果把整个 builder 文件系统复制回 runtime，体积仍会很大；也不能把不同 Python 版本、不同 CPU 架构或 glibc/musl 环境中的二进制随意混用。本例两个阶段使用相同基础镜像，避免二进制兼容问题。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4. 为什么不用一串 docker run</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>单条 「docker run」 可以启动一个进程，但多服务还需要记住网络、卷、重启策略、数据库参数和启动依赖</li><li>Compose 把关系放进一份可校验文件，并按项目名分组，开发和生产可以使用不同项目名形成隔离</li><li>启动顺序与就绪状态是两回事：数据库进程刚创建时可能仍在初始化</li></ul></div>3
+<p>单条 <code>docker run</code> 可以启动一个进程，但多服务还需要记住网络、卷、重启策略、数据库参数和启动依赖。命令散落在历史记录里，换人就难以重建。Compose 把关系放进一份可校验文件，并按项目名分组，开发和生产可以使用不同项目名形成隔离。</p>
+<p>启动顺序与就绪状态是两回事：数据库进程刚创建时可能仍在初始化。<code>depends_on</code> 的短语法只保证启动关系；配合健康检查与 <code>condition: service_healthy</code> 才会等依赖报告健康。即使如此，数据库在运行中仍可能重启，应用还要有连接超时、连接池回收和有限重试。依赖条件不是永久保活承诺。</p>
+<p><strong>论文落点：Up/healthy 也不能覆盖有害副作用。</strong> VeriHarm-Bench（arXiv:2611.03575）研究带 shell 的编码 Agent“任务完成但同时造成伤害”的情形，主张同时运行任务正确性测试和可执行伤害测试。其模型与数字不能直接外推到 Compose；我们借用双门禁方法：除了验证四个服务健康和 API 返回，还要断言未发布多余端口、未把 secret 打入镜像、未改动无关卷、未放宽权限，清理演示时不误删其他项目资源。</p>
+<h3 id="5-为什么-env-与-secrets-分开">5. 为什么 .env 与 secrets 分开</h3>3
+<p><code>.env</code> 的主要角色是为 Compose 插值提供参数；<code>env_file</code> 才会把指定文件的键值注入容器。环境变量便于传递端口、日志级别，但密码可能通过容器检查信息、调试输出或进程环境暴露。运行期 secret 文件使应用只读取需要的凭据，避免把密码直接写进 YAML、镜像层或 Git。</p>
+<p>本地 Compose 的 <code>secrets: file:</code> 主要是受控文件挂载，并不自动带来加密保险库。源文件仍要受宿主机权限、备份和磁盘安全策略保护。Docker Swarm 的 <code>docker secret</code> 是另一套集群能力；普通 <code>docker compose up</code> 不会因此获得 Swarm 的加密分发机制。</p>
+</div></details><h2 id="how先把环境和文件准备齐">HOW：先把环境和文件准备齐</h2>2
+<h3 id="0-环境准备与自检">0. 环境准备与自检</h3>3
+<p>基线为 Linux 或 WSL2，Docker Engine 24.0+、Compose v2.39.1、Python 3.12.10 镜像、PostgreSQL 16.9、Redis 7.4.3、Nginx 1.28.0。Docker Desktop 通常自带 Compose，请先检查，已有符合要求的 v2 插件就跳过手工安装。WSL2 用户开启 Docker Desktop 对该发行版的集成；不要无意中同时维护两套互不相通的引擎。</p>
+<pre><code class="language-bash">docker version
+docker info
+docker compose version
+# 预期示例：Docker Compose version v2.39.1
+# docker version 必须能看到 Server，只有 Client 不代表引擎可用。
+</code></pre>
+<p>以下是在已有 Docker Engine 的 Linux 上安装固定版本用户级插件的命令。需要 curl，支持 x86_64 与 aarch64；手工安装不会自动更新，要纳入补丁管理。若系统已经通过软件包维护 Compose，优先使用同一渠道，避免用户级插件遮蔽系统版本。</p>
+<pre><code class="language-bash">set -eu
+COMPOSE_VERSION=v2.39.1
+case &quot;$(uname -m)&quot; in
+  x86_64) COMPOSE_ARCH=x86_64 ;;
+  aarch64|arm64) COMPOSE_ARCH=aarch64 ;;
+  *) echo &quot;请按 Docker 官方文档选择对应架构&quot; &gt;&amp;2; exit 1 ;;
+esac
+mkdir -p &quot;$HOME/.docker/cli-plugins&quot;
+curl -fSL &quot;https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-${COMPOSE_ARCH}&quot;   -o &quot;$HOME/.docker/cli-plugins/docker-compose&quot;
+chmod +x &quot;$HOME/.docker/cli-plugins/docker-compose&quot;
+docker compose version
+docker compose version --short | grep -E '^v?2\.'
+</code></pre>
+<p>插件先解析 YAML，再按 Compose 规范检查字段；普通 YAML 能解析并不说明 Compose 字段合法。<code>docker compose config --quiet</code> 是 CI 的最低检查，输出为空且退出码为零才算通过。完整 <code>config</code> 会展开配置，可能包含敏感值，避免直接放进公开 CI 日志。</p>
+<pre><code class="language-bash"># 在下文项目文件和 .env 就绪后执行；尚未创建时不要提前运行。
+docker compose -f docker-compose.yml config --quiet
+docker compose -f docker-compose.yml config --services
+# 应列出 api、postgres、redis、frontend（显示顺序可能不同）。
+</code></pre>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第一步：生产级 FastAPI 镜像</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>后面各文件代码块都是完整内容；可以逐个保存，也可以直接跳到“端到端命令”一次生成，不必重复操作</li><li>本例用标准库进行 HTTP 健康探测，不额外安装 curl</li><li>API 使用 UID 10001 运行，关闭 Python 字节码写入，支持只读根文件系统</li></ul></div>3
+<p>先创建以下目录。后面各文件代码块都是完整内容；可以逐个保存，也可以直接跳到“端到端命令”一次生成，不必重复操作。</p>
+<pre><code class="language-bash">mkdir -p fastapi-compose-demo/{frontend,nginx,db/init,secrets}
+cd fastapi-compose-demo
+git init
+</code></pre>
+<p>本例用标准库进行 HTTP 健康探测，不额外安装 curl。API 使用 UID 10001 运行，关闭 Python 字节码写入，支持只读根文件系统。<code>CMD</code> 使用 JSON 数组，让终止信号能正确到达 Uvicorn；<code>init: true</code> 负责回收孤儿进程。健康接口实际检查数据库和 Redis，不只返回固定字符串。</p>
+<h3 id="requirementstxt完整内容"><code>requirements.txt</code>：完整内容</h3>3
+<pre><code class="language-text">fastapi==0.115.12
+uvicorn==0.34.2
+psycopg[binary]==3.2.9
+redis==6.1.0
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t"><code>Dockerfile</code>：完整内容</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「」`dockerfile</li></ul></div>3
+<pre><code class="language-dockerfile"># syntax=docker/dockerfile:1
+FROM python:3.12.10-slim-bookworm AS builder
+WORKDIR /build
+COPY requirements.txt ./
+RUN python -m pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
+
+FROM python:3.12.10-slim-bookworm AS runtime
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+WORKDIR /app
+RUN groupadd --gid 10001 app \
+    &amp;&amp; useradd --uid 10001 --gid app --no-create-home --shell /usr/sbin/nologin app
+COPY --from=builder /wheels /wheels
+RUN python -m pip install --no-cache-dir --no-index /wheels/*.whl \
+    &amp;&amp; rm -rf /wheels
+COPY --chown=10001:10001 app.py ./app.py
+USER 10001:10001
+EXPOSE 8000
+HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=5 \
+    CMD python -c &quot;import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=4)&quot; || exit 1
+CMD [&quot;uvicorn&quot;, &quot;app:app&quot;, &quot;--host&quot;, &quot;0.0.0.0&quot;, &quot;--port&quot;, &quot;8000&quot;, &quot;--workers&quot;, &quot;2&quot;]
+</code></pre>
+<h3 id="dockerignore完整内容"><code>.dockerignore</code>：完整内容</h3>3
+<pre><code class="language-dockerignore">.git
+.gitignore
+.env
+.env.*
+!.env.example
+secrets/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+node_modules/
+dist/
+build/
+*.log
+*.sqlite3
+*.pem
+*.key
+compose*.yml
+docker-compose*.yml
+frontend/
+nginx/
+db/
+README.md
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t"><code>app.py</code>：完整内容</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>@asynccontextmanager</li><li>await app.state.cache.aclose()</li><li>@app.get("/api/health")</li></ul></div>3
+<pre><code class="language-python">import os
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+import psycopg
+from fastapi import FastAPI, HTTPException
+from redis.asyncio import Redis
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.cache = Redis.from_url(
+        os.environ[&quot;REDIS_URL&quot;], decode_responses=True,
+        socket_connect_timeout=2, socket_timeout=2,
+    )
+    yield
+    await app.state.cache.aclose()
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+@app.get(&quot;/api/health&quot;)
+async def health():
+    try:
+        password = Path(os.environ[&quot;DB_PASSWORD_FILE&quot;]).read_text().strip()
+        async with await psycopg.AsyncConnection.connect(
+            host=os.environ[&quot;DB_HOST&quot;],
+            dbname=os.environ[&quot;POSTGRES_DB&quot;],
+            user=os.environ[&quot;POSTGRES_USER&quot;],
+            password=password,
+            connect_timeout=2,
+        ) as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute(&quot;SELECT 1&quot;)
+                row = await cursor.fetchone()
+        cache_ok = await app.state.cache.ping()
+        if row != (1,) or not cache_ok:
+            raise RuntimeError(&quot;dependency check failed&quot;)
+    except Exception:
+        raise HTTPException(status_code=503, detail=&quot;dependencies unavailable&quot;) from None
+    return {&quot;status&quot;: &quot;ok&quot;, &quot;database&quot;: &quot;ok&quot;, &quot;cache&quot;: &quot;ok&quot;}
+
+
+@app.get(&quot;/api/config&quot;)
+async def config():
+    return {&quot;app_env&quot;: os.environ.get(&quot;APP_ENV&quot;, &quot;unknown&quot;)}
+</code></pre>
+<h3 id="dockerfile-指令速查">Dockerfile 指令速查</h3>3
+<table>
+<thead>
+<tr>
+<th>指令</th>
+<th>作用</th>
+<th>本例中的工程要点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FROM</code></td>
+<td>选择基础镜像并创建阶段</td>
+<td>构建和运行阶段使用相同 ABI</td>
+</tr>
+<tr>
+<td><code>WORKDIR</code></td>
+<td>设置后续工作目录</td>
+<td>使用绝对路径，减少路径误解</td>
+</tr>
+<tr>
+<td><code>COPY</code></td>
+<td>从上下文或其他阶段复制</td>
+<td>先依赖清单，后业务代码</td>
+</tr>
+<tr>
+<td><code>RUN</code></td>
+<td>构建时执行命令</td>
+<td>安装、清理尽量在同层完成</td>
+</tr>
+<tr>
+<td><code>ENV</code></td>
+<td>设置镜像默认环境变量</td>
+<td>不能承载机密</td>
+</tr>
+<tr>
+<td><code>USER</code></td>
+<td>指定运行身份</td>
+<td>使用明确的非 root UID/GID</td>
+</tr>
+<tr>
+<td><code>EXPOSE</code></td>
+<td>声明预期监听端口</td>
+<td>不等于发布宿主机端口</td>
+</tr>
+<tr>
+<td><code>HEALTHCHECK</code></td>
+<td>检查容器是否健康</td>
+<td>探针工具必须存在于最终镜像</td>
+</tr>
+<tr>
+<td><code>CMD</code></td>
+<td>定义默认启动命令</td>
+<td>优先 exec 数组形式</td>
+</tr>
+<tr>
+<td><code>ENTRYPOINT</code></td>
+<td>定义固定入口程序</td>
+<td>与 CMD 参数组合，避免误吞信号</td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第二步：编写四服务 docker-compose.yml</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>数据库和缓存只在 「backend」 内网，API 同时接入后端网与前端网</li><li>不要写 「container_name」，避免跨环境冲突与扩容限制</li><li>以下 CPU、内存限额用于单机 Compose；这里选择服务级 「cpus」、「mem_limit」，避免把 Swarm 的调度语义直接套在普通 Compose 上</li></ul></div>3
+<p>只有前端发布宿主机端口。数据库和缓存只在 <code>backend</code> 内网，API 同时接入后端网与前端网。不要写 <code>container_name</code>，避免跨环境冲突与扩容限制。以下 CPU、内存限额用于单机 Compose；这里选择服务级 <code>cpus</code>、<code>mem_limit</code>，避免把 Swarm 的调度语义直接套在普通 Compose 上。</p>
+<h3 id="docker-composeyml完整内容"><code>docker-compose.yml</code>：完整内容</h3>3
+<pre><code class="language-yaml">services:
+  api:
+    image: ${API_IMAGE:-fastapi-demo-api:1.0.0}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      DB_HOST: postgres
+      DB_PASSWORD_FILE: /run/secrets/db_password
+      REDIS_URL: redis://redis:6379/0
+    secrets:
+      - db_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+      - edge
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    cpus: &quot;1.0&quot;
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: &quot;10m&quot;
+        max-file: &quot;3&quot;
+
+  postgres:
+    image: postgres:16.9-alpine
+    env_file:
+      - .env
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: [&quot;CMD-SHELL&quot;, &quot;pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB&quot;]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    networks:
+      - backend
+    restart: unless-stopped
+    stop_grace_period: 60s
+    cpus: &quot;1.0&quot;
+    mem_limit: 768m
+    logging:
+      driver: json-file
+      options:
+        max-size: &quot;10m&quot;
+        max-file: &quot;3&quot;
+
+  redis:
+    image: redis:7.4.3-alpine
+    command: [&quot;redis-server&quot;, &quot;--appendonly&quot;, &quot;yes&quot;, &quot;--maxmemory&quot;, &quot;128mb&quot;, &quot;--maxmemory-policy&quot;, &quot;allkeys-lru&quot;]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [&quot;CMD&quot;, &quot;redis-cli&quot;, &quot;ping&quot;]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - backend
+    restart: unless-stopped
+    cpus: &quot;0.5&quot;
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: &quot;10m&quot;
+        max-file: &quot;3&quot;
+
+  frontend:
+    image: nginx:1.28.0-alpine
+    ports:
+      - &quot;${HTTP_PORT:-80}:80&quot;
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - edge
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    stop_grace_period: 30s
+    cpus: &quot;0.5&quot;
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: &quot;10m&quot;
+        max-file: &quot;3&quot;
+
+networks:
+  edge:
+  backend:
+    internal: true
+
+volumes:
+  pg_data:
+  redis_data:
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+</code></pre>
+<p><code>$$POSTGRES_USER</code> 中的双美元符号用于阻止 Compose 在宿主机提前插值，让变量在 PostgreSQL 容器中的 shell 展开。PostgreSQL 的 <code>pg_isready</code> 判断服务器可接收连接，不验证应用 SQL 权限；API 的健康接口再执行 <code>SELECT 1</code>，弥补这一层差异。</p>
+<p>Redis 设置了 128 MiB 数据上限，容器限额更大，为连接、碎片和 AOF 等留出空间。本例定位缓存，可淘汰键，不适合不允许丢失任务的消息队列。生产需通过 Redis ACL、凭据与网络策略控制访问；本例没有发布 Redis 端口，也未把演示内网当作完整认证方案。</p>
+<p>Nginx 使用 Docker 内置 DNS 并周期刷新 API 地址，避免 API 重建后 IP 改变而长期返回 502。官方 Nginx 镜像启动脚本可能提示无法改动只读的配置文件；本例配置由宿主机明确提供，该提示不同于 Nginx 配置解析失败。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t"><code>nginx/default.conf</code>：完整内容</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-nginx">server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location /api/ {
+        resolver 127.0.0.11 valid=10s ipv6=off;
+        set $api_upstream api:8000;
+        proxy_pass http://$api_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 30s;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+</code></pre>
+<h3 id="frontendindexhtml完整内容"><code>frontend/index.html</code>：完整内容</h3>3
+<pre><code class="language-html">&lt;!doctype html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;title&gt;Compose 实战&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;FastAPI + PostgreSQL + Redis&lt;/h1&gt;
+  &lt;pre id=&quot;result&quot;&gt;正在检查服务&lt;/pre&gt;
+  &lt;script&gt;
+    fetch('/api/health')
+      .then(response =&gt; response.json())
+      .then(data =&gt; document.getElementById('result').textContent = JSON.stringify(data, null, 2))
+      .catch(() =&gt; document.getElementById('result').textContent = '请求失败，请检查 API 日志');
+  &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t"><code>db/init/001-schema.sql</code>：完整内容</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>CREATE TABLE IF NOT EXISTS deployment_notes (</li><li>id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,</li><li>created_at timestamptz NOT NULL DEFAULT now()</li></ul></div>3
+<pre><code class="language-sql">CREATE TABLE IF NOT EXISTS deployment_notes (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    note text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+INSERT INTO deployment_notes (note) VALUES ('initialized by postgres entrypoint');
+</code></pre>
+<h3 id="compose-配置字段速查">Compose 配置字段速查</h3>3
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+<th>易错点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>services</code></td>
+<td>定义服务集合</td>
+<td>不是容器名列表</td>
+</tr>
+<tr>
+<td><code>image</code></td>
+<td>镜像引用</td>
+<td>发布使用唯一 tag 或 digest</td>
+</tr>
+<tr>
+<td><code>build.context</code></td>
+<td>构建上下文</td>
+<td>相对首个 Compose 文件目录解析</td>
+</tr>
+<tr>
+<td><code>env_file</code></td>
+<td>容器变量来源</td>
+<td>不自动成为 YAML 插值来源</td>
+</tr>
+<tr>
+<td><code>environment</code></td>
+<td>显式容器变量</td>
+<td>会覆盖 env_file 的同名变量</td>
+</tr>
+<tr>
+<td><code>depends_on</code></td>
+<td>创建、启动依赖</td>
+<td>需要 healthy 条件才能等就绪</td>
+</tr>
+<tr>
+<td><code>healthcheck</code></td>
+<td>周期健康探测</td>
+<td>healthy 不等于自动重启</td>
+</tr>
+<tr>
+<td><code>networks</code></td>
+<td>指定网络成员</td>
+<td>跨网络默认不能直接用服务 DNS 通信</td>
+</tr>
+<tr>
+<td><code>volumes</code></td>
+<td>数据卷或路径挂载</td>
+<td>命名卷与 bind mount 生命周期不同</td>
+</tr>
+<tr>
+<td><code>ports</code></td>
+<td>宿主机到容器端口映射</td>
+<td>写成字符串，注意宿主机暴露范围</td>
+</tr>
+<tr>
+<td><code>restart</code></td>
+<td>进程退出后的重启策略</td>
+<td>不能修复应用逻辑故障</td>
+</tr>
+<tr>
+<td><code>cpus</code> / <code>mem_limit</code></td>
+<td>单机资源限额</td>
+<td>内存过低可能触发 OOM</td>
+</tr>
+<tr>
+<td><code>logging.options</code></td>
+<td>驱动参数</td>
+<td>参数值如 max-file 应写字符串</td>
+</tr>
+<tr>
+<td><code>read_only</code> / <code>tmpfs</code></td>
+<td>只读根目录及临时写目录</td>
+<td>所有必要写目录要提前识别</td>
+</tr>
+<tr>
+<td><code>secrets</code></td>
+<td>授权服务读取凭据文件</td>
+<td>只有声明使用的服务才挂载</td>
+</tr>
+<tr>
+<td><code>stop_grace_period</code></td>
+<td>优雅退出等待时间</td>
+<td>超时后仍可能被强制终止</td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第三步：环境变量与配置管理</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<h3 id="envexample完整内容"><code>.env.example</code>：完整内容</h3>3
+<pre><code class="language-dotenv">COMPOSE_PROJECT_NAME=fastapi-demo
+HTTP_PORT=80
+APP_ENV=development
+POSTGRES_DB=appdb
+POSTGRES_USER=app
+API_IMAGE=fastapi-demo-api:1.0.0
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t"><code>.gitignore</code>：完整内容</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「」`gitignore</li><li>公共参数样例可入库，真实 「.env」 和 「secrets/」 不入库</li><li>文件保留末尾换行不影响 PostgreSQL，应用读取时也会去除两端空白</li></ul></div>3
+<pre><code class="language-gitignore">.env
+.env.*
+!.env.example
+secrets/
+__pycache__/
+.venv/
+</code></pre>
+<p>公共参数样例可入库，真实 <code>.env</code> 和 <code>secrets/</code> 不入库。以下只生成新的演示密码，不读取现有凭据。文件保留末尾换行不影响 PostgreSQL，应用读取时也会去除两端空白。示例用 0444 让容器内 UID 10001 与 PostgreSQL 用户都可读；宿主机的 secrets 目录设为 0700 限制其他普通用户遍历。在 Windows 文件系统上 chmod 可能无法落实相同权限，应使用 WSL Linux 文件系统或具备明确 ACL 的凭据挂载方案。</p>
+<pre><code class="language-bash">cp .env.example .env
+mkdir -p secrets
+chmod 700 secrets
+(umask 077; openssl rand -hex 32 &gt; secrets/db_password.txt)
+chmod 444 secrets/db_password.txt
+</code></pre>
+<p><strong>必须分开理解两套优先级</strong>：</p>
+<ol>
+<li><strong>Compose 插值</strong>：本例在项目根目录执行，shell 环境变量优先于 <code>.env</code>；显式 <code>--env-file</code> 可以选择插值文件，多次传入时后者覆盖前者，但 shell 仍优先。无 <code>--env-file</code> 时，当前工作目录的 <code>.env</code> 和项目目录的 <code>.env</code> 还涉及查找规则；为避免多目录歧义，CI 固定工作目录并显式指定文件。</li>
+<li><strong>容器环境变量</strong>：普通 <code>up</code> 下，服务的 <code>environment</code> 覆盖服务 <code>env_file</code>，再覆盖镜像中的 <code>ENV</code>；多个服务级 env_file 按列表顺序读取，后者覆盖前者。<code>environment</code> 中显式空值也可能覆盖已有值。</li>
+<li><strong>一次性 run</strong>：<code>docker compose run -e KEY=value</code> 优先于该服务其他变量来源。<code>environment: KEY: ${KEY}</code> 的最终值先经过上一条插值规则，再参与容器变量优先级，所以不能把 <code>.env</code>、shell、env_file 简化成一个永远固定的单列表。</li>
+</ol>
+<p>本例 <code>.env</code> 中 <code>APP_ENV=development</code> 被 YAML 中 <code>APP_ENV: production</code> 覆盖。修改 <code>.env</code> 后仅 <code>restart</code> 不会重新创建容器，也不会刷新它的环境；需要重新 <code>up -d</code>，必要时显式 <code>--force-recreate</code>。</p>
+<pre><code class="language-bash">docker compose --env-file .env config --quiet
+docker compose exec api python -c 'import os; print(os.environ[&quot;APP_ENV&quot;])'
+# 预期：production
+# 本例 API_IMAGE 在 YAML 插值阶段使用，HTTP_PORT 同理。
+HTTP_PORT=8080 docker compose --env-file .env up -d frontend
+curl -fsS http://localhost:8080/api/config
+# 预期：{&quot;app_env&quot;:&quot;production&quot;}
+</code></pre>
+<p>上面的临时 shell 变量只对该次命令有效。后续如果还要使用 8080，请把 <code>.env</code> 的 HTTP_PORT 改为 8080，并统一从该配置启动，防止下一次 up 又改回 80。</p>
+<h3 id="第四步启动验证停止和清理">第四步：启动、验证、停止和清理</h3>3
+<p>在应用配置一致的情况下执行下面流程。首次下载与构建速度取决于网络；<code>--wait</code> 需要较新的 v2，本教程固定版本支持。前端没有独立健康检查，Compose 等待其处于 running；最终 curl 再验证反向代理、API、数据库与缓存的完整链路。</p>
+<pre><code class="language-bash">docker compose config --quiet
+docker compose up -d --build
+docker compose up -d --wait --wait-timeout 180
+docker compose ps
+curl -fsS &quot;http://localhost:${HTTP_PORT:-80}/api/health&quot;
+# 若 .env 改了端口但 shell 未设置 HTTP_PORT，请在 URL 中填写 .env 的实际端口。
+# 预期响应：{&quot;status&quot;:&quot;ok&quot;,&quot;database&quot;:&quot;ok&quot;,&quot;cache&quot;:&quot;ok&quot;}
+docker compose logs --tail=100 api
+# 持续跟踪，用 Ctrl+C 退出日志观察，不会停止容器。
+docker compose logs -f api
+</code></pre>
+<p>进入容器检查时，生产镜像一般只有 sh，不一定安装 bash。退出交互 shell 后继续执行后面的命令。</p>
+<pre><code class="language-bash">docker compose exec api sh
+# 在容器内可运行 id，预期 uid=10001；输入 exit 回到宿主机。
+</code></pre>
+<pre><code class="language-bash">docker compose exec postgres sh -c 'psql -U &quot;$POSTGRES_USER&quot; -d &quot;$POSTGRES_DB&quot; -c &quot;TABLE deployment_notes;&quot;'
+docker compose exec redis redis-cli ping
+# 预期：PONG
+docker compose stop
+docker compose start
+docker compose down
+# down 删除服务容器和项目网络，默认保留命名卷。
+</code></pre>
+<p>下面这条是<strong>销毁演示数据</strong>的命令，不应作为生产发布步骤。它删除此项目声明的非 external 命名卷及附属匿名卷，不删除宿主机 bind mount 源目录，也不会删除 external 卷；执行前确认备份和项目名。</p>
+<pre><code class="language-bash"># 仅当确实要重置本演示数据库和缓存时执行：
+docker compose down -v
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第五步：覆盖文件与常见编排任务</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>开发覆盖文件命名为 「compose.override.yml」；本例主文件叫 「docker-compose.yml」，为避免默认查找兼容规则与文件名组合引起歧义，所有覆盖命令都显式使用 「-f」</li><li>覆盖文件中的相对路径以第一个 Compose 文件所在目录为基准</li><li>映射通常按键合并，某些序列会追加或按特定规则去重，不能假定所有字段都是“后文件整个替换”</li></ul></div>3
+<p>开发覆盖文件命名为 <code>compose.override.yml</code>；本例主文件叫 <code>docker-compose.yml</code>，为避免默认查找兼容规则与文件名组合引起歧义，所有覆盖命令都显式使用 <code>-f</code>。覆盖文件中的相对路径以第一个 Compose 文件所在目录为基准。映射通常按键合并，某些序列会追加或按特定规则去重，不能假定所有字段都是“后文件整个替换”。</p>
+<p>开发用 <code>compose.override.yml</code> 完整内容：</p>
+<pre><code class="language-yaml">services:
+  api:
+    environment:
+      APP_ENV: development
+    volumes:
+      - ./app.py:/app/app.py:ro
+    command: [&quot;uvicorn&quot;, &quot;app:app&quot;, &quot;--host&quot;, &quot;0.0.0.0&quot;, &quot;--port&quot;, &quot;8000&quot;, &quot;--reload&quot;]
+</code></pre>
+<p>生产用 <code>compose.prod.yml</code> 完整内容：</p>
+<pre><code class="language-yaml">services:
+  api:
+    environment:
+      APP_ENV: production
+    restart: always
+  frontend:
+    restart: always
+</code></pre>
+<pre><code class="language-bash"># 开发：热重载只监控显式挂载的源码；不要在生产启用。
+docker compose -p fastapi-dev -f docker-compose.yml -f compose.override.yml up -d --build
+# 生产：先校验最终合并结果，再启动。
+docker compose -p fastapi-prod -f docker-compose.yml -f compose.prod.yml config --quiet
+docker compose -p fastapi-prod -f docker-compose.yml -f compose.prod.yml up -d --build
+</code></pre>
+<p>两套项目如果同时运行，必须使用不同 HTTP_PORT；同一份 secret 文件也意味着共享凭据，并不构成完整环境隔离。真实生产应使用独立目录、独立凭据和独立数据卷。主示例仍使用 <code>.env</code> 中的 fastapi-demo 项目，不能混用不同 <code>-p</code> 后误删另一套环境。</p>
+<pre><code class="language-bash"># 只重建 API；依赖已经健康时才使用 --no-deps。
+docker compose build api
+docker compose up -d --no-deps api
+# 重建导致 API 短暂不可用；这不是滚动升级。
+
+# 一次性检查任务：默认不发布 api 的端口，任务结束删除临时容器。
+docker compose run --rm api python -c 'import urllib.request; print(urllib.request.urlopen(&quot;http://api:8000/api/health&quot;).read().decode())'
+# 对已经运行的服务执行迁移，常见形式为 docker compose exec api alembic upgrade head；
+# 本演示未安装 Alembic，因此不把该命令当作可执行演示步骤。
+</code></pre>
+<p>数据库初始化脚本已通过 <code>./db/init:/docker-entrypoint-initdb.d:ro</code> 挂载。官方 PostgreSQL entrypoint 只在数据目录为空时执行它；已有命名卷时修改 SQL 不会自动重跑。后续模式变更需要迁移工具或受控执行 SQL，不能通过删生产卷来“让初始化重新生效”。</p>
+<h2 id="四端到端可运行-demo">四、端到端可运行 demo</h2>2
+<p>项目结构如下；<code>.env</code> 与 secret 由启动命令生成，覆盖文件为上节可选扩展，不是首次启动必需文件。</p>
+<pre><code class="language-text">fastapi-compose-demo/
+├── .gitignore
+├── .dockerignore
+├── .env.example
+├── .env
+├── Dockerfile
+├── requirements.txt
+├── app.py
+├── docker-compose.yml
+├── db/
+│   └── init/
+│       └── 001-schema.sql
+├── frontend/
+│   └── index.html
+├── nginx/
+│   └── default.conf
+└── secrets/
+    └── db_password.txt
+</code></pre>
+<p>下面是<strong>一个完整命令块</strong>，在新的空目录运行即可生成上文全部必需文件。需要 Bash、Git、OpenSSL、curl 和已可用的 Docker v2 插件；默认占用 80 端口，如冲突可在生成 <code>.env</code> 后改为 8080，并对应修改最后的 curl。这里展示的是预期输出，不能把它当作当前机器已经实测部署的记录。</p>
+<pre><code class="language-bash">set -eu
+mkdir fastapi-compose-demo
+cd fastapi-compose-demo
+git init
+mkdir -p frontend nginx db/init secrets
+cat &gt; 'requirements.txt' &lt;&lt;'DEMO_FILE_EOF'
+fastapi==0.115.12
+uvicorn==0.34.2
+psycopg[binary]==3.2.9
+redis==6.1.0
+DEMO_FILE_EOF
+cat &gt; 'Dockerfile' &lt;&lt;'DEMO_FILE_EOF'
+# syntax=docker/dockerfile:1
+FROM python:3.12.10-slim-bookworm AS builder
+WORKDIR /build
+COPY requirements.txt ./
+RUN python -m pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
+
+FROM python:3.12.10-slim-bookworm AS runtime
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+WORKDIR /app
+RUN groupadd --gid 10001 app \
+    &amp;&amp; useradd --uid 10001 --gid app --no-create-home --shell /usr/sbin/nologin app
+COPY --from=builder /wheels /wheels
+RUN python -m pip install --no-cache-dir --no-index /wheels/*.whl \
+    &amp;&amp; rm -rf /wheels
+COPY --chown=10001:10001 app.py ./app.py
+USER 10001:10001
+EXPOSE 8000
+HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=5 \
+    CMD python -c &quot;import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=4)&quot; || exit 1
+CMD [&quot;uvicorn&quot;, &quot;app:app&quot;, &quot;--host&quot;, &quot;0.0.0.0&quot;, &quot;--port&quot;, &quot;8000&quot;, &quot;--workers&quot;, &quot;2&quot;]
+DEMO_FILE_EOF
+cat &gt; '.dockerignore' &lt;&lt;'DEMO_FILE_EOF'
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+secrets/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+node_modules/
+dist/
+build/
+*.log
+*.sqlite3
+*.pem
+*.key
+compose*.yml
+docker-compose*.yml
+frontend/
+nginx/
+db/
+README.md
+DEMO_FILE_EOF
+cat &gt; 'app.py' &lt;&lt;'DEMO_FILE_EOF'
+import os
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+import psycopg
+from fastapi import FastAPI, HTTPException
+from redis.asyncio import Redis
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.cache = Redis.from_url(
+        os.environ[&quot;REDIS_URL&quot;], decode_responses=True,
+        socket_connect_timeout=2, socket_timeout=2,
+    )
+    yield
+    await app.state.cache.aclose()
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+@app.get(&quot;/api/health&quot;)
+async def health():
+    try:
+        password = Path(os.environ[&quot;DB_PASSWORD_FILE&quot;]).read_text().strip()
+        async with await psycopg.AsyncConnection.connect(
+            host=os.environ[&quot;DB_HOST&quot;],
+            dbname=os.environ[&quot;POSTGRES_DB&quot;],
+            user=os.environ[&quot;POSTGRES_USER&quot;],
+            password=password,
+            connect_timeout=2,
+        ) as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute(&quot;SELECT 1&quot;)
+                row = await cursor.fetchone()
+        cache_ok = await app.state.cache.ping()
+        if row != (1,) or not cache_ok:
+            raise RuntimeError(&quot;dependency check failed&quot;)
+    except Exception:
+        raise HTTPException(status_code=503, detail=&quot;dependencies unavailable&quot;) from None
+    return {&quot;status&quot;: &quot;ok&quot;, &quot;database&quot;: &quot;ok&quot;, &quot;cache&quot;: &quot;ok&quot;}
+
+
+@app.get(&quot;/api/config&quot;)
+async def config():
+    return {&quot;app_env&quot;: os.environ.get(&quot;APP_ENV&quot;, &quot;unknown&quot;)}
+DEMO_FILE_EOF
+cat &gt; '.env.example' &lt;&lt;'DEMO_FILE_EOF'
+COMPOSE_PROJECT_NAME=fastapi-demo
+HTTP_PORT=80
+APP_ENV=development
+POSTGRES_DB=appdb
+POSTGRES_USER=app
+API_IMAGE=fastapi-demo-api:1.0.0
+DEMO_FILE_EOF
+cat &gt; 'docker-compose.yml' &lt;&lt;'DEMO_FILE_EOF'
+services:
+  api:
+    image: ${API_IMAGE:-fastapi-demo-api:1.0.0}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      DB_HOST: postgres
+      DB_PASSWORD_FILE: /run/secrets/db_password
+      REDIS_URL: redis://redis:6379/0
+    secrets:
+      - db_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+      - edge
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    cpus: &quot;1.0&quot;
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: &quot;10m&quot;
+        max-file: &quot;3&quot;
+
+  postgres:
+    image: postgres:16.9-alpine
+    env_file:
+      - .env
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: [&quot;CMD-SHELL&quot;, &quot;pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB&quot;]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    networks:
+      - backend
+    restart: unless-stopped
+    stop_grace_period: 60s
+    cpus: &quot;1.0&quot;
+    mem_limit: 768m
+    logging:
+      driver: json-file
+      options:
+        max-size: &quot;10m&quot;
+        max-file: &quot;3&quot;
+
+  redis:
+    image: redis:7.4.3-alpine
+    command: [&quot;redis-server&quot;, &quot;--appendonly&quot;, &quot;yes&quot;, &quot;--maxmemory&quot;, &quot;128mb&quot;, &quot;--maxmemory-policy&quot;, &quot;allkeys-lru&quot;]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [&quot;CMD&quot;, &quot;redis-cli&quot;, &quot;ping&quot;]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - backend
+    restart: unless-stopped
+    cpus: &quot;0.5&quot;
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: &quot;10m&quot;
+        max-file: &quot;3&quot;
+
+  frontend:
+    image: nginx:1.28.0-alpine
+    ports:
+      - &quot;${HTTP_PORT:-80}:80&quot;
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - edge
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    stop_grace_period: 30s
+    cpus: &quot;0.5&quot;
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: &quot;10m&quot;
+        max-file: &quot;3&quot;
+
+networks:
+  edge:
+  backend:
+    internal: true
+
+volumes:
+  pg_data:
+  redis_data:
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+DEMO_FILE_EOF
+cat &gt; 'nginx/default.conf' &lt;&lt;'DEMO_FILE_EOF'
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location /api/ {
+        resolver 127.0.0.11 valid=10s ipv6=off;
+        set $api_upstream api:8000;
+        proxy_pass http://$api_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 30s;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+DEMO_FILE_EOF
+cat &gt; 'frontend/index.html' &lt;&lt;'DEMO_FILE_EOF'
+&lt;!doctype html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;title&gt;Compose 实战&lt;/title&gt;&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;FastAPI + PostgreSQL + Redis&lt;/h1&gt;
+  &lt;pre id=&quot;result&quot;&gt;正在检查服务&lt;/pre&gt;
+  &lt;script&gt;
+    fetch('/api/health')
+      .then(response =&gt; response.json())
+      .then(data =&gt; document.getElementById('result').textContent = JSON.stringify(data, null, 2))
+      .catch(() =&gt; document.getElementById('result').textContent = '请求失败，请检查 API 日志');
+  &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+DEMO_FILE_EOF
+cat &gt; 'db/init/001-schema.sql' &lt;&lt;'DEMO_FILE_EOF'
+CREATE TABLE IF NOT EXISTS deployment_notes (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    note text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+INSERT INTO deployment_notes (note) VALUES ('initialized by postgres entrypoint');
+DEMO_FILE_EOF
+cat &gt; '.gitignore' &lt;&lt;'DEMO_FILE_EOF'
+.env
+.env.*
+!.env.example
+secrets/
+__pycache__/
+.venv/
+DEMO_FILE_EOF
+cp .env.example .env
+chmod 700 secrets
+(umask 077; openssl rand -hex 32 &gt; secrets/db_password.txt)
+chmod 444 secrets/db_password.txt
+docker compose version
+docker compose config --quiet
+# 你应该看到：config --quiet 不输出错误，退出码为 0。
+docker compose up -d --build
+docker compose up -d --wait --wait-timeout 180
+docker compose ps
+# 你应该看到：postgres、redis、api 为 healthy，frontend 为 Up。
+curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 2 http://localhost/api/health
+printf '\n'
+# 你应该看到：{&quot;status&quot;:&quot;ok&quot;,&quot;database&quot;:&quot;ok&quot;,&quot;cache&quot;:&quot;ok&quot;}
+curl --fail --silent --show-error http://localhost/ | head -n 5
+# 你应该看到 HTML 标题 Compose 实战。
+git status --short
+# 不应该列出 .env 或 secrets/db_password.txt。
+</code></pre>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">五、常见坑与修复</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="1-docker-compose-command-not-found">1. docker-compose: command not found</h3>3
+<ul>
+<li><strong>症状</strong>：教程命令失败，但 <code>docker compose version</code> 正常。</li>
+<li><strong>原因</strong>：机器只有 v2 插件，脚本还在调用 v1 的独立命令；也可能插件未被当前用户发现。</li>
+<li><strong>修复</strong>：统一改为 <code>docker compose</code>，检查当前用户的插件安装位置；不要为了旧命令盲目安装过时 Python v1。先验证版本，再修改 CI 脚本。</li>
+</ul>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2. API 一启动就 connection refused</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：数据库容器显示 Up，API 却连接失败或反复退出</li><li>原因：只用了 depends_on 短语法，数据库尚未就绪；也可能把数据库地址误写成 localhost</li><li>修复：采用本文 healthcheck 与 「condition: service_healthy」，地址使用 postgres</li></ul></div>3
+<ul>
+<li><strong>症状</strong>：数据库容器显示 Up，API 却连接失败或反复退出。</li>
+<li><strong>原因</strong>：只用了 depends_on 短语法，数据库尚未就绪；也可能把数据库地址误写成 localhost。</li>
+<li><strong>修复</strong>：采用本文 healthcheck 与 <code>condition: service_healthy</code>，地址使用 postgres。结合 <code>docker compose logs postgres api</code> 检查初始化；运行中断线还要靠应用重连与超时处理。</li>
+</ul>
+<h3 id="3-yaml-解析失败或字段类型错误">3. YAML 解析失败或字段类型错误</h3>3
+<ul>
+<li><strong>症状</strong>：出现 mapping values are not allowed、services must be a mapping 或 logging option 类型错误。</li>
+<li><strong>原因</strong>：Tab 缩进、冒号后缺空格、列表层级错误，或者把字符串参数写成了数字/布尔值。</li>
+<li><strong>修复</strong>：用空格缩进，端口和 logging 参数加引号；执行 <code>docker compose config --quiet</code> 定位错误。YAML linter 只能辅助检查，最终仍以 Compose 的规范校验为准。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4. 端口被占用</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：前端无法创建，提示 address already in use 或 port is already allocated</li><li>原因：宿主机已经有 Nginx、其他容器或另一套 Compose 项目监听 80</li></ul></div>3
+<ul>
+<li><strong>症状</strong>：前端无法创建，提示 address already in use 或 port is already allocated。</li>
+<li><strong>原因</strong>：宿主机已经有 Nginx、其他容器或另一套 Compose 项目监听 80。</li>
+<li><strong>修复</strong>：Linux 用 <code>ss -ltnp</code>、<code>docker ps --format '{{.Names}} {{.Ports}}'</code> 查看占用者；把 <code>.env</code> 的 HTTP_PORT 改成 8080 后重新 up，访问 localhost:8080。不要直接杀死身份未知的进程。</li>
+</ul>
+<h3 id="5-数据看起来丢了命名卷与-bind-mount-混淆">5. 数据看起来丢了：命名卷与 bind mount 混淆</h3>3
+<ul>
+<li><strong>症状</strong>：重建后数据库为空，或者换项目目录后出现一个新数据库。</li>
+<li><strong>原因</strong>：执行了 down -v，改变了项目名导致使用另一命名卷，或把原卷改成了空目录 bind mount。挂载还会遮住容器目标路径原有内容。</li>
+<li><strong>修复</strong>：用 <code>docker volume ls</code>、<code>docker volume inspect fastapi-demo_pg_data</code> 和 <code>docker inspect</code> 的 Mounts 核对真实来源。命名卷由 Docker 管理，bind mount 依赖宿主机路径；先备份再调整挂载。不要看见空库就马上初始化覆盖。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6. .env 修改后不生效</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：APP_ENV 仍然是 production，或者端口未按文件变化</li><li>原因：environment 覆盖了 env_file；shell 中导出的同名变量覆盖了插值文件；或者只是 restart 旧容器</li><li>修复：对照上文两套优先级，检查 「docker compose config」 的最终结果且不要公开其敏感内容</li></ul></div>3
+<ul>
+<li><strong>症状</strong>：APP_ENV 仍然是 production，或者端口未按文件变化。</li>
+<li><strong>原因</strong>：environment 覆盖了 env_file；shell 中导出的同名变量覆盖了插值文件；或者只是 restart 旧容器。</li>
+<li><strong>修复</strong>：对照上文两套优先级，检查 <code>docker compose config</code> 的最终结果且不要公开其敏感内容。删除冲突覆盖项，再 <code>docker compose up -d --force-recreate api</code>；需要时 <code>unset HTTP_PORT</code> 消除 shell 覆盖。</li>
+</ul>
+<h3 id="7-每次-build-都重新安装依赖">7. 每次 build 都重新安装依赖</h3>3
+<ul>
+<li><strong>症状</strong>：只改一行业务代码，依赖安装仍跑几分钟。</li>
+<li><strong>原因</strong>：Dockerfile 在安装前 COPY 了全部源码，或上下文夹带生成文件导致相关输入变化。</li>
+<li><strong>修复</strong>：先 COPY requirements，再安装，最后 COPY app.py；维护 .dockerignore。使用 <code>docker compose --progress plain build api</code> 看具体哪一步没有 CACHED，不要仅按总耗时判断缓存命中。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">8. Windows / WSL2 挂载脚本报 ^M 或 bad interpreter</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：执行 shell 脚本出现 「/bin/sh^M」、「$'\r': command not found」</li><li>原因：Windows 编辑器或 Git 将脚本转换为 CRLF，bind mount 原样暴露给 Linux；也可能缺可执行权限</li><li>WSL2 的高频源码目录优先放 Linux 文件系统，避免挂载性能和权限差异</li></ul></div>3
+<ul>
+<li><strong>症状</strong>：执行 shell 脚本出现 <code>/bin/sh^M</code>、<code>$'\r': command not found</code>。</li>
+<li><strong>原因</strong>：Windows 编辑器或 Git 将脚本转换为 CRLF，bind mount 原样暴露给 Linux；也可能缺可执行权限。</li>
+<li><strong>修复</strong>：在演示项目根目录加入 <code>.gitattributes</code>，内容为 <code>*.sh text eol=lf</code>，将既有脚本转成 LF，再 <code>chmod +x</code>；没有直接执行权限时可明确用 <code>sh script.sh</code>，但这不能修复 CRLF 本身。WSL2 的高频源码目录优先放 Linux 文件系统，避免挂载性能和权限差异。</li>
+</ul>
+<h3 id="9-exec-进入容器中文乱码">9. exec 进入容器中文乱码</h3>3
+<ul>
+<li><strong>症状</strong>：日志、文件名或 Python 输出中文异常。</li>
+<li><strong>原因</strong>：终端编码与容器 locale 不一致，或应用读取文件时用错编码；这与是否安装中文字体不是同一个问题。</li>
+<li><strong>修复</strong>：宿主终端使用 UTF-8，本例镜像设置 C.UTF-8；运行 <code>docker compose exec -e LANG=C.UTF-8 -e LC_ALL=C.UTF-8 api sh</code>，再执行 <code>python -c 'print("中文验证")'</code>。文件读取可明确指定 UTF-8，已被错误编码写入的文件还需修复原始内容。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">10. 容器 unhealthy 却没有重启</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：ps 显示 unhealthy，restart: unless-stopped 似乎不起作用</li><li>原因：Docker 的 restart policy 针对主进程退出；健康状态改变本身不会触发普通 Compose 自动重启</li><li>修复：先查看 「docker inspect」 的 State.Health 与日志，修复真实依赖或探针</li></ul></div>3
+<ul>
+<li><strong>症状</strong>：ps 显示 unhealthy，restart: unless-stopped 似乎不起作用。</li>
+<li><strong>原因</strong>：Docker 的 restart policy 针对主进程退出；健康状态改变本身不会触发普通 Compose 自动重启。也可能探针引用了镜像中没有的 curl。</li>
+<li><strong>修复</strong>：先查看 <code>docker inspect</code> 的 State.Health 与日志，修复真实依赖或探针。需要自动恢复时让不可恢复错误导致进程受控退出，或采用外部监控/编排平台；不要用无限重启掩盖数据错误。</li>
+</ul>
+<h3 id="11-postgresql-改了密码文件却认证失败">11. PostgreSQL 改了密码文件却认证失败</h3>3
+<ul>
+<li><strong>症状</strong>：新启动 API 提示认证失败，PostgreSQL 数据目录却正常。</li>
+<li><strong>原因</strong>：POSTGRES_PASSWORD_FILE 只在首次初始化创建用户时设置口令，修改文件不会自动修改数据库已有角色密码。</li>
+<li><strong>修复</strong>：按口令轮换流程协调数据库角色与应用凭据，确认切换后连接成功。不要靠删除数据卷“同步密码”；也不要把 SQL 口令直接放进命令历史或日志。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">六、生产注意事项</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="1-compose-的适用边界">1. Compose 的适用边界</h3>3
+<p>Compose 是声明多容器应用和管理其生命周期的工具；这里说“Compose 不是编排器”，具体指它不是具备跨节点调度、节点故障迁移和滚动更新保证的集群编排器。单台机器、可接受发布短暂停机、团队能管理宿主机恢复时，Compose 可以提供简单交付。需要跨主机高可用、自动迁移、多副本滚动升级时评估 Kubernetes；希望保持 Docker 生态且需求较简单时可评估 Swarm，但应确认团队维护能力和功能边界。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2. 钉住镜像、升级与回退</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>不要用 latest 发布</li><li>基础镜像的补丁 tag 仍可能被重发布，digest 才锁定具体内容，同时也要安排定期更新，避免永久锁住漏洞版本</li><li>单机 Compose 的 「up -d」 是容器替换，不承诺零停机滚动升级</li></ul></div>3
+<p>不要用 latest 发布。每次构建分配唯一版本标签，例如提交哈希，再记录 registry digest；严格不可变引用用 <code>image@sha256:实际摘要</code>，其中摘要必须从真实构建或 registry 获取。基础镜像的补丁 tag 仍可能被重发布，digest 才锁定具体内容，同时也要安排定期更新，避免永久锁住漏洞版本。</p>
+<p>单机 Compose 的 <code>up -d</code> 是容器替换，不承诺零停机滚动升级。本例 Nginx 可刷新 API DNS，但替换期间仍可能有短暂 502。需要低停机时设计双实例与代理切流，或迁移到支持滚动更新的平台。回退镜像前确认数据库迁移向后兼容，必要时先恢复备份；不能认为把 tag 改回去就能回退数据库模式。</p>
+<h3 id="3-凭据健康与只读文件系统">3. 凭据、健康与只读文件系统</h3>3
+<p>不要在 compose、Dockerfile ARG、ENV 中硬编码生产密码。普通 Compose 的 file secret 适合受控单机挂载，生产可以由凭据管理系统在部署时供给；Swarm 场景使用 <code>docker secret</code>，Kubernetes 则有自己的 Secret 与外部凭据集成。不要把 <code>docker compose config</code> 展开的凭据输出到工单。</p>
+<p>API 使用非 root、去掉 capabilities 和只读根目录；PostgreSQL 与 Redis 需要各自可写的数据路径，不能盲目给所有服务套同一限制。Nginx 的官方镜像在本例保留其默认运行模型，若组织要求所有容器非 root，应换用适配的非特权镜像，并调整监听端口、PID 与缓存目录后再验证。</p>
+<p>健康检查要区分进程存活与业务就绪。本文健康接口把数据库和缓存计入就绪条件，适合启动验收，但数据库故障会使所有 API 容器同时 unhealthy。生产应拆出轻量存活端点和依赖就绪端点，设置告警与重连策略，避免探针加重故障。<code>stop_grace_period</code> 应大于正常请求收尾时间，应用在 SIGTERM 后停止接新请求、关闭连接。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4. 资源、日志和备份</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>CPU 与内存限额需通过真实负载调整</li><li>Redis 的 maxmemory 只限制部分内存，不能等同于进程 RSS；数据库共享缓存、连接数也要纳入预算</li><li>JSON 日志使用 max-size/max-file 轮转，本例每个服务约保留三个 10 MB 文件，但这不是审计归档</li></ul></div>3
+<p>CPU 与内存限额需通过真实负载调整。Redis 的 maxmemory 只限制部分内存，不能等同于进程 RSS；数据库共享缓存、连接数也要纳入预算。JSON 日志使用 max-size/max-file 轮转，本例每个服务约保留三个 10 MB 文件，但这不是审计归档。生产应采集到集中日志系统，并确保应用写 stdout/stderr，避免只读文件系统里悄悄写本地日志。</p>
+<p>数据库命名卷不等于备份。制定逻辑备份或物理备份、异机保存、恢复演练和可接受恢复时间。备份流程须保护口令，并验证能恢复到新环境。清理脚本禁止把 down -v、volume prune 当作常规发布动作。</p>
+<h3 id="5-多环境与-ci-的最小流程">5. 多环境与 CI 的最小流程</h3>3
+<p>基础文件保留共同配置，开发与生产覆盖文件只表达差异。CI 显式列出 <code>-f</code>、<code>--env-file</code>、项目名，避免当前目录自动发现开发覆盖文件。生产应消费 CI 已发布的镜像，以 <code>--no-build</code> 禁止在服务器现场构建；本例保留 build 字段便于教学，正式部署时可拆出不含 build 的基础运行文件。</p>
+<p>以下是<strong>供有授权的 CI 环境使用的模板</strong>，会推送镜像；本文写作与校验过程不执行任何推送。预先通过 CI 的凭据管理完成 registry 登录，不将 token 写入仓库或命令日志。CI_COMMIT_SHA、REGISTRY_IMAGE 由平台提供，registry 地址替换为组织自己的仓库。</p>
+<pre><code class="language-bash">set -eu
+: &quot;${CI_COMMIT_SHA:?需要 CI 提供提交哈希}&quot;
+: &quot;${REGISTRY_IMAGE:?例如 registry.example.com/team/api}&quot;
+export API_IMAGE=&quot;${REGISTRY_IMAGE}:${CI_COMMIT_SHA}&quot;
+# config --quiet 只做静态规范检查，不等于数据库/应用已可运行。
+docker compose --env-file .env.example -f docker-compose.yml config --quiet
+docker build --pull --target runtime -t &quot;$API_IMAGE&quot; .
+# 在此接入组织要求的漏洞扫描、签名与集成测试门禁。
+docker push &quot;$API_IMAGE&quot;
+# 将镜像引用或其 digest 作为发布产物交给部署阶段。
+</code></pre>
+<p>部署机提前准备生产 <code>.env</code>、凭据文件和持久数据目录，导入同一 API_IMAGE，再执行下面命令。完整多环境发布必须始终使用相同项目名，否则会创建另一组卷。此处 prod.env 是部署阶段生成的公共插值文件，不应包含明文密码；服务 env_file 仍指向部署目录中的 <code>.env</code>。</p>
+<pre><code class="language-bash">set -eu
+: &quot;${API_IMAGE:?设置为本次 CI 发布的镜像引用}&quot;
+export API_IMAGE
+docker compose -p fastapi-prod --env-file prod.env -f docker-compose.yml -f compose.prod.yml config --quiet
+docker compose -p fastapi-prod --env-file prod.env -f docker-compose.yml -f compose.prod.yml pull
+docker compose -p fastapi-prod --env-file prod.env -f docker-compose.yml -f compose.prod.yml up -d --no-build --wait --wait-timeout 180
+</code></pre>
+<p><code>config</code>、构建成功与容器 Up 是三个不同证据。上线至少检查最终配置、镜像来源、容器健康、反向代理请求、数据库权限和持久化恢复。本文的 curl 会经过四个服务中的关键依赖，证明请求链路；它没有替代用户认证、业务事务、压力测试或灾难恢复演练。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库唯一在用的 Compose 文件是 <code>projects/agent-service-toolkit/compose.yaml</code>（本次读源码），它把课件讲的三件事写全了</strong>：<br />
+  1. <strong>启动顺序用健康检查表达，不用 <code>sleep</code></strong>：<br />
+<code>yaml
+       postgres:
+         image: postgres:16
+         healthcheck:
+           test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+           interval: 5s
+           retries: 5
+       agent_service:
+         depends_on:
+           postgres:
+             condition: service_healthy</code><br />
+  2. <strong>env 用 <code>${VAR:-default}</code> 兜底</strong>，不在 compose 里硬编码密码（<code>POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}</code>）。<br />
+  3. <strong>开发热更新用 <code>develop.watch</code> 同步 5 个源码目录</strong>（<code>src/agents/</code>、<code>src/schema/</code>、<code>src/service/</code>、<code>src/core/</code>、<code>src/memory/</code>），而不是把整个工程 bind mount 进去——<strong>只挂会变的目录</strong>。</li>
+<li><strong>服务容器自身也做了健康检查</strong>：<code>agent_service</code> 的 <code>test: ["CMD", "curl", "-f", "http://localhost:8080/info"]</code>，与 postgres 同节奏（5s/5s/5）。</li>
+<li><strong>凭证隔离的一条注释值得抄</strong>：<code># Volume mount of development-only credentials since compose watch doesn't sync ignored files...</code>——<strong>开发态凭证走单独挂载的 <code>./privatecredentials</code></strong>，不混进镜像、也不被 watch 同步。</li>
+<li><strong>和课件讲法的差异</strong>：课件多用 <code>docker compose up -d</code> 起「nginx + mysql」练手；本库的 Compose 直接服务真实交付（CI 里另有 <code>docker/build-push-action</code> 构建推送，见 <code>.github/workflows/deploy.yml</code> L35-42）。知识库主链路则完全不用 Compose。</li>
+<li><strong>本库暂无</strong>：<code>rag/</code> 没有 Compose 编排；「本地 Chroma + bge-m3 + 服务」这套如果要容器化，本库没有现成文件可参照（本机 <code>rag/.venv</code> 是 1.3G 级依赖树 + 2G 级模型权重，镜像体积策略未实践）。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库真实的 Compose 编排只有一份：<code>projects/agent-service-toolkit/compose.yaml</code>（postgres 健康检查 <code>pg_isready -U ${POSTGRES_USER:-postgres}</code>、<code>depends_on: condition: service_healthy</code>、<code>develop.watch</code> 同步 5 个源码目录）。</li>
+<li><strong>读源码</strong>：Dockerfile/Compose 的现成范本；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">七、参考来源</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>以下优先链接 Docker 官方规范与操作指南；标签及默认行为随版本演进，升级插件时应重新核对</li><li>3. Compose services 字段规范</li><li>9. Compose 启动顺序与 service_healthy</li></ul></div>2
+<p>以下优先链接 Docker 官方规范与操作指南；标签及默认行为随版本演进，升级插件时应重新核对。</p>
+<ol>
+<li><a href="https://docs.docker.com/compose/">Docker Compose 总览</a></li>
+<li><a href="https://docs.docker.com/reference/compose-file/">Compose Specification</a></li>
+<li><a href="https://docs.docker.com/reference/compose-file/services/">Compose services 字段规范</a></li>
+<li><a href="https://docs.docker.com/compose/install/linux/">Compose v2 插件 Linux 安装</a></li>
+<li><a href="https://docs.docker.com/compose/releases/migrate/">Compose v1 迁移至 v2</a></li>
+<li><a href="https://docs.docker.com/reference/dockerfile/">Dockerfile reference</a></li>
+<li><a href="https://docs.docker.com/build/building/multi-stage/">多阶段构建</a></li>
+<li><a href="https://docs.docker.com/build/cache/optimize/">构建缓存优化</a></li>
+<li><a href="https://docs.docker.com/compose/how-tos/startup-order/">Compose 启动顺序与 service_healthy</a></li>
+<li><a href="https://docs.docker.com/compose/how-tos/environment-variables/envvars-precedence/">容器环境变量优先级</a></li>
+<li><a href="https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/">Compose 插值与 .env</a></li>
+<li><a href="https://docs.docker.com/compose/how-tos/use-secrets/">使用 Compose secrets</a></li>
+<li><a href="https://docs.docker.com/compose/how-tos/multiple-compose-files/merge/">多个 Compose 文件合并</a></li>
+<li><a href="https://docs.docker.com/engine/storage/volumes/">命名卷与生命周期</a></li>
+<li><a href="https://docs.docker.com/engine/logging/drivers/json-file/">JSON 日志驱动与轮转</a></li>
+<li><a href="https://docs.docker.com/engine/swarm/secrets/">Swarm secrets</a></li>
+<li><a href="https://docs.docker.com/compose/how-tos/production/">Compose 生产使用建议</a></li>
+<li><a href="https://github.com/docker-library/docs/blob/master/postgres/README.md">PostgreSQL 官方镜像维护说明</a></li>
+</ol>
+<p><strong>验证范围说明</strong>：本篇提供完整可执行项目与预期结果；文档编写环境未启动该 demo。实际部署验收必须在具备 Docker 引擎、镜像访问能力和足够资源的目标环境执行端到端命令，不应把静态配置检查当作已上线证明。</p></div></details></div></body></html>

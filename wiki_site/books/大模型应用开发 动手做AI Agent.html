@@ -1,0 +1,159 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>大模型应用开发 动手做AI Agent</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 大模型应用开发 动手做AI Agent</span></div><div class="wrap"><h1 id="书章节重点-大模型应用开发-动手做ai-agent">书章节重点 · 大模型应用开发 动手做AI Agent</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书系统讲解AI Agent的概念原理、技术框架与开发实践，通过7个动手项目覆盖Assistants API、Function Calling、ReAct、Plan-and-Execute、RAG、AutoGPT、AutoGen等主流方案，帮助读者从零构建可落地的智能体应用</li><li>全书把Agent看成“模型推理、记忆、规划、工具和环境”组成的闭环系统：模型负责理解与决策，工具负责改变外部世界，记忆负责保持上下文，循环负责根据观察修正下一步</li><li>学习时应先从单工具、可控流程开始，再逐步引入检索、计划和多Agent协作，并为每次行动设置边界、日志和失败处理</li></ul></div>2
+<p>本书系统讲解AI Agent的概念原理、技术框架与开发实践，通过7个动手项目覆盖Assistants API、Function Calling、ReAct、Plan-and-Execute、RAG、AutoGPT、AutoGen等主流方案，帮助读者从零构建可落地的智能体应用。全书把Agent看成“模型推理、记忆、规划、工具和环境”组成的闭环系统：模型负责理解与决策，工具负责改变外部世界，记忆负责保持上下文，循环负责根据观察修正下一步。学习时应先从单工具、可控流程开始，再逐步引入检索、计划和多Agent协作，并为每次行动设置边界、日志和失败处理。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 何谓Agent，为何Agent</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Agent的定义：Agent是能够感知环境、做出决策并采取行动的系统，具备自主性而非被动响应外界刺激</li><li>AI作为新生命形态的愿景：AI需要存储、计算和自我学习三种核心能力，才可能从工具演进为拥有独立思想的伙伴</li><li>Agent三大能力支柱：大模型提供推理“大脑”，语言交互与多模态构成“感知力”，语言输出与工具调用构成“行动力”</li></ul></div>3
+<ul>
+<li><strong>Agent的定义</strong>：Agent是能够感知环境、做出决策并采取行动的系统，具备自主性而非被动响应外界刺激。</li>
+<li><strong>Agent三大能力支柱</strong>：大模型提供推理“大脑”，语言交互与多模态构成“感知力”，语言输出与工具调用构成“行动力”。</li>
+<li><strong>Agent的行业价值</strong>：Agent不仅提升各行业效能，还催生“工具即服务”等新商业模式，创业者应聚焦特定小规模场景深入解决问题。</li>
+<li><strong>AI作为新生命形态的愿景</strong>：AI需要存储、计算和自我学习三种核心能力，才可能从工具演进为拥有独立思想的伙伴。</li>
+<li><strong>落地边界</strong>：Agent的自主性必须建立在权限、预算、数据范围和人工确认之上，复杂并不等于可靠，能解释和能回退同样重要。评估一个Agent至少要同时看任务成功率、工具调用正确率、失败恢复能力、平均成本和人工接管比例。<blockquote>
+<p>“Agent是一个能够感知环境、做出决策并采取行动的系统。”<br />
+“他们建议创业者在创业初期专注特定的、小规模的业务场景，深入解决具体问题，而不是追求建立大型平台。”</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第2章-基于大模型的agent技术框架">第2章 基于大模型的Agent技术框架</h3>3
+<ul>
+<li><strong>四大要素</strong>：Agent由大模型（推理引擎）、规划决策、记忆机制、工具调用四大要素构成完整技术框架。</li>
+<li><strong>规划与决策</strong>：Agent通过任务分解、反思与调整实现自主规划，操作序列由大模型动态选择而非硬编码。</li>
+<li><strong>记忆机制</strong>：短期记忆与长期记忆共同支撑Agent的上下文理解与经验积累；记忆写入必须考虑相关性、时效性和隐私。短期记忆服务当前任务，长期记忆则应经过筛选、摘要和检索，不能把全部历史对话无差别塞入上下文。</li>
+<li><strong>ReAct框架</strong>：核心设计哲学是“观察—思考—行动—再观察”的循环，强调持续学习与快速将推理转化为行动。</li>
+<li><strong>分层Agent组织</strong>：高层次Agent负责决策与协调，低层次Agent执行具体任务，形成层级化协作体系。</li>
+<li><strong>工程实现</strong>：应把状态、工具结果、错误信息和停止条件显式记录，避免Agent在失败时无限循环或重复调用。调试时要能按任务ID重放关键轨迹，并区分模型决策错误、工具执行错误和外部环境错误。这样才能针对性修复，而不是盲目更换模型。<blockquote>
+<p>“操作的序列并非硬编码在代码中，而是使用大模型来选择执行的操作序列。这凸显了大模型作为AI自主决定应用程序逻辑这个编程新范式的价值。”<br />
+“ReAct框架的设计哲学是：在动态和不确定的环境中，有效的决策需要持续的学习和适应，以及快速将推理转化为行动的能力。”</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 OpenAI API、LangChain和LlamaIndex</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>OpenAI API：提供大模型能力的底层接口，是Agent开发的基础设施，负责消息、工具描述和模型响应之间的通信</li><li>选型原则：固定流程优先使用链，工具选择和步骤不确定时使用Agent；知识密集任务则要把检索组件单独评估，不能把框架名称当成效果保证</li><li>LangChain：面向Agent编排的框架，封装工具调用、链式流程与Agent执行器，简化复杂逻辑搭建</li></ul></div>3
+<ul>
+<li><strong>OpenAI API</strong>：提供大模型能力的底层接口，是Agent开发的基础设施，负责消息、工具描述和模型响应之间的通信。</li>
+<li><strong>LangChain</strong>：面向Agent编排的框架，封装工具调用、链式流程与Agent执行器，简化复杂逻辑搭建。</li>
+<li><strong>LlamaIndex</strong>：专注数据索引与检索增强，适合构建知识密集型Agent。</li>
+<li><strong>三者关系</strong>：OpenAI API提供模型能力，LangChain负责流程编排，LlamaIndex解决知识接入，构成Agent开发的工具三角。</li>
+<li><strong>选型原则</strong>：固定流程优先使用链，工具选择和步骤不确定时使用Agent；知识密集任务则要把检索组件单独评估，不能把框架名称当成效果保证。</li>
+</ul>
+<h3 id="第4章-agent-1自动化办公的实现通过assistants-api和dalle-3模型创作ppt">第4章 Agent 1：自动化办公的实现——通过Assistants API和DALL·E 3模型创作PPT</h3>3
+<ul>
+<li><strong>Assistants API定位</strong>：OpenAI提供的高层封装，支持不写代码在Playground中快速构建Agent。</li>
+<li><strong>多工具协同</strong>：Assistants可调用代码解释器与DALL·E 3等工具，实现从内容生成到图像创作的自动化办公流程。</li>
+<li><strong>实操路径</strong>：从Playground体验入手，再通过API代码化，完成虚构PPT的端到端创作。</li>
+<li><strong>任务拆解</strong>：PPT创作可分为主题理解、页面结构、文字内容、图像生成和文件组装，每一步都应有中间产物和检查点。</li>
+<li><strong>质量边界</strong>：自动生成的文案、图片和版式需要人工审核，尤其要检查事实、版权、品牌规范和最终文件可打开性。文件生成还应保存中间版本和失败日志，便于发现某一步工具调用异常后只重跑局部，而不是从头重复全部流程。对外发送前要再做一次格式、链接、敏感信息和收件人检查。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 Agent 2：多功能选择的引擎——通过Function Calling调用函数</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Function Calling的本质：让大模型根据用户意图选择并调用预定义函数，实现与外部系统的对接</li><li>两种实现路径：可通过Assistants API或ChatCompletion API（Tool Calls）实现函数调用</li><li>Playground先行：在Playground中定义Function可快速验证调用逻辑，再迁移到代码实现</li></ul></div>3
+<ul>
+<li><strong>Function Calling的本质</strong>：让大模型根据用户意图选择并调用预定义函数，实现与外部系统的对接。</li>
+<li><strong>两种实现路径</strong>：可通过Assistants API或ChatCompletion API（Tool Calls）实现函数调用。</li>
+<li><strong>Playground先行</strong>：在Playground中定义Function可快速验证调用逻辑，再迁移到代码实现。</li>
+<li><strong>函数契约</strong>：工具描述需要明确名称、用途、参数类型、必填字段和返回结构，越清晰越能减少模型误用。</li>
+<li><strong>安全执行</strong>：模型只能提出调用请求，应用侧负责鉴权、参数校验、超时、重试和敏感操作确认，不能直接把自然语言当成命令执行。生产环境还要按工具划分最小权限，区分只读查询、可逆写入和不可逆操作，并在日志中记录调用者、参数摘要、结果与审批状态。</li>
+</ul>
+<h3 id="第6章-agent-3推理与行动的协同通过langchain中的react框架实现自动定价">第6章 Agent 3：推理与行动的协同——通过LangChain中的ReAct框架实现自动定价</h3>3
+<ul>
+<li><strong>ReAct在LangChain中的落地</strong>：通过create_react_agent将推理与工具调用结合，构建自动定价Agent。</li>
+<li><strong>工具与工具包</strong>：LangChain提供标准化工具接口，工具包可批量注册相关工具供Agent选用。</li>
+<li><strong>AgentExecutor运行机制</strong>：深入理解AgentExecutor的循环调度逻辑，是调试和优化Agent行为的关键。</li>
+<li><strong>自动定价流程</strong>：Agent先理解商品和约束，再调用库存、成本或市场工具，最后生成价格建议；每一步都应保留依据。</li>
+<li><strong>调试方法</strong>：检查工具选择是否正确、参数是否完整、观察结果是否被正确读回，以及停止条件是否触发，不能只看最后一句答案。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 Agent 4：计划和执行的解耦——通过LangChain中的Plan-and-Execute实现智能调度库存</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Plan-and-Solve策略：将“制定计划”与“执行步骤”解耦，先规划后执行，提升复杂任务的可靠性</li><li>Plan-and-Execute Agent：LangChain中该模式适合多步骤、需全局规划的场景，如物流库存调度</li><li>从单Agent到多Agent：单Agent能力有限时，引入多Agent分工协作是自然演进方向</li></ul></div>3
+<ul>
+<li><strong>Plan-and-Solve策略</strong>：将“制定计划”与“执行步骤”解耦，先规划后执行，提升复杂任务的可靠性。</li>
+<li><strong>Plan-and-Execute Agent</strong>：LangChain中该模式适合多步骤、需全局规划的场景，如物流库存调度。</li>
+<li><strong>从单Agent到多Agent</strong>：单Agent能力有限时，引入多Agent分工协作是自然演进方向。</li>
+<li><strong>计划的价值</strong>：先列出目标、依赖和顺序，可减少执行过程中的方向漂移；但环境变化时仍需允许重新规划。计划还应标注每一步的完成判据，让执行器知道何时可以交接，避免只产生日志却没有可验证产物。</li>
+<li><strong>执行验收</strong>：每个步骤都要有输入、输出和失败分支，库存、订单等真实业务动作应支持幂等与人工审批。</li>
+</ul>
+<h3 id="第8章-agent-5知识的提取与整合通过llamaindex实现检索增强生成">第8章 Agent 5：知识的提取与整合——通过LlamaIndex实现检索增强生成</h3>3
+<ul>
+<li><strong>RAG核心思想</strong>：检索增强生成通过外部知识检索弥补大模型知识时效性与准确性不足。</li>
+<li><strong>RAG与Agent结合</strong>：ReAct RAG Agent将检索作为工具纳入推理循环，实现知识驱动的自主问答。</li>
+<li><strong>实操案例</strong>：通过LlamaIndex构建财报检索Agent，展示知识提取与整合的完整链路。</li>
+<li><strong>检索工具设计</strong>：Agent需要知道何时检索、检索什么以及证据不足时如何继续查找或拒答，不能把搜索工具当成万能函数。</li>
+<li><strong>回答验收</strong>：财报类回答应区分原文事实、计算结果和模型推断，并给出可追溯的文档片段或来源信息。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第9章 Agent 6：GitHub的网红聚落——AutoGPT、BabyAGI和CAMEL</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>AutoGPT：自主目标分解与执行的开源先锋，展示Agent自主循环的可行性</li><li>BabyAGI：以任务队列驱动的最小化自主Agent，体现“计划—执行—再计划”的极简范式</li><li>CAMEL：通过角色扮演实现多Agent协作对话，探索Agent间自主交互模式</li></ul></div>3
+<ul>
+<li><strong>AutoGPT</strong>：自主目标分解与执行的开源先锋，展示Agent自主循环的可行性。</li>
+<li><strong>BabyAGI</strong>：以任务队列驱动的最小化自主Agent，体现“计划—执行—再计划”的极简范式。</li>
+<li><strong>CAMEL</strong>：通过角色扮演实现多Agent协作对话，探索Agent间自主交互模式。</li>
+<li><strong>三者共性</strong>：均以循环机制实现连续的学习与适应过程，是理解自主Agent设计思想的重要样本。</li>
+<li><strong>局限认识</strong>：自主循环会放大错误目标、错误工具和错误记忆，因此实际系统必须设置最大步数、成本上限、人工检查和可恢复状态。循环每一轮都要判断是否取得新证据，若连续重复或工具报错，应转入回退、重试或人工接管。<blockquote>
+<p>“精髓就在于通过循环来实现一个连续的学习和适应过程，即制定流程、进行决策并解决问题。”</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第10章-agent-7多agent框架autogen和metagpt">第10章 Agent 7：多Agent框架——AutoGen和MetaGPT</h3>3
+<ul>
+<li><strong>AutoGen</strong>：微软开源的多Agent对话框架，支持多角色协作完成复杂任务。</li>
+<li><strong>MetaGPT</strong>：将软件公司角色分工引入多Agent，按SOP编排Agent协作流程。</li>
+<li><strong>多Agent价值</strong>：通过角色分工与层级协作，突破单Agent在复杂任务上的能力边界。</li>
+<li><strong>协作机制</strong>：多Agent系统需要定义角色职责、消息协议、交接条件和终止规则，否则角色越多，沟通噪声和成本越高。</li>
+<li><strong>工程取舍</strong>：只有当任务确实需要专业分工、并行处理或相互审查时才引入多Agent；能由一个确定性流程完成的任务不应复杂化。多Agent上线前应先用单Agent基线对照，比较准确率、延迟、调用次数和人工介入率，确认协作收益能够覆盖额外成本。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">附录A 下一代Agent的诞生地：科研论文中的新思路</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>综述论文指引：两篇高质量Agent综述提供领域全景与研究脉络，帮助读者建立概念、方法和研究问题之间的联系</li><li>落地原则：把论文方案拆成可测试的小假设，用真实业务数据和端到端指标验证，不能把实验室结果直接当作生产承诺</li><li>前沿方向：涵盖Agent自主学习、多Agent合作、可信度评估、边缘部署与具身智能落地</li></ul></div>3
+<ul>
+<li><strong>综述论文指引</strong>：两篇高质量Agent综述提供领域全景与研究脉络，帮助读者建立概念、方法和研究问题之间的联系。</li>
+<li><strong>前沿方向</strong>：涵盖Agent自主学习、多Agent合作、可信度评估、边缘部署与具身智能落地。</li>
+<li><strong>科研与工程结合</strong>：跟踪论文新思路是把握Agent技术演进方向的重要途径，但工程采用前仍需验证依赖、成本、稳定性和安全边界。</li>
+<li><strong>阅读方法</strong>：先读问题定义、任务环境、评测指标和失败案例，再看架构图与实验结果，避免只记住新名词。</li>
+<li><strong>落地原则</strong>：把论文方案拆成可测试的小假设，用真实业务数据和端到端指标验证，不能把实验室结果直接当作生产承诺。还要记录模型版本、工具版本、提示模板和评测样本，方便复现实验并定位回归。</li>
+</ul>
+<h2 id="适用场景标签">适用场景标签</h2>2
+<ul>
+<li>AI Agent开发入门</li>
+<li>大模型应用工程实践</li>
+<li>LangChain/LlamaIndex框架学习</li>
+<li>多Agent系统设计</li>
+<li>RAG与工具调用实战</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">一句话推荐</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>动手做Agent，从概念到落地的实战指南</li></ul></div>2
+<p>动手做Agent，从概念到落地的实战指南。</p></div></details></div></body></html>

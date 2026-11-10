@@ -1,0 +1,303 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>00-融合清单与验收</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 00-融合清单与验收</span></div><div class="wrap"><h1 id="l9-三源融合主题收敛替换与验收记录">L9 三源融合：主题收敛、替换与验收记录</h1>
+<p>本文件为维护清单，不是主题正文。19 篇旧文中 12 篇进入融合范围、收敛为 6 篇唯一正文（其中 5 个现有路径重写/深改，1 个子目录路径重写），6 个散篇删除；微服务线 7 篇<strong>本轮未完成融合，原样保留</strong>，见"未达标篇目"。<br />
+三源为本地 Agent 课件、书籍目录与划线摘录、公开官方文档及业内论文原文。未把摘录声称为书籍全文。<br />
+核验日期：2026-11-04。<br />
+只写 L9-全栈工程；未修改 raw、ontology、其他层、全局入口、RAG 索引或 HTML 产物。</p>
+<h2 id="主题收敛与字数">主题收敛与字数</h2>2
+<p>汉字数：去掉 frontmatter 和 fenced code 后，统计 Unicode U+4E00—U+9FFF；非空白字符：全文含元数据、代码、标点。<br />
+执行计划原定 19 篇收敛为 9 篇；实际完成 6 个主题，微服务线 3 个主题（下表 6—8）未执行合并，按实记录。</p>
+<table>
+<thead>
+<tr>
+<th>主题</th>
+<th>唯一正文</th>
+<th style="text-align: right;">合并旧篇数</th>
+<th style="text-align: right;">正文汉字数</th>
+<th style="text-align: right;">全文非空白字符</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>全栈 LLM 流式交付</td>
+<td><a href="L9-%E5%85%A8%E6%A0%88%E5%B7%A5%E7%A8%8B-2026.html">L9-全栈工程-2026.md</a></td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1859</td>
+<td style="text-align: right;">7627</td>
+</tr>
+<tr>
+<td>RAG 检索调优与项目实战</td>
+<td><a href="%E5%90%91%E9%87%8F%E5%BA%93%E9%80%89%E5%9E%8B%E4%B8%8E%E8%B0%83%E4%BC%98.html">向量库选型与调优.md</a></td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2327</td>
+<td style="text-align: right;">6829</td>
+</tr>
+<tr>
+<td>LLM 生产可观测与 Eval</td>
+<td><a href="LLM%E7%94%9F%E4%BA%A7%E7%9B%91%E6%8E%A7%E4%B8%8EEval%E8%A7%82%E6%B5%8B.html">LLM生产监控与Eval观测.md</a></td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1963</td>
+<td style="text-align: right;">6059</td>
+</tr>
+<tr>
+<td>LLM 安全容量成本</td>
+<td><a href="%E5%AE%B9%E9%87%8F%E5%8E%8B%E6%B5%8B%E4%B8%8E%E6%88%90%E6%9C%AC%E6%B5%8B%E7%AE%97.html">容量压测与成本测算.md</a></td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">2321</td>
+<td style="text-align: right;">5777</td>
+</tr>
+<tr>
+<td>轻量微调与部署</td>
+<td><a href="%E8%BD%BB%E9%87%8F%E5%BE%AE%E8%B0%83%E4%B8%8E%E9%83%A8%E7%BD%B2%E5%AE%9E%E6%93%8D.html">轻量微调与部署实操.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1934</td>
+<td style="text-align: right;">6303</td>
+</tr>
+<tr>
+<td>微服务架构与技术升级</td>
+<td><strong>未收敛</strong>：微服务实战/01、04 原样保留</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td>高并发业务与分布式事务</td>
+<td><strong>未收敛</strong>：微服务实战/02、03、05 原样保留</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td>微服务可观测压测灰度与项目交付</td>
+<td><strong>未收敛</strong>：微服务实战/06、项目实战—微服务 原样保留</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+<td style="text-align: right;">—</td>
+</tr>
+<tr>
+<td>Agent 项目实战</td>
+<td><a href="%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98/L9-%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98-Agent%E6%99%BA%E8%83%BD%E4%BD%93.html">项目实战/L9-项目实战-Agent智能体.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">3552</td>
+<td style="text-align: right;">11811</td>
+</tr>
+</tbody>
+</table>
+<h2 id="19-篇逐项去向与删除清单">19 篇逐项去向与删除清单</h2>2
+<p>SHA-256 由 <code>.fusion-work/original/</code> 内副本实算，与 <code>original-sha256.tsv</code> 逐一核对，19/19 一致；副本已在收口时随 <code>.fusion-work</code> 删除。</p>
+<table>
+<thead>
+<tr>
+<th>原文件</th>
+<th>处理</th>
+<th>唯一去向</th>
+<th>原始 SHA-256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L9-全栈工程-2026.md</td>
+<td>原路径融合重写</td>
+<td><a href="L9-%E5%85%A8%E6%A0%88%E5%B7%A5%E7%A8%8B-2026.html">L9-全栈工程-2026.md</a></td>
+<td><code>dce06dbde6823ca10897df6abd09bdd6469fbb514e3220dce5f08429d2546734</code></td>
+</tr>
+<tr>
+<td>前后端LLM集成与流式服务.md</td>
+<td>删除旧散篇</td>
+<td><a href="L9-%E5%85%A8%E6%A0%88%E5%B7%A5%E7%A8%8B-2026.html">L9-全栈工程-2026.md</a></td>
+<td><code>fa360603137cb93d97abc92aed02d7cce2156bca058baf9cadab506104521be4</code></td>
+</tr>
+<tr>
+<td>全栈交付参考架构-Nextjs-Supabase-Vercel.md</td>
+<td>删除旧散篇</td>
+<td><a href="L9-%E5%85%A8%E6%A0%88%E5%B7%A5%E7%A8%8B-2026.html">L9-全栈工程-2026.md</a></td>
+<td><code>5ce3f2007ce93e18893485eaf8f3ed1f9751123578ea25dc8c6f2b6aaab1bfb0</code></td>
+</tr>
+<tr>
+<td>向量库选型与调优.md</td>
+<td>原路径融合重写</td>
+<td><a href="%E5%90%91%E9%87%8F%E5%BA%93%E9%80%89%E5%9E%8B%E4%B8%8E%E8%B0%83%E4%BC%98.html">向量库选型与调优.md</a></td>
+<td><code>30dd0e881306fb992c53fa4e1f22dcd99f30e9d7d9b2e2eec7505176b34c6848</code></td>
+</tr>
+<tr>
+<td>项目实战/L9-项目实战-RAG问答.md</td>
+<td>删除旧散篇</td>
+<td><a href="%E5%90%91%E9%87%8F%E5%BA%93%E9%80%89%E5%9E%8B%E4%B8%8E%E8%B0%83%E4%BC%98.html">向量库选型与调优.md</a>（HOW 第 5 节吸收项目闭环）</td>
+<td><code>f886f76ecc5a097590159e80b92498873cc98c1be627d0365aac6d3acb080f69</code></td>
+</tr>
+<tr>
+<td>LLM生产监控与Eval观测.md</td>
+<td>原路径融合重写</td>
+<td><a href="LLM%E7%94%9F%E4%BA%A7%E7%9B%91%E6%8E%A7%E4%B8%8EEval%E8%A7%82%E6%B5%8B.html">LLM生产监控与Eval观测.md</a></td>
+<td><code>e78021f4113bc088fb4ce7e0f04cd3109f9c9fb715c5a211e6bccc9cdda845b1</code></td>
+</tr>
+<tr>
+<td>Tracing可观测选型-Arize-Phoenix-Langfuse-OTEL横评.md</td>
+<td>删除旧散篇</td>
+<td><a href="LLM%E7%94%9F%E4%BA%A7%E7%9B%91%E6%8E%A7%E4%B8%8EEval%E8%A7%82%E6%B5%8B.html">LLM生产监控与Eval观测.md</a></td>
+<td><code>f1184d391d80ce769accd317ccc96ac354b9cef95e2819579d74557697e96ce1</code></td>
+</tr>
+<tr>
+<td>容量压测与成本测算.md</td>
+<td>原路径融合重写</td>
+<td><a href="%E5%AE%B9%E9%87%8F%E5%8E%8B%E6%B5%8B%E4%B8%8E%E6%88%90%E6%9C%AC%E6%B5%8B%E7%AE%97.html">容量压测与成本测算.md</a></td>
+<td><code>c6ba6685e8a7f0397f888095b73a9c81dd4ebaa913e3e364f996445caca36297</code></td>
+</tr>
+<tr>
+<td>LLM应用安全与成本建模.md</td>
+<td>删除旧散篇</td>
+<td><a href="%E5%AE%B9%E9%87%8F%E5%8E%8B%E6%B5%8B%E4%B8%8E%E6%88%90%E6%9C%AC%E6%B5%8B%E7%AE%97.html">容量压测与成本测算.md</a></td>
+<td><code>a287b7168a26e54555d3f9d90c0ee6ae411b4f37126bcfb2e205e9c3f0c01f7d</code></td>
+</tr>
+<tr>
+<td>成本是RAG第一约束-k值缓存分层路由三杠杆.md</td>
+<td>删除旧散篇</td>
+<td><a href="%E5%AE%B9%E9%87%8F%E5%8E%8B%E6%B5%8B%E4%B8%8E%E6%88%90%E6%9C%AC%E6%B5%8B%E7%AE%97.html">容量压测与成本测算.md</a></td>
+<td><code>b6867eaae02eeca28e9568f491d49e3a399aecf6b4ae83a59dd29c9e33cdaf77</code></td>
+</tr>
+<tr>
+<td>轻量微调与部署实操.md</td>
+<td>原路径深改</td>
+<td><a href="%E8%BD%BB%E9%87%8F%E5%BE%AE%E8%B0%83%E4%B8%8E%E9%83%A8%E7%BD%B2%E5%AE%9E%E6%93%8D.html">轻量微调与部署实操.md</a></td>
+<td><code>cbfc788936b0894ee7667f9a7d60c420d06516a71cb446dbc271e84f7b792758</code></td>
+</tr>
+<tr>
+<td>项目实战/L9-项目实战-Agent智能体.md</td>
+<td>原路径融合重写</td>
+<td><a href="%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98/L9-%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98-Agent%E6%99%BA%E8%83%BD%E4%BD%93.html">项目实战/L9-项目实战-Agent智能体.md</a></td>
+<td><code>f536c85dd194e1b4f50f08c1e5f61a7790867b14849728b933e827cc8ff27e85</code></td>
+</tr>
+<tr>
+<td>微服务实战/01-Spring-Cloud-Alibaba微服务架构基础.md</td>
+<td>保留，未融合（未达标）</td>
+<td>暂留原路径，待与 04 合并</td>
+<td><code>1d27354875124e2685fc6bdcfee2a29fc39d92101386676b0150c186fea39988</code></td>
+</tr>
+<tr>
+<td>微服务实战/02-秒杀抢购模块实战.md</td>
+<td>保留，未融合（未达标）</td>
+<td>暂留原路径，待与 03、05 合并</td>
+<td><code>63b09639013ab1b3b14c1c489cd2c88cf4550b400e374cc004f0735d16573940</code></td>
+</tr>
+<tr>
+<td>微服务实战/03-派单调度与支付模块实战.md</td>
+<td>保留，未融合（未达标）</td>
+<td>暂留原路径，待与 02、05 合并</td>
+<td><code>62f877268d4d3f1059a49936fe4c3a1dd39c2553a75b4f2b87f353cb9ecc3fbd</code></td>
+</tr>
+<tr>
+<td>微服务实战/04-技术栈升级-SpringBoot3-SCA-Nacos3-RocketMQ5迁移实战.md</td>
+<td>保留，未融合（未达标）</td>
+<td>暂留原路径，待与 01 合并</td>
+<td><code>0be1746d466d5061e7f772fe4f27779befc7af461c1e74f5b604644250534b43</code></td>
+</tr>
+<tr>
+<td>微服务实战/05-分布式事务选型实战-Seata四模式-事务消息-Outbox对照.md</td>
+<td>保留，未融合（未达标）</td>
+<td>暂留原路径，待与 02、03 合并</td>
+<td><code>89be84e828085065a26a0b468933b192ed102ffa7c36b526cff1ba470ee916d6</code></td>
+</tr>
+<tr>
+<td>微服务实战/06-微服务可观测-压测-灰度发布实战.md</td>
+<td>保留，未融合（未达标）</td>
+<td>暂留原路径，待与项目实战—微服务合并</td>
+<td><code>cee0f69060aac015f6bedb83d84fc22e6b75963ef14697e97c1bb738819a92f6</code></td>
+</tr>
+<tr>
+<td>项目实战/L9-项目实战-微服务.md</td>
+<td>保留，未融合（未达标）</td>
+<td>暂留原路径，待与微服务实战/06 合并</td>
+<td><code>121272a16145440c5f2237772bc3d5af7cb221b2377c71a6e455c6f7b546432b</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="三源边界说明">三源边界说明</h2>2
+<ul>
+<li>课件来源为本地课程整理（FastAPI、LlamaIndex 摄取、RAGAS、PEFT/量化、LangGraph+MCP 等），课件原型不等于本机复跑。</li>
+<li>书籍来源为目录与公开划线摘录（《Hermes 技术内幕》《持续交付2.0》《大模型 RAG 应用开发》《大模型实战：微调、优化与私有化部署》），不声称获得或阅读书籍全文。</li>
+<li>业内来源为官方文档（FastAPI、React、AI SDK、pgvector、Supabase、OTel、Langfuse、Phoenix、vLLM、TRL、OWASP 等）与 arXiv 论文；官方链接 GET 成功只证明当日可取，不证明文中示例已运行。</li>
+<li>论文只按其真实主题落点使用：WEAVE（arXiv:2610.22039）落在依赖结构交付与测试记账，不作为 Web 框架性能证据；arXiv:2610.31606 落在 ground-truth 标注口径，不证明固定 chunk 参数最优。微服务线因未完成融合，未强行补引论文。</li>
+<li>本轮不启动 Java、数据库、GPU、容器、真实模型或完整前后端服务；正文中的命令与代码均为实施模板，未实跑。</li>
+<li>旧文固定价格、固定延迟、固定规模阈值、"快 N 倍"等绝对口径未继承为事实。</li>
+</ul>
+<h2 id="验收记录">验收记录</h2>2
+<h3 id="三段与三源核对13-篇保留正文逐篇机检">三段与三源核对（13 篇保留正文逐篇机检）</h3>3
+<ul>
+<li><strong>达标 6/13</strong>：独立 WHY、WHAT / WHYT、HOW 三段标题 + 文末「来源与三源融合落点」段（课件/书籍/业内，含 arXiv ID）——L9-全栈工程-2026、向量库选型与调优、LLM生产监控与Eval观测、容量压测与成本测算、轻量微调与部署实操、项目实战/L9-项目实战-Agent智能体。</li>
+<li>6 篇达标正文共检出 arXiv ID 引用 20 处（2+2+2+6+4+4）。</li>
+<li>6 篇达标正文内无指向被删散篇的 Markdown 链接；引言中"本篇融合原《…》"为书名号文字提及，非链接，删除不产生断链。</li>
+</ul>
+<h3 id="未达标篇目清单7-篇诚实保留不粉饰">未达标篇目清单（7 篇，诚实保留，不粉饰）</h3>3
+<p>以下篇目<strong>缺独立 WHY / WHAT(WHYT) / HOW 三段标题，且无「来源与三源融合落点」段、无 arXiv 引用</strong>，属融合计划第 6—8 主题，本轮未执行合并与改写；按任务边界不补写正文，原样保留：</p>
+<ol>
+<li><code>微服务实战/01-Spring-Cloud-Alibaba微服务架构基础.md</code>（汉字 3319）</li>
+<li><code>微服务实战/02-秒杀抢购模块实战.md</code>（汉字 3515）</li>
+<li><code>微服务实战/03-派单调度与支付模块实战.md</code>（汉字 3431）</li>
+<li><code>微服务实战/04-技术栈升级-SpringBoot3-SCA-Nacos3-RocketMQ5迁移实战.md</code>（汉字 4884）</li>
+<li><code>微服务实战/05-分布式事务选型实战-Seata四模式-事务消息-Outbox对照.md</code>（汉字 6824）</li>
+<li><code>微服务实战/06-微服务可观测-压测-灰度发布实战.md</code>（汉字 6867）</li>
+<li><code>项目实战/L9-项目实战-微服务.md</code>（汉字 3105；有中文"这是什么/为什么做/怎么做"三段，但无三源来源段、无 arXiv，仍判未达标）</li>
+</ol>
+<h3 id="删除确认">删除确认</h3>3
+<ul>
+<li>删除散篇 6 篇：前后端LLM集成与流式服务、全栈交付参考架构-Nextjs-Supabase-Vercel、Tracing可观测选型-Arize-Phoenix-Langfuse-OTEL横评、LLM应用安全与成本建模、成本是RAG第一约束-k值缓存分层路由三杠杆、项目实战/L9-项目实战-RAG问答。</li>
+<li>删前逐篇确认：①对应唯一正文文首明确声明融合该散篇；②<code>.fusion-work/original/</code> 内有副本且 SHA-256 对账一致（19/19）。</li>
+<li>微服务线 7 篇无"更完整的唯一正文"取代，一律不删。</li>
+<li><code>.fusion-work</code> 整个目录已删除，原始 SHA 留在上表供追溯；未留任何 <code>.bak</code> 或第二份副本。</li>
+</ul>
+<h2 id="目录外引用影响">目录外引用影响</h2>2
+<p>只读扫描 wiki 目录，以下目录外 Markdown 文件含被删除文件名引用。此项属于已知残留，不计为全库链接通过。遵守本单边界不修改这些文件，也不保留重定向散篇；需要全库同步时可按本表去向映射修复。生成入口、RAG 和图谱未重建。</p>
+<ul>
+<li><code>wiki/00-知识库总入口.md</code>：全部 6 个被删文件名均有引用。</li>
+<li><code>wiki/AI应用工程师能力知识图谱-终版-20261014.md</code>：前后端LLM集成与流式服务、全栈交付参考架构-Nextjs-Supabase-Vercel、LLM应用安全与成本建模。</li>
+<li><code>wiki/CONVERT-INVENTORY-20261030.md</code>：Tracing可观测选型-Arize-Phoenix-Langfuse-OTEL横评。</li>
+<li><code>wiki/L4-RAG工程/pgvector两百万向量内免调优-ef_search与规模阈值.md</code>（及 <code>.fusion-work/original/</code>、<code>.bak-linksources-20261030/</code> 内同名历史副本）：成本是RAG第一约束-k值缓存分层路由三杠杆。</li>
+</ul>
+<h2 id="收口">收口</h2>2
+<p>最终落盘复核：6 篇达标主题正文 + 7 篇未达标保留正文 + 1 篇维护清单，共 14 个 md；6 篇旧散篇不存在；<code>.fusion-work</code> 已删除；无 <code>.bak</code> 残留。<code>L9-全栈工程/.claude/</code> 为本层既有目录，不属于本次文稿范围，未作清理。<br />
+未创建付费模型任务、未读取凭据、未上传本地内容；公开取证仅使用 GET。<br />
+微服务线 3 个主题的融合为后续任务，执行时应沿用本清单格式补记去向与 SHA。</p></div></body></html>

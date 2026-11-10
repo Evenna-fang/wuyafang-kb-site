@@ -1,0 +1,203 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>总网协议总纲-一手-20261015</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 总网协议总纲-一手-20261015</span></div><div class="wrap"><h1 id="总网协议总纲一手完整版-2026-10-12-运行态">总网协议总纲（一手完整版 · 2026-10-12 运行态）</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="AGENTS%E8%A7%84%E8%8C%83%E5%AE%9E%E6%88%98.html">AGENTS规范实战</a> · <a href="%E6%80%BB%E5%9C%B0%E5%9B%BE%E4%B8%8E%E8%B5%84%E4%BA%A7%E7%BD%91-N%E8%8A%82%E7%82%B9%E4%BD%93%E7%B3%BB.html">总地图与资产网-N节点体系</a> · <a href="%E5%85%AD%E5%91%98%E9%80%9A%E9%81%93%E4%B8%8E%E6%B4%BE%E5%8D%95%E7%9B%91%E7%9D%A3-%E4%B8%80%E6%89%8B.html">六员通道与派单监督-一手</a> · <a href="%E6%B4%BE%E5%8D%95%E7%BA%AA%E5%BE%8B%E4%B8%89%E6%9D%A1.html">派单纪律三条</a> · <a href="%E9%94%99%E8%AF%AF%E5%8F%B0%E8%B4%A6%E6%9C%BA%E5%88%B6.html">错误台账机制</a></p>
+<p>本条目承载 <code>~/.hermes/AGENTS.md</code>（运行中总网协议总纲，2026-10-12）的完整一手内容。二手提炼版见 <a href="AGENTS%E8%A7%84%E8%8C%83%E5%AE%9E%E6%88%98.html">AGENTS规范实战</a>，两者差异见文末。</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心结论</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>总网协议总纲的最高优先级规则是强制入口——接到任何任务（不设步数门槛，拿不准就读）第一件事是读总地图 「raw/_task_orders/总地图.md」，按其 N1–N6 节点走、逐项 Check（✅🔄⬜），不凭记忆动手</li><li>三条铁律贯穿全程：凭据不进卡/不落盘/不复述；知识库入库必标 TTL + 动库前必快照；新资产必须挂节点，零游离</li></ul></div>2
+<p>总网协议总纲的最高优先级规则是<strong>强制入口</strong>——接到任何任务（不设步数门槛，拿不准就读）第一件事是读总地图 <code>raw/_task_orders/总地图.md</code>，按其 <strong>N1–N6</strong> 节点走、逐项 Check（✅🔄⬜），<strong>不凭记忆动手</strong>。协议把六员协作凝成一张"节点图 + 机械门禁"：主链七步带两条回边，任务按<strong>爆炸半径</strong>分 A/B/C 三档（80%/15%/5%），下判断先过 G-PROBE 五门禁，派单先跑 <code>dispatch-guard.py</code>（exit=1 不许派），验收四门全绿即停，收口走四问 + 沉淀回流。三条铁律贯穿全程：<strong>凭据不进卡/不落盘/不复述</strong>；<strong>知识库入库必标 TTL + 动库前必快照</strong>；<strong>新资产必须挂节点，零游离</strong>。</p>
+<h2 id="关键细节">关键细节</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">一、强制入口 + 全景图核心（10 行压缩版）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>最高优先（规则来源：10-12 用户反复纠正"凭记忆漏项/建技能被动/资产散落"）：读总地图 → 按 N1–N6 走 → 汇报对着总地图逐项 Check → 新资产声明挂哪个节点，零游离</li></ul></div>3
+<p>最高优先（规则来源：10-12 用户反复纠正"凭记忆漏项/建技能被动/资产散落"）：读总地图 → 按 N1–N6 走 → 汇报对着总地图逐项 Check → 新资产声明挂哪个节点，零游离。</p>
+<p>全景图核心：</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>七步+回边</strong>：进件分诊→P1 权威信息→计划+审→拆卡派单→执行→验收四门→收口回流；停手/失败/变更走<strong>回边 A 回③</strong>，验收失败走<strong>回边 B 回⑤</strong></td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>审查链</strong>：OpenClaw→DSH→Claude→Codex，<strong>轮 ≤ 2，超 2 报用户</strong>；执行期改计划 = 强制重审并记 ⑦</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>白名单+拆卡</strong>：派单卡写死"只这 N 件"；大任务拆小卡（单卡单目标），<strong>DSH 批量 N=5</strong></td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>凭据</strong>：密钥/凭据不进卡、不落盘、不复述，走 key 同步链路注入</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>停手规则</strong>：撞新门停手 / <strong>同错 3 次停手</strong>（指纹去时间戳路径 ID，用 <code>lookup_error.py "&lt;原文&gt;"</code>）/ <strong>空转 5 轮停手</strong> / <strong>超预算 2 倍即停</strong></td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>预算档</strong>：派单时标档（千/万/十万级），结束回填 <code>plans/token-台账.md</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>台账</strong>：⑦ 收口写台账 + evolution-log + 处方进 Gap 到人；动手前先查 error-ledger，命中直接套用</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>绿即停</strong>：验收四门全绿即停（自报不采信 / 预埋 check 复跑 / 正负例 ≥ 5 / receipt verify G0–G9）</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>派单前必跑门禁</strong>：<code>python3 ~/.hermes/scripts/dispatch-guard.py --task "关键词"</code>，<strong>exit=1 不许派</strong></td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>派单后定期检查（铁律 2026-10-12）</strong>：派单后 <strong>5 分钟</strong>查 transcript 看子智能体在干啥，<strong>10 分钟</strong>查进度数字，发现迷路/卡住立刻 steer，不等 30 分钟超时；派单时写清文件路径（别让子智能体自己找）</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>派单前必读现有代码（铁律 2026-10-12）</strong>：改代码/配置/灌库类任务，先读现有代码画依赖链、列全步骤再派单；<strong>返工超过 1 次 = 规划不全</strong>，必须停下重读代码重画依赖链，不能继续派单补漏</td>
+</tr>
+<tr>
+<td>12</td>
+<td><strong>收口四问</strong>：产物落位了吗 / 临时备份删了吗 / 新坑记台账了吗 / 子进程 kill 了吗（<strong>available &lt; 1.5G 强制清</strong>）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="二探测纪律-g-probe五条全过才下结论">二、探测纪律 G-PROBE（五条全过才下结论）</h3>3
+<table>
+<thead>
+<tr>
+<th>门</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>G1 双样本</strong></td>
+<td>≥ 2 次独立实测</td>
+</tr>
+<tr>
+<td><strong>G2 跨维度</strong></td>
+<td>≥ 2 个 IP/端点/参数 + 对照组</td>
+</tr>
+<tr>
+<td><strong>G3 加载路径</strong></td>
+<td>查实际加载路径，不 grep 表面文件</td>
+</tr>
+<tr>
+<td><strong>G4 禁间接推断</strong></td>
+<td>不用体积/mtime 推内容</td>
+</tr>
+<tr>
+<td><strong>G5 纠错闭环</strong></td>
+<td>新结论也过 G1–G4，旧结论显式撤回不静默改口</td>
+</tr>
+</tbody>
+</table>
+<p>对应 error-ledger 指纹：<code>api:probe-single-sample-false-negative</code>、<code>config:read-wrong-source-file-false-conclusion</code>、<code>config:infer-content-from-indirect-metrics-false-conclusion</code>、<code>api:self-correction-without-revalidation</code>。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">三、任务三档分流 + 模型切换 + 复盘沉淀</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>A 档·直出（80%）：只读查询 OR 新文件 < 20 行且不在例外清单</li><li>C 档·重流程（5%）：架构决策/新功能/可能搞崩系统</li><li>验证三件套缺一不算过：① grep 实测落盘 ② 配置重载 + 真实 list/最小调用 ③ 下游 Agent 逐个 validate/ping</li></ul></div>3
+<ul>
+<li><strong>A 档·直出（80%）</strong>：只读查询 OR 新文件 &lt; 20 行且不在例外清单。例：读 config、查日志、grep。</li>
+<li><strong>B 档·派单（15%）</strong>：命中例外清单（<code>~/.hermes/</code> 下任何文件 / <code>.env</code> / <code>secrets.env</code> / <code>pyproject.toml</code> / docker-systemd / 多 Agent 共享文件 / <code>HERMES_*</code> 环境变量）。<strong>验证三件套缺一不算过</strong>：① grep 实测落盘 ② 配置重载 + 真实 list/最小调用 ③ 下游 Agent 逐个 validate/ping。</li>
+<li><strong>C 档·重流程（5%）</strong>：架构决策/新功能/可能搞崩系统。方案→OC 审→执行→E2E + receipt verify。</li>
+</ul>
+<p><strong>模型切换（多 Agent 共享）</strong>：自动 <code>source ~/shared-skills/auto-switch-model.sh &lt;code|math|vision|quick|chat|long|coder&gt;</code>（→ MiMo V2.6 Flash 为主）；手动必须先 <code>--list</code> 展示列表问用户编号、再 <code>switch-model.sh &lt;provider&gt; &lt;编号&gt;</code>，<strong>禁止直接带 provider 跑</strong>；复盘规则：多 agent 失败复盘先定位 decisive error，只让那个 agent 反思，其余不陪跑。</p>
+<p><strong>复盘→技能沉淀（三层落地门禁）</strong>：命中"沉淀三问"（Q1 新链接→raw/ · Q2 踩坑→error-ledger · Q3 流程优化→提 Gap）后先判层再写——协议层（AGENTS.md）必须 OC 审通过；记忆层（LEARNING-INDEX.md）Hermes 自审、新条目默认 📋 候选、实战触发 ≥ 3 次后升 ✅ 已验证；技能层（<code>references/</code>）Hermes 自审 + 标来源、触发 3 次才转正。<strong>冲突时不写</strong>，追加 <code>⚠️冲突: &lt;现有规则#&gt;</code> 等周复盘。</p>
+<h3 id="四六角色权限契约-错误台账铁律">四、六角色权限契约 + 错误台账铁律</h3>3
+<p>六角色：研究（只读）· 规划（只读无写）· 执行（限定范围读写）· 审查（只读+标记，<strong>禁用 terminal 和 execute_code</strong>）· 调试（限定修复）· 清理（读写，先建清单再删）。<strong>改动 &gt; 3 文件 → 独立上下文复审</strong>（详见 <code>agent-role-permissions</code> 技能）。</p>
+<p>台账铁律：报错先 <code>grep -i "&lt;关键词&gt;" ~/.hermes/skills/software-development/error-ledger/ledger.tsv</code>，命中 fixed 直接套用；修复后 <code>log_error.py --fp "类型:实体-关键词" --cause --fix --status fixed</code>。每日聚合走<strong>事件钩子</strong>（会话启动/receipt verify/周一 update 钩后），<strong>无 22:00 定时</strong>（WSL 睡眠不可靠）。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">五、知识库保鲜铁律（2026-10-09）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>入库必标 TTL（7d/30d/180d/eternal，默认 30d 告警）；动库前必须快照 「cp -r raw/ raw/.snapshot-YYYYMMDD-HHMM/」</li><li>主对话只做只读验收（SELECT/health/ls），一切写操作必须派单</li></ul></div>3
+<p>入库必标 TTL（<strong>7d/30d/180d/eternal，默认 30d 告警</strong>）；<strong>动库前必须快照</strong> <code>cp -r raw/ raw/.snapshot-YYYYMMDD-HHMM/</code>。主对话只做只读验收（SELECT/health/ls），<strong>一切写操作必须派单</strong>。</p>
+<h3 id="六团队常驻2026-09-24">六、团队常驻（2026-09-24）</h3>3
+<ul>
+<li>六员名册：Hermes / DSH / Claude Code / Codex / OpenClaw / QwenCode（<strong>OpenHands 已裁撤</strong>）。</li>
+<li><strong>禁提"传智学生"身份</strong>。</li>
+<li>终态模型：<code>xiaomimimo/mimo-v2.6-flash</code>（已切 + <strong>冒烟 6/6</strong>）。</li>
+<li><strong>派单卡头必标凭据性质：【免凭据】/【不免凭据】</strong>（走 receipt declare）。</li>
+<li><strong>配置类操作全局串行</strong>，同批文件禁并发（台账 <code>concurrent-writer-race</code>）。</li>
+<li>今日事今日毕，就绪即发；跨日仅三类（物理/串行依赖/人审）。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">七、Trace Tampering 防御 + Debate 编排</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>适用所有【不免凭据】执行类派单</li><li>归并规则：两结论一致且置信度都 ≥ 0.7 直接采用；置信度 < 0.7 标 ⚠️；相反且差 ≥ 0.2 高置信优先；差 < 0.2 升人审；任一方说不确定 → OC 慢思考</li><li>复杂决策 Debate 编排（防 sycophancy 级联）：选型/架构/排障方向决策，派单卡头加 「mode: debate」，同时发 Claude Code + Codex 独立作答（互不可见），各自输出结论 + 证据 + 置信度 + 自己方案最大弱点；OpenClaw 对比归并</li></ul></div>3
+<ul>
+<li><strong>Trace Tampering 防御</strong>：派单时执行 agent 输出 trace 必须带 <code>sha256sum &lt;file&gt;</code> 哈希写进派单卡 <code>trace_hash</code>；审查时独立比对，不匹配 = 篡改，打回重跑 + <strong>通道降级</strong>。适用所有【不免凭据】执行类派单。</li>
+<li><strong>复杂决策 Debate 编排（防 sycophancy 级联）</strong>：选型/架构/排障方向决策，派单卡头加 <code>mode: debate</code>，同时发 Claude Code + Codex 独立作答（互不可见），各自输出结论 + 证据 + 置信度 + 自己方案最大弱点；OpenClaw 对比归并。归并规则：两结论一致且置信度都 ≥ 0.7 直接采用；置信度 &lt; 0.7 标 ⚠️；相反且差 ≥ 0.2 高置信优先；差 &lt; 0.2 升人审；任一方说不确定 → OC 慢思考。<strong>硬终止：轮次封顶 2 轮</strong>，每轮证据来自外部，第 2 轮置信度不得比第 1 轮高 ≥ 0.15。</li>
+</ul>
+<h3 id="八派单规范-5-条2026-09-29-实测踩坑">八、派单规范 5 条（2026-09-29 实测踩坑）</h3>3
+<ol>
+<li>派单卡必须标注「<strong>子智能体执行</strong>」，否则 write-guard 误杀主对话写操作。</li>
+<li>派单卡长度 <strong>≤ 2000 字</strong>，超长拆卡或 context 丢文件。</li>
+<li>派单卡<strong>禁含 <code>${VAR_NAME}</code> 字面量</strong>，API 直接拒绝。</li>
+<li>进程占用查用 <code>fuser -v &lt;path&gt;</code> 或 <code>lsof &lt;path&gt;</code>，<strong>禁遍历 <code>/proc/*/fd</code></strong>（安全网关 BLOCKED）。</li>
+<li><strong>verifier 警告 ≠ 没改成</strong>，先实测（grep/python 读配置/真实调用）再下结论。</li>
+</ol>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">九、外部 AI 工具速查</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Ollama：已装，「curl localhost:11434/api/tags」 列模型，「ollama run 」</li><li>GitHub CLI：已装，「gh auth login」 / 「gh repo clone」 / 「gh pr create」</li><li>Gemini CLI：❌ 已停运卸载（2026-06-18 Google 关停个人版），替代品 Qwen Code</li></ul></div>3
+<ul>
+<li><strong>Ollama</strong>：已装，<code>curl localhost:11434/api/tags</code> 列模型，<code>ollama run &lt;model&gt;</code>。</li>
+<li><strong>GitHub CLI</strong>：已装，<code>gh auth login</code> / <code>gh repo clone</code> / <code>gh pr create</code>。</li>
+<li><strong>Gemini CLI</strong>：❌ 已停运卸载（2026-06-18 Google 关停个人版），替代品 Qwen Code。</li>
+<li><strong>Amazon Q / Aider</strong>：❌ 未装，需要时装。</li>
+<li>系统清理：先建"在用程序"清单再删（<code>windows-disk-cleanup</code> 技能）。</li>
+</ul>
+<h2 id="来源">来源</h2>2
+<ul>
+<li><code>WSL:~/.hermes/AGENTS.md</code>（运行中总网协议总纲，2026-10-12）</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">相关术语</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Orchestrator-Walker 模式、A2A / MCP：ontology/术语表-Agent框架.md</li><li>Quality Gating、Insight Graph：ontology/Agent记忆术语表.md</li></ul></div>2
+<ul>
+<li>Orchestrator-Walker 模式、A2A / MCP：ontology/术语表-Agent框架.md</li>
+<li>Quality Gating、Insight Graph：ontology/Agent记忆术语表.md</li>
+</ul>
+<h2 id="相关条目">相关条目</h2>2
+<ul>
+<li><a href="%E4%BB%BB%E5%8A%A1%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B%E8%A1%8C%E4%B8%9A%E5%AF%B9%E6%A0%87-2026.html">任务执行流程行业对标（2026）</a></li>
+</ul></div></details></div></body></html>

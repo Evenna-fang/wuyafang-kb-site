@@ -1,0 +1,470 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RAG评测三层方法论-20261009</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ RAG评测三层方法论-20261009</span></div><div class="wrap"><h1 id="rag-评测三层方法论检索层-recallkcontext-precisioncontext-relevance-深度实操">RAG 评测三层方法论：检索层 Recall@k、Context Precision、Context Relevance 深度实操</h1>
+<blockquote>
+<p>原位升级说明：保留本文件名和链接，替换原来的概览稿。本篇负责检索层；<a href="RAGAS%E4%B8%89%E5%B1%82%E8%AF%84%E6%B5%8B%E8%90%BD%E5%9C%B0-%E6%8C%87%E6%A0%87%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BB%A3%E7%A0%81%E5%AE%9E%E6%88%98-20261030.html">生成与端到端实操</a>负责 Faithfulness、Answer Relevancy、Answer Correctness。三层是本库的工程归因框架，不是声称 RAGAS 原论文规定了这套三层六指标标准。</p>
+<p>验证边界：2026-11-03 核对本库脚本及官方固定标签源码；文中纯 Python 算例可离线执行。需要模型的适配代码按 v0.3.9 源码编写，本次未安装依赖、未调用裁判、未重新测量生产检索分数。87.5% 是历史记录与教学算例使用的数值，不能冒充今天的生产成绩。[S1][S2][L1][L2]</p>
+</blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY：为什么检索层不能只报一个 Recall@5</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="1-找到文档找到证据把证据放在前面是三件事">1. 找到文档、找到证据、把证据放在前面，是三件事</h3>3
+<p>假设用户问“当前重排过滤线是多少”。系统前五条包含一份阈值文档，但命中的片段只是目录，没有真正写数值；或者同一文档同时含有现行值和历史值，重排把旧值放在第一。这两种情况都可能满足“文件名命中”，却不能保证生成模型获得了足够、准确、易利用的证据。检索评测必须把对象定到片段或证据单元，而不是只凭文件名宣布问题已经解决。本库旧脚本使用来源匹配，因此它能作为历史烟雾报警器，却不是证据完备性的充分证明。[L1][L3]</p>
+<p>三个指标各管一个方向：Recall@k 看必须的证据找齐了多少；Context Precision 看被判有用的片段是否靠前；Context Relevance 看送入上下文的内容是否与问题有关。三者并列观察，才能区分漏召回、排序差和上下文污染。它们不是重复投票，也不应直接平均。把三个不同定义的数压成“检索综合分”，会丢掉排查入口，例如 Recall 很高而 Precision 很低，首先应该检查排序，而不是再扩候选池。[S2][S3]</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2. 增大 k 有收益，也会把成本和错误一起放大</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>将 top-k 从 5 提到 10，可能补回一段缺失证据，也可能增加五段重复课件与过期说明</li><li>对于固定标签集合，真正的 Recall 随 k 增大不应下降，但上下文 token、重排耗时、重复比例和生成干扰都可能上升</li><li>如果 top-10 的召回明显增加，而生成层正确性下降，应先查看新增片段有没有冲突、噪声或截断效应，再决定保留数量</li></ul></div>3
+<p>将 top-k 从 5 提到 10，可能补回一段缺失证据，也可能增加五段重复课件与过期说明。对于固定标签集合，真正的 Recall 随 k 增大不应下降，但上下文 token、重排耗时、重复比例和生成干扰都可能上升。因此本篇建议用 k=1、3、5、10 观察曲线，同时记录最终送给生成器的文本量，而不是默认“越多越好”。如果 top-10 的召回明显增加，而生成层正确性下降，应先查看新增片段有没有冲突、噪声或截断效应，再决定保留数量。[D1]</p>
+<p>评测成本也要分两档。ID 比对可在每次本地变更后运行，不需要裁判；语义 Context Precision 和 Context Relevance 则需要读取文本并调用模型，适合抽样或冻结集。先用便宜的确定性检查拦住空结果、重复 ID、非法状态，再支付模型评测成本，能避免把网络失败当成算法问题。这里“便宜”指是否需要模型调用，不代表本地模型推理没有算力成本。[D1]</p>
+<h3 id="3-本库为何尤其需要口径审计">3. 本库为何尤其需要口径审计</h3>3
+<p>历史基线报告记载过 B010：检索返回 FastAPI 依赖注入课件，但标注要求命中一个没有对应章节的术语表，因此实际有用的结果被判成 miss。报告还记载过 B002 返回向量数组打印内容，以及 B005 把 G-Memory 问题检索成普通 LangChain Memory。三个失败分别涉及尺子、语料和语义检索，不能统一解释为“向量模型不够强”。本篇保留这些案例，但不把报告的阈值归因当成本次已复现结论。[L1]</p>
+<p>更直接的问题在现有代码：<code>rag/eval/eval_recall.py</code> 以“存在任一匹配来源”为每题记分，再跨题求均值；当参考源有两份而只找到一份时，它仍记 1。这个量更接近来源级 HitRate，而不是多证据 Recall。它还先去重来源再取前 k，与生产 top-k 片段的口径不同。复用旧分数之前先读判定循环，往往比重跑一小时更有价值。[L3]</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">WHAT：定义、版本与实验契约</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="4-小白前置与术语表">4. 小白前置与术语表</h3>3
+<p>本篇默认读者会运行 Python、识别 JSON 数组，并知道 RAG 是 Retrieval-Augmented Generation，即检索增强生成。无需先学习向量库内部结构；先掌握“问题—参考证据—实际检索列表”的对应关系，再研究 dense、sparse 和 rerank 的优化。标注员与工程师必须对下面的词达成一致，否则同一个 Recall 名称会承载不同的分母。[D1]</p>
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>本篇约定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Golden set</td>
+<td>经过核对的冻结问题集，包含答案或证据标注</td>
+</tr>
+<tr>
+<td>Qrels</td>
+<td>Query relevance judgments，问题到相关证据 ID 的映射</td>
+</tr>
+<tr>
+<td>Evidence ID</td>
+<td>稳定证据标识；可以映射多个重叠片段</td>
+</tr>
+<tr>
+<td>Recall@k</td>
+<td>前 k 个实际返回位置覆盖的必需证据比例</td>
+</tr>
+<tr>
+<td>HitRate@k</td>
+<td>至少命中一条有效证据的问题比例</td>
+</tr>
+<tr>
+<td>Precision@k</td>
+<td>前 k 个位置中相关片段占比，须声明不足 k 的分母</td>
+</tr>
+<tr>
+<td>AP</td>
+<td>Average Precision，相关位置上的精确率平均</td>
+</tr>
+<tr>
+<td>Context Precision</td>
+<td>本文明确使用 RAGAS 的有参考答案 AP 型实现</td>
+</tr>
+<tr>
+<td>Context Relevance</td>
+<td>本文明确使用 NVIDIA 风格双提示词实现</td>
+</tr>
+<tr>
+<td>Macro / Micro</td>
+<td>先每题平均 / 先合并证据计数再计算</td>
+</tr>
+<tr>
+<td>Rerank</td>
+<td>对召回候选重新排序，不等于补回候选池之外的证据</td>
+</tr>
+<tr>
+<td>Judge</td>
+<td>语义判定裁判；其故障必须与产品质量分开统计</td>
+</tr>
+</tbody>
+</table>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">5. Recall@k：先写分母，再写百分比</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>跨问题做宏平均时，每题权重相同；微平均则让需要更多证据的问题占更大权重</li><li>多跳问题只找到一跳时，HitRate 满分尤其容易产生误导，至少应同时报告证据 Recall 和全部证据命中率</li><li>对于一条事实可由两份等价文档支持的情况，不要把两份都列为“必须找到”</li></ul></div>3
+<p>对可回答问题 q，令 Gq 为人工认定的必需证据集合，Rq,k 为前 k 个真实检索位置覆盖的证据集合，则：</p>
+<p><code>Recall(q,k)=|Gq ∩ Rq,k| / |Gq|</code>，<code>Hit(q,k)=1[|Gq ∩ Rq,k|&gt;0]</code>。</p>
+<p>跨问题做宏平均时，每题权重相同；微平均则让需要更多证据的问题占更大权重。比如一题只有一条证据且命中，另一题需要三条而只找到一条：宏 Recall=(1+1/3)/2=66.67%，微 Recall=2/4=50%，HitRate=100%。三者可以同时成立。多跳问题只找到一跳时，HitRate 满分尤其容易产生误导，至少应同时报告证据 Recall 和全部证据命中率。[D1]</p>
+<p>对于一条事实可由两份等价文档支持的情况，不要把两份都列为“必须找到”。更可靠的标注是建立证据组：同组多个片段任意命中即可；不同组分别代表不可缺少的事实。比如“阈值数值”和“生效日期”是两组，两份同内容阈值文档只是第一组的替代来源。本文代码采用一对一证据 ID 的简化格式，复杂场景应在导出时把等价片段映射到同一证据 ID。[D1]</p>
+<h3 id="6-context-precision不是简单的相关块比例">6. Context Precision：不是简单的相关块比例</h3>3
+<p>固定使用 RAGAS v0.3.9 的 <code>LLMContextPrecisionWithReference</code>：裁判读取问题、参考答案与每个片段，判断片段对得到参考答案是否有用，产生二值序列 v。实现计算相关位置上的精确率平均，分母是本次返回列表里被判有用的片段数量，而不是全库相关证据总量；源码另加极小量避免除零。[S2]</p>
+<p>例如 v=[1,0,1,0,1]，普通 Precision@5=3/5=0.6，Context Precision=(1+2/3+3/5)/3=0.7556。若重排成 [1,1,1,0,0]，后者升到 1，但 Precision@5 仍是 0.6。如果只检索到唯一一段相关片段而漏掉其他必需证据，Context Precision 仍可为 1。因此它适合衡量排序，不适合代替 Recall。报告时写出完整类名与版本，避免把 AP、P@k、IDBasedContextPrecision 三种不同计算混称。[S2]</p>
+<p>官方同标签还提供 <code>LLMContextPrecisionWithoutReference</code>，它用实际 response 替代 reference。这个变体虽不需要标准答案，却依赖模型答案：模型若已经答偏，裁判可能奖励“能帮助生成错误回答”的片段。本篇离线主基线选 WithReference；没有参考答案的线上样本，可以单独跑 WithoutReference，但列名和报表必须分开，不与主基线纵向连线。[S2]</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7. Context Relevance：名字相近不代表算法相同</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>RAGAS 原论文讨论过从上下文抽出相关句子、再与上下文句子数比较的 Context Relevance；本篇代码不冒充这一历史算法</li><li>两次原始评分若为 2 和 1，最终是 0.75</li><li>它不是“逐 chunk 二分类后取均值”</li></ul></div>3
+<p>RAGAS 原论文讨论过从上下文抽出相关句子、再与上下文句子数比较的 Context Relevance；本篇代码不冒充这一历史算法。本文采用 v0.3.9 导出的 <code>ContextRelevance</code>，其内部名字是 <code>nv_context_relevance</code>：把全部片段按换行拼接为整体，两套提示词分别评 0、1、2，先除以 2 归一化，再合并两次评分。两次原始评分若为 2 和 1，最终是 0.75。它不是“逐 chunk 二分类后取均值”。[S1][S3]</p>
+<p>这个区别直接影响结论。五段中只有一段包含答案，整体式评分可能因已经能回答而较高，但片段利用率仍然很低。要监测上下文冗余，额外保存每段有用性判定、重复率及 token 数；若自行实现逐块 0/1 相关率，请命名为 <code>chunk_relevance_rate</code>，不要覆盖 <code>nv_context_relevance</code>。新指标可以有价值，问题在于不能借相同名字假装历史成绩可比。[S3][D1]</p>
+<p>该版本还在指标内部指定 temperature=0.1，外围把 ChatOpenAI 设成 0 不等于所有调用温度都必然为零。源码对异常的处理也存在降级分支，因此报告除了最终分数，还应统计裁判完成率、重复运行波动。不能用“温度设为 0”推导“完全确定”，也不能从一个有限数值反推两次判定均成功。[S3]</p>
+<h3 id="8-本篇的三层指标契约">8. 本篇的三层指标契约</h3>3
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>指标及输入</th>
+<th>能支持的判断</th>
+<th>不能支持的判断</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>检索</td>
+<td>Recall@k：qrels、排名 ID</td>
+<td>必需证据覆盖率</td>
+<td>模型是否用对证据</td>
+</tr>
+<tr>
+<td>检索</td>
+<td>Context Precision：问题、片段、reference</td>
+<td>相关片段排序质量</td>
+<td>全库是否漏证据</td>
+</tr>
+<tr>
+<td>检索</td>
+<td>Context Relevance：问题、片段</td>
+<td>整体上下文答题相关性</td>
+<td>答案真实正确</td>
+</tr>
+<tr>
+<td>生成</td>
+<td>Faithfulness：问题、片段、response</td>
+<td>回答是否被材料支持</td>
+<td>材料本身是否过期</td>
+</tr>
+<tr>
+<td>生成</td>
+<td>Answer Relevancy：问题、response、向量模型</td>
+<td>回答是否切题</td>
+<td>数字与事实一定正确</td>
+</tr>
+<tr>
+<td>端到端</td>
+<td>Answer Correctness：问题、response、reference</td>
+<td>相对标准答案的正确性</td>
+<td>真实世界真值自动获得</td>
+</tr>
+</tbody>
+</table>
+<p>这是一套教学与工程排障选集，不声称“六项是所有业务的最小充分集合”。代码执行、权限隔离、引用真实性、拒答与时效性可能还需其他测试。尤其是高风险业务，不能因为六项都有数字，就免除人工审查或业务级验收。[S1][D1]</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">HOW：从标注到复现，再到改进决策</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="9-第一步冻结题集并声明哪些数字是历史基线">9. 第一步：冻结题集，并声明哪些数字是历史基线</h3>3
+<p>先建立不可变的题集快照，记录题集内容哈希、索引版本、切分策略、路由开关和过滤条件。一个可用的首批设计是 50 条可回答题加 10 条不可回答题；可回答部分再覆盖简单事实、多跳和冲突时效题。50/10 是本篇教学配置，不是统计充分性的通用标准。正式样本量由业务风险、预期最小可检测退化及标注预算决定。[D1]</p>
+<p>本库可核对的历史信息如下。这里“可核对”指文件目前留有记录，不表示原始运行环境和数据仍可完整恢复。两份不同题集的结果不能相减后宣称管线提升；尤其 87.5% 与 70% 不能被写成同尺子退步或进步。[L1][L2]</p>
+<table>
+<thead>
+<tr>
+<th>数值</th>
+<th>证据与口径</th>
+<th>使用限制</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>历史 Recall@5=87.5%</td>
+<td>标准落位方案记载“56 条”</td>
+<td>当前未取得完整同轮逐题结果，真实分母需复核</td>
+</tr>
+<tr>
+<td>历史 Recall@5=70.0%</td>
+<td>2026-10-14 基线报告，7/10 来源命中</td>
+<td>旧纯检索路径，不是 RAGAS Context Recall</td>
+</tr>
+<tr>
+<td>教学 Recall@5=87.5%</td>
+<td>下节离线构造 8 题、总共覆盖 7 题</td>
+<td>仅验证计算公式，不证明本库今天的检索质量</td>
+</tr>
+<tr>
+<td>教学 Context Precision=0.7556</td>
+<td>人工标签 [1,0,1,0,1]</td>
+<td>非模型现场判分</td>
+</tr>
+<tr>
+<td>教学 Context Relevance=0.75</td>
+<td>双提示词原始评分假定为 2、1</td>
+<td>用于核对归一化，不是生产实测</td>
+</tr>
+</tbody>
+</table>
+<p>为什么不能把历史 56 条的 87.5% 自动解释为 49/56？因为题集中可能含负例，分数也可能使用不同分母或平均方式。算术上 49/56 确实等于 87.5%，但这只说明一种可能的构造，不证明原报告实际如此。任何正式基线都应附可回答题数量、缺失条数、每题命中和运行状态，避免漂亮小数掩盖失败样本。[L2][D1]</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">10. 第二步：把数据模式定清楚，先验证离线评分器</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>以下是教学 JSONL 的单条格式，真实文件应放在 「notes/benchmark/」，不要放进 raw 或可被检索的 wiki 语料</li><li>输入来自固定教学构造，输出不能当业务评测结论</li><li>本文展示的例子仅用于解释格式；生产测试集必须与教学例子隔离，不能把本文本身作为答题证据</li></ul></div>3
+<p>以下是教学 JSONL 的单条格式，真实文件应放在 <code>notes/benchmark/</code>，不要放进 raw 或可被检索的 wiki 语料。本文展示的例子仅用于解释格式；生产测试集必须与教学例子隔离，不能把本文本身作为答题证据。[D1]</p>
+<pre><code class="language-json">{&quot;id&quot;:&quot;ret-001&quot;,&quot;answerable&quot;:true,&quot;status&quot;:&quot;ok&quot;,&quot;question&quot;:&quot;演示配置的过滤线是多少？&quot;,&quot;gold_ids&quot;:[&quot;policy-value&quot;],&quot;retrieved_ids&quot;:[&quot;policy-value&quot;,&quot;noise-1&quot;],&quot;reference&quot;:&quot;演示配置过滤线是0.45。&quot;,&quot;contexts&quot;:[&quot;演示配置过滤线为0.45。&quot;,&quot;无关背景。&quot;]}
+</code></pre>
+<p>这里 <code>retrieved_ids</code> 保留真实排名位置；不能先去重来源再补足五条。假如前五个位置全来自同一文档的五块重复内容，生成器实际上只有这一文档，评分器就不应伪造“第五个不同文档”进入 top-5。证据集合可以去重，但 k 的切片必须先做。重复 chunk 在 Precision 标签层仍占位置，另报重复率即可。[D1]</p>
+<p>将下面代码保存为基准目录中的 <code>retrieval_math.py</code>。脚本只用标准库，不访问向量库、不调用模型、不写结果文件，适合首先验证计算语义。输入来自固定教学构造，输出不能当业务评测结论。[D1]</p>
+<pre><code class="language-python">import math
+from statistics import mean
+
+def recall_at_k(gold_ids, retrieved_ids, k):
+    if k &lt;= 0:
+        raise ValueError(&quot;k must be positive&quot;)
+    gold = set(gold_ids)
+    if not gold:
+        raise ValueError(&quot;answerable query needs non-empty gold&quot;)
+    return len(gold &amp; set(retrieved_ids[:k])) / len(gold)
+
+def hit_at_k(gold_ids, retrieved_ids, k):
+    return float(recall_at_k(gold_ids, retrieved_ids, k) &gt; 0)
+
+def context_ap(verdicts):
+    if not verdicts:
+        return math.nan
+    if any(v not in (0, 1) for v in verdicts):
+        raise ValueError(&quot;binary verdicts required&quot;)
+    positives = sum(verdicts)
+    if positives == 0:
+        return 0.0
+    running = 0
+    numerator = 0.0
+    for rank, verdict in enumerate(verdicts, 1):
+        running += verdict
+        numerator += (running / rank) * verdict
+    return numerator / positives
+
+def main():
+    rows = [
+        {&quot;gold&quot;: [f&quot;g{i}&quot;], &quot;ranked&quot;: [f&quot;g{i}&quot;, &quot;x&quot;, &quot;y&quot;, &quot;z&quot;, &quot;w&quot;]}
+        for i in range(7)
+    ] + [{&quot;gold&quot;: [&quot;g7&quot;], &quot;ranked&quot;: [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;, &quot;d&quot;, &quot;e&quot;]}]
+    r5 = mean(recall_at_k(r[&quot;gold&quot;], r[&quot;ranked&quot;], 5) for r in rows)
+    print(f&quot;teaching_recall@5={r5:.1%}&quot;)
+    print(f&quot;context_precision={context_ap([1, 0, 1, 0, 1]):.4f}&quot;)
+    print(f&quot;nv_context_relevance_demo={(2 / 2 + 1 / 2) / 2:.2f}&quot;)
+    assert r5 == 0.875
+    assert math.isclose(context_ap([1, 0, 1, 0, 1]), 34 / 45)
+    assert context_ap([0, 0]) == 0
+    assert math.isnan(context_ap([]))
+    assert recall_at_k([&quot;a&quot;, &quot;b&quot;], [&quot;a&quot;, &quot;x&quot;], 5) == 0.5
+    assert hit_at_k([&quot;a&quot;, &quot;b&quot;], [&quot;a&quot;, &quot;x&quot;], 5) == 1.0
+    assert recall_at_k([&quot;a&quot;, &quot;b&quot;], [&quot;a&quot;, &quot;a&quot;, &quot;b&quot;], 2) == 0.5
+    for k in (1, 3, 5):
+        assert recall_at_k([&quot;a&quot;, &quot;b&quot;], [&quot;x&quot;, &quot;a&quot;, &quot;b&quot;], k) &lt;= 1
+    print(&quot;offline_math_checks=passed&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+<p>执行命令及预期输出：</p>
+<pre><code class="language-bash">python3 notes/benchmark/retrieval_math.py
+</code></pre>
+<pre><code class="language-text">teaching_recall@5=87.5%
+context_precision=0.7556
+nv_context_relevance_demo=0.75
+offline_math_checks=passed
+</code></pre>
+<p>空标签与零相关标签是两种情况：前者说明没有可评价列表，本文辅助函数返回 NaN；后者表示列表存在但没有相关项，返回 0。官方 AP 实现在空列表时也可能因极小量分母得到 0，因此实际集成必须先做输入校验，不要依赖底层分数替你区分基础设施错误和检索失败。上面的辅助函数故意显式化这一边界，并非逐字复制官方所有边界行为。[S2][D1]</p>
+<h3 id="11-第三步使用固定版本的-ragas-适配器">11. 第三步：使用固定版本的 RAGAS 适配器</h3>3
+<p>为避免 <code>stable</code> 文档更新后类名和字段漂移，示例锁定已核对的 v0.3.9。它不是“当前最新版”的承诺。新项目可另做迁移，但迁移必须作为独立实验：先复跑冻结样本，再决定是否替换主基线。模型依赖应安装在新的实验环境，不能覆盖现有生产 ai-stack；本次文档写作没有执行下面的安装命令。[S2][S3][D1]</p>
+<pre><code class="language-bash">python3.11 -m venv notes/benchmark/.venv-ragas-lab
+notes/benchmark/.venv-ragas-lab/bin/python -m pip install &quot;ragas==0.3.9&quot; &quot;langchain-openai&lt;1&quot; &quot;langchain-community&lt;0.4&quot;
+notes/benchmark/.venv-ragas-lab/bin/python -m pip check
+notes/benchmark/.venv-ragas-lab/bin/python -c &quot;from ragas import SingleTurnSample; from ragas.metrics import LLMContextPrecisionWithReference, ContextRelevance; print('imports=ok')&quot;
+notes/benchmark/.venv-ragas-lab/bin/python -m pip freeze
+</code></pre>
+<p>仅锁 ragas 本身不足以保证重现，所以上述命令要求检查依赖并保存实际解析结果；它是安装方案，不是已经验证过的完整锁文件。若冲突，保留错误信息、核对兼容范围，不要往生产环境注入假模块来“消除 import 错误”。本库现有 <code>eval_ragas.py</code> 确有 VertexAI 兼容 shim，能够解释历史脚本为何能继续跑，但不应扩散成新的通用安装指南。[L4]</p>
+<p>下面是一份完整的读取 JSONL、调用两个检索指标、保留每项失败状态的适配脚本。保存为 <code>notes/benchmark/ragas_retrieval_lab.py</code>。裁判端点通过环境变量显式给出，必须为 localhost 回环地址；代码不接收云端端点，也不读取凭据文件。模型名同样来自已有本地服务配置，文档不假定某个模型已经安装。[D1]</p>
+<pre><code class="language-python">import asyncio
+import json
+import math
+import os
+import sys
+from pathlib import Path
+from urllib.parse import urlparse
+
+def local_url(name):
+    value = os.environ[name]
+    parsed = urlparse(value)
+    if parsed.scheme not in {&quot;http&quot;, &quot;https&quot;}:
+        raise ValueError(&quot;HTTP(S) endpoint required&quot;)
+    if parsed.hostname not in {&quot;127.0.0.1&quot;, &quot;localhost&quot;, &quot;::1&quot;}:
+        raise ValueError(&quot;private evaluation requires loopback endpoint&quot;)
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise ValueError(&quot;credentials/query/fragment not allowed in URL&quot;)
+    return value
+
+async def main(input_path, output_path):
+    from langchain_openai import ChatOpenAI
+    from ragas import SingleTurnSample
+    from ragas.llms import LangchainLLMWrapper
+    from ragas.metrics import LLMContextPrecisionWithReference, ContextRelevance
+    from ragas.run_config import RunConfig
+
+    chat = ChatOpenAI(
+        base_url=local_url(&quot;RAGAS_LOCAL_CHAT_URL&quot;),
+        api_key=&quot;local-no-auth&quot;,
+        model=os.environ[&quot;RAGAS_LOCAL_JUDGE_MODEL&quot;],
+        temperature=0,
+        max_tokens=4096,
+        timeout=120,
+        max_retries=2,
+    )
+    llm = LangchainLLMWrapper(chat, bypass_n=True, bypass_temperature=True)
+    metrics = [LLMContextPrecisionWithReference(llm=llm), ContextRelevance(llm=llm)]
+    for metric in metrics:
+        metric.init(RunConfig(timeout=120, max_retries=2, max_workers=1))
+
+    rows = [json.loads(s) for s in Path(input_path).read_text(encoding=&quot;utf-8&quot;).splitlines() if s.strip()]
+    ids = [row[&quot;id&quot;] for row in rows]
+    if not rows or len(ids) != len(set(ids)):
+        raise ValueError(&quot;empty dataset or duplicate ids&quot;)
+    output = []
+    for row in rows:
+        record = {&quot;id&quot;: row[&quot;id&quot;], &quot;metrics&quot;: {}, &quot;run_status&quot;: row.get(&quot;status&quot;)}
+        if not row.get(&quot;answerable&quot;, True):
+            record[&quot;status&quot;] = &quot;negative_separate&quot;
+        elif row.get(&quot;status&quot;) != &quot;ok&quot;:
+            record[&quot;status&quot;] = &quot;pipeline_error&quot;
+        elif not isinstance(row.get(&quot;contexts&quot;), list) or not row[&quot;contexts&quot;] or not all(isinstance(c, str) and c.strip() for c in row[&quot;contexts&quot;]):
+            record[&quot;status&quot;] = &quot;retrieval_miss&quot;
+        elif not isinstance(row.get(&quot;reference&quot;), str) or not row[&quot;reference&quot;].strip() or not row.get(&quot;question&quot;):
+            record[&quot;status&quot;] = &quot;schema_error&quot;
+        else:
+            record[&quot;status&quot;] = &quot;scored&quot;
+            sample = SingleTurnSample(
+                user_input=row[&quot;question&quot;],
+                retrieved_contexts=row[&quot;contexts&quot;],
+                reference=row[&quot;reference&quot;],
+            )
+            for metric in metrics:
+                try:
+                    value = float(await metric.single_turn_ascore(sample))
+                    record[&quot;metrics&quot;][metric.name] = {
+                        &quot;value&quot;: value if math.isfinite(value) else None,
+                        &quot;status&quot;: &quot;ok&quot; if math.isfinite(value) else &quot;undefined&quot;,
+                    }
+                except Exception as exc:
+                    record[&quot;metrics&quot;][metric.name] = {
+                        &quot;value&quot;: None, &quot;status&quot;: &quot;judge_error&quot;,
+                        &quot;error_type&quot;: type(exc).__name__,
+                    }
+        output.append(record)
+    destination = Path(output_path)
+    if destination.resolve() == Path(input_path).resolve():
+        raise ValueError(&quot;refuse to overwrite input&quot;)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with destination.open(&quot;x&quot;, encoding=&quot;utf-8&quot;) as handle:
+        json.dump(output, handle, ensure_ascii=False, indent=2, allow_nan=False)
+    print(f&quot;rows={len(output)}; per-metric status retained&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main(*sys.argv[1:]))
+</code></pre>
+<p>本例 <code>bypass_n=True</code> 用于兼容不支持多候选参数的服务；<code>bypass_temperature=True</code> 让包装器不要改写 ChatOpenAI 的温度，但 NVIDIA 指标直接传入温度的行为仍须根据实际适配链核对。并发先设 1，超时 120 秒、最大输出 4096 是实验起点，不是对所有推理模型都足够的保证。使用推理型裁判时，必须查看是否发生截断；只看到 HTTP 成功或 finish_reason 为 stop，并不能保证结构化结果完整。[S3][S4][D1]</p>
+<p>运行前由操作者按本地服务现状设置两个环境变量：一个是回环 <code>/v1</code> 地址，一个是实际存在的模型名。这里不提供云端密钥注入步骤，因为本机知识库材料禁止外传。即使端点在 localhost，也应确认后端不是把请求转发至外部供应商；网络地址校验只是第一层，不是数据出域审批的替代品。[D1]</p>
+<pre><code class="language-bash">notes/benchmark/.venv-ragas-lab/bin/python notes/benchmark/ragas_retrieval_lab.py notes/benchmark/retrieval-traces.jsonl notes/benchmark/retrieval-result-run01.json
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">12. 第四步：同一份实际轨迹连接三层</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>每题至少保存原问题、路由、候选集、重排后排名、最终截断文本、状态和时延</li><li>尤其是 parent-child 检索、图谱追加与上下文压缩：原始 chunk 命中不代表经过处理后关键句仍在</li><li>Recall 可以同时在候选池、重排后 top-5、最终送模文本三处算，但列名必须分别标注</li></ul></div>3
+<p>每题至少保存原问题、路由、候选集、重排后排名、最终截断文本、状态和时延。Recall 可以同时在候选池、重排后 top-5、最终送模文本三处算，但列名必须分别标注。若候选池有金标而最终上下文没有，问题发生在排序、过滤或截断阶段；此时继续调 embedding 不会直接解决。若三处都没有，才优先查索引覆盖、查询改写或召回策略。[D1]</p>
+<p>JSONL 中的 <code>contexts</code> 必须来自最终生成输入，不是用文档全文回填。尤其是 parent-child 检索、图谱追加与上下文压缩：原始 chunk 命中不代表经过处理后关键句仍在。证据 ID 应与最终文本逐项对齐，并保存文本哈希，避免两个脚本分别重新检索后把不同结果拼成假四元组。生成篇将用这份冻结轨迹检查“找到但没用对”的问题。[D1]</p>
+<p>对于合法的检索空结果，可回答题的 Recall 必须记 0；对于超时、进程崩溃，质量分记缺失并单独计执行失败率，不能把失败条删掉以后继续宣布整体达标。一个实用输出是 <code>eligible=50, retrieval_ok=48, zero_hit=4, pipeline_error=2</code>，同时报告成功运行口径的 Recall 与全量覆盖率。若业务必须保守验收，还可计算“失败按零”的下界，但应显式标作下界。[D1]</p>
+<h3 id="13-第五步用对照实验找改进杠杆">13. 第五步：用对照实验找改进杠杆</h3>3
+<p>下面是一份实验设计表，不是本次测得的提升报告。四组保持题集、语料、证据标注不变，每次只改一个因素。dense-only 与 hybrid 的差异反映召回贡献；同一候选集有无 rerank 的差异才更接近排序贡献。若更换候选池、模板和裁判同时发生，无法把分差归功于某一个组件。[D1]</p>
+<table>
+<thead>
+<tr>
+<th>实验组</th>
+<th>唯一变化</th>
+<th>首要观测</th>
+<th>次要护栏</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>固定 dense-only 候选</td>
+<td>Recall@5 / @10</td>
+<td>空结果率、延迟</td>
+</tr>
+<tr>
+<td>B</td>
+<td>增加 sparse 融合</td>
+<td>相对 A 的同题 Recall 差</td>
+<td>重复率、候选数</td>
+</tr>
+<tr>
+<td>C</td>
+<td>对 B 同候选重排</td>
+<td>Context Precision、首个证据排名</td>
+<td>Recall 不被过滤压低</td>
+</tr>
+<tr>
+<td>D</td>
+<td>对 C 做证据压缩</td>
+<td>Context Relevance、token 数</td>
+<td>证据完整性、答案正确性</td>
+</tr>
+</tbody>
+</table>
+<p>本库使用过“两路都有返回但稀疏头随机初始化”的排查案例，因此“两路数量非零”只是活性检查，不是质量验证。对于 sparse，至少要有同文本重复编码的一致性检查和命中排序的正负样例；对于图谱槽，应对比追加前后首条排名与 top-5 证据覆盖。日志中的分数、向量距离、rerank raw score 和 RRF 分数不是同一个量，不能共享一个看似漂亮的 0.75 门槛。[L5][D1]</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">14. 第六步：把门禁写成能拒绝坏结果的条件</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>教学起始配置可设：Recall@5 相对同尺子基线不下降；Context Precision 和 Context Relevance 的允许下降暂设 0.02；裁判缺失率不得高于 5%；任何题集哈希、裁判配置、索引版本缺失都先阻断比较</li><li>0.02 和 5% 是本篇设计参数，尚未经本库标定；实际阈值应依据人工风险等级及重复测量波动确定，不得把“写了个常数”描述为“实测标定”</li><li>对固定八题构造，87.5% 降为 75% 意味着少命中一题，是 12.5 个百分点；相对降幅则是 14.29%</li></ul></div>3
+<p>教学起始配置可设：Recall@5 相对同尺子基线不下降；Context Precision 和 Context Relevance 的允许下降暂设 0.02；裁判缺失率不得高于 5%；任何题集哈希、裁判配置、索引版本缺失都先阻断比较。0.02 和 5% 是本篇设计参数，尚未经本库标定；实际阈值应依据人工风险等级及重复测量波动确定，不得把“写了个常数”描述为“实测标定”。[D1]</p>
+<p>对固定八题构造，87.5% 降为 75% 意味着少命中一题，是 12.5 个百分点；相对降幅则是 14.29%。两种量纲不能混写。生产更换题集后，即使绝对分提高，也要重跑旧版本作为对照，因为新题可能更简单。更新基线应由独立验收动作批准，不能在候选分数不通过时自动把候选复制为新基线。[D1]</p>
+<h2 id="本库落地现状排错与验收">本库落地现状、排错与验收</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">15. 当前能确认什么，不能确认什么</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>截至本次核查，目录中的方法论与实战代码确有来源级 Recall、LLM 指标适配和历史结果；但本次没有获得统一版本、统一题集、全量有效运行的六指标新报告</li><li>注意这个脚本内部关闭生成、重排及 CRAG，因此输出不能称为生产端到端成绩；单题也只验证入口，不足以重新定标</li><li>使用者应先做依赖冒烟，再拿同一份真实轨迹跑完整链路</li></ul></div>3
+<p>截至本次核查，目录中的方法论与实战代码确有来源级 Recall、LLM 指标适配和历史结果；但本次没有获得统一版本、统一题集、全量有效运行的六指标新报告。因此本篇交付的是深度方法与可验证算例，不宣布本库当前 Recall=87.5%，也不声明模型评测环境已可直接导入。使用者应先做依赖冒烟，再拿同一份真实轨迹跑完整链路。[L1][L2][L3][L4]</p>
+<p>现有检索入口的参数确实存在，可按下面方式做一题诊断。注意这个脚本内部关闭生成、重排及 CRAG，因此输出不能称为生产端到端成绩；单题也只验证入口，不足以重新定标。它可能加载已有模型或触发本地配置中的后端访问，运行前仍要核对数据路径与网络边界；本次写作未执行该命令。[L3]</p>
+<pre><code class="language-bash">env -u PYTHONPATH -u PYTHONHOME python3 rag/eval/eval_recall.py --golden rag/eval/golden-q.jsonl --limit 1 --topk 10 --json-out notes/benchmark/legacy-recall-smoke.json
+</code></pre>
+<p>上面命令中的 python3 必须指向已具备本库依赖的解释器；先查实际环境，不照抄历史机器的绝对路径。若需要知道题集中是否真的有答案和片段，不要只数行。可先做下列只读字段审计；字段数量不证明标注正确，但能立刻发现“有问题、没有 reference”的结构缺口。[L3][D1]</p>
+<pre><code class="language-bash">python3 -c 'import json; from pathlib import Path; rows=[json.loads(x) for x in Path(&quot;rag/eval/golden-q.jsonl&quot;).read_text().splitlines() if x.strip()]; print({&quot;total&quot;:len(rows),&quot;has_answer&quot;:sum(bool(r.get(&quot;answer&quot;)) for r in rows),&quot;has_contexts&quot;:sum(bool(r.get(&quot;contexts&quot;)) for r in rows)})'
+</code></pre>
+<h3 id="16-排错顺序先证明尺子没有坏">16. 排错顺序：先证明尺子没有坏</h3>3
+<p>第一类，Recall@10 比 Recall@5 低。若题集和金标固定，这不符合本篇集合 Recall 的单调性；先检查是不是把相关块数除以 k、是否不同 k 重新跑了随机检索，或者报告名称用错。第二类，Recall 很高但 Context Precision 低。查看每题标签序列与首条证据位置，确认是不是重复块或固定置顶槽挤占前排，不能直接据此断言检索算法失败。[D1]</p>
+<p>第三类，Context Precision 全是 1。手工挑出至少五条明显无关片段作负例，检查裁判是否只判断了主题相似、reference 是否泄漏到 contexts。第四类，Context Relevance 永远是 0.5 或 1。核对是否用了粗粒度整体评分、是否两个提示词都完成，并与逐块标签分开观察。第五类，所有分数突然下降。优先查缺失率、超时和输入截断，随后才查召回质量；模型评测器失效与产品退化不能混合处理。[S2][S3][D1]</p>
+<p>第六类，同一题换一种文件名就从命中变 miss。检查路径前缀匹配和旧目录别名，升级为稳定证据 ID；不要为了让分数恢复而把所有来源模糊匹配为同一主题。第七类，多跳题只找到一个源却满分。复核是否运行了 HitRate，或者标注把多个必需证据写成了任选关系。第八类，超时被当空结果。旧入口会返回空列表，必须从外围保留超时与退出状态，不能靠最终零分逆推出病因。[L3][D1]</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">17. 交付自检与下一层衔接</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>完成一次真实检索评测时，应能交出题集哈希、每题 qrels、各阶段实际排名、最终片段文本、模型与提示词配置、逐指标状态和全量分母</li><li>然后选一个“候选池命中但最终答案错误”的问题，进入生成篇查看 Faithfulness 与 Answer Correctness</li><li>能沿单题证据链定位问题，才说明三层评测真正形成了系统，而不是三个独立脚本各自打印一个均值</li></ul></div>3
+<p>完成一次真实检索评测时，应能交出题集哈希、每题 qrels、各阶段实际排名、最终片段文本、模型与提示词配置、逐指标状态和全量分母。然后选一个“候选池命中但最终答案错误”的问题，进入生成篇查看 Faithfulness 与 Answer Correctness。能沿单题证据链定位问题，才说明三层评测真正形成了系统，而不是三个独立脚本各自打印一个均值。[D1]</p>
+<p>验收至少包含五种负例：完全无关上下文、只有半条证据、重复片段占位、可回答题空检索、裁判异常。分别预期降低相关性、降低 Recall、保持真实位置惩罚、记录检索零分、记录 judge_error。负例不能都被算成“通过”，也不能被统一 dropna 删除。一个只会报绿、不会明确区分红灯类型的评测器，不具备做门禁的条件。[D1]</p>
+<h2 id="工具选择与来源索引">工具选择与来源索引</h2>2
+<p>本篇工具栈是标准库做确定性指标、固定标签 RAGAS 做语义评分、JSONL 保存轨迹、本地 OpenAI 兼容服务提供裁判。选择固定标签是为了可解释和可复核，不是鼓励长期停留旧版本；选择回环端点是为了遵守本地数据边界，不代表小模型天然胜任裁判。若本地裁判能力不足，先用人工标签完成基线，云端方案需另获数据出域授权。[D1]</p>
+<p>以下来源按“官方定义—本库证据—本文设计”分层；正文 [D1] 是作者设计或教学构造，不借一手源的名义给未测参数背书。</p>
+<ul>
+<li>[S1] RAGAS 原论文，Es 等，EACL 2024 System Demonstrations，页 150–158，arXiv:2309.15217。官方元数据：<code>https://aclanthology.org/2024.eacl-demo.16/</code>。本文不再沿用旧稿“ECAI 2024”或“Table 1 规定三层”的说法。</li>
+<li>[S2] RAGAS 官方 v0.3.9 Context Precision 源码，<code>https://github.com/vibrantlabsai/ragas/blob/v0.3.9/src/ragas/metrics/_context_precision.py</code>。核对类名、输入、AP 公式及无 reference 变体。</li>
+<li>[S3] RAGAS 官方 v0.3.9 NVIDIA 指标源码，<code>https://github.com/vibrantlabsai/ragas/blob/v0.3.9/src/ragas/metrics/_nv_metrics.py</code>。核对 ContextRelevance 的整体拼接、双提示词、0/1/2 评分和归一化。</li>
+<li>[S4] RAGAS 官方 v0.3.9 包装器源码，<code>https://github.com/vibrantlabsai/ragas/blob/v0.3.9/src/ragas/llms/base.py</code>。核对 bypass_n 与 bypass_temperature 参数。</li>
+<li>[L1] <a href="../../raw/rag-arch/RAG%E5%9F%BA%E7%BA%BF%E8%AF%84%E6%B5%8B-20261013.md">本库十题基线报告</a>，报告内日期为 2026-10-14；保留 7/10、B002/B005/B010 证据及限制。</li>
+<li>[L2] <a href="../../raw/rag-arch/RAG%E6%A0%87%E5%87%86%E8%90%BD%E4%BD%8D%E6%96%B9%E6%A1%88-20261009.md">标准落位方案</a>，历史 87.5% 记载；未据此假造今天的新实测。</li>
+<li>[L3] <a href="../../rag/eval/eval_recall.py">现有来源匹配评测器</a>，核对任一来源命中、来源去重、超时返回空与 CLI 参数。</li>
+<li>[L4] <a href="../../rag/eval_ragas.py">现有 RAGAS 接入脚本</a>，核对兼容 shim 与直接检索生成路径；不代表所有生产路由已覆盖。</li>
+<li>[L5] <a href="RAGAS-Faithfulness%E6%B7%B1%E5%BA%A6-%E7%94%9F%E6%88%90%E5%B1%82%E5%BF%A0%E5%AE%9E%E5%BA%A6%E7%9A%84%E5%8E%9F%E7%90%86%E5%B1%80%E9%99%90%E4%B8%8E%E6%9C%AC%E5%BA%93%E5%AE%9E%E6%B5%8B-20261102.html">忠实度局限与本库审计</a>；<a href="RAG%E7%AE%A1%E7%BA%BF%E7%8E%B0%E7%8A%B6%E4%B8%8E%E9%98%88%E5%80%BC%E6%A0%87%E5%AE%9A.html">阈值与管线现状</a>用于历史排障线索，不当作本次重新验证的配置真值。</li>
+<li>[D1] 本文工程设计与教学算例，2026-11-03；包括题型配比、门禁起始值、脚本状态模式及离线构造，均需按目标业务校准。</li>
+</ul></div></details></div></details></div></body></html>

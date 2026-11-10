@@ -1,0 +1,404 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L7-低代码平台-最佳答案</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L7-低代码平台-最佳答案</span></div><div class="wrap"><h1 id="l7-低代码平台-最佳答案">L7 低代码平台 · 最佳答案</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+配套深篇：<a href="L7-Coze%E5%B9%B3%E5%8F%B0%E5%AE%9E%E6%88%98-20261103.html">Coze 平台实战</a> · <a href="L7-Dify%E9%83%A8%E7%BD%B2%E4%B8%8ERAG%E9%9B%86%E6%88%90-20261103.html">Dify 部署与 RAG 集成</a> · <a href="L7-LangFlow%E5%8F%AF%E8%A7%86%E5%8C%96%E7%BC%96%E6%8E%92-20261103.html">LangFlow 可视化编排</a></p>
+</blockquote>
+<p><strong>证据边界</strong>：本文融合原「L7-低代码平台-最佳答案」「三平台对比选型」「实操手册」三篇，并纳入 arXiv 论文观点。版本事实以 2026-11-03 GitHub Releases 与官方文档核对为准；平台部署、真实模型调用、云端 API 与渠道发布均未在本机执行，所有命令均为官方原文路径或明确标注的实验建议，不冒充实跑成绩。</p>
+<h2 id="why为什么需要低代码平台又为什么要谨慎选型">WHY：为什么需要低代码平台，又为什么要谨慎选型</h2>2
+<p>低代码平台把 Prompt、RAG、工具调用、工作流、会话和发布这些原本需要写代码才能串起来的能力，变成可视化拖拽。搭建一个客服机器人可以从 2-3 天压到 1-2 小时；改 Prompt 从改代码重新部署变成网页直接改；接知识库从自己写 embedding + 向量库变成上传文档自动处理；发布从自己做前端变成一键到飞书/微信/Web API。</p>
+<p>但低代码最大的隐性成本不是订阅费，而是<strong>锁定效应</strong>：</p>
+<ul>
+<li>Coze SaaS 的云端资产无法导出，停服即清零；</li>
+<li>知识库要重建索引、工作流要逐节点翻译，迁移工作量可能超过当初搭建的数倍；</li>
+<li>三平台表面都是「拖拽 + 大模型」，范式却完全不同：<strong>Coze 是 Bot/渠道导向，Dify 是应用/工作流导向，LangFlow 是代码组件图导向</strong>。选错范式，项目从第一周就别扭。</li>
+</ul>
+<p><strong>论文怎么说</strong>：<code>arXiv:2610.20576</code>（One Task, Many Interfaces）发现，对 Agent 训练接口做语义保持的扰动——比如重命名一个动作、改变表示法——任务本身没变，Agent 表现却显著下降；仅做接口随机化训练也只能部分缓解。<br />
+<strong>我们怎么用</strong>：这解释了为什么平台锁定不只是「资产难导出」，更是「接口习惯难迁移」。选型时必须把「导出物长什么样」「换平台后变量名/节点 ID 是否可迁移」纳入 PoC 验收，而不是只看功能列表。</p>
+<p><strong>不解决会怎样</strong>：MVP 期省下的时间，会在需要私有化、需要复杂状态机、需要精细评估时加倍偿还。更隐蔽的风险是成本失控：长轨迹 Agent 的 KV cache I/O 与存储会成为主要开销。</p>
+<p><strong>论文怎么说</strong>：<code>arXiv:2610.28577</code>（Cache Engineering for Agents）指出，随着 Agent 轨迹变长，KV cache 的 I/O 与存储会成为主导成本；传统的「修剪或摘要历史」会修改轨迹前缀，导致已缓存状态失效并触发昂贵的重新预填充。<br />
+<strong>我们怎么用</strong>：低代码平台的工作流/Agent 同样面对这个问题。Dify Chatflow 的多轮记忆、Coze Bot 的长会话、LangFlow 的 Agent 循环，都需要设计上下文预算：不是「记得越多越好」，而是「保留什么、丢弃什么、何时重建」要可观测、可回滚。</p>
+<h2 id="what-whyt三平台是什么为什么是它边界在哪里">WHAT / WHYT：三平台是什么、为什么是它、边界在哪里</h2>2
+<h3 id="一真实版本现状2026-11-03-核实">一、真实版本现状（2026-11-03 核实）</h3>3
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Coze（含两条线）</th>
+<th>Dify</th>
+<th>LangFlow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>开源仓库</td>
+<td><code>coze-dev/coze-studio</code></td>
+<td><code>langgenius/dify</code></td>
+<td><code>langflow-ai/langflow</code></td>
+</tr>
+<tr>
+<td>开源版最新版本</td>
+<td><strong>v0.5.1</strong>（2026-02-05）</td>
+<td><strong>v1.18.0</strong>（2026-10-23）</td>
+<td><strong>v1.13.0</strong>（2026-10-22）</td>
+</tr>
+<tr>
+<td>另有商业线</td>
+<td>Coze SaaS（coze.cn，字节运营）</td>
+<td>Dify Cloud（cloud.dify.ai）</td>
+<td>DataStax 托管商业能力</td>
+</tr>
+<tr>
+<td>许可证</td>
+<td>Apache 2.0</td>
+<td>开源（含附加条款）</td>
+<td>开源</td>
+</tr>
+<tr>
+<td>技术栈</td>
+<td>后端 Golang + 前端 React/TypeScript</td>
+<td>Python（FastAPI）+ Vue 3</td>
+<td>Python（FastAPI）+ React</td>
+</tr>
+<tr>
+<td>定位</td>
+<td>一站式 AI Agent 开发工具，Bot 与多渠道发布最强</td>
+<td>企业级 AI 应用平台，工作流/RAG/Agent 均衡</td>
+<td>LangChain 生态的可视化组件图，开发者导向</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ 本目录早期版本补足文中的版本号、新闻链接和内部评测路径曾与 GitHub 一手记录不符，已在 2026-11-03 的整理中移除。一切版本事实以本表及三篇深篇的来源链接为准。</p>
+</blockquote>
+<h3 id="二能力维度逐项对比">二、能力维度逐项对比</h3>3
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Coze SaaS</th>
+<th>Coze Studio 开源版</th>
+<th>Dify</th>
+<th>LangFlow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>部署</td>
+<td>纯云端，零运维</td>
+<td>Docker Compose 自托管</td>
+<td>Docker Compose 自托管</td>
+<td>Docker / Python 包 / 桌面版</td>
+</tr>
+<tr>
+<td>数据私有</td>
+<td>数据在字节云</td>
+<td>存储可自控；出域看模型/插件/网络</td>
+<td>存储可自控；出域看模型/插件/网络</td>
+<td>存储可自控；出域看模型/插件/网络</td>
+</tr>
+<tr>
+<td>默认入口</td>
+<td>网页控制台</td>
+<td><code>http://localhost:8888</code></td>
+<td><code>http://localhost/install</code>（Nginx 80）</td>
+<td><code>http://localhost:7860</code></td>
+</tr>
+<tr>
+<td>模型接入</td>
+<td>字节系模型为主</td>
+<td>管理后台配置模型供应商</td>
+<td>多供应商自由切换</td>
+<td>组件级配置，LangChain 支持的模型均可</td>
+</tr>
+<tr>
+<td>编排范式</td>
+<td>Bot 对话流 + 工作流</td>
+<td>同左（能力子集）</td>
+<td>Chatflow / Workflow，节点类型最丰富</td>
+<td>任意组件连线成图，最接近「可视化写代码」</td>
+</tr>
+<tr>
+<td>Agent 能力</td>
+<td>插件 + Agent 循环</td>
+<td>支持</td>
+<td>Agent Output Routes、Skills</td>
+<td>Agent/工具组件自由组合，灵活度最高</td>
+</tr>
+<tr>
+<td>RAG/知识库</td>
+<td>支持</td>
+<td>支持</td>
+<td>强：分段/Rerank/外部知识库 API；Agent Knowledge Base（Beta）</td>
+<td>向量库组件 + 知识库；本地库由 Chroma 换 SQLite</td>
+</tr>
+<tr>
+<td>扩展机制</td>
+<td>官方插件商店 + 自定义插件</td>
+<td>同左（部分高级能力仅商业版）</td>
+<td>插件市场 + Code 节点 + HTTP + 工具</td>
+<td><strong>自定义 Python 组件</strong>（继承 Component 类）</td>
+</tr>
+<tr>
+<td>渠道发布</td>
+<td><strong>最强</strong>：飞书/抖音/微信/钉钉/Web/API</td>
+<td>Web/API，渠道需自建对接</td>
+<td>Web App/iframe/API，IM 渠道需外部框架</td>
+<td>API/部署制品为主，无自带渠道发布</td>
+</tr>
+<tr>
+<td>触发/定时</td>
+<td>平台内规则触发</td>
+<td>同左</td>
+<td>工作流/定时任务</td>
+<td>Triggers：定时、Webhook、Slack/Google/Microsoft 事件</td>
+</tr>
+<tr>
+<td>版本化与迁移</td>
+<td>资产不可导出</td>
+<td>API/SDK 可迁移</td>
+<td><strong>DSL（YAML）可进 Git</strong>；<code>.ifpkg</code> 整包迁移</td>
+<td>flow JSON 导入导出；迁移预检/完整性检查命令</td>
+</tr>
+<tr>
+<td>团队/权限</td>
+<td>跟随商业版</td>
+<td>基础</td>
+<td>工作空间 + 角色权限</td>
+<td>团队/用户管理 API+CLI、审计日志、GDPR 擦除</td>
+</tr>
+<tr>
+<td>最低资源</td>
+<td>无</td>
+<td><strong>2 Core / 4 GiB</strong> + Docker</td>
+<td>2 Core / 4 GiB</td>
+<td>2 Core / 2 GiB（推荐 4 GiB）</td>
+</tr>
+<tr>
+<td>适合谁</td>
+<td>业务/运营，零代码</td>
+<td>有 Docker 能力、偏 Go 栈</td>
+<td>企业应用团队，要私有化+均衡能力</td>
+<td>开发者，要可视化 + 不放弃代码级灵活</td>
+</tr>
+</tbody>
+</table>
+<h3 id="三场景-平台决策表">三、场景 → 平台决策表</h3>3
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>推荐</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>对外 C 端 Bot，要快速上飞书/抖音/微信，数据可上云</td>
+<td><strong>Coze SaaS</strong></td>
+<td>渠道生态唯一选择，营销期短项目不值得自运维</td>
+</tr>
+<tr>
+<td>数据必须内网，企业知识库问答 / 内部工具</td>
+<td><strong>Dify 私有化</strong></td>
+<td>RAG 成熟、DSL 进 Git、权限/审计齐全</td>
+</tr>
+<tr>
+<td>要私有化但团队偏好 Go、预算极低</td>
+<td>Coze Studio</td>
+<td>软件免费，但先核对 Feature List，高级能力可能要商业版</td>
+</tr>
+<tr>
+<td>需要大量自定义逻辑 / 调用内部 Python 生态，又要可视化</td>
+<td><strong>LangFlow</strong></td>
+<td>自定义组件上限最高，本质是「LangChain 的图」</td>
+</tr>
+<tr>
+<td>需要事件触发驱动（定时、Slack/Webhook 事件）</td>
+<td>LangFlow（1.13）/ Dify</td>
+<td>LangFlow Triggers 体系最新最完整</td>
+</tr>
+<tr>
+<td>复杂多 Agent、循环状态机、需要精细评估/灰度</td>
+<td><strong>退出低代码，上 LangGraph 写代码</strong></td>
+<td>复杂循环、状态恢复和精细控制的可维护性受限</td>
+</tr>
+</tbody>
+</table>
+<h3 id="四和其他-rag-平台的位置关系">四、和其他 RAG 平台的位置关系</h3>3
+<p>低代码不止三家，课件对比的四个 RAG 专用平台各有侧重：</p>
+<ul>
+<li><strong>QAnything</strong>（网易）：两阶段检索 + 混合检索，<code>bce-embedding-base_v1</code> + <code>bce-reranker-base_v1</code> 组合；</li>
+<li><strong>RagFlow</strong>：深度文档理解（OCR、文档版面分析），复杂版式文件场景强；</li>
+<li><strong>FastGPT</strong>：知识库问答 + 工作流编排，入库支持 QA 模式（LLM 预生成问答对）；</li>
+<li><strong>Dify</strong>：上述课件对比中最均衡的通用应用平台。</li>
+</ul>
+<p>判断：纯 RAG + 特殊文档解析需求看 RagFlow/QAnything；要「RAG + 工作流 + Agent」一体化，仍在 Coze/Dify/LangFlow 三家中选。</p>
+<h3 id="五什么时候该退出低代码迁出信号">五、什么时候该退出低代码（迁出信号）</h3>3
+<ol>
+<li>单个工作流节点数 &gt; 15，或需要「循环 + 条件跳转」的状态机；</li>
+<li>需要多 Agent 协作（角色分工、共享记忆、消息传递）；</li>
+<li>需要精细评估、回放、灰度发布等工程化能力；</li>
+<li>QPS 上升后平台全家桶中间件成为负担。</li>
+</ol>
+<p><strong>论文怎么说</strong>：<code>arXiv:2610.40578</code>（VeriCUA）提出把验证看作动态证据收集与评估，而不是让 VLM 只看部分轨迹或让生成程序只检查可访问状态。<br />
+<strong>我们怎么用</strong>：低代码平台的验收也不能只看「界面能跑」或「API 返回 200」。必须像 VeriCUA 一样，为每个验收项构造检查规则，并组合 GUI 检查、代码检查、日志检查，拒绝「假完成」。Dify 1.17→1.18 的 Agent 化确实抬高了低代码天花板，但锁定效应与调试天花板不变，迁出信号标准不降低。</p>
+<h2 id="how从选型到最小-poc-到上线验收">HOW：从选型到最小 PoC 到上线验收</h2>2
+<h3 id="step-1锁需求15-分钟">Step 1：锁需求（15 分钟）</h3>3
+<p>先回答四问：</p>
+<ol>
+<li>数据能否出内网？</li>
+<li>要不要发布到 IM/渠道？</li>
+<li>使用者是业务人员还是开发者？</li>
+<li>流程里有没有循环/多 Agent？</li>
+</ol>
+<p>四问的答案直接映射到上面的决策表。</p>
+<h3 id="step-2核实版本10-分钟">Step 2：核实版本（10 分钟）</h3>3
+<p>打开各仓库 Releases 页核对最新版本与发布日期，不要采信二手文章的版本号。</p>
+<h3 id="step-3做最小-poc2-3-小时">Step 3：做最小 PoC（2-3 小时）</h3>3
+<p>用同一个真实任务在候选平台各搭一遍，建议「读一个 PDF 回答 3 个问题 + 一个带分支的工作流」。PoC 时同步记录：搭了多久、中间变量能不能看到、导出物长什么样。</p>
+<p><strong>论文怎么说</strong>：<code>arXiv:2610.31657</code>（Cost-Aware Abstention for LLM-Based IT Ticket Classification）在 47,837 张工单上评估「成本敏感的拒答/转人工」策略：当错误路由成本是人工分诊的 5 倍时，校准后选择阈值可显著降低总成本；但 LLM 的置信度并不天然可靠，需要单独评估区分度与校准度。<br />
+<strong>我们怎么用</strong>：PoC 里的「带分支工作流」可以设计成工单分类：高置信自动路由，低置信转人工。关键不是「LLM 能分类」，而是「错误分类的成本是否被显式建模」。Dify/Coze/LangFlow 都能搭这种流程，但都要自己写阈值逻辑、校准集和成本表，平台不会自动提供。</p>
+<h3 id="step-4验迁移路径">Step 4：验迁移路径</h3>3
+<p>在 PoC 最后执行一次导出：</p>
+<ul>
+<li>Dify：DSL / <code>.ifpkg</code>；</li>
+<li>LangFlow：flow JSON；</li>
+<li>Coze SaaS：确认无导出。</li>
+</ul>
+<p>确认资产可带走再定生产。</p>
+<h3 id="step-5定运维与备份">Step 5：定运维与备份</h3>3
+<p>私有化方案提前确定数据卷备份、升级窗口与升级指南阅读责任人。严禁误执行 <code>docker compose down -v</code>（会删除命名卷）。</p>
+<h3 id="step-6e2e-验证清单">Step 6：E2E 验证清单</h3>3
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>检查项</th>
+<th>通过标准</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>部署</td>
+<td>Coze <code>:8888</code> / Dify <code>/install</code> / LangFlow <code>:7860</code> 浏览器可开、能登录</td>
+</tr>
+<tr>
+<td>2</td>
+<td>模型连通</td>
+<td>平台内模型连通测试通过；发一句「你好」有正常回复</td>
+</tr>
+<tr>
+<td>3</td>
+<td>知识库索引</td>
+<td>上传文档状态为已完成；检索能召回片段</td>
+</tr>
+<tr>
+<td>4</td>
+<td>问答三问</td>
+<td>①文档内问题：回答正确且带出处；②文档外问题：明确说无依据/未找到，不编造；③追问上一轮：多轮记忆有效</td>
+</tr>
+<tr>
+<td>5</td>
+<td>分支工作流</td>
+<td>完整跑通：抓到列表 → 迭代抓详情 → 总结输出，无报错节点</td>
+</tr>
+<tr>
+<td>6</td>
+<td>中间可观测</td>
+<td>每次运行能点开看各节点状态与输出</td>
+</tr>
+<tr>
+<td>7</td>
+<td>导出物</td>
+<td>Dify DSL/<code>.ifpkg</code>、LangFlow flow JSON 实际导出成功；Coze SaaS 确认无导出并在选型记录中注明</td>
+</tr>
+<tr>
+<td>8</td>
+<td>备份</td>
+<td>数据卷备份路径与责任人已登记；明确禁止误执行 <code>docker compose down -v</code></td>
+</tr>
+</tbody>
+</table>
+<p>以上每一项都标「未实跑」直到你亲自执行；本文只完成资料核对与方案设计。</p>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<h3 id="课1-课件rag-应用平台与-agent-篇">[课1] 课件：RAG 应用平台与 Agent 篇</h3>3
+<ul>
+<li><code>../../raw/courseware/RAG篇/_merged/RAG应用平台-合并版.md</code>：Dify/FastGPT/RagFlow/QAnything 对比、知识库入口、工作流、AI 热点案例、问题分类器、迭代/循环、Chatflow。</li>
+<li><code>../../raw/courseware/Agent篇/14.langgraph-2026-4-20-初见__day14(2)/_代码课件汇总.md</code>：Coze/Dify DSL 与平台工作流编排思路。</li>
+<li>落点：场景决策表、RAG 平台位置关系、Chatflow/Workflow 区分、迭代与循环概念。</li>
+</ul>
+<h3 id="书1-书籍摘录ai-agent-智能体零基础搭建">[书1] 书籍摘录：AI Agent 智能体零基础搭建</h3>3
+<ul>
+<li><code>../../raw/weread/AI Agent智能体零基础搭建：Coze+Dify+LangChain（零基础入门AI Agent工作流程搭建）.md</code>：这是<strong>书籍重点笔记，不是原书全文</strong>。</li>
+<li>落点：「获取→识别→输出」组件拆法、变量传递、知识问答路径、7 个练手项目方向；不把笔记中的案例写成已跑通项目。</li>
+</ul>
+<h3 id="业1-业内官方文档与-releasesget-2002026-11-03">[业1] 业内官方文档与 Releases（GET 200：2026-11-03）</h3>3
+<ul>
+<li>Coze Studio README / Quickstart / 安全风险：https://github.com/coze-dev/coze-studio</li>
+<li>Coze Studio v0.5.1 Release：https://github.com/coze-dev/coze-studio/releases/tag/v0.5.1</li>
+<li>Dify v1.18.0 Release 与 Upgrade guide：https://github.com/langgenius/dify/releases/tag/1.18.0</li>
+<li>Dify Docker Compose 部署：https://docs.dify.ai/zh/self-host/deploy/quick-start/docker-compose</li>
+<li>LangFlow v1.13.0 Release：https://github.com/langflow-ai/langflow/releases/tag/v1.13.0</li>
+<li>LangFlow 官方安装文档：https://docs.langflow.org/get-started-installation</li>
+<li>落点：版本事实、部署命令、服务清单、最低资源、能力对比表。</li>
+</ul>
+<h3 id="业2-论文arxiv-一手摘要get-2002026-10-14-至-2026-11-01">[业2] 论文：arXiv 一手摘要（GET 200：2026-10-14 至 2026-11-01）</h3>3
+<ul>
+<li><code>arXiv:2610.20576</code> One Task, Many Interfaces：接口扰动鲁棒性 → 平台锁定与 PoC 迁移验收。</li>
+<li><code>arXiv:2610.28577</code> Cache Engineering for Agents：长轨迹 KV cache 成本 → 工作流/Agent 上下文预算设计。</li>
+<li><code>arXiv:2610.31657</code> Cost-Aware Abstention for LLM-Based IT Ticket Classification：成本敏感拒答/转人工 → 工单分类分支的成本建模。</li>
+<li><code>arXiv:2610.40578</code> VeriCUA：验证即动态证据收集 → 低代码 E2E 验收的多维证据组合。</li>
+<li>落点：每篇正文已分别写出「论文怎么说 + 我们怎么用」，不只罗列 ID。</li>
+</ul>
+<h2 id="相关条目">相关条目</h2>2
+<ul>
+<li><a href="L7-Coze%E5%B9%B3%E5%8F%B0%E5%AE%9E%E6%88%98-20261103.html">Coze 平台实战</a></li>
+<li><a href="L7-Dify%E9%83%A8%E7%BD%B2%E4%B8%8ERAG%E9%9B%86%E6%88%90-20261103.html">Dify 部署与 RAG 集成</a></li>
+<li><a href="L7-LangFlow%E5%8F%AF%E8%A7%86%E5%8C%96%E7%BC%96%E6%8E%92-20261103.html">LangFlow 可视化编排</a></li>
+</ul></div></body></html>

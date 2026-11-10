@@ -1,0 +1,458 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L0-数据可视化-2</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L0-数据可视化-2</span></div><div class="wrap"><h1 id="matplotlib-进阶从美化到综合仪表板">Matplotlib 进阶：从美化到综合仪表板</h1>
+<h2 id="why">WHY</h2>2
+<h3 id="1-为什么需要从基础绘图走向工程化可视化">1. 为什么需要从基础绘图走向工程化可视化</h3>3
+<p>Matplotlib 的基础绘图接口能够快速完成折线、柱状和散点图，但真实项目还需要统一视觉语言、表达多个尺度、展示三维结构、播放动态过程，并把结果稳定地导出给报告或网页。本篇围绕工程实践展开：先建立样式主题，再处理双轴与三维坐标，接着介绍动画、字体、颜色、注解和文件导出，最后用一个自包含脚本把十种常用图型组织到同一份销售分析报告中。示例全部使用本地构造数据，复制代码即可运行，不依赖网络接口。</p>
+<p>如果只停留在“能画出图”，团队图表容易出现颜色和单位不统一、双轴造成误读、中文缺字、动画无法复现、导出标签被裁剪等问题。进阶可视化的价值，是让图形不仅美观，还能被正确理解、稳定复现并交付到不同载体。</p>
+<pre><code class="language-mermaid">flowchart LR
+    A[准备数据] --&gt; B[选择主题与字体]
+    B --&gt; C[创建画布和坐标轴]
+    C --&gt; D[绘制图层]
+    D --&gt; E[添加注解与图例]
+    E --&gt; F[布局调整]
+    F --&gt; G[导出 PNG/SVG/PDF]
+</code></pre>
+<h3 id="2-先确定读者的阅读任务">2. 先确定读者的阅读任务</h3>3
+<p>同样是月度销售数据，经营负责人通常先问哪个区域增长最快，运营人员则先问某个月是否出现异常。前一个问题需要一致的纵轴、明确的区域颜色和增长率说明；后一个问题需要时间顺序、基准线和异常点注解。绘制前先把问题写成一句话，再决定要保留哪些图层。无法解释某个图层对判断的帮助时，可以先删除该图层，避免主线被背景、阴影和装饰占据。</p>
+<p>主题并不是一套固定的漂亮颜色，而是贯穿多张图的阅读约定。例如所有销售金额都用万元，所有时间都从左到右，同一区域始终对应同一颜色。图例顺序也应保持一致，否则读者在不同页面反复寻找同一个类别，会增加理解成本。季度报告可在初始化函数中定义颜色字典、字号和单位转换，后续每张图调用相同配置；临时探索则用上下文保证实验设置及时恢复。</p>
+<h2 id="what-whyt">WHAT / WHYT</h2>2
+<h3 id="1-本篇核心概念与适用边界">1. 本篇核心概念与适用边界</h3>3
+<p>本篇的核心不是增加装饰，而是建立从阅读任务到视觉编码、坐标语义、动态更新和交付格式的完整约定。样式主题适合统一多张图，双轴适合确有必要同图比较的不同量纲指标，三维图适合空间结构而非精确长度比较，动画适合呈现过程而非替代真实时间说明。选择这些能力前，应先确认它们能帮助读者回答问题；否则优先使用更简单的二维静态图。</p>
+<h3 id="2-理解坐标系与文字定位">2. 理解坐标系与文字定位</h3>3
+<p>数据坐标随数据范围变化，适合标注某个具体订单金额；轴坐标以坐标轴左下角为原点、右上角为一，适合放置固定位置的样本量说明；图形坐标针对整张画布，适合页脚和统一来源。<code>ax.text(0.02, 0.95, "样本量", transform=ax.transAxes)</code> 表示把文字固定在坐标轴左上附近。若把说明写在数据坐标下，后续更新范围时文字可能跑到图外，这正是批量报告常见的布局失效原因。</p>
+<p>注解箭头的终点应准确指向真实观测位置，不能为了美观移动到不存在的数据上。文字偏移可用点作为单位，使缩放时相对距离更稳定。如果多个异常点距离太近，优先把说明移到图侧，或提供一张独立明细表。业务阈值使用水平线时，要在标签中说明阈值来源以及生效时间；阈值不是样本均值，也不是置信区间，三者不能混用。</p>
+<h3 id="3-双轴与次坐标的语义边界">3. 双轴与次坐标的语义边界</h3>3
+<p><code>twinx</code> 创建独立的纵轴刻度，因此只要调整两侧范围，就能让原本不相关的两条线看起来同时上升或彼此交叉。报告中应展示两侧刻度和单位，避免只截取曲线而隐藏坐标。尤其不要把线的交点解释为两个指标相等，因为金额和订单数无法直接相等。对增长速度的比较，可把各序列首月设为一百的指数，再放到同一纵轴；这时标题必须注明基期和指数含义。</p>
+<p>次坐标轴强调确定的数学转换，而独立双轴强调不同测量指标。长度从米换算为英尺属于前者，收入与利润率属于后者。如果转换函数存在除零点，或者反函数在显示范围内没有定义，次坐标轴可能出现异常刻度。实际开发中先用几个边界值验证正向和反向转换，再把函数传给接口，避免把转换错误误认为绘图问题。</p>
+<h3 id="4-三维曲面与色条的正确读取">4. 三维曲面与色条的正确读取</h3>3
+<p>曲面图的颜色通常编码高度，色条告诉读者颜色对应的数值。多个面板比较时应共享 <code>vmin</code>、<code>vmax</code>，否则每张图分别归一化，会使幅度不同的数据看起来同样鲜明。三维散点中的点大小代表面积而不是半径；如果把业务规模直接换成半径，视觉上会放大差异。面对数量级相差很大的数据，可以使用对数尺度或明确说明经过压缩的面积映射。</p>
+<p>示例中的响应曲面是解析函数采样，网格点之间的连续性来自函数本身。若实际数据只是离散监测站读数，不能未经说明就连接成平滑地形。插值方法、缺测区域和边界外推都会影响图形含义。面对稀疏采样，先展示原始点，必要时再叠加估计面，并在文字中解释估计条件。三维图的透视深度容易隐藏远处点，适度透明和二维切片有助于核查。</p>
+<h3 id="5-动画时间与数据时间的区别">5. 动画时间与数据时间的区别</h3>3
+<p><code>interval</code> 是屏幕播放时两帧之间的期望等待时间，<code>fps</code> 是保存文件时每秒写入的帧数。两者不是原始数据的采样间隔；一分钟采集一次的传感器也可以每秒播放十帧。动画标题应显示真实采样时间，不能让观众把播放速度误认为事件发生速度。数据不等间隔时，需决定按真实间隔播放，还是重采样到等间隔，并在报告中交代。</p>
+<p>动画对象必须保留引用，例如示例中的 <code>ani</code>，否则对象可能在显示前被垃圾回收。<code>blit</code> 对不同后端的支持存在差异，复杂三维场景不一定适合局部刷新。若出现残影，先关闭局部刷新判断问题，再优化性能。脚本使用非交互后端时，应通过保存文件验收动态结果；截图只能证明某一帧存在，无法证明帧更新逻辑、播放顺序和时长都正确。</p>
+<h3 id="6-综合案例的业务解释">6. 综合案例的业务解释</h3>3
+<p>折线图回答区域随月份如何变化，柱状图回答最后一个月谁的规模更大，两者关注点不同，放在同一行可以先看趋势再看当前状态。散点图显示订单量与销售额的关系，但案例中仅有四个区域，样本不足以推断统计规律。点面积表示另一个量时，必须提供解释；如果需要精确读数，可直接增加数值标签或放回表格。</p>
+<p>直方图和箱线图中的随机数据仅用于展示绘制方法，不能拿来证明真实销售业务的分布形态。真实项目应替换成订单明细，并核对退款、币种、税额和极端订单的处理方式。箱线图中超出须线的数据是按统计规则标记的离群候选，未必属于错误。高价值客户的大额订单可能是合理现象，删除前需要业务核查而不是自动过滤。</p>
+<p>热力图适合扫描区域与月份的组合，面积图适合观察总量以及组成随时间的变化。堆叠面积图除最底层外都没有共同基线，因此不适合精确比较中间区域的月度增量。饼图适合少数类别的静态构成，若比较多个时期的比例变化，百分比堆叠柱状图更直观。极坐标图强调周期性，本例只有半年，不代表完整年度季节规律，正式季节分析应至少覆盖完整周期。</p>
+<h3 id="7-字体与交付物的复现条件">7. 字体与交付物的复现条件</h3>3
+<p>第一段主题代码不会自动安装中文字体，示例可以执行并生成图形，但没有汉字字体时仍会出现缺字警告。交付环境需要自行安装可用字体，或把字体检查逻辑放在所有绘图程序的入口。不要通过屏蔽警告掩盖缺字；应检查保存后的图片，而不只是观察终端是否报错。团队还应记录字体名称与版本，防止操作系统更新后文字宽度改变导致标签重叠。</p>
+<p>导出时同时考虑物理尺寸与分辨率。宽八英寸、分辨率三百的图片宽约两千四百像素；单纯增加分辨率不会让字体在最终缩小后的版面上更易读。先根据报告版心确定图形尺寸，再选择适合屏幕或印刷的分辨率。矢量文件中的海量散点可能使文件体积明显增大，可以对散点图层设置 <code>rasterized=True</code>，保留坐标、文字和其他线条的矢量质量。</p>
+<h3 id="8-综合参数速查表">8. 综合参数速查表</h3>3
+<table>
+<thead>
+<tr>
+<th>接口或参数</th>
+<th>语义</th>
+<th>使用时的核查点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rc_context</code></td>
+<td>临时覆盖视觉设置</td>
+<td>离开上下文后恢复默认</td>
+</tr>
+<tr>
+<td><code>twinx</code></td>
+<td>创建独立右侧纵轴</td>
+<td>标明单位并合并图例</td>
+</tr>
+<tr>
+<td><code>view_init</code></td>
+<td>固定三维观察方向</td>
+<td>避免遮挡关键区域</td>
+</tr>
+<tr>
+<td><code>FuncAnimation</code></td>
+<td>按帧更新图形对象</td>
+<td>保留对象引用与帧顺序</td>
+</tr>
+<tr>
+<td><code>xycoords</code></td>
+<td>注解锚点坐标体系</td>
+<td>数据坐标与轴坐标不要混淆</td>
+</tr>
+<tr>
+<td><code>bbox_inches</code></td>
+<td>导出边界处理</td>
+<td>裁剪后核对标题与图例</td>
+</tr>
+<tr>
+<td><code>subgridspec</code></td>
+<td>在父网格内嵌套布局</td>
+<td>给标签预留足够空间</td>
+</tr>
+<tr>
+<td><code>rasterized</code></td>
+<td>将指定图层栅格化</td>
+<td>用于控制矢量文件体积</td>
+</tr>
+</tbody>
+</table>
+<h2 id="how">HOW</h2>2
+<h3 id="1-样式美化与主题管理">1. 样式美化与主题管理</h3>3
+<h4 id="11-全局-rcparams-与预设样式">1.1 全局 rcParams 与预设样式</h4>
+<p><code>plt.style.use</code> 可以载入内置主题，例如 <code>seaborn-v0_8-whitegrid</code>、<code>ggplot</code>、<code>dark_background</code>。团队项目应在入口处固定主题，并通过 <code>rc_context</code> 限定作用域，避免一个模块修改全局状态后影响其他图。<code>rcParams</code> 的键值覆盖字体、线宽、网格、图片分辨率等设置。对于发表级图表，建议设置 <code>figure.dpi=120</code>、<code>axes.titlesize=14</code>、<code>axes.labelsize=11</code>，并统一颜色循环。</p>
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+days = np.arange(1, 8)
+sales = np.array([18, 21, 19, 25, 27, 30, 29])
+with plt.rc_context({
+    &quot;figure.figsize&quot;: (8, 4.5), &quot;figure.dpi&quot;: 120,
+    &quot;axes.titlesize&quot;: 15, &quot;axes.labelsize&quot;: 11,
+    &quot;axes.grid&quot;: True, &quot;grid.alpha&quot;: 0.25,
+    &quot;lines.linewidth&quot;: 2.2,
+    &quot;axes.prop_cycle&quot;: plt.cycler(color=[&quot;#2563EB&quot;, &quot;#F97316&quot;, &quot;#16A34A&quot;]),
+}):
+    fig, ax = plt.subplots()
+    ax.plot(days, sales, marker=&quot;o&quot;, label=&quot;销售额&quot;)
+    ax.set(title=&quot;一周销售趋势&quot;, xlabel=&quot;天&quot;, ylabel=&quot;金额（万元）&quot;)
+    ax.legend(frameon=False)
+    fig.tight_layout()
+    plt.show()
+</code></pre>
+<h4 id="12-颜色线型和网格">1.2 颜色、线型和网格</h4>
+<p>颜色应同时满足语义和可访问性。连续变量使用同一色相的渐变（如 <code>viridis</code>），类别变量使用对比明显且色盲友好的 <code>tab10</code>、<code>Set2</code>。不要只依靠颜色区分类别，可配合线型、标记和直接标注。<code>alpha</code> 控制透明度，重叠点较多时可降到 <code>0.4</code>。网格建议只保留主刻度，并使用低透明度灰色。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+<th>建议</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>color</code></td>
+<td>线条或填充颜色</td>
+<td>使用十六进制或色图名称</td>
+</tr>
+<tr>
+<td><code>alpha</code></td>
+<td>透明度</td>
+<td>叠加图层取 0.3～0.7</td>
+</tr>
+<tr>
+<td><code>linestyle</code></td>
+<td>线型</td>
+<td><code>-</code>、<code>--</code>、<code>:</code> 区分语义</td>
+</tr>
+<tr>
+<td><code>linewidth</code></td>
+<td>线宽</td>
+<td>主线 1.8～2.5</td>
+</tr>
+<tr>
+<td><code>marker</code></td>
+<td>数据点符号</td>
+<td>关键节点使用 <code>o</code>、<code>s</code></td>
+</tr>
+<tr>
+<td><code>cmap</code></td>
+<td>数值映射色图</td>
+<td>顺序数据优先 <code>viridis</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-mermaid">graph TD
+    T[主题配置] --&gt; F[字体与字号]
+    T --&gt; C[颜色循环]
+    T --&gt; G[网格和背景]
+    T --&gt; L[线宽与标记]
+    F --&gt; R[可读性检查]
+    C --&gt; R
+    G --&gt; R
+    L --&gt; R
+</code></pre>
+<h3 id="2-双轴图与多尺度数据">2. 双轴图与多尺度数据</h3>3
+<p>当两个指标量纲不同，例如销售额和订单量，可以使用 <code>ax.twinx()</code> 创建共享 x 轴的第二个 y 轴。双轴图容易误导读者：必须明确标注两侧单位、使用不同颜色并在图例中写清指标。若两条曲线相关性不强，建议拆成上下两个子图。<code>secondary_yaxis</code> 适合存在确定转换关系（摄氏度与华氏度）的场景。</p>
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+month = np.arange(1, 7)
+revenue = np.array([120, 135, 128, 160, 178, 190])
+orders = np.array([320, 350, 342, 410, 455, 490])
+fig, ax1 = plt.subplots(figsize=(8, 4.5))
+ax2 = ax1.twinx()
+line1 = ax1.plot(month, revenue, color=&quot;#2563EB&quot;, marker=&quot;o&quot;, label=&quot;销售额&quot;)
+line2 = ax2.plot(month, orders, color=&quot;#DC2626&quot;, marker=&quot;s&quot;, linestyle=&quot;--&quot;, label=&quot;订单数&quot;)
+ax1.set(xlabel=&quot;月份&quot;, ylabel=&quot;销售额（万元）&quot;)
+ax2.set_ylabel(&quot;订单数（单）&quot;)
+ax1.set_xticks(month)
+ax1.grid(axis=&quot;y&quot;, alpha=0.25)
+lines = line1 + line2
+ax1.legend(lines, [line.get_label() for line in lines], loc=&quot;upper left&quot;, frameon=False)
+ax1.set_title(&quot;销售额与订单数双轴趋势&quot;)
+fig.tight_layout()
+plt.show()
+</code></pre>
+<h3 id="3-3d-图形与空间数据">3. 3D 图形与空间数据</h3>3
+<p><code>mpl_toolkits.mplot3d</code> 提供三维散点、曲面、线框和柱状图。三维图适合展示地形、参数响应面或空间轨迹，不适合精确比较长度，因为透视会改变视觉尺度。可使用 <code>ax.view_init(elev, azim)</code> 固定观察角度，<code>plot_surface</code> 的 <code>rstride</code>、<code>cstride</code> 控制网格采样，<code>cmap</code> 控制曲面配色。</p>
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+x = np.linspace(-3, 3, 60)
+y = np.linspace(-3, 3, 60)
+X, Y = np.meshgrid(x, y)
+Z = np.sin(np.sqrt(X**2 + Y**2))
+fig = plt.figure(figsize=(8, 5))
+ax = fig.add_subplot(111, projection=&quot;3d&quot;)
+surface = ax.plot_surface(X, Y, Z, cmap=&quot;viridis&quot;, linewidth=0, antialiased=True)
+ax.set(xlabel=&quot;X&quot;, ylabel=&quot;Y&quot;, zlabel=&quot;响应值&quot;, title=&quot;三维响应曲面&quot;)
+ax.view_init(elev=28, azim=-125)
+fig.colorbar(surface, ax=ax, shrink=0.65, pad=0.1, label=&quot;Z&quot;)
+plt.show()
+</code></pre>
+<p>三维散点可用 <code>ax.scatter(x, y, z, c=value, s=size, alpha=...)</code>，其中 <code>c</code> 映射颜色、<code>s</code> 映射点面积。若需要旋转交互，可在 Jupyter 中启用 <code>%matplotlib widget</code>；静态报告则固定角度并提供二维投影作为补充。</p>
+<h3 id="4-动画展示指标随时间变化">4. 动画：展示指标随时间变化</h3>3
+<p><code>matplotlib.animation.FuncAnimation</code> 通过初始化函数和逐帧更新函数生成动画。更新函数应返回被修改的 Artist，设置 <code>blit=True</code> 可以减少重绘。保存 GIF 需要 Pillow，保存 MP4 通常需要 ffmpeg。动画数据最好预先放在数组中，避免每帧访问网络或磁盘。</p>
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+t = np.linspace(0, 2 * np.pi, 120)
+fig, ax = plt.subplots(figsize=(7, 4))
+ax.set(xlim=(0, 2 * np.pi), ylim=(-1.2, 1.2), xlabel=&quot;时间&quot;, ylabel=&quot;振幅&quot;)
+line, = ax.plot([], [], color=&quot;#7C3AED&quot;, lw=2)
+point, = ax.plot([], [], &quot;o&quot;, color=&quot;#F97316&quot;)
+
+def init():
+    line.set_data([], [])
+    point.set_data([], [])
+    return line, point
+
+def update(frame):
+    y = np.sin(t + frame * 0.08)
+    line.set_data(t, y)
+    point.set_data([t[frame]], [y[frame]])
+    return line, point
+
+ani = FuncAnimation(fig, update, frames=len(t), init_func=init, interval=30, blit=True)
+plt.show()
+</code></pre>
+<p>安装 Pillow 后，在 <code>plt.show()</code> 前调用 <code>ani.save("sine.gif", writer="pillow", fps=30)</code> 即可导出 GIF。保存动图与交互播放可以分别执行，服务器环境也能通过保存文件检查输出。</p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant U as 用户
+    participant F as FuncAnimation
+    participant A as Artist
+    participant W as Writer
+    U-&gt;&gt;F: 设置 frames 与 interval
+    F-&gt;&gt;A: 调用 init()
+    loop 每一帧
+        F-&gt;&gt;A: 调用 update(frame)
+        A--&gt;&gt;F: 返回更新对象
+    end
+    F-&gt;&gt;W: save GIF/MP4
+</code></pre>
+<h3 id="5-自定义字体注解与标记">5. 自定义字体、注解与标记</h3>3
+<p>中文环境常见问题是默认字体缺少汉字，导致方框或负号显示异常。可以用 <code>font_manager.findfont</code> 检查字体，Windows 常见 <code>Microsoft YaHei</code>、<code>SimSun</code>，Linux 可使用 <code>Noto Sans CJK SC</code>。在可移植脚本中先尝试候选列表，再回退到默认字体。<code>axes.unicode_minus=False</code> 可避免负号变成方块。</p>
+<pre><code class="language-python">import matplotlib.pyplot as plt
+from matplotlib import font_manager
+
+candidates = [&quot;Microsoft YaHei&quot;, &quot;SimHei&quot;, &quot;Noto Sans CJK SC&quot;, &quot;DejaVu Sans&quot;]
+available = {font.name for font in font_manager.fontManager.ttflist}
+chosen = next((name for name in candidates if name in available), &quot;DejaVu Sans&quot;)
+plt.rcParams.update({&quot;font.family&quot;: chosen, &quot;axes.unicode_minus&quot;: False})
+
+fig, ax = plt.subplots(figsize=(7, 4))
+x = [1, 2, 3, 4]
+y = [12, 18, 15, 25]
+ax.plot(x, y, marker=&quot;o&quot;, color=&quot;#0F766E&quot;)
+peak = max(y)
+peak_x = x[y.index(peak)]
+ax.annotate(&quot;峰值&quot;, xy=(peak_x, peak), xytext=(peak_x + 0.35, peak - 2),
+            arrowprops={&quot;arrowstyle&quot;: &quot;-&gt;&quot;, &quot;color&quot;: &quot;#DC2626&quot;},
+            bbox={&quot;boxstyle&quot;: &quot;round,pad=0.3&quot;, &quot;fc&quot;: &quot;#FEF2F2&quot;, &quot;ec&quot;: &quot;#DC2626&quot;})
+ax.set(title=&quot;中文字体与峰值注解&quot;, xlabel=&quot;季度&quot;, ylabel=&quot;指标&quot;)
+ax.set_xticks(x, [&quot;一季度&quot;, &quot;二季度&quot;, &quot;三季度&quot;, &quot;四季度&quot;])
+fig.tight_layout()
+plt.show()
+</code></pre>
+<p>注解常用 <code>ax.text</code>、<code>ax.annotate</code> 和 <code>ax.axvline/ax.axhline</code>。<code>annotate</code> 的 <code>xy</code> 是数据坐标，<code>xytext</code> 是文字位置，<code>textcoords="offset points"</code> 可让偏移不受数据范围影响。标记过多会遮挡数据，应限制在关键峰值、异常点或业务阈值处。</p>
+<h3 id="6-保存与导出pngsvgpdf">6. 保存与导出：PNG、SVG、PDF</h3>3
+<p><code>fig.savefig</code> 是推荐的导出入口。位图 PNG 适合网页和演示，设置 <code>dpi=200</code> 或更高；SVG 是矢量格式，适合网页缩放和后期编辑；PDF 适合论文和打印。<code>bbox_inches="tight"</code> 可裁掉多余边缘，<code>facecolor="white"</code> 确保透明主题导出时背景不变。批量导出时显式关闭图形 <code>plt.close(fig)</code>，避免内存累积。</p>
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+x = np.linspace(0, 10, 100)
+fig, ax = plt.subplots(figsize=(7, 4))
+ax.plot(x, np.exp(-x / 5) * np.cos(x), label=&quot;阻尼振荡&quot;)
+ax.set(title=&quot;多格式导出示例&quot;, xlabel=&quot;时间&quot;, ylabel=&quot;幅值&quot;)
+ax.legend()
+fig.tight_layout()
+for ext in (&quot;png&quot;, &quot;svg&quot;, &quot;pdf&quot;):
+    fig.savefig(f&quot;matplotlib_export.{ext}&quot;, dpi=220, bbox_inches=&quot;tight&quot;, facecolor=&quot;white&quot;)
+plt.show()
+</code></pre>
+<p>导出检查清单：确认字体处理方式符合交付要求、图例不被裁剪、颜色在灰度打印时仍有差异、SVG 文件大小可接受。若 PDF 出现字体替换，可设置 <code>pdf.fonttype=42</code>。Matplotlib 原生通过 <code>plt.rcParams["svg.fonttype"] = "path"</code> 将 SVG 文字转为路径，这也是默认设置，可保留字形外观，但文字无法直接选中编辑；设为 <code>"none"</code> 则保留文本，查看设备需要安装相应字体，否则可能替换字形或改变布局。</p>
+<h3 id="7-十种图型综合案例销售分析报告">7. 十种图型综合案例：销售分析报告</h3>3
+<p>下面脚本构造六个月、四个区域的销售数据，在一个 5×2 画布中整合折线、柱状、散点、直方、饼图、箱线、热力、面积、极坐标和子图布局。每个子图都有标题、轴标签或图例，适合作为项目模板。热力图使用 <code>imshow</code>，不依赖 seaborn；箱线图展示区域销售分布；极坐标图仅演示半年月份模式的绘制。首尾闭合只是绘图示范，不代表六月到一月构成真实周期，也不是季节性证据。</p>
+<pre><code class="language-python">import numpy as np
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(7)
+months = np.arange(1, 7)
+regions = [&quot;华东&quot;, &quot;华南&quot;, &quot;华北&quot;, &quot;西部&quot;]
+region_colors = [&quot;#2563EB&quot;, &quot;#F97316&quot;, &quot;#16A34A&quot;, &quot;#9333EA&quot;]
+sales = np.array([
+    [120, 132, 128, 145, 160, 172],
+    [95, 108, 112, 119, 130, 142],
+    [88, 92, 98, 105, 111, 120],
+    [62, 70, 68, 75, 83, 90],
+])
+orders = np.array([480, 430, 390, 280])
+unit_price = np.array([2.8, 2.5, 2.3, 2.1])
+fig, axes = plt.subplots(5, 2, figsize=(15, 22))
+fig.suptitle(&quot;销售数据十图综合分析&quot;, fontsize=20, y=0.995)
+
+ax = axes[0, 0]
+for row, name, color in zip(sales, regions, region_colors):
+    ax.plot(months, row, marker=&quot;o&quot;, label=name, color=color)
+ax.set(title=&quot;1. 月度销售折线&quot;, xlabel=&quot;月份&quot;, ylabel=&quot;销售额&quot;)
+ax.legend(fontsize=8, ncol=2, frameon=False)
+
+ax = axes[0, 1]
+ax.bar(regions, sales[:, -1], color=region_colors)
+ax.set(title=&quot;2. 六月区域柱状&quot;, ylabel=&quot;销售额&quot;)
+
+ax = axes[1, 0]
+ax.scatter(orders, sales[:, -1], s=unit_price * 100, c=region_colors, alpha=0.8)
+for x, y, name in zip(orders, sales[:, -1], regions):
+    ax.annotate(name, (x, y), xytext=(5, 5), textcoords=&quot;offset points&quot;)
+ax.set(title=&quot;3. 订单量与销售额&quot;, xlabel=&quot;订单量&quot;, ylabel=&quot;六月销售额&quot;)
+
+ax = axes[1, 1]
+samples = rng.normal(loc=120, scale=25, size=500)
+ax.hist(samples, bins=20, color=&quot;#0EA5E9&quot;, alpha=0.8, edgecolor=&quot;white&quot;)
+ax.set(title=&quot;4. 单笔销售额分布&quot;, xlabel=&quot;金额&quot;, ylabel=&quot;频数&quot;)
+
+ax = axes[2, 0]
+ax.pie(orders, labels=regions, autopct=&quot;%.1f%%&quot;, colors=region_colors, startangle=90)
+ax.set_title(&quot;5. 区域订单占比&quot;)
+
+ax = axes[2, 1]
+box_data = [rng.normal(mean, 12, 80) for mean in sales[:, -1]]
+bp = ax.boxplot(box_data, patch_artist=True)
+ax.set_xticks(range(1, len(regions) + 1), regions)
+for patch, color in zip(bp[&quot;boxes&quot;], region_colors):
+    patch.set_facecolor(color); patch.set_alpha(0.55)
+ax.set(title=&quot;6. 区域销售分布&quot;, ylabel=&quot;销售额&quot;)
+
+ax = axes[3, 0]
+im = ax.imshow(sales, cmap=&quot;YlOrRd&quot;, aspect=&quot;auto&quot;)
+ax.set(title=&quot;7. 区域月份热力&quot;, xlabel=&quot;月份&quot;, ylabel=&quot;区域&quot;)
+ax.set_xticks(range(6), months); ax.set_yticks(range(4), regions)
+fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+
+ax = axes[3, 1]
+ax.stackplot(months, sales, labels=regions, colors=region_colors, alpha=0.75)
+ax.set(title=&quot;8. 累计销售面积&quot;, xlabel=&quot;月份&quot;, ylabel=&quot;销售额&quot;)
+ax.legend(fontsize=7, loc=&quot;upper left&quot;, frameon=False)
+
+ax = axes[4, 0]
+polar_slot = ax.get_subplotspec()
+ax.remove()
+ax = fig.add_subplot(polar_slot, projection=&quot;polar&quot;)
+angles = np.linspace(0, 2 * np.pi, len(months), endpoint=False)
+values = sales.mean(axis=0)
+ax.plot(np.r_[angles, angles[0]], np.r_[values, values[0]], color=&quot;#DB2777&quot;, marker=&quot;o&quot;)
+ax.fill(np.r_[angles, angles[0]], np.r_[values, values[0]], color=&quot;#DB2777&quot;, alpha=0.2)
+ax.set(title=&quot;9. 半年月份模式（演示）&quot;, xticks=angles, xticklabels=[f&quot;{m}月&quot; for m in months])
+
+ax = axes[4, 1]
+layout_slot = ax.get_subplotspec()
+ax.remove()
+nested = layout_slot.subgridspec(1, 2, wspace=0.45)
+mini_sales = fig.add_subplot(nested[0, 0])
+mini_orders = fig.add_subplot(nested[0, 1])
+mini_sales.bar(regions, sales.sum(axis=1), color=region_colors)
+mini_sales.set(title=&quot;10A. 半年销售&quot;, ylabel=&quot;销售额&quot;)
+mini_orders.bar(regions, orders, color=region_colors)
+mini_orders.set(title=&quot;10B. 区域订单&quot;, ylabel=&quot;订单数&quot;)
+mini_sales.tick_params(axis=&quot;x&quot;, labelrotation=45)
+mini_orders.tick_params(axis=&quot;x&quot;, labelrotation=45)
+
+fig.tight_layout(rect=(0, 0, 1, 0.98))
+fig.savefig(&quot;sales_dashboard.png&quot;, dpi=180, bbox_inches=&quot;tight&quot;)
+plt.show()
+</code></pre>
+<pre><code class="language-mermaid">flowchart TB
+    D[销售数据] --&gt; P[清洗与聚合]
+    P --&gt; T[趋势：折线/面积]
+    P --&gt; C[比较：柱状/散点]
+    P --&gt; S[分布：直方/箱线]
+    P --&gt; R[构成：饼图/极坐标]
+    P --&gt; M[矩阵：热力图]
+    T --&gt; O[统一布局与导出]
+    C --&gt; O
+    S --&gt; O
+    R --&gt; O
+    M --&gt; O
+</code></pre>
+<h3 id="8-常见排错与工程建议">8. 常见排错与工程建议</h3>3
+<ol>
+<li><strong>中文乱码</strong>：检查字体是否安装，使用 <code>font_manager</code> 列出可用字体；不要把字体文件路径硬编码到跨平台项目。</li>
+<li><strong>负号方框</strong>：设置 <code>axes.unicode_minus=False</code>，并确认字体包含 Unicode 减号。</li>
+<li><strong>图例或标签被裁剪</strong>：先调用 <code>fig.tight_layout()</code>，导出时增加 <code>bbox_inches="tight"</code>，长标题可调 <code>pad</code>。</li>
+<li><strong>双轴误读</strong>：为两条轴设置同色标签，图例合并显示，并在标题中注明单位。</li>
+<li><strong>动画卡顿</strong>：减少帧数、开启 <code>blit=True</code>，只返回变化的 Artist；批量生成后及时关闭图形。</li>
+<li><strong>内存持续增长</strong>：循环绘图时使用面向对象 API，保存后调用 <code>plt.close(fig)</code>。</li>
+<li><strong>颜色不可访问</strong>：使用色盲友好色板，增加标记和线型，并用灰度打印检查。</li>
+<li><strong>3D 图难比较</strong>：固定视角、添加投影或同时提供二维切片，不要用透视效果隐藏差异。</li>
+</ol>
+<h3 id="9-小结">9. 小结</h3>3
+<p>Matplotlib 进阶的核心不是堆叠更多参数，而是建立可复用的视觉规范和稳定的输出流程。先用 <code>rcParams</code> 或上下文统一字体、字号、颜色和网格，再根据数据关系选择双轴、三维或动画。关键指标用注解直接说明，复杂报告使用面向对象 API 管理多个坐标轴，最终以 PNG、SVG、PDF 满足不同载体。综合案例展示了十种图型如何在同一画布协同工作；在实际项目中还应补充数据字典、单位、时间范围和可访问性检查，使图表能够被不同读者正确理解。</p>
+<blockquote>
+<p>维护提示：Matplotlib API 会随版本演进，建议在项目中记录 <code>matplotlib.__version__</code>，并优先查阅官方文档 https://matplotlib.org/stable/api/index.html。本文示例按 Matplotlib 3.8～3.10 的公开接口编写。</p>
+</blockquote>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li><strong>[业1] 业内官方文档</strong>：<a href="https://matplotlib.org/stable/">Matplotlib 官方文档</a>：用于样式主题、坐标轴、三维绘图、动画、注解、布局与文件导出的权威入口。</li>
+<li><strong>[业2] 业内官方文档</strong>：<a href="https://matplotlib.org/stable/api/index.html">Matplotlib API 索引</a>：用于核对 <code>rc_context</code>、<code>twinx</code>、<code>FuncAnimation</code>、<code>savefig</code> 等本篇接口。</li>
+<li><strong>[业3] 业内官方文档</strong>：<a href="https://numpy.org/doc/stable/">NumPy 官方文档</a>：用于示例中的数组构造、网格采样、随机数与数值计算。</li>
+</ul></div></body></html>

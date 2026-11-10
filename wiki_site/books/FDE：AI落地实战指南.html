@@ -1,0 +1,259 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>FDE：AI落地实战指南</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ FDE：AI落地实战指南</span></div><div class="wrap"><h1 id="书章节重点-fdeai落地实战指南">书章节重点 · FDE：AI落地实战指南</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书系统阐述 FDE（Forward Deployed Engineer，前线部署工程师）这一角色如何在企业真实场景中把 AI 从 Demo 推进到生产落地</li><li>核心判断是：AI 越能写代码，瓶颈越会转移到“知道该写什么”——理解现场、赢得信任、判断问题值不值得解决，这些最难被自动化</li></ul></div>2
+<p>本书系统阐述 FDE（Forward Deployed Engineer，前线部署工程师）这一角色如何在企业真实场景中把 AI 从 Demo 推进到生产落地。核心判断是：AI 越能写代码，瓶颈越会转移到“知道该写什么”——理解现场、赢得信任、判断问题值不值得解决，这些最难被自动化。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">前言 我们缺的从来不是模型</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：模型能力已不是 AI 落地的主要瓶颈，缺的是把模型能力转化为业务价值的人与打法</li><li>核心观点2：本书面向三类人——被要求“用 AI 提升效率”的执行者、转型中的工程师、带 AI 项目的管理者</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：模型能力已不是 AI 落地的主要瓶颈，缺的是把模型能力转化为业务价值的人与打法。</li>
+<li><strong>核心观点2</strong>：本书面向三类人——被要求“用 AI 提升效率”的执行者、转型中的工程师、带 AI 项目的管理者。</li>
+</ul>
+<h3 id="第1章-装修毛坯房的人">第1章 装修毛坯房的人</h3>3
+<ul>
+<li><strong>核心观点1</strong>：FDE 的定位类比“装修毛坯房”——模型是毛坯，落地需要有人按现场条件完成定制化施工。</li>
+<li><strong>核心观点2</strong>：这份工作有四种代价，需在入行前有清醒认知。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第2章 它从哪里来：一套打法的二十年</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：FDE 并非 AI 时代新造概念，其打法有约二十年的演化脉络</li><li>核心观点2：理解这套打法的历史来源，有助于判断哪些方法论可迁移、哪些需因 AI 特性调整</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：FDE 并非 AI 时代新造概念，其打法有约二十年的演化脉络。</li>
+<li><strong>核心观点2</strong>：理解这套打法的历史来源，有助于判断哪些方法论可迁移、哪些需因 AI 特性调整。</li>
+</ul>
+<h3 id="第3章-九成五一个行业的集体尴尬">第3章 九成五：一个行业的集体尴尬</h3>3
+<ul>
+<li><strong>核心观点1</strong>：约九成五的 AI 项目未能产生实质业务价值，行业普遍存在“立项即面向汇报”的症状——目标从第一天起就是三个月后的那场汇报。</li>
+<li><strong>核心观点2</strong>：通用工具（ChatGPT、Copilot 类）采用率高（约八成组织试用过），但只提升个人效率，不改变损益。</li>
+<li><strong>核心观点3</strong>：核心障碍是“学习鸿沟”（learning gap）——多数生成式 AI 系统不保留反馈、不适应上下文、不随使用变好。<blockquote>
+<p>症状：项目从立项那天起，目标就是三个月后的那场汇报。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第4章 FDE的一天与一年</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：FDE 的日常工作横跨客户现场、业务方、技术方与组织内部，节奏由项目阶段驱动</li><li>核心观点2：以“年”为尺度看，FDE 的成长来自多个完整项目周期的积累，而非单点技术深度</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：FDE 的日常工作横跨客户现场、业务方、技术方与组织内部，节奏由项目阶段驱动。</li>
+<li><strong>核心观点2</strong>：以“年”为尺度看，FDE 的成长来自多个完整项目周期的积累，而非单点技术深度。</li>
+</ul>
+<h3 id="第5章-能力模型一专多能的t型人">第5章 能力模型：一专多能的T型人</h3>3
+<ul>
+<li><strong>核心观点1</strong>：FDE 需要 T 型能力结构——一专多能，既有技术纵深又能跨域沟通。</li>
+<li><strong>核心观点2</strong>：访谈时应多用开放式问题发现新信息，而非用封闭式问题验证自己的假设。<blockquote>
+<p>访谈时习惯用封闭式问题验证自己的假设，而不是用开放式问题去发现新信息。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第6章 与客户沟通：从需求中发现问题</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：客户说出的“需求”往往不是真正的问题，沟通的目标是从需求背后发现问题</li><li>核心观点2：沟通能力是 FDE 区别于纯工程师的关键能力之一</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：客户说出的“需求”往往不是真正的问题，沟通的目标是从需求背后发现问题。</li>
+<li><strong>核心观点2</strong>：沟通能力是 FDE 区别于纯工程师的关键能力之一。</li>
+</ul>
+<h3 id="第7章-与业务方沟通让价值和边界都被理解">第7章 与业务方沟通：让价值和边界都被理解</h3>3
+<ul>
+<li><strong>核心观点1</strong>：既要让业务方理解 AI 能带来的价值，也要让其理解能力边界，避免预期失控。</li>
+<li><strong>核心观点2</strong>：价值与边界同时被理解，是后续推进使用的前提。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第8章 与技术方沟通：让需求变成方案</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：把业务需求翻译成技术方案时，必须明确责任归属——数据由谁提供、接口由谁维护、出问题怎么定位，一一写清</li><li>哪些数据由谁提供、哪些接口由谁维护、出问题时怎么定位，一一写清楚</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：把业务需求翻译成技术方案时，必须明确责任归属——数据由谁提供、接口由谁维护、出问题怎么定位，一一写清。<blockquote>
+<p>哪些数据由谁提供、哪些接口由谁维护、出问题时怎么定位，一一写清楚。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第9章-与组织沟通推动ai真正被用起来">第9章 与组织沟通：推动AI真正被用起来</h3>3
+<ul>
+<li><strong>核心观点1</strong>：工具应嵌入用户已有的工作系统，而不是要求用户再开网页、再记密码。</li>
+<li><strong>核心观点2</strong>：以远洋保险为例，AI 预读插入流程后，理赔员动作从“打开三个系统逐项核对”变为“看一眼 AI 提取结果，重点复核标黄项”。<blockquote>
+<p>用户每天在某个系统里工作八小时，你的工具就应该出现在那个系统里。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第10章 业务洞察：理解客户真正的问题</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：业务洞察的目标是穿透表面需求，定位客户真正要解决的问题</li><li>核心观点2：洞察质量直接决定后续问题定义与方案方向是否正确</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：业务洞察的目标是穿透表面需求，定位客户真正要解决的问题。</li>
+<li><strong>核心观点2</strong>：洞察质量直接决定后续问题定义与方案方向是否正确。</li>
+</ul>
+<h3 id="第11章-问题定义把模糊需求变成可做的事">第11章 问题定义：把模糊需求变成可做的事</h3>3
+<ul>
+<li><strong>核心观点1</strong>：FDE 的核心增值环节之一，是把模糊需求转化为边界清晰、可执行的问题定义。</li>
+<li><strong>核心观点2</strong>：问题定义能力是“知道该写什么”的具体体现，也是最难被自动化替代的部分。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第12章 Demo驱动：用最小成本证明价值</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：用最小成本做出 Demo 来证明价值，是推动项目获得信任与资源的关键手段</li><li>核心观点2：Demo 是手段而非终点，其定位是验证方向、争取共识</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：用最小成本做出 Demo 来证明价值，是推动项目获得信任与资源的关键手段。</li>
+<li><strong>核心观点2</strong>：Demo 是手段而非终点，其定位是验证方向、争取共识。</li>
+</ul>
+<h3 id="第13章-大模型基础认知够用就好的心智模型">第13章 大模型基础认知：够用就好的心智模型</h3>3
+<ul>
+<li><strong>核心观点1</strong>：FDE 不需要追求模型理论的完备，建立“够用就好”的心智模型即可支撑落地决策。</li>
+<li><strong>核心观点2</strong>：认知重点在于理解模型能力边界与适用条件，而非模型内部机理。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第14章 提示词工程：把业务规则写成文字</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：提示词工程的本质是把业务规则用文字精确表达出来</li><li>核心观点2：提示词优化可能带来评测指标的意外波动，需以评测集持续监控（参见第22章案例）</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：提示词工程的本质是把业务规则用文字精确表达出来。</li>
+<li><strong>核心观点2</strong>：提示词优化可能带来评测指标的意外波动，需以评测集持续监控（参见第22章案例）。</li>
+</ul>
+<h3 id="第15章-rag让ai用上企业自己的知识">第15章 RAG：让AI用上企业自己的知识</h3>3
+<ul>
+<li><strong>核心观点1</strong>：RAG 的检索侧需关注三项指标：召回（需要的材料有没有被找出来）、精度（找出来的有多少相关）、排序（正确答案是否排在前面）。<blockquote>
+<p>检索侧看的是：需要的材料有没有被找出来（召回）、找出来的材料有多少是相关的（精度）、正确答案是不是排在前面（排序）。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第16章 工具调用与智能体：什么时候让AI自己做决定</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：是否让 AI 自主决策，取决于任务风险与可容错程度，而非技术炫技</li><li>核心观点2：工具调用与智能体的引入需有明确的决策边界设计</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：是否让 AI 自主决策，取决于任务风险与可容错程度，而非技术炫技。</li>
+<li><strong>核心观点2</strong>：工具调用与智能体的引入需有明确的决策边界设计。</li>
+</ul>
+<h3 id="第17章-成本效果与延迟的三角">第17章 成本、效果与延迟的三角</h3>3
+<ul>
+<li><strong>核心观点1</strong>：成本、效果、延迟三者相互制约，落地时需按场景做权衡取舍。</li>
+<li><strong>核心观点2</strong>：数据是否必须留在内网/不出境，判断标准应是监管或制度上的硬性要求，而非模糊的“数据安全”担忧或同行惯例。<blockquote>
+<p>这类用户的典型表现是：说不清具体是哪条规定要求的、担心的是模糊的“数据安全”而非具体风险，或者仅仅因为同行都这么做。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第18章 为什么Demo不能直接上线</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：Demo 与生产系统之间存在本质差距，直接上线会暴露可靠性、治理与合规问题</li><li>核心观点2：从 Demo 到上线需要补齐数据治理、评测、监控等工程化环节</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：Demo 与生产系统之间存在本质差距，直接上线会暴露可靠性、治理与合规问题。</li>
+<li><strong>核心观点2</strong>：从 Demo 到上线需要补齐数据治理、评测、监控等工程化环节。</li>
+</ul>
+<h3 id="第19章-数据与知识治理">第19章 数据与知识治理</h3>3
+<ul>
+<li><strong>核心观点1</strong>：企业知识的质量与治理水平直接决定 RAG 等方案的上限。</li>
+<li><strong>核心观点2</strong>：数据与知识治理是交付篇的基础工程，不可跳过。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第20章 准确性、可靠性、安全与合规</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：生产级 AI 需同时满足准确性、可靠性、安全与合规四类要求</li><li>核心观点2：高风险领域对上述要求更为严格，需以克制态度设计系统</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：生产级 AI 需同时满足准确性、可靠性、安全与合规四类要求。</li>
+<li><strong>核心观点2</strong>：高风险领域对上述要求更为严格，需以克制态度设计系统。</li>
+</ul>
+<h3 id="第21章-影响与推进让ai成为新的工作方式">第21章 影响与推进：让AI成为新的工作方式</h3>3
+<ul>
+<li><strong>核心观点1</strong>：AI 落地的终点是成为新的工作方式，而非一个孤立工具。</li>
+<li><strong>核心观点2</strong>：过度削减人工存在反噬风险——Klarna 在 2025 年 5 月承认削减人工客服过头导致服务质量下降，重新开放招聘，转向“AI 处理常规问题、人工处理复杂问题”的混合模式。<blockquote>
+<p>2025年5月，Klarna首席执行官公开表示公司在削减人工客服上做得过了头……转向AI处理常规问题、人工处理复杂问题的混合模式。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第22章 全程复盘：远洋保险理赔智能助手</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：项目切入点来自流程耗时分析——核对环节 20 分钟，占单案总时长一半，日总耗时 140 小时</li><li>核心观点2：上线过程并非线性，第 14 周一次例行提示词优化后，评测集整体准确率从 91% 掉到 86%，说明需持续监控与回归验证</li><li>核心观点3：完整复盘展示了从问题定义、Demo、交付到推进的全链路方法</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：项目切入点来自流程耗时分析——核对环节 20 分钟，占单案总时长一半，日总耗时 140 小时。</li>
+<li><strong>核心观点2</strong>：上线过程并非线性，第 14 周一次例行提示词优化后，评测集整体准确率从 91% 掉到 86%，说明需持续监控与回归验证。</li>
+<li><strong>核心观点3</strong>：完整复盘展示了从问题定义、Demo、交付到推进的全链路方法。<blockquote>
+<p>第14周，一次例行的提示词优化之后，评测集上的整体准确率从91%掉到了86%。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第23章-企业知识助手最经典的落地场景">第23章 企业知识助手：最经典的落地场景</h3>3
+<ul>
+<li><strong>核心观点1</strong>：企业知识助手是 FDE 最经典、最普遍的落地场景。</li>
+<li><strong>核心观点2</strong>：该场景对知识治理与检索质量高度敏感，是 RAG 方法论的典型应用场。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第24章 金融行业：合规约束下的落地</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：银行建设大模型的核心目标集中在提升员工生产力、改善客户体验、降低运营成本，同时强化风险抵御能力</li><li>核心观点2：合规约束是金融行业落地的首要设计条件，方案需在约束内求价值</li><li>银行建设大模型的核心目标集中在提升员工生产力、改善客户体验、降低运营成本，同时强化风险抵御能力</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：银行建设大模型的核心目标集中在提升员工生产力、改善客户体验、降低运营成本，同时强化风险抵御能力。</li>
+<li><strong>核心观点2</strong>：合规约束是金融行业落地的首要设计条件，方案需在约束内求价值。<blockquote>
+<p>银行建设大模型的核心目标集中在提升员工生产力、改善客户体验、降低运营成本，同时强化风险抵御能力。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第25章-制造业与能源业现场设备与老旧系统">第25章 制造业与能源业：现场、设备与老旧系统</h3>3
+<ul>
+<li><strong>核心观点1</strong>：制造企业生产系统动辄十几二十年历史，接口缺失是常态，部分系统原厂商已不存在。</li>
+<li><strong>核心观点2</strong>：现场物理条件会直接否决方案——某方案在试点场站被否，原因是风机塔筒内部没有信号。</li>
+<li><strong>核心观点3</strong>：把工单、缺件、质量问题（“不符合项”）等分散数据源整合到统一界面，是制造业数字化的典型切入点。<blockquote>
+<p>这个方案在试点场站被否了，原因很具体：风机塔筒内部没有信号。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第26章 教育行业：把AI放进课堂</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：学情诊断可提示“这几位学生在该知识点上可能存在困难”，但不应输出对学生的评价性判断</li><li>核心观点2：教育场景对 AI 输出边界有特殊伦理要求，需克制评价性功能</li><li>学情诊断可以提示“这几位学生在这个知识点上可能存在困难”，但不应该输出对学生的评价性判断</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：学情诊断可提示“这几位学生在该知识点上可能存在困难”，但不应输出对学生的评价性判断。</li>
+<li><strong>核心观点2</strong>：教育场景对 AI 输出边界有特殊伦理要求，需克制评价性功能。<blockquote>
+<p>学情诊断可以提示“这几位学生在这个知识点上可能存在困难”，但不应该输出对学生的评价性判断。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第27章-政务医疗与专业服务高风险领域的克制">第27章 政务、医疗与专业服务：高风险领域的克制</h3>3
+<ul>
+<li><strong>核心观点1</strong>：高风险领域的落地原则是克制，优先保障安全与合规而非功能扩张。</li>
+<li><strong>核心观点2</strong>：不同高风险行业的约束差异需在方案设计中分别对待。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第28章 FDE成长路线</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：FDE 成长分为从初级到资深的四个台阶</li><li>核心观点2：成长路径强调项目实战积累与能力维度的逐级扩展</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：FDE 成长分为从初级到资深的四个台阶。</li>
+<li><strong>核心观点2</strong>：成长路径强调项目实战积累与能力维度的逐级扩展。</li>
+</ul>
+<h3 id="第29章-fde面试实战">第29章 FDE面试实战</h3>3
+<ul>
+<li><strong>核心观点1</strong>：面试讲案例应使用 CPDR 结构而非 STAR，以突出问题定义与落地判断能力。</li>
+<li><strong>核心观点2</strong>：用可量化结果说话——如字段抽取准确率 93%（电子件）、单案时长从 40 分钟降到 23 分钟、差错率从 1.2% 降到 0.9%、23 人中 20 人每周稳定使用。<blockquote>
+<p>结果：字段抽取准确率93%（电子件），单案时长从40分钟降到23分钟，差错率从1.2%降到0.9%，23人中有20人每周稳定使用。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第30章 就算你不当FDE</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：不必挤进明星公司，在自己的岗位上做“把新工具真正用起来的人”，就是普通人在这个时代的位置</li><li>你不必挤进那几家明星公司，在自己的岗位上做那个“把新工具真正用起来的人”，就是这个时代给普通人留的位置</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：不必挤进明星公司，在自己的岗位上做“把新工具真正用起来的人”，就是普通人在这个时代的位置。<blockquote>
+<p>你不必挤进那几家明星公司，在自己的岗位上做那个“把新工具真正用起来的人”，就是这个时代给普通人留的位置。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="结语-部署时代刚刚开始">结语 部署时代刚刚开始</h3>3
+<ul>
+<li><strong>核心观点1</strong>：AI 的竞争重心正从模型能力转向部署能力，部署时代刚刚开始。</li>
+<li><strong>核心观点2</strong>：FDE 所代表的方法论与角色价值将随部署需求增长而持续放大。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">适用场景标签</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>RAG 与智能体工程实践</li></ul></div>2
+<ul>
+<li>AI 项目落地与管理</li>
+<li>工程师职业转型</li>
+<li>企业数字化转型</li>
+<li>客户现场交付</li>
+<li>RAG 与智能体工程实践</li>
+<li>面试与能力评估</li>
+</ul>
+<h2 id="一句话推荐">一句话推荐</h2>2
+<p>AI落地，瓶颈在人不在模型。</p></div></details></div></body></html>

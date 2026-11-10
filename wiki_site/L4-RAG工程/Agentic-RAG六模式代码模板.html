@@ -1,0 +1,719 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agentic-RAG六模式代码模板</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ Agentic-RAG六模式代码模板</span></div><div class="wrap"><h1 id="agentic-rag-六模式代码模板">Agentic RAG 六模式代码模板</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="Agentic-RAG%E4%B8%8E%E5%A4%9A%E6%A8%A1%E6%80%81RAG%E8%B0%83%E7%A0%94.html">Agentic RAG 与多模态 RAG 调研</a> · <a href="RAG%E8%AF%84%E4%BC%B0%E6%80%8E%E4%B9%88%E8%B7%91.html">RAG 评估怎么跑</a> · <a href="%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E6%90%AD%E5%BB%BA%E5%85%A8%E6%B5%81%E7%A8%8B.html">企业级 RAG 搭建全流程</a></p>
+</blockquote>
+<h1 id="why按失败成本选模式不为循环而循环">WHY：按失败成本选模式，不为循环而循环</h1>
+<h2 id="业务价值与不适用边界">业务价值与不适用边界</h2>2
+<p>六模式的业务价值是把不同的失败交给不同控制节点：分类错归 Router，证据不够归 CRAG，答案无支持归生成后门禁，只有跨文档关系需求才引入图。若把这些职责揉成一个自由循环，系统即使偶尔答对，也无法解释为什么继续检索或何时该停。</p>
+<p>来源：<a href="../../raw/sources/Agentic-RAG-%E8%B0%83%E7%A0%94-20261012.md">Agentic 调研的 Step 2–5</a>强调评价、改写上限与决策路径评测；<a href="../../raw/sources/RAG%E4%BC%98%E5%8C%96-%E5%A4%96%E9%83%A8%E8%B0%83%E7%A0%94-20260929.md">优化调研方向 5</a>要求先有多步推理需求。适用于基础检索已有基线、错误类型可标注的增量改造；不适用于用模板替代医疗/法律审批，也不适用于没有 trace、负例和退出策略就开放自主工具调用。Self-RAG 门禁只能降低风险，不能保证高风险业务的安全等级。</p>
+<h2 id="核心论点">核心论点</h2>2
+<p>六模式不是互斥方案，而是"控制权从工程硬编码逐级让渡给 LLM 自主决策"的同一根光谱，选择依据是你的失败成本而不是技术偏好：要可控先上 Router（一次结构化输出分流），检索不稳加 CRAG 评估兜底，幻觉拦不住才上 Self-RAG 的生成后双门禁——它以 3–8 次 LLM 调用为代价换来法律/医疗级容错。真正的价值断言是：拉开质量差距的永远是评估节点（grade_documents、幻觉与切题双门禁）而非循环本身，缺门控的 Agent-as-retriever 只会盲循环烧 token。边界在于成本与收益的匹配：Agentic-GraphRAG 的索引期 LLM 成本是数量级级别的，只在全库摘要类问题上有意义；而任何模式没有 Recall@K / faithfulness 评测集的验证，都属于盲改。</p>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">为什么六模式是"光谱"而非"六选一"（动机与代价）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>不理解这个共同轴，选型就会变成"哪个最新用哪个"，结果在简单场景上套最贵的 Self-RAG（3-8 次 LLM 调用）或在幻觉高危场景只上 Router（拦不住幻觉）</li><li>光谱视角的动机是按失败成本选刻度：可控性要求高选 Router（便宜可控），检索不稳加 CRAG 评估兜底，幻觉拦不住才上 Self-RAG 双门禁</li><li>真正的价值断言是拉开质量差距的是评估节点（grade_documents、幻觉/切题双门禁）而非循环本身——缺门控的模式只是把差检索反复刷</li></ul></div>2
+<ul>
+<li><strong>动机（WHY）</strong>：Agentic RAG 的六种模式（Router / Agent-as-retriever / CRAG / Self-RAG / Adaptive / Agentic-GraphRAG）常被当成六个互斥方案来"选一个"，但它们实际是<strong>同一根控制流光谱上的六个刻度</strong>——控制权从"工程硬编码"逐级让渡给"LLM 自主决策"。不理解这个共同轴，选型就会变成"哪个最新用哪个"，结果在简单场景上套最贵的 Self-RAG（3-8 次 LLM 调用）或在幻觉高危场景只上 Router（拦不住幻觉）。光谱视角的动机是<strong>按失败成本选刻度</strong>：可控性要求高选 Router（便宜可控），检索不稳加 CRAG 评估兜底，幻觉拦不住才上 Self-RAG 双门禁。</li>
+<li><strong>代价与权衡</strong>：沿光谱右移的每一步都以更多 LLM 调用换更自主的决策——Router 每次多 1 次轻量调用，Agent-as-retriever 必须配 grade_documents 门控否则盲循环烧 token，Self-RAG 3-8 次调用换法律/医疗级容错，Agentic-GraphRAG 索引期 LLM 成本数量级（只在全库摘要类问题有意义）。真正的价值断言是<strong>拉开质量差距的是评估节点（grade_documents、幻觉/切题双门禁）而非循环本身</strong>——缺门控的模式只是把差检索反复刷。共同前提：六模式全部依赖评测集（Recall@K / faithfulness）验证收益，没有评测集就上任何模式都是盲改。</li>
+</ul>
+<h1 id="whyt六模式的状态契约职责与选型依据">WHYT：六模式的状态契约、职责与选型依据</h1>
+<h2 id="控制流统一能力声明分开">控制流统一，能力声明分开</h2>2
+<pre><code class="language-text">original_question → Router → retrieve → grade
+                                      ├─ 足够 → generate → 支持性/切题检查
+                                      └─ 不足 → rewrite → retrieve（受预算约束）
+Graph/local/global 是检索工具候选；拒答与预算耗尽是显式终态
+</code></pre>
+<p>接口应传原问题、当前问题、证据列表、来源定位、路由与重试计数；不能让改写覆盖原意，也不能在超限后拿未经验证的草稿直接交付。LangGraph 的 recursion_limit 计图执行步数，不等于业务 max_iterations，两者要分别约束。原模板中“超限后直接生成+免责声明”保留作历史样例，生产合同应改为安全拒答或转人，免责声明不是证据。</p>
+<p>本库有 Adaptive、CRAG、rerank/gate 的实现入口，不等于已完整部署六种论文方法。尤其原 Self-RAG 论文的训练式 reflection token 与模板中的提示式 grader 是不同实现。原混检模板 <code>chunk_sparse={}</code>、只从 dense_docs 取正文，是待补适配骨架：未补全 sparse-only 文档回取前不能据此宣称双路融合有效。业内对比采用本篇 sources 中的官方教程与本地调研，成本和收益仍须同尺子复测。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">核心结论</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>六种模式不是六个互斥方案，而是同一根控制流光谱上的六个刻度，控制权从"工程硬编码"逐级移交给"LLM 自主决策"</li><li>取舍结论：从 Router 起步，检索质量不稳加 CRAG，答案幻觉抓不住加 Self-RAG 门禁，查询复杂度方差大再上 Adaptive；六模式全部依赖评测集（Recall@K / faithfulness）验证收益，没有评测集就上任何模式都是盲改</li><li>Adaptive RAG 是前两者的组合拳：先按查询复杂度路由到 no-retrieve / 单步 / 迭代策略，避免"难题才需要 agent、易题直接答"的错配</li></ul></div>2
+<p>六种模式不是六个互斥方案，而是<strong>同一根控制流光谱上的六个刻度</strong>，控制权从"工程硬编码"逐级移交给"LLM 自主决策"。Router 最便宜也最可控：一次结构化输出就能分流查询，适合查询类型清晰可枚举的场景（Anthropic 官方定位：存在 distinct categories 就先上 routing）。Agent-as-retriever 把检索器包成 tool 交给 LLM 自主调用，是"是否检索"决策权的让渡，代价是必须配 grade_documents 门控，否则 LLM 会把同一次差检索反复刷。CRAG 解决"检索错了怎么办"——轻量评估器判质量，差则改写 query 转 web 搜索兜底；Self-RAG 再进一步，连生成结果也要过幻觉与切题双重门禁，质量最高但 LLM 调用次数最多（3–8 次）。Adaptive RAG 是前两者的组合拳：先按查询复杂度路由到 no-retrieve / 单步 / 迭代策略，避免"难题才需要 agent、易题直接答"的错配。Agentic-GraphRAG 只在全局摘要类问题（"这批文档的主要主题是什么"）上有意义，向量 RAG 在这类问题上结构性失败，但图索引的 LLM 成本是数量级级别的。<strong>取舍结论：从 Router 起步，检索质量不稳加 CRAG，答案幻觉抓不住加 Self-RAG 门禁，查询复杂度方差大再上 Adaptive；六模式全部依赖评测集（Recall@K / faithfulness）验证收益，没有评测集就上任何模式都是盲改。</strong></p>
+<h2 id="是什么定义与边界">是什么（定义与边界）</h2>2
+<p><strong>定义</strong>：本篇是 Agentic RAG 六种工程模式的代码模板库——每个模式给触发条件、核心机制、LangGraph 代码骨架、关键步骤注释与适用场景，外加 Modular RAG 架构原则与本库技术栈对接。六模式 = Router（结构化输出分流）、Agent-as-retriever（检索器包 tool 交 LLM 调用）、CRAG（检索质量评估 + web 兜底）、Self-RAG（生成后幻觉/切题双门禁）、Adaptive（复杂度路由）、Agentic-GraphRAG（图索引 + global/local 搜索工具化）。</p>
+<p><strong>边界</strong>：<br />
+- ✅ 管：各模式的代码骨架、触发条件、代价与适用场景、循环安全（recursion_limit、最大迭代）。<br />
+- ❌ 不管：六模式的调研论据与实测数字（<a href="Agentic-RAG%E4%B8%8E%E5%A4%9A%E6%A8%A1%E6%80%81RAG%E8%B0%83%E7%A0%94.html">Agentic-RAG与多模态RAG调研</a>）、图谱构建成本细节（<a href="GraphRAG%E6%9C%80%E5%B0%8F%E7%A4%BA%E4%BE%8B.html">GraphRAG最小示例</a>）、基础检索流水线（<a href="RRF%E8%9E%8D%E5%90%88%E5%8A%A0%E9%87%8D%E6%8E%92%E8%A7%A3%E5%86%B3%E6%A3%80%E7%B4%A2%E7%9F%AD%E6%9D%BF-%E6%B7%B7%E5%90%88%E6%A3%80%E7%B4%A2%E6%B5%81%E6%B0%B4%E7%BA%BF.html">RRF融合加重排</a>）。<br />
+- ⚠️ Modular RAG 不是第七个模式，是承载六模式的架构原则（工程结构怎么解耦 vs 运行时控制权放多少，两者正交）——见"补遗"节。<br />
+- ⚠️ 选型顺序：从 Router 起步，检索不稳加 CRAG，幻觉抓不住加 Self-RAG 门禁，复杂度方差大再上 Adaptive；每步都要评测集验证，别跳级。<br />
+- 据[一手源]：Agentic-RAG-调研-20261012：Anthropic《Building effective agents》的原则是"从最简单的方案开始，只在灵活性收益大于延迟和成本时才增加复杂度"；其 5 种 workflow pattern 为 prompt chaining / routing / evaluator-optimizer / tool use / orchestrator-workers，源里明确的对应只有一条：Agentic RAG 本质是 tool use 的特例（即本表模式二 Agent-as-retriever，Router 则是 routing pattern 的 RAG 用法）；另有 Multi-agent RAG 范式（Anthropic multi-agent research system：主 agent 规划 → 子 agent 并行检索 → 合成），适合复杂研究与多源整合，不在本表六模式内。先单 agent + tool use，不要一上来 multi-agent。<br />
+- 据[一手源]：Agentic-RAG-调研-20261012：LangGraph 标准模板是 5 个核心节点——<code>generate_query_or_respond</code>（决定直接回答还是调 retriever）→ <code>retrieve</code> → <code>grade_documents</code>（只答 yes/no，过滤不相关 chunk）→ <code>rewrite_question</code>（基于原 query + "之前检索不相关"改写，<strong>最大循环次数设 3 次</strong>防无限检索）→ <code>generate</code>；"很多团队以为加个 agent loop 就完事，真正提升质量的是 grade_documents 这个判断节点"。<br />
+- 据[一手源]：Agentic-RAG检索循环-外部调研-20261012：Reflection 循环 = Retrieve → Read → Critique → Refine → Loop；没有 critique 步的 agentic RAG 只是把同一检索无限刷，是最常见失败模式。2026 框架选择口诀：stateful 默认选 LangGraph；单厂商栈最快用 OpenAI Agents SDK；"检索是一等公民、agent 是 loop"用 LlamaIndex AgentWorkflow；要 skills-guided retrieval + rubric grading + subagent 用 LangChain Deep Agents。<br />
+- 据[一手源]：RAG优化-外部调研-20260929（方向 5）：Agentic RAG 的适用门槛是"多步推理 + 自我纠错 + 判断何时该检索"，代价是慢、贵、难调试；该源对 162 chunk 个人库的裁决是"暂不上，直到 chunk 数 &gt; 5000 或出现'追关系'类 query"，把"不做"写进决策文档防止冲动。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">关键细节</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="六模式对照表">六模式对照表</h3>3
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>触发条件</th>
+<th>核心机制</th>
+<th>代价</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Router（路由式）</td>
+<td>查询存在清晰可分的类别</td>
+<td>LLM 结构化输出选数据源，条件边分流</td>
+<td>每次多 1 次轻量 LLM 调用</td>
+<td>客服分流、库内/库外知识分离、成本分级</td>
+</tr>
+<tr>
+<td>Agent-as-retriever</td>
+<td>是否需要检索无法预先判断</td>
+<td>retriever 包成 tool，<code>bind_tools</code> + <code>tools_condition</code>，LLM 自主决定调不调</td>
+<td>缺 grade_documents 门控则退化成盲循环</td>
+<td>问答助手、闲聊与知识问答混合流量</td>
+</tr>
+<tr>
+<td>CRAG</td>
+<td>检索质量不稳定、语料有时效缺口</td>
+<td>检索评估器分级 → 不合格则改写 query 转 web 搜索兜底</td>
+<td>Tavily 等外部搜索依赖 + 改写延迟</td>
+<td>知识库覆盖不全、新闻/动态类问题</td>
+</tr>
+<tr>
+<td>Self-RAG</td>
+<td>答案幻觉必须拦住</td>
+<td>生成后过"幻觉检查 + 切题检查"双门禁，三路路由（useful / not useful / not supported）</td>
+<td>3–8 次 LLM 调用，延迟显著上升</td>
+<td>法律/医疗/合规等高容错成本场景</td>
+</tr>
+<tr>
+<td>Adaptive RAG</td>
+<td>查询复杂度方差大</td>
+<td>复杂度路由（不检索/单步/迭代）+ 自纠正循环</td>
+<td>路由器需训练或精心 prompt</td>
+<td>混合负载：简单事实题 + 多跳推理题并存</td>
+</tr>
+<tr>
+<td>Agentic-GraphRAG</td>
+<td>全局摘要/多跳关系类问题</td>
+<td>实体图 + 社区摘要，local/global 搜索作为 agent tool</td>
+<td>索引期 LLM 成本极高、图需随语料更新</td>
+<td>跨文档综合分析、情报研判、语料级问答</td>
+</tr>
+</tbody>
+</table>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">补遗：Modular RAG 不是第七个模式，是承载六模式的架构原则</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>RAG 演进谱系是 Naive（检索+生成拼接）→ Advanced（重写/混合/重排）→ Modular（组件可插拔）→ Agentic（控制权让渡给 LLM）</li><li>Modular RAG 的核心是三层解耦：检索层（可插拔 retriever）→ 生成层（可插拔 LLM）→ 编排层（稳定 state schema），所有组件实现统一抽象基类（「BaseRetriever」 / 「BaseChatModel」 / 「Embeddings」 / 「BaseReranker」）</li><li>收益：换模型/换检索器只改一行注入，不动图结构，A/B 测试与降级回退零成本</li></ul></div>3
+<p>RAG 演进谱系是 <strong>Naive（检索+生成拼接）→ Advanced（重写/混合/重排）→ Modular（组件可插拔）→ Agentic（控制权让渡给 LLM）</strong>。本表六模式（Router…Agentic-GraphRAG）回答的是<strong>运行时"控制权放多少"</strong>；Modular RAG（ACM 2026，doi:10.1145/3837856）回答的是<strong>工程结构"怎么解耦"</strong>，两者正交——工程上用 Modular 架构承载六模式。</p>
+<p>Modular RAG 的核心是三层解耦：<strong>检索层（可插拔 retriever）→ 生成层（可插拔 LLM）→ 编排层（稳定 state schema）</strong>，所有组件实现统一抽象基类（<code>BaseRetriever</code> / <code>BaseChatModel</code> / <code>Embeddings</code> / <code>BaseReranker</code>）。收益：换模型/换检索器只改一行注入，不动图结构，A/B 测试与降级回退零成本。反面教材是把 LLM/retriever 直接写死在节点函数里——一旦要对比豆包 vs Qwen 或 bge vs BM25 就得改图。</p>
+<blockquote>
+<p>本库现状：<code>config.yaml</code> 已把 embedding / rerank / llm / 向量库参数外置，具备 Modular 的一半（配置级解耦）；但 query.py 的检索/重排节点仍按具体实现硬编码，未抽象成可插拔基类，属于"配置模块化、代码未模块化"。这与 <a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践</a> 的接口层要求一致，列为 P2 工程项。</p>
+</blockquote>
+<h1 id="how从本库基线到六模式模板的可验证接入">HOW：从本库基线到六模式模板的可验证接入</h1>
+<h2 id="模板接入的最小闭环与验收合同">模板接入的最小闭环与验收合同</h2>2
+<p>原有六个代码骨架完整保留在下文；它们有共享变量、外部端点和隔离索引前置，不是六个可以原样在生产目录启动的独立脚本。本次只整理文档，不安装依赖、不启用 Web 搜索、不调用外部业务模型。</p>
+<ol>
+<li>先核对真实实现与配置，再选一个模式：</li>
+</ol>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+rg -n 'def _classify_query|def rewrite_query_crag|def gate_node|StateGraph|add_conditional_edges' rag/query.py
+rg -n '^adaptive:|^crag:|relevance_threshold:|min_relevant_docs:|max_rewrite_retries:|dense_threshold:|threshold:' rag/config.yaml
+env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --check-golden
+</code></pre>
+<p>验收：入口与参数对应，尺子退出 0。CRAG 的 0.5、最少 2 篇与最多改写 2 次是当前本库起点；rerank 主门禁 0.45、dense 兜底 0.50 不能混用。</p>
+<ol start="2">
+<li>同题关闭一个节点比较，不用 dense/hybrid 的差值冒充 CRAG 或 Self-RAG 的贡献：</li>
+</ol>
+<pre><code class="language-bash">env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/query.py &quot;CRAG 如何判断需要再次检索？&quot; --no-gen
+env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/query.py &quot;CRAG 如何判断需要再次检索？&quot; --no-gen --no-crag
+</code></pre>
+<p>验收：记录 grade、重写、最终来源、门禁与调用成本；相关文档没有改善时退出该方案。<code>--no-adaptive</code> 是关闭分类的对照，不是自动等价于 no-retrieve；<code>--no-gen</code> 仍可能触发路由模型。</p>
+<ol start="3">
+<li>在已经获批的评测环境做检索回归，再人工抽验生成后支持性；输出另存实验文件，不覆盖旧基线：</li>
+</ol>
+<pre><code class="language-bash">env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --mode hybrid --json-out /tmp/l4-agentic-recall.json
+</code></pre>
+<p>验收：相同索引、题库与参数下简单事实不降，多跳题的必要证据完整；无答案题单独测拒答。若运行会向第三方发送问题/上下文，须先确认业务授权；本任务的 Jev 授权不扩展到这些模型端点。通过后才逐个复用下文模板，不能一次上六个再凭总分归因。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">模式一：Router（路由式）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>依据：Anthropic《Building effective agents》routing 模式（"存在清晰可分的类别，且分类能被准确完成时使用，无论用 LLM 还是传统分类器"）；代码骨架来自 LangGraph 官方 Adaptive RAG 教程的查询路由部分（arXiv:2403.14403 的工程化实现）</li></ul></div>3
+<p>依据：Anthropic《Building effective agents》routing 模式（"存在清晰可分的类别，且分类能被准确完成时使用，无论用 LLM 还是传统分类器"）；代码骨架来自 LangGraph 官方 Adaptive RAG 教程的查询路由部分（arXiv:2403.14403 的工程化实现）。</p>
+<pre><code class="language-python">from typing import Literal
+from pydantic import BaseModel, Field
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+
+# 关键步骤 1：结构化输出 schema——Literal 限定路由目标，防止 LLM 自由发挥
+class RouteQuery(BaseModel):
+    &quot;&quot;&quot;Route a user query to the most relevant datasource.&quot;&quot;&quot;
+    datasource: Literal[&quot;vectorstore&quot;, &quot;web_search&quot;] = Field(
+        ...,
+        description=&quot;Given a user question choose to route it to web search or a vectorstore.&quot;,
+    )
+
+llm = ChatOpenAI(model=&quot;gpt-4o-mini&quot;, temperature=0)  # 本库可换任意兼容模型
+structured_llm_router = llm.with_structured_output(RouteQuery)
+
+# 关键步骤 2：system prompt 必须写清 vectorstore 里&quot;有什么&quot;，否则路由靠猜
+system = &quot;&quot;&quot;You are an expert at routing a user question to a vectorstore or web search.
+The vectorstore contains documents related to agents, prompt engineering, and adversarial attacks.
+Use the vectorstore for questions on these topics. Otherwise, use web-search.&quot;&quot;&quot;
+route_prompt = ChatPromptTemplate.from_messages(
+    [(&quot;system&quot;, system), (&quot;human&quot;, &quot;{question}&quot;)]
+)
+question_router = route_prompt | structured_llm_router
+
+# 关键步骤 3：路由函数——返回值即下一节点名，挂在条件边上
+def route_question(state):
+    print(&quot;---ROUTE QUESTION---&quot;)
+    source = question_router.invoke({&quot;question&quot;: state[&quot;question&quot;]})
+    if source.datasource == &quot;web_search&quot;:
+        return &quot;web_search&quot;
+    elif source.datasource == &quot;vectorstore&quot;:
+        return &quot;vectorstore&quot;
+
+# 挂图：START 之后按类别分流（多于两路时扩 Literal 与映射表即可）
+# workflow.add_conditional_edges(
+#     START, route_question,
+#     {&quot;web_search&quot;: &quot;web_search&quot;, &quot;vectorstore&quot;: &quot;retrieve&quot;},
+# )
+</code></pre>
+<p>Anthropic 官方给出的另一变体是<strong>成本路由</strong>：简单常见问题 → 小模型（Haiku），困难罕见问题 → 大模型（Sonnet），用同一套条件边实现，适合流量大、成本敏感的客服场景。</p>
+<h3 id="模式二agent-as-retriever">模式二：Agent-as-retriever</h3>3
+<p>依据：LangGraph 官方 Agentic RAG 教程。检索器不再是管线固定前置步骤，而是 <code>@tool</code>/<code>create_retriever_tool</code> 封装的工具，LLM 在 <code>generate_query_or_respond</code> 节点自主决定"直接回答"还是"发起检索"。这正是本库调研篇定义的"Agentic 与普通 tool-use 的分水岭"所在：检索后必须有 <code>grade_documents</code> 质量门控 + <code>rewrite_question</code> 改写重试闭环。</p>
+<pre><code class="language-python">from langchain.tools.retriever import create_retriever_tool
+from langchain.chat_models import init_chat_model
+from langgraph.graph import StateGraph, MessagesState, START, END
+from langgraph.prebuilt import ToolNode, tools_condition
+from pydantic import BaseModel, Field
+from typing import Literal
+
+# 关键步骤 1：检索器包成 tool——工具描述决定 LLM 什么时候愿意调它，值得精心打磨（Anthropic ACI 原则）
+retriever_tool = create_retriever_tool(
+    retriever,                      # 接本库 hybrid_retriever（见&quot;与本库技术栈的对接&quot;）
+    &quot;retrieve_blog_posts&quot;,
+    &quot;Search and return information about Lilian Weng blog posts.&quot;,
+)
+
+response_model = init_chat_model(&quot;openai:gpt-4.1&quot;, temperature=0)
+
+# 关键步骤 2：决策节点——bind_tools 后 LLM 要么直接回复，要么产出 tool_calls
+def generate_query_or_respond(state: MessagesState):
+    &quot;&quot;&quot;LLM 决定：直接回答，或调用检索工具。&quot;&quot;&quot;
+    response = response_model.bind_tools([retriever_tool]).invoke(state[&quot;messages&quot;])
+    return {&quot;messages&quot;: [response]}
+
+# 关键步骤 3：质量门控——grade_documents 是路由函数，决定&quot;用结果&quot;还是&quot;改写重试&quot;
+GRADE_PROMPT = (
+    &quot;You are a grader assessing relevance of a retrieved document to a user question. \n &quot;
+    &quot;Here is the retrieved document: \n\n {context} \n\n&quot;
+    &quot;Here is the user question: {question} \n&quot;
+    &quot;If the document contains keyword(s) or semantic meaning related to the user question, &quot;
+    &quot;grade it as relevant. \n&quot;
+    &quot;Give a binary score 'yes' or 'no' score to indicate whether the document is relevant.&quot;
+)
+
+class GradeDocuments(BaseModel):
+    &quot;&quot;&quot;Grade documents using a binary score for relevance check.&quot;&quot;&quot;
+    binary_score: str = Field(
+        description=&quot;Relevance score: 'yes' if relevant, or 'no' if not relevant&quot;
+    )
+
+def grade_documents(state: MessagesState) -&gt; Literal[&quot;generate_answer&quot;, &quot;rewrite_question&quot;]:
+    &quot;&quot;&quot;评估检索结果与问题的相关性。&quot;&quot;&quot;
+    question = state[&quot;messages&quot;][0].content
+    context = state[&quot;messages&quot;][-1].content
+    prompt = GRADE_PROMPT.format(question=question, context=context)
+    response = response_model.with_structured_output(GradeDocuments).invoke(
+        [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: prompt}]
+    )
+    return &quot;generate_answer&quot; if response.binary_score == &quot;yes&quot; else &quot;rewrite_question&quot;
+
+# 关键步骤 4：改写闭环——不相关则改写问题回到决策节点（必配最大循环次数，见文末说明）
+REWRITE_PROMPT = (
+    &quot;Look at the input and try to reason about the underlying semantic intent / meaning.\n&quot;
+    &quot;Here is the initial question:\n ------- \n{question}\n ------- \n&quot;
+    &quot;Formulate an improved question:&quot;
+)
+
+def rewrite_question(state: MessagesState):
+    question = state[&quot;messages&quot;][0].content
+    response = response_model.invoke(
+        [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: REWRITE_PROMPT.format(question=question)}]
+    )
+    return {&quot;messages&quot;: [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: response.content}]}
+
+def generate_answer(state: MessagesState):
+    question = state[&quot;messages&quot;][0].content
+    context = state[&quot;messages&quot;][-1].content
+    GENERATE_PROMPT = (
+        &quot;You are an assistant for question-answering tasks. &quot;
+        &quot;Use the following pieces of retrieved context to answer the question. &quot;
+        &quot;If you don't know the answer, just say that you don't know. &quot;
+        &quot;Use three sentences maximum and keep the answer concise.\n&quot;
+        &quot;Question: {question} \nContext: {context}&quot;
+    )
+    response = response_model.invoke(
+        [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: GENERATE_PROMPT.format(question=question, context=context)}]
+    )
+    return {&quot;messages&quot;: [response]}
+
+# 关键步骤 5：组装——tools_condition 判断上一步是否产生 tool_calls
+workflow = StateGraph(MessagesState)
+workflow.add_node(generate_query_or_respond)
+workflow.add_node(&quot;retrieve&quot;, ToolNode([retriever_tool]))   # ToolNode 真正执行检索
+workflow.add_node(rewrite_question)
+workflow.add_node(generate_answer)
+workflow.add_edge(START, &quot;generate_query_or_respond&quot;)
+workflow.add_conditional_edges(
+    &quot;generate_query_or_respond&quot;, tools_condition,
+    {&quot;tools&quot;: &quot;retrieve&quot;, END: END},   # 无 tool_calls 则直接结束（LLM 已给出回答）
+)
+workflow.add_conditional_edges(&quot;retrieve&quot;, grade_documents)  # 相关→generate_answer，不相关→rewrite_question
+workflow.add_edge(&quot;generate_answer&quot;, END)
+workflow.add_edge(&quot;rewrite_question&quot;, &quot;generate_query_or_respond&quot;)  # 改写后回到决策节点
+graph = workflow.compile()
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">模式三：CRAG（Corrective RAG）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>依据：论文 CRAG（arXiv:2401.15884）+ LangGraph 官方 CRAG 教程</li><li>web_search: str 关键步骤 1：用标志位记录"是否需要 web 兜底"</li><li>论文核心：轻量检索评估器对检索结果给出置信度，触发三类动作——Correct（≥1 个文档过阈值，直接生成前先做 decompose-then-recompose 知识精炼：拆成知识条带逐条过滤）、Incorrect / Ambiguous（全部低于阈值或评估器不确定，改写 query 转大规模 web 搜索兜底）</li></ul></div>3
+<p>依据：论文 CRAG（arXiv:2401.15884）+ LangGraph 官方 CRAG 教程。论文核心：轻量<strong>检索评估器</strong>对检索结果给出置信度，触发三类动作——Correct（≥1 个文档过阈值，直接生成前先做 decompose-then-recompose 知识精炼：拆成知识条带逐条过滤）、Incorrect / Ambiguous（全部低于阈值或评估器不确定，改写 query 转大规模 web 搜索兜底）。官方教程简化了知识精炼，保留了"评分 → 改写 → web 搜索"主链路。</p>
+<pre><code class="language-python">from typing import List
+from typing_extensions import TypedDict
+from pydantic import BaseModel, Field
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_openai import ChatOpenAI
+from langchain.schema import Document
+from langchain_community.tools.tavily_search import TavilySearchResults
+from langgraph.graph import END, StateGraph, START
+
+class GraphState(TypedDict):
+    question: str
+    generation: str
+    web_search: str          # 关键步骤 1：用标志位记录&quot;是否需要 web 兜底&quot;
+    documents: List[str]
+
+llm = ChatOpenAI(model=&quot;gpt-4o-mini&quot;, temperature=0)
+
+# 关键步骤 2：检索评估器（对应论文的 retrieval evaluator）——二值化输出，便宜
+class GradeDocuments(BaseModel):
+    &quot;&quot;&quot;Binary score for relevance check on retrieved documents.&quot;&quot;&quot;
+    binary_score: str = Field(
+        description=&quot;Documents are relevant to the question, 'yes' or 'no'&quot;
+    )
+
+system = &quot;&quot;&quot;You are a grader assessing relevance of a retrieved document to a user question. \n 
+    If the document contains keyword(s) or semantic meaning related to the question, grade it as relevant. \n
+    Give a binary score 'yes' or 'no' score to indicate whether the document is relevant to the question.&quot;&quot;&quot;
+retrieval_grader = ChatPromptTemplate.from_messages(
+    [(&quot;system&quot;, system), (&quot;human&quot;, &quot;Retrieved document: \n\n {document} \n\n User question: {question}&quot;)]
+) | llm.with_structured_output(GradeDocuments)
+
+def retrieve(state):
+    print(&quot;---RETRIEVE---&quot;)
+    documents = retriever.invoke(state[&quot;question&quot;])   # 换成本库 hybrid_retrieve
+    return {&quot;documents&quot;: documents, &quot;question&quot;: state[&quot;question&quot;]}
+
+# 关键步骤 3：逐条评分，任一不相关即触发 web_search 兜底标志
+def grade_documents(state):
+    print(&quot;---CHECK DOCUMENT RELEVANCE TO QUESTION---&quot;)
+    question, documents = state[&quot;question&quot;], state[&quot;documents&quot;]
+    filtered_docs, web_search = [], &quot;No&quot;
+    for d in documents:
+        score = retrieval_grader.invoke({&quot;question&quot;: question, &quot;document&quot;: d.page_content})
+        if score.binary_score == &quot;yes&quot;:
+            filtered_docs.append(d)
+        else:
+            web_search = &quot;Yes&quot;
+            continue
+    return {&quot;documents&quot;: filtered_docs, &quot;question&quot;: question, &quot;web_search&quot;: web_search}
+
+def decide_to_generate(state):
+    print(&quot;---ASSESS GRADED DOCUMENTS---&quot;)
+    if state[&quot;web_search&quot;] == &quot;Yes&quot;:     # 有不相关文档 → 走改写 + web 搜索分支
+        return &quot;transform_query&quot;
+    return &quot;generate&quot;                    # 全部相关 → 直接生成
+
+# 关键步骤 4：query 改写（对应论文 Corrective 动作前的 Query Rewrite）
+system = &quot;&quot;&quot;You a question re-writer that converts an input question to a better version that is optimized \n 
+     for web search. Look at the input and try to reason about the underlying semantic intent / meaning.&quot;&quot;&quot;
+question_rewriter = ChatPromptTemplate.from_messages(
+    [(&quot;system&quot;, system), (&quot;human&quot;, &quot;Here is the initial question: \n\n {question} \n Formulate an improved question.&quot;)]
+) | llm | StrOutputParser()
+
+def transform_query(state):
+    print(&quot;---TRANSFORM QUERY---&quot;)
+    better_question = question_rewriter.invoke({&quot;question&quot;: state[&quot;question&quot;]})
+    return {&quot;documents&quot;: state[&quot;documents&quot;], &quot;question&quot;: better_question}
+
+# 关键步骤 5：web 搜索兜底（对应论文的 web search extension，用 Tavily）
+web_search_tool = TavilySearchResults(k=3)
+
+def web_search(state):
+    print(&quot;---WEB SEARCH---&quot;)
+    docs = web_search_tool.invoke({&quot;query&quot;: state[&quot;question&quot;]})
+    web_results = Document(page_content=&quot;\n&quot;.join([d[&quot;content&quot;] for d in docs]))
+    documents = state[&quot;documents&quot;] + [web_results]   # 兜底结果追加，而非替换
+    return {&quot;documents&quot;: documents, &quot;question&quot;: state[&quot;question&quot;]}
+
+def generate(state):
+    print(&quot;---GENERATE---&quot;)
+    generation = rag_chain.invoke({&quot;context&quot;: state[&quot;documents&quot;], &quot;question&quot;: state[&quot;question&quot;]})
+    return {&quot;documents&quot;: state[&quot;documents&quot;], &quot;question&quot;: state[&quot;question&quot;], &quot;generation&quot;: generation}
+
+# 关键步骤 6：组装——差检索触发&quot;改写→搜索→生成&quot;旁路，好检索直达生成
+workflow = StateGraph(GraphState)
+workflow.add_node(&quot;retrieve&quot;, retrieve)
+workflow.add_node(&quot;grade_documents&quot;, grade_documents)
+workflow.add_node(&quot;generate&quot;, generate)
+workflow.add_node(&quot;transform_query&quot;, transform_query)
+workflow.add_node(&quot;web_search_node&quot;, web_search)
+workflow.add_edge(START, &quot;retrieve&quot;)
+workflow.add_edge(&quot;retrieve&quot;, &quot;grade_documents&quot;)
+workflow.add_conditional_edges(
+    &quot;grade_documents&quot;, decide_to_generate,
+    {&quot;transform_query&quot;: &quot;transform_query&quot;, &quot;generate&quot;: &quot;generate&quot;},
+)
+workflow.add_edge(&quot;transform_query&quot;, &quot;web_search_node&quot;)
+workflow.add_edge(&quot;web_search_node&quot;, &quot;generate&quot;)
+workflow.add_edge(&quot;generate&quot;, END)
+app = workflow.compile()
+</code></pre>
+<p>论文原版还有一个本库值得补的部件：<strong>decompose-then-recompose 知识精炼</strong>——把通过评分的文档切成细粒度"知识条带"（knowledge strips），逐条评分后只保留相关条带喂给生成端，过滤段内噪声。官方教程把它留作可选节点；本库 chunk 偏大（800 tok），在 generate 前加这一步收益会明显。</p>
+<h3 id="模式四self-rag">模式四：Self-RAG</h3>3
+<p>依据：论文 Self-RAG（arXiv:2310.11511）+ LangGraph 官方 Self-RAG 教程。论文定义 4 类 <strong>reflection tokens</strong>：<code>[Retrieve?]</code>（要不要检索）、<code>[Relevant?]</code>（文档是否相关）、<code>[Supported?]</code>（生成是否被证据支持）、<code>[Useful?]</code>（答案是否有用）；原论文靠训练 LM 输出这些 token，官方教程用 4 个结构化输出 grader 等价实现。与 CRAG 的本质区别：<strong>门控从"检索前"延伸到了"生成后"</strong>——生成结果必须同时过幻觉检查与切题检查才允许输出。</p>
+<pre><code class="language-python">from pydantic import BaseModel, Field
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+from langgraph.graph import END, StateGraph, START
+
+llm = ChatOpenAI(model=&quot;gpt-4o-mini&quot;, temperature=0)
+
+# 关键步骤 1：三个 grader schema（对应 [Relevant?] / [Supported?] / [Useful?]）
+class GradeDocuments(BaseModel):
+    &quot;&quot;&quot;Binary score for relevance check on retrieved documents.&quot;&quot;&quot;
+    binary_score: str = Field(description=&quot;Documents are relevant to the question, 'yes' or 'no'&quot;)
+
+class GradeHallucinations(BaseModel):
+    &quot;&quot;&quot;Binary score for hallucination present in generation answer.&quot;&quot;&quot;
+    binary_score: str = Field(description=&quot;Answer is grounded in the facts, 'yes' or 'no'&quot;)
+
+class GradeAnswer(BaseModel):
+    &quot;&quot;&quot;Binary score to assess answer addresses question.&quot;&quot;&quot;
+    binary_score: str = Field(description=&quot;Answer addresses the question, 'yes' or 'no'&quot;)
+
+# 关键步骤 2：幻觉检查 grader——对应论文 [Supported?] token
+hallucination_grader = ChatPromptTemplate.from_messages([
+    (&quot;system&quot;, &quot;&quot;&quot;You are a grader assessing whether an LLM generation is grounded in / supported by a set of retrieved facts. \n 
+     Give a binary score 'yes' or 'no'. 'Yes' means that the answer is grounded in / supported by the set of facts.&quot;&quot;&quot;),
+    (&quot;human&quot;, &quot;Set of facts: \n\n {documents} \n\n LLM generation: {generation}&quot;),
+]) | llm.with_structured_output(GradeHallucinations)
+
+# 关键步骤 3：切题检查 grader——对应论文 [Useful?] token
+answer_grader = ChatPromptTemplate.from_messages([
+    (&quot;system&quot;, &quot;&quot;&quot;You are a grader assessing whether an answer addresses / resolves a question \n 
+     Give a binary score 'yes' or 'no'. Yes' means that the answer resolves the question.&quot;&quot;&quot;),
+    (&quot;human&quot;, &quot;User question: \n\n {question} \n\n LLM generation: {generation}&quot;),
+]) | llm.with_structured_output(GradeAnswer)
+
+# 关键步骤 4：生成后双门禁——三路路由是 Self-RAG 的灵魂
+def grade_generation_v_documents_and_question(state):
+    print(&quot;---CHECK HALLUCINATIONS---&quot;)
+    question, documents, generation = state[&quot;question&quot;], state[&quot;documents&quot;], state[&quot;generation&quot;]
+    # 门禁一：是否忠于证据（幻觉检查）
+    grade = hallucination_grader.invoke({&quot;documents&quot;: documents, &quot;generation&quot;: generation}).binary_score
+    if grade == &quot;yes&quot;:
+        print(&quot;---GENERATION IS GROUNDED IN DOCUMENTS---&quot;)
+        # 门禁二：是否回答了问题（切题检查）
+        grade = answer_grader.invoke({&quot;question&quot;: question, &quot;generation&quot;: generation}).binary_score
+        if grade == &quot;yes&quot;:
+            return &quot;useful&quot;             # 双通过 → 出结果
+        return &quot;not useful&quot;             # 忠实但跑题 → 改写问题重检索
+    print(&quot;---GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---&quot;)
+    return &quot;not supported&quot;              # 幻觉 → 原地重新生成
+
+# 关键步骤 5：组装——grade_documents 过滤后为空则改写重检索；生成结果过双门禁三路路由
+workflow = StateGraph(GraphState)       # GraphState 复用 CRAG 的定义（去掉 web_search 字段）
+workflow.add_node(&quot;retrieve&quot;, retrieve)
+workflow.add_node(&quot;grade_documents&quot;, grade_documents)   # 逐条 [Relevant?] 过滤
+workflow.add_node(&quot;generate&quot;, generate)
+workflow.add_node(&quot;transform_query&quot;, transform_query)
+workflow.add_edge(START, &quot;retrieve&quot;)
+workflow.add_edge(&quot;retrieve&quot;, &quot;grade_documents&quot;)
+workflow.add_conditional_edges(
+    &quot;grade_documents&quot;, decide_to_generate,             # 全不相关 → transform_query → retrieve 闭环
+    {&quot;transform_query&quot;: &quot;transform_query&quot;, &quot;generate&quot;: &quot;generate&quot;},
+)
+workflow.add_edge(&quot;transform_query&quot;, &quot;retrieve&quot;)
+workflow.add_conditional_edges(
+    &quot;generate&quot;, grade_generation_v_documents_and_question,
+    {
+        &quot;not supported&quot;: &quot;generate&quot;,      # 幻觉：原地重试（注意防死循环，见文末 recursion_limit）
+        &quot;useful&quot;: END,
+        &quot;not useful&quot;: &quot;transform_query&quot;,  # 跑题：改写问题重新检索
+    },
+)
+app = workflow.compile()
+</code></pre>
+<p><code>retrieve</code> / <code>grade_documents</code> / <code>generate</code> / <code>transform_query</code> / <code>decide_to_generate</code> 与 CRAG 模式的同名节点同构（LangGraph 官方两教程共享这套骨架），差异只在：Self-RAG 的 <code>decide_to_generate</code> 判断依据是 <code>filtered_documents</code> 是否为空，且生成后多一道双门禁。这正是调研篇强调的"独立 judge 过 faithfulness 门禁才允许输出"的落地位置。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">模式五：Adaptive RAG</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>依据：论文 Adaptive-RAG（arXiv:2403.14403）+ LangGraph 官方 Adaptive RAG 教程</li><li>论文核心：用一个小模型分类器（以银标准标签训练）预测查询复杂度，路由到 no-retrieval / single-step / iterative 三档策略，在效率与准确率间取平衡</li></ul></div>3
+<p>依据：论文 Adaptive-RAG（arXiv:2403.14403）+ LangGraph 官方 Adaptive RAG 教程。论文核心：用一个<strong>小模型分类器</strong>（以银标准标签训练）预测查询复杂度，路由到 no-retrieval / single-step / iterative 三档策略，在效率与准确率间取平衡。LangGraph 教程的工程化取舍：不训练分类器，用 LLM 结构化输出做路由（<code>RouteQuery</code>），路由目标简化为 web_search（近期事件）与 vectorstore（索引内内容）两路，vectorstore 分支内嵌完整的自纠正循环（grade_documents → transform_query → retrieve，外加生成双门禁）。</p>
+<pre><code class="language-python">from typing import Literal
+from pydantic import BaseModel, Field
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+from langgraph.graph import END, StateGraph, START
+
+# 关键步骤 1：复杂度路由器（对应论文的 question complexity classifier，工程上换成 LLM 结构化输出）
+class RouteQuery(BaseModel):
+    &quot;&quot;&quot;Route a user query to the most relevant datasource.&quot;&quot;&quot;
+    datasource: Literal[&quot;vectorstore&quot;, &quot;web_search&quot;] = Field(
+        ..., description=&quot;Given a user question choose to route it to web search or a vectorstore.&quot;,
+    )
+
+llm = ChatOpenAI(model=&quot;gpt-4o-mini&quot;, temperature=0)
+structured_llm_router = llm.with_structured_output(RouteQuery)
+
+system = &quot;&quot;&quot;You are an expert at routing a user question to a vectorstore or web search.
+The vectorstore contains documents related to agents, prompt engineering, and adversarial attacks.
+Use the vectorstore for questions on these topics. Otherwise, use web-search.&quot;&quot;&quot;
+question_router = ChatPromptTemplate.from_messages(
+    [(&quot;system&quot;, system), (&quot;human&quot;, &quot;{question}&quot;)]
+) | structured_llm_router
+
+def route_question(state):
+    print(&quot;---ROUTE QUESTION---&quot;)
+    source = question_router.invoke({&quot;question&quot;: state[&quot;question&quot;]})
+    if source.datasource == &quot;web_search&quot;:
+        return &quot;web_search&quot;
+    elif source.datasource == &quot;vectorstore&quot;:
+        return &quot;vectorstore&quot;
+
+# 关键步骤 2：web_search 分支独立建图（不经过 grade/rewrite 循环——外部结果没法&quot;改写重检&quot;）
+def web_search(state):
+    print(&quot;---WEB SEARCH---&quot;)
+    docs = web_search_tool.invoke({&quot;query&quot;: state[&quot;question&quot;]})
+    web_results = Document(page_content=&quot;\n&quot;.join([d[&quot;content&quot;] for d in docs]))
+    return {&quot;documents&quot;: [web_results], &quot;question&quot;: state[&quot;question&quot;]}
+
+# 关键步骤 3：组装——Router 在 START 分流；vectorstore 分支 = CRAG 骨架 + Self-RAG 双门禁
+workflow = StateGraph(GraphState)     # GraphState 同 CRAG 定义（web_search 字段仅作标志）
+workflow.add_node(&quot;web_search&quot;, web_search)
+workflow.add_node(&quot;retrieve&quot;, retrieve)
+workflow.add_node(&quot;grade_documents&quot;, grade_documents)
+workflow.add_node(&quot;generate&quot;, generate)
+workflow.add_node(&quot;transform_query&quot;, transform_query)
+workflow.add_conditional_edges(
+    START, route_question,             # 复杂度/时效性路由发生在任何检索之前
+    {&quot;web_search&quot;: &quot;web_search&quot;, &quot;vectorstore&quot;: &quot;retrieve&quot;},
+)
+workflow.add_edge(&quot;web_search&quot;, &quot;generate&quot;)
+workflow.add_edge(&quot;retrieve&quot;, &quot;grade_documents&quot;)
+workflow.add_conditional_edges(
+    &quot;grade_documents&quot;, decide_to_generate,   # 全不相关 → 改写后回到 retrieve（迭代检索）
+    {&quot;transform_query&quot;: &quot;transform_query&quot;, &quot;generate&quot;: &quot;generate&quot;},
+)
+workflow.add_edge(&quot;transform_query&quot;, &quot;retrieve&quot;)
+workflow.add_conditional_edges(
+    &quot;generate&quot;, grade_generation_v_documents_and_question,   # 复用 Self-RAG 双门禁
+    {&quot;not supported&quot;: &quot;generate&quot;, &quot;useful&quot;: END, &quot;not useful&quot;: &quot;transform_query&quot;},
+)
+app = workflow.compile()
+</code></pre>
+<p>要严格对齐论文的 no-retrieval / single-step / iterative 三档：把 <code>Literal</code> 扩为三值，<code>no_retrieve</code> 直连一个纯 LLM 生成节点即可；论文原版分类器是训练出来的小 LM，流量大到路由调用本身成为成本时值得照做（官方复现在 github.com/starsuzi/Adaptive-RAG）。</p>
+<h3 id="模式六agentic-graphrag">模式六：Agentic-GraphRAG</h3>3
+<p>依据：Microsoft GraphRAG（arXiv:2404.16130）+ AutoGen 官方 <code>autogen_ext.tools.graphrag</code> 集成文档。GraphRAG 用 LLM 两阶段建图：先抽实体与关系建实体图，再对图做社区检测并预生成社区摘要；查询时 local search 回答具体实体问题、global search 走 map-reduce 回答"这批文档主要讲什么"的全局摘要类问题——后者是向量 RAG 的结构性盲区。Agentic 化的关键（AutoGen 官方做法）：<strong>把 GraphRAG 的 local/global 搜索包成 agent 的两个 tool，让 agent 按问题性质自主选用</strong>——local 问题调 <code>local_search</code>，全局综合问题调 <code>global_search</code>，这本身就是 Router 思想在图检索上的应用。</p>
+<pre><code class="language-python"># 前置：先用 GraphRAG CLI 建索引（一次性，LLM 成本主要花在这一步）
+#   pip install graphrag
+#   graphrag init --root ./my-project      # 生成 settings.yaml，配置 LLM provider
+#   graphrag index --root ./my-project     # 输入文档放 ./my-project/input/，产出实体图+社区摘要
+
+import asyncio
+from pathlib import Path
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_agentchat.ui import Console
+from autogen_ext.tools.graphrag import GlobalSearchTool, LocalSearchTool   # pip install &quot;autogen-ext[graphrag]&quot;
+from autogen_agentchat.agents import AssistantAgent
+
+async def main():
+    openai_client = OpenAIChatCompletionClient(model=&quot;gpt-4o-mini&quot;, api_key=&quot;...&quot;)
+
+    # 关键步骤 1：GraphRAG 两种搜索各自封装为 tool——从 settings.yaml 初始化
+    global_tool = GlobalSearchTool.from_settings(
+        root_dir=Path(&quot;./my-project&quot;),
+        config_filepath=Path(&quot;./my-project/settings.yaml&quot;),
+    )
+    local_tool = LocalSearchTool.from_settings(
+        root_dir=Path(&quot;./my-project&quot;),
+        config_filepath=Path(&quot;./my-project/settings.yaml&quot;),
+    )
+
+    # 关键步骤 2：agent 的 system_message 钉死两类问题的分流标准（GraphRAG 官方推荐口径）
+    #   具体实体/关系 → local_search；跨文档全局主题 → global_search
+    assistant_agent = AssistantAgent(
+        name=&quot;search_assistant&quot;,
+        tools=[global_tool, local_tool],
+        model_client=openai_client,
+        system_message=(
+            &quot;You are a tool selector AI assistant using the GraphRAG framework. &quot;
+            &quot;For broader, abstract questions requiring a comprehensive understanding &quot;
+            &quot;of the dataset, call the 'global_search' function. &quot;
+            &quot;For specific, detailed information about particular entities or &quot;
+            &quot;relationships, call the 'local_search' function.&quot;
+        ),
+    )
+
+    # 关键步骤 3：agent 自主选 tool 运行——全局问题走社区摘要 map-reduce，局部问题走实体邻域扩展
+    await Console(assistant_agent.run_stream(
+        task=&quot;What is the overall sentiment of the community reports?&quot;
+    ))
+
+asyncio.run(main())
+</code></pre>
+<p>也可以不引 AutoGen，用模式二的 LangGraph 骨架把 <code>GlobalSearchTool</code> / <code>LocalSearchTool</code> 包成 <code>create_retriever_tool</code> 式的工具（工具描述照抄上面的 system_message 分流口径），即得到 LangGraph 版 Agentic-GraphRAG。<strong>何时才值得上</strong>：语料规模达百万 token 级、用户会问"主要主题/整体态势/跨文档关系"这类 QFS（query-focused summarization）问题时；索引期的 LLM 调用成本与语料更新后的重建成本必须先估——这是官方文档明确提示的 pitfalls。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">与本库技术栈的对接</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>六个模板里的 「retriever.invoke(question)」 是统一替换点——换成下面的混合检索函数，即接入本库口径（bge-m3 dense+sparse → RRF → bge-reranker-v2-m3 → Chroma）</li><li>同时，「grade_documents」 的 LLM 评分可以先用 reranker 分数做廉价预过滤（分数低于阈值的直接判 no，不再送 LLM），把门控成本降一个量级</li></ul></div>3
+<p>六个模板里的 <code>retriever.invoke(question)</code> 是统一替换点——换成下面的混合检索函数，即接入本库口径（bge-m3 dense+sparse → RRF → bge-reranker-v2-m3 → Chroma）。同时，<code>grade_documents</code> 的 LLM 评分可以先用 reranker 分数做<strong>廉价预过滤</strong>（分数低于阈值的直接判 no，不再送 LLM），把门控成本降一个量级。</p>
+<pre><code class="language-python">from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
+from FlagEmbedding import BGEM3FlagModel, FlagReranker
+
+# ---- 本库基建 ----
+bge_m3 = BGEM3FlagModel(&quot;BAAI/bge-m3&quot;, use_fp16=True)   # 同时产出 dense + sparse（lexical weights）
+reranker = FlagReranker(&quot;BAAI/bge-reranker-v2-m3&quot;, use_fp16=True)
+
+vectorstore = Chroma(
+    collection_name=&quot;kb&quot;,
+    embedding_function=HuggingFaceEmbeddings(model_name=&quot;BAAI/bge-m3&quot;),
+    persist_directory=&quot;./chroma_db&quot;,
+)
+
+# 离线阶段：为每个 chunk 预存 bge-m3 sparse 向量（token_id -&gt; 权重 的 dict），建倒排打分表
+chunk_sparse = {}   # {chunk_id: {token_id: weight}}
+
+def sparse_score(query_lexical, chunk_lexical):
+    &quot;&quot;&quot;bge-m3 lexical weights 的稀疏打分：公共 token 上权重相乘求和&quot;&quot;&quot;
+    return sum(w * query_lexical.get(t, 0.0) for t, w in chunk_lexical.items())
+
+def rrf_fuse(rankings, k=60):
+    &quot;&quot;&quot;标准 Reciprocal Rank Fusion：score = Σ 1/(k + rank)&quot;&quot;&quot;
+    scores = {}
+    for ranking in rankings:
+        for rank, cid in enumerate(ranking):
+            scores[cid] = scores.get(cid, 0.0) + 1.0 / (k + rank + 1)
+    return scores
+
+def hybrid_retrieve(question: str, top_k=20, top_n=5) -&gt; list:
+    &quot;&quot;&quot;六模式通用的替换点：CRAG/Self-RAG/Adaptive 的 retrieve 节点、
+    Agent-as-retriever 的 retriever_tool，都调这一个函数。&quot;&quot;&quot;
+    # 关键步骤 1：dense 路——Chroma 语义召回
+    dense_docs = vectorstore.similarity_search(question, k=top_k)
+    dense_ranking = [d.metadata[&quot;chunk_id&quot;] for d in dense_docs]
+    # 关键步骤 2：sparse 路——bge-m3 lexical weights 词法召回
+    q_out = bge_m3.encode([question], return_dense=True, return_sparse=True)
+    q_lexical = q_out[&quot;lexical_weights&quot;][0]
+    sparse_ranking = sorted(chunk_sparse, key=lambda c: -sparse_score(q_lexical, chunk_sparse[c]))[:top_k]
+    # 关键步骤 3：RRF 融合两路排序
+    fused = rrf_fuse([dense_ranking, sparse_ranking])
+    top_ids = sorted(fused, key=fused.get, reverse=True)[:top_k]
+    # 关键步骤 4：bge-reranker-v2-m3 精排，输出 Document 列表（带分数供门控复用）
+    docs_by_id = {d.metadata[&quot;chunk_id&quot;]: d for d in dense_docs}
+    pairs = [[question, docs_by_id[c].page_content] for c in top_ids if c in docs_by_id]
+    scores = reranker.compute_score(pairs, normalize=True) if pairs else []
+    ranked = sorted(zip([c for c in top_ids if c in docs_by_id], scores), key=lambda x: -x[1])
+    return [docs_by_id[c] for c, _ in ranked[:top_n]]
+
+# ---- 门控降本：reranker 分数预过滤 + LLM grader 只判边缘样本 ----
+# grade_documents 中先做：
+#   pre = reranker.compute_score([[question, d.page_content] for d in docs], normalize=True)
+#   明显相关（&gt;0.8）直接保留、明显无关（&lt;0.2）直接丢弃，中间带才送 retrieval_grader。
+
+# ---- 循环安全：所有带闭环的模式（二/三/四/五）必须设最大迭代 ----
+# LangGraph 用 recursion_limit 控制：graph.invoke(inputs, config={&quot;recursion_limit&quot;: 25})
+# 对应调研篇口径 max_iterations ≤ 5；超限抛 GraphRecursionError，按业务降级为&quot;直接生成 + 免责声明&quot;。
+</code></pre>
+<p>配套的评估口径沿用 <a href="RAG%E8%AF%84%E4%BC%B0%E6%80%8E%E4%B9%88%E8%B7%91.html">RAG 评估怎么跑</a>：每接一个模式跑一次 Recall@5 / MRR / faithfulness 回归，重点看门控节点（grade_documents、双门禁）的引入是否真的抬升了 faithfulness（目标 &gt; 0.85）——门控本身的准确率也该用标注集抽验，grader 判错会把好检索扔进改写循环白白烧 token。</p>
+<h2 id="怎么用">怎么用</h2>2
+<ul>
+<li><strong>本库已实装的三个模式直接开箱对照</strong>：<code>rag/query.py</code> 内 Adaptive 路由（<code>_classify_query</code> 分流三档）、CRAG 纠错环（<code>rewrite_query_crag</code>）、全路由 rerank 门禁（<code>get_reranker()</code> = bge-reranker-v2-m3）；验证某模式收益就跑消融：<br />
+<code>bash
+  python3 rag/eval/eval_recall_fast.py --mode hybrid          # 全开基线
+  python3 rag/eval/eval_recall_fast.py --mode dense --no-sparse --no-graph   # 退化到纯 dense</code><br />
+  两组 Recall@1/@5 差值就是该模式的真实贡献。</li>
+<li><strong>grade_documents 门控对照</strong>：本库用 CRAG 的 <code>crag.relevance_threshold: 0.5</code> + <code>min_relevant_docs: 2</code>（<code>rag/config.yaml</code>）当评估器及格线，改写重试上限 <code>max_rewrite_retries: 2</code> 防盲循环；抄 LangGraph 模板时保留这三件套，否则退化成条目里说的“把差检索反复刷”。</li>
+<li><strong>Self-RAG 双门禁的本库对应</strong>：rerank 拒答线 <code>rerank.threshold: 0.45</code>（切题门禁）+ dense 兜底 <code>gate.dense_threshold: 0.50</code>，生成后 faithfulness 抽验走 <code>rag/eval_ragas.py</code>（faithfulness / answer_relevancy / context_precision / context_recall 四指标，ragas 0.4.3；路径核对 2026-11-05：真路径为 <code>rag/eval_ragas.py</code>，非 <code>rag/eval/</code> 子目录）。</li>
+<li><strong>接一个新模式的回归流程</strong>（条目尾部评估口径的可执行版）：<br />
+<code>bash
+  python3 rag/eval/eval_recall.py          # 检索层 Recall@1/@5/@10, golden: rag/eval/golden-q.jsonl
+  python3 rag/eval/run_baseline.py         # 6 指标统一 runner（Recall/P@1/Rel/Faith/AnsRel）</code><br />
+  门控节点改动后额外抽验 grader 判准率（badcase 记 <code>rag/eval/badcase.jsonl</code>，<code>_e2e_eval.py</code> 会自动 append 失败题）。</li>
+<li>据[一手源]：Agentic-RAG检索循环-外部调研-20261012（落地硬约束）：<code>max_iterations ≤ 5</code>（本库对应 <code>crag.max_rewrite_retries: 2</code> 更保守）、faithfulness judge 必配、trace 必接（LangSmith/OpenTelemetry），渐进迁移序为 "Naive RAG + query 改写 → 加 retriever tool → 加 critique judge → 加 subagent decomposition"；评测要同时看"决策是否正确"（不该检索时检索了吗 / 该检索时没检索吗）与答案质量（据[一手源]：Agentic-RAG-调研-20261012），否则分不清决策错误还是生成错误。</li>
+<li><strong>Adaptive/Router 的路由成本控制</strong>：<code>adaptive.enabled: true</code> 时每次多 1 次 LLM 分类调用；批量评测走 <code>_e2e_eval.py --routes simple_fact</code> 复用 <code>e2e_final.json</code> 缓存的 route，避免 429 限流。</li>
+<li><strong>Agentic-GraphRAG（全局摘要类）谨慎开</strong>：本库图谱层走 <code>rag/build_wiki_graph.py</code>（人工审校三元组，零 LLM 抽取成本），先用 <code>python3 rag/eval/eval_recall_fast.py --no-graph</code> 对比含图谱的 R@1/R@5，简单事实变差（本库曾实测 R@1 45.1%→19.6%）就别开。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">来源</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>LangGraph 官方 Agentic RAG 教程（create_retriever_tool / ToolNode / tools_condition / grade_documents 闭环）： （教程清单见官方仓库 ；正文抓取自同步镜像 ）</li><li>LangGraph 官方 CRAG 教程： （正文抓取自同步镜像 ）</li><li>LangGraph 官方 Self-RAG 教程： （正文抓取自同步镜像 ）</li></ul></div>2
+<ul>
+<li>LangGraph 官方 Agentic RAG 教程（create_retriever_tool / ToolNode / tools_condition / grade_documents 闭环）：<a href="https://langchain-ai.github.io/langgraph/tutorials/rag/langgraph_agentic_rag/">https://langchain-ai.github.io/langgraph/tutorials/rag/langgraph_agentic_rag/</a>（教程清单见官方仓库 <a href="https://github.com/langchain-ai/langgraph/blob/main/docs/docs/tutorials/index.md">https://github.com/langchain-ai/langgraph/blob/main/docs/docs/tutorials/index.md</a>；正文抓取自同步镜像 <a href="http://langgraph.com.cn/tutorials/rag/langgraph_agentic_rag/index.html">http://langgraph.com.cn/tutorials/rag/langgraph_agentic_rag/index.html</a>）</li>
+<li>LangGraph 官方 CRAG 教程：<a href="https://langchain-ai.github.io/langgraph/tutorials/rag/langgraph_crag/">https://langchain-ai.github.io/langgraph/tutorials/rag/langgraph_crag/</a>（正文抓取自同步镜像 <a href="https://langgraph.org.cn/tutorials/rag/langgraph_crag">https://langgraph.org.cn/tutorials/rag/langgraph_crag</a>）</li>
+<li>LangGraph 官方 Self-RAG 教程：<a href="https://langchain-ai.github.io/langgraph/tutorials/rag/langgraph_self_rag/">https://langchain-ai.github.io/langgraph/tutorials/rag/langgraph_self_rag/</a>（正文抓取自同步镜像 <a href="https://github.langchain.ac.cn/langgraph/tutorials/rag/langgraph_self_rag">https://github.langchain.ac.cn/langgraph/tutorials/rag/langgraph_self_rag</a>）</li>
+<li>LangGraph 官方 Adaptive RAG 教程：<a href="https://langchain-ai.github.io/langgraph/tutorials/rag/langgraph_adaptive_rag/">https://langchain-ai.github.io/langgraph/tutorials/rag/langgraph_adaptive_rag/</a>（正文抓取自同步镜像 <a href="https://langgraph.com.cn/tutorials/rag/langgraph_adaptive_rag/index.html">https://langgraph.com.cn/tutorials/rag/langgraph_adaptive_rag/index.html</a>）</li>
+<li>Anthropic《Building Effective Agents》（routing 模式触发条件、workflows vs agents、ACI 原则）：<a href="https://www.anthropic.com/research/building-effective-agents">https://www.anthropic.com/research/building-effective-agents</a></li>
+<li>Anthropic Contextual Retrieval（chunk 上下文化 + Contextual BM25 + rerank 组合的失败率数据）：<a href="https://www.anthropic.com/news/contextual-retrieval">https://www.anthropic.com/news/contextual-retrieval</a></li>
+<li>AutoGen 官方文档 autogen_ext.tools.graphrag（LocalSearchTool / GlobalSearchTool 包成 agent tool）：<a href="https://microsoft.github.io/autogen/stable/reference/python/autogen_ext.tools.graphrag.html">https://microsoft.github.io/autogen/stable/reference/python/autogen_ext.tools.graphrag.html</a>；GraphRAG 官方文档：<a href="https://microsoft.github.io/graphrag/">https://microsoft.github.io/graphrag/</a></li>
+<li>arXiv:2310.11511 — Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection（reflection tokens 四类定义）</li>
+<li>arXiv:2401.15884 — Corrective Retrieval Augmented Generation（检索评估器三档动作 + decompose-then-recompose）</li>
+<li>arXiv:2403.14403 — Adaptive-RAG: Learning to Adapt Retrieval-Augmented Large Language Models through Question Complexity（复杂度分类器 + 三档策略；官方复现 github.com/starsuzi/Adaptive-RAG）</li>
+<li>arXiv:2501.09136 — Agentic Retrieval-Augmented Generation: A Survey on Agentic RAG（四大 agentic pattern：reflection / planning / tool use / multi-agent collaboration）</li>
+<li>arXiv:2404.16130 — From Local to Global: A Graph RAG Approach to Query-Focused Summarization（实体图 + 社区摘要 + local/global 双搜索）</li>
+</ul>
+<h2 id="相关术语">相关术语</h2>2
+<ul>
+<li>Agentic RAG：ontology/术语表-RAG架构.md</li>
+<li>GraphRAG：ontology/术语表-RAG架构.md</li>
+<li>Hybrid Retrieval / RRF / Reranker / Quality Gating：ontology/术语表-RAG架构.md</li>
+<li>LangGraph：ontology/术语表-Agent框架.md</li>
+</ul>
+<blockquote>
+<p>三段结构补齐 2026-11-03</p>
+</blockquote>
+</div></details><h2 id="本库真实落地">本库真实落地</h2>2
+<blockquote>
+<p>本节 2026-11-05 补写，逐条核验路径与函数名（可 grep 复核），不复述正文模板。</p>
+</blockquote>
+<ul>
+<li><strong>六模式里本库真落地的是「Agentic 检索循环」与「CRAG 纠错环」两块</strong>：<code>rag/agentic_query.py</code> 的 <code>build_agentic_graph()</code>（L243）是 decide/retrieve/grade/rewrite/generate/refuse 六节点 LangGraph，<code>grade_docs()</code>（L147）逐片段判相关、<code>rewrite_node</code>（L214）带 <code>DEFAULT_MAX_REWRITES = 3</code> 上限——对应模板里的 Self-RAG/CRAG 模式；<code>rag/query.py</code> 的 <code>rewrite_query_crag()</code>（L1027）是生产主链路里的 CRAG 改写，带 <code>rewrite_daily_limit</code> 日配额。</li>
+<li><strong>反射（Reflection）与多智能体协作模式本库没有独立实现</strong>：<code>rag/query.py</code> 的 <code>grade_documents</code>/<code>gate_node</code> 只做"相关性判定→重写/拒答"，不回看自己的答案做二轮修订；多智能体协作在本库是六员 Agent 协作（<code>/home/wuyafang/.hermes/scripts/dispatch-guard.py</code> <code>route_task()</code> L251、<code>judge_specialty()</code> L273），不是 RAG 内的 multi-agent。</li>
+<li><strong>GraphRAG 模式对应 <code>rag/build_wiki_graph.py</code> + <code>rag/query.py::_build_graph_context()</code>（L1131）</strong>：建图由 <code>load_triples()</code>（L130）读人工审校三元组、<code>resolve_aliases()</code>（L606）对齐实体名，检索侧 <code>_multi_hop_retrieve()</code>（L1640）图谱+混合检索融合——是模板"GraphRAG 模式"的最小落地。</li>
+<li><strong>和课件讲法的差异</strong>：课件的六模式多以 LlamaIndex WorkFlow / LangGraph 官方教程示例呈现；本库选 LangGraph 自建图（<code>rag/agentic_query.py</code>），未引入 LlamaIndex 的 agentic 模块，且把"最大重写次数"作为显式状态字段而非隐式递归。</li>
+</ul></div></body></html>

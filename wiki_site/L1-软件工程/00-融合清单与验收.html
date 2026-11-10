@@ -1,0 +1,328 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>00-融合清单与验收</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 00-融合清单与验收</span></div><div class="wrap"><h1 id="l1-三源融合主题收敛替换与验收记录">L1 三源融合：主题收敛、替换与验收记录</h1>
+<p>本文件为维护清单，不是第六篇主题正文。9 篇旧文按主题收敛为 5 篇唯一正文：3 篇原路径融合改写，2 篇新增正文，6 篇旧散篇删除。节点归属为总地图 N4 执行、N5 验收及知识层 L1。</p>
+<p>三源为本地课件、书籍目录与公开划线/高亮摘录、公开论文与官方文档等业内材料。书籍材料不是全文；论文写清可迁移的方法边界，官方字段与命令以所引文档为准。只写本目录 Markdown 与 <code>.fusion-work</code>，未修改 raw、ontology、其他层、RAG 索引或 HTML 产物。</p>
+<h2 id="主题收敛与字数">主题收敛与字数</h2>2
+<p>汉字数：去掉 frontmatter 和 fenced code 后，统计 Unicode U+4E00—U+9FFF；非空白字符：全文含元数据、代码、标点。下表字数于 2026-11-04 对最终五篇正文实测。</p>
+<table>
+<thead>
+<tr>
+<th>主题</th>
+<th>唯一正文</th>
+<th style="text-align: right;">合并旧篇数</th>
+<th style="text-align: right;">正文汉字数</th>
+<th style="text-align: right;">全文非空白字符</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AI 工程与生产化</td>
+<td><a href="L1-AI%E5%B7%A5%E7%A8%8B%E4%B8%8E%E7%94%9F%E4%BA%A7%E5%8C%96.html">L1-AI工程与生产化.md</a></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">3917</td>
+<td style="text-align: right;">8514</td>
+</tr>
+<tr>
+<td>Web 全栈开发</td>
+<td><a href="L1-Web%E5%85%A8%E6%A0%88%E5%BC%80%E5%8F%91%E5%AE%9E%E6%88%98.html">L1-Web全栈开发实战.md</a></td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2567</td>
+<td style="text-align: right;">9176</td>
+</tr>
+<tr>
+<td>数据库与 SQL</td>
+<td><a href="%E6%95%B0%E6%8D%AE%E5%BA%93%E8%AE%BE%E8%AE%A1%E4%B8%8ESQL%E5%AE%9E%E6%88%98.html">数据库设计与SQL实战.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2869</td>
+<td style="text-align: right;">8012</td>
+</tr>
+<tr>
+<td>Docker 容器与镜像</td>
+<td><a href="L1-Docker%E5%AE%B9%E5%99%A8%E5%9F%BA%E7%A1%80%E4%B8%8E%E9%95%9C%E5%83%8F%E5%AE%9E%E6%88%98.html">L1-Docker容器基础与镜像实战.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">8818</td>
+<td style="text-align: right;">27350</td>
+</tr>
+<tr>
+<td>Dockerfile 与 Compose</td>
+<td><a href="L1-Dockerfile%E4%B8%8ECompose%E7%BC%96%E6%8E%92%E5%AE%9E%E6%88%98.html">L1-Dockerfile与Compose编排实战.md</a></td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">6995</td>
+<td style="text-align: right;">30497</td>
+</tr>
+</tbody>
+</table>
+<p>“合并”指主题级融合，不表示逐节、逐示例或逐事实无损搬运。特别是 Web 新篇未带入旧课件的文件上传代码，并在正文明确列出上传大小与路径安全仍未覆盖。</p>
+<h2 id="9-篇逐项去向与原始-sha-256">9 篇逐项去向与原始 SHA-256</h2>2
+<p>原始哈希一律从 <code>.fusion-work/original/</code> 中对应快照计算；原路径改写篇不使用当前正文哈希冒充原稿哈希。</p>
+<table>
+<thead>
+<tr>
+<th>原文件</th>
+<th>处理</th>
+<th>唯一去向</th>
+<th>原始 SHA-256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>30个案例里最有价值的5个模式.md</td>
+<td>删除旧散篇</td>
+<td><a href="L1-AI%E5%B7%A5%E7%A8%8B%E4%B8%8E%E7%94%9F%E4%BA%A7%E5%8C%96.html">L1-AI工程与生产化.md</a></td>
+<td><code>5fd583a6acd067be461ab9ce6cc9027a0cc4290a34f2e33f235b9d3c8ac68a13</code></td>
+</tr>
+<tr>
+<td>AI工程和传统软件工程的区别.md</td>
+<td>删除旧散篇</td>
+<td><a href="L1-AI%E5%B7%A5%E7%A8%8B%E4%B8%8E%E7%94%9F%E4%BA%A7%E5%8C%96.html">L1-AI工程与生产化.md</a></td>
+<td><code>87fc353c09ed4aad2b01ebb65aa455174c1d70fb449a73ddd6e1694a043f2b2f</code></td>
+</tr>
+<tr>
+<td>L1-软件工程-最佳答案.md</td>
+<td>删除旧散篇</td>
+<td><a href="L1-AI%E5%B7%A5%E7%A8%8B%E4%B8%8E%E7%94%9F%E4%BA%A7%E5%8C%96.html">L1-AI工程与生产化.md</a></td>
+<td><code>19e66e20f06009df537c4cd493d71a558e29e8659ca002c2c54820cd6af36899</code></td>
+</tr>
+<tr>
+<td>LLM生产化实战-2026.md</td>
+<td>删除旧散篇</td>
+<td><a href="L1-AI%E5%B7%A5%E7%A8%8B%E4%B8%8E%E7%94%9F%E4%BA%A7%E5%8C%96.html">L1-AI工程与生产化.md</a></td>
+<td><code>b86cddbd4b3d3150ea6b9edb36e95f3820c74ed48001d948e605c3c0247c4754</code></td>
+</tr>
+<tr>
+<td>L1-软件工程-课件实操.md</td>
+<td>删除旧散篇</td>
+<td><a href="L1-Web%E5%85%A8%E6%A0%88%E5%BC%80%E5%8F%91%E5%AE%9E%E6%88%98.html">L1-Web全栈开发实战.md</a></td>
+<td><code>2278c1e33be6959e94e2a098307a3659d702e5b07edf1fc0448d6f0005810706</code></td>
+</tr>
+<tr>
+<td>Web开发实战-前后端分离.md</td>
+<td>删除旧散篇</td>
+<td><a href="L1-Web%E5%85%A8%E6%A0%88%E5%BC%80%E5%8F%91%E5%AE%9E%E6%88%98.html">L1-Web全栈开发实战.md</a></td>
+<td><code>c7039350efd89adf5a53321f768e3f5f15beffa1a651f7d69019636baf28baf4</code></td>
+</tr>
+<tr>
+<td>数据库设计与SQL实战.md</td>
+<td>原路径融合改写</td>
+<td><a href="%E6%95%B0%E6%8D%AE%E5%BA%93%E8%AE%BE%E8%AE%A1%E4%B8%8ESQL%E5%AE%9E%E6%88%98.html">数据库设计与SQL实战.md</a></td>
+<td><code>d8166ccdeb52214df977d9edfc11e30cc59e315e22b090734de0e4f40ae0a698</code></td>
+</tr>
+<tr>
+<td>L1-Docker容器基础与镜像实战.md</td>
+<td>原路径融合改写</td>
+<td><a href="L1-Docker%E5%AE%B9%E5%99%A8%E5%9F%BA%E7%A1%80%E4%B8%8E%E9%95%9C%E5%83%8F%E5%AE%9E%E6%88%98.html">L1-Docker容器基础与镜像实战.md</a></td>
+<td><code>2cff2dfa82809ffc0903ca9f6304239a10c38e207365233d9f987283de5bbb4d</code></td>
+</tr>
+<tr>
+<td>L1-Dockerfile与Compose编排实战.md</td>
+<td>原路径融合改写</td>
+<td><a href="L1-Dockerfile%E4%B8%8ECompose%E7%BC%96%E6%8E%92%E5%AE%9E%E6%88%98.html">L1-Dockerfile与Compose编排实战.md</a></td>
+<td><code>1af82092fd4b12307c776acf2d5a225863a898dd785f8b206f93eef2df4dc03d</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="清理前-11-篇逐篇结构核对">清理前 11 篇逐篇结构核对</h2>2
+<p>只统计 fenced code 外的 Markdown 标题。“三段齐”要求独立的 WHY、WHAT/WHYT、HOW 二级标题；仅有“核心结论”“详细内容”或代码注释不算。指定来源段必须是文末独立的“来源与三源融合落点”，并核查课件、书籍、业内落点及 arXiv ID；普通“参考来源”不自动等价于达标。</p>
+<table>
+<thead>
+<tr>
+<th>清理前文件</th>
+<th>WHY</th>
+<th>WHAT / WHYT</th>
+<th>HOW</th>
+<th>指定来源段、三源与 arXiv 核对</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>30个案例里最有价值的5个模式.md</td>
+<td>缺</td>
+<td>缺</td>
+<td>缺</td>
+<td>无指定段；未见三源落点与 arXiv ID</td>
+</tr>
+<tr>
+<td>AI工程和传统软件工程的区别.md</td>
+<td>缺</td>
+<td>缺</td>
+<td>缺</td>
+<td>无指定段；未见三源落点与 arXiv ID</td>
+</tr>
+<tr>
+<td>L1-AI工程与生产化.md</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td>达标；[课]/[书]/[业]齐全，含 arXiv:2610.22039、2610.20538、2610.31657</td>
+</tr>
+<tr>
+<td>L1-Web全栈开发实战.md</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td>达标；[课]/[书]/[业]齐全，含 arXiv:2611.03634</td>
+</tr>
+<tr>
+<td>数据库设计与SQL实战.md</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td>达标；[课]/[书]/[业]齐全，含 arXiv:2610.31467</td>
+</tr>
+<tr>
+<td>L1-Docker容器基础与镜像实战.md</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td><strong>未达标</strong>：有课件、书籍、论文及官方文档落点和 arXiv:2610.20578，但文末仅为“参考来源”，无指定统一三源段</td>
+</tr>
+<tr>
+<td>L1-Dockerfile与Compose编排实战.md</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td><strong>未达标</strong>：有书籍、论文及官方文档落点和 arXiv:2611.03575，但无指定统一三源段，且未见课件融合落点</td>
+</tr>
+<tr>
+<td>L1-软件工程-最佳答案.md</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td>无指定段；未见三源落点与 arXiv ID</td>
+</tr>
+<tr>
+<td>L1-软件工程-课件实操.md</td>
+<td>缺</td>
+<td>缺</td>
+<td>缺</td>
+<td>无指定段；有课件实操内容，但无三源融合落点与 arXiv ID</td>
+</tr>
+<tr>
+<td>LLM生产化实战-2026.md</td>
+<td>缺</td>
+<td>缺</td>
+<td>缺</td>
+<td>无指定段；虽有“来源清单/推荐书籍”，但不满足指定三源段，未见 arXiv ID</td>
+</tr>
+<tr>
+<td>Web开发实战-前后端分离.md</td>
+<td>有</td>
+<td>有</td>
+<td>有</td>
+<td>无指定段；未见三源落点与 arXiv ID</td>
+</tr>
+</tbody>
+</table>
+<h2 id="三源边界与内容缺口">三源边界与内容缺口</h2>2
+<ul>
+<li>课件提供 FastAPI、Vue、Python 工程实践及部署片段；采用时仍需区分历史命令、教学写法和当前官方语义。</li>
+<li>书籍侧实际使用目录、公开热门划线或高亮笔记，不声称读过全书，不把摘录扩张为作者完整论证。</li>
+<li>业内侧包括 arXiv 论文本地摘要和 Docker、FastAPI、Pydantic、Vue、PostgreSQL、OpenTelemetry 等官方材料。论文落点是方法迁移，不表示复现实验或把论文数值当成本库实测。</li>
+<li>AI 工程篇的离线示例、真实模型、SSE、OTel 后端，Web 篇的安装启动与浏览器流程，数据库篇的 PostgreSQL/ORM/迁移，以及两篇 Docker 的引擎与容器 demo，均按各正文声明保留“未实跑”边界；本收尾没有补跑这些正文实验。</li>
+<li>Web 旧课件中的 <code>UploadFile</code>、扩展名白名单和落盘示例未进入新篇；新篇也明确把上传文件大小和路径安全列为未覆盖。删除旧篇是文件主题收敛，不应解读为该专题已经完整融合。</li>
+<li>两篇 Docker 的内容缺口按任务要求保留，不由本收尾补写或改题。</li>
+</ul>
+<h2 id="验收记录">验收记录</h2>2
+<h3 id="结构与论文引用">结构与论文引用</h3>3
+<ul>
+<li>清理前 11 篇已逐篇核对，结果见上表；fenced code 内 <code>#</code> 注释未计为章节。</li>
+<li>最终保留 5 篇正文：<strong>5/5 三段齐，5/5 含 arXiv ID；仅 3/5 具有指定统一三源来源段并全项通过</strong>。</li>
+<li>AI 工程、Web 全栈、数据库三篇的指定来源段均含 <code>[课]</code>、<code>[书]</code>、<code>[业]</code> 条目及 arXiv ID。</li>
+<li>文件收尾不等于内容验收全绿，不得把 5/5 三段齐写成 5/5 三源段达标。</li>
+</ul>
+<h3 id="最终未达标篇目清单">最终未达标篇目清单</h3>3
+<ol>
+<li><code>L1-Docker容器基础与镜像实战.md</code>：三段齐，课件、书籍、业内论文/官方文档落点及 arXiv:2610.20578 均存在；缺独立“来源与三源融合落点”段，文末仅“参考来源”。</li>
+<li><code>L1-Dockerfile与Compose编排实战.md</code>：三段齐，书籍、业内论文/官方文档落点及 arXiv:2611.03575 存在；缺独立“来源与三源融合落点”段，且未见课件融合落点。</li>
+</ol>
+<p>以上两篇保持原文，未由本收尾补写。清理前六篇旧散篇也不满足全项要求，已在上表逐篇记录，不能因后续删除而从历史核对结果中抹除。</p>
+<h3 id="独立复审与正文防改">独立复审与正文防改</h3>3
+<ul>
+<li>独立只读复审确认 9→5 映射和 9 份快照齐全，并纠正 Docker 基础书籍落点、指出 Web 上传示例缺口及目录外引用残留。复审未修改文件。</li>
+<li>五篇正文在收尾前记录 SHA-256，最终复跑必须与下列基线一致：</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>唯一正文</th>
+<th>收尾前后不得变化的 SHA-256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L1-AI工程与生产化.md</td>
+<td><code>9c7db831b8369c6dae2acf7904a6a6c28980bb406c550f684590dde4e4eca4b8</code></td>
+</tr>
+<tr>
+<td>L1-Web全栈开发实战.md</td>
+<td><code>7449c736ce8caf26ab476f7b6619b60ddda3b5163cab114472b8ba96d4701343</code></td>
+</tr>
+<tr>
+<td>数据库设计与SQL实战.md</td>
+<td><code>a7d10b5d95b623a20fb88fbf722e3e39af7adac8422d226342b431a25ded04d7</code></td>
+</tr>
+<tr>
+<td>L1-Docker容器基础与镜像实战.md</td>
+<td><code>e46e4773ed7c5e235e05511ab599ad23034517f4ed87e43cd453c1b808f8ccf0</code></td>
+</tr>
+<tr>
+<td>L1-Dockerfile与Compose编排实战.md</td>
+<td><code>b486d0ead4287ea632f3d71c15fe3c415f9837fb1d413b5c7767d748362f0ac0</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="删除确认">删除确认</h3>3
+<ul>
+<li>删除前检查输出为 <code>PRE-DELETE PASS</code>：9 份快照 SHA-256 全部匹配上表，6 篇散篇与各自快照一致，2 篇新增唯一正文存在。</li>
+<li>已删除 6 篇旧散篇：<code>30个案例里最有价值的5个模式.md</code>、<code>AI工程和传统软件工程的区别.md</code>、<code>L1-软件工程-最佳答案.md</code>、<code>LLM生产化实战-2026.md</code>、<code>L1-软件工程-课件实操.md</code>、<code>Web开发实战-前后端分离.md</code>。</li>
+<li><code>.fusion-work</code> 整个目录已删除，包括其中 9 份临时副本；原始 SHA-256 已留在去向表，不再保留可恢复副本。</li>
+<li>最终目录为 5 篇唯一正文加本维护清单，共 6 个 Markdown；未创建 <code>.bak</code> 或第二份主题正文。</li>
+</ul>
+<h3 id="目录外引用影响">目录外引用影响</h3>3
+<p>只读扫描发现 8 个目录外 Markdown 含六篇待删文件的文件名引用：<code>wiki/00-知识库总入口.md</code>、<code>wiki/AI应用工程师能力知识图谱-终版-20261014.md</code>、<code>wiki/L8-5-评估体系/00-融合清单与验收.md</code>、<code>wiki/L9-全栈工程/前后端LLM集成与流式服务.md</code>，以及 3 个 <code>.bak-linksources-20261030</code> 页面和 1 个 L9 <code>.fusion-work/original</code> 页面。此项是文件名引用检出，不等于全部为可点击链接；遵守本单边界不修改，也不声称全库无断链。</p>
+<h3 id="完成凭据状态">完成凭据状态</h3>3
+<p><code>receipt.py declare</code> 的 G0 开工门禁已通过（nonce <code>5abbb3b5db9c</code>），但声明被现役全局 open 坑 <code>gate:steps-json-evidence-mtime-stale</code> 拦截：已审 check 集的 <code>reviewed_at</code> 与审查证据时间不匹配。按台账要求未 <code>touch</code> 旧证据、未改门禁、未降级自豁免。因此本清单不声称 receipt declare/verify 全绿。</p></div></body></html>

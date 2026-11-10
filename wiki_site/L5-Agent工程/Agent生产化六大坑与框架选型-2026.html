@@ -1,0 +1,172 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent生产化六大坑与框架选型-2026</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/Agent生产化六大坑与框架选型-2026</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="agent-2026">Agent 生产化六大坑与框架选型（2026）</h1>
+<h2 id="why">WHY</h2>
+<p>2026 年多 Agent 框架已经从"demo 能跑"进入"生产可审计"阶段。LangChain 官方报告指出 <strong>&gt;60% 生产 agent 事故源于状态管理</strong>。本页从 LangGraph / CrewAI / AutoGen 三大框架的一手文档 + 生产案例中，提炼出选型决策树 + 生产红线 + 真实成本基线。</p>
+<h2 id="what">WHAT</h2>
+<h3 id="2026">一、2026 年框架格局</h3>
+<table>
+<thead>
+<tr>
+<th>框架</th>
+<th>定位</th>
+<th>生产用户</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>LangGraph</strong></td>
+<td>状态机式编排，支持循环、断点、回放</td>
+<td>Anthropic、Replit、LinkedIn、Uber</td>
+</tr>
+<tr>
+<td><strong>CrewAI</strong></td>
+<td>角色/任务式编排，门槛最低、社区增速最快</td>
+<td>GitHub stars 2026.02 的 44k → 2026.08 的 57k</td>
+</tr>
+<tr>
+<td><strong>AutoGen → Microsoft Agent Framework (MAF)</strong></td>
+<td>2025.10 宣布与 Semantic Kernel 合并，1.0 GA 2026-04-02</td>
+<td>微软生态</td>
+</tr>
+</tbody>
+</table>
+<h3 id="agent-getting-started">二、生产级 Agent 六大坑（getting-started 文档不会告诉你）</h3>
+<h4 id="1">坑 1：工具选择不可靠</h4>
+<ul>
+<li>症状：工具调用随机失败、超时、返回脏数据。</li>
+<li>解法：工具调用必须有 <strong>retry / timeout / fallback 节点</strong>，try/except 路由到 fallback，而非让 graph 崩溃。</li>
+</ul>
+<h4 id="2">坑 2：记忆爆炸 / 状态丢失</h4>
+<ul>
+<li>症状：长任务跑着跑着忘了前面说过什么，或 agent 崩溃后状态全丢。</li>
+<li>解法：<strong>必须配 checkpointer</strong>（Postgres / SQLite / LangGraph Platform 托管 PG），agent 崩溃、resume、rewind 都基于 checkpoint。这是头号事故源。</li>
+</ul>
+<h4 id="3">坑 3：上下文窗口溢出</h4>
+<ul>
+<li>症状：多轮对话后 context 爆了，模型开始"失忆"或行为漂移。</li>
+<li>解法：结构化输出强制 schema（Pydantic 模型），把不需要的上下文从对话历史里裁掉，只留摘要 + 关键状态。</li>
+</ul>
+<h4 id="4">坑 4：幻觉与输出不可信</h4>
+<ul>
+<li>症状：agent 编一个不存在的工具返回值，下游 pipeline 直接炸。</li>
+<li>解法：<strong>不打 schema 就把 agent 输出给下游</strong> = 生产事故。必须强制结构化输出 + 校验。</li>
+</ul>
+<h4 id="5eval">坑 5：eval 缺失</h4>
+<ul>
+<li>症状：改了 prompt 不知道变好还是变坏，靠人肉试。</li>
+<li>解法：必须配 observability（LangSmith 或 OpenTelemetry）+ 离线 golden set + 在线 rollout + LLM-as-judge 三步 eval。</li>
+</ul>
+<h4 id="6">坑 6：成本失控</h4>
+<ul>
+<li>症状：跑一天烧几十刀，不知道钱花在哪。</li>
+<li>解法：每个任务路径埋 cost 日志，按 run 统计 token 消耗；参考真实成本基线（见下）。</li>
+</ul>
+<h3 id="_1">三、选型决策树</h3>
+<pre><code>已经在 Azure / .NET 生态？
+  → 是：MAF（Microsoft Agent Framework）
+角色分工清晰、低门槛 PoC？
+  → 是：CrewAI（Flows + 结构化输出）
+复杂状态 / 需要 HITL 断点 / 可回放？
+  → 是：LangGraph（默认推荐）
+</code></pre>
+<h3 id="crewai">四、真实项目成本基线（CrewAI 官方案例）</h3>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>架构</th>
+<th>单次成本</th>
+<th>耗时</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>自动化销售前调研</td>
+<td>Website Scraper → News Aggregator → Tech Stack Detector → Report Generator</td>
+<td>~$0.08/run</td>
+<td>5min</td>
+</tr>
+<tr>
+<td>PR 自动 code review</td>
+<td>Security Reviewer → Performance Reviewer → Report Writer</td>
+<td>~$0.15/run</td>
+<td>2min</td>
+</tr>
+<tr>
+<td>客服分诊</td>
+<td>Classifier → Doc Searcher → Responder → Escalation</td>
+<td>~$0.03/ticket</td>
+<td>处理 80-90% tier-1</td>
+</tr>
+</tbody>
+</table>
+<h2 id="how">HOW（生产红线清单）</h2>
+<h3 id="_2">必须做的</h3>
+<ul>
+<li>✅ 配 checkpointer（否则 state 丢失是头号事故）</li>
+<li>✅ 工具调用有 retry / timeout / fallback</li>
+<li>✅ 接 observability（LangSmith 或 OpenTelemetry）</li>
+<li>✅ 强制结构化输出（Pydantic schema）</li>
+</ul>
+<h3 id="_3">绝对不能做的</h3>
+<ul>
+<li>❌ 用裸 ReAct loop（无 state 持久化）</li>
+<li>❌ 让 agent 无限制循环（必须设 max_iterations）</li>
+<li>❌ 不打 schema 就把 agent 输出给下游</li>
+</ul>
+<h3 id="langgraph">LangGraph 核心生产要素</h3>
+<ol>
+<li><strong>状态机模型</strong>：每个节点是函数，边是控制流；<code>State</code> 是带 reducer 的 typed dict；支持环（cycles）—— agent 可以"重试、反思、再调用"，这是它与 DAG 框架的根本差异。</li>
+<li><strong>可观测调试</strong>：LangGraph Studio（2026 GA），可视化渲染 graph、逐步调试节点、任意 checkpoint 回放——被比作"agent 界的 Chrome DevTools"。</li>
+<li><strong>生产部署</strong>：通过 LangGraph Platform（自托管/云托管）暴露 REST API。</li>
+</ol>
+<h2 id="_4">来源</h2>
+<ul>
+<li>raw/sources/生产级Agent开发实战-外部调研-20261012.md</li>
+<li>LangChain 官方 2026 State of Agent Engineering 报告</li>
+<li>真实案例：CrewAI 官方生产博客 / dev.to 多 agent 生产系统文章</li>
+</ul></div></body></html>

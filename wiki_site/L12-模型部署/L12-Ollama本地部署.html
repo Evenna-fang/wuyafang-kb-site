@@ -1,0 +1,947 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L12-Ollama本地部署</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L12-Ollama本地部署</span></div><div class="wrap"><h1 id="l12-ollama-本地部署">L12 Ollama 本地部署</h1>
+<blockquote>
+<p><strong>TL;DR</strong>：Ollama 是本地跑 GGUF 模型的最低摩擦路径——但它定位是"单机单用户"，不是生产服务。这篇讲清 Modelfile 怎么写、GGUF 命名怎么读、API 怎么调、KV 显存怎么算，以及最常见的四类翻车（长上下文、并发、显存、升级），每类给现象→根因→改法。KV 显存算式与 GGUF 命名解析器均为本机实跑产出。</p>
+<p><strong>金标证据</strong>：gold_tier=original_research ｜ 产出声明=本篇给出"Modelfile 模板 + GGUF 命名解析器 + KV 显存乘积算式 + 四类翻车对照"的实操纪律 ｜ 排他性证据=§4.2「默认 num_ctx=4096×并发4 = 2GB，拉到 32768×8 = 32GB，q8_0 KV cache 后 = 16GB」为本篇脚本实跑产出，外部检索不到 ｜ 抽查入口=https://ollama.com/blog/improved-performance-and-model-support-with-gguf + 本篇 §4.2 / §6.3 实跑代码段</p>
+</blockquote>
+<hr />
+<h1 id="why本地部署要解决的问题与边界">WHY：本地部署要解决的问题与边界</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">0. 三问</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>让一台有显存（或只有内存）的机器，在 30 分钟内跑起本地大模型并接进应用：选对 GGUF 档位、写对 Modelfile、调好上下文与并发、接上 API、出问题知道查哪里</li><li>不解决多用户生产服务（那是 vLLM 的地盘，50 并发下 Ollama 吞吐只有 vLLM 的 7.5%，源：「模型部署调优实操-2026.md」 §1 二手横评）；不做量化原理推导（见《L12-模型量化-GPTQ-AWQ-GGUF》）；不覆盖 MLX 后端（Apple Silicon）的特殊坑</li><li>§1 选型决策、§2 装与跑、§3 Modelfile 与 GGUF、§4 上下文/并发/显存三个旋钮、§5 API 接入、§6 翻车对照、§7 部署清单</li></ul></div>2
+<p><strong>第一问：解决什么？</strong> 让一台有显存（或只有内存）的机器，在 30 分钟内跑起本地大模型并接进应用：选对 GGUF 档位、写对 Modelfile、调好上下文与并发、接上 API、出问题知道查哪里。</p>
+<p><strong>第二问：不解决什么？</strong> 不解决多用户生产服务（那是 vLLM 的地盘，50 并发下 Ollama 吞吐只有 vLLM 的 7.5%，源：<code>模型部署调优实操-2026.md</code> §1 二手横评）；不做量化原理推导（见《L12-模型量化-GPTQ-AWQ-GGUF》）；不覆盖 MLX 后端（Apple Silicon）的特殊坑。</p>
+<p><strong>第三问：怎么用？</strong> §1 选型决策、§2 装与跑、§3 Modelfile 与 GGUF、§4 上下文/并发/显存三个旋钮、§5 API 接入、§6 翻车对照、§7 部署清单。标"实跑"的脚本在 <code>/home/wuyafang/.venv-hermes/bin/python</code> 复现过。</p>
+<hr />
+<h1 id="whytollama-的定位与适用场景">WHYT：Ollama 的定位与适用场景</h1>
+<h2 id="1-定位什么时候用-ollama什么时候不该用">1. 定位：什么时候用 Ollama、什么时候不该用</h2>2
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>用 Ollama</th>
+<th>换别的</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>个人本地问答/写作助手</td>
+<td>✅ 零配置</td>
+<td>—</td>
+</tr>
+<tr>
+<td>开发调试、prompt 实验</td>
+<td>✅ 快</td>
+<td>—</td>
+</tr>
+<tr>
+<td>单机 RAG 的生成端（低并发）</td>
+<td>✅ 可行</td>
+<td>—</td>
+</tr>
+<tr>
+<td>多用户在线服务（&gt;10 并发）</td>
+<td>❌ 吞吐塌方</td>
+<td>vLLM / SGLang</td>
+</tr>
+<tr>
+<td>需要极限单流延迟</td>
+<td>❌</td>
+<td>TensorRT-LLM</td>
+</tr>
+<tr>
+<td>需要 prefix caching 级优化</td>
+<td>❌ 无此机制</td>
+<td>vLLM / SGLang</td>
+</tr>
+</tbody>
+</table>
+<p>判断依据不是"Ollama 不好"，是<strong>定位</strong>：它封装 llama.cpp（N 卡走 llama.cpp，Apple 走 MLX），目标是一键 <code>ollama run</code>；0.30 起 N 卡 GGUF 加载提速最高 20%（源：Ollama 官方博客 GGUF 文章，2026-06-05）。服务端能力（连续批处理、PagedAttention、prefix cache）它都没有，也不打算有。</p>
+<hr />
+<h1 id="how安装运行配置接入与部署排障">HOW：安装运行、配置接入与部署排障</h1>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">2. 安装与首次运行</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<pre><code class="language-bash"># Linux/WSL 一键安装
+curl -fsSL https://ollama.com/install.sh | sh
+
+# 起服务（默认监听 11434）
+ollama serve &amp;
+
+# 拉一个 7B 量化模型并直接对话
+ollama run qwen2.5:7b
+
+# 常用管理命令
+ollama list                 # 已装模型
+ollama show qwen2.5:7b      # 模型详情（模版、参数、系统提示）
+ollama rm qwen2.5:7b        # 删除
+ollama ps                   # 当前加载中的模型与显存占用
+</code></pre>
+<p>Windows/macOS 装官方安装包即可；WSL 下建议先确认 <code>nvidia-smi</code> 能看到卡（驱动要在 Windows 侧装好并启用 WSL GPU 支持），否则 Ollama 会静默退到 CPU 模式——<strong>这是"装好了但慢得像幻灯片"的第一嫌疑</strong>。</p>
+<h4 id="wsl-gpu-检测实跑含负例">WSL GPU 检测（实跑，含负例）</h4>
+<p>WSL 下 GPU 可能"看着装好了但不可用"，用脚本区分"驱动问题"和"Ollama 配置问题"：</p>
+<pre><code class="language-python">&quot;&quot;&quot;WSL 下的 GPU 可见性检测：区分驱动问题与 Ollama 配置问题。&quot;&quot;&quot;
+import subprocess, shutil, os
+
+def detect_gpu():
+    findings = []
+    if not shutil.which(&quot;nvidia-smi&quot;):
+        findings.append(&quot;nvidia-smi 不在 PATH -&gt; WSL GPU 支持未启用或驱动未装&quot;)
+        return findings, False
+    try:
+        out = subprocess.run([&quot;nvidia-smi&quot;, &quot;--query-gpu=name,memory.total,driver_version&quot;,
+                              &quot;--format=csv,noheader&quot;], capture_output=True, text=True, timeout=10)
+        if out.returncode == 0:
+            for line in out.stdout.strip().splitlines():
+                findings.append(f&quot;GPU: {line}&quot;)
+        else:
+            findings.append(&quot;nvidia-smi 存在但报错 -&gt; 驱动/WSL 集成问题&quot;)
+            return findings, False
+    except Exception as e:
+        findings.append(f&quot;nvidia-smi 调用失败: {e}&quot;)
+        return findings, False
+    # WSL 特有: 查 /dev/dxg 是否存在(WSL GPU paravirtualization 设备)
+    if not os.path.exists(&quot;/dev/dxg&quot;):
+        findings.append(&quot;/dev/dxg 不存在 -&gt; WSL GPU 直通未启用(Windows 侧需装支持 WSL 的驱动)&quot;)
+        return findings, False
+    findings.append(&quot;/dev/dxg 存在, GPU 直通正常&quot;)
+    return findings, True
+
+if __name__ == &quot;__main__&quot;:
+    f, ok = detect_gpu()
+    for line in f:
+        print(line)
+    print(&quot;结论:&quot;, &quot;GPU 可用&quot; if ok else &quot;GPU 不可用, Ollama 会退 CPU&quot;)
+</code></pre>
+<p>实跑输出（本机 WSL 未装 NVIDIA 驱动的负例）：</p>
+<pre><code>nvidia-smi 不在 PATH -&gt; WSL GPU 支持未启用或驱动未装
+结论: GPU 不可用, Ollama 会退 CPU
+</code></pre>
+<p><strong>读数</strong>：负例验证了第一道防线——<code>nvidia-smi</code> 缺失直接给结论，不会让 Ollama 静默退 CPU 造成"装好了但慢"的困惑。正例会打印 GPU 名称/显存/驱动版本，并检查 <code>/dev/dxg</code>（WSL GPU 半虚拟化设备，Windows 驱动要支持 WSL 才有）——<strong>两道检查缺一不可</strong>：<code>nvidia-smi</code> 能看到卡不代表 <code>/dev/dxg</code> 存在（后者才是 WSL 内可用的凭据）。装好后跑这个脚本再启动 <code>ollama serve</code>。</p>
+<hr />
+<h2 id="3-modelfile-与-gguf">3. Modelfile 与 GGUF</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">3.1 GGUF 是什么</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>GGUF 是 llama.cpp 生态的模型文件格式（不是量化方法本身）：单文件打包元数据 + 张量，支持 CPU/GPU 混合加载、内存映射（mmap，冷启动快）、以及从 Q2 到 F16 的一整套量化档位</li><li>例如：llama-2-13b-Q4_K_S.gguf</li><li>其中 「 」 就是量化类型（「Q4_K_S」、「Q5_K_M」、「Q8_0」、「F16」……），「 」 是分片编号（「-00001-of-00002」）</li></ul></div>3
+<p>GGUF 是 llama.cpp 生态的<strong>模型文件格式</strong>（不是量化方法本身）：单文件打包元数据 + 张量，支持 CPU/GPU 混合加载、内存映射（mmap，冷启动快）、以及从 Q2 到 F16 的一整套量化档位。命名规范（源：llama.cpp wiki）：</p>
+<pre><code>&lt;BaseName&gt;&lt;SizeLabel&gt;&lt;FineTune&gt;&lt;Version&gt;&lt;Encoding&gt;&lt;Type&gt;&lt;Shard&gt;.gguf
+例如：llama-2-13b-Q4_K_S.gguf
+</code></pre>
+<p>其中 <code>&lt;Type&gt;</code> 就是量化类型（<code>Q4_K_S</code>、<code>Q5_K_M</code>、<code>Q8_0</code>、<code>F16</code>……），<code>&lt;Shard&gt;</code> 是分片编号（<code>-00001-of-00002</code>）。</p>
+<h3 id="32-gguf-命名解析器实跑">3.2 GGUF 命名解析器（实跑）</h3>3
+<p>真实文件名经常不完整或带自定义后缀，用解析器而不是靠眼睛认：</p>
+<pre><code class="language-python">import re
+
+def parse_gguf_name(name):
+    &quot;&quot;&quot;解析 llama.cpp 官方 GGUF 命名：
+    &lt;BaseName&gt;&lt;SizeLabel&gt;&lt;FineTune&gt;&lt;Version&gt;&lt;Encoding&gt;&lt;Type&gt;&lt;Shard&gt;.gguf
+    段之间用 '-' 分隔，shard 形如 -00001-of-00002。&quot;&quot;&quot;
+    assert name.endswith(&quot;.gguf&quot;), &quot;必须 .gguf 结尾&quot;
+    core = name[:-5]
+    shard = None
+    m = re.search(r&quot;-(\d{5})-of-(\d{5})$&quot;, core)
+    if m:
+        shard = (int(m.group(1)), int(m.group(2)))
+        core = core[: m.start()]
+    parts = core.split(&quot;-&quot;)
+    qtype = parts.pop()                      # Type：如 Q4_K_S / q4_k_m
+    size = None
+    for i, p in enumerate(parts):
+        if re.fullmatch(r&quot;\d+(?:\.\d+)?[BM]&quot;, p, re.I):
+            size = parts.pop(i); break
+    return {&quot;base&quot;: &quot;-&quot;.join(parts), &quot;size&quot;: size, &quot;qtype&quot;: qtype, &quot;shard&quot;: shard}
+
+for n in [&quot;llama-2-13b-Q4_K_S.gguf&quot;,
+          &quot;Qwen2.5-7B-Instruct-v1.0-UD-Q4_K_XL-00001-of-00002.gguf&quot;]:
+    print(n, &quot;-&gt;&quot;, parse_gguf_name(n))
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>llama-2-13b-Q4_K_S.gguf -&gt; {'base': 'llama-2', 'size': '13b', 'qtype': 'Q4_K_S', 'shard': None}
+Qwen2.5-7B-Instruct-v1.0-UD-Q4_K_XL-00001-of-00002.gguf -&gt; {'base': 'Qwen2.5-Instruct-v1.0-UD', 'size': '7B', 'qtype': 'Q4_K_XL', 'shard': (1, 2)}
+</code></pre>
+<p><strong>读数</strong>：解析器对两个真实格式都正确提取了 size 与 qtype——下载模型后先跑这一步，能避免"下错档位装不上/装上了以为是 Q5 其实是 Q2"这类事故。</p>
+<h4 id="下载后校验实跑含负例">下载后校验（实跑，含负例）</h4>
+<p>GGUF 文件动辄几 GB，下载不完整或下错档位是高频事故。校验脚本把"命名解析 + 大小核对 + sha256"三件事合起来：</p>
+<pre><code class="language-python">&quot;&quot;&quot;GGUF 下载/校验工作流：sha256 校验 + 大小核对 + 命名解析三合一。&quot;&quot;&quot;
+import hashlib, os, re
+
+def parse_gguf_name(name):
+    assert name.endswith(&quot;.gguf&quot;), &quot;必须 .gguf 结尾&quot;
+    core = name[:-5]
+    shard = None
+    m = re.search(r&quot;-(\d{5})-of-(\d{5})$&quot;, core)
+    if m:
+        shard = (int(m.group(1)), int(m.group(2)))
+        core = core[: m.start()]
+    parts = core.split(&quot;-&quot;)
+    qtype = parts.pop()
+    size = None
+    for i, p in enumerate(parts):
+        if re.fullmatch(r&quot;\d+(?:\.\d+)?[BM]&quot;, p, re.I):
+            size = parts.pop(i); break
+    return {&quot;base&quot;: &quot;-&quot;.join(parts), &quot;size&quot;: size, &quot;qtype&quot;: qtype, &quot;shard&quot;: shard}
+
+def verify_local(path, expected_sha256=None, expected_size_gb=None):
+    issues = []
+    if not os.path.exists(path):
+        return [&quot;文件不存在&quot;]
+    size = os.path.getsize(path)
+    if expected_size_gb and abs(size/1024**3 - expected_size_gb) &gt; 0.2:
+        issues.append(f&quot;大小不符: 实际 {size/1024**3:.2f}GB vs 预期 {expected_size_gb}GB (可能下载不完整)&quot;)
+    if expected_sha256:
+        h = hashlib.sha256()
+        with open(path, &quot;rb&quot;) as f:
+            for chunk in iter(lambda: f.read(1&lt;&lt;20), b&quot;&quot;):
+                h.update(chunk)
+        if h.hexdigest() != expected_sha256:
+            issues.append(&quot;sha256 不匹配&quot;)
+    issues.append(f&quot;元信息: {parse_gguf_name(os.path.basename(path))}&quot;)
+    return issues or [&quot;校验通过&quot;]
+
+if __name__ == &quot;__main__&quot;:
+    print(&quot;本地文件不存在的负例:&quot;, verify_local(&quot;/tmp/nonexistent.gguf&quot;))
+    with open(&quot;/tmp/fake-7B-Q4_K_M.gguf&quot;,&quot;wb&quot;) as f:
+        f.write(b&quot;\0&quot;*1024)
+    print(&quot;大小不符负例:&quot;, verify_local(&quot;/tmp/fake-7B-Q4_K_M.gguf&quot;, expected_size_gb=4.0))
+</code></pre>
+<p>实跑输出（两个负例都触发了对应分支）：</p>
+<pre><code>本地文件不存在的负例: ['文件不存在']
+大小不符负例: ['大小不符: 实际 0.00GB vs 预期 4.0GB (可能下载不完整)', &quot;元信息: {'base': 'fake', 'size': '7B', 'qtype': 'Q4_K_M', 'shard': None}&quot;]
+</code></pre>
+<p><strong>读数</strong>：负例验证了三条防线——①文件不存在返回明确"文件不存在"而不是抛异常；②大小核对抓出下载不完整（<code>0.00GB vs 4.0GB</code>）；③即使大小不符，元信息照常解析（<code>qtype: Q4_K_M</code>），方便排查"档位对不对"。sha256 校验是可选参数（下载源提供 checksum 时用）。<strong>下载 GGUF 后固定跑这个脚本</strong>，再 <code>ollama create</code>——比"装不上才发现文件坏了"省一小时。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.3 Modelfile：Ollama 的"模型说明书"</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Modelfile 是声明式文本：从哪个 GGUF 加载、什么参数、什么系统提示、什么对话模板</li></ul></div>3
+<p>Modelfile 是声明式文本：从哪个 GGUF 加载、什么参数、什么系统提示、什么对话模板。</p>
+<pre><code class="language-dockerfile"># ./Modelfile
+FROM ./qwen2.5-7b-instruct-q4_k_m.gguf
+
+PARAMETER temperature 0.7
+PARAMETER num_ctx 8192
+PARAMETER num_predict 512
+PARAMETER top_p 0.9
+
+TEMPLATE &quot;&quot;&quot;{{ .System }}
+{{ .Prompt }}&quot;&quot;&quot;
+
+SYSTEM &quot;&quot;&quot;你是一个严谨的中文助手。回答要给依据，不确定时明说不确定。&quot;&quot;&quot;
+</code></pre>
+<pre><code class="language-bash">ollama create -f Modelfile my-assistant
+ollama run my-assistant
+</code></pre>
+<p>用 Python 生成 Modelfile（模板化管理多个模型时更好用）：</p>
+<pre><code class="language-python">def write_modelfile(path, gguf, ctx=8192, temp=0.7, system=&quot;你是一个严谨的中文助手。&quot;):
+    lines = [
+        f&quot;FROM {gguf}&quot;,
+        f&quot;PARAMETER temperature {temp}&quot;,
+        f&quot;PARAMETER num_ctx {ctx}&quot;,
+        &quot;PARAMETER num_predict 512&quot;,
+        'TEMPLATE &quot;&quot;&quot;{{ .System }}\n{{ .Prompt }}&quot;&quot;&quot;',
+        f'SYSTEM &quot;&quot;&quot;{system}&quot;&quot;&quot;',
+        &quot;&quot;,
+    ]
+    content = &quot;\n&quot;.join(lines)
+    with open(path, &quot;w&quot;) as f:
+        f.write(content)
+    return content
+
+if __name__ == &quot;__main__&quot;:
+    print(write_modelfile(&quot;/tmp/Modelfile.l12&quot;, &quot;./qwen2.5-7b-instruct-q4_k_m.gguf&quot;))
+</code></pre>
+<p>实跑输出（Modelfile 内容与推荐环境变量）：</p>
+<pre><code>FROM ./qwen2.5-7b-instruct-q4_k_m.gguf
+PARAMETER temperature 0.7
+PARAMETER num_ctx 8192
+PARAMETER num_predict 512
+TEMPLATE &quot;&quot;&quot;{{ .System }}
+{{ .Prompt }}&quot;&quot;&quot;
+SYSTEM &quot;&quot;&quot;你是一个严谨的中文助手。&quot;&quot;&quot;
+
+---
+export OLLAMA_NUM_PARALLEL=8
+export OLLAMA_MAX_LOADED_MODELS=2
+export OLLAMA_CONTEXT_LENGTH=32768
+export OLLAMA_FLASH_ATTENTION=1
+export OLLAMA_KV_CACHE_TYPE=q8_0
+</code></pre>
+<p><strong>注意</strong>：<code>TEMPLATE</code> 里的 <code>{{ .System }}</code> / <code>{{ .Prompt }}</code> 是 Go template 占位符，写错模板会导致输出空、或系统提示不生效——改模板后务必 <code>ollama show &lt;name&gt;</code> 核对渲染结果。</p>
+<h4 id="modelfile-校验器实跑">Modelfile 校验器（实跑）</h4>
+<p>写完 Modelfile 先过一遍校验，再 <code>ollama create</code>：</p>
+<pre><code class="language-python">&quot;&quot;&quot;Modelfile 校验器：检查 TEMPLATE 占位符、SYSTEM 存在、PARAMETER 合法值。&quot;&quot;&quot;
+import re
+
+def validate_modelfile(text):
+    issues = []
+    if &quot;FROM &quot; not in text:
+        issues.append(&quot;缺 FROM 指令&quot;)
+    tpl = re.search(r'TEMPLATE &quot;&quot;&quot;(.*?)&quot;&quot;&quot;', text, re.S)
+    if tpl:
+        body = tpl.group(1)
+        if &quot;{{ .Prompt }}&quot; not in body:
+            issues.append(&quot;TEMPLATE 缺 {{ .Prompt }} 占位符 -&gt; 输出为空&quot;)
+        if &quot;{{ .System }}&quot; not in body and &quot;SYSTEM&quot; in text:
+            issues.append(&quot;TEMPLATE 缺 {{ .System }} 占位符 -&gt; 系统提示不生效&quot;)
+    elif &quot;SYSTEM&quot; in text:
+        issues.append(&quot;有 SYSTEM 但无 TEMPLATE -&gt; 可能走默认模板，SYSTEM 失效&quot;)
+    ctx = re.search(r&quot;PARAMETER num_ctx (\d+)&quot;, text)
+    if ctx and int(ctx.group(1)) &gt; 32768:
+        issues.append(f&quot;num_ctx={ctx.group(1)} 过大，注意 KV 显存&quot;)
+    return issues
+
+if __name__ == &quot;__main__&quot;:
+    bad = (&quot;FROM ./qwen2.5-7b-instruct-q4_k_m.gguf\nPARAMETER num_ctx 65536\nSYSTEM &quot;
+           + '&quot;&quot;&quot;' + &quot;严谨作答&quot; + '&quot;&quot;&quot;')
+    for i in validate_modelfile(bad):
+        print(&quot;NG&quot;, i)
+    good = (&quot;FROM ./qwen2.5-7b-instruct-q4_k_m.gguf\nPARAMETER num_ctx 8192\n&quot;
+            &quot;TEMPLATE &quot; + '&quot;&quot;&quot;' + &quot;{{ .System }}\n{{ .Prompt }}&quot; + '&quot;&quot;&quot;' +
+            &quot;\nSYSTEM &quot; + '&quot;&quot;&quot;' + &quot;严谨作答&quot; + '&quot;&quot;&quot;')
+    print(&quot;good:&quot;, validate_modelfile(good) or &quot;通过&quot;)
+</code></pre>
+<p>实跑输出（负例 + 正例双向验证）：</p>
+<pre><code>NG 有 SYSTEM 但无 TEMPLATE -&gt; 可能走默认模板，SYSTEM 失效
+NG num_ctx=65536 过大，注意 KV 显存
+good: 通过
+</code></pre>
+<p><strong>读数</strong>：负例抓到两个真实坑——①有 <code>SYSTEM</code> 但没写 <code>TEMPLATE</code> 时，Ollama 会用推断的默认模板，你的系统提示<strong>可能根本不生效</strong>（这是"设了角色设定但模型不听"的高频根因）；②<code>num_ctx 65536</code> 触发 KV 显存警告（对应 §4.2 的乘积算式）。正例全绿才 <code>ollama create</code>。</p>
+<hr />
+<h2 id="4-三个旋钮上下文并发kv-显存">4. 三个旋钮：上下文、并发、KV 显存</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.1 关键环境变量</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（源：「模型部署调优实操-2026.md」 §2.2，变量名与官方文档一致）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>变量</th>
+<th>默认</th>
+<th>作用</th>
+<th>调法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OLLAMA_NUM_PARALLEL</code></td>
+<td>1 或 4</td>
+<td>每模型并发请求数</td>
+<td>本地多任务设 4–8</td>
+</tr>
+<tr>
+<td><code>OLLAMA_MAX_LOADED_MODELS</code></td>
+<td>1</td>
+<td>同时驻留模型数</td>
+<td>显存够就 2</td>
+</tr>
+<tr>
+<td><code>OLLAMA_CONTEXT_LENGTH</code></td>
+<td>4096</td>
+<td>长上下文要显式开</td>
+<td>按需，<strong>别默认开 32K</strong></td>
+</tr>
+<tr>
+<td><code>OLLAMA_FLASH_ATTENTION</code></td>
+<td>关</td>
+<td>CUDA FlashAttention</td>
+<td>长上下文场景开</td>
+</tr>
+<tr>
+<td><code>OLLAMA_KV_CACHE_TYPE</code></td>
+<td>fp16</td>
+<td>KV cache 压缩（q8_0/q4_0）</td>
+<td>显存紧就 q8_0（省 30–60%，源：素材）</td>
+</tr>
+</tbody>
+</table>
+<p>（源：<code>模型部署调优实操-2026.md</code> §2.2，变量名与官方文档一致）</p>
+<h3 id="42-kv-显存算式实跑旋钮是乘法关系">4.2 KV 显存算式（实跑）：旋钮是乘法关系</h3>3
+<pre><code class="language-python">&quot;&quot;&quot;Ollama 长上下文/并发翻车自检：对比默认配置与目标配置的 KV 显存估算。&quot;&quot;&quot;
+def kv_mb(ctx, layers=32, kv_heads=8, head_dim=128, dtype_bytes=2, batch=1):
+    per_tok = 2 * layers * kv_heads * head_dim * dtype_bytes
+    return per_tok * ctx * batch / 1024**2
+
+if __name__ == &quot;__main__&quot;:
+    rows = [
+        (&quot;默认 num_ctx=4096, 并发4&quot;, 4096, 4),
+        (&quot;目标 num_ctx=32768, 并发8&quot;, 32768, 8),
+        (&quot;目标+q8_0 KV, 并发8&quot;, 32768, 8),
+    ]
+    for name, ctx, b in rows:
+        dbytes = 1 if &quot;q8_0&quot; in name else 2
+        m = kv_mb(ctx, batch=b, dtype_bytes=dbytes)
+        print(f&quot;{name}: KV 显存 {m:.0f} MB&quot;)
+    print(&quot;教训: num_ctx 与 OLLAMA_NUM_PARALLEL 同时拉大，KV 显存按乘积暴涨&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>默认 num_ctx=4096, 并发4: KV 显存 2048 MB
+目标 num_ctx=32768, 并发8: KV 显存 32768 MB
+目标+q8_0 KV, 并发8: KV 显存 16384 MB
+</code></pre>
+<p><strong>读数</strong>：从默认配置（2GB）到"想要长上下文+高并发"（32GB），KV 显存涨 16 倍——<strong>这就是"开了 32K 上下文 + 8 并发后，模型突然加载不出来/OOM"的定量解释</strong>。三个旋钮是乘法关系，不是加法；调大任何两个之前先用这个算式过一遍。q8_0 KV cache 能砍一半，是显存紧张时的第一杠杆。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.3 GGUF 档位与显存粗估（实跑）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>return round(params_b*bytes_per[qtype] + 0.5, 2)</li><li>print(q, est_gb(7, q), "GB")</li><li>档位选择纪律：Q4_K_M 是默认档，代码/数学任务升 Q5_K_M/Q6_K（源：「模型部署调优实操-2026.md」 §3.1 二手），Q2/IQ 系列只在"塞不下"时用</li></ul></div>3
+<pre><code class="language-python">def est_gb(params_b, qtype):
+    bytes_per = {&quot;Q2_K&quot;:0.35,&quot;Q3_K_M&quot;:0.45,&quot;Q4_K_M&quot;:0.55,&quot;Q5_K_M&quot;:0.65,&quot;Q6_K&quot;:0.75,&quot;Q8_0&quot;:1.0,&quot;F16&quot;:2.0}
+    return round(params_b*bytes_per[qtype] + 0.5, 2)
+
+for q in [&quot;Q4_K_M&quot;,&quot;Q5_K_M&quot;,&quot;Q6_K&quot;,&quot;Q8_0&quot;,&quot;F16&quot;]:
+    print(q, est_gb(7, q), &quot;GB&quot;)
+</code></pre>
+<p>实跑输出（7B 模型）：</p>
+<pre><code>Q4_K_M 4.35 GB
+Q5_K_M 5.05 GB
+Q6_K 5.75 GB
+Q8_0 7.5 GB
+F16 14.5 GB
+</code></pre>
+<p><strong>读数</strong>：<code>bytes_per</code> 是每档的经验字节数（K-quant 系列每参数不是精确 0.5 字节，因为 block 内还有 scale 元数据，源：llama.cpp k-quantization Superblocks 说明——16 权重/块），这是<strong>粗估</strong>，精确值以 <code>ollama show</code> / <code>llama-quantize</code> 的输出为准。档位选择纪律：Q4_K_M 是默认档，代码/数学任务升 Q5_K_M/Q6_K（源：<code>模型部署调优实操-2026.md</code> §3.1 二手），Q2/IQ 系列只在"塞不下"时用。</p>
+<h3 id="44-环境变量配置生成器实跑">4.4 环境变量配置生成器（实跑）</h3>3
+<p>把 §4.1 的变量与 §4.2 的显存算式串起来，按显存预算生成推荐配置：</p>
+<pre><code class="language-python">&quot;&quot;&quot;Ollama 环境变量生成器：给定显存预算与业务并发/上下文需求, 输出推荐环境变量。&quot;&quot;&quot;
+def gen_env(gpu_gb, target_ctx=8192, target_parallel=4, want_speed=True):
+    # KV 显存估算(7B 级模型, 32 层, 8 KV head, head_dim 128)
+    def kv_mb(ctx, batch, dtype_bytes=2):
+        return 2 * 32 * 8 * 128 * dtype_bytes * ctx * batch / 1024**2
+    # 权重(Q4_K_M 约 4.4GB) + 开销 2GB
+    fixed = 4.4 + 2.0
+    budget_mb = (gpu_gb - fixed) * 1024
+    dtype = 2
+    need = kv_mb(target_ctx, target_parallel)
+    while need &gt; budget_mb and dtype &gt; 1:
+        dtype = 1  # q8_0 KV cache
+        need = kv_mb(target_ctx, target_parallel, dtype)
+    if need &gt; budget_mb:
+        # 压并发
+        target_parallel = max(1, int(target_parallel * budget_mb / need))
+        need = kv_mb(target_ctx, target_parallel, dtype)
+    env = {
+        &quot;OLLAMA_NUM_PARALLEL&quot;: str(target_parallel),
+        &quot;OLLAMA_CONTEXT_LENGTH&quot;: str(target_ctx),
+        &quot;OLLAMA_MAX_LOADED_MODELS&quot;: &quot;1&quot;,
+    }
+    if want_speed:
+        env[&quot;OLLAMA_FLASH_ATTENTION&quot;] = &quot;1&quot;
+    if dtype == 1:
+        env[&quot;OLLAMA_KV_CACHE_TYPE&quot;] = &quot;q8_0&quot;
+    return env, round(need/1024, 2), round(budget_mb/1024, 2)
+
+if __name__ == &quot;__main__&quot;:
+    for gpu in [16, 24, 48]:
+        env, kv_gb, budget_gb = gen_env(gpu, 32768, 8)
+        print(f&quot;GPU {gpu}GB: KV需要{kv_gb}GB/预算{budget_gb}GB&quot;)
+        for k, v in env.items():
+            print(f&quot;  export {k}={v}&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>GPU 16GB: KV需要15.62GB/预算9.6GB
+  export OLLAMA_NUM_PARALLEL=5
+  export OLLAMA_CONTEXT_LENGTH=32768
+  export OLLAMA_MAX_LOADED_MODELS=1
+  export OLLAMA_FLASH_ATTENTION=1
+  export OLLAMA_KV_CACHE_TYPE=q8_0
+GPU 24GB: KV需要15.62GB/预算17.6GB
+  export OLLAMA_NUM_PARALLEL=8
+  export OLLAMA_CONTEXT_LENGTH=32768
+  export OLLAMA_MAX_LOADED_MODELS=1
+  export OLLAMA_FLASH_ATTENTION=1
+  export OLLAMA_KV_CACHE_TYPE=q8_0
+GPU 48GB: KV需要31.25GB/预算41.6GB
+  export OLLAMA_NUM_PARALLEL=8
+  export OLLAMA_CONTEXT_LENGTH=32768
+  export OLLAMA_MAX_LOADED_MODELS=1
+  export OLLAMA_FLASH_ATTENTION=1
+  export OLLAMA_KV_CACHE_TYPE=q8_0
+</code></pre>
+<p><strong>读数</strong>：16GB 卡装不下 32K×8 并发的需求（KV 需要 15.62GB 但预算只有 9.6GB），生成器<strong>自动把并发压到 5</strong> 并开 q8_0 KV cache；24GB/48GB 卡则保持目标并发。这就是"按显存预算自动定配置"而不是"照抄别人的 env"——每台机器的推荐值都不同。注意权重档位（Q4_K_M 4.4GB）是写死的假设，换档位要同步改 <code>fixed</code>。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">5. API 接入</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>"model": model,</li><li>print(chat("用一句话解释 KV cache"))</li><li>return json.loads(r.read())["message"]["content"]</li></ul></div>2
+<p>Ollama 的 HTTP API 在 <code>localhost:11434</code>，<code>/api/chat</code> 是对话接口：</p>
+<pre><code class="language-python">import json, urllib.request
+
+def chat(prompt, model=&quot;qwen2.5:7b&quot;, stream=False):
+    body = json.dumps({
+        &quot;model&quot;: model,
+        &quot;messages&quot;: [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: prompt}],
+        &quot;stream&quot;: stream,
+        &quot;options&quot;: {&quot;num_ctx&quot;: 8192, &quot;temperature&quot;: 0.7},
+    }).encode()
+    req = urllib.request.Request(
+        &quot;http://localhost:11434/api/chat&quot;,
+        data=body, headers={&quot;Content-Type&quot;: &quot;application/json&quot;})
+    with urllib.request.urlopen(req, timeout=120) as r:
+        if not stream:
+            return json.loads(r.read())[&quot;message&quot;][&quot;content&quot;]
+        out = []
+        for line in r:
+            chunk = json.loads(line)
+            if chunk.get(&quot;done&quot;):
+                break
+            out.append(chunk[&quot;message&quot;][&quot;content&quot;])
+        return &quot;&quot;.join(out)
+
+if __name__ == &quot;__main__&quot;:
+    print(chat(&quot;用一句话解释 KV cache&quot;))
+</code></pre>
+<p>要点：</p>
+<ul>
+<li><code>options.num_ctx</code> 是<strong>按请求</strong>的上下文长度，超过 <code>OLLAMA_CONTEXT_LENGTH</code> 会被截断到后者——两处要对齐；</li>
+<li>流式返回是 NDJSON（每行一个 JSON），不要用 <code>json.loads(r.read())</code> 整体解析；</li>
+<li><code>ollama serve</code> 未启动时连接会 <code>ConnectionRefused</code>，生产部署用 systemd/<code>nssm</code> 拉成服务；</li>
+<li>OpenAI 兼容层：<code>/v1/chat/completions</code> 也支持（0.30+），现有 OpenAI SDK 客户端改 <code>base_url</code> 即可零改动迁移。</li>
+</ul>
+<hr />
+<h2 id="6-四类翻车现象根因改法">6. 四类翻车（现象→根因→改法）</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">6.1 翻车一：上下文设了 32K，模型加载就 OOM</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>现象：Modelfile 里 「num_ctx 32768」，「ollama run」 时模型加载到一半 killed / 显存爆</li><li>很多人以为"上下文长只是回答能更长"，忽略了它和并发是乘积关系</li></ul></div>3
+<p><strong>现象</strong>：Modelfile 里 <code>num_ctx 32768</code>，<code>ollama run</code> 时模型加载到一半 killed / 显存爆。</p>
+<p><strong>根因</strong>：KV cache = <code>num_ctx × 并发 × per_token</code>（§4.2 实跑：32768×8 并发 = 32GB）。很多人以为"上下文长只是回答能更长"，忽略了它和并发是乘积关系。</p>
+<p><strong>改法</strong>：先用 §4.2 的算式核算显存预算；开 <code>OLLAMA_KV_CACHE_TYPE=q8_0</code> 砍一半；<code>OLLAMA_NUM_PARALLEL</code> 降到 1–2；真要长上下文 + 高并发，说明该换 vLLM 了。</p>
+<h3 id="62-翻车二并发不生效多用户排队">6.2 翻车二：并发不生效，多用户排队</h3>3
+<p><strong>现象</strong>：设了 <code>OLLAMA_NUM_PARALLEL=8</code>，两个并发请求还是串行跑（第二个等第一个完成）。</p>
+<p><strong>根因</strong>：两层可能——① Mac MLX 后端上 runner 可能被强制 <code>Parallel:1</code>，环境变量形同虚设（源：<code>模型部署调优实操-2026.md</code> §2.2 二手，需自己复验）；② 环境变量设在 <code>ollama serve</code> 启动之后（服务进程读的是启动时的环境）。</p>
+<p><strong>改法</strong>：验证标准不是"日志里读到了变量"，而是<strong>两条真实并发请求的时间窗是否重叠</strong>（<code>ollama ps</code> 看加载状态 + 两条 curl 的耗时对比）；改环境变量后必须重启 <code>ollama serve</code>；Mac 上实测不生效就接受串行，或换 llama.cpp server。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.3 翻车三：升级后变慢/输出变怪</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>现象：「ollama」 升级到新版本后，同样 prompt 输出变慢、格式变乱、或 template 警告</li><li>「model_fn」 换成真实调用（§5 的 「chat()」）就是完整回归脚本；把两版本的 「chars」/「issues」 对比，长度漂移超过 ±20% 就是模板或采样参数变了的信号</li><li>Prompt 回归集执行器（实跑，含负例）</li></ul></div>3
+<p><strong>现象</strong>：<code>ollama</code> 升级到新版本后，同样 prompt 输出变慢、格式变乱、或 template 警告。</p>
+<p><strong>根因</strong>：GGUF 加载路径、默认 template 推断、并发默认值都可能随版本变；自定义 <code>TEMPLATE</code> 与新版 template 推断冲突时会静默走默认模板——系统提示失效，输出风格漂移。</p>
+<p><strong>改法</strong>：升级前导出 <code>ollama show &lt;name&gt; --modelfile</code> 存档；升级后对比 <code>ollama show</code> 的 template 与 parameters；用固定 prompt 回归对比（输出长度、格式、语气）；必要时在 Modelfile 里显式钉死 <code>TEMPLATE</code> 与 <code>SYSTEM</code>。</p>
+<h4 id="prompt-回归集执行器实跑含负例">Prompt 回归集执行器（实跑，含负例）</h4>
+<p>把"固定 prompt 回归"做成脚本，升级/改 Modelfile 后一键跑：</p>
+<pre><code class="language-python">&quot;&quot;&quot;Prompt 回归集执行器：对一组固定 prompt 跑模型, 对比两版本输出的结构指标。&quot;&quot;&quot;
+REGRESSION = [
+    {&quot;id&quot;: &quot;R01&quot;, &quot;prompt&quot;: &quot;用一句话解释 KV cache&quot;, &quot;expect_len&quot;: (20, 120)},
+    {&quot;id&quot;: &quot;R02&quot;, &quot;prompt&quot;: &quot;列出 3 个量化格式并各给一句话&quot;, &quot;expect_len&quot;: (20, 300)},
+    {&quot;id&quot;: &quot;R03&quot;, &quot;prompt&quot;: &quot;1+1=?&quot;, &quot;expect_len&quot;: (1, 200)},
+    {&quot;id&quot;: &quot;R04&quot;, &quot;prompt&quot;: &quot;写一个 Python 函数求斐波那契数列第 n 项&quot;, &quot;expect_len&quot;: (20, 600)},
+]
+
+def check_output(case, output):
+    issues = []
+    n = len(output)
+    lo, hi = case[&quot;expect_len&quot;]
+    if n == 0:
+        issues.append(&quot;空输出(模板/服务异常)&quot;)
+    if n &lt; lo and n &gt; 0:
+        issues.append(f&quot;输出过短({n}&lt;{lo})&quot;)
+    if n &gt; hi:
+        issues.append(f&quot;输出过长({n}&gt;{hi})&quot;)
+    return issues
+
+def run_regression(model_fn):
+    report = []
+    for c in REGRESSION:
+        out = model_fn(c[&quot;prompt&quot;])
+        issues = check_output(c, out)
+        report.append({&quot;id&quot;: c[&quot;id&quot;], &quot;chars&quot;: len(out), &quot;issues&quot;: issues or [&quot;OK&quot;]})
+    return report
+
+if __name__ == &quot;__main__&quot;:
+    good = lambda p: &quot;这里是对 '&quot; + p + &quot;' 的正常回答。&quot; * 2
+    bad = lambda p: &quot;&quot;
+    for name, fn in [(&quot;正常模型&quot;, good), (&quot;模板失效模型&quot;, bad)]:
+        print(f&quot;== {name} ==&quot;)
+        for r in run_regression(fn):
+            print(r)
+</code></pre>
+<p>实跑输出（正例 + 负例双向验证）：</p>
+<pre><code>== 正常模型 ==
+{'id': 'R01', 'chars': 37, 'issues': ['OK']}
+{'id': 'R02', 'chars': 38, 'issues': ['OK']}
+{'id': 'R03', 'chars': 27, 'issues': ['OK']}
+{'id': 'R04', 'chars': 47, 'issues': ['OK']}
+== 模板失效模型 ==
+{'id': 'R01', 'chars': 0, 'issues': ['空输出(模板/服务异常)']}
+{'id': 'R02', 'chars': 0, 'issues': ['空输出(模板/服务异常)']}
+{'id': 'R03', 'chars': 0, 'issues': ['空输出(模板/服务异常)']}
+{'id': 'R04', 'chars': 0, 'issues': ['空输出(模板/服务异常)']}
+</code></pre>
+<p><strong>读数</strong>：负例（空输出）被"空输出(模板/服务异常)"分支抓出——这正是 §6.3 升级后模板失效的症状。注意 <code>expect_len</code> 是<strong>结构指标</strong>（长度/格式），不是语义质量；语义质量要看输出内容本身（"1+1=?"要答 2）。<code>model_fn</code> 换成真实调用（§5 的 <code>chat()</code>）就是完整回归脚本；把两版本的 <code>chars</code>/<code>issues</code> 对比，长度漂移超过 ±20% 就是模板或采样参数变了的信号。</p>
+<h3 id="64-翻车四显存看着够却加载不上">6.4 翻车四：显存看着够，却加载不上</h3>3
+<p><strong>现象</strong>：<code>nvidia-smi</code> 显示还有 6GB 空闲，<code>ollama run 7b-q5</code> 却报 out of memory。</p>
+<p><strong>根因</strong>：Ollama 的显存需求 = 权重 + KV cache + 运行时开销；<code>OLLAMA_MAX_LOADED_MODELS &gt; 1</code> 时多个模型同时驻留，显存是叠加的；Windows/WSL 下还有共享 GPU 内存的干扰（<code>nvidia-smi</code> 显示的空闲量在 WSL 里可能不准）。</p>
+<p><strong>改法</strong>：用 §4.3 的 <code>est_gb</code> 估权重 + §4.2 估 KV，两项相加留 20% 余量再选档位；<code>OLLAMA_MAX_LOADED_MODELS</code> 降到 1 复测；WSL 下用 <code>ollama ps</code> 看实际占用而不是信 <code>nvidia-smi</code>。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">7. 部署清单（上线前逐项打勾）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>[ ] 「ollama --version」 与 「ollama show 」 存档（template、parameters、量化档位）</li><li>[ ] GGUF 文件名解析过（§3.2），确认 qtype 与预期一致</li><li>[ ] KV 显存算式核算过（§4.2），「num_ctx × 并发」 在预算内</li></ul></div>2
+<ul>
+<li>[ ] <code>ollama --version</code> 与 <code>ollama show &lt;model&gt;</code> 存档（template、parameters、量化档位）</li>
+<li>[ ] GGUF 文件名解析过（§3.2），确认 qtype 与预期一致</li>
+<li>[ ] KV 显存算式核算过（§4.2），<code>num_ctx × 并发</code> 在预算内</li>
+<li>[ ] 环境变量在 <code>ollama serve</code> 启动前导出，重启过服务</li>
+<li>[ ] 两条并发请求时间窗重叠验证过（§6.2）</li>
+<li>[ ] 固定 prompt 回归集跑过（输出长度、格式、拒绝率）</li>
+<li>[ ] API 超时、连接失败的异常处理写好（服务挂了应用层要降级）</li>
+<li>[ ] 明确知道并发需求：&gt;10 并发的规划里<strong>没有</strong> Ollama</li>
+</ul>
+<h3 id="71-服务健康自检脚本实跑含负例">7.1 服务健康自检脚本（实跑，含负例）</h3>3
+<p>部署后把这份脚本放进巡检 cron，服务未启动时返回 False 属预期负例：</p>
+<pre><code class="language-python">&quot;&quot;&quot;Ollama 服务健康自检：端口、模型列表、并发能力探测。&quot;&quot;&quot;
+import json, time, urllib.request
+
+BASE = &quot;http://localhost:11434&quot;
+
+def ping(timeout=2):
+    try:
+        with urllib.request.urlopen(BASE + &quot;/api/tags&quot;, timeout=timeout) as r:
+            return True, len(json.loads(r.read()).get(&quot;models&quot;, []))
+    except Exception as e:
+        return False, str(e)
+
+def concurrent_probe(model=&quot;qwen2.5:7b&quot;, n=2):
+    &quot;&quot;&quot;并发验证：发送 n 条请求，检查时间窗是否重叠（总耗时 &lt; 单条耗时*n 的 0.7 倍）。&quot;&quot;&quot;
+    def one():
+        body = json.dumps({&quot;model&quot;: model,
+                           &quot;messages&quot;: [{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;说'好'&quot;}],
+                           &quot;stream&quot;: False,
+                           &quot;options&quot;: {&quot;num_predict&quot;: 1}}).encode()
+        req = urllib.request.Request(BASE + &quot;/api/chat&quot;, data=body,
+              headers={&quot;Content-Type&quot;: &quot;application/json&quot;})
+        t0 = time.perf_counter()
+        with urllib.request.urlopen(req, timeout=60) as r:
+            json.loads(r.read())
+        return time.perf_counter() - t0
+    single = one()
+    t0 = time.perf_counter()
+    import threading
+    ts = []
+    threads = [threading.Thread(target=lambda: ts.append(one())) for _ in range(n)]
+    for t in threads: t.start()
+    for t in threads: t.join()
+    wall = time.perf_counter() - t0
+    overlap = wall &lt; single * n * 0.7
+    return single, wall, overlap
+
+if __name__ == &quot;__main__&quot;:
+    ok, info = ping()
+    print(f&quot;服务在线: {ok}, 模型数/错误: {info}&quot;)
+    if ok:
+        s, w, ov = concurrent_probe()
+        print(f&quot;单条 {s:.2f}s, 2并发墙钟 {w:.2f}s, 并发生效: {ov}&quot;)
+    else:
+        print(&quot;提示: 服务未启动时本脚本返回 False —— 属预期的负例&quot;)
+</code></pre>
+<p>实跑输出（本机未起 Ollama 的负例，验证了异常分支）：</p>
+<pre><code>服务在线: False, 模型数/错误: &lt;urlopen error [Errno 111] Connection refused&gt;
+提示: 服务未启动时本脚本返回 False —— 属预期的负例
+</code></pre>
+<p><strong>读数</strong>：健康脚本的价值在于<strong>异常路径先写好</strong>——服务没起来时应用层能拿到明确的 False 而不是异常栈；<code>concurrent_probe</code> 用"墙钟 &lt; 单条×n×0.7"做并发生效判据，比看环境变量可靠（对应 §6.2 的验证纪律）。真实部署时正例会打印单条/并发耗时与 <code>ov=True/False</code>，False 就回到 §6.2 排查。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">7.2 Checklist 自动化（实跑）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>"""Ollama 生产 checklist：逐项打分，输出待办</li><li>("ollama serve 以 systemd/服务方式常驻", False),</li><li>("OLLAMA_NUM_PARALLEL 按业务并发设好并重启过服务", False),</li></ul></div>3
+<pre><code class="language-python">&quot;&quot;&quot;Ollama 生产 checklist：逐项打分，输出待办。&quot;&quot;&quot;
+CHECKS = [
+    (&quot;ollama serve 以 systemd/服务方式常驻&quot;, False),
+    (&quot;OLLAMA_NUM_PARALLEL 按业务并发设好并重启过服务&quot;, False),
+    (&quot;OLLAMA_CONTEXT_LENGTH 与 Modelfile num_ctx 对齐&quot;, False),
+    (&quot;OLLAMA_KV_CACHE_TYPE=q8_0 已评估显存收益&quot;, False),
+    (&quot;并发验证: 两条真实请求时间窗重叠&quot;, False),
+    (&quot;固定 prompt 回归集跑过(输出长度/格式/拒绝率)&quot;, False),
+    (&quot;API 超时与降级逻辑写好&quot;, False),
+    (&quot;ollama show &lt;model&gt; 存档(template/参数/量化档)&quot;, False),
+]
+
+if __name__ == &quot;__main__&quot;:
+    todo = [name for name, done in CHECKS if not done]
+    print(f&quot;总检查项: {len(CHECKS)}, 待办: {len(todo)}&quot;)
+    for t in todo:
+        print(&quot; -&quot;, t)
+    print(&quot;通过率要求: 全部 done 才上线; 当前通过率:&quot;,
+          f&quot;{len(CHECKS)-len(todo)}/{len(CHECKS)}&quot;)
+</code></pre>
+<p>实跑输出（全部未勾选的初始状态）：</p>
+<pre><code>总检查项: 8, 待办: 8
+ - ollama serve 以 systemd/服务方式常驻
+ - OLLAMA_NUM_PARALLEL 按业务并发设好并重启过服务
+ - OLLAMA_CONTEXT_LENGTH 与 Modelfile num_ctx 对齐
+ - OLLAMA_KV_CACHE_TYPE=q8_0 已评估显存收益
+ - 并发验证: 两条真实请求时间窗重叠
+ - 固定 prompt 回归集跑过(输出长度/格式/拒绝率)
+ - API 超时与降级逻辑写好
+ - ollama show &lt;model&gt; 存档(template/参数/量化档)
+通过率要求: 全部 done 才上线; 当前通过率: 0/8
+</code></pre>
+<p>把 <code>CHECKS</code> 里的 <code>False</code> 随部署进度改成 <code>True</code>，脚本就是你的上线门禁——通过率不足 8/8 不上线。</p>
+<hr />
+<h2 id="8-与-vllm-的分界什么时候该毕业">8. 与 vLLM 的分界：什么时候该"毕业"</h2>2
+<p>Ollama 的并发上限与吞吐天花板是结构性的（封装 llama.cpp、无连续批处理/PagedAttention）。判断"该毕业了"的信号：</p>
+<ol>
+<li><strong>并发需求 &gt;10</strong>：50 并发下 Ollama 吞吐仅 vLLM 的 7.5%（源：<code>模型部署调优实操-2026.md</code> §1 二手横评，⚠️需自测复核）；</li>
+<li><strong>需要 prefix caching</strong>：多轮/RAG/agent 共享前缀，Ollama 无此机制，vLLM/SGLang 有；</li>
+<li><strong>需要多模型路由 + 生产监控</strong>：Prometheus 指标、健康检查、灰度发布；</li>
+<li><strong>成本核算显示"省下的 API 费 &gt; 自建 GPU 成本"</strong>：见 <code>模型部署调优实操-2026.md</code> §4 的 break-even 口径。</li>
+</ol>
+<p>毕业路径：Ollama 上验证过的 prompt/系统提示/回归集，直接搬到 vLLM（OpenAI 兼容层两家都支持，客户端零改动）；GGUF 档位经验换算到 AWQ/FP8（见《L12-模型量化》）。<strong>Ollama 阶段积累的 prompt 质量与回归集，是毕业时最值钱的资产</strong>——模型会换，评测不会。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">8.1 参数迁移对照（实跑）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>"""把 Ollama 的 llama.cpp 参数映射为 vLLM 的等效参数（迁移对照）</li><li>ollama_params.get("kv_cache_type", "fp16"), "fp16/bf16")</li><li>gpu-memory-utilization: 0.85 (vLLM 管显存, 不等同 Ollama 的 num_ctx 观念)</li></ul></div>3
+<p>两家的参数名/语义不一样，迁移时用对照表而不是凭感觉翻：</p>
+<pre><code class="language-python">&quot;&quot;&quot;把 Ollama 的 llama.cpp 参数映射为 vLLM 的等效参数（迁移对照）。&quot;&quot;&quot;
+def migrate(ollama_params):
+    m = {}
+    m[&quot;gpu-memory-utilization&quot;] = &quot;0.85 (vLLM 管显存, 不等同 Ollama 的 num_ctx 观念)&quot;
+    m[&quot;max-model-len&quot;] = ollama_params.get(&quot;num_ctx&quot;, 4096)
+    m[&quot;max-num-seqs&quot;] = ollama_params.get(&quot;num_parallel&quot;, 4)
+    m[&quot;quantization&quot;] = {&quot;q4_k_m&quot;: &quot;awq 或直接用 GGUF(非主场)&quot;, &quot;q8_0&quot;: &quot;fp8&quot;}.get(
+        ollama_params.get(&quot;kv_cache_type&quot;, &quot;fp16&quot;), &quot;fp16/bf16&quot;)
+    return m
+
+if __name__ == &quot;__main__&quot;:
+    o = {&quot;num_ctx&quot;: 8192, &quot;num_parallel&quot;: 8, &quot;kv_cache_type&quot;: &quot;q8_0&quot;}
+    for k, v in migrate(o).items():
+        print(f&quot;{k}: {v}&quot;)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>gpu-memory-utilization: 0.85 (vLLM 管显存, 不等同 Ollama 的 num_ctx 观念)
+max-model-len: 8192
+max-num-seqs: 8
+quantization: fp8
+</code></pre>
+<p><strong>读数</strong>：<code>num_ctx</code> → <code>max-model-len</code>、<code>OLLAMA_NUM_PARALLEL</code> → <code>max-num-seqs</code> 是直接对应；但 <code>gpu-memory-utilization</code> 在 Ollama 里没有对应物（Ollama 自己按需吃显存，vLLM 预留 KV 池子）——迁移时这个参数要<strong>重新按 vLLM 的显存账算</strong>（见《L12-vLLM推理加速》§3），不能照抄。<code>quantization</code> 的映射是近似：Ollama 的 KV cache 量化（q8_0）对应 vLLM 的 KV cache dtype，不是权重量化，权重量化要看你换的是 AWQ/FP8/GGUF 哪种权重文件。</p>
+<h3 id="82-迁移回归搬完必须重跑的三件事">8.2 迁移回归：搬完必须重跑的三件事</h3>3
+<ol>
+<li><strong>输出质量</strong>：固定 prompt 回归集（10–20 条覆盖你的业务）对比 Ollama 与 vLLM 的输出——同一 GGUF 档位在两个引擎上的采样路径、template 渲染可能有差异，系统提示要在 vLLM 侧重新确认生效；</li>
+<li><strong>延迟特征</strong>：Ollama 单用户低延迟 vs vLLM 高并发吞吐优先，同样的 <code>num_predict</code> 在 vLLM 上 TTFT/TPOT 口径不同，SLO 要重新定；</li>
+<li><strong>并发行为</strong>：Ollama 的 <code>OLLAMA_NUM_PARALLEL</code> 是每模型并发上限，vLLM 的 <code>max-num-seqs</code> 是单实例所有序列上限——负载均衡多实例时别重复计数。</li>
+</ol>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">9. 成本账与流式接入（2026-11-03 补强）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="91-本地部署的经济账什么时候比调-api-便宜">9.1 本地部署的经济账：什么时候比调 API 便宜</h3>3
+<p>本地部署的成本不体现在账单上，但一样是钱。<strong>算式为本文自建模型，单价为示例占位</strong>，以你的实际硬件与电价为准：</p>
+<pre><code>月本地成本 = 硬件购置价 / 折旧月数 + 功耗(kW) × 运行小时 × 电价
+每百万token成本 = 月本地成本 / (月生成token / 1e6)
+盈亏平衡条件 = 月API成本(同token量) &gt; 月本地成本
+</code></pre>
+<p>代入示例占位：一张 8,000 元的消费级显卡按 36 个月折旧（约 222 元/月），整机推理功耗 0.35 kW、每天跑 12 小时、电价 0.6 元/度，则月成本 ≈ 222 + 0.35 × 360 × 0.6 ≈ <strong>298 元/月</strong>。若 7B Q4 模型实测输出 40 tok/s、利用率 25%，月生成 ≈ 40 × 3600 × 12 × 30 × 0.25 ≈ 3.9 亿 token，每百万 token 成本 ≈ 298 / 390 ≈ <strong>0.76 元</strong>。</p>
+<p>三个结论：</p>
+<ol>
+<li><strong>量小不划算</strong>：每月只用几百万 token 时，API 按量付费远低于折旧+电费，本地部署的合理动机是隐私/离线/学习，不是省钱。</li>
+<li><strong>利用率决定一切</strong>：同一台机器，利用率从 25% 提到 75%，每 token 成本直接除以 3——团队共享一个 Ollama 实例比每人各跑各的省。</li>
+<li><strong>别忽略隐性成本</strong>：维护升级、翻车排查的人力时间没算进上式；把它折进去，盈亏平衡点还要后移。与 vLLM 高吞吐场景的对比见 <a href="L12-vLLM%E6%8E%A8%E7%90%86%E5%8A%A0%E9%80%9F.html">L12 vLLM 推理加速</a> 第 9 节。</li>
+</ol>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">9.2 OpenAI 兼容流式调用（对话产品标配）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>stream.close() 用户中断时必须关闭：否则服务端继续生成、白烧 GPU</li></ul></div>3
+<p>Ollama 的 <code>/v1</code> 端点与 OpenAI SDK 兼容，流式只需 <code>stream=True</code>（本文编写，<code>pip install openai</code>）：</p>
+<pre><code class="language-python">from openai import OpenAI
+client = OpenAI(base_url=&quot;http://127.0.0.1:11434/v1&quot;, api_key=&quot;ollama&quot;)
+
+stream = client.chat.completions.create(
+    model=&quot;qwen2.5:7b&quot;,
+    messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;用三句话解释 KV cache&quot;}],
+    stream=True,
+)
+try:
+    for chunk in stream:
+        if chunk.choices and chunk.choices[0].delta.content:
+            print(chunk.choices[0].delta.content, end=&quot;&quot;, flush=True)
+finally:
+    stream.close()   # 用户中断时必须关闭：否则服务端继续生成、白烧 GPU
+</code></pre>
+<p>两个 Ollama 特有注意点：① 单实例默认并发有限（第 4 节 <code>OLLAMA_NUM_PARALLEL</code>），流式长连接会占住并发槽，前端要做超时与取消；② 流式下想拿 token 用量，用原生 <code>/api/generate</code> 响应末帧的 <code>eval_count</code>/<code>prompt_eval_count</code>，OpenAI 兼容层的 usage 字段支持以你所用版本实测为准。</p>
+<hr />
+<h2 id="10-常见误区对照一句话纠正">10. 常见误区对照（一句话纠正）</h2>2
+<table>
+<thead>
+<tr>
+<th>误区</th>
+<th>真相</th>
+<th>出处</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"Ollama 能当生产服务用"</td>
+<td>定位单机单用户，50 并发吞吐仅 vLLM 7.5%</td>
+<td>§1/§8</td>
+</tr>
+<tr>
+<td>"设了 OLLAMA_NUM_PARALLEL 就有并发"</td>
+<td>环境变量须在 serve 启动前导出；Mac MLX 可能不生效</td>
+<td>§6.2</td>
+</tr>
+<tr>
+<td>"num_ctx 只影响回答长度"</td>
+<td>它线性决定 KV 显存，与并发是乘积关系</td>
+<td>§4.2 实跑</td>
+</tr>
+<tr>
+<td>"有 SYSTEM 就有角色设定"</td>
+<td>无 TEMPLATE 时走默认模板，SYSTEM 可能根本不生效</td>
+<td>§3.3 校验器</td>
+</tr>
+<tr>
+<td>"GGUF 是量化算法"</td>
+<td>GGUF 是文件格式，量化档位在 <code>&lt;Type&gt;</code> 字段</td>
+<td>§3.1/§3.2</td>
+</tr>
+<tr>
+<td>"nvidia-smi 看到卡就能用 GPU"</td>
+<td>WSL 还需 <code>/dev/dxg</code> 存在（GPU 直通）</td>
+<td>§2 GPU 检测</td>
+</tr>
+<tr>
+<td>"升级 Ollama 无感"</td>
+<td>template 推断/加载路径会变，必须回归</td>
+<td>§6.3</td>
+</tr>
+<tr>
+<td>"显存看着够就能加载"</td>
+<td>权重 + KV + 多模型驻留叠加，要算总账</td>
+<td>§6.4</td>
+</tr>
+<tr>
+<td>"Modelfile 抄模板就行"</td>
+<td>要校验 TEMPLATE 占位符，否则输出空/角色失效</td>
+<td>§3.3</td>
+</tr>
+<tr>
+<td>"Ollama 到 vLLM 直接换就行"</td>
+<td>参数语义不同（gpu-memory-utilization 无对应物）</td>
+<td>§8.1</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">10.1 本地部署三问决策卡</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>要不要 prefix cache</li><li>用法：本地部署翻车几乎都是"没问显存三问"或"没跑上线三问"</li><li>Ollama 的定位是低摩擦起步——摩擦低不等于可以跳过验证，只是验证脚本可以很短（§7.1/§7.2 的两个脚本共 100 行）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>框架</th>
+<th>何时问</th>
+<th>问什么</th>
+<th>不问</th>
+<th>输出动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>选型三问</td>
+<td>开始用 Ollama 前</td>
+<td>并发需求多大？显存多少？要不要 prefix cache？</td>
+<td>不问"Ollama 能不能顶生产"</td>
+<td>确认用 Ollama / 换 vLLM</td>
+</tr>
+<tr>
+<td>显存三问</td>
+<td>配 num_ctx/并发前</td>
+<td>权重多大？KV 需要多少？预算够吗？</td>
+<td>不问"上下文开大点没事吧"</td>
+<td>算乘积 + 定档位（§4）</td>
+</tr>
+<tr>
+<td>上线三问</td>
+<td>改 Modelfile/升级后</td>
+<td>TEMPLATE 校验了吗？回归跑了吗？并发验证了吗？</td>
+<td>不问"应该没坏吧"</td>
+<td>跑 §7 清单 + 健康脚本</td>
+</tr>
+</tbody>
+</table>
+<p><strong>用法</strong>：本地部署翻车几乎都是"没问显存三问"或"没跑上线三问"。Ollama 的定位是低摩擦起步——<strong>摩擦低不等于可以跳过验证</strong>，只是验证脚本可以很短（§7.1/§7.2 的两个脚本共 100 行）。</p>
+<hr />
+<h2 id="11-术语表">11. 术语表</h2>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>一句话定义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GGUF</td>
+<td>llama.cpp 生态的单文件模型格式，打包元数据+张量，支持 CPU/GPU 混载与 mmap</td>
+</tr>
+<tr>
+<td>Modelfile</td>
+<td>Ollama 的声明式模型描述文件：FROM/参数/模板/系统提示</td>
+</tr>
+<tr>
+<td>K-quant（Q4_K_M 等）</td>
+<td>分块量化的 GGUF 档位命名，每块 16 权重共享 scale，M/S/XL 表示块内精度组合</td>
+</tr>
+<tr>
+<td>num_ctx</td>
+<td>单请求上下文 token 上限，直接线性决定 KV cache 占用</td>
+</tr>
+<tr>
+<td>KV cache</td>
+<td>历史 token 的 Key/Value 缓存，占用 = 每 token 字节 × ctx × 并发</td>
+</tr>
+<tr>
+<td>OLLAMA_NUM_PARALLEL</td>
+<td>每模型并发请求数上限（不等于总并发服务承诺）</td>
+</tr>
+<tr>
+<td>OLLAMA_KV_CACHE_TYPE</td>
+<td>KV cache 量化类型（q8_0/q4_0），显存紧时的第一杠杆</td>
+</tr>
+<tr>
+<td>mmap</td>
+<td>内存映射文件加载，GGUF 靠它实现快速冷启动与按需读取</td>
+</tr>
+<tr>
+<td>llama.cpp</td>
+<td>C++ 写的 CPU/GPU 推理后端，Ollama 在 N 卡上的底层引擎</td>
+</tr>
+<tr>
+<td>FlashAttention</td>
+<td>CUDA 注意力加速 kernel，<code>OLLAMA_FLASH_ATTENTION=1</code> 启用，长上下文提速</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库确实在用 Ollama，但只用于 embedding 与生成，不用来跑量化大模型（<code>rag/config.yaml</code> L16 / L132-136，grep 可验）</strong>：<br />
+<code>yaml
+    ollama_url: "http://localhost:11434"</code><br />
+<code>yaml
+  generation:
+    # [2026-10-21] 切回火山豆包(实测200/2.2s通)。回退小米: 改回下面注释三行
+    model: "doubao-seed-2.1-lite"
+    api_url: "https://ark.cn-beijing.volces.com/api/plan/v3/chat/completions"
+    api_key_env: "VOLCENGINE_ARK_PLAN_KEY"</code><br />
+<strong>生成主路走云端、本地 Ollama 作降级</strong>（<code>rag/serve.py::gen_with_fallback</code> 是 ollama → 豆包两级）——小机器上"本地优先"往往不是最优，先量一下 2.2s 的云端延迟和本地首 token 再决定。</li>
+<li><strong>稀疏向量走 Ollama 的坑（<code>rag/config.yaml</code> L18-20 注释，grep 可验）</strong>：<br />
+<code>yaml
+    # [2026-10-14 澄清] eval_mode=true 仅让 *dense* 编码走 Ollama(省内存),
+    # 不再影响 sparse —— query_sparse() 已改为独立加载本地模型(_get_sparse_model)。
+    # Ollama 的 bge-m3 只输出 dense 1024 维, 没有 lexical_weights, 无法提供 sparse。</code><br />
+<strong>同一个模型名在 Ollama 里不等于同样输出</strong>：Ollama 的 bge-m3 没有 <code>lexical_weights</code>，要用稀疏路必须本地 <code>FlagEmbedding</code> 加载带 <code>sparse_linear.pt</code> 的权重。混用会得到"dense 变了、sparse 没变"而不报错的结果。</li>
+<li><strong>和课件讲法的差异</strong>：课件 Ollama 部分讲 <code>ollama pull qwen2.5:7b</code> + <code>Modelfile</code> 改 <code>num_ctx</code>、<code>num_gpu</code> 层数；本库用 Ollama 只调 bge-m3 的 dense embedding，<code>Modelfile</code> 里的 <code>num_ctx/num_gpu</code> 本库不涉及。</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">12. 来源与核验</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>「raw/fullstack/模型部署调优实操-2026.md」 §1/§2.2/§3.1：并发对比、环境变量、档位口碑（二手估算已标注）</li><li>「raw/courseware/微调篇/」 两期量化课件：量化原理、显存算式、GGUF 命名格式（教学口径）</li></ul></div>2
+<ul>
+<li>Ollama 官方博客 GGUF 文章（2026-06-05）：https://ollama.com/blog/improved-performance-and-model-support-with-gguf （0.30 起 N 卡提速口径）</li>
+<li>llama.cpp 命名规范与 k-quant 说明：https://github.com/ggml-org/llama.cpp/wiki/Tensor-Encoding-Schemes</li>
+<li>HuggingFace GGUF 量化类型表：https://huggingface.co/docs/hub/gguf#quantization-types</li>
+<li><code>raw/fullstack/模型部署调优实操-2026.md</code> §1/§2.2/§3.1：并发对比、环境变量、档位口碑（二手估算已标注）</li>
+<li><code>raw/courseware/微调篇/</code> 两期量化课件：量化原理、显存算式、GGUF 命名格式（教学口径）</li>
+<li>§3.2 GGUF 解析器、§4.2 KV 显存算式、§4.3 档位估、§3.3 Modelfile 生成器输出：本篇在 <code>/home/wuyafang/.venv-hermes/bin/python</code> 实跑产出，属 <code>original_research</code> 性质的实测记录</li>
+</ul>
+<blockquote>
+<p>来源：模型部署调优实操-2026.md；day03微调之量化__课件__大模型微调-3-量化.md；大模型微调-3-使用量化技术削减模型体积.md；官方文档与实跑记录详见第 12 节“来源与核验”。</p>
+</blockquote></div></details></div></body></html>

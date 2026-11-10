@@ -1,0 +1,149 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Happy-LLM：从零开始构建大模型</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ Happy-LLM：从零开始构建大模型</span></div><div class="wrap"><h1 id="书章节重点-happy-llm从零开始构建大模型">书章节重点 · Happy-LLM：从零开始构建大模型</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书系统梳理了从NLP基础概念、Transformer架构、预训练语言模型到LLM训练与应用的全链路知识，并以PyTorch动手实践贯穿始终</li><li>核心价值在于帮助读者建立“原理理解—代码实现—应用落地”的完整LLM知识体系</li><li>全书不是把模型当成黑盒，而是沿着文本如何表示、序列如何建模、参数如何训练、能力如何对齐、知识如何接入和任务如何执行逐层展开</li></ul></div>2
+<p>本书系统梳理了从NLP基础概念、Transformer架构、预训练语言模型到LLM训练与应用的全链路知识，并以PyTorch动手实践贯穿始终。核心价值在于帮助读者建立“原理理解—代码实现—应用落地”的完整LLM知识体系。全书不是把模型当成黑盒，而是沿着文本如何表示、序列如何建模、参数如何训练、能力如何对齐、知识如何接入和任务如何执行逐层展开。阅读时应把公式、张量形状、训练数据和评测指标放在同一条链路中理解：任何一个环节的设计都会影响最终模型的能力、成本与可维护性。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 NLP基础概念</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：NLP涵盖中文分词、子词切分、词性标注、文本分类、实体识别、关系抽取、摘要、翻译和问答等任务，是理解LLM应用场景的基础</li><li>核心观点2：NLP发展经历了规则、统计模型、神经网络和预训练模型等阶段</li><li>阶段变化的核心不是简单替换算法，而是让模型从人工特征和局部统计逐步获得更强的表示学习能力</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：NLP涵盖中文分词、子词切分、词性标注、文本分类、实体识别、关系抽取、摘要、翻译和问答等任务，是理解LLM应用场景的基础。不同任务对输入表示、输出形式和评测方式的要求并不相同。</li>
+<li><strong>核心观点2</strong>：NLP发展经历了规则、统计模型、神经网络和预训练模型等阶段。阶段变化的核心不是简单替换算法，而是让模型从人工特征和局部统计逐步获得更强的表示学习能力。</li>
+<li><strong>核心观点3</strong>：n-gram通过统计局部词序建模，能够用于语音识别、手写识别、拼写纠错、机器翻译和搜索等任务，但上下文窗口固定，面对长距离依赖时表达能力有限。</li>
+<li><strong>核心观点4</strong>：n较大时数据稀疏性和参数空间急剧增长，相同n个单词组成的序列出现概率变低，模型难以有效学习，泛化能力也会下降。因此实践中需要平滑、回退或更强的表示方法。</li>
+<li><strong>核心观点5</strong>：词向量把离散词映射为稠密向量，使相似语义可以在连续空间中表达。Word2Vec推动了文本表示从稀疏统计走向稠密语义，是理解后续预训练模型的重要桥梁。</li>
+</ul>
+<blockquote>
+<p>“但当n较大时，会出现数据稀疏性问题，模型的参数空间会急剧增大……导致模型无法有效学习，泛化能力也会下降。”</p>
+</blockquote>
+<h3 id="第2章-transformer架构">第2章 Transformer架构</h3>3
+<ul>
+<li><strong>核心观点1</strong>：注意力机制是Transformer的基础构件，决定了模型如何从序列不同位置聚合信息。查询、键和值通过相似度计算权重，再形成当前位置的上下文表示。</li>
+<li><strong>核心观点2</strong>：自注意力让序列内部各位置直接交互，掩码自注意力则阻止当前位置看到未来token，适合自回归生成。多头注意力把表示空间分成多个子空间，让模型同时关注不同关系。</li>
+<li><strong>核心观点3</strong>：编码器—解码器架构适合Seq2Seq任务。源序列经编码器逐层编码后，顶层编码结果输出给每一层解码器；解码器再结合已生成内容逐步产生目标序列。</li>
+<li><strong>核心观点4</strong>：Transformer模块通常由多头注意力、全连接神经网络、LayerNorm和残差连接构成。残差帮助深层网络传播信息，归一化改善训练稳定性，前馈网络负责逐位置变换特征。</li>
+<li><strong>核心观点5</strong>：位置嵌入补充序列顺序信息。通过公式计算的位置表示可以处理超出训练集最长长度的句子，但实际泛化仍取决于位置设计、训练范围和模型结构。</li>
+<li><strong>核心观点6</strong>：从零搭建Transformer时，应先明确词嵌入、位置编码、注意力掩码和张量形状，再逐个实现模块，最后用小样本检查前向传播与输出维度，避免把多个错误叠加到一起。</li>
+</ul>
+<blockquote>
+<p>“输入的源序列经编码器逐层编码后，顶层编码器层的编码结果将输出给每一层的解码器层。”<br />
+“机器翻译任务也是一种经典的Seq2Seq任务，例如，我们的输入可能是“今天天气真好”，输出是“Today is a good day”。”</p>
+</blockquote>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 PLM（预训练语言模型）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：仅编码器、编码器—解码器和仅解码器构成PLM的主要架构分类</li><li>核心观点2：MLM随机遮蔽部分token，让模型根据未遮蔽token预测被遮蔽内容</li><li>核心观点3：自然语言文本需先经分词器处理并转化为词典序号的input_ids，同时配合attention_mask区分有效token和padding</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：仅编码器、编码器—解码器和仅解码器构成PLM的主要架构分类。BERT类适合理解和分类，T5类把任务统一成文本到文本，GPT类适合自回归生成。</li>
+<li><strong>核心观点2</strong>：MLM随机遮蔽部分token，让模型根据未遮蔽token预测被遮蔽内容。该任务迫使编码器利用双向上下文学习词语关系，但输入构造、遮蔽比例和标签处理都会影响训练。</li>
+<li><strong>核心观点3</strong>：自然语言文本需先经分词器处理并转化为词典序号的input_ids，同时配合attention_mask区分有效token和padding。数据管道的格式正确是模型训练的前提。</li>
+<li><strong>核心观点4</strong>：编码器输出的hidden_states经过prediction_heads得到类别概率，最后经softmax完成分类预测。模型主体负责表示学习，任务头负责把通用表示映射到具体输出空间。</li>
+<li><strong>核心观点5</strong>：实验表明，后两组实验显著优于前两组，且单文档MLM在下游任务微调时性能最佳。这说明预训练数据组织方式会影响迁移效果，不能只比较模型结构。</li>
+<li><strong>核心观点6</strong>：不同PLM架构应按任务选择，而不是只按参数量选择。理解预训练目标、输入格式和输出头之间的对应关系，才能正确设计微调方案。</li>
+</ul>
+<blockquote>
+<p>“MLM的思想也很简单，即在一个文本序列中随机遮蔽部分token，然后将所有未被遮蔽的token输入模型，要求模型根据输入预测被遮蔽的token。”<br />
+“实验结果证明，后两组实验显著优于前两组实验，且单文档的MLM在下游任务微调时性能最佳。”<br />
+“同样，对于自然语言文本输入，也需要先通过分词器进行分词并转化为对应词典序号的input_ids。”</p>
+</blockquote>
+<h3 id="第4章-llm">第4章 LLM</h3>3
+<ul>
+<li><strong>核心观点1</strong>：LLM沿用与传统PLM相似的架构与预训练任务，例如仅解码器架构与CLM任务，但拥有数量更庞大的参数和更海量的预训练语料，因此展现出不同的能力规模。</li>
+<li><strong>核心观点2</strong>：LLM能力不仅来自参数数量，还来自数据覆盖、训练目标、模型结构、优化过程和对齐方式。参数变大并不会自动保证事实正确、推理可靠或安全可控。</li>
+<li><strong>核心观点3</strong>：指令遵循能力是重要跃迁。模型不再需要对每件事先教再做，而是能根据自然语言要求迁移已有能力完成新任务，这改变了应用开发从专用模型到通用模型的方式。</li>
+<li><strong>核心观点4</strong>：训练一个LLM通常包括预训练、SFT和RLHF等阶段。预训练学习语言与知识模式，SFT学习示范行为，RLHF进一步把输出方向对齐到人类偏好和任务要求。</li>
+<li><strong>核心观点5</strong>：理解LLM时要同时看能力与限制：它能生成、总结、翻译和编程，但仍可能产生幻觉、受上下文限制并受数据偏差影响。因此应用系统必须配套评测、检索、权限和人工复核。</li>
+</ul>
+<blockquote>
+<p>“LLM使用与传统PLM相似的架构与预训练任务（如仅解码器架构与CLM预训练任务），但拥有数量更庞大的参数，且在更海量的语料上进行了预训练，从而展现出与传统PLM截然不同的能力。”<br />
+“指令遵循能力意味着我们不再需要对于每一件事都先教模型，然后模型才能去做这件事。”</p>
+</blockquote>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 动手搭建大模型</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：本章以LLaMA2为蓝本搭建大模型，把RMS归一化、Attention、MLP、解码器层和整体模型拆成可实现模块</li><li>核心观点2：Attention模块负责从上下文聚合信息，MLP负责非线性变换，解码器层把归一化、注意力、前馈和残差连接组织起来</li><li>核心观点3：BPE是一种简单有效的分词技术，能够处理未登录词和罕见词，同时保持较小词典规模</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：本章以LLaMA2为蓝本搭建大模型，把RMS归一化、Attention、MLP、解码器层和整体模型拆成可实现模块。模块化实现便于逐层检查张量尺寸和残差路径。</li>
+<li><strong>核心观点2</strong>：Attention模块负责从上下文聚合信息，MLP负责非线性变换，解码器层把归一化、注意力、前馈和残差连接组织起来。理解这些模块的输入输出，是从源码读懂模型的基础。</li>
+<li><strong>核心观点3</strong>：BPE是一种简单有效的分词技术，能够处理未登录词和罕见词，同时保持较小词典规模。它通过合并高频子词，在词级语义和字符级覆盖之间取得折中。</li>
+<li><strong>核心观点4</strong>：词级分词器在汉语、日语等没有显式单词分隔符的语言上面临挑战；字符级分词覆盖稳定但序列可能变长；子词级分词则兼顾词表规模和未登录词处理。</li>
+<li><strong>核心观点5</strong>：预训练小型LLM要依次完成数据下载、分词器训练、数据集构造、CLM训练、SFT以及生成测试。每一阶段都要检查数据是否为空、标签是否错位、损失是否下降。</li>
+<li><strong>核心观点6</strong>：从零实现的价值在于建立因果链：token如何变成embedding，embedding如何经过层堆叠，logits如何变成下一个token。它不等同于直接训练生产级大模型，却能帮助定位工程问题。</li>
+</ul>
+<blockquote>
+<p>“BPE是一种简单且有效的分词技术，能够处理未登录词和罕见词，同时保持较小的词典大小。”<br />
+“此外，词级分词器在处理不同语言时也会遇到挑战，因为一些语言（如汉语、日语）没有显式的单词分隔符。”</p>
+</blockquote>
+<h3 id="第6章-大模型训练流程实践">第6章 大模型训练流程实践</h3>3
+<ul>
+<li><strong>核心观点1</strong>：预训练数据处理后包含input_ids和attention_mask两列，前者是分词后的数值序列，后者标识有效位置与padding。数据集字段必须和模型forward接口一致。</li>
+<li><strong>核心观点2</strong>：CLM预训练一次性学习多个样本的序列语义不影响模型性能；由于数据量大、训练时间长，吞吐、显存、数据加载和检查点策略都直接影响训练效率。</li>
+<li><strong>核心观点3</strong>：Hugging Face的datasets库与Transformers配套，可通过load_dataset加载预训练数据，再交给Tokenizer、DataCollator和Trainer组织训练流程。工具链的价值在于减少重复的数据工程代码。</li>
+<li><strong>核心观点4</strong>：混合并行训练结合数据并行、模型并行等思路，在8卡A100集群上可支持百亿参数模型的高效训练。并行策略需要根据显存、通信开销、批次和模型规模综合选择。</li>
+<li><strong>核心观点5</strong>：完整训练链路包括预训练、SFT和高效微调。预训练获得通用语言能力，SFT学习指令格式，LoRA等方法则以较低资源适配具体任务。</li>
+<li><strong>核心观点6</strong>：训练实践必须配套验证集、损失曲线、检查点恢复和生成样例。单看训练损失下降不能证明下游能力提升，还要通过任务评测检查过拟合和数据泄漏。</li>
+</ul>
+<blockquote>
+<p>“利用这种混合并行训练方式，在8卡A100集群上可轻松支持百亿参数模型的高效训练。”<br />
+“处理完成后的数据集包括“input_ids”和“attention_mask”两列，它们分别是文本分词后的数值序列和注意力掩码列（标识是否padding）。”<br />
+“因为预训练一般为CLM任务，一次性学习多个样本的序列语义不影响模型性能，且训练数据量大、训练时间长，所以对训练效率要求比较高。”<br />
+“Hugging Face的datasets库是和Transformers配套的用于数据下载和处理的第三方库，我们可以直接使用其中的load_dataset函数来加载预训练数据，代码如下。”</p>
+</blockquote>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 大模型应用</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：大模型评测是模型选型与效果验证的前提</li><li>核心观点2：RAG把外部知识检索结果引入生成过程，扩展模型知识边界，缓解知识固化问题</li><li>核心观点3：RAG质量不只取决于生成模型，还取决于分块粒度、嵌入模型、检索策略、元数据和引用约束</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：大模型评测是模型选型与效果验证的前提。评测数据应覆盖通用能力、特定任务和真实业务样本，并同时关注准确性、稳定性、成本和延迟。</li>
+<li><strong>核心观点2</strong>：RAG把外部知识检索结果引入生成过程，扩展模型知识边界，缓解知识固化问题。完整RAG链路包括文档切分、向量化、召回、重排、上下文组装和答案生成。</li>
+<li><strong>核心观点3</strong>：RAG质量不只取决于生成模型，还取决于分块粒度、嵌入模型、检索策略、元数据和引用约束。检索不到正确片段时，单纯更换生成模型通常不能根治问题。</li>
+<li><strong>核心观点4</strong>：通过设置BaseEmbeddings基类，使用其他嵌入模型时只需继承基类并修改，便于代码扩展。这体现面向接口设计：上层流程依赖统一方法，底层模型可替换。</li>
+<li><strong>核心观点5</strong>：智能体代表LLM从被动应答走向主动执行任务的应用形态。智能体需要规划、工具调用、状态管理和结果验证，不能把一次文本生成误认为完整Agent。</li>
+<li><strong>核心观点6</strong>：应用落地应先建立最小可评测闭环，再逐步增加工具和自治程度。每次增加检索、记忆或外部操作，都要同步增加权限、超时、日志和失败回退。</li>
+</ul>
+<blockquote>
+<p>“首先我们需要设置一个BaseEmbeddings基类，这样在使用其他模型时，只需要继承这个基类，然后在此基础上进行修改即可，从而方便进行代码的扩展。”</p>
+</blockquote>
+<h2 id="适用场景标签">适用场景标签</h2>2
+<ul>
+<li>大模型入门学习</li>
+<li>Transformer原理与实现</li>
+<li>PyTorch实战</li>
+<li>LLM训练流程</li>
+<li>RAG与智能体应用</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">一句话推荐</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>从原理到代码，打通LLM全链路</li></ul></div>2
+<p>从原理到代码，打通LLM全链路。</p></div></details></div></body></html>

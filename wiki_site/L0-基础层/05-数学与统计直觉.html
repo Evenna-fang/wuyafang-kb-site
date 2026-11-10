@@ -1,0 +1,237 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>05-数学与统计直觉</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 05-数学与统计直觉</span></div><div class="wrap"><h1 id="数学与统计直觉表示变换不确定性与稳健结论">数学与统计直觉：表示、变换、不确定性与稳健结论</h1>
+<p>本文合并「线性代数白话、概率统计白话、统计直觉、数学基础综合」。只保留 AI 应用最常用的最小闭环：向量与矩阵管表示和变换，概率统计管不确定性，微积分管优化；所有概念最终落到形状检查、数值计算和替代分析。</p>
+<blockquote>
+<p>验证边界：NumPy/SciPy 示例已在本机离线实跑，随机数使用固定种子；输出只是合成小样本的教学结果，不是业务显著性结论。论文方法未在本库数据上复现。</p>
+</blockquote>
+<h2 id="why">WHY</h2>2
+<h3 id="1-为什么-ai-应用不能跳过数学形状与统计口径">1. 为什么 AI 应用不能跳过数学形状与统计口径</h3>3
+<p>Embedding 返回的是向量，批量文本组成矩阵，检索要比较方向或距离，训练要用损失与梯度调整参数。若不理解形状，<code>A @ x</code> 的维度错误会被误当库 bug；若不理解归一化，零向量余弦相似度会出现 NaN；若不理解样本与总体，就会把一次 RAG 评测的高分当稳定能力。</p>
+<p>统计错误更隐蔽：均值被极端值拉动、分组样本量不同、重复试验后挑显著结果、相关被解释为因果。即使代码运行成功，错误口径仍会稳定地产出错误结论。后果是选错模型、误报提升、上线后指标回落，而且难以通过单纯调参修复。</p>
+<h3 id="2-为什么还要做稳健性而不是只跑一次">2. 为什么还要做稳健性，而不是只跑一次</h3>3
+<p>一次分析通常包含多个可选决定：异常值怎么处理、用均值还是中位数、指标怎样归一化、哪批样本作基线。只报告最顺手的一条路径，会把分析选择的偶然性伪装成事实。稳健性不是要求所有方法给出完全相同数字，而是检查关键结论是否依赖某个未说明的任意选择。</p>
+<h2 id="what-whyt">WHAT / WHYT</h2>2
+<h3 id="3-线性代数向量是坐标矩阵是变换">3. 线性代数：向量是坐标，矩阵是变换</h3>3
+<ul>
+<li><strong>标量/向量/矩阵/张量</strong>：分别可看作 0、1、2 及更高维数组；形状比「几维数据」更重要。</li>
+<li><strong>点积</strong> <code>x · y = Σxᵢyᵢ</code>：同时受方向与长度影响；不能直接称为余弦相似度。</li>
+<li><strong>余弦相似度</strong> <code>cos(x,y)=x·y/(||x|| ||y||)</code>：去除长度影响，范围为 [-1,1]；零向量没有定义。</li>
+<li><strong>矩阵乘法</strong> <code>A @ x</code>：对向量做线性变换；<code>(m,n) @ (n,)</code> 得到 <code>(m,)</code>，不是逐元素乘法 <code>A * x</code>。</li>
+<li><strong>线性方程组</strong> <code>A x=b</code>：在数值计算中通常用 <code>np.linalg.solve(A,b)</code>，不要手工求逆再乘 b。</li>
+<li><strong>特征向量/奇异值</strong>：用于理解特殊方向和低秩结构；不是「Embedding 的每一维都有固定语义」的证明。</li>
+</ul>
+<p>Embedding 的近邻可以反映训练数据与模型学到的关系，但相似不保证事实相同、权限相同或检索证据充分。余弦分数也不能跨模型、跨任务直接设同一个阈值。</p>
+<h3 id="4-概率统计先问样本怎样来再看指标">4. 概率统计：先问样本怎样来，再看指标</h3>3
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>回答的问题</th>
+<th>不能推出什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>均值/中位数</td>
+<td>数据中心位置的两种口径</td>
+<td>均值相近不代表分布相同</td>
+</tr>
+<tr>
+<td>方差/标准差/IQR</td>
+<td>数据离散与尾部情况</td>
+<td>波动大不自动代表异常或坏</td>
+</tr>
+<tr>
+<td>条件概率</td>
+<td>已知条件下事件发生的可能性</td>
+<td><code>P(A|B)</code> 不等于 <code>P(B|A)</code></td>
+</tr>
+<tr>
+<td>相关系数</td>
+<td>线性共同变化程度</td>
+<td>不证明因果，也不捕捉所有非线性关系</td>
+</tr>
+<tr>
+<td>置信区间</td>
+<td>在模型与抽样假设下的区间估计</td>
+<td>不是「真值有 95% 概率随机落在这个已算区间」</td>
+</tr>
+<tr>
+<td>p 值</td>
+<td>原假设与模型成立时，观察到至少这么极端结果的概率</td>
+<td>不是原假设为真的概率，也不代表效应大小</td>
+</tr>
+<tr>
+<td>Bootstrap</td>
+<td>用重抽样估计统计量不确定性</td>
+<td>不能修复有偏采样、数据泄漏和依赖结构</td>
+</tr>
+</tbody>
+</table>
+<p>《统计学习方法》的划线把统计学习组织为方法、模型、策略，并强调独立同分布等假设。实际 RAG 问题常有重复主题、时间漂移与文档聚类，普通独立样本 Bootstrap 可能低估不确定性；必要时应按文档或用户分组重抽样。</p>
+<h3 id="5-微积分在最小地图中的位置">5. 微积分在最小地图中的位置</h3>3
+<p>损失函数把预测与目标差异变成可优化数值，梯度指出局部变化方向，学习率控制步长。入门应用阶段需要知道「训练是在改参数」以及过拟合/欠拟合的含义，不必一开始就手推所有反向传播。损失下降不等于业务指标提升，训练集下降也不等于未见数据泛化改善。</p>
+<h3 id="6-论文怎么说我们怎么用">6. 论文怎么说，我们怎么用</h3>3
+<p><strong>量尺不是中性的显示格式。</strong>Change the Number, Change the Answer（<strong>arXiv:2610.22187</strong>）研究评分量尺变化对 LLM 评审的影响，显示不同量尺设计会改变归一化分数和部分文本类别，详细 rubric 并未消除敏感性。我们的落点是：保存原始评分和量尺版本，不只保存归一化结果；更换 1–5、0–100 或不同锚点时做平行评分与排序比较，禁止把两套分数直接拼成同一趋势。</p>
+<p><strong>可复现不只是重跑同一脚本。</strong>AI-Driven Reproducibility and Analytical Robustness（<strong>arXiv:2610.23845</strong>）关注 AI 辅助分析与合理替代路径的稳健性。我们采用更保守的工程转化：固定数据快照与随机种子，同时改变一个合理分析选择（均值/中位数、异常值规则、聚合层级），记录结论是否翻转；不把论文自动化设想写成已验证工具能力。</p>
+<h2 id="how">HOW</h2>2
+<h3 id="7-向量与线性方程用可手算的小例子验收">7. 向量与线性方程：用可手算的小例子验收</h3>3
+<p>保存为 <code>math_demo.py</code>（<strong>已实跑</strong>）：</p>
+<pre><code class="language-python">import numpy as np
+
+rng = np.random.default_rng(42)
+
+x = np.array([1.0, 0.0])
+y = np.array([1.0, 1.0])
+cosine = float(x @ y / (np.linalg.norm(x) * np.linalg.norm(y)))
+assert np.isclose(cosine, 1 / np.sqrt(2))
+print(&quot;cosine:&quot;, cosine)
+
+# 2a+b=5, a-b=1 -&gt; a=2,b=1
+A = np.array([[2.0, 1.0], [1.0, -1.0]])
+b = np.array([5.0, 1.0])
+solution = np.linalg.solve(A, b)
+assert np.allclose(A @ solution, b)
+print(&quot;solution:&quot;, solution)
+
+zero = np.zeros(2)
+with np.errstate(divide=&quot;ignore&quot;, invalid=&quot;ignore&quot;):
+    undefined = zero @ x / (np.linalg.norm(zero) * np.linalg.norm(x))
+assert np.isnan(undefined)
+print(&quot;zero-vector cosine:&quot;, undefined, &quot;（必须显式拒绝或单独处理）&quot;)
+</code></pre>
+<p>运行（<strong>已实跑</strong>）：</p>
+<pre><code class="language-bash">python -I math_demo.py
+</code></pre>
+<p>旧稿的 <code>np.mat</code> 不沿用；现代代码使用 <code>np.array</code> 和 <code>@</code>。真实检索还需批量零范数检查、dtype、归一化约定和索引一致性。</p>
+<h3 id="8-统计摘要区间与替代口径">8. 统计摘要、区间与替代口径</h3>3
+<p>继续加入以下代码（<strong>已实跑</strong>）：</p>
+<pre><code class="language-python">from scipy import stats
+
+values = np.array([10, 11, 10, 12, 11, 60], dtype=float)
+summary = {
+    &quot;n&quot;: values.size,
+    &quot;mean&quot;: values.mean(),
+    &quot;median&quot;: np.median(values),
+    &quot;std_sample&quot;: values.std(ddof=1),
+    &quot;q1_q3&quot;: np.percentile(values, [25, 75]).tolist(),
+}
+print(&quot;summary:&quot;, summary)
+
+# 合成数据的均值 bootstrap；真实文档数据可能需按组重抽样
+boot = np.array([
+    rng.choice(values, size=values.size, replace=True).mean()
+    for _ in range(2000)
+])
+interval = np.quantile(boot, [0.025, 0.975])
+print(&quot;bootstrap_mean_95%:&quot;, interval.tolist())
+
+# 替代口径：极端值对均值和中位数影响不同
+without_max = values[values != values.max()]
+print(&quot;without_max mean/median:&quot;, without_max.mean(), np.median(without_max))
+assert summary[&quot;mean&quot;] != summary[&quot;median&quot;]
+
+# p 值演示不是业务显著性宣称
+result = stats.ttest_1samp(values, popmean=10)
+print(&quot;illustrative_ttest:&quot;, {&quot;statistic&quot;: result.statistic, &quot;pvalue&quot;: result.pvalue})
+</code></pre>
+<p>这组数故意加入 60，让均值和中位数分离。Bootstrap 区间继承原样本的偏差，不会因为重抽 2000 次就「修复」样本代表性；t 检验在小样本、偏态和极端值下的假设也要审查。真实报告应给效应量、原始样本、图形与缺失处理，而不是只报 p 值。</p>
+<h3 id="9-建立一页稳健性记录">9. 建立一页稳健性记录</h3>3
+<p>每次模型或检索评测至少填写：</p>
+<pre><code class="language-text">数据快照 ID：
+样本抽取方式与时间范围：
+指标公式与量尺版本：
+原始评分数组位置：
+主分析（模型/指标/异常值规则）：
+替代分析 A（只改一个选择）：
+替代分析 B（只改另一个选择）：
+结论是否翻转：
+随机种子、代码版本、依赖版本：
+</code></pre>
+<p>具体步骤：</p>
+<ol>
+<li>先冻结数据快照，避免每次运行抽到不同题。</li>
+<li>保存每题原始结果，不能只存最终均值。</li>
+<li>主分析与替代分析使用同一样本，避免因换样本混淆原因。</li>
+<li>若更换量尺，分别保留原分数、锚点、评审模型与归一化公式；比较逐题变化和排序，不只做整体缩放。</li>
+<li>报告翻转与不确定区间，不只报告对当前方案有利的分支。</li>
+</ol>
+<h3 id="10-最小过关题">10. 最小过关题</h3>3
+<ul>
+<li>手算 <code>[1,0]</code> 与 <code>[1,1]</code> 的点积和余弦，并解释二者为何不同。</li>
+<li>给出 <code>(3,2) @ (2,4)</code> 的结果形状，说明何时乘法无定义。</li>
+<li>对 <code>[10,11,10,12,11,60]</code> 分别计算均值与中位数，说明哪个受极端值影响更大。</li>
+<li>解释「p=0.03」不意味着什么，并列出效应量、样本量和抽样设计三项补充信息。</li>
+<li>把一次 RAG 评测从固定量尺改成另一套合理锚点，检查逐题类别或排序是否变化；没有原始分数时先补采集，不伪造结论。</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>向量检索全部建立在三个基础数学操作上，本库的实现能逐行对上（本次在 <code>rag/.venv</code> 实跑编码器）</strong>：<br />
+  1. <strong>余弦相似度 → 距离</strong>：Chroma 返回的是 <code>distances</code>，本库一律换算成 <code>1 - dist</code> 当「相似度」（<code>rag/query.py</code> L783 <code>"score": 1.0 - float(dist)</code>）——所以<strong>距离越小越相关</strong>，0.27 是好命中，0.43 是域外。<br />
+  2. <strong>RRF 排名倒数</strong>：<code>rag/query.py</code> L428 <code>scores[hid] = scores.get(hid, 0.0) + w / (k + rank_idx)</code>，<code>k=60</code>——只用名次不用分数，避免 dense 的余弦与 sparse 的词法权重不同纲。<br />
+  3. <strong>阈值决策</strong>：门禁不是「像不像」，而是「阈值的两侧是否干净可分」，<code>rag/config.yaml</code> L139-146 记录了双端实测：19 个正样本最低 0.0697、5 个域外负样本最高 0.8641（一条假阳），最终取 <code>threshold: 0.45</code> 落在 (0.0211, 0.4943] 的分离窗内。</li>
+<li><strong>本次实跑数字（可复现）</strong>：bge-m3 对一句中文输出 dense 1024 维、首四项 <code>[-0.0071, 0.0166, -0.0302, -0.0003]</code>；sparse 输出 15 个 token 权重（<code>30094→0.2633</code>、<code>98771→0.2377</code>、<code>125012→0.2920</code>）。前者是浮点向量，后者是「稀疏字典」——<strong>同一个模型，两种数学结构</strong>。</li>
+<li><strong>统计直觉用在「别信单次观测」</strong>：本库的 rerank 阈值注释专门记了「Q056=0.8641 是 reranker 假阳……抬阈值到 0.87 才能拦，但会误拒 3/19 正样本，得不偿失」——《统计学习方法》里讲的「样本量与误判权衡」，在这里是一个具体数字取舍。</li>
+<li><strong>和课件讲法的差异</strong>：课件以公式推导（内积、余弦、概率分布）为主线；本库的数学全在<strong>配置注释里的实测分布</strong>中，读代码时要把 <code>rag/config.yaml</code> 的检索段当「带数字的数学笔记」读。</li>
+<li><strong>本库暂无</strong>：没有做向量分布的统计画像（如各层向量范数分布、距离分位数曲线），阈值靠人工双端采样，样本量 19 正 + 5 负，属于「够用不充分」。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本次实跑 bge-m3 对一句 21 字中文的 dense 编码输出 1024 维、首四项 <code>[-0.0071, 0.0166, -0.0302, -0.0003]</code>，sparse 输出 15 个 token 权重，桶 <code>30094→0.2633</code>、<code>98771→0.2377</code>（<code>_local_dense</code> / <code>query_sparse</code> 实跑，2026-11-04）。</li>
+<li><strong>读源码</strong>：数学在检索链里落成什么操作；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li><strong>[课1] 课件</strong>：<a href="../../raw/courseware/%E5%9F%BA%E7%A1%80%E7%AF%87/code/day02__day02__%E5%90%91%E9%87%8F%E5%8C%96%E4%B8%8E%E4%BD%99%E5%BC%A6%E8%AE%A1%E7%AE%97.md">向量化与余弦计算</a>：提供向量、Embedding 与余弦计算骨架；本机模型路径示例改成 NumPy 可离线小例子。</li>
+<li><strong>[课2] 课件</strong>：<a href="../../raw/courseware/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/code/19%E4%BF%A1%E7%94%A8%E5%8D%A1%E6%AC%BA%E8%AF%88%E6%A3%80%E6%B5%8B__%E7%A7%91%E6%AF%94%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90.md">信用卡欺诈检测与数据分析</a>：用于数组、分组统计与可视分析衔接，不沿用其特定业务结论。</li>
+<li><strong>[书1] 书籍摘录</strong>：<a href="../../raw/weread/3300014100/best_bookmarks.md">《统计学习方法（第2版）》目录与划线</a>：用于统计学习要素与独立同分布假设；只使用目录与划线，不声称书籍全文。</li>
+<li><strong>[书2] 书籍摘录</strong>：<a href="../../raw/weread/3300108590/best_bookmarks.md">《深度学习入门：基于 Python 的理论与实现》目录与划线</a>：用于向量/矩阵/张量、损失与梯度的最小地图；不声称书籍全文。</li>
+<li><strong>[业1] 业内官方文档</strong>：<a href="https://numpy.org/doc/stable/user/quickstart.html">NumPy quickstart</a>（GET 200，2026-11-04）：核对数组、形状和基本运算。</li>
+<li><strong>[业2] 业内官方文档</strong>：<a href="https://docs.scipy.org/doc/scipy/reference/stats.html">SciPy statistics</a>（GET 200，2026-11-04）：核对统计函数与检验入口。</li>
+<li><strong>[业3] 论文</strong>：<a href="../../raw/sources/arxiv-daily/2026-10-14-2610.22187.md">Change the Number, Change the Answer 本地摘要</a>，<strong>arXiv:2610.22187</strong>：融入量尺版本、原始分数与替代量尺检查。</li>
+<li><strong>[业4] 论文</strong>：<a href="../../raw/sources/arxiv-daily/2026-10-14-2610.23845.md">AI-Driven Reproducibility and Analytical Robustness 本地摘要</a>，<strong>arXiv:2610.23845</strong>：融入合理替代分析与结论翻转记录，未宣称已复现其框架。</li>
+</ul></div></body></html>

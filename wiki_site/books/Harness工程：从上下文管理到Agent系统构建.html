@@ -1,0 +1,141 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Harness工程：从上下文管理到Agent系统构建</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ Harness工程：从上下文管理到Agent系统构建</span></div><div class="wrap"><h1 id="书章节重点-harness工程从上下文管理到agent系统构建">书章节重点 · Harness工程：从上下文管理到Agent系统构建</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书系统阐述从上下文工程到Harness工程的技术演进路径，揭示AI Agent从工具调用到自主思考与协作的核心原理及工程落地方法</li><li>全书的关键不是把模型包装成会聊天的界面，而是把输入、状态、工具、记忆、反馈和人工审批组织成可重复、可观测、可恢复的执行系统</li><li>以“从单Agent到多Agent”为主线，帮助读者掌握构建具备理解、计划、反思与行动能力的Agent系统的完整方法论</li></ul></div>2
+<p>本书系统阐述从上下文工程到Harness工程的技术演进路径，揭示AI Agent从工具调用到自主思考与协作的核心原理及工程落地方法。以“从单Agent到多Agent”为主线，帮助读者掌握构建具备理解、计划、反思与行动能力的Agent系统的完整方法论。全书的关键不是把模型包装成会聊天的界面，而是把输入、状态、工具、记忆、反馈和人工审批组织成可重复、可观测、可恢复的执行系统。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 从提示词到上下文工程</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：上下文工程并非单纯的提示词润色，而是对信息进行采集、过滤、排序、组合和持续更新的系统工程；它把用户模糊的原始请求转换成带有目标、约束、背景和验收标准的输入</li><li>核心观点2：系统结构围绕感知、规划、执行、反思四大模块展开</li><li>核心观点3：ReAct的价值在于用提示词引导模型交替思考与行动，不依赖额外训练；但生产系统仍需加入工具白名单、参数校验、超时、重试和结果回写，避免“会调用”变成“乱调用”</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：上下文工程并非单纯的提示词润色，而是对信息进行采集、过滤、排序、组合和持续更新的系统工程；它把用户模糊的原始请求转换成带有目标、约束、背景和验收标准的输入。</li>
+<li><strong>核心观点2</strong>：系统结构围绕感知、规划、执行、反思四大模块展开。感知把自然语言转成结构化任务，规划拆解步骤，执行调用工具，反思依据结果修正路线，四者形成闭环而非一次性问答。</li>
+<li><strong>核心观点3</strong>：ReAct的价值在于用提示词引导模型交替思考与行动，不依赖额外训练；但生产系统仍需加入工具白名单、参数校验、超时、重试和结果回写，避免“会调用”变成“乱调用”。</li>
+<li><strong>核心观点4</strong>：Code Agent以生成并执行代码为核心决策手段，Coding Agent则更偏向辅助编程，两者的工具权限、风险边界和验收方式不能混用。</li>
+<li><strong>核心观点5</strong>：多Agent系统的工程价值是分而治之，隔离不同角色的上下文，减少无关信息污染；只有在任务确实跨领域、可并行或需要独立审查时才值得引入。<blockquote>
+<p>“上下文”是输入模型的核心语义载体，而“工程”则是通过程序化、系统化的手段对这些载体进行动态构建与持续优化。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第2章-上下文的元驱动意图识别规划等模块的工程化实战">第2章 上下文的“元驱动”：意图识别、规划等模块的工程化实战</h3>3
+<ul>
+<li><strong>核心观点1</strong>：意图识别要联合当前对话、用户画像和历史交互，不只做关键词匹配；同时先判断安全边界、权限和任务是否应该执行，再进入回答流程。</li>
+<li><strong>核心观点2</strong>：规划模块负责把目标拆成依赖关系清楚的步骤，显式列出输入、产物、风险和验收信号；复杂任务可使用高配模型规划、低配模型执行的异构策略控制成本。</li>
+<li><strong>核心观点3</strong>：反思不是让模型无限重复思考，而是要求它比较“预期结果”和“实际结果”，识别失败原因后只修改必要环节，并设置迭代上限。</li>
+<li><strong>核心观点4</strong>：CodeAct把代码当作工具，适合数据处理、检索、文件变换等可机械验证的工作；执行环境必须隔离，输出要保留日志与错误信息，才能支持复盘。</li>
+<li><strong>核心观点5</strong>：Human-in-the-loop应放在高风险、不可逆或目标含糊的节点，而不是每一步都打断；审批内容应包含拟执行动作、影响范围和回滚方式。<blockquote>
+<p>一个成熟的Agent系统必须融合当前对话上下文、用户画像、历史交互记录等多维信号，对表层语句背后的深层需求进行精准推断，从而生成相关、准确且安全的响应。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 DeepResearch：基于深度思考Agent构建上下文的典型案例</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：DeepSearch首先把问题拆成多个关键词，调用搜索接口抓取网页，再进行去重、筛选、摘要和来源标注；它的基本单位是“搜索结果的聚合”</li><li>核心观点2：DeepResearch在此基础上增加问题分解、证据比较、中间结论和多轮修正，重点从“找到页面”提升到“形成可追溯的研究结论”</li><li>核心观点3：Sequential Thinking把复杂研究显式拆成连续步骤，每一步都保留当前假设、证据和待验证问题，适合需要长链条推理的场景</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：DeepSearch首先把问题拆成多个关键词，调用搜索接口抓取网页，再进行去重、筛选、摘要和来源标注；它的基本单位是“搜索结果的聚合”。</li>
+<li><strong>核心观点2</strong>：DeepResearch在此基础上增加问题分解、证据比较、中间结论和多轮修正，重点从“找到页面”提升到“形成可追溯的研究结论”。</li>
+<li><strong>核心观点3</strong>：Sequential Thinking把复杂研究显式拆成连续步骤，每一步都保留当前假设、证据和待验证问题，适合需要长链条推理的场景。</li>
+<li><strong>核心观点4</strong>：联网研究的可靠性取决于来源质量与引用绑定；生成结论时应让每个关键判断都能回指具体网页或原始材料，不能只给没有证据的综合段落。</li>
+</ul>
+<h3 id="第4章-记忆工程agent系统的长短期上下文管理">第4章 记忆工程：Agent系统的长短期上下文管理</h3>3
+<ul>
+<li><strong>核心观点1</strong>：短期记忆保存当前会话状态、工具结果和未完成计划，进程结束后可以清空；长期记忆通过外部存储保存稳定事实、用户偏好和经验教训。</li>
+<li><strong>核心观点2</strong>：记忆写入不能等同于日志堆积，应先判断内容是否稳定、可复用、与用户相关，避免把一次性噪声和敏感信息永久化。</li>
+<li><strong>核心观点3</strong>：Mem0提供记忆写入、检索、更新和删除的标准化接口，使记忆层与Agent推理层解耦；生产部署还要考虑权限、租户隔离、备份与一致性。</li>
+<li><strong>核心观点4</strong>：分布式记忆系统需要容器化部署、持久化存储和高可用机制，检索失败时要有降级路径，不能让外部记忆服务成为单点故障。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 Skills：上下文卸载的艺术</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：Skill把一类稳定能力封装成可发现、可复用的说明与工具集合，只有任务命中时才加载，从而减少主上下文的长期占用</li><li>核心观点2：渐进式披露应先给名称和触发条件，再加载核心流程，最后按需读取参考资料；能力描述、操作步骤和背景知识应分层放置</li><li>核心观点3：运维巡检Skill的价值在于把检查项、命令、风险判断和报告格式固化，使用者只需提供目标环境即可复用流程</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：Skill把一类稳定能力封装成可发现、可复用的说明与工具集合，只有任务命中时才加载，从而减少主上下文的长期占用。</li>
+<li><strong>核心观点2</strong>：渐进式披露应先给名称和触发条件，再加载核心流程，最后按需读取参考资料；能力描述、操作步骤和背景知识应分层放置。</li>
+<li><strong>核心观点3</strong>：运维巡检Skill的价值在于把检查项、命令、风险判断和报告格式固化，使用者只需提供目标环境即可复用流程。</li>
+<li><strong>核心观点4</strong>：零代码开发降低了Skill试错门槛，但仍要通过OpenClaw等运行环境测试触发、参数传递、失败处理和输出质量，不能以“能生成”代替验收。</li>
+</ul>
+<h3 id="第6章-harness工程实践复现claude-code核心设计模式">第6章 Harness工程实践：复现Claude Code核心设计模式</h3>3
+<ul>
+<li><strong>核心观点1</strong>：Harness不直接改造模型内部决策，而是在模型边界外提供文件访问、工具调用、状态保存、审批与反馈机制，使模型能够长时间工作。</li>
+<li><strong>核心观点2</strong>：Agent Loop通过“读取状态—决策—调用工具—观察结果—更新状态”的循环推进任务；循环必须具备终止条件、预算限制和异常恢复。</li>
+<li><strong>核心观点3</strong>：上下文管理要区分当前任务、持久化记忆和异步任务队列，跨会话任务不能只依赖对话窗口中的文字，否则重启后无法恢复。</li>
+<li><strong>核心观点4</strong>：Agent Teams通过角色分工和并行处理复杂任务，但必须规定共享信息、交付格式、冲突解决和最终汇总者，否则多个Agent只会制造更多噪声。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 Harness工程实践：Claw类产品的设计模式解析与实践</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：Claw类产品把模型、工具、会话、记忆、消息渠道和权限控制组合成完整Harness，重点是把一次调用变成可持续运行的Agent产品</li><li>核心观点2：NanoClaw实践强调从架构理解到代码实现的闭环：先确定核心循环和最小工具集，再逐步加入记忆、渠道适配、任务调度和安全边界</li><li>核心观点3：工程落地时应把平台接入层与Agent内核解耦，统一消息模型和会话标识，避免每个渠道各自实现一套推理逻辑</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：Claw类产品把模型、工具、会话、记忆、消息渠道和权限控制组合成完整Harness，重点是把一次调用变成可持续运行的Agent产品。</li>
+<li><strong>核心观点2</strong>：NanoClaw实践强调从架构理解到代码实现的闭环：先确定核心循环和最小工具集，再逐步加入记忆、渠道适配、任务调度和安全边界。</li>
+<li><strong>核心观点3</strong>：工程落地时应把平台接入层与Agent内核解耦，统一消息模型和会话标识，避免每个渠道各自实现一套推理逻辑。</li>
+<li><strong>核心观点4</strong>：可运维性来自日志、重试、状态持久化和人工接管；一个只能在演示环境运行的Claw，还不能算完成的Harness工程。</li>
+</ul>
+<h3 id="第8章-端到端落地方法与边界">第8章 端到端落地方法与边界</h3>3
+<ul>
+<li><strong>核心观点1</strong>：Agent项目应从任务边界开始，而不是从模型开始；先定义输入、输出、可用工具、不可触碰的数据和可接受的失败，再选择模型与编排方式。</li>
+<li><strong>核心观点2</strong>：最小可行Harness通常包括结构化任务状态、工具注册表、循环执行器、日志、超时和人工接管六部分；先让单Agent在小范围内稳定运行，再扩展到多Agent。</li>
+<li><strong>核心观点3</strong>：评估不能只看最终回答是否流畅，还要检查工具选择、参数正确性、证据引用、失败恢复、成本和延迟。对关键任务应保存轨迹并用固定样本回归。</li>
+<li><strong>核心观点4</strong>：多Agent的收益来自上下文隔离和角色互补，代价则是通信、协调、重复推理和一致性风险；如果任务没有可拆分边界，单Agent加工具往往更简单。</li>
+<li><strong>核心观点5</strong>：生产系统必须设计降级路径，例如搜索不可用时返回已知信息、记忆服务异常时使用短期上下文、审批超时则暂停而不是擅自执行。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第9章 方法论的统一视角</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：提示词解决“如何表达要求”，上下文工程解决“提供哪些信息”，Harness工程解决“如何让整个执行环境可靠运转”，三者是递进而非互斥关系</li><li>核心观点2：感知、规划、执行、反思对应Agent的动态过程；指令、约束、反馈、记忆、编排对应Harness的支撑组件，前者描述运行，后者描述系统设计</li><li>核心观点3：从需求到实现可采用闭环步骤：收集任务样本、归纳失败模式、写最小规则、接入工具与日志、加入反馈评估、沉淀为Skill或记忆，随后用新样本验证</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：提示词解决“如何表达要求”，上下文工程解决“提供哪些信息”，Harness工程解决“如何让整个执行环境可靠运转”，三者是递进而非互斥关系。</li>
+<li><strong>核心观点2</strong>：感知、规划、执行、反思对应Agent的动态过程；指令、约束、反馈、记忆、编排对应Harness的支撑组件，前者描述运行，后者描述系统设计。</li>
+<li><strong>核心观点3</strong>：从需求到实现可采用闭环步骤：收集任务样本、归纳失败模式、写最小规则、接入工具与日志、加入反馈评估、沉淀为Skill或记忆，随后用新样本验证。</li>
+<li><strong>核心观点4</strong>：规则应服务于可观察的错误。没有失败证据的复杂约束可能只是增加上下文负担；同样，反复出现而未被记录的错误会让系统在相同位置持续退化。</li>
+<li><strong>核心观点5</strong>：人机协作的终点不是完全取消人，而是把人的注意力集中到目标定义、风险审批、质量判断和系统改进等高杠杆环节。</li>
+</ul>
+<h3 id="第10章-工具记忆与反馈的协同">第10章 工具、记忆与反馈的协同</h3>3
+<ul>
+<li><strong>核心观点1</strong>：工具提供改变外部世界的能力，记忆提供跨轮次的连续性，反馈提供对行动结果的判断；三者缺一时，Agent要么不会行动，要么无法持续，要么无法纠错。</li>
+<li><strong>核心观点2</strong>：工具结果应经过裁剪、结构化和安全过滤后再进入上下文，原始输出过长会挤压任务目标，未经处理的外部文本还可能携带提示注入。</li>
+<li><strong>核心观点3</strong>：记忆检索应围绕当前任务相关性排序，写入则要经过摘要、去重和有效性判断；“记得更多”不等于“理解得更好”。</li>
+<li><strong>核心观点4</strong>：反馈可以来自测试、规则检查、另一个Agent或人类审查。不同反馈源适合不同风险等级，关键是把结果转成下一轮可执行的修正信号。</li>
+<li><strong>核心观点5</strong>：一条完整链路应能回答“为什么调用这个工具、工具返回了什么、系统如何判断结果、下一步为何这样做”，否则出现问题时无法定位责任。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">适用场景标签</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>AI Agent系统设计与开发</li></ul></div>2
+<ul>
+<li>AI Agent系统设计与开发</li>
+<li>上下文工程与提示词工程</li>
+<li>多Agent协作架构</li>
+<li>记忆系统与知识管理</li>
+<li>Claude Code类产品复现</li>
+<li>企业级AI应用落地</li>
+</ul>
+<h2 id="一句话推荐">一句话推荐</h2>2
+<p>从上下文工程到Harness工程的Agent构建全景指南。</p></div></details></div></body></html>

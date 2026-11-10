@@ -1,0 +1,133 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>MCP到底解决什么问题</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/MCP到底解决什么问题</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="mcp-api">MCP 到底解决了什么问题：为什么不能直接调 API</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="file:///C:/MyData/Documents/wuyafang-l/wiki_site/raw/weread/MCP%E5%8E%9F%E7%90%86%E4%B8%8E%E5%AE%9E%E6%88%98%EF%BC%9A%E9%AB%98%E6%95%88AI%20Agent%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%80%E5%8F%91.html">MCP原理与实战：高效AI Agent智能体开发</a></p>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<h2 id="_1">这个问题的答案是什么</h2>
+<p><strong>MCP 不是「又一个 API 协议」，它解决的是「N 个 AI 应用 × M 个工具/数据源」的 N×M 集成爆炸问题。</strong> 在没有 MCP 之前，每接一个新的数据源或工具，都要为每一个 AI 客户端（Claude、Cursor、Cherry Studio、自研 Agent）单独写一份胶水代码——5 个应用接 5 个工具就是 25 份定制代码。MCP 把这 25 份变成「每工具一份 server + 每客户端一份协议适配」，降到 N+M。</p>
+<p>它和直接调 API 的本质区别有三层：</p>
+<ol>
+<li><strong>API 是给人/前端看的，MCP 是给 LLM 看的</strong>——工具描述里要写清副作用（只读还是会改状态）、参数 schema、权限等级，LLM 才能安全地选工具。</li>
+<li><strong>API 只解决"调得通"，MCP 解决"调得安全、调得可发现、调得可授权"</strong>——OAuth 流程、用户高风险操作确认弹窗、资源发现（Resources/Tools/Prompts 三类原语）都是内建的。</li>
+<li><strong>API 是点对点的，MCP 是"USB-C 式"的</strong>——一次实现，所有兼容客户端都能用，这是它被称为"AI 应用的 USB-C"的原因。</li>
+</ol>
+<h2 id="_2">详细内容</h2>
+<h3 id="nm">一、N×M 爆炸：为什么手写胶水代码走不通</h3>
+<p>《MCP原理与实战》开篇举的典型场景：5 种 AI 应用都要接 5 种数据源，就是 25 套定制方案。这个数字再乘上"每个工具都要重新做鉴权、错误处理、参数解析"，工程成本是指数级的。</p>
+<p>《一本书讲透 MCP》从产业视角补了一刀：传统 Agent 的瓶颈不是"模型不够聪明"，而是"Agent 之间、Agent 与工具之间连不起来"——Agent 要自己爬 API、自己拼 prompt、自己维护工具描述库，等于每个 Agent 都把同样的活重干一遍。MCP 把这一层抽成了"连接层"。</p>
+<h3 id="mcp-server">二、三类原语：MCP server 到底对外暴露什么</h3>
+<p>《MCP原理与实战》第 2 章把抽象压到三个原语，这个分类在两本 MCP 书里是一致的：</p>
+<table>
+<thead>
+<tr>
+<th>原语</th>
+<th>形态</th>
+<th>典型例子</th>
+<th>副作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Resources（资源）</strong></td>
+<td>只读、"万物皆资源"——文档全文、DB 记录、一次 API 返回、截图、日志</td>
+<td>读取一份 PDF、查询一条订单</td>
+<td>无状态，LLM 读了不改变世界</td>
+</tr>
+<tr>
+<td><strong>Tools（工具）</strong></td>
+<td>可执行、动态、有副作用</td>
+<td><code>create_repo</code>、<code>pods_exec</code>、<code>send_email</code></td>
+<td>会改变外部系统状态</td>
+</tr>
+<tr>
+<td><strong>Prompts（提示模板）</strong></td>
+<td>可复用的指令片段</td>
+<td>"简历筛选模板"、"代码评审 prompt"</td>
+<td>团队统一输出风格</td>
+</tr>
+</tbody>
+</table>
+<p>关键工程细节：<strong>工具描述里必须标注"只读 vs 会修改数据"</strong>——这是让 LLM 安全选工具的基础，也是主机弹出"大模型想执行删除操作，是否允许"确认框的依据。</p>
+<h3 id="mcp-vs-function-calling">三、MCP vs 直接 Function Calling：不是替代，是分层</h3>
+<p>《一本书讲透 MCP》第 2 章明确把 Function Call 和 MCP 放在一起讲：</p>
+<ul>
+<li><strong>Function Calling</strong> 是模型能力——模型输出结构化 JSON，告诉应用"我要调这个函数"。</li>
+<li><strong>MCP</strong> 是传输和发现协议——规定 server 怎么暴露工具、客户端怎么发现、怎么鉴权、怎么传参。</li>
+</ul>
+<p>简单说：Function Calling 是"模型会点菜"，MCP 是"整个餐厅的菜单系统+传菜口+结账流程"。<strong>MCP 可以建立在 Function Calling 之上</strong>，而不是取代它。</p>
+<h3 id="mcp-api_1">四、安全机制：为什么 MCP 比直接写 API 安全</h3>
+<p>两本书在安全这点上口径一致，也是 MCP 最容易被忽略的价值：</p>
+<ol>
+<li><strong>OAuth 内建</strong>：访问第三方服务走标准 OAuth，不暴露用户名密码，用令牌通信。</li>
+<li><strong>高风险操作人审</strong>：主机端可以弹确认框，"大模型想执行删除，是否允许"——用户同意才放行。</li>
+<li><strong>权限分级</strong>：工具在描述里声明自己是只读还是会改状态，主机据此决定要不要人审。</li>
+<li><strong>沙箱/权限裁剪</strong>：比如 <code>MCP Run Python</code> 用 <code>-N -R</code> 参数显式打开网络和 node_modules 读写，默认是收紧的。</li>
+</ol>
+<p>《MCP原理与实战》的例子：Gitea MCP 内置近 30 个工具，全部一一映射到 Gitea REST API（<code>POST /repos/{owner}/{repo}/issues</code> 之类），调用完返回 JSON 给大模型判断——这就是"把已有 REST API 包成 MCP server"的标准姿势，1 个 server 喂所有客户端。</p>
+<h3 id="mcp-vs-a2a">五、MCP vs A2A：别把这俩混了</h3>
+<p>《一本书讲透 MCP》第 11 章专门讲两者关系：</p>
+<ul>
+<li><strong>MCP 解决"Agent 怎么连工具"</strong>——人机/人-系统连接层。</li>
+<li><strong>A2A 解决"Agent 怎么连 Agent"</strong>——Agent 之间的协作协议（Google 主推）。</li>
+</ul>
+<p>两者不是竞争关系，是互补：MCP 是"手"（工具调用），A2A 是"嘴"（Agent 间通信）。未来的形态大概率是 MCP + A2A 同时存在。</p>
+<h2 id="_3">来自哪些书的哪些观点</h2>
+<ul>
+<li><strong>《MCP原理与实战》</strong>：N×M 集成爆炸的起源故事；三类原语（Resources/Tools/Prompts）的定义；安全机制（OAuth、人审弹窗、工具副作用标注）；Gitea/Cloudflare/K8s MCP server 的实操细节。</li>
+<li><strong>《一本书讲透MCP》</strong>：MCP 是"AI Agent 互联网最优解"的产业叙事；MCP vs Function Call、vs A2A 的分层关系；对经典 Agent 框架（Agently/BISHENG）的重构效应。</li>
+</ul>
+<p>⚠️ <strong>观点差异</strong>：两本书对 MCP 定位略有差异——《实战》把它当作"工具接入标准"，偏工程师视角；《讲透》把它上升到"AI 互联网的 TCP/IP"，偏产业视角。工程上按《实战》落地，产业判断按《讲透》参考即可。</p>
+<h2 id="_4">我们库当前的落地点（对照六员体系）</h2>
+<ul>
+<li><strong>Hermes</strong>：已经在做 MCP 客户端（browser_*、xurl、notion 等工具本质上就是 MCP 风格的工具封装），但 server 端对外暴露还没标准化。</li>
+<li><strong>DSH/Claude Code/Codex</strong>：Claude Code 是 MCP 客户端的标杆（官方支持），这也是我们为什么把"工具描述要写清副作用"当作硬性规范——Anthropic 自己就是这么要求的。</li>
+<li><strong>OpenClaw</strong>：它的"工具"生态（图像生成、视频生成、MCP server）就是典型的 MCP 化方向。</li>
+<li><strong>待落地</strong>：未来把 Hermes 的自定义工具按 MCP 三类原语（Resources/Tools/Prompts）重新梳理一遍，让所有六员能通过同一套 server 互相调用工具。</li>
+</ul>
+<hr />
+<p><strong>一句话总结</strong>：MCP 不是新 API，是"N 个客户端 × M 个工具"的集成降维——每工具一份 server，客户端即插即用，还内建 OAuth 和人审。</p></div></body></html>

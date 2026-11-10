@@ -1,0 +1,486 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RAGAS三层评测落地-指标原理与代码实战-20261030</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ RAGAS三层评测落地-指标原理与代码实战-20261030</span></div><div class="wrap"><h1 id="ragas-三层评测落地生成与端到端-faithfulnessanswer-relevancyanswer-correctness-深度实操">RAGAS 三层评测落地：生成与端到端 Faithfulness、Answer Relevancy、Answer Correctness 深度实操</h1>
+<blockquote>
+<p>原位升级说明：保留原文件名和既有入口；<a href="RAG%E8%AF%84%E6%B5%8B%E4%B8%89%E5%B1%82%E6%96%B9%E6%B3%95%E8%AE%BA-20261009.html">检索层实操</a>处理 Recall@k、Context Precision、Context Relevance，本篇承接同一份冻结轨迹，处理生成与最终答案。不把三层当作原论文规定的官方分类，也不把本文选集称为一切业务的充分验收标准。[S1][D1]</p>
+<p>验证边界：2026-11-03 核对官方 v0.3.9 标签源码与本库历史审计。纯 Python 算例可离线运行；RAGAS 适配代码为源码核对后的实验模板，本次未安装模型依赖、未调用任何裁判、未向外部发送知识库内容。文中教学分数、历史记录与当前实测严格区分。[S2][S3][S4][L1]</p>
+</blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY：为什么找到材料之后，还必须独立评估答案</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="1-检索成功是必要条件不是最终交付">1. 检索成功是必要条件，不是最终交付</h3>3
+<p>想象一条问题要求给出“当前过滤线及更新原因”。检索材料已经含有现行值 0.45、旧值 0.465 和变更说明。答案可能只抄旧值，可能给出正确数值却省略原因，也可能追加材料从未写过的“自动回滚机制”。这三种失败在来源命中率上都可能满分，但用户拿到的是错误、不完整或无据的回答。因此，检索评测结束以后，不能只检查答案非空，而要分别判断它是否有依据、是否切题、是否符合经过核对的参考答案。[D1]</p>
+<p>三个生成侧指标承担不同任务。Faithfulness 用上下文审查答案里的声明；Answer Relevancy 用问题审查回答是否围绕请求；Answer Correctness 用 reference 审查事实正确性和完整性。它们不是互相替代关系。尤其是“忠于过期资料”的回答可以忠实但错误；“只答一半”的回答可以忠实且切题，但正确性里的召回部分低。三列分别保留，才能看到究竟缺哪种能力。[S2][S3][S4]</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2. 为什么不能让一个裁判直接打一百分</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>整体印象分难以说明错误发生在哪里</li><li>模型可以被流畅措辞影响，也可能给格式漂亮但事实不对的答案较高评价</li><li>RAGAS 把问题拆为更小的判定：从答案提取原子声明、逐条查证；从答案反推可能的问题；将答案和标准答案的声明分成 TP、FP、FN</li></ul></div>3
+<p>整体印象分难以说明错误发生在哪里。模型可以被流畅措辞影响，也可能给格式漂亮但事实不对的答案较高评价。RAGAS 把问题拆为更小的判定：从答案提取原子声明、逐条查证；从答案反推可能的问题；将答案和标准答案的声明分成 TP、FP、FN。这样得到的数仍然依赖裁判，但可以回溯到具体判断，而不是停在一个无法解释的“82 分”。[S2][S3][S4]</p>
+<p>代价是多步调用、解析失败和更复杂的统计。一次 Faithfulness 至少涉及声明提取与支持判定两阶段；Answer Correctness 还需要分别提取两侧声明、做对应分类和语义相似度；Answer Relevancy 要生成多个反推问题并编码向量。实际请求数会因批处理、重试和后端是否支持 n 而变化，不能固定宣称每题恰好几次或恰好多少钱。实验预算应按实际调用日志和输入规模测算，不凭指标数量估算。[S2][S3][S4][D1]</p>
+<h3 id="3-本库历史说明先校准裁判再讨论分数">3. 本库历史说明：先校准裁判，再讨论分数</h3>3
+<p>本库 2026-10-10 报告列有正例 Faithfulness=28.1%、Answer Relevancy=79.3%，但后续审计指出当时使用自写实现、存在截断上下文、异常回空及拒答记满分等问题。它们是历史运行记录，不是本次官方 RAGAS 的可复用基线。把历史数直接抄进新的验收线，会让不同实现看似在同一尺度上比较。[L1][L2]</p>
+<p>另一个具体教训来自 2026-10-28 的裁判重测：原先 max_tokens 太小，推理耗尽预算后 content 为空，解析又把空当 NO；提高预算并把空输出记为错误后，小样本自一致率得到改善。但报告仅有五条且全是应判 YES，无法证明它识别无据声明的能力。真正的校准必须包含正例与反例，不应把“能判五个 YES”写成“裁判已经可靠”。[L3]</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">WHAT：三个指标到底测什么</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="4-前置知识与术语对齐">4. 前置知识与术语对齐</h3>3
+<p>本篇沿用 RAGAS v0.3.9 的 <code>SingleTurnSample</code> 字段：<code>user_input</code> 是原始问题，<code>retrieved_contexts</code> 是模型真正看见的文本片段，<code>response</code> 是实际生成答案，<code>reference</code> 是人工核对的答案。不是所有字段都要传给每个指标；按最小所需字段构造输入，能减少误用和不必要的数据暴露。无参考答案的线上流量可跑前两项，不能自动得到 Answer Correctness。[S2][S3][S4]</p>
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>全称及本篇含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Claim / Statement</td>
+<td>可独立判真假的原子声明，尽量保留主体、日期和单位</td>
+</tr>
+<tr>
+<td>NLI</td>
+<td>Natural Language Inference，从给定前提判断能否推出声明</td>
+</tr>
+<tr>
+<td>Faithfulness</td>
+<td>答案声明被实际上下文支持的比例</td>
+</tr>
+<tr>
+<td>Answer Relevancy</td>
+<td>反推问题与原问题的向量相似度评分</td>
+</tr>
+<tr>
+<td>Reference</td>
+<td>有版本和来源的标准答案，不是模型随手生成的草稿</td>
+</tr>
+<tr>
+<td>TP</td>
+<td>True Positive，答案与 reference 共同支持的事实</td>
+</tr>
+<tr>
+<td>FP</td>
+<td>False Positive，答案中不符合 reference 的声明</td>
+</tr>
+<tr>
+<td>FN</td>
+<td>False Negative，reference 中应回答却遗漏的事实</td>
+</tr>
+<tr>
+<td>F1</td>
+<td>事实精确率与事实召回率的调和平均</td>
+</tr>
+<tr>
+<td>Semantic Similarity</td>
+<td>基于向量的语义相似度，不能替代数值核验</td>
+</tr>
+<tr>
+<td>Coverage</td>
+<td>本应评测的单元中实际得到有效结果的比例</td>
+</tr>
+<tr>
+<td>Paired delta</td>
+<td>同一批题上候选版本与基线的逐题差值</td>
+</tr>
+</tbody>
+</table>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">5. Faithfulness：被支持数除以答案声明数</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>固定实现先用 「StatementGeneratorPrompt」 把答案拆成不依赖代词的声明，再用 「NLIStatementPrompt」 对每条给出支持判定</li><li>若 reference 要求四个要点，答案只说对一个，忠实度仍可为 1</li><li>这是教学构造，不是重新复现历史 Q004</li></ul></div>3
+<p>固定实现先用 <code>StatementGeneratorPrompt</code> 把答案拆成不依赖代词的声明，再用 <code>NLIStatementPrompt</code> 对每条给出支持判定。分数是支持数除以声明数。假设答案含“过滤线是 0.45”“旧值为 0.465”“系统每日自动回滚”三条，实际上下文只支持前两条，则手工判定下 Faithfulness=2/3=0.6667。这是教学构造，不是重新复现历史 Q004。[S2][D1]</p>
+<p>Faithfulness 不检查漏答，因为没有出现的声明不会进分母。若 reference 要求四个要点，答案只说对一个，忠实度仍可为 1。它也不保证材料真实：资料明确写了旧值，模型忠实转述旧值，支持判定可以通过。若业务要求“截至某日的现行配置”，日期和版本必须进入问题与 reference，并用端到端正确性或专门规则核验。[S2][D1]</p>
+<p>零声明时分数未定义，该标签官方实现返回 NaN。不要为了报表整齐把它改成 1，也不要一律改成 0。合法拒答、空白答案、裁判抽取失败，是三个不同的状态：合法拒答走拒答指标，空白答案走生成可用性，裁判失败走评测健康度。它们都不能通过简单 dropna 悄悄从总分母里消失。[S2][D1]</p>
+<p>声明粒度同样影响分数。若裁判把“三个条件全部满足才支持”的长句当一条，单个错误就可能使整句失分；另一位裁判拆成三条，则分数变成 2/3。比较版本时必须固定声明拆分模板、模型和输入范围，并抽查数字、否定词、条件句和跨句指代的处理。若新旧答案风格差很多，分数变化中可能混有拆分方式的影响，不能全部解释成事实质量改变。[S2][D1]</p>
+<h3 id="6-answer-relevancy反推问题而不是检查事实真伪">6. Answer Relevancy：反推问题，而不是检查事实真伪</h3>3
+<p>v0.3.9 的 <code>ResponseRelevancy</code> 默认 <code>strictness=3</code>，表示从答案生成三个可能的问题；<code>AnswerRelevancy</code> 是相关兼容类。反推阶段输入是 response，而非把原问题一起提供给它“照着出题”。随后用同一向量模型编码原问题与反推问题，计算余弦相似度的平均，并结合 noncommittal 标记。该标签在所有反推结果都标为模糊拒答时将结果乘为 0，不能把这个规则说成所有版本都完全一致。[S3]</p>
+<p>比如问题问“过滤线是多少”，回答为“当前过滤线是 0.45”，三个反推问题的余弦值假设为 0.90、0.84、0.87，则基础平均为 0.87。若答案变成“检索增强生成是一种结合外部知识的方法”，它可能完全有据却不回答请求，相关性应降低。反过来，“当前过滤线是 0.99”仍可能强烈切题，因此 Answer Relevancy 高不能证明数字正确。[S3][D1]</p>
+<p>向量相似度理论上可能为负，不能一概把任何越出 0—1 的值当解析错误；本篇统计器对该项仅要求有限值，阈值解释依赖实际模型。更换 embedding 模型会改变余弦尺度，应重新定标。数字型、布尔型与极短回答尤其容易使反推问题含糊，建议同时给出任务专用 Exact Match、数值容差或字段覆盖率；这属于补充验收，不是偷偷更改官方指标定义。[S3][D1]</p>
+<p>strictness 从 3 提高到 5 可能增加采样和成本，但不是保证质量提升的万能参数。先看同一批人工样本的稳定性，再决定是否多生成问题。若反推结果大量重复或全为空，先审查模型结构化输出和输入长度，不要用提高 strictness 掩盖基本兼容性。没有保留下来的反推问题明细，就很难说明低相关性到底来自产品回答还是裁判故障。[S3][D1]</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7. Answer Correctness：事实重合与语义相似度的组合</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>默认公式可写为 「0.75×F1+0.25×Similarity」</li><li>但如果错误只是一个非常关键的数值，语义相似度仍可能给部分分；高风险关键字段还应通过确定性断言兜底</li><li>因此 reference 建设应记录适用时间、必要要点、可接受别名和不应要求的扩展内容</li></ul></div>3
+<p>固定版本默认 weights=[0.75,0.25]，beta=1.0：先从答案和 reference 各提取声明，分类为 TP、FP、FN，再计算事实 F1；另算两段文本的语义相似度，最后做加权平均。默认公式可写为 <code>0.75×F1+0.25×Similarity</code>。如果自定义权重不加起来等于 1，官方使用加权平均会再做归一化；本文参数总和为 1，避免含义不清。[S4]</p>
+<p>手算例：TP=2、FP=1、FN=1，F1=2TP/(2TP+FP+FN)=4/6=0.6667；假设语义相似度=0.92，则 Answer Correctness=0.75×0.6667+0.25×0.92=0.73。0.92 很高却没有掩盖事实错误，这正是复合指标的用处。但如果错误只是一个非常关键的数值，语义相似度仍可能给部分分；高风险关键字段还应通过确定性断言兜底。[S4][D1]</p>
+<p>beta 控制事实 F-score 对精确率或召回率的偏重，beta&gt;1 更重漏答，beta&lt;1 更重多说错误。调整它属于改变尺子，不能与旧默认分数直接连线。另一个边界是两侧声明都为空：该标签对事实部分可能给 1，因此集成层必须先识别空 response、空 reference，不能把“两个空字符串相似”误认成完美答题。[S4]</p>
+<p>reference 不是天然真值。若参考答案把“旧配置”当“现行配置”，正确回答会被扣分；若参考答案含大量问题未要求的背景知识，简洁正确的答案也可能出现 FN。因此 reference 建设应记录适用时间、必要要点、可接受别名和不应要求的扩展内容。标准答案越长并不必然越好，关键是和用户真正的任务边界一致。[S4][D1]</p>
+<h3 id="8-三指标组合的归因边界">8. 三指标组合的归因边界</h3>3
+<table>
+<thead>
+<tr>
+<th>观测组合</th>
+<th>首先调查</th>
+<th>不能立即断言</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>忠实度高、正确性低</td>
+<td>资料时效、漏答、reference 错误</td>
+<td>生成模型一定幻觉</td>
+</tr>
+<tr>
+<td>忠实度低、相关性高</td>
+<td>有据与无据声明逐条对照</td>
+<td>问题不切题</td>
+</tr>
+<tr>
+<td>相关性低、正确性高</td>
+<td>答案是否冗长、反推问题是否失败</td>
+<td>答案事实一定错误</td>
+</tr>
+<tr>
+<td>检索 Recall 高、正确性低</td>
+<td>实际送模证据、冲突消歧、答案漏项</td>
+<td>embedding 需要升级</td>
+</tr>
+<tr>
+<td>三项均无有效值</td>
+<td>输入缺失、裁判、依赖和输出截断</td>
+<td>产品质量全为零</td>
+</tr>
+</tbody>
+</table>
+<p>这张表是调查优先级，不是因果证明。低分可能由多个原因共同造成，例如证据噪声诱导生成无据声明，裁判又因上下文截断误判。因此归因要回到同题轨迹，核对每个声明与实际材料，而不是凭两个均值就决定更换模型或全库重建。[D1]</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">HOW：用冻结轨迹完成可复核的三指标评测</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="9-第一步建立-reference-与实际轨迹的连接">9. 第一步：建立 reference 与实际轨迹的连接</h3>3
+<p>问题集和运行轨迹分开管理：golden set 负责问题、reference、可回答性和必要证据；轨迹负责同一次运行的最终上下文、答案、路由、时延及状态。以稳定 ID 加入，而不是以问题文本做宽松匹配。重复问题、空 ID、缺失轨迹都应显式失败，不能挑选“恰好能评”的记录作为整套系统成绩。[D1]</p>
+<pre><code class="language-json">{&quot;id&quot;:&quot;gen-001&quot;,&quot;answerable&quot;:true,&quot;status&quot;:&quot;ok&quot;,&quot;user_input&quot;:&quot;演示系统当前过滤线和旧值分别是多少？&quot;,&quot;retrieved_contexts&quot;:[&quot;演示配置当前过滤线为0.45，旧值为0.465。&quot;],&quot;response&quot;:&quot;当前是0.45，旧值是0.465，系统每天自动回滚。&quot;,&quot;reference&quot;:&quot;演示系统当前过滤线为0.45，旧值为0.465。&quot;}
+</code></pre>
+<p>这是教学样本。真实评测数据放在 <code>notes/benchmark/</code>，不进入本库 raw 或 wiki 的检索索引。若将参考答案一并灌库，再问同一问题，系统可能检索到测试题答案，形成数据泄漏。本文中的微型示例也不应加入生产冻结集，更不能把本文档本身作为该题的相关来源。[D1]</p>
+<p>参考答案至少经过一次按原始来源的核对：数值题写单位与有效日期，多跳题写必要的两段推理链，步骤题标出不可省略的动作，否定题区分“不支持”和“明确反对”。两名标注者有分歧时先记录分歧原因，不急着让一个模型替人决定真值。无法确认的题可以进入探索集，但不得用来给发布门禁定标。[D1]</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">10. 第二步：先跑零模型依赖的数学检查</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>将下列代码保存为 「notes/benchmark/generation_math.py」</li><li>它不提取声明、不假装实现完整 RAGAS，而是验证给定人工判定后的公式，确认缺失值处理和数值门禁没有基本错误</li><li>它与模型版本、网络及本机凭据完全无关，适合作为第一层烟雾检查</li></ul></div>3
+<p>将下列代码保存为 <code>notes/benchmark/generation_math.py</code>。它不提取声明、不假装实现完整 RAGAS，而是验证给定人工判定后的公式，确认缺失值处理和数值门禁没有基本错误。它与模型版本、网络及本机凭据完全无关，适合作为第一层烟雾检查。[D1]</p>
+<pre><code class="language-python">import math
+
+def faithfulness_from_verdicts(verdicts):
+    if not verdicts:
+        return math.nan
+    if any(v not in (0, 1) for v in verdicts):
+        raise ValueError(&quot;binary verdicts required&quot;)
+    return sum(verdicts) / len(verdicts)
+
+def factual_f1(tp, fp, fn):
+    if min(tp, fp, fn) &lt; 0 or tp + fp + fn == 0:
+        raise ValueError(&quot;non-empty, non-negative claim counts required&quot;)
+    return 2 * tp / (2 * tp + fp + fn)
+
+def correctness_from_counts(tp, fp, fn, similarity):
+    if not math.isfinite(similarity):
+        raise ValueError(&quot;finite similarity required&quot;)
+    return 0.75 * factual_f1(tp, fp, fn) + 0.25 * similarity
+
+def relevancy_from_cosines(cosines, all_noncommittal=False):
+    if not cosines or not all(math.isfinite(v) for v in cosines):
+        return math.nan
+    return 0.0 if all_noncommittal else sum(cosines) / len(cosines)
+
+def main():
+    faith = faithfulness_from_verdicts([1, 1, 0])
+    relevance = relevancy_from_cosines([0.90, 0.84, 0.87])
+    correct = correctness_from_counts(2, 1, 1, 0.92)
+    print(f&quot;teaching_faithfulness={faith:.4f}&quot;)
+    print(f&quot;teaching_answer_relevancy={relevance:.2f}&quot;)
+    print(f&quot;teaching_answer_correctness={correct:.2f}&quot;)
+    assert math.isclose(faith, 2 / 3)
+    assert math.isclose(relevance, 0.87)
+    assert math.isclose(correct, 0.73)
+    assert math.isnan(faithfulness_from_verdicts([]))
+    assert relevancy_from_cosines([0.9], True) == 0
+    assert math.isclose(factual_f1(1, 0, 2), 0.5)
+    print(&quot;offline_generation_checks=passed&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+<pre><code class="language-bash">python3 notes/benchmark/generation_math.py
+</code></pre>
+<pre><code class="language-text">teaching_faithfulness=0.6667
+teaching_answer_relevancy=0.87
+teaching_answer_correctness=0.73
+offline_generation_checks=passed
+</code></pre>
+<p>辅助函数要求至少有一个声明才计算事实 F1，这是本篇防止空样本虚高的集成策略，不声称复刻官方空声明分支。数学检查通过只证明公式和约定一致；裁判能不能正确抽取 TP、FP、FN，必须另用有人工标注的样本检查。自动断言与模型校准分属两层，任何一层都不能替另一层证明正确性。[S4][D1]</p>
+<h3 id="11-第三步冻结版本并限制数据流向">11. 第三步：冻结版本，并限制数据流向</h3>3
+<p>环境安装与导入检查沿用检索篇的隔离实验环境，不覆盖生产虚拟环境。Python 3.11 是示例选用版本，RAGAS 固定 v0.3.9；保存解析后的依赖列表并核对 <code>pip check</code>。本文没有声称这一组合已在当前系统安装成功。遇到 VertexAI 导入冲突时，可参考现有脚本理解历史原因，但不要为了让教程显示绿灯而改写系统依赖或注入空壳类。[L4][D1]</p>
+<pre><code class="language-bash">notes/benchmark/.venv-ragas-lab/bin/python -m pip check
+notes/benchmark/.venv-ragas-lab/bin/python -c &quot;from ragas import SingleTurnSample; from ragas.metrics import Faithfulness, ResponseRelevancy, AnswerCorrectness; print('generation_imports=ok')&quot;
+</code></pre>
+<p>下面完整模板只允许回环地址，假定操作者已有无需真实密钥的本地 OpenAI 兼容聊天和 embeddings 服务。固定参数为 strictness=3、weights=[0.75,0.25]、beta=1.0、timeout=120、max_tokens=4096、重试 2 次，串行运行便于小批校准。它不读取 .env、凭据文件或云端配置，也不把结果上传到评测平台。若本地没有合适服务，先完成离线算例与人工基线，不为拿分数而外传私有材料。[S2][S3][S4][D1]</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">12. 第四步：三指标统一执行，但逐指标保留失败</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>保存为 「notes/benchmark/ragas_generation_lab.py」</li><li>每个结果都保留 「value/status」，不以平均值是否存在推测成功条数</li><li>正常可回答题缺上下文是 retrieval_miss，空白答案是 generation_empty，模型判分异常是 judge_error；负例走单独路径</li></ul></div>3
+<p>保存为 <code>notes/benchmark/ragas_generation_lab.py</code>。每个结果都保留 <code>value/status</code>，不以平均值是否存在推测成功条数。正常可回答题缺上下文是 retrieval_miss，空白答案是 generation_empty，模型判分异常是 judge_error；负例走单独路径。输出使用排他创建，防止误覆盖前一轮结果。[D1]</p>
+<pre><code class="language-python">import asyncio
+import json
+import math
+import os
+import sys
+from pathlib import Path
+from urllib.parse import urlparse
+
+def local_url(name):
+    value = os.environ[name]
+    parsed = urlparse(value)
+    if parsed.scheme not in {&quot;http&quot;, &quot;https&quot;} or parsed.hostname not in {&quot;localhost&quot;, &quot;127.0.0.1&quot;, &quot;::1&quot;}:
+        raise ValueError(&quot;loopback HTTP(S) endpoint required&quot;)
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise ValueError(&quot;credentials/query/fragment not allowed&quot;)
+    return value
+
+def validate_row(row):
+    if not row.get(&quot;answerable&quot;, True):
+        return &quot;negative_separate&quot;
+    if row.get(&quot;status&quot;) != &quot;ok&quot;:
+        return &quot;pipeline_error&quot;
+    if not isinstance(row.get(&quot;user_input&quot;), str) or not row[&quot;user_input&quot;].strip():
+        return &quot;schema_error&quot;
+    if not isinstance(row.get(&quot;reference&quot;), str) or not row[&quot;reference&quot;].strip():
+        return &quot;reference_missing&quot;
+    if not isinstance(row.get(&quot;response&quot;), str) or not row[&quot;response&quot;].strip():
+        return &quot;generation_empty&quot;
+    contexts = row.get(&quot;retrieved_contexts&quot;)
+    if not isinstance(contexts, list) or not contexts or not all(isinstance(c, str) and c.strip() for c in contexts):
+        return &quot;retrieval_miss&quot;
+    return &quot;scored&quot;
+
+async def main(input_path, output_path):
+    from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+    from ragas import SingleTurnSample
+    from ragas.llms import LangchainLLMWrapper
+    from ragas.embeddings import LangchainEmbeddingsWrapper
+    from ragas.metrics import Faithfulness, ResponseRelevancy, AnswerCorrectness
+    from ragas.run_config import RunConfig
+
+    chat = ChatOpenAI(
+        base_url=local_url(&quot;RAGAS_LOCAL_CHAT_URL&quot;),
+        api_key=&quot;local-no-auth&quot;,
+        model=os.environ[&quot;RAGAS_LOCAL_JUDGE_MODEL&quot;],
+        temperature=0, max_tokens=4096, timeout=120, max_retries=2,
+    )
+    embedding = OpenAIEmbeddings(
+        base_url=local_url(&quot;RAGAS_LOCAL_EMBED_URL&quot;),
+        api_key=&quot;local-no-auth&quot;,
+        model=os.environ[&quot;RAGAS_LOCAL_EMBED_MODEL&quot;],
+        check_embedding_ctx_length=False,
+        request_timeout=120,
+        max_retries=2,
+    )
+    llm = LangchainLLMWrapper(chat, bypass_n=True, bypass_temperature=True)
+    emb = LangchainEmbeddingsWrapper(embedding)
+    metrics = [
+        Faithfulness(llm=llm),
+        ResponseRelevancy(llm=llm, embeddings=emb, strictness=3),
+        AnswerCorrectness(llm=llm, embeddings=emb, weights=[0.75, 0.25], beta=1.0),
+    ]
+    for metric in metrics:
+        metric.init(RunConfig(timeout=120, max_retries=2, max_workers=1))
+    rows = [json.loads(line) for line in Path(input_path).read_text(encoding=&quot;utf-8&quot;).splitlines() if line.strip()]
+    ids = [row[&quot;id&quot;] for row in rows]
+    if not rows or len(ids) != len(set(ids)):
+        raise ValueError(&quot;empty dataset or duplicate ids&quot;)
+    results = []
+    for row in rows:
+        record = {&quot;id&quot;: row[&quot;id&quot;], &quot;status&quot;: validate_row(row), &quot;metrics&quot;: {}}
+        if record[&quot;status&quot;] == &quot;scored&quot;:
+            sample = SingleTurnSample(**{
+                key: row[key] for key in
+                (&quot;user_input&quot;, &quot;retrieved_contexts&quot;, &quot;response&quot;, &quot;reference&quot;)
+            })
+            for metric in metrics:
+                try:
+                    score = float(await metric.single_turn_ascore(sample))
+                    record[&quot;metrics&quot;][metric.name] = {
+                        &quot;value&quot;: score if math.isfinite(score) else None,
+                        &quot;status&quot;: &quot;ok&quot; if math.isfinite(score) else &quot;undefined&quot;,
+                    }
+                except Exception as exc:
+                    record[&quot;metrics&quot;][metric.name] = {
+                        &quot;value&quot;: None, &quot;status&quot;: &quot;judge_error&quot;,
+                        &quot;error_type&quot;: type(exc).__name__,
+                    }
+        results.append(record)
+    destination = Path(output_path)
+    if destination.resolve() == Path(input_path).resolve():
+        raise ValueError(&quot;refuse to overwrite source&quot;)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with destination.open(&quot;x&quot;, encoding=&quot;utf-8&quot;) as handle:
+        json.dump(results, handle, ensure_ascii=False, indent=2, allow_nan=False)
+    print(f&quot;rows={len(results)}; inspect every metric status&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main(*sys.argv[1:]))
+</code></pre>
+<p>正式使用时还要在结果外附 manifest：题集哈希、轨迹哈希、索引版本、生成模型配置、裁判配置、向量模型、指标版本、模板哈希和运行时间。上面的模板只负责单次评分，不自动替用户宣称可比；没有 manifest 的两份 JSON 即使 ID 一样，也可能来自不同资料或不同裁判。模型输出中不可信的指令还可能干扰裁判，输入必须作为证据材料而非系统指令处理，并通过注入负例校准。[D1]</p>
+<pre><code class="language-bash">notes/benchmark/.venv-ragas-lab/bin/python notes/benchmark/ragas_generation_lab.py notes/benchmark/generation-traces.jsonl notes/benchmark/generation-result-run01.json
+</code></pre>
+<p>执行结果只保证每题有一条记录，不保证每项都成功。如果某个 SDK 因服务不支持额外参数而失败，先用一条公开教学数据验证兼容性，再跑真实材料；不要一次向所有样本发起请求后才发现 embeddings 输入类型不匹配。回环 URL 校验也不能证明服务没有云端转发，操作者仍要核对本地服务实现和出站策略。[D1]</p>
+<h3 id="13-第五步以评测单元为分母计算覆盖率">13. 第五步：以评测单元为分母，计算覆盖率</h3>3
+<p>假设 50 条可回答题跑 3 个指标，总共应有 150 个判分单元；若 Faithfulness 成功 50、相关性成功 48、正确性成功 47，则有效覆盖率=145/150=96.67%，缺失率=3.33%。不能只检查三个列均值都存在，就宣布成功率 100%；每列只剩一条有效值，也能算出均值。也不能将三列先整体 dropna，因为那会丢掉其他本来有效的指标单元。[D1]</p>
+<p>下面统计器与上面的输出格式配套。它拒绝空输入、重复 ID、不完整指标集合，并把未进入 scored 状态的可回答题当作缺失单元计入覆盖率。实际执行前须将 negative_separate 样本另存或先分流，避免混入正例统计。保存为 <code>notes/benchmark/summarize_generation.py</code>。[D1]</p>
+<pre><code class="language-python">import json
+import math
+import sys
+from pathlib import Path
+
+NAMES = (&quot;faithfulness&quot;, &quot;answer_relevancy&quot;, &quot;answer_correctness&quot;)
+
+def summarize(records):
+    if not records:
+        raise ValueError(&quot;empty evaluation is not a pass&quot;)
+    ids = [row[&quot;id&quot;] for row in records]
+    if len(ids) != len(set(ids)):
+        raise ValueError(&quot;duplicate ids&quot;)
+    if any(row.get(&quot;status&quot;) == &quot;negative_separate&quot; for row in records):
+        raise ValueError(&quot;separate negatives before positive summary&quot;)
+    result = {}
+    valid_total = 0
+    for name in NAMES:
+        values = []
+        for row in records:
+            cell = row.get(&quot;metrics&quot;, {}).get(name, {})
+            value = cell.get(&quot;value&quot;)
+            if row.get(&quot;status&quot;) == &quot;scored&quot; and cell.get(&quot;status&quot;) == &quot;ok&quot; and isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
+                values.append(value)
+        valid_total += len(values)
+        result[name] = {
+            &quot;mean&quot;: sum(values) / len(values) if values else None,
+            &quot;valid&quot;: len(values), &quot;expected&quot;: len(records),
+        }
+    result[&quot;coverage&quot;] = valid_total / (len(records) * len(NAMES))
+    result[&quot;missing_rate&quot;] = 1 - result[&quot;coverage&quot;]
+    return result
+
+if __name__ == &quot;__main__&quot;:
+    rows = json.loads(Path(sys.argv[1]).read_text(encoding=&quot;utf-8&quot;))
+    print(json.dumps(summarize(rows), ensure_ascii=False, indent=2, allow_nan=False))
+</code></pre>
+<p>“缺失”不等于全是裁判错误。实际报告应进一步按 reference_missing、generation_empty、retrieval_miss、pipeline_error、judge_error、undefined 分类。完整性指标负责告诉你全量有多少没评到；质量均值负责告诉你有效部分怎么样。若只想用一个数表达保守下界，可将产品执行失败按零计算端到端成功率，但仍须保留错误类型，不能改写为官方 RAGAS 分数。[D1]</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">14. 第六步：同题配对比较，不自动晋升基线</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>版本比较先核对 manifest，再按 ID 对齐</li><li>仅三次重复也不能保证覆盖模型全部随机性，结论应连同样本量和运行条件一起给出</li><li>它选择“任何缺失先阻断比较”，比允许 5% 缺失的统计方案更保守；两种策略不能混用后仍叫同一个门禁</li></ul></div>3
+<p>版本比较先核对 manifest，再按 ID 对齐。相同题集但 response 是新版本输出，这正是要比较的变量；相同 reference、裁判、评分模板与索引则属于控制条件。若实验目标本来是更换索引，应在 manifest 标注索引是实验变量，并保持其他条件固定。题集哈希不同、ID 集合不同或有效样本对不上时，不能直接拿两个平均数相减宣称改进。[D1]</p>
+<p>教学表中的候选三项都下降 0.06；若暂定容忍度为 0.02，门禁应拒绝。0.02 是演示规则，不是已经标定的本库噪声带。真实项目可先在冻结集上重复测 3 次，结合逐题方差与人工风险判断允许幅度，必要时用配对 bootstrap 区间辅助分析。仅三次重复也不能保证覆盖模型全部随机性，结论应连同样本量和运行条件一起给出。[D1]</p>
+<table>
+<thead>
+<tr>
+<th>教学指标</th>
+<th style="text-align: right;">基线</th>
+<th style="text-align: right;">候选</th>
+<th style="text-align: right;">差值</th>
+<th>演示判定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Faithfulness</td>
+<td style="text-align: right;">0.92</td>
+<td style="text-align: right;">0.86</td>
+<td style="text-align: right;">-0.06</td>
+<td>拒绝</td>
+</tr>
+<tr>
+<td>Answer Relevancy</td>
+<td style="text-align: right;">0.88</td>
+<td style="text-align: right;">0.82</td>
+<td style="text-align: right;">-0.06</td>
+<td>拒绝</td>
+</tr>
+<tr>
+<td>Answer Correctness</td>
+<td style="text-align: right;">0.84</td>
+<td style="text-align: right;">0.78</td>
+<td style="text-align: right;">-0.06</td>
+<td>拒绝</td>
+</tr>
+</tbody>
+</table>
+<p>下面门禁函数使用同 ID、同 manifest、全量有限分数的严格教学策略。它选择“任何缺失先阻断比较”，比允许 5% 缺失的统计方案更保守；两种策略不能混用后仍叫同一个门禁。函数不写 baseline，也不自动更新任何生产配置。[D1]</p>
+<pre><code class="language-python">import math
+
+def paired_gate(baseline, candidate, tolerance=0.02):
+    if tolerance &lt; 0 or not math.isfinite(tolerance):
+        raise ValueError(&quot;invalid tolerance&quot;)
+    if not baseline.get(&quot;manifest&quot;) or baseline[&quot;manifest&quot;] != candidate.get(&quot;manifest&quot;):
+        raise ValueError(&quot;incomparable manifests&quot;)
+    before = baseline[&quot;scores&quot;]
+    after = candidate[&quot;scores&quot;]
+    if not before or set(before) != set(after):
+        raise ValueError(&quot;empty or unmatched id sets&quot;)
+    deltas = {}
+    for metric in (&quot;faithfulness&quot;, &quot;answer_relevancy&quot;, &quot;answer_correctness&quot;):
+        differences = []
+        for sample_id in sorted(before):
+            left = before[sample_id].get(metric)
+            right = after[sample_id].get(metric)
+            if not all(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) for value in (left, right)):
+                raise ValueError(&quot;missing or non-finite score&quot;)
+            differences.append(right - left)
+        deltas[metric] = sum(differences) / len(differences)
+    return {
+        &quot;passed&quot;: all(delta &gt;= -tolerance or math.isclose(delta, -tolerance, abs_tol=1e-12) for delta in deltas.values()),
+        &quot;paired_n&quot;: len(before),
+        &quot;deltas&quot;: deltas,
+    }
+</code></pre>
+<p>这里 manifest 应只包含需完全相同的评测条件，候选与基线的生成版本号等实验变量另放 run metadata；否则把版本号也放进必须相等的 manifest，会使任何真实对照都被拒绝。反之，如果裁判模型或题集哈希从 manifest 漏掉，即使函数返回 passed，也不构成同尺子比较。机械函数只能执行已声明的契约，无法自动替用户发现未声明的实验变化。[D1]</p>
+<h2 id="本库真实落地校准与交付">本库真实落地、校准与交付</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">15. 历史数字如何保留，如何不误导</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>后续深度稿指出原始报告位于临时目录且已清理，无法复核声明分类</li><li>来源标注的作用正是限制结论，不是为所有数字贴上权威标签</li><li>检索篇的 87.5% 同样是历史记载或教学八题构造，不是这里三指标代码运行后得到的数</li></ul></div>3
+<p>旧方法论引用过“五题 Recall@5=100%，Answer Correctness=0.787，严格正确率 80%”。后续深度稿指出原始报告位于临时目录且已清理，无法复核声明分类。因此本篇保留它作为来源明确的历史转引，但不将 0.787 当正式新基线，也不把 Recall 百分比与复合分数相减为“端到端固定损失 21.3 个百分点”。只有同定义的正确率之间才能谈百分点差。[L5]</p>
+<p>检索篇的 87.5% 同样是历史记载或教学八题构造，不是这里三指标代码运行后得到的数。正式交付时必须同时给出 N、有效条数、逐题值与配置。若模型评测尚未运行，报告应写“未执行”，不能用教学表里的 0.92、0.88、0.84 补成真实基线。来源标注的作用正是限制结论，不是为所有数字贴上权威标签。[L5][D1]</p>
+<p>当前可以确认本库有 <code>rag/eval_ragas.py</code> 接入脚本与历史 CSV，但其直接检索生成路径不等于完整生产状态机所有分支；也有 <code>run_baseline.py</code> 和自写忠实度检查器，但不能仅因文件名含 baseline 就当官方实现。使用现有工具前先看函数体和参数，再决定它能验证什么。本文没有修改这些生产脚本，没有重建索引，也没有替用户运行长时评测。[L2][L4]</p>
+<h3 id="16-裁判校准至少让错误样本真的扣分">16. 裁判校准：至少让错误样本真的扣分</h3>3
+<p>首批可用 20 条公开或脱敏样本做人工校准，其中 10 条有据、10 条无据，再覆盖数字替换、否定翻转、日期冲突、漏答和错误拒答。20 和 10/10 是起始配置，不保证统计充分。需要看的是各类误判：无据声明被判支持，是真正危险的假阳性；有据声明被判不支持，会导致误报。只报整体准确率可能掩盖某一类完全失败。[D1]</p>
+<p>至少检查五个端到端反例：把 0.45 改为 0.99，预期正确性下降；添加无据自动化承诺，预期忠实度下降；回答无关但真实背景，预期相关性下降；删掉 reference 关键要点，预期事实召回下降；制造裁判空输出，预期 judge_error 而不是零分或满分。如果这五种坏结果都不能触发对应异常，先修尺子，不要让它进入 CI 拦截别人的代码。[D1]</p>
+<p>裁判与生成器选择不同模型有助于减少某些同源偏差，但不是绝对要求“裁判必须云端”或“必须比被评模型更大”。本机隐私约束优先：有能力的本地裁判经过校准可以使用，能力不足则用人工基线。若未来考虑云端，只能在取得单独授权、明确数据范围及脱敏策略之后执行；当前任务只做文档和本地验证，不触发这类外传。[D1]</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">17. 排错手册：先看状态，再看均值</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>第一种症状是 Faithfulness 全满分但用户说漏答</li><li>先查 reference 必要要点与答案覆盖，不要只看支持比例；同时拉 Answer Correctness 的 FN</li><li>第五种是正确性高但关键日期错</li></ul></div>3
+<p>第一种症状是 Faithfulness 全满分但用户说漏答。先查 reference 必要要点与答案覆盖，不要只看支持比例；同时拉 Answer Correctness 的 FN。第二种是裁判输出空却出现满分。查自写包装层有没有把空声明默认视为忠实，或将异常当成无幻觉。第三种是分数忽高忽低。固定模型、模板、向量模型和文本范围，检查输出截断、重试及负例分布，不能靠把温度写成 0 就宣布消除随机性。[L2][L3][D1]</p>
+<p>第四种是 numeric 答案相关性低但人工确认正确。查看反推问题是否因“0.45”这种短答案而缺少主语；保留官方分数，同时增加数值 Exact Match，不要为了好看而改 embedding。第五种是正确性高但关键日期错。把日期、单位、生效范围列入确定性规则，避免语义相似度掩盖重要错误。第六种是 NaN 大量增加。按题逐项定位 reference 缺失、无声明、超时和 JSON 失败，不要先 dropna 再报均值上升。[S2][S3][S4][D1]</p>
+<p>第七种是检索评测很好但三指标都差。确认是否重新检索后拼接了不同轮次的上下文和答案，或裁判只看见前 2000 字；本库自写实现历史上存在截断疑点。第八种是同一道题修订 reference 后分数骤变。先审查旧 reference 是否有错，建立新题集版本并让基线和候选都重新评分；不能只重算候选，再把“标注修正”当作模型提升。[L2][D1]</p>
+<h3 id="18-拒答可用性与线上闭环">18. 拒答、可用性与线上闭环</h3>3
+<p>负例没有必需证据，不应混入正例 Recall 的分母；合法拒答也不应给 Faithfulness 人为加 1。单独统计应拒答题的正确拒答率、可回答题的误拒答率，以及生成空白和服务错误的比例。空字符串不是拒答承诺，更不是“安全无幻觉”；超时也不等于系统正确判断没有资料。把这些状态分开，才能避免“系统挂了所以拒答率 100%”的假绿。[D1]</p>
+<p>线上没有 reference 时可旁路跑 Faithfulness 和 Relevancy，低分题经人工补标后再进端到端评测。采样要按路由与风险分桶，不只随机抽最短答案。评测不得阻塞用户请求，不把包含私有资料的轨迹默认发往外部监控平台；结果回流先形成脱敏 badcase 和人工裁决，再决定改文档、检索或生成提示词。是否改生产参数是独立授权动作，不由评分脚本自动执行。[D1]</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">19. 验收清单与学习路径</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>新手先运行两个离线数学脚本，解释 2/3、0.87、0.73 的来源；熟练阶段使用公开样本完成本地依赖导入与五类反例；进阶阶段冻结真实轨迹、校准裁判、保存每题明细并进行配对比较</li><li>每一阶段都有可检查的产物，避免读完指标定义却无法解释一条低分</li><li>生产门禁还要把本篇三项与检索篇的证据覆盖、运行状态联合看，不将任意三项均值合成未经业务验证的总分</li></ul></div>3
+<p>新手先运行两个离线数学脚本，解释 2/3、0.87、0.73 的来源；熟练阶段使用公开样本完成本地依赖导入与五类反例；进阶阶段冻结真实轨迹、校准裁判、保存每题明细并进行配对比较。每一阶段都有可检查的产物，避免读完指标定义却无法解释一条低分。生产门禁还要把本篇三项与检索篇的证据覆盖、运行状态联合看，不将任意三项均值合成未经业务验证的总分。[D1]</p>
+<p>一次可复核交付至少含：同题 ID 全量覆盖、真实送模上下文、非空且经核对的 reference、逐指标状态、明确分母、固定裁判和向量模型、反例可检出、失败不会自动晋升基线。完成这些检查以后，才有依据讨论性能或质量提升；若任一项尚未验证，应明确写出缺口，而不是用“RAGAS 已接入”替代实际验收。[D1]</p>
+<h2 id="工具栈与来源索引">工具栈与来源索引</h2>2
+<p>标准库负责数学与报表，RAGAS 固定标签负责指标，LangChain 适配已有本地服务，JSONL/JSON 负责输入输出。本文使用 legacy 风格 API 是为了与已核对源码一致，并非断言它将长期保持或已经适用于所有新版本。迁移到 collections 或其他执行入口时，先核对字段、空值和结果类型，再用同一批公开校准样本验证；不得把新的接口示例和旧的声明抽取默认值拼在一起。[S2][S3][S4][D1]</p>
+<ul>
+<li>[S1] RAGAS 原论文官方条目：<code>https://aclanthology.org/2024.eacl-demo.16/</code>，EACL 2024 System Demonstrations；原始研究不等于本文工程三层分类。</li>
+<li>[S2] 官方固定标签忠实度实现：<code>https://github.com/vibrantlabsai/ragas/blob/v0.3.9/src/ragas/metrics/_faithfulness.py</code>，声明提取、NLI、NaN 边界。</li>
+<li>[S3] 官方答案相关性实现：<code>https://github.com/vibrantlabsai/ragas/blob/v0.3.9/src/ragas/metrics/_answer_relevance.py</code>，strictness=3、response-only 反推、noncommittal 与余弦公式。</li>
+<li>[S4] 官方答案正确性实现：<code>https://github.com/vibrantlabsai/ragas/blob/v0.3.9/src/ragas/metrics/_answer_correctness.py</code>，weights、beta、声明匹配和两侧空声明分支。</li>
+<li>[L1] <a href="../../rag/eval/baseline-report-20261010.md">2026-10-10 基线报告</a>，28.1%/79.3% 为历史自写实现记录，不充当本次新基线。</li>
+<li>[L2] <a href="RAGAS-Faithfulness%E6%B7%B1%E5%BA%A6-%E7%94%9F%E6%88%90%E5%B1%82%E5%BF%A0%E5%AE%9E%E5%BA%A6%E7%9A%84%E5%8E%9F%E7%90%86%E5%B1%80%E9%99%90%E4%B8%8E%E6%9C%AC%E5%BA%93%E5%AE%9E%E6%B5%8B-20261102.html">本库 Faithfulness 深度审计</a>，以及 <a href="../../rag/eval/run_baseline.py">历史基线脚本</a>，用于核对空声明、截断和失败分支。</li>
+<li>[L3] <a href="../../rag/eval/_g2_judge_rerun_report_20261028.md">裁判重测报告</a>，只证明报告中有限样本的结果，不能证明所有负例识别能力。</li>
+<li>[L4] <a href="../../rag/eval_ragas.py">现有 RAGAS 接入</a>，用于区分历史运行路径与本文实验适配器。</li>
+<li>[L5] <a href="RAGAS-AnswerCorrectness%E6%B7%B1%E5%BA%A6-%E7%AB%AF%E5%88%B0%E7%AB%AF%E8%AF%84%E6%B5%8B%E7%9A%84%E6%9E%84%E6%88%90%E5%8F%A3%E5%BE%84%E4%B8%8Ereference%E5%BB%BA%E8%AE%BE-20261102.html">端到端正确性与 reference 建设审计</a>，记录历史 0.787 转引的证据限制；原始临时报告未恢复。</li>
+<li>[D1] 本文工程设计、教学构造与集成策略，2026-11-03。包括样本配比、门禁容忍度、回环限制、状态分类和数学算例，均不冒充生产实测。</li>
+</ul></div></details></div></details></div></body></html>

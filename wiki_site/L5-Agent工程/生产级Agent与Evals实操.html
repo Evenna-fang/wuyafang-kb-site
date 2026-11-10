@@ -1,0 +1,125 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>生产级Agent与Evals实操</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/生产级Agent与Evals实操</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="agent-evals">生产级 Agent 与 Evals 实操</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="file:///C:/MyData/Documents/wuyafang-l/wiki_site/raw/sources/%E7%94%9F%E4%BA%A7%E7%BA%A7Agent%E5%BC%80%E5%8F%91%E5%AE%9E%E6%88%98-%E5%A4%96%E9%83%A8%E8%B0%83%E7%A0%94-20261012.html">生产级Agent开发实战-外部调研-20261012</a> · <a href="file:///C:/MyData/Documents/wuyafang-l/wiki_site/raw/sources/Evals%E5%AE%9E%E6%93%8D-%E8%B0%83%E7%A0%94-20261012.html">Evals实操-调研-20261012</a></p>
+<p><a href="../index.html">← 返回总入口</a>
+相关：<a href="Agent框架实操选型-2026.html">Agent框架实操选型</a> · <a href="Agent生产化要注意什么.html">Agent生产化要注意什么</a> · <a href="Agent循环怎么设计.html">Agent循环怎么设计</a> · <a href="Agent框架与协议进展-2026.html">Agent框架与协议进展</a> · <a href="多Agent还是单Agent怎么选.html">多Agent还是单Agent怎么选</a> · <a href="../L4-RAG工程/RAG评估怎么跑.html">RAG评估怎么跑</a></p>
+</blockquote>
+<h2 id="_1">核心结论</h2>
+<ol>
+<li><strong>2026 年多 Agent 框架已从"demo 能跑"进入"生产可审计"</strong>：LangGraph 走状态机式编排（支持循环、断点、回放），CrewAI 走角色/任务式低门槛路线，AutoGen 已并入 Microsoft Agent Framework（MAF）进入 maintenance mode。选型本质是"你要多少状态控制力"。</li>
+<li><strong>生产事故的头号来源是状态管理</strong>：LangChain 2026 State of Agent Engineering 报告指出 &gt;60% 生产 agent 事故源于状态管理——所以"必须配 checkpointer"不是可选项，是红线。</li>
+<li><strong>Evals 从"锦上添花"变成"刚需"，且直接决定迭代速度</strong>：没有 eval 的团队在模型升级时要花数周手动测试，有 eval 的几天内就能完成模型切换。</li>
+<li><strong>RAG/Agent 评估有明确范式</strong>：Anthropic 的 Task→Trial→Grader→Transcript→Outcome 结构 + RAGAS 三大指标（Faithfulness / Answer Relevancy / Answer Correctness）是当前最成熟的落地组合。</li>
+<li><strong>一个高价值诊断信号</strong>：高 faithfulness 但低 answer_correctness，几乎总是指向"检索质量问题"而非"生成问题"——这个信号直接告诉你该优化哪一环。</li>
+</ol>
+<h2 id="_2">关键细节</h2>
+<h3 id="agent">生产级 Agent 开发实战</h3>
+<p>2026 框架格局：</p>
+<table>
+<thead>
+<tr>
+<th>框架</th>
+<th>定位</th>
+<th>关键事实</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>LangGraph</strong></td>
+<td>状态机式编排，支持循环/断点/回放</td>
+<td>Anthropic、Replit、LinkedIn、Uber 已生产使用；默认推荐</td>
+</tr>
+<tr>
+<td><strong>CrewAI</strong></td>
+<td>角色/任务式，门槛最低、社区增速最快</td>
+<td>GitHub stars 从 2026-02 的 44k 涨到 8 月的 57k</td>
+</tr>
+<tr>
+<td><strong>AutoGen (Microsoft)</strong></td>
+<td>已并入 MAF，AutoGen repo 进 maintenance mode</td>
+<td>MAF 1.0 GA 2026-04-02</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>LangGraph 核心生产要素</strong>：State 是带 reducer 的 typed dict（如 <code>add_messages</code> 决定部分更新如何合并）；支持环（cycles），这是它与 DAG 框架的根本差异——agent 可以"重试、反思、再调用"；Checkpointer 支持 Postgres/SQLite/托管 PG，崩溃、resume、rewind 全基于 checkpoint；LangGraph Studio（2026 GA）被比作"agent 界的 Chrome DevTools"，可可视化渲染 graph、逐步调试、任意 checkpoint 回放；错误恢复靠 try/except 路由到 fallback 节点，而非让 graph 崩溃。</li>
+<li><strong>CrewAI 生产要点</strong>：Flows 负责状态/路由/编排；结构化输出在 v1.10.0（2026-02-27）强化，Pydantic 强制 schema；生产四坑是工具可靠性、成本控制、observability、部署模式。</li>
+<li><strong>CrewAI 真实项目成本</strong>：自动化销售前调研（Scraper→News→Tech Stack→Report）约 $0.08/run、5min；PR 自动 code review（Security→Performance→Report Writer）约 $0.15/run、2min；客服分诊（Classifier→Doc Searcher→Responder→Escalation）约 $0.03/ticket，处理 80–90% 的 tier-1。</li>
+<li><strong>AutoGen → MAF 迁移</strong>：MAF 统一了 AutoGen 的对话式多 Agent 抽象 + Semantic Kernel 的企业能力（会话状态/中间件/telemetry/类型安全），支持 A2A 协议与 MCP 工具集成、跨 Python/.NET runtime；BUILD 2026 新增 Agent Harness、Hosted Agents、CodeAct。</li>
+<li><strong>选型决策</strong>：Azure/.NET 生态 → MAF；角色分工清晰、低门槛 PoC → CrewAI；复杂状态/需 HITL 断点/可回放 → LangGraph。</li>
+<li><strong>生产红线</strong>：必须配 checkpointer；工具调用必须有 retry/timeout/fallback；必须接 observability（LangSmith 或 OpenTelemetry）。<strong>不要做</strong>：用裸 ReAct loop（无状态持久化）、让 agent 无限制循环、不打 schema 就把输出给下游。</li>
+</ul>
+<h3 id="evals">Evals 落地实操</h3>
+<ul>
+<li><strong>搭建基础数据集</strong>：从生产日志抽 100–200 条真实 query，人工标注 reference answer；按 Anthropic 范式定义 task（input prompt + expected output + grader logic）；初期可用脚本而非框架，关键先有 test cases。</li>
+<li><strong>RAGAS 三大指标</strong>：Faithfulness（回答是否忠实于检索上下文，无监督）、Answer Relevancy（与问题相关性，无监督）、Answer Correctness（对标准答案，需 reference）。RAGAS 0.3+ 的 collections API 支持 <code>Faithfulness/AnswerRelevancy/AnswerCorrectness</code>，judge 用 <code>llm_factory</code>。</li>
+<li><strong>LLM-as-Judge 配置</strong>：judge 用比被评模型小一档的模型（如 gpt-4o-mini 评 gpt-4o）控成本；每个指标定义明确 rubric 防漂移；定期人工抽检校准（Anthropic 建议每周）。</li>
+<li><strong>CI eval 门禁</strong>：每次代码/prompt/embedding 变更后自动跑；阈值如 faithfulness ≥ 0.85、answer_relevancy ≥ 0.80；退步超 5% 自动阻断合并。</li>
+<li><strong>线上线下分层</strong>：线上实时跑 faithfulness + answer_relevancy（无需 reference、可批量）；离线 CI 跑全部含 answer_correctness + context_precision/recall；每月从 bad case 抽新 query 入集，保持数据集新鲜。</li>
+<li><strong>Anthropic 结构范式</strong>：单次运行叫 trial，多 trial 取平均消除随机性；grader 可以是代码规则、LLM-as-judge 或单元测试。</li>
+<li><strong>关键教训</strong>：Claude Code 初期靠 dogfooding 迭代，后加 evals 才发现"concision"和"over-engineering"两个隐藏问题——evals 不替代人工，而是让人工抽检更有针对性。OpenAI 强调重点覆盖 edge case（多意图 query、typo、短 query、长对话），happy path 往往不是瓶颈。</li>
+<li><strong>低成本幻觉检测</strong>：RAGAS 的 HHEM-2.1-Open（Vectara 开源 T5 小模型）可替代 LLM-judge 做 faithfulness 的第二步验证，适合批量生产、成本极低。</li>
+</ul>
+<h2 id="_3">来源</h2>
+<ul>
+<li><code>raw/sources/生产级Agent开发实战-外部调研-20261012.md</code>（LangGraph/CrewAI/AutoGen 官方 repo、MAF BUILD 2026 博客、LangChain State of Agent Engineering）</li>
+<li><code>raw/sources/Evals实操-调研-20261012.md</code>（Anthropic《Demystifying evals for AI agents》、OpenAI 评估最佳实践、RAGAS Docs）</li>
+</ul>
+<h2 id="_4">相关术语</h2>
+<p>对应 <code>ontology/</code> 术语表-Agent框架.md、术语表-RAG架构.md：</p>
+<ul>
+<li><strong>LangGraph / CrewAI / AutoGen (Microsoft)</strong>（术语表-Agent框架）：本篇框架格局一节的展开对象；AutoGen 已并 MAF，ontology 中的 AutoGen 描述可后续更新为 MAF 口径。</li>
+<li><strong>Orchestrator-Walker 模式（编排者-执行者）</strong>（术语表-Agent框架）：与 CrewAI 分诊流水线、多 Agent 协作是同族骨架。</li>
+<li><strong>Agent Card / Task Envelope</strong>（术语表-Agent框架）：与"任务结构化交接、可观测"的生产诉求互补。</li>
+<li><strong>评测闭环 (Evaluation Loop)</strong>（术语表-RAG架构）：本篇 Evals 一节的 RAG 侧对应条目（DeepEval/RAGAS/Langfuse 三件套）。</li>
+<li>说明：Evals 的 Task→Trial→Grader 范式、CI 门禁阈值在本 ontology 术语表<strong>暂无</strong>专条。</li>
+</ul>
+<h2 id="_5">相关条目</h2>
+<ul>
+<li><a href="多智能体生产化缺口与断点续传.html">多智能体生产化缺口：断点续传 · 上下文治理 · 工具层验证</a></li>
+</ul></div></body></html>

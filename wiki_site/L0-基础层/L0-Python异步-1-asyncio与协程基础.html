@@ -1,0 +1,492 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L0-Python异步-1-asyncio与协程基础</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L0-Python异步-1-asyncio与协程基础</span></div><div class="wrap"><h1 id="python-异步编程一asyncio-与协程基础">Python 异步编程（一）：asyncio 与协程基础</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">概述</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>会写同步 Python 之后，你可能遇到这样的程序：循环访问几个页面，每个页面都要等服务器响应；代码几乎没做计算，却迟迟不能结束</li><li>本篇介绍如何用标准库 asyncio 重叠这些等待，把同步写法中熟悉的函数、循环和异常处理迁移到协程中</li><li>学习目标是能独立运行脚本，区分顺序等待与并发调度，给任务设置超时，收集局部失败，并用信号量和队列控制批量任务</li></ul></div>2
+<p>会写同步 Python 之后，你可能遇到这样的程序：循环访问几个页面，每个页面都要等服务器响应；代码几乎没做计算，却迟迟不能结束。本篇介绍如何用标准库 asyncio 重叠这些等待，把同步写法中熟悉的函数、循环和异常处理迁移到协程中。学习目标是能独立运行脚本，区分顺序等待与并发调度，给任务设置超时，收集局部失败，并用信号量和队列控制批量任务。</p>
+<p>本文主要提炼本目录《源码资料汇总.md》的素材 A（基础与模拟抓取）、素材 B（信号量与生产者—消费者）、素材 C（咖啡店类比）。事件循环机制、取消和异常传播、Jupyter 运行边界属于标准库及运行环境知识补充；汇总中的素材 D 是流式响应代码，没有给出 nest_asyncio 示例。下文不将这些补充冒充课件案例。全部 Python 代码块都是独立脚本，只使用标准库，以 asyncio.sleep 模拟等待，不连接真实网站。适用 Python 3.10 及以上；核验日期：2026-10-30；知识保鲜周期：180 天。</p>
+<h2 id="一是什么把等待时间交给其他任务">一、是什么：把等待时间交给其他任务</h2>2
+<p>烧水时切菜，就是异步思路：水壶自己加热，你不必一直盯着它。这里能重叠的是水壶工作的等待期；切菜本身需要你的手，就不能靠多写几个 await 同时切三份菜。咖啡店中，店员相当于执行 Python 代码的线程，制作流程相当于协程，订单调度相当于事件循环。</p>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>准确定义</th>
+<th>咖啡店中的理解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>同步</td>
+<td>调用方按调用流程等待操作返回</td>
+<td>做完一单再接下一单</td>
+</tr>
+<tr>
+<td>异步</td>
+<td>将操作完成与后续处理解耦，等待期间允许其他工作推进</td>
+<td>等机器制作时接下一单</td>
+</tr>
+<tr>
+<td>并发</td>
+<td>多个任务在同一时间段内交错推进</td>
+<td>店员轮流照看几张订单</td>
+</tr>
+<tr>
+<td>并行</td>
+<td>多个执行单元在同一时刻执行工作</td>
+<td>多位店员同时动手</td>
+</tr>
+<tr>
+<td>协程</td>
+<td>async def 定义协程函数；调用得到可暂停、恢复的协程对象</td>
+<td>一张可以暂挂的制作流程</td>
+</tr>
+<tr>
+<td>await</td>
+<td>等待可等待对象；需要等待时让出当前协程的执行权</td>
+<td>订单暂挂，调度员安排别单</td>
+</tr>
+<tr>
+<td>Task</td>
+<td>包装协程并交给事件循环调度的任务对象</td>
+<td>已进入调度系统的订单</td>
+</tr>
+</tbody>
+</table>
+<p>async def 只负责定义，调用协程函数也不会自动把函数体跑完。协程对象需要被 await，或者被包装成 Task 等待调度。await 不是“开一个线程”，也不保证每次都发生任务切换：被等待对象若已就绪，就可能直接继续。默认的单线程事件循环在某个时刻执行一个任务的 Python 代码，协程通过等待点主动协作。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">二、为什么：让多份 I/O 等待发生重叠</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="21-三张咖啡订单为什么可以从六秒变成三秒">2.1 三张咖啡订单为什么可以从六秒变成三秒</h3>3
+<p>课件的美式、拿铁、卡布奇诺分别需要三秒、两秒、一秒。逐单等候的总时间约为六秒；如果三张订单可以独立等待，且机器容量足够，耗时就接近最长的三秒。加速来自等待重叠，不代表三秒的美式变成一秒，也不代表 CPU 计算速度变快。</p>
+<p>下面保留课件订单和耗时，用同一个异步制作函数分别模拟“逐单完成”和“并发接单”。串行分支虽然使用异步语法，其调度顺序仍与逐单等待相同。这样比较可以只改变调度方式，避免把不同业务实现混在一起。</p>
+<pre><code class="language-python"># 运行方式：python coffee_compare.py
+import asyncio
+
+async def make_coffee(name, seconds):
+    # 咖啡机独立工作，用非阻塞等待模拟。
+    await asyncio.sleep(seconds)
+    print(f&quot;{name}做好了&quot;)
+    return name
+
+async def main():
+    orders = [(&quot;美式&quot;, 3), (&quot;拿铁&quot;, 2), (&quot;卡布奇诺&quot;, 1)]
+    loop = asyncio.get_running_loop()
+    start = loop.time()  # 单调时钟适合测量耗时。
+    for name, seconds in orders:
+        await make_coffee(name, seconds)
+    print(f&quot;逐单等待：{loop.time() - start:.1f}秒&quot;)
+    start = loop.time()
+    await asyncio.gather(*(make_coffee(n, s) for n, s in orders))
+    print(f&quot;并发接单：{loop.time() - start:.1f}秒&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+<p>预期：前半段按美式、拿铁、卡布奇诺完成，约六秒；后半段按卡布奇诺、拿铁、美式完成，约三秒。完整脚本约九秒。实际运行受系统负载与调度开销影响，计时不必精确等于整数。如果现实中只有一台不能同时制作的咖啡机，这个容量假设就不成立，三秒结论不能直接照搬。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.2 异步、多线程、多进程怎么选</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>I/O 密集型程序的墙上时间常常花在网络或设备响应上</li><li>异步通过事件通知恢复等待中的任务，通常能用较少线程维持大量连接；但前提是底层操作支持异步接口</li><li>GIL 是常规 CPython 中限制同一解释器内多个线程同时执行 Python 字节码的锁</li></ul></div>3
+<p>I/O 密集型程序的墙上时间常常花在网络或设备响应上。此时 CPU 空闲不意味着业务已经完成。异步通过事件通知恢复等待中的任务，通常能用较少线程维持大量连接；但前提是底层操作支持异步接口。普通同步文件读写不会因为写在 async def 内就自动变成异步。</p>
+<table>
+<thead>
+<tr>
+<th>工作情况</th>
+<th>常用选择</th>
+<th>判断理由与限制</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>大量网络等待，库提供异步接口</td>
+<td>asyncio</td>
+<td>任务开销通常较小，适合连接和等待较多的工作</td>
+</tr>
+<tr>
+<td>网络等待较多，已有同步库</td>
+<td>多线程</td>
+<td>兼容原有调用；仍需控制线程数量与共享状态</td>
+</tr>
+<tr>
+<td>大量纯 Python 计算</td>
+<td>多进程</td>
+<td>常规启用 GIL 的 CPython 中可利用多个 CPU 核心，但有进程与通信开销</td>
+</tr>
+<tr>
+<td>等待与重计算混合</td>
+<td>asyncio 配合进程池</td>
+<td>由事件循环管理等待，把重计算交给其他进程</td>
+</tr>
+</tbody>
+</table>
+<p>GIL 是常规 CPython 中限制同一解释器内多个线程同时执行 Python 字节码的锁。很多阻塞 I/O 会释放它，所以多线程仍可改善 I/O 吞吐。某些扩展计算会释放 GIL；可选的自由线程构建也有不同条件，不能把上述表格当作所有解释器的绝对定律。本篇以常规启用 GIL 的环境为学习基线。</p>
+<p>异步也有成本：调用链要支持 await，任务可能在等待点交错，错误和关闭流程需要管理。只有一个请求、几乎没有等待，或者主要是在循环里做复杂计算时，改成协程未必更快。开始改造前，应先确认耗时来自等待，并确认下游允许的并发量；盲目增加任务可能把瓶颈变成连接数、内存或服务容量。</p>
+<h2 id="三怎么做先把环境和入口跑通">三、怎么做：先把环境和入口跑通</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.1 检查解释器与建立虚拟环境</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>某些 Linux 系统的命令名是 python3，可将命令中的 python 整体替换为 python3</li><li>虚拟环境应放在自己的练习目录内，避免与系统包混用；激活后再检查版本，确保运行脚本和安装依赖使用同一解释器</li></ul></div>3
+<p>在终端执行以下命令。某些 Linux 系统的命令名是 python3，可将命令中的 python 整体替换为 python3。虚拟环境应放在自己的练习目录内，避免与系统包混用；激活后再检查版本，确保运行脚本和安装依赖使用同一解释器。</p>
+<pre><code class="language-bash">python --version
+python -m venv .venv
+# Linux、macOS、WSL 激活方式：
+source .venv/bin/activate
+# Windows PowerShell 使用：.venv\Scripts\Activate.ps1
+python --version
+# 对应 pip install aiohttp httpx，绑定解释器更稳妥：
+python -m pip install aiohttp httpx
+</code></pre>
+<p>预期第一、第二次版本检查都显示 Python 3.10 或更高版本。aiohttp、httpx 是课件提到的实际网络访问工具，为后续真实项目准备；本篇代码不导入它们，离线学习可跳过安装。asyncio 随 Python 提供，无需执行 pip install asyncio。网络客户端的安装不等于本篇示例会联网。</p>
+<pre><code class="language-python"># 运行方式：python check_environment.py
+import asyncio
+import sys
+
+async def main():
+    # 启动前检查版本，等待一次来确认事件循环可用。
+    if sys.version_info &lt; (3, 10):
+        raise RuntimeError(&quot;请使用 Python 3.10 或更高版本&quot;)
+    await asyncio.sleep(0)
+    print(&quot;Python 版本：&quot;, sys.version.split()[0])
+    print(&quot;asyncio 环境可用&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+<p>预期打印解释器版本和“asyncio 环境可用”。后面的代码分别保存成注释中给出的文件名即可运行，每段都自带导入和入口，不依赖前一个脚本留下变量。</p>
+<h3 id="32-脚本和-jupyter-的入口不同">3.2 脚本和 Jupyter 的入口不同</h3>3
+<p>普通脚本用 asyncio.run(main()) 创建事件循环、执行入口协程并完成关闭工作，一般在程序边界调用一次。已有事件循环的同一线程里不能再调用 asyncio.run。现代 Jupyter/IPython 通常已经管理事件循环，可把示例中的导入与函数定义放进单元格，去掉最后的脚本入口，再在单元格写 <code>await main()</code>。</p>
+<p>Jupyter 顶层 await 是交互环境的支持；普通 .py 文件仍需将 await 放在异步函数内部。若见到“asyncio.run() cannot be called from a running event loop”，先检查是不是在 Notebook 中执行了脚本入口。nest_asyncio 会修改事件循环行为，让部分嵌套运行场景可用，但它不是本篇依赖，也不应作为遇到报错就直接套用的修复。优先使用 Notebook 的顶层 await，或在终端运行完整脚本；不需要为普通脚本打补丁。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">四、怎么做：从一个协程走到并发任务</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="41-定义协程等待结果">4.1 定义协程、等待结果</h3>3
+<pre><code class="language-python"># 运行方式：python first_coroutine.py
+import asyncio
+
+async def greet(name):
+    print(f&quot;你好，{name}&quot;)
+    await asyncio.sleep(0.2)  # 暂停本协程，让事件循环处理其他工作。
+    return f&quot;{name}的结果&quot;
+
+async def main():
+    coroutine = greet(&quot;Alice&quot;)  # 这里只创建对象，尚未执行问候。
+    print(&quot;协程对象已创建&quot;)
+    result = await coroutine
+    print(result)
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+<p>预期依次输出“协程对象已创建”“你好，Alice”“Alice的结果”，等待约零点二秒。return 的值由 await 表达式接收。若只调用 greet 而没有等待或调度，常会看到“coroutine was never awaited”警告；补上 async 关键字无法替代调度。同一个协程对象也不能在执行完成后再次 await；若要重新执行，应重新调用协程函数创建对象。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">4.2 顺序 await 不会自动变成并发</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-python"># 运行方式：python sequential_await.py
+import asyncio
+
+async def fetch_data(name):
+    await asyncio.sleep(1)  # 模拟每次获取都需等待一秒。
+    return name
+
+async def main():
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+    results = []
+    for name in [&quot;users&quot;, &quot;posts&quot;, &quot;comments&quot;]:
+        results.append(await fetch_data(name))
+    print(results)
+    print(f&quot;耗时：{loop.time() - start:.2f}秒&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+<p>预期结果为 <code>['users', 'posts', 'comments']</code>，耗时约三秒。每轮循环必须等当前 fetch_data 返回，下一轮才会创建新协程。其他已经调度的任务有机会执行，但这里根本没有提前调度其他获取任务，所以不能把三个等待重叠起来。</p>
+<h3 id="43-gather-同时组织多个等待">4.3 gather 同时组织多个等待</h3>3
+<pre><code class="language-python"># 运行方式：python gather_demo.py
+import asyncio
+
+async def fetch_data(name):
+    await asyncio.sleep(1)
+    return name
+
+async def main():
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+    # 星号把列表展开成 gather 的多个位置参数。
+    results = await asyncio.gather(
+        *(fetch_data(n) for n in [&quot;users&quot;, &quot;posts&quot;, &quot;comments&quot;])
+    )
+    print(results)
+    print(f&quot;耗时：{loop.time() - start:.2f}秒&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+<p>预期仍为同一结果列表，总耗时约一秒，轻负载下通常在一到一点一秒附近。gather 会把传入的协程安排为任务，并等待结果。返回列表保持参数顺序，不能据此推断完成顺序。适合先知道一小批工作、最后统一汇总的情况；它不会自动限制并发数，也不会把同步函数变成异步函数。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.4 create_task：先调度，再决定何时取结果</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-python"># 运行方式：python task_demo.py
+import asyncio
+
+async def download_page():
+    print(&quot;下载开始&quot;)
+    await asyncio.sleep(0.3)
+    return &quot;页面内容&quot;
+
+async def main():
+    task = asyncio.create_task(download_page(), name=&quot;page-download&quot;)
+    print(&quot;任务已创建&quot;)
+    await asyncio.sleep(0.1)  # 当前任务让出执行权，下载任务得以运行。
+    print(&quot;其他准备工作完成&quot;)
+    content = await task  # 保存引用，并明确等待任务结束。
+    print(content)
+    print(&quot;任务完成：&quot;, task.done())
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+<p>预期输出“任务已创建”“下载开始”“其他准备工作完成”“页面内容”“任务完成： True”，总耗时约零点三秒。默认调度下，create_task 不会抢占当前正在执行的代码；事件循环获得控制后才推进新任务。不要创建任务后立即让主函数退出：asyncio.run 关闭时会取消尚未完成的任务。保存任务引用、明确等待或取消，是调用方的责任。</p>
+<h3 id="45-事件循环在底层做什么">4.5 事件循环在底层做什么</h3>3
+<p>可以把事件循环理解为“就绪工作队列、计时器、I/O 通知”的协调者。任务等待 asyncio.sleep 时，循环登记唤醒时间；任务等待异步网络读取时，底层实现利用操作系统提供的就绪或完成通知。满足条件后，相关回调让任务重新进入可运行状态。不同平台和循环实现可能使用不同机制，例如选择器或 Windows 的完成端口，不必把所有实现都理解成反复查询每个连接。</p>
+<p>因此，协程要有实际可让出的等待点。若在 async def 里调用 time.sleep、同步网络请求或长时间纯计算，当前线程会被占住，其他任务无法及时运行。本篇所有模拟 I/O 都使用 asyncio.sleep。已有阻塞 I/O 可考虑 asyncio.to_thread 转交线程，但那会引入线程执行和线程安全问题；纯 Python 重计算通常要另选进程方案。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">五、怎么做：处理超时、取消与失败</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="51-wait_for限定一次等待">5.1 wait_for：限定一次等待</h3>3
+<pre><code class="language-python"># 运行方式：python timeout_demo.py
+import asyncio
+
+async def slow_fetch():
+    try:
+        await asyncio.sleep(1)
+        return &quot;页面内容&quot;
+    finally:
+        print(&quot;抓取清理完成&quot;)  # 正常结束或取消时都执行清理。
+
+async def main():
+    try:
+        result = await asyncio.wait_for(slow_fetch(), timeout=0.1)
+        print(result)
+    except asyncio.TimeoutError:
+        # 此写法兼容 Python 3.10；新版本中它是内置 TimeoutError 的别名。
+        print(&quot;抓取超时&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+<p>预期先输出“抓取清理完成”，再输出“抓取超时”，约零点一秒。wait_for 超时通常会取消内部任务，并等它完成取消，所以实际总耗时可能超过 timeout；尤其当清理还要等待其他资源时，不应把超时参数当成严格的外部截止时间。这里异常被处理，脚本正常结束；若不捕获，异常沿 await 调用链向上传播。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">5.2 cancel 是请求协作退出</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-python"># 运行方式：python cancel_demo.py
+import asyncio
+
+async def fetch_page():
+    try:
+        print(&quot;开始等待页面&quot;)
+        await asyncio.sleep(10)
+    except asyncio.CancelledError:
+        print(&quot;页面任务收到取消&quot;)
+        raise  # 完成必要处理后，继续传播取消。
+    finally:
+        print(&quot;释放页面任务资源&quot;)
+
+async def main():
+    task = asyncio.create_task(fetch_page())
+    await asyncio.sleep(0.05)  # 保证任务已开始等待。
+    task.cancel()
+    try:
+        await task  # 取消后仍要等待它收尾。
+    except asyncio.CancelledError:
+        print(&quot;调用方确认取消&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+<p>预期依次输出开始等待、收到取消、释放资源、调用方确认取消，约零点零五秒。cancel 不是强行终止线程，取消通常在下一个可响应的等待点体现为 CancelledError。如果任务一直运行计算而不让出执行权，连发出取消请求的其他协程也可能无法及时获得调度。</p>
+<p>CancelledError 继承自 BaseException，普通的 except Exception 不会捕获它。清理后通常应重新抛出，避免上层把仍在运行或错误结束的工作当成成功。资源释放应优先放在 finally 或上下文管理器中；取消处理也必须避免无限等待，否则主程序的退出会被拖住。</p>
+<h3 id="53-gather-收集每项结果与异常">5.3 gather 收集每项结果与异常</h3>3
+<pre><code class="language-python"># 运行方式：python collect_errors.py
+import asyncio
+
+async def fetch_page(page_id):
+    await asyncio.sleep(0.1)
+    if page_id == 2:
+        raise ValueError(&quot;页面2格式错误&quot;)  # 模拟课件抓取流程中的局部失败。
+    return f&quot;页面{page_id}成功&quot;
+
+async def main():
+    results = await asyncio.gather(
+        *(fetch_page(i) for i in range(1, 4)),
+        return_exceptions=True,
+    )
+    for page_id, result in enumerate(results, start=1):
+        # 取消也可能作为结果出现，因此此处检查 BaseException。
+        if isinstance(result, BaseException):
+            print(f&quot;失败：{page_id}，{type(result).__name__}，{result}&quot;)
+        else:
+            print(result)
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+<p>预期打印页面一成功、页面二的 ValueError、页面三成功，总耗时约零点一秒。return_exceptions=True 将子任务异常放进对应位置，适合允许局部失败的批量工作；它不会自动记录日志、重试或判断错误是否可忽略，必须逐项检查。若整个 gather 自身被取消，未完成的子任务仍会被取消，不能把这个参数理解成屏蔽一切取消。</p>
+<p>默认 return_exceptions=False 时，第一个异常会传播给等待 gather 的调用方，但其他子任务不会仅因这个异常自动全部取消。如果异常未处理导致 main 退出，asyncio.run 的关闭过程又会取消剩余任务；这是入口关闭造成的结果，不能误解成 gather 的失败即取消策略。Python 3.11 及以上的 TaskGroup 提供不同的任务组失败管理语义；本篇保持 3.10 兼容，不在示例中混用它。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">六、怎么做：把协程组织成可控的批处理</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="61-完整模拟抓取信号量限制在途数量">6.1 完整模拟抓取：信号量限制在途数量</h3>3
+<p>这个示例改编自素材 A 的批量抓取：六个页面，每页等待零点二秒，同时最多抓两个；抓取全部完成后，逐条处理，每条等待零点零五秒。地址只是标识，代码没有网络调用。把抓取与处理分开，能明确看出并发只应用在哪个阶段，避免看到 gather 就以为整个流程全部并发。</p>
+<pre><code class="language-python"># 运行方式：python crawl_with_limit.py
+import asyncio
+
+async def fetch_url(url):
+    await asyncio.sleep(0.2)  # 模拟网络等待，不访问地址。
+    return {&quot;url&quot;: url, &quot;status&quot;: 200, &quot;content_length&quot;: len(url) * 100}
+
+async def process_result(result):
+    await asyncio.sleep(0.05)  # 保留课件中的模拟处理阶段。
+    return f&quot;已处理 {result['url']}，状态 {result['status']}&quot;
+
+async def crawl_with_limit(urls, max_concurrent=2):
+    if max_concurrent &lt; 1:
+        raise ValueError(&quot;并发上限必须大于零&quot;)
+    semaphore = asyncio.Semaphore(max_concurrent)
+
+    async def limited_fetch(url):
+        # 等待许可期间不占用许可；退出代码块时自动归还。
+        async with semaphore:
+            return await fetch_url(url)
+
+    results = await asyncio.gather(*(limited_fetch(url) for url in urls))
+    for result in results:  # 此阶段按课件结构逐条处理。
+        print(await process_result(result))
+    return results
+
+async def main():
+    urls = [f&quot;https://example.com/page/{i}&quot; for i in range(6)]
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+    results = await crawl_with_limit(urls, max_concurrent=2)
+    print(f&quot;共 {len(results)} 页，耗时 {loop.time() - start:.2f}秒&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+<p>预期按地址编号打印六条“已处理”，最后显示共六页、耗时约零点九秒。抓取约为三批乘零点二秒，即零点六秒；处理约为六次乘零点零五秒，即零点三秒。若全部串行则约一点五秒。改变并发上限时，逐条处理部分不会随之缩短，这也解释了为什么提速通常存在上限。</p>
+<p>Semaphore 控制进入受保护代码段的任务数量，不等同于“每秒最多多少请求”。响应很快时，两个并发许可也可能在一秒内完成许多请求；需要速率限制时还要设计时间窗口等机制。本例在许可内覆盖整个 fetch_url，因此限制的是在途抓取。若先退出许可再等待抓取，限制就会失效。</p>
+<p>信号量也不会限制已创建的任务总数。对几十个地址，gather 很直接；对持续产生或数量很大的任务，一次创建所有协程仍可能占用大量内存。下面用固定消费者数量和有界队列，把“产生多少工作”和“同时执行多少工作”分别控制起来。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">6.2 Queue：生产者放任务，消费者持续领取</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>生产者负责发现工作，消费者负责执行工作</li><li>两个消费者则意味着最多两个消费者同时处理项目</li><li>队列容量不包含已经被消费者取出的项目，也不是系统全部未完成项目的总上限</li></ul></div>3
+<p>生产者负责发现工作，消费者负责执行工作。Queue(maxsize=2) 表示队列中最多暂存两项，满时 await put 会等待，从而把处理较慢的压力反馈给生产端；这叫背压。两个消费者则意味着最多两个消费者同时处理项目。队列容量不包含已经被消费者取出的项目，也不是系统全部未完成项目的总上限。</p>
+<pre><code class="language-python"># 运行方式：python queue_workers.py
+import asyncio
+
+async def producer(queue, worker_count):
+    for task_id in range(6):
+        await queue.put(task_id)  # 队列满时暂停生产者。
+    for _ in range(worker_count):
+        await queue.put(None)  # 每个消费者都需要一份终止信号。
+
+async def consumer(queue, worker_id, results):
+    while True:
+        item = await queue.get()
+        try:
+            if item is None:
+                return
+            await asyncio.sleep(0.1)  # 模拟课件里的任务处理等待。
+            results.append(item)
+            print(f&quot;消费者{worker_id}完成任务{item}&quot;)
+        finally:
+            # 每次成功 get 都要对应一次 task_done，终止信号也一样。
+            queue.task_done()
+
+async def main():
+    queue = asyncio.Queue(maxsize=2)
+    results = []
+    workers = [
+        asyncio.create_task(consumer(queue, i, results))
+        for i in range(2)
+    ]
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+    try:
+        await producer(queue, len(workers))
+        await queue.join()  # 等待所有已放入项目被确认处理。
+        await asyncio.gather(*workers)  # 再确认消费者真正退出。
+        print(&quot;完成编号：&quot;, sorted(results))
+        print(f&quot;总耗时：{loop.time() - start:.2f}秒&quot;)
+    finally:
+        # 主任务取消或异常退出时，也回收消费者。
+        for worker in workers:
+            worker.cancel()
+        await asyncio.gather(*workers, return_exceptions=True)
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+<p>预期每个任务编号零到五各完成一次，最后输出 <code>完成编号： [0, 1, 2, 3, 4, 5]</code>，总耗时约零点三秒。消费者编号与逐行输出的交错顺序不作为正确性条件。这里把课件的随机等待改成固定等待，便于初学者复现并估算耗时。</p>
+<p>queue.join 等待的是未完成计数归零，并不只是队列容器变空。get 取走一项后，如果漏掉 task_done，队列已经空了，join 仍可能一直等。反过来，task_done 只表示这一项已被确认处理，不代表业务一定成功；本例任务没有人为失败分支。若增加真实失败，需要在每个项目内部记录失败并继续消费，或设计主任务及时发现消费者异常的监督流程。仅仅在 finally 里调用 task_done，不能解决消费者全部退出后生产者卡在满队列上的问题。</p>
+<p>None 在这里是终止信号，不能同时当作普通业务数据；若业务允许 None，可另用独立对象作为哨兵。生产者必须先放完工作，再放与消费者数量相同的终止信号。只放一个信号会留下其他消费者等待 get，程序不能正常收尾。</p>
+<h3 id="63-完成顺序与输入顺序as_completed">6.3 完成顺序与输入顺序：as_completed</h3>3
+<p>课件素材 B 的抓取器采用 as_completed，让先返回的页面先被处理。它与 gather 的区别主要体现在结果消费方式：gather 汇总后按输入位置提供结果，as_completed 允许逐个等待下一份完成结果。下面沿用页面获取场景，只用不同等待长度模拟不同响应速度。</p>
+<pre><code class="language-python"># 运行方式：python completed_order.py
+import asyncio
+
+async def fetch_page(name, delay):
+    await asyncio.sleep(delay)
+    return name
+
+async def main():
+    tasks = [
+        asyncio.create_task(fetch_page(&quot;页面A&quot;, 0.3)),
+        asyncio.create_task(fetch_page(&quot;页面B&quot;, 0.1)),
+        asyncio.create_task(fetch_page(&quot;页面C&quot;, 0.2)),
+    ]
+    try:
+        # Python 3.10 兼容写法：普通 for 加 await。
+        for completed in asyncio.as_completed(tasks):
+            print(&quot;先处理：&quot;, await completed)
+    finally:
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+<p>预期约零点一秒时输出页面 B、约零点二秒输出页面 C、约零点三秒输出页面 A，总耗时约零点三秒。这里消费者处理只是打印；如果在循环内追加很慢的处理，下一次领取结果也会被推迟。as_completed 不会自动限制并发，也不会自动吞掉异常，await completed 仍可能抛错，实际项目要明确继续处理还是取消剩余任务。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">七、小结与练习</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>从同步迁移到异步，先找可重叠的等待，再选择组织任务的方式</li><li>验收：结果都齐全，前者约一点五秒，后者约零点五秒；说明为什么 gather 的结果顺序与完成顺序可以不同</li><li>验收：逐项显示成功或失败，十项都有结论，结束时没有未回收任务；解释超时为何可能比设定值稍长</li></ul></div>2
+<p>从同步迁移到异步，先找可重叠的等待，再选择组织任务的方式。单个操作用 await，小批量统一汇总用 gather，需要明确任务生命周期用 create_task，限定等待用 wait_for，允许局部失败时逐项检查异常结果。任务多时，信号量控制受保护区域的并发量，有界队列则让生产速度受到消费能力约束。</p>
+<p>调试时，先看协程有没有被等待，再看是不是逐个 await 造成串行，然后检查是否混入阻塞调用。程序无法退出时，检查未结束的任务、缺失的终止信号，以及 get 与 task_done 是否配对。耗时与预期不符时，把等待阶段、串行处理阶段和并发上限分别列出来计算，不要仅凭输出行顺序判断程序是否并发。</p>
+<ol>
+<li><strong>基础：对比五个等待任务。</strong> 沿用 fetch_data 模拟获取，将等待长度设为零点一、零点二、零点三、零点四、零点五秒，分别顺序执行与 gather 执行。验收：结果都齐全，前者约一点五秒，后者约零点五秒；说明为什么 gather 的结果顺序与完成顺序可以不同。</li>
+<li><strong>进阶：让模拟抓取允许局部失败。</strong> 修改信号量抓取示例，把地址数改成十、并发上限改成三，为每项抓取设置超时；让一个页面主动抛出 ValueError，另一个等待超过超时。验收：逐项显示成功或失败，十项都有结论，结束时没有未回收任务；解释超时为何可能比设定值稍长。</li>
+<li><strong>综合：用队列运行二十项工作。</strong> 将队列示例改为三个消费者、容量四，每项等待零点一秒；在消费者的单项处理范围内捕获一个指定编号的模拟错误，记录失败后继续消费。验收：成功与失败合计二十项，没有重复编号，每个消费者都能收到终止信号，join 正常返回；解释队列容量与并发数各自控制什么。</li>
+</ol>
+<h2 id="来源与延伸阅读">来源与延伸阅读</h2>2
+<p>主要素材：本目录《源码资料汇总.md》，对应《Python从入门到大神-学生手册（完整版）》第五部分、part5-mastery.md 第 13.4 节及 FastAPI 课件的并发说明。本文代码为这些教学场景的独立可运行改写，超时与异常分支用于补全协程生命周期知识。</p>
+<p>标准语义可查阅 <a href="https://docs.python.org/zh-cn/3.10/library/asyncio-task.html">Python 3.10 协程与任务</a>、<a href="https://docs.python.org/zh-cn/3.10/library/asyncio-sync.html">同步原语</a>、<a href="https://docs.python.org/zh-cn/3.10/library/asyncio-queue.html">队列</a>与<a href="https://docs.python.org/zh-cn/3.10/library/asyncio-eventloop.html">事件循环</a>。学习时优先查与本机解释器版本一致的页面，避免把较新版本接口直接复制到 Python 3.10。</p></div></details></div></body></html>

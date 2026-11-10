@@ -1,0 +1,366 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RAG行业标准与现状差距</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ RAG行业标准与现状差距</span></div><div class="wrap"><h1 id="rag-行业标准与现状差距">RAG 行业标准与现状差距</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/rag-arch/RAG%E4%B8%9A%E5%86%85%E6%9C%80%E9%AB%98%E6%A0%87%E5%87%86-20261009.md">RAG业内最高标准-20261009</a> · <a href="../../raw/rag-arch/RAG%E6%9E%B6%E6%9E%84%E6%A0%87%E5%87%86-20261009.md">RAG架构标准-20261009</a> · <a href="../../raw/rag-arch/RAG%E6%A0%87%E5%87%86%E8%90%BD%E4%BD%8D%E6%96%B9%E6%A1%88-20261009.md">RAG标准落位方案-20261009</a> · <a href="../../raw/rag-arch/RAG%E7%8E%B0%E7%8A%B6%E7%9B%98%E7%82%B9-20261009.md">RAG现状盘点-20261009</a> · <a href="../../raw/rag-arch/RAG%E8%BF%9B%E9%98%B6%E8%B0%83%E7%A0%94-6%E6%96%B9%E5%90%91-Top3%E8%90%BD%E5%9C%B0%E6%96%B9%E6%A1%88-20260928.md">RAG进阶调研-6方向-Top3落地方案-20260928</a> · <a href="../../raw/rag-arch/RAG%E4%B8%9A%E5%86%85%E5%AF%B9%E6%A0%87%E4%B8%8E%E5%B7%A5%E7%A8%8B%E5%8C%96%E6%94%B9%E9%80%A0-20261013.md">RAG业内对标与工程化改造-20261013</a></p>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践</a> · <a href="Contextual-Retrieval%E5%AE%98%E6%96%B9%E6%96%B9%E6%B3%95-20261009.html">Contextual Retrieval 官方方法</a> · <a href="RAG%E8%AF%84%E4%BC%B0%E6%80%8E%E4%B9%88%E8%B7%91.html">RAG评估怎么跑</a> · <a href="%E7%9F%A5%E8%AF%86%E5%BA%93%E4%BF%9D%E9%B2%9C%E4%B8%8ETTL%E6%B2%BB%E7%90%86.html">知识库保鲜与TTL治理</a></p>
+</blockquote>
+<h1 id="why把外部标准变成有先后顺序的本地质量合同">WHY：把外部标准变成有先后顺序的本地质量合同</h1>
+<h2 id="为什么要对标为什么不能照抄排行榜">为什么要对标，为什么不能照抄排行榜</h2>2
+<p>业务需要的是“每次动库知道收益与风险”，不是把外部产品能力全部打勾。没有标准会漏掉生成层、负例和数据新鲜度；照搬标准又可能把小规模单用户库升级成昂贵的多服务平台。价值在于把差距按风险、依赖与可测收益排队，让评测先于重切、模型升级与图谱扩张。</p>
+<p>依据是本篇 sources 的<a href="../../raw/rag-arch/RAG%E6%A0%87%E5%87%86%E8%90%BD%E4%BD%8D%E6%96%B9%E6%A1%88-20261009.md">标准落位方案</a>：先修尺子，再补三层评测；Tracing 对当时单用户库是可选增强，不应抢掉质量主线。适用于制定本地改造顺序和上线合同；不把某一厂商博客当跨行业认证，不把早期盘点当今天的生产状态，也不把医疗、权限等业务风险缩成统一 Recall 阈值。</p>
+<p>本次保留所有早期“未达标”与后续“已落地”的记录，并补充阅读顺序：先看日期和测量范围，再看结论。当前只能用源码证明入口存在，用配置证明声明值；要证明有效仍须在相同题集与索引上实测，本文结构升级本身不是能力升级。</p>
+<h2 id="核心论点">核心论点</h2>2
+<p>2026 年生产 RAG 的"五件套"（混合检索 dense+sparse+RRF、cross-encoder 精排、结构化分块、metadata filter、自动评测）已是多家向量库官方文档的推荐路径，属于标配而非前沿——本库 4/5 达标，评测层是唯一的系统性缺口。"找到≠答对"不是口号而是实测：检索 Recall=100% 时 answer_correctness 只有 0.787，只拿 Recall 当动库门禁会放走生成层 bug，因此评测必须升为动库任务的硬前置，门禁从"Recall 不降"升级为三层指标联合不降。引用 Anthropic 数字时的边界要守住：35%/49%/67% 是检索失败率的相对降幅而非 Recall 目标值，官方否定启发式摘要，数字只出自 LLM 生成版 Contextual。优先级有定论：先补三层评测（1–2 天/项）再动 metadata 预过滤、Contextual LLM 版（$1.02/M doc tokens）、Tracing，semantic chunking 因需重建索引放最后。</p>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">为什么要对齐行业标准（动机与代价）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>动机（WHY）：RAG 技术栈选项多（检索/分块/评测/观测每层都有多种方案），没有行业标准对照就不知道"自己做到哪了、缺的是不是关键件"</li><li>引用标准数字时有硬边界：35%/49%/67% 是检索失败率相对降幅而非 Recall 目标值，官方否定启发式摘要——引错数字会导致验收口径错误，这是"对标"最容易踩的坑</li></ul></div>2
+<ul>
+<li><strong>动机（WHY）</strong>：RAG 技术栈选项多（检索/分块/评测/观测每层都有多种方案），没有行业标准对照就不知道"自己做到哪了、缺的是不是关键件"。2026 年生产 RAG 的"五件套"（混合检索、cross-encoder 精排、结构化分块、metadata filter、自动评测）已是多家向量库官方文档的推荐路径——对照标准的价值是把"感觉还行"变成"4/5 达标、评测层是唯一系统性缺口"这种可执行的差距清单，避免在不重要的方向投入（如 semantic chunking 因要重建索引应放最后）。</li>
+<li><strong>代价与权衡</strong>：对齐标准要投入补缺口的人力（每项 1-5 天），但顺序有定论：先补最便宜且验证前置的（三层评测 1-2 天/项），再动高成本动作（Contextual LLM 版 $1.02/M doc tokens、重建索引类）。引用标准数字时有硬边界：35%/49%/67% 是检索失败率相对降幅而非 Recall 目标值，官方否定启发式摘要——引错数字会导致验收口径错误，这是"对标"最容易踩的坑。</li>
+</ul>
+<h1 id="whyt分清指标组件能力与不同日期的差距快照">WHYT：分清指标、组件能力与不同日期的差距快照</h1>
+<h2 id="能力协同与对标映射">能力协同与对标映射</h2>2
+<pre><code class="language-text">数据契约/版本 → 分块与索引 → dense+sparse/RRF → rerank/gate → 生成引用
+      ↑                    三层评测/负例/日志                    ↓
+      └──────────── badcase → 定位 → 单项改造 → 同尺回归 ────────┘
+</code></pre>
+<p>数据、检索、生成的度量不能互相替代。Contextual 的官方 35/49/67% 是 top-20 失败率相对下降；本库的 Recall@5、生成 faithfulness、答案 correctness 是另一套指标，不能做直接百分比比较。标题/路径规则前缀不等于 LLM 逐 chunk 生成上下文；BGE-M3 sparse 也不应被改叫独立第三路 BM25。</p>
+<p>选型依据按依赖链理解：字段和标注先于切分实验，候选覆盖先于换 embedding，稳定的检索/生成基线先于 GraphRAG/Agentic。来源中“标配/前沿/维护期”沿用 2026-10 调研语境，不新增未经核验的当日行业判断。原表 RAGAS、元数据过滤与 Tracing 的叉号是特定时点缺口，不能仅凭本文保留旧表就宣称当前仍完全没有。</p>
+<p>质量合同至少记录题库版本、索引版本、配置、模型实际路由、有效样本数、分层分数与失败题。<code>rag/eval/_e2e_eval.py</code> 的当前调用只到 retrieve→rerank，虽名为 e2e，仍不包含完整生成/答案正确性；“跑了 e2e”不能自动打勾生成层。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">核心结论</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本库 4/5 已达标（metadata filter 半达标），评测层是唯一的系统性缺口</li><li>本库只落地了检索层 Recall 一项，且是关键词判定版，等于"三层缺两层、检索层还缺一半"</li><li>5. 本库知识库分层严重倒挂：raw 占 93.8%、wiki 5.0%、ontology 1.2%，且 raw 内逾七成是过程性文档——补 wiki 层正是纠偏方向</li></ul></div>2
+<ol>
+<li><strong>2026 生产 RAG 的"五件套"是标配而非可选</strong>：混合检索 dense+sparse+RRF、cross-encoder 二阶段精排、结构化分块、metadata filter、自动评测——在 Elastic/Weaviate/Qdrant/Milvus/LangChain/LlamaIndex 官方文档中均被列为推荐路径。本库 <strong>4/5 已达标</strong>（metadata filter 半达标），<strong>评测层是唯一的系统性缺口</strong>。</li>
+<li><strong>"三层评测"不是二创，而是 RAGAS 论文 Table 1（arXiv:2309.15217）的表格组织方式</strong>：检索层（Context Recall/Precision/Relevance）+ 生成层（Faithfulness/Answer Relevancy）+ 端到端（Answer Correctness/Similarity）。本库只落地了<strong>检索层 Recall 一项，且是关键词判定版</strong>，等于"三层缺两层、检索层还缺一半"。</li>
+<li><strong>"找到≠答对"有实测证据</strong>：本库 Recall@5 基线 87.5%（56 条 golden-q），但 5 条样本试跑中检索 Recall=100% 时 answer_correctness 仅 0.787——只拿 Recall 当动库门禁，会放走生成层 bug。</li>
+<li>因此 <strong>评测必须升为动库任务的硬前置</strong>（标准-0b，排在"全库 Contextual"等改库动作之前），门禁从"Recall 不降"升级为"三层指标不降"。</li>
+<li>本库知识库<strong>分层严重倒挂</strong>：raw 占 93.8%、wiki 5.0%、ontology 1.2%，且 raw 内逾七成是过程性文档——补 wiki 层正是纠偏方向。</li>
+</ol>
+<h2 id="是什么定义与边界">是什么（定义与边界）</h2>2
+<p><strong>定义</strong>：本文回答"2026 年生产 RAG 的标配是什么、本库差在哪"——含 RAGAS 三层评测的官方口径、五件套达标打勾表、未达标项的改动量与优先级、引用红线。核心结论：标配看"多家官方 docs 是否列为推荐路径"，前沿看"论文/cookbook 存在但未成为默认"。</p>
+<p><strong>边界</strong>：<br />
+- ✅ 管：行业标准盘点、本库现状对照、缺口优先级排序、引用口径红线。<br />
+- ❌ 不管：具体每项缺口怎么补（各专项文档：<a href="RAG%E8%AF%84%E4%BC%B0%E6%80%8E%E4%B9%88%E8%B7%91.html">RAG评估怎么跑</a>、<a href="Contextual-Retrieval%E5%AE%98%E6%96%B9%E6%96%B9%E6%B3%95-20261009.html">Contextual-Retrieval官方方法</a>）、图谱选型（<a href="RAG%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E6%A0%87%E5%87%86%E4%B8%8E%E9%AA%8C%E8%AF%81.html">RAG知识图谱标准与验证</a>）、阈值标定（<a href="../L8-5-%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB/RAG%E7%AE%A1%E7%BA%BF%E7%8E%B0%E7%8A%B6%E4%B8%8E%E9%98%88%E5%80%BC%E6%A0%87%E5%AE%9A.html">RAG管线现状与阈值标定</a>）。<br />
+- ⚠️ 标配 vs 前沿的判定法是本文方法论的一部分（标配=官方推荐路径，前沿=有 cookbook 未默认）——Contextual LLM 版是标配基线，Self-RAG/CRAG/Agentic/GraphRAG 属前沿，别把前沿当标配硬性要求。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">关键细节</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="ragas-三层评测官方依据-本库状态">RAGAS 三层评测：官方依据 + 本库状态</h3>3
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>官方指标（论文 Table 1）</th>
+<th>判定机制</th>
+<th>本库</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>检索层</td>
+<td>Context Recall</td>
+<td>参考答案拆句，判每句有无检索上下文支持</td>
+<td>🟡 有 Recall@k，但用关键词而非 LLM 逐句判定</td>
+</tr>
+<tr>
+<td>检索层</td>
+<td>Context Precision</td>
+<td>相关 chunk 的加权 precision@k，测排序质量</td>
+<td>🔴 无</td>
+</tr>
+<tr>
+<td>检索层</td>
+<td>Context Relevance</td>
+<td>LLM 直判 chunk 与 query 相关性（免标注）</td>
+<td>🔴 无</td>
+</tr>
+<tr>
+<td>生成层</td>
+<td>Faithfulness</td>
+<td>answer 拆 claims → 逐条判 context 是否支持</td>
+<td>🔴 无</td>
+</tr>
+<tr>
+<td>生成层</td>
+<td>Answer Relevancy</td>
+<td>由答案反推问题 → 与原问 embedding 余弦相似度</td>
+<td>🔴 无</td>
+</tr>
+<tr>
+<td>端到端</td>
+<td>Answer Correctness / Similarity</td>
+<td>与 ground truth 对比</td>
+<td>🔴 无</td>
+</tr>
+</tbody>
+</table>
+<p>几乎全部指标为 <strong>LLM-as-judge</strong>（内置 NLI 式 prompt），embedding 相似度仅用于 answer_relevancy 的最终匹配。<strong>最小充分指标集 = 6 个</strong>（检索层 3 + 生成层 2 + 端到端 1）；若系统只检索不生成，检索层 3 个即可。</p>
+<p>据[一手源]：RAG业内最高标准-20261009.md §①，表里没展开的官方机制与口径：<br />
+- <strong>算法一句话</strong>：Faithfulness = 被 context 支持的 claims / 总 claims（两阶段：先拆 claims，再逐条判支持）；Context Recall = 被检索上下文覆盖的参考句数 / 参考句总数；Context Precision 需 ground truth，按 Σ(precision@k × relevance_flag) / 相关 chunk 总数算，测的是<strong>排序质量</strong>而非召回；Answer Relevancy 是反转式生成（从答案反推 N 个问题，算与原问的 embedding 余弦均值）。<br />
+- <strong>论文 Table 1 里还有三个本库没列的指标</strong>：Noise Sensitivity（打乱/删除 chunk 后重新生成，看正确性掉多少）、Topic Adherence（答案是否留在预设主题内）、Hallucination（无 ground truth 版忠实度，= 1 − 不受支持 claims / 总 claims）。它们不在 6 指标最小集里，属进阶项。<br />
+- <strong>版本口径</strong>：现行 docs.ragas.io 已改按 metricset 分组、不再分三层，"三层"以论文 Table 1 为准，引用时要写明出处；<code>context_entities_precision</code> 在 v0.2 移除，被 LLM 版 context_precision/recall 取代。<br />
+- <strong>官方流程</strong>：已有 golden set 直接 <code>evaluate()</code>；没有就先用 <code>TestsetGenerator</code> 从文档合成带 reference 的测试集再评，合成样本要人工抽检滤幻觉（估 2–3 天）。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2026 生产标配打勾（本库）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>A8 Query 改写 / HyDE（HyDE arXiv:2212.10496，LlamaIndex Query Transformations 收录）：属前沿非标配，本库 ✅（「query.py」 低置信时 LLM 改写 + HyDE，三路并行检索去重）</li><li>B7 测试集合成（RAGAS TestsetGenerator）：🟡，56 条手工 golden-q 含 no-answer 负例（好），但无生成式扩增</li><li>C2 provider 级 prompt caching：🟡，仅有本地磁盘 rerank_cache/rewrite_cache；走 Claude 类 API 才有意义，约 1 天</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>业内标准</th>
+<th>本库</th>
+<th>证据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>混合检索 dense+sparse+RRF</td>
+<td>四家向量库官方推荐路径</td>
+<td>✅</td>
+<td><code>query.py</code> bge-m3 双路 + RRF_K=60</td>
+</tr>
+<tr>
+<td>Cross-encoder rerank</td>
+<td>LangChain 称"最高收益改进之一"</td>
+<td>✅</td>
+<td>bge-reranker-v2-m3，top-30→top-4，阈值 0.45</td>
+</tr>
+<tr>
+<td>多能力 embedding（BGE-M3）</td>
+<td>arXiv:2402.03216，8192 tokens</td>
+<td>✅</td>
+<td>dense+sparse 单模型</td>
+</tr>
+<tr>
+<td>Metadata filter</td>
+<td>四家向量库原生能力</td>
+<td>🟡</td>
+<td>仅 TIER_WEIGHT 打分降权，<strong>无 <code>where=</code> 预过滤</strong></td>
+</tr>
+<tr>
+<td>结构感知 + parent-child 分块</td>
+<td>LlamaIndex 列为 top consideration</td>
+<td>✅</td>
+<td>384/80 + 父块 800/100</td>
+</tr>
+<tr>
+<td>Semantic chunking</td>
+<td>LangChain splitters 收录</td>
+<td>🔴</td>
+<td>固定 token 切分，无语义边界</td>
+</tr>
+<tr>
+<td>Contextual 前缀（LLM 版）</td>
+<td>Anthropic 官方，成熟标配基线</td>
+<td>🟡</td>
+<td>规则拼接版，非 LLM 生成</td>
+</tr>
+<tr>
+<td>自动评测（含生成层）</td>
+<td>LangSmith/RAGAS/DeepEval/TruLens</td>
+<td>🔴</td>
+<td>无</td>
+</tr>
+<tr>
+<td>Tracing 观测</td>
+<td>Langfuse"没有观测=猜谜"</td>
+<td>🔴</td>
+<td>无</td>
+</tr>
+</tbody>
+</table>
+<p>据[一手源]：RAG业内最高标准-20261009.md §③ 另有 6 行对照，未进上表：<br />
+- <strong>A8 Query 改写 / HyDE</strong>（HyDE arXiv:2212.10496，LlamaIndex Query Transformations 收录）：属<strong>前沿非标配</strong>，本库 ✅（<code>query.py</code> 低置信时 LLM 改写 + HyDE，三路并行检索去重）。<br />
+- <strong>A9 Tier/source 质量权重</strong>：业内少见成体系做法，各家按 metadata 过滤实现，本库用 <code>TIER_WEIGHT {1:1.0, 2:0.7, 3:0.4}</code> 打分降权，属超出标准。<br />
+- <strong>B7 测试集合成</strong>（RAGAS TestsetGenerator）：🟡，56 条手工 golden-q 含 no-answer 负例（好），但无生成式扩增。<br />
+- <strong>C2 provider 级 prompt caching</strong>：🟡，仅有本地磁盘 rerank_cache/rewrite_cache；走 Claude 类 API 才有意义，约 1 天。<br />
+- <strong>C3 增量 reindex</strong>：✅，<code>ingest.py</code> 用 registry.json sha256 增量 upsert（LangChain indexing API 官方口径：避免重复与覆盖）。<br />
+- <strong>C4 多租户 / ACL</strong>：单用户本地库，<strong>不适用</strong>，不算缺陷。<strong>C5 语义缓存</strong>：Qdrant 官方注明"optimization layer, not default"，属前沿/可选，未做不算缺口。</p>
+<h3 id="未达标项改动量与优先级">未达标项、改动量与优先级</h3>3
+<ul>
+<li><strong>检索层补 Context Precision + Context Relevance</strong>：复用 56 条 golden-q，1–2 天（小）。</li>
+<li><strong>生成层补 Faithfulness + Answer Relevancy</strong>：golden-q 加 <code>reference_answer</code> 字段，2–3 天（小-中）。</li>
+<li><strong>端到端补 Answer Correctness</strong>：与上条共用字段，1 天（小）。</li>
+<li><strong>metadata 预过滤</strong>：<code>query.py</code> 过滤参数化，0.5–1 天（小）。</li>
+<li><strong>Contextual 规则版升级 LLM 版</strong>：按官方 prompt，一次性成本 <strong>$1.02/M doc tokens</strong>，先小批 A/B 再全量，3–5 天。</li>
+<li><strong>Tracing（Langfuse/LangSmith）</strong>：2–3 天；<strong>semantic chunking 需重建索引</strong>：3–5 天。</li>
+<li><strong>优先级</strong>：先补三层评测（#1–#3）→ metadata 预过滤 → Contextual LLM 版（先 A/B）→ Tracing → 测试集合成 → semantic chunking。</li>
+</ul>
+<p>据[一手源]：RAG业内最高标准-20261009.md §②，Contextual 两变体与缓存口径：<br />
+- <strong>变体一</strong>是 contextual embeddings + contextual BM25，入库时给每个 chunk 加 LLM 生成前缀后分别建索引。<strong>变体二"with prompt caching"</strong>把整篇文档写一次缓存（写 1.25× 输入费率），后续每个 chunk 读缓存前缀（0.1×，即 90% 折扣）。变体二是<strong>成本机制，不是独立的准确率变体</strong>，别当成第二档准确率数字引用。<br />
+- 官方 cookbook 实测 <strong>61.83% 输入 token 命中缓存</strong>；$1.02/M 的假设前提是 800-token chunk、8k-token 文档、50-token 指令、每 chunk 约 100 token 前缀。<br />
+- 官方否定两条替代路径："generic document summaries... very limited gains"，"summary-based indexing... low performance"。后继方法可对照：Late Chunking（arXiv:2409.04701，与 contextual 直接竞品，2504.19754 做了头对头独立评测）、训练型 contextual embeddings（2505.24782）。两者均属前沿，非默认。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">六方向进阶（早期调研的 Top3 落地路径）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>2. Rerank 短路径：dense top-30 → bge-reranker-v2-m3 交叉编码 → 阈值门控输出 top-4——硬 query recall@5 提升 5–15 点，延迟 +50–150ms，用低置信 query 才触发</li><li>3. 阈值门控的 query 改写：低置信时触发 1 个同义改写 + 1 个 HyDE 假设答案，并行检索后按 chunk hash 去重——只补"原问题直接检索"的盲区</li></ul></div>3
+<p><code>RAG进阶调研</code> 从半年前"133 chunk / bge-m3 dense 单模式 / 阈值 0.465"的基线出发，给出按投入产出排序的三条路径，现多已落地为本库现行管线：</p>
+<ol>
+<li><strong>混合检索</strong>：不换模型、不引 ES，直接用 bge-m3 原生 sparse 当学习版 BM25，与 dense 按 RRF（k=60，权重 0.7/0.3）融合——实测 recall@10 从 ~78% 升到 ~91%，仅加 10–30ms。</li>
+<li><strong>Rerank 短路径</strong>：dense top-30 → bge-reranker-v2-m3 交叉编码 → 阈值门控输出 top-4——硬 query recall@5 提升 5–15 点，延迟 +50–150ms，用低置信 query 才触发。</li>
+<li><strong>阈值门控的 query 改写</strong>：低置信时触发 1 个同义改写 + 1 个 HyDE 假设答案，并行检索后按 chunk hash 去重——只补"原问题直接检索"的盲区。</li>
+</ol>
+<h3 id="业内对标agentic-graphrag-ontology-工程化10-13-对标源">业内对标：Agentic / GraphRAG / Ontology / 工程化（10-13 对标源）</h3>3
+<p>据[一手源]：RAG业内对标与工程化改造-20261013.md。该文对标的"我们现状"（纯 dense、无 rerank 之外的一切、raw 9311 / wiki 329 / ontology 0）是 10-13 时点的旧判断，本库此后已上线 dense+sparse+RRF 混检，数字以上文"本库现状底账"的实测为准（真值层级：实测命令输出 &gt; 官方一手文档 &gt; 二手总结）。下面只取对标源里仍成立的机制与选型口诀。<br />
+- <strong>Agentic RAG 六模式</strong>：Router Agent（数据源干净分区时用）、Agent-as-retriever（复杂查询分解）、CRAG（检索质量不稳时用，grader 判不相关就重写查询，相关文档 &lt;2 篇触发重写，最多 2 次）、Self-RAG（精细控制）、Adaptive RAG（查询异质性高时按复杂度选策略）、Agentic GraphRAG（跨文档多跳）。2026 生产实现不再训练 reflection tokens，而是用 LLM grader 的 prompt 实现，三个判断是 ISREL（文档相关？）、ISSUP（答案被上下文支持？）、ISUSE（答案有用？）。框架口诀：状态机 + 分支 + 重试 + 人审选 LangGraph（LangChain 约 125k stars），数据密集的文档/检索选 LlamaIndex Workflows，二者常搭配（LlamaIndex 管检索、LangGraph 管编排），简单线性 handoff 才用 OpenAI Agents SDK。<br />
+- <strong>投入产出最高的第一步是 Adaptive 路由层</strong>：用便宜模型做路由，简单问题跳过检索（源文预期省约 30%，是预估非实测）。Modular RAG 三层 = 可插拔检索层 → 可插拔生成层 → 稳定 state schema 的编排层，价值是换模型不改图结构、A/B 成本为零。<br />
+- <strong>GraphRAG 四型选型</strong>：Type 1 图增强向量搜索（低成本，第一步）、Type 2 图引导检索（中，中期）、Type 3 图摘要即 MS GraphRAG（$50–200/500 页、约 45 min、约 14k stars，全局查询最佳，暂不需要）、Type 4 时序知识图谱（Graphiti，Agent 记忆用，需 Neo4j，非文档 RAG 不适用）。<strong>LightRAG：$0.50/500 页、约 3 min、40.1k stars（EMNLP 2025），质量为 MS 的 70–90%，成本约 1/100，是起点</strong>。LightRAG 四种查询模式：naive（纯向量）、local（实体级局部事实）、global（社区级"总结所有 X"）、hybrid（局部 + 全局，质量最佳、成本略高）。对标源估算本库全量实体抽取约 4600 chunk × 1 次 LLM，DeepSeek 价格约 $2–5、30–60 min，仍须过上面的双闸门。<br />
+- <strong>Ontology 构建四法</strong>：纯人工（精度最高、人力极高）；LLM 实体抽取（LightRAG 模式，全自动，$0.5/500 页）；LLM + 规则约束（LangChain LLMGraphTransformer，半自动，精度高）；从关系库反推（结构化领域精度最高）。口诀：<strong>先用 <code>entity_types.yaml</code> 定好领域词汇表约束抽取范围，再让 LightRAG 填充，最后人工审核：degree &gt;5 的高频实体优先、同名模糊实体合并、与现有 wiki 条目映射对齐</strong>。抽取输出含 entity_name / entity_type / description 与 source / target / relationship_description / relationship_strength（1–10）。<br />
+- <strong>工程化双管线</strong>：离线索引管线（摄入 → 解析清洗/OCR → 分块 → dense+sparse embedding → 向量库 + BM25 索引）与在线查询管线（查询改写 HyDE → 混合检索 → cross-encoder rerank → 上下文组装 + 引用 → LLM 生成）分离，加一个<strong>独立的可观测层</strong>（RAGAS 评测、Langfuse/LangSmith 追踪、延迟/召回/rerank 分数/token 用量监控、黄金集离线 A/B）。配置化第一步投入最小收益最大：参数抽到 <code>config/rag.yaml</code>，用 pydantic-settings 做类型安全，再按 <code>ingestion/ retrieval/ generation/</code> 模块化，组件走可插拔接口。<br />
+- <strong>路线图四阶段</strong>：Phase 1（第 1–2 周）配置化 + 模块化 + 混合检索 + 50–100 条黄金集，不引入新框架；Phase 2（第 3–4 周）LangGraph 路由 + CRAG 纠错环 + Self-RAG grounding 校验 + Langfuse trace；Phase 3（第 5–6 周）实体类型表 + LightRAG 批量索引（预期 ~500–2000 术语、~1000–5000 条关系）；Phase 4（第 7–8 周）LightRAG local 模式接入在线查询并与向量检索做 RRF，用 RAGAS 对比改造前后。注意它与本文 9 步标准顺序不同：9 步要求先过评测与去重闸门再碰图谱，冲突时以 9 步（含止损线）为准。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">引用红线（易错点）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Anthropic 官方数字是检索失败率的相对降幅：Contextual Embeddings 单步 5.7%→3.7%（−35%）、叠加 hybrid 2.9%（−49%）、再叠加 rerank 1.9%（−67%）——不是 Recall 目标值、不是绝对错误率</li><li>标配 vs 前沿判定法：标配看"多家官方 docs 是否列为推荐/默认路径"；前沿看"论文 + cookbook 存在但未成为默认"</li><li>已过时：单 dense-only 检索、无 rerank 两阶段、一刀切固定分块（四家官方 docs 已把 hybrid + rerank 列为推荐路径）</li></ul></div>3
+<ul>
+<li>Anthropic 官方数字是<strong>检索失败率的相对降幅</strong>：Contextual Embeddings 单步 5.7%→3.7%（−35%）、叠加 hybrid 2.9%（−49%）、再叠加 rerank 1.9%（−67%）——<strong>不是 Recall 目标值、不是绝对错误率</strong>。本库验收口径应为"Recall@5 不低于基线 87.5%"。</li>
+<li><strong>标配 vs 前沿判定法</strong>：标配看"多家官方 docs 是否列为推荐/默认路径"；前沿看"论文 + cookbook 存在但未成为默认"。Contextual LLM 版已是成熟标配基线（非前沿）；Self-RAG/CRAG/Agentic RAG/GraphRAG 属前沿（有 cookbook≠生产默认）。</li>
+<li>官方<strong>否定启发式摘要</strong>："very limited gains"——规则拼接不是官方方法，官方数字出自 LLM 生成版。</li>
+</ul>
+<p>据[一手源]：RAG业内最高标准-20261009.md §④ 的标配/前沿判定矩阵（补全上面两句没点到的项）：<br />
+- <strong>标配</strong>：混合检索、cross-encoder rerank、metadata filter、parent-child、自动评测、Tracing、增量 reindex，另有 Contextual（LLM 前缀）为成熟标配基线（AWS Bedrock 已产品化）。<br />
+- <strong>前沿</strong>：GraphRAG 为"前沿→商业化中"（微软 repo 已进 maintenance mode，AWS Bedrock GraphRAG GA + Neo4j 跟进，但限定场景是全局多跳，非通用标配）；HyDE/multi-query/step-back、Self-RAG（2310.11511）、CRAG（2401.15884）、Adaptive RAG（2403.14403）、Agentic RAG、Late Chunking 均属前沿，有 cookbook 不等于生产默认；OTel GenAI semantic conventions 仍处 Development 状态；语义缓存前沿/可选。<br />
+- <strong>已过时</strong>：单 dense-only 检索、无 rerank 两阶段、一刀切固定分块（四家官方 docs 已把 hybrid + rerank 列为推荐路径）。<br />
+- <strong>三条防混淆</strong>：别把前沿当标配；别把标配当前沿（Contextual 2024-09 发布，2026 已是标配，但本库用的规则拼接版与 LLM 版有真实差距）；评测不是可选项。<br />
+- <strong>待补（官方页面未给，勿编造）</strong>：(a) "前后 chunk 拼接" vs LLM contextual 的具体对比数字；(b) 缓存后"成本增量百分比"；(c) 2026 权威第三方采用率调研；(d) pgvector hybrid+RRF 官方一手页；(e) OpenAI/Google prompt caching 官方 docs（只抓了 Anthropic 一家）。</p>
+<h3 id="本库现状底账与动库防线">本库现状底账与动库防线</h3>3
+<ul>
+<li>规模：Chroma collection <code>wuyafang_kb</code> = <strong>5236 chunk</strong>，唯一源文件 <strong>298</strong>（raw 268 / wiki 24 / ontology 6）。</li>
+<li>污染：<code>raw/practice</code> 占 <strong>3777 chunk（72.1%）</strong>，其中 199 条是派单任务书式噪音；跨文件内容级重复 373 组，6 组同文件双路径（影响 566 chunk）；<strong>55 条 chunk ≤20 字</strong>、420 条 heading_path 为空。</li>
+<li>动库步骤（去重 / 重灌 / 加前缀）必守<strong>防"进化吞信息"三道半防线</strong>：先存 chunk 总数 + source 清单<strong>快照 diff</strong> → 备份（.bak）→ 分批改 + 每批验证 → 异常即回滚；主防线 Recall 需升级为三层联合门禁。</li>
+</ul>
+<p>据[一手源]：RAG现状盘点-20261009.md（10-09 脚本实测快照；之后 raw 已增长，10-15 基线为 raw 15373 / wiki 1707 / ontology 51，规模以最新实测为准），底账里上面没列的数字：<br />
+- <strong>分层 chunk 数</strong>：raw 4913（93.8%）/ wiki 260（5.0%）/ ontology 63（1.2%）；另有测试 collection <code>chain_test</code>（3 条）属垃圾待清。chunks.jsonl 5236 行与 collection 一致，registry.json 298 条、0 缺失、0 哈希过期。<br />
+- <strong>元数据 12 字段覆盖 100%</strong>：source / source_file / chunk / chunk_type / source_tier / heading_path / parent_text / file_hash / date / chars / bge_version / sparse_vec。tier2 4905（93.7%）、tier1 331（6.3%）；chunk_type 为 raw 5007 / decision 151 / error 78。<br />
+- <strong>缺口</strong>：<code>date</code> 空 <strong>1325 条（25.3%）</strong>，其余多集中在 2026-09-23~09-30；<code>parent_text</code> 全量存在（中位 690 字）。这解释了为什么"按时间过滤/保鲜"目前做不了。<br />
+- <strong>管线规模</strong>：<code>ingest.py</code> 610 行、<code>query.py</code> 615 行（RRF 28 处、rerank 95 处）、<code>serve.py</code> 398 行；<code>eval/</code> 仅 3 文件，golden 集 3990B。<br />
+- <strong>同一时点的 4 个前提实测</strong>据[一手源]：RAG架构标准-20261009.md §零：(1) Contextual 前缀是 <code>ingest.py:230 build_context_prefix</code> 规则拼接，<strong>零 LLM 成本</strong>，所以全库重做无配额风险（升 LLM 版才有 $1.02/M 成本）；(2) 图库存储方案 plans 里没落死（微软 parquet、LightRAG JSON 之争），标准4/5 执行前必须先定；(3) PNG OCR 工具 tesseract / paddleocr / easyocr 全无，课件 PNG 实测 76 个，标准1 前必须先装；(4) chunk=384 / overlap=80 / parent=800 已落地，registry.json 56KB 活跃、待去重 373 组。结论：无"一做就崩"的隐藏炸弹，只有 2 个阶段性前置缺口（OCR、图库存储）。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">9 步执行标准（顺序与闸门）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>据[一手源]：RAG架构标准-20261009.md</li><li>核心原则：先测（query 分布 + baseline）→ 先清理（去重 + chunk）→ 有收益的中段（课件 / Contextual / 整理）→ 闸门过了才碰贵的（图谱 / ontology）</li><li>验收看多跳 Recall 上升且负面指标不恶化（简单事实不降、延迟不暴涨；GraphRAG 在 NQ 上低 13.4%、延迟 2.3×）；Go/No-Go 止损线：试点无明显提升就停，不上全量</li></ul></div>3
+<p>据[一手源]：RAG架构标准-20261009.md。核心原则：<strong>先测（query 分布 + baseline）→ 先清理（去重 + chunk）→ 有收益的中段（课件 / Contextual / 整理）→ 闸门过了才碰贵的（图谱 / ontology）</strong>。<br />
+- <strong>标准-1a 修尺子</strong>（前置，否则评测跑不了）：<code>run_eval.py:140</code> 读 <code>answer_keywords</code>，旧 26 条全无该字段，一跑就 KeyError；<code>relevant_source</code> 是单 string 非 list，测不出跨文档（历史 mean 19.8 是把 string 当 list 迭代字符的假数据）；26 条仅覆盖 298 源中的 14 个（4.7%），raw/practice 零覆盖；B 类多跳仅 4 条且全是浅层两实体对比；零条 no-answer 负例。补法：补 <code>answer_keywords</code>、<code>relevant_source</code> 改 list、新增 15 条真多跳 + 10 条真跨文档 + 5 条负例，扩到 50+ 条分层抽样；风险极低，先备份 golden-q.jsonl。<br />
+- <strong>标准-1b 测 query 分布</strong>：B/C 类占比决定图谱该不该做，占比太低，标准4/5 直接不做。<br />
+- <strong>标准4 图谱试点（LightRAG）有双闸门</strong>：闸门1 = B/C 类占比够高；闸门2 = chunk 去重完成（防图没建好增益打折）。选 LightRAG 的依据是约 40k stars、检索 token &lt;100（对照 GraphRAG 的 610×1000）、增量更新不重建全图，并设规模上限防成本失控。验收看多跳 Recall 上升<strong>且</strong>负面指标不恶化（简单事实不降、延迟不暴涨；GraphRAG 在 NQ 上低 13.4%、延迟 2.3×）；<strong>Go/No-Go 止损线</strong>：试点无明显提升就停，不上全量。<br />
+- <strong>收益递减与节奏</strong>：标准-1/0/2/3 收益明确，4/5 依赖闸门，别当保票；8 步串行周期长，<strong>每个闸门点重新对齐一次标准</strong>（RAG 迭代快）。<br />
+- <strong>2026 技术对照</strong>：混合检索（dense + sparse + BM25 三路）已达标；<strong>Agentic RAG（自己规划、翻不够接着翻）差一代</strong>，靠标准9 补。GraphRAG 是 2024–2025 的成熟件而非 2026 前沿，最前沿是 Agentic RAG / GA-RAG。<strong>铁律：标准9（Agentic 化）是最终目标，前面 8 步都是给它打地基，不得省略。</strong><br />
+- <strong>防线顺序</strong>：快照 → 备份 → 分批改 → 每批 Recall 验证 → 异常即回滚。Recall 只覆盖 23 个 source，删错了可能测不出，所以快照 diff 不能省，不能只靠 Recall 单点判断。</p>
+<h3 id="标准化落位的三个载体">标准化落位的三个载体</h3>3
+<ul>
+<li><strong>标准文件</strong>：8 处修订 + 1 处新增（新增"标准-0b 补三层评测"；修正标准 2 的错引验收数字 35%）。</li>
+<li><strong>知识库</strong>：评测方法 / Contextual 方法 / 标配前沿判定 → 灌 wiki；一手源全文 → 留 raw；ontology 层暂不灌（评测指标三元关系留到 schema 先行时）。</li>
+<li><strong>记忆与技能</strong>：三层评测、引用口径等落 MEMORY 长期规则；沉淀 <code>rag-eval-three-layer</code> 技能，并设"RAG 改库评审卡"三问（三层基线留档？快照备份？回滚线定了？）。</li>
+</ul>
+<p>据[一手源]：RAG标准落位方案-20261009.md，落位细节：<br />
+- <strong>数字链纠偏</strong>：任务给的线索是"官方降 49%（非 35%）+ rerank 合计 67%"，经逐字核对应为 35% = Contextual Embeddings 单独、49% = 叠加 hybrid、67% = 再叠加 rerank，全部是 top-20 检索失败率（基线 5.7%）的相对降幅。<br />
+- <strong>"两个不做"</strong>：Tracing 对本地单用户库是增强非阻塞，塞进 9 步会稀释主线，放 9 步外的可选清单；semantic chunking 要重建全部索引（3–5 天），与标准0/3 动库风险叠加，等三层评测基线稳了再单独评估。<br />
+- <strong>ontology 层暂不灌</strong>：ontology 仅 1.2%，且 9 步里 ontology 是标准5（schema 先行、双闸门之后）。例外：标准5 启动时把"评测指标实体"（metric → layer → formula 三元关系，源自 RAGAS 三层）作为首批图谱实体灌入。<br />
+- <strong>灌入顺序</strong>：①现在就能灌纯知识（wiki 三份，把 raw/wiki 比例往 5%→10% 修）；②标准3（全库结构化整理）时 wiki 与 raw 一起走整理流水线；③标准5 时评测指标三元关系进 ontology。<br />
+- <strong>MEMORY 四条</strong>：M1 三层才完整且"找到≠答对"（Recall 87.5% vs answer_correctness 0.79，差 20pp）；M3 Anthropic 数字不是 Recall 目标；M4 标配 vs 前沿判定法；<strong>M2 RAGAS 官方分法纠偏</strong>：官方是 End-to-End / Component-Level / Business 三分，"检索/生成/端到端"三层是论文 arXiv:2309.15217 Table 1 的组织方式，引用要注明来源，别说成"RAGAS 官方三层"。<br />
+- <strong>GraphRAG 判定与双闸门设计吻合</strong>：前沿→商业化中，场景限定全局多跳，所以标准4/5 双闸门不动；标准9 作最终目标的铁律与 Agentic 前沿判定一致，只补引用（修订7 把对照表里 Agentic RAG 一行标成"差一代（前沿）"）。LangChain Deep Agents 4 种模式暂不进记忆，先灌 raw，等标准9 启动再提炼成规则。</p>
+<h1 id="how先校尺子再逐项取证和单变量验收">HOW：先校尺子，再逐项取证和单变量验收</h1>
+</div></details></div></details><h2 id="从现状取证到放行的执行步骤">从现状取证到放行的执行步骤</h2>2
+<ol>
+<li>核验标准引用与真实入口，而不是直接按旧缺口改生产：</li>
+</ol>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+ls -l rag/query.py rag/ingest.py rag/config.yaml rag/eval/eval_recall_fast.py rag/eval/_e2e_eval.py rag/eval/eval_gen_5metrics.py
+rg -n 'top_k:|dense_top_n:|sparse_top_n:|graph_slot_mode:|max_rewrite_retries:|threshold:' rag/config.yaml
+env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --check-golden
+</code></pre>
+<p>验收：入口存在、标注检查退出 0；只记录非敏感参数，不打印服务凭据。以实际输出填写底账，不把本文历史 56 题/若干 chunk 数冒充新盘点。</p>
+<ol start="2">
+<li>先留检索基线，再决定一个差距对应一个实验：</li>
+</ol>
+<pre><code class="language-bash">env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --mode hybrid --json-out /tmp/l4-standard-recall.json
+env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/_e2e_eval.py --json-out /tmp/l4-standard-ranked.json
+</code></pre>
+<p>验收：记录相同分母、排序阶段与负例处理；第一条测检索快评，第二条测生产检索排序，不把它们写成生成正确率。报告还应包括简单/多跳/全局的分项与失败例，不只贴平均分。</p>
+<ol start="3">
+<li>生成侧只在模型和数据授权齐全的环境先小样本执行：</li>
+</ol>
+<pre><code class="language-bash">env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_gen_5metrics.py --limit 5 --out /tmp/l4-standard-generation.json
+</code></pre>
+<p>验收：检查实际模型、cache 命中与回退，分数对应真实上下文与参考答案；小样本只证明流程和故障线索，不宣布统计显著。随后按本篇保留的九步标准逐项补齐，任一项若损害旧题就停止扩张并分析。本次文档整理未运行以上模型链路；用户对 Jev 文档审计的授权不外推到其他端点。</p>
+<h2 id="怎么用">怎么用</h2>2
+<ul>
+<li><strong>先盘点“五件套”现状</strong>：<code>grep -n "retrieve_hybrid\|rrf_fuse\|get_reranker" rag/query.py</code> 确认 dense+sparse+RRF（<code>rrf_fuse</code>，rrf_k=60）+ bge-reranker-v2-m3 已在管线；metadata filter 现状半达标，见 <code>ingest.py</code> 的 metadata 字段（source/chunk/tier）。</li>
+<li><strong>评测缺口按本条目顺序补齐（动库硬前置）</strong>：<br />
+<code>bash
+  python3 rag/eval/eval_recall.py            # 检索层 Recall@1/@5/@10（已具备）
+  python3 rag/eval/run_baseline.py           # 6 指标统一 runner
+  cd rag &amp;&amp; ~/ai-stack/bin/python eval_ragas.py   # 生成层 faithfulness/answer_relevancy/context_precision/context_recall
+  cd rag/eval &amp;&amp; python3 -u _e2e_eval.py     # 端到端最终 top-k 召回（rerank 之后）</code><br />
+  门禁从“Recall 不降”升为三层联合不降：任何改库动作前三层各出一份基线 JSON 留档。</li>
+<li><strong>“找到≠答对”用自家数据复现</strong>：<code>rag/eval/golden-q.jsonl</code> 标注 <code>answer_keywords</code>（如 Q001 的 "0.816"/"+39%"），<code>run_baseline.py</code> 同时算 Recall 与 answer faithfulness，检索 Recall=100% 而 faithfulness 低就是生成层 bug，别再往库里加文档。</li>
+<li><strong>Contextual 升级 LLM 版前先算成本</strong>：<code>rag/contextual_llm.py</code> 的 <code>estimate_cost(total_chunks, avg_chunk_chars)</code> 按官方 $1.02/M doc tokens 口径估价（DeepSeek-V3 via 硅基流动，<code>generate_contextual_prefix_llm</code> 带 chunk_hash 缓存到 <code>rag/data/contextual_cache.jsonl</code>）；先小批 A/B（<code>rag/eval/ab_contextual_test.py</code>）确认收益再全量。</li>
+<li><strong>引用口径红线</strong>：35%/49%/67% 是“top-20 检索失败率相对降幅”（基线 5.7%），写进任何报告前对照 <code>rag/Contextual-Retrieval-LLM-AB验证报告-20261026.md</code> 的实测数字，禁止当 Recall 目标值引用。</li>
+</ul>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">来源</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>「raw/rag-arch/RAG业内最高标准-20261009.md」（RAGAS 三层官方口径、Anthropic 官方数字、2026 标配/前沿矩阵、9 项未达标改动量）</li><li>「raw/rag-arch/RAG架构标准-20261009.md」（9 步执行标准、图谱双闸门、防吞信息防线、2026 技术对照）</li><li>「raw/rag-arch/RAG标准落位方案-20261009.md」（三载体落位、8 处修订、MEMORY/技能沉淀）</li></ul></div>2
+<ul>
+<li><code>raw/rag-arch/RAG业内最高标准-20261009.md</code>（RAGAS 三层官方口径、Anthropic 官方数字、2026 标配/前沿矩阵、9 项未达标改动量）</li>
+<li><code>raw/rag-arch/RAG架构标准-20261009.md</code>（9 步执行标准、图谱双闸门、防吞信息防线、2026 技术对照）</li>
+<li><code>raw/rag-arch/RAG标准落位方案-20261009.md</code>（三载体落位、8 处修订、MEMORY/技能沉淀）</li>
+<li><code>raw/rag-arch/RAG现状盘点-20261009.md</code>（5236 chunk、三层倒挂、噪音与重复实测底账）</li>
+<li><code>raw/rag-arch/RAG进阶调研-6方向-Top3落地方案-20260928.md</code>（混合检索/RRF/rerank/改写/ontology 六方向 + Top3）</li>
+<li><code>raw/rag-arch/RAG业内对标与工程化改造-20261013.md</code>（Agentic 六模式、GraphRAG 四型与三框架成本、ontology 四法、双管线工程化、四阶段路线图；"我们现状"为 10-13 旧判断）</li>
+</ul>
+<h2 id="相关术语">相关术语</h2>2
+<ul>
+<li><a href="../ontology/%E6%9C%AF%E8%AF%AD%E8%A1%A8-RAG%E6%9E%B6%E6%9E%84.html">评测闭环 (Evaluation Loop)</a></li>
+<li><a href="../ontology/%E6%9C%AF%E8%AF%AD%E8%A1%A8-RAG%E6%9E%B6%E6%9E%84.html">Hybrid Retrieval 混合检索</a></li>
+<li><a href="../ontology/%E6%9C%AF%E8%AF%AD%E8%A1%A8-RAG%E6%9E%B6%E6%9E%84.html">RRF (Reciprocal Rank Fusion)</a></li>
+<li><a href="../ontology/%E6%9C%AF%E8%AF%AD%E8%A1%A8-RAG%E6%9E%B6%E6%9E%84.html">Reranker 精排</a></li>
+<li><a href="../ontology/%E6%9C%AF%E8%AF%AD%E8%A1%A8-RAG%E6%9E%B6%E6%9E%84.html">Hierarchical Chunking 分层分块</a></li>
+<li><a href="../ontology/%E6%9C%AF%E8%AF%AD%E8%A1%A8-RAG%E6%9E%B6%E6%9E%84.html">Contextual Retrieval 上下文检索</a></li>
+<li><a href="../ontology/%E6%9C%AF%E8%AF%AD%E8%A1%A8-RAG%E6%9E%B6%E6%9E%84.html">Source Tier 来源分级</a></li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">相关条目</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>RAG 知识图谱标准与验证</li></ul></div>2
+<ul>
+<li><a href="RAG%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E6%A0%87%E5%87%86%E4%B8%8E%E9%AA%8C%E8%AF%81.html">RAG 知识图谱标准与验证</a></li>
+</ul>
+<blockquote>
+<p>三段结构补齐 2026-11-03</p>
+</blockquote>
+<h2 id="本库真实落地">本库真实落地</h2>2
+<blockquote>
+<p>本节 2026-11-05 补写，逐条核验路径与函数名（可 grep 复核），不复述正文差距表。</p>
+</blockquote>
+<ul>
+<li><strong>"2026 标配"逐项对到本库源码（gap 结论以正文为准，此处只给落点）</strong>：</li>
+<li>Contextual Retrieval：<code>rag/ingest.py</code> <code>build_context_prefix()</code>（L841，规则版零 LLM 成本）+ <code>build_context_prefix_llm()</code>（L857，LLM 版失败降级规则版）+ <code>rag/contextual_llm.py</code> <code>generate_contextual_prefix_llm()</code>（L77，Anthropic 官方方法，带缓存与 <code>estimate_cost()</code> L170 成本估算）。</li>
+<li>混合检索 + RRF + 重排：<code>rag/query.py</code> <code>retrieve_hybrid()</code>（L867）、<code>rrf_fuse()</code>（L428）、<code>rerank()</code>（L890，<code>@traceable</code>）。</li>
+<li>评测闭环：<code>rag/eval/eval_recall_fast.py</code>（检索层）、<code>rag/eval/_e2e_eval.py</code>（端到端，<code>append_badcase()</code> L30 失败题回流）、<code>rag/eval/eval_gen_5metrics.py</code>（生成层五指标 <code>m_faithfulness()</code> L149 等）。</li>
+<li>来源分级：<code>rag/ingest.py</code> <code>parse_source_tier()</code>（L913）+ <code>rag/query.py</code> <code>weight_by_tier()</code>（L695）。</li>
+<li><strong>与行业标准仍差的部分（正文差距表为准）</strong>：本库没有多租户权限过滤、没有线上 trace 平台（只有 <code>@traceable</code> 埋点）、RAGAS 用自建 <code>rag/eval_ragas.py</code>（<code>build_dataset()</code> L58）而非完整 ragas harness——这些是差距不是落点，本节不冒充已达标。</li>
+</ul></div></details></div></body></html>

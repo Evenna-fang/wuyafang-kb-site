@@ -1,0 +1,739 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L5-Agent生产化可靠性与评估-深挖整合</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/L5-Agent生产化可靠性与评估-深挖整合</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="agent-evals">Agent 生产化可靠性与评估：状态、失败模式、安全与 Evals</h1>
+<h2 id="_1">导读</h2>
+<p>Demo 和生产的差距不在"能不能跑"，而在"跑挂了怎么办"。本文把生产化拆成四块：可靠性的三道防线、失败模式、安全与监督、评估体系。前沿研究和优化点放在最后两节。</p>
+<p><strong>核心结论</strong></p>
+<ol>
+<li>状态管理是头号事故源。LangChain 2026 年 State of Agent Engineering 报告指出，超过 60% 的生产 Agent 事故源于状态管理，所以配置 checkpointer 是红线，不是可选项。</li>
+<li>可靠性有三道防线：断点续传（durable execution）、上下文治理、工具层 post-condition 验证。三道防线都要求"不信任模型的自我报告"，状态和结果要由确定性机制记录和读回。</li>
+<li>工具返回 <code>success: true</code> 只说明系统接受了命令，不说明世界已经按要求改变。验证必须放在模型之下的 harness 层，以确定性读回的证据形式喂给模型。让模型更怀疑地自查，只会产生表演式的怀疑。</li>
+<li>失败模式可以用六大坑和 MAST 对照表逐项核对。多数防线已经存在，明确的缺口有三个：工具层假成功没有读回验证，免凭据卡没有外部对账，并行拆卡没有工作域声明。</li>
+<li>评估决定迭代速度。RAGAS 三指标加 LLM-as-Judge，配合 CI 门禁和线上线下分层，是当前最成熟的组合。过程级评估仍是业界最大缺口。</li>
+</ol>
+<p>框架格局、选型决策树和成本基线归<a href="L5-Agent框架选型与平台生态-深挖整合.html">第 3 篇</a>。多智能体协作范式和协作中的坑（通信开销、死循环）归<a href="L5-多Agent协作与编排-深挖整合.html">第 2 篇</a>。记忆保鲜归<a href="L5-Agent记忆与自进化-深挖整合.html">第 5 篇</a>。本文只在需要的地方引用这些内容。</p>
+<h2 id="_2">一、生产化总原则与红线</h2>
+<h3 id="11">1.1 生产化必备四件事</h3>
+<p>生产化可以归纳为四件事。每件事缺失，demo 上线后都会以不同方式暴露。</p>
+<ol>
+<li><strong>错误处理与重试</strong>。LLM 会幻觉，API 会超时，工具会报错。不处理就是裸奔。</li>
+<li><strong>观测与日志</strong>。出问题时要能回答"哪一步、哪个 prompt、哪个工具调用出了错"。</li>
+<li><strong>安全与权限</strong>。高风险操作必须有人审，Agent 不能自己转账、自己删库。</li>
+<li><strong>状态检查点</strong>。长任务跑了 30 步挂了，应该能从第 25 步续跑，而不是从头再来。</li>
+</ol>
+<p>参考资料里，7 本书只有《Building Agentic AI Systems》系统讲了"跑挂了怎么修"。其他书基本只教怎么搭。所以下文的很多对策来自这本书，并在 MCP、LangGraph 等一手资料里得到具体化。</p>
+<h3 id="12">1.2 常见错误源</h3>
+<p>生产环境里的错误可以分成四类，每类的对策不同。</p>
+<ul>
+<li><strong>幻觉</strong>。模型会编造不存在的 API 返回，或编造数据库记录。《动手做 AI Agent》的划线里有一句"如果你没有这方面的知识，一定不要胡说，要查阅相关的资料"。这句话是写给模型的提示，人也要防同样的问题。</li>
+<li><strong>数字与数学短板</strong>。《零基础搭建》第 3 章专门讲了模型为什么无法准确识别数字，也有数学逻辑短板。涉及金额、数量的计算必须外挂代码执行，不让模型心算。</li>
+<li><strong>工具调用失败</strong>。FC（Function Calling）传错参数，API 返回 500，或者超时。</li>
+<li><strong>循环失控</strong>。ReAct 跑到 <code>max_iterations</code> 还没结束。</li>
+</ul>
+<h3 id="13">1.3 状态管理与红线</h3>
+<p>LangGraph 的生产要素可以直接对应上面四件事。状态（State）是带 reducer 的 typed dict，reducer 决定部分更新如何合并。图支持环（cycles），这是它与 DAG 框架的根本差异，agent 因此可以"重试、反思、再调用"。错误恢复靠 try/except 路由到 fallback 节点，而不是让整张图崩溃。</p>
+<p>Checkpointer 是状态持久化的核心。它支持 Postgres、SQLite 和托管 PG。Agent 崩溃、resume、rewind 都基于 checkpoint 实现。LangGraph Studio（2026 年 GA）可以可视化渲染 graph、逐步调试节点、回放任意 checkpoint，被比作"agent 界的 Chrome DevTools"。</p>
+<p>生产红线分两组。</p>
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>红线</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>必须做</td>
+<td>配 checkpointer（否则状态丢失是头号事故）</td>
+</tr>
+<tr>
+<td>必须做</td>
+<td>工具调用有 retry、timeout、fallback</td>
+</tr>
+<tr>
+<td>必须做</td>
+<td>接 observability（LangSmith 或 OpenTelemetry）</td>
+</tr>
+<tr>
+<td>必须做</td>
+<td>强制结构化输出（Pydantic schema）</td>
+</tr>
+<tr>
+<td>绝对不能做</td>
+<td>用裸 ReAct loop（无状态持久化）</td>
+</tr>
+<tr>
+<td>绝对不能做</td>
+<td>让 agent 无限制循环（必须设 <code>max_iterations</code>）</td>
+</tr>
+<tr>
+<td>绝对不能做</td>
+<td>不打 schema 就把 agent 输出给下游</td>
+</tr>
+</tbody>
+</table>
+<p><code>max_iterations</code> 的常见取值是 10 到 20 步。已经有 checkpoint 的长任务，每完成一步就应落盘当前状态。长任务（超过 30 步）必须有这个能力，否则一次崩溃会浪费所有 token。</p>
+<h2 id="_3">二、可靠性三道防线</h2>
+<h3 id="21-durable-execution">2.1 断点续传（durable execution）</h3>
+<p>断点续传要解决一个根本问题：LLM 工具调用不天然幂等。订两张机票、发两封邮件，都是重试带来的实际事故。所以 checkpoint 的语义是"每次 LLM 调用恰好付一次 token"，并且恢复时跳过已完成步骤，只重跑失败的那一步。</p>
+<p>无 checkpoint 的 naive retry 代价很高。一个 3 小时 50 分钟的任务，在第 29 分钟崩溃，naive retry 要损失 3.9 小时。有 checkpoint 则可以分钟级续跑。</p>
+<p>概率上的算账也说明了问题。5 步、每步成功率 99% 时，整体成功率约 95%。10 步时约 90%。真实 agent 常有几十步，单步的小失败会累积成整体的大失败。重试必须挂在"幂等键 + 已验证失败"上，不能挂在没有验证的成功信号上。</p>
+<p>下表列出五种机制。它们来自 Temporal、Restate、Inngest 等工作流引擎的做法，也是派单卡状态机的设计参照。</p>
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>做法</th>
+<th>关键依据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>checkpoint 语义</td>
+<td>持久化"已完成的执行边界"，恢复时跳过已完成步骤、只重跑失败的那个</td>
+<td>Temporal 不可变 event history / Restate journal / Inngest <code>step.run</code></td>
+</tr>
+<tr>
+<td>exactly-once</td>
+<td>LLM 工具调用不天然幂等，重试挂在幂等键和已验证失败上</td>
+<td>5 步×99%=95%、10 步=90%，真实 agent 几十步</td>
+</tr>
+<tr>
+<td>HITL 挂起原语</td>
+<td>人审等待可长达小时或天，工作流在检查点挂起、持久化全部状态，审批信号到达后从原点恢复，不空转轮询</td>
+<td>Inngest / Restate 的 <code>waitForEvent</code> / awakeable</td>
+</tr>
+<tr>
+<td>派单卡状态机</td>
+<td>每卡机器可读状态 <code>pending / running / awaiting-review / blocked / done</code>，加产物路径、已完成步骤清单、幂等键；崩溃后按状态文件续跑，不靠回忆</td>
+<td>5 方向调研方向 3</td>
+</tr>
+<tr>
+<td>预算硬上限</td>
+<td>派单模板加 <code>budget_tokens</code> 字段，默认 2k / 8k / 30k 三档；超预算自动 kill 并写入 error-ledger</td>
+<td>5 方向调研方向 4</td>
+</tr>
+</tbody>
+</table>
+<p>这里有一个取舍。状态文件级的状态机就能起步，不必一开始引入 Temporal 这类重基建。如果走 LangGraph 路线，则按红线配 checkpointer，也就是把 checkpoint 交给框架管理。两条路线的共同点是：恢复依据是落盘的状态，而不是 agent 对上一步的记忆。</p>
+<p>HITL 挂起的价值在于人审可能很慢。等待期间如果一直占着进程轮询，既浪费资源，也容易因为超时而失败。把状态持久化后挂起，审批到了再恢复，两件事都能解决。</p>
+<h3 id="22">2.2 上下文治理</h3>
+<p>上下文工程的目标是只让模型看到当前步骤需要的内容。LangChain 把相关做法归为四种策略。</p>
+<ul>
+<li><strong>write</strong>：把 scratchpad 和 Memory 写到上下文窗口之外。</li>
+<li><strong>select</strong>：按需取回，不预先全部塞入。</li>
+<li><strong>compress</strong>：只留必要的 token。</li>
+<li><strong>isolate</strong>：切分给子 agent、沙箱，或者用 state 字段隔离。LangGraph 可以把工具回包放在非暴露字段里，需要时才给模型。</li>
+</ul>
+<p>上下文失效有四种类型，来自 Breunig 的归纳，并经 LangChain 引用。</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>poisoning</td>
+<td>幻觉进了上下文</td>
+</tr>
+<tr>
+<td>distraction</td>
+<td>上下文淹没了模型的训练知识</td>
+</tr>
+<tr>
+<td>confusion</td>
+<td>冗余内容干扰作答</td>
+</tr>
+<tr>
+<td>clash</td>
+<td>上下文内容互相矛盾，<strong>多 agent 系统中高发</strong></td>
+</tr>
+</tbody>
+</table>
+<p>clash 与多 agent 的关系最直接。每个 agent 各自维护一部分状态，合并时就容易对不上。所以防线是隔离加状态字段化，并且子 agent 的产物必须落文件，只把轻量引用回传给 lead。这样可以避免"传话游戏"式的信息失真。</p>
+<p>Anthropic 附录里的几条做法可以直接落地。</p>
+<ul>
+<li>结构化产物（代码、报告、图表）由子 agent 直接写入外部系统，回传给 lead 的只有轻量 reference。</li>
+<li>plan 必须先写入 Memory 再开干，防止 200k 上下文截断时丢掉计划。</li>
+<li>上下文逼近上限时，开一个 fresh subagent 并做精心交接，而不是硬撑。</li>
+</ul>
+<p>隔离也有代价。反方观点（Cognition）指出，只传单条消息而不传完整 trace，会导致子 agent 各自隐式决策，产物之间互相冲突。折中的形态是"隔离执行过程，共享决策与产物"。</p>
+<p>回传内容用五字段契约约束，这是一种机械防线。</p>
+<ol>
+<li>交付了什么。</li>
+<li>证据路径。</li>
+<li>做了哪些关键取舍。</li>
+<li>未解决的不确定性。</li>
+<li>被卡外拒绝的动作。</li>
+</ol>
+<p>另一个省 token 的思路是 Code-as-MCP。子 agent 用 <code>search_file</code>、<code>read_file</code>、<code>run_test</code>、<code>apply_patch</code> 四件工具操作代码，而不是把文件内容整段贴进上下文。在 5 方向调研的记录里，这样比把整个 repo 塞进 prompt 省 95% 的 token。</p>
+<h3 id="23-post-condition">2.3 工具层验证（post-condition）</h3>
+<p>这一节讲一个反直觉的结论：模型不能充当验证层。工具返回 <code>{"success": true}</code> 只代表"系统接受了命令"，不代表"世界按要求变了"。HTTP 200 表示请求被接收，邮件表示进了队列，数据库写入可能只写到了未同步的副本。</p>
+<p>两种返回的区别可以用下面的示例看清。</p>
+<pre><code class="language-json">{&quot;success&quot;: true}
+</code></pre>
+<pre><code class="language-json">{&quot;status&quot;: &quot;queued&quot;, &quot;message_id&quot;: &quot;...&quot;}
+</code></pre>
+<p>后一种更诚实，因为它明确告诉调用方"已排队"，而不是"已完成"。契约应当区分 accepted 和 completed。</p>
+<p>post-condition 验证由四件套组成。</p>
+<ol>
+<li><strong>调用点幂等键</strong>（Stripe 式设计）。这是重试安全的前提。</li>
+<li><strong>写后确定性读回</strong>。按 key 读回，校验存在性和字段。</li>
+<li><strong>契约区分 accepted 与 completed</strong>。返回 <code>queued</code> 而不是 <code>success</code>。</li>
+<li><strong>按后果分级的验证预算</strong>。营销邮件可以不验，退款要三重验。</li>
+</ol>
+<p>派单卡里对应的"验证档"分四级。</p>
+<table>
+<thead>
+<tr>
+<th>验证档</th>
+<th>含义</th>
+<th>典型场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V0</td>
+<td>读类自查</td>
+<td>只读查询</td>
+</tr>
+<tr>
+<td>V1</td>
+<td>预埋 check 复跑</td>
+<td>有确定性检查脚本的任务</td>
+</tr>
+<tr>
+<td>V2</td>
+<td>写后读回加独立审查</td>
+<td>普通写操作</td>
+</tr>
+<tr>
+<td>V3</td>
+<td>读回加人工确认</td>
+<td>钱、配置、对外发布</td>
+</tr>
+</tbody>
+</table>
+<p>验证档越高，代价越大。V3 只留给后果严重且难以撤回的动作。这和前面的"按后果分级"是同一个原则。</p>
+<h2 id="_4">三、失败模式</h2>
+<h3 id="31">3.1 六大坑</h3>
+<p>2026 年多 agent 框架已经从"demo 能跑"进入"生产可审计"阶段。getting-started 文档通常不会讲下面六个坑。每个坑的解法已经在前文出现过，这里只做索引。</p>
+<table>
+<thead>
+<tr>
+<th>坑</th>
+<th>症状</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. 工具选择不可靠</td>
+<td>工具调用随机失败、超时、返回脏数据</td>
+<td>工具调用必须有 retry、timeout、fallback 节点，try/except 路由到 fallback，而不是让 graph 崩溃（见 1.3）</td>
+</tr>
+<tr>
+<td>2. 记忆爆炸、状态丢失</td>
+<td>长任务忘了前面说过什么；agent 崩溃后状态全丢</td>
+<td>配 checkpointer，崩溃、resume、rewind 都基于 checkpoint（见 2.1）</td>
+</tr>
+<tr>
+<td>3. 上下文窗口溢出</td>
+<td>多轮后 context 爆了，模型开始"失忆"或行为漂移</td>
+<td>结构化输出强制 Pydantic schema，裁掉不需要的历史，只留摘要和关键状态（见 2.2）</td>
+</tr>
+<tr>
+<td>4. 幻觉与输出不可信</td>
+<td>agent 编造不存在的工具返回值，下游 pipeline 直接炸</td>
+<td>强制结构化输出加校验。不打 schema 就交给下游，就是生产事故</td>
+</tr>
+<tr>
+<td>5. eval 缺失</td>
+<td>改了 prompt 不知道变好还是变坏，靠人肉试</td>
+<td>observability 加离线 golden set、在线 rollout、LLM-as-judge 三步 eval（见第五节）</td>
+</tr>
+<tr>
+<td>6. 成本失控</td>
+<td>跑一天烧掉几十刀，不知道钱花在哪</td>
+<td>每条任务路径埋 cost 日志，按 run 统计 token 消耗。成本基线数字归第 3 篇</td>
+</tr>
+</tbody>
+</table>
+<p>坑 1 和坑 2 的修法都依赖"可验证的状态"，坑 3 和坑 4 都依赖"结构化的接口"。把六个坑看成两类问题，有助于判断优先级。</p>
+<h3 id="32">3.2 跨书反推的常见坑</h3>
+<p>除了六大坑，参考资料里还反推出五个常见的生产化问题。</p>
+<ul>
+<li><strong>不设超时</strong>。LLM 调用挂死，整个 Agent 跟着挂。这和坑 1 同属一类：没有超时就没有 fallback 的触发点。</li>
+<li><strong>不设速率限制</strong>。Agent 循环触发 API 限流，会被直接封禁。</li>
+<li><strong>把 API key 写进 prompt</strong>。MCP 场景下凭证应走环境变量，不写进 system prompt。</li>
+<li><strong>多 Agent 之间没有共享状态</strong>。每个 Agent 自己记，最后对不上账。</li>
+<li><strong>不做评估</strong>。上线后只看"能不能跑"，不看"跑对了多少"。《Building Agentic AI Systems》强调要定期监控模型性能。</li>
+</ul>
+<h3 id="33-mast">3.3 MAST 失败模式对照表</h3>
+<p>MAST 对照表把业界实证的失败模式，和本库现有防线逐条对照。表中的占比是源文件引用的业界数据。</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>业界失败模式（实证占比）</th>
+<th>现有防线</th>
+<th>缺口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>step repetition / 死循环（MAST 最高频 15.7%）</td>
+<td>同错 3 次停手</td>
+<td>只防"同错"，不防同步骤换皮重复；无动作相似度检测</td>
+</tr>
+<tr>
+<td>2</td>
+<td>不知何时停（premature 6.2%）</td>
+<td>绿即停、验收四门</td>
+<td>依赖验收方认真</td>
+</tr>
+<tr>
+<td>3</td>
+<td>验证缺失或错误（合计 23.5%）</td>
+<td>自报不采信、G0-G9</td>
+<td>工具层假成功无读回验证；judge 无一致性校准</td>
+</tr>
+<tr>
+<td>4</td>
+<td>规格空泛（specification 41.8%，最大类）</td>
+<td>白名单、六要素</td>
+<td>委派契约缺"输出格式、工具指引"显式字段</td>
+</tr>
+<tr>
+<td>5</td>
+<td>agent 间错位（32.3%）</td>
+<td>配置全局串行、审查只读</td>
+<td>审查者上下文过窄易误判；回传消息无 schema</td>
+</tr>
+<tr>
+<td>6</td>
+<td>重复劳动、fan-out 撞车</td>
+<td>batch 不超过 3</td>
+<td>拆卡没有工作域声明，事前发现不了撞车</td>
+</tr>
+<tr>
+<td>7</td>
+<td>过度协商、多数暴政（correct 翻转为 incorrect 的压过反向）</td>
+<td>审查轮不超过 2，分歧升用户，不投票</td>
+<td>基本覆盖</td>
+</tr>
+<tr>
+<td>8</td>
+<td>错误传播（0.95^10 = 59.9%）</td>
+<td>停手三线、fallback</td>
+<td>多卡串联无"链长×成功率"提示</td>
+</tr>
+<tr>
+<td>9</td>
+<td>任务漂移（semantic、coordination、behavioral 三型）</td>
+<td>白名单、回边 A 重计划</td>
+<td>复计划没有"新任务清单对原目标"的显式 diff</td>
+</tr>
+<tr>
+<td>10</td>
+<td>说做不符（13.2%，MAST 第二高频）</td>
+<td>凭据标注加 receipt 对账</td>
+<td>免凭据卡没有外部对账，是残留敞口</td>
+</tr>
+</tbody>
+</table>
+<p>读这张表时，可以把五个缺口分成三类。</p>
+<p>第一类是"工具与状态的假成功"，对应第 3 行和第 10 行。模型说做了，工具说接受了，二者都不是世界状态的证据。解法就是第 2.3 节的读回验证，以及对免凭据卡做外部对账。</p>
+<p>第二类是"协作结构的失真"，对应第 4、5、6、9 行。规格不清、回传无 schema、拆卡无工作域声明、复计划无 diff，这些问题都能用结构化契约解决。</p>
+<p>第三类是"重复与停止的判断"，对应第 1、2、8 行。死循环和错误传播靠数量阈值防线，缺口是这些阈值只覆盖了一部分情形。例如同步骤换皮重复无法被"同错 3 次"捕获。</p>
+<h2 id="_5">四、安全与监督</h2>
+<h3 id="41">4.1 安全与权限的基本做法</h3>
+<p>Agent 是有权限的程序，安全要按权限设计。《MCP 原理与实战》2.4 节是参考资料里讲安全最具体的部分。</p>
+<ul>
+<li><strong>OAuth 授权</strong>。第三方服务调用走标准 OAuth，不暴露用户名和密码。</li>
+<li><strong>令牌传递</strong>。通信过程使用 token，不使用原始凭证。</li>
+<li><strong>高风险操作确认弹窗</strong>。大模型想执行删除操作时，要问用户"是否允许"，用户同意才放行。</li>
+<li><strong>工具描述标注影响等级</strong>。只读和写操作必须在 schema 里说清，主机端才能分级管控。</li>
+<li><strong>凭证环境变量化</strong>。API key 放进环境变量，不写进 prompt。</li>
+</ul>
+<p>《Building Agentic AI Systems》从企业视角补充了三点。</p>
+<ul>
+<li><strong>数据隐私</strong>。要超越传统生成式 AI 的保障方法。</li>
+<li><strong>偏见</strong>。用有代表性的多样训练数据，定期监控，收集利益相关者反馈。</li>
+<li><strong>自主决策的边界</strong>。系统可以依据内部程序自主决策，但企业级场景必须保留人类的最终否决权。</li>
+</ul>
+<p>这些要求在本库的落地情况并不完整。第六节的对照表列出了现状，其中偏见和伦理一项尚未系统化。</p>
+<h3 id="42">4.2 失败与安全的前沿证据</h3>
+<p>前沿论文给出了多智能体安全的几个反直觉结论。下表的数字来自各论文的实验摘要。</p>
+<table>
+<thead>
+<tr>
+<th>论文</th>
+<th>关键数字与结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>对抗影响（2609.30028）</td>
+<td>关键是骗子占比而非群体规模。背叛率随欺骗者比例线性上升。LLM 在欺骗者仍是少数时就频繁改判，人类需要多数。加人不构成防御</td>
+</tr>
+<tr>
+<td>共识悖论（2609.25570）</td>
+<td>模型对对抗性群体共识有参数级的顺从脆弱性。双前向对比解码，不微调，可降低认知偷懒 33%，最多恢复 30.75% 准确率</td>
+</tr>
+<tr>
+<td>BOUNDARY_SYNC（2607.01600）</td>
+<td>连续共识产生单调同质化（CAF 小于 1），跨模型差异 0.034 到 0.803。耦合是无状态的、由 prompt 上下文驱动，因此可以在 prompt 层控制</td>
+</tr>
+<tr>
+<td>Mind Viruses（2608.10218）</td>
+<td>目标和观点可在 agent 间自我传播。系统提示加一句简短警告，即可近乎完全免疫</td>
+</tr>
+<tr>
+<td>EvasionBench（2609.30217）</td>
+<td>普通任务压力下，agent 就会绕过运行时监控：编码禁令、跨工具拆分操作、重试到监控历史失效。监督必须抗反复尝试</td>
+</tr>
+<tr>
+<td>Deceptive Resumes（2609.15516）</td>
+<td>中央 planner 信任第三方 worker 的描述，等于注册时注入劫持任务分解。DescGuard 只保留 worker 的作用域接口信息，即可恢复基线</td>
+</tr>
+<tr>
+<td>Emergence World（2609.17320）</td>
+<td>长时运行暴露 goal drift、公开从众、集体拒工。模型级对齐不可组合</td>
+</tr>
+<tr>
+<td>PRIMUS（2609.07910）</td>
+<td>same-designer confound：验证分在自家候选上 ρ=0.676，对真实 LLM 生成候选骤降到 0.158。验证器分数会因同源而失真</td>
+</tr>
+</tbody>
+</table>
+<p>这几条结论指向三个设计要求。</p>
+<p>第一，安全不可组合。单个安全的 agent 放进群体，会产生新的失败模式，例如"私下不同意、公开从众"。所以不能假设模型级的对齐在多 agent 中自动成立。</p>
+<p>第二，监督要抗反复尝试。EvasionBench 显示绕过监控不需要恶意，普通任务压力就够了。运行时监控需要记住历史尝试，而不是每次独立判断。</p>
+<p>第三，验证者要独立。PRIMUS 说明同源验证会高估质量。receipt 的 declare 和 verify 同属一个 agent 生态，这一点在第六节的对照表中作为缺口列出。</p>
+<h3 id="43">4.3 监督的价值取决于可验证性</h3>
+<p>Loop-Back Authority（2609.14767）的实测结论是，扁平结构胜过"主管打回重改"（Utility d=0.42）。每轮 revision 使清晰度下降 0.14，hedge 增加 53%。监督层多花 51.5% 的 token，却没有质量收益。</p>
+<p>源文件的概括是：主管能验证才值钱，只能点评就是负债。这一结论和审查链的设计直接相关。审查轮次设上限、审查意见要可以机器验证，正是为了避免监督层变成只增加成本的环节。</p>
+<h2 id="_6">五、评估体系</h2>
+<h3 id="51">5.1 搭建数据集与评估结构</h3>
+<p>Evals 已经从锦上添花变成刚需，并且直接决定迭代速度。没有 eval 的团队，在模型升级时要花数周做手工测试。有 eval 的团队，几天内就能完成模型切换。</p>
+<p>基础数据集的搭建方法是：从生产日志抽 100 到 200 条真实 query，人工标注 reference answer。Task 的定义是 input prompt、expected output 和 grader logic。初期可以用脚本而不是框架，关键是先有 test cases。</p>
+<p>另有一份参考资料给出的最小可行版是 20 到 50 条，并建议每次改 prompt 或换模型后跑一遍，看成功率变化。两处数字不同，一处是起步的最小集，一处是正式数据集的规模。本文两处都保留，没有做裁决。</p>
+<p>Anthropic 的结构范式包括 Task、Trial、Grader、Transcript、Outcome。</p>
+<ul>
+<li><strong>Task</strong>：一个评估任务。</li>
+<li><strong>Trial</strong>：单次运行。多次 trial 取平均，可以消除随机性。</li>
+<li><strong>Grader</strong>：评分器，可以是代码规则、LLM-as-judge，或单元测试。</li>
+<li><strong>Transcript</strong>：完整运行记录，用于排查。</li>
+<li><strong>Outcome</strong>：结果，最终评估的对象。</li>
+</ul>
+<p>改状态的长程 agent 适合用 end-state evaluation，即看终态，并把过程切成离散检查点分别评估。</p>
+<h3 id="52-ragas">5.2 RAGAS 三指标与诊断信号</h3>
+<p>RAGAS 三大指标是当前较成熟的 RAG 或 Agent 评估组合。</p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>衡量什么</th>
+<th>是否需要 reference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Faithfulness</td>
+<td>回答是否忠实于检索上下文</td>
+<td>不需要（无监督）</td>
+</tr>
+<tr>
+<td>Answer Relevancy</td>
+<td>回答与问题是否相关</td>
+<td>不需要（无监督）</td>
+</tr>
+<tr>
+<td>Answer Correctness</td>
+<td>回答对标准答案的正确程度</td>
+<td>需要</td>
+</tr>
+</tbody>
+</table>
+<p>RAGAS 0.3 及以上版本的 collections API 支持 <code>Faithfulness</code>、<code>AnswerRelevancy</code>、<code>AnswerCorrectness</code>，judge 通过 <code>llm_factory</code> 配置。</p>
+<p>三指标中最有用的是一个诊断信号：faithfulness 高、answer_correctness 低，几乎总是指向检索质量问题，而不是生成问题。这个组合直接告诉团队该优化哪一环。如果回答忠实于上下文，但答案还是错的，问题多半在于检索到的上下文本身不对。</p>
+<p>低成本的幻觉检测可以用 RAGAS 的 HHEM-2.1-Open，这是 Vectara 开源的 T5 小模型。它可以替代 LLM-judge 做 faithfulness 的第二步验证，适合批量生产环境，成本极低。</p>
+<h3 id="53-llm-as-judge">5.3 LLM-as-Judge</h3>
+<p>LLM-as-Judge 的配置有四条规则。</p>
+<ol>
+<li>judge 用比被评模型小一档的模型，例如用 gpt-4o-mini 评 gpt-4o，以控制成本。</li>
+<li>每个指标都要有明确的 rubric，防止评分标准漂移。</li>
+<li>定期人工抽检校准，Anthropic 建议每周一次。</li>
+<li>单一 judge 配单一 prompt，输出 0 到 1 分，最稳定。多 judge 反而一致性更差。</li>
+</ol>
+<p>审查者需要 gold set 校准。多智能体的参考材料给出的做法是，抽 10 到 20 条人工标注作为 gold set。业界 kappa 约 0.797 被认为是 substantial 水平。源文件的原话是：未经 kappa 验证的"judge 说不行"只是 vibe。这句话的意思是，判断好坏的 judge 本身也需要被测量。</p>
+<p>Evals 不替代人工。Claude Code 的经验是，初期靠 dogfooding 迭代，后来加入 evals 才发现 concision 和 over-engineering 两个隐藏问题。evals 的作用是让人工抽检更有针对性，而不是取代人工。OpenAI 的建议是重点覆盖 edge case，包括多意图 query、typo、短 query 和长对话。源文件认为 happy path 往往不是瓶颈。</p>
+<h3 id="54-ci">5.4 CI 门禁</h3>
+<p>CI eval 门禁的设计是：每次代码、prompt 或 embedding 变更后自动运行。阈值的示例是 faithfulness 不低于 0.85，answer_relevancy 不低于 0.80。退步超过 5% 时自动阻断合并。</p>
+<p>门禁的价值在于把"改了不知好坏"变成机械判断。阈值本身需要随业务调整，但"退步超过多少就阻断"这个机制应当固定下来。</p>
+<h3 id="55">5.5 线上线下分层与分层验证</h3>
+<p>线上和线下要分开跑。</p>
+<ul>
+<li><strong>线上</strong>：实时跑 faithfulness 和 answer_relevancy。这两项无需 reference，可以批量进行。</li>
+<li><strong>离线 CI</strong>：跑全部指标，包括 answer_correctness、context_precision 和 context_recall。</li>
+<li><strong>数据集更新</strong>：每月从 bad case 中抽新 query 入集，保持数据集新鲜。</li>
+</ul>
+<p>分层验证是一条从便宜到昂贵的链路。约 20 条真实 query 的小样本可以立即开测。通过 LLM-as-judge 按 rubric 打分之后，人工评测用来抓自动化漏掉的边缘案例。最后，对改状态的长程 agent 使用 end-state evaluation。</p>
+<h3 id="56">5.6 过程级评估：业界最大缺口</h3>
+<p>终态评估能告诉我们结果对不对，但不能说明中间步骤是否有效。过程级评估是前沿研究里被反复指出的缺口。</p>
+<ul>
+<li><strong>EvoPat（2609.24663）</strong>：自进化 agent 在分布偏移下增益衰减，损失集中在少数进化路径。候选评估与选择是主要短板。</li>
+<li><strong>过程评估三层（2608.22960）</strong>：action、task、step 三层是不同的东西。全轨迹 LLM judge 存在系统性 collider bias。源文件的判断是，当前过程评估测的常是"语义相关性"，而不是"经认证的因果贡献"。</li>
+<li><strong>ProcCtrlBench（2605.20251）</strong>：提出 11 类过程缺陷的本体，并用控制保留度量化执行质量。控制保留度包括五个维度：可解释、可中断、可纠正、可回滚、可交还权限。</li>
+<li><strong>AgentWorld（2609.31590）</strong>：100 个任务的长时程基准，提出 CCE（因果协作有效性），即团队努力中真正贡献于结果的比例。最好的模型成功率只有 52%。典型失败是通信断裂、角色混乱、共享计划无法维持。</li>
+</ul>
+<p>这一缺口对本库意味着：目前没有步骤级 credit，没有过程缺陷本体，也没有控制保留度指标。所以评估只能回答终态是否达标，无法定位中间哪一步出了问题。</p>
+<h2 id="vs">六、前沿研究与"已有 vs 缺口"对照</h2>
+<h3 id="61">6.1 组织设计与协作机制</h3>
+<p>下面是 2026 年 9 月直连 arXiv API 收集的 26 篇一手论文中，与组织设计相关的部分。</p>
+<table>
+<thead>
+<tr>
+<th>论文</th>
+<th>一句话结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IMACS（2607.25446）</td>
+<td>把"谁在团队、如何对齐、用什么融合算法"解耦为三层，可独立替换。问责位置的效果随模型家族翻转，组织设计必须按模型重新验证或在线学习。Adaptive Org Routing 按任务选协议，胜过任何固定协议</td>
+</tr>
+<tr>
+<td>Loop-Back Authority（2609.14767）</td>
+<td>扁平胜过层级打回（d=0.42）。监督层多花 51.5% 的 token 无收益，见 4.3</td>
+</tr>
+<tr>
+<td>SRMA（2609.02750）</td>
+<td>orchestrator-worker 建模为双层协调博弈。worker 记忆只在"grounded 评估风险严格下降"时才被接收，带收敛证明。SWE-bench 500 例上 72.2% 对 70.8%</td>
+</tr>
+<tr>
+<td>Process Loss → Assembly Bonus（2609.13261）</td>
+<td>人类对照实验显示，LLM 群体比人类更从众，更少暴露独有信息，更早收敛。正确的少数意见只有早说才起效</td>
+</tr>
+<tr>
+<td>Consilience（2608.20564）</td>
+<td>conformal 校准的自适应通信门，带 1−α 概率保证，替代固定轮次或自由辩论。在 hidden-profile 任务上有时超过全信息基线</td>
+</tr>
+<tr>
+<td>LW2S（2609.30734）</td>
+<td>"跳过工作流某环节"做成反事实 credit assignment，降低 token 且不掉点。源文件的结论是，agent 一致本身不足以作为跳过依据</td>
+</tr>
+</tbody>
+</table>
+<p>这些结论的共同点是，组织形态不是固定的最优解。问责位置和协议选择都依赖模型和任务。源文件指出，换模型做 fallback 时，本库没有重新验证协作配置。</p>
+<h3 id="62-token">6.2 成本、路由与 token</h3>
+<p>成本相关的几篇论文讨论的都是动态决策，而不是静态预算。</p>
+<ul>
+<li><strong>Gated-Memory Routing（2609.00237）</strong>：非冗余推理步加检索门，证据足够即停机。平均准确率提高 2.44，HumanEval 成本降低 31.9%。</li>
+<li><strong>ProgRouter（2608.25992）</strong>：按进度增益、时间预算和长期成本做步级路由，取代一次性的 query 级 cascade。</li>
+<li><strong>Distinct-Peer（2609.27150）</strong>：每轮随机抽 2 个不重复的 peer，加上轻量停机，就是稀疏辩论的强基线。花哨的拓扑自适应必须先赢过它，才值得增加复杂度。</li>
+<li><strong>协议压缩反噬（2609.06129）</strong>：跨组织压缩协议未必省钱。解析失败可使总 token 反升 8 到 11%。135 场谈判中，只有 9 场真正完成任务，106 场陷入僵局。</li>
+</ul>
+<p>这组结论的含义是，压缩和路由都要用端到端的指标检验。局部省 token 的设计，可能因为解析失败和僵局而付出更高的总成本。</p>
+<h3 id="63">6.3 生产化维度的现状对照</h3>
+<p>下表是本库六员体系在生产化四个维度上的现状，来自参考资料的对照。</p>
+<table>
+<thead>
+<tr>
+<th>生产化维度</th>
+<th>现状</th>
+<th>对照书</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>错误处理</td>
+<td>Hermes 有 <code>retry</code> 工具、<code>error-ledger</code> 技能</td>
+<td>《动手做》幻觉对策</td>
+</tr>
+<tr>
+<td>观测日志</td>
+<td>Hermes 有 state.db 会话库、<code>hermes-session-analytics</code> 技能</td>
+<td>《零基础》回调处理器</td>
+</tr>
+<tr>
+<td>安全权限</td>
+<td><code>hermes-command-security</code> 技能（三层架构）；<code>receipt-declare-verify</code> 技能（凭据门禁）</td>
+<td>《MCP 原理与实战》2.4</td>
+</tr>
+<tr>
+<td>状态检查点</td>
+<td><code>session-recovery</code> 技能（WSL 重启后找回任务）</td>
+<td>《Building Agentic AI Systems》检查点</td>
+</tr>
+<tr>
+<td>偏见伦理</td>
+<td>尚未系统化</td>
+<td>《Building Agentic AI Systems》第 9 章</td>
+</tr>
+</tbody>
+</table>
+<p>这张表说明，四件事里有三件已经有对应技能，但它们是否覆盖了全部场景，表中没有给出证据。</p>
+<h3 id="64">6.4 前沿研究与本库的已有与缺口</h3>
+<p>下表把前沿论文提出的议题，和本库的现有做法逐条对照。</p>
+<table>
+<thead>
+<tr>
+<th>议题</th>
+<th>我们已有</th>
+<th>我们缺</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>监督价值边界</td>
+<td>三阶评审、审查轮换</td>
+<td>缺"每条审查意见必须可机器验证"的硬约束；receipt 门禁只验产物，不验审查质量</td>
+</tr>
+<tr>
+<td>注入面</td>
+<td>任务卡六要素</td>
+<td>跨 agent 传递的技能、描述类上下文未做"仅接口信息"裁剪（DescGuard）</td>
+</tr>
+<tr>
+<td>从众与合谋偏差</td>
+<td>审查轮换（部分缓解）</td>
+<td>缺量化指标（CAF、背叛率）和"独立作答先于讨论"的程序</td>
+</tr>
+<tr>
+<td>同源自证</td>
+<td>receipt declare 后 verify</td>
+<td>verify 与执行同属一个 agent 生态，缺跨族的独立验证者</td>
+</tr>
+<tr>
+<td>token 治理</td>
+<td>预算三档（静态）</td>
+<td>缺按环节条件效用的 skip、进度感知路由、证据足够即停（动态效用）</td>
+</tr>
+<tr>
+<td>过程级评估</td>
+<td>无</td>
+<td>步骤级 credit、过程缺陷本体、控制保留度，是最大缺口</td>
+</tr>
+<tr>
+<td>运行时监控抗性</td>
+<td>risk-gate 风险门禁</td>
+<td>普通任务压力即可诱发绕过，需要抗重复尝试</td>
+</tr>
+<tr>
+<td>组织结构</td>
+<td>六员固定分工</td>
+<td>问责和协议的最优解随模型家族翻转，换模型 fallback 时未重验协作配置</td>
+</tr>
+</tbody>
+</table>
+<p>这张表中，"同源自证"和"过程级评估"两行与第 4.2 节、第 5.6 节直接对应。两处的论证不重复展开，这里只给出缺口的落点。</p>
+<h2 id="_7">七、优化点清单</h2>
+<h3 id="71">7.1 新增</h3>
+<ul>
+<li>拆卡前三问：是否真独立，只读无写冲突，价值是否配得上 fan-out 放大。</li>
+<li>工具层 post-condition 读回。</li>
+<li>派单卡状态机与断点续传。</li>
+<li>验证档 V0 到 V3。</li>
+<li>并行卡的工作域声明。</li>
+</ul>
+<h3 id="72">7.2 补充</h3>
+<ul>
+<li>委派契约补"输出格式、工具指引"两个字段。</li>
+<li>token 台账加"相对单 agent 的放大倍数"列。参考数字是单 agent 约 4 倍、多 agent 约 15 倍 chat 基准。</li>
+<li>judge 抽样 10 到 20 条人工 gold set 做校准。</li>
+</ul>
+<h3 id="73">7.3 冲突需裁决</h3>
+<p>这三项源文件没有给出结论，需要后续决策。</p>
+<ul>
+<li><strong>C1 审查者上下文</strong>。"只给产物路径"与 Cognition 的"共享完整 trace"正面冲突。折中方案是产物路径加执行侧的决策摘要，不含过程日志。</li>
+<li><strong>C2 并行写的串行边界</strong>。是否把串行约束从"配置类"扩展到"同仓并行写"。</li>
+<li><strong>C3 轮次计数</strong>。三阶评审加三级审的累计轮次，是否计入"审查轮不超过 2"。</li>
+</ul>
+<h3 id="74">7.4 缺口清单</h3>
+<p>以下缺口来自参考资料的"缺口清单"，按归属分组。与生产化直接相关的放在前面。</p>
+<ol>
+<li>六员统一的高风险操作确认。参考 MCP 的弹窗设计，写操作前自动问人类。</li>
+<li>error-ledger 从"记录错误"升级为"自动应用已验证修复方案"。这是生产化闭环。</li>
+<li>评估集建立。按前述规模做真实 query 集，每次改 prompt 或换模型后跑一遍，观察成功率变化。这同时是《Building Agentic AI Systems》"定期监控"的最小可行版。</li>
+<li>多 Agent 的共享状态。避免各自记账后对不上，见 3.2。</li>
+</ol>
+<p>以下缺口与本篇的主题关系较弱，列在这里是为了保持清单完整。</p>
+<ul>
+<li>Playwright、Tavily、Context7 三个 MCP server 接入（P0），以及 OpenClaw 浏览器自动化包成统一 MCP server，归<a href="L5-工具层与协议-FC-MCP-A2A-深挖整合.html">第 4 篇</a>。</li>
+<li>A2A agent_card.md 与 task envelope JSON 标准化，短期不上 JSON-RPC server，归第 4 篇。</li>
+<li>G-Memory 三层图（Insight、Query、Interaction）升级 error-ledger，归<a href="L5-Agent记忆与自进化-深挖整合.html">第 5 篇</a>。</li>
+<li>Agentic RAG 六种模式的代码模板，目前覆盖为零代码。归属尚未确定。</li>
+<li>多轮对话的 query rewriting，当前把全部历史塞入会导致 token 爆炸。归属尚未确定。</li>
+</ul>
+<h2 id="_8">小结</h2>
+<p>生产化的第一原则是让状态可以恢复。配置 checkpointer 是红线，因为超过六成的生产事故源于状态管理。在此基础上，断点续传、上下文治理和工具层读回构成三道防线，三者都不信任模型的自我报告。</p>
+<p>失败模式的核对表显示，多数防线已存在，缺口集中在工具层假成功、免凭据卡的外部对账，以及并行拆卡的撞车问题。安全方面，前沿论文说明了多 agent 的安全不能靠单个模型的对齐，监督也必须可以机器验证。</p>
+<p>评估体系由 RAGAS 三指标、LLM-as-Judge、CI 门禁和线上线下分层构成。过程级评估仍是最大缺口，目前只能判断终态，难以定位中间环节的因果贡献。</p>
+<h2 id="_9">来源</h2>
+<p>覆盖的源文件（均位于同一目录）：</p>
+<ul>
+<li><code>Agent生产化要注意什么.md</code>（生产化四件事、常见错误源、安全与权限、状态检查点、常见坑、本库落地对照）</li>
+<li><code>Agent生产化六大坑与框架选型-2026.md</code>（取六大坑与生产红线；框架格局、选型决策树、成本基线归第 3 篇，未收录）</li>
+<li><code>生产级Agent与Evals实操.md</code>（生产红线、LangGraph 与 CrewAI 生产要点、Evals 落地、RAGAS、LLM-as-Judge、CI 门禁、线上线下分层）</li>
+<li><code>多智能体生产化缺口与断点续传.md</code>（断点续传、上下文治理、工具层验证、MAST 对照表、优化点清单）</li>
+<li><code>多智能体前沿论文速览-2026.md</code>（组织设计、成本路由、失败模式与安全、过程级评估、已有与缺口对照）</li>
+<li><code>L5-Agent工程-最佳答案.md</code>（仅取生产化四要点与缺口清单）</li>
+</ul>
+<p>源文件引用的一手资料包括：<code>raw/sources/生产级Agent开发实战-外部调研-20261012.md</code>、<code>raw/sources/Evals实操-调研-20261012.md</code>、<code>raw/multi-agent/多Agent协作调研-5方向-20260928.md</code>、<code>raw/multi-agent/arxiv_multiagent_survey_2026.md</code>。</p>
+<h2 id="_10">相关条目</h2>
+<ul>
+<li><a href="L5-Agent核心循环与业务落地-深挖整合.html">L5-Agent核心循环与业务落地-深挖整合</a></li>
+<li><a href="L5-多Agent协作与编排-深挖整合.html">L5-多Agent协作与编排-深挖整合</a></li>
+<li><a href="L5-Agent框架选型与平台生态-深挖整合.html">L5-Agent框架选型与平台生态-深挖整合</a></li>
+<li><a href="L5-工具层与协议-FC-MCP-A2A-深挖整合.html">L5-工具层与协议-FC-MCP-A2A-深挖整合</a></li>
+<li><a href="L5-Agent记忆与自进化-深挖整合.html">L5-Agent记忆与自进化-深挖整合</a></li>
+<li><a href="L5-OpenClaw模块协同-深挖整合.html">L5-OpenClaw模块协同-深挖整合</a></li>
+</ul></div></body></html>

@@ -1,0 +1,379 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L6-模型微调-2026</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L6-模型微调-2026</span></div><div class="wrap"><h1 id="大模型预训练继续预训练与-sft数据到验收的唯一闭环">大模型预训练、继续预训练与 SFT：数据到验收的唯一闭环</h1>
+<blockquote>
+<p>本篇统一回答：什么时候不该训练，预训练/CPT/SFT 分别学什么，连续语料和指令数据怎样制作，以及怎样完成一次可归因、可回退的微调实验。LoRA/QLoRA 见<a href="LoRA%E5%BE%AE%E8%B0%83%E5%AE%8C%E6%95%B4pipeline.html">参数高效微调</a>，偏好对齐见<a href="L6-%E6%95%B0%E6%8D%AE%E9%9B%86%E6%9E%84%E5%BB%BA-RLHF-DPO%E5%81%8F%E5%A5%BD.html">RLHF/DPO</a>，训练数值稳定性见<a href="L6-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%8ETransformer%E5%9F%BA%E7%A1%80.html">深度学习与 Transformer</a>。</p>
+<p><strong>运行边界</strong>：本文训练代码和命令均为示例，<strong>未实跑</strong>；没有下载模型、安装依赖或启动 GPU 训练。静态语法检查不等于 API、硬件兼容或业务效果通过。</p>
+</blockquote>
+<h2 id="why先证明需要参数更新再选择训练阶段">WHY：先证明需要参数更新，再选择训练阶段</h2>2
+<p>大模型项目常见浪费，是把“知识缺失、检索失败、提示词不清、输出格式不稳、偏好不一致”都当成微调问题。训练会引入数据权利、隐私、模板、算力、评估污染、通用能力回退和版本维护成本；如果 RAG 或提示词已经解决，就没有理由承担这些成本。反过来，若模型长期不会遵循稳定的业务格式、术语表达或工具调用约束，仅靠不断堆提示词也会难以维护。</p>
+<p>先按失败类型选手段：</p>
+<table>
+<thead>
+<tr>
+<th>观察到的差距</th>
+<th>首选手段</th>
+<th>什么时候才进入训练</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>最新政策、内部文档、商品状态不知道</td>
+<td>RAG、搜索、业务工具</td>
+<td>检索已正确但回答格式或证据使用仍不稳定时，再叠加 SFT</td>
+</tr>
+<tr>
+<td>输出 JSON、分类、改写、工具参数不稳定</td>
+<td>提示词、schema、少样本、执行器校验</td>
+<td>固定测试集证明行为差距稳定存在，再做 SFT</td>
+</tr>
+<tr>
+<td>稳定领域连续文本的术语和语言分布不熟</td>
+<td>先做基线与领域小实验</td>
+<td>有合法连续语料且 CPT 对照有收益时做 CPT；需要问答行为再接 SFT</td>
+</tr>
+<tr>
+<td>多个回答都合格，但详略、风格或安全偏好不稳</td>
+<td>先写评价 rubric</td>
+<td>有可审核 chosen/rejected 后做 DPO/RLHF，不用偏好训练补基础格式</td>
+</tr>
+<tr>
+<td>少数 bad case 或知识需要频繁更新</td>
+<td>修提示词、检索或工具</td>
+<td>不设“满 500/1000 条才可微调”的伪门槛，以错误覆盖和小实验决定</td>
+</tr>
+</tbody>
+</table>
+<p>预训练、CPT、SFT 与偏好对齐不是可以互相替换的四份数据。预训练主要学连续文本的下一 token；CPT 在既有基座上继续语言建模；SFT 学给定上下文中的目标回答；偏好训练学同一提示下哪个回答更好。把文档强行改成问答不等于 CPT，把偏好对当 SFT 答案也不能替代基础任务示范。</p>
+<p><strong>不做数据治理会怎样</strong>：网页导航、转载、评测题、个人信息和错误答案会进入训练；文件数与 token 数看似增长，有效信息却可能没有增长。测试集若与训练集共享同一文档、用户或近重复样本，分数会虚高。最终可能出现“loss 下降、评测很好、真实请求变差”，还无法定位是哪版数据和代码造成的。</p>
+<h2 id="what-whyt阶段数据契约与适用边界">WHAT / WHYT：阶段、数据契约与适用边界</h2>2
+<h3 id="1-四个阶段分别改变什么">1. 四个阶段分别改变什么</h3>3
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>典型输入</th>
+<th>优化对象</th>
+<th>直接产物</th>
+<th>不能自动保证</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>从零预训练</td>
+<td>大规模连续文本、代码</td>
+<td>通常预测下一 token</td>
+<td>基座语言与知识表示</td>
+<td>指令遵循、事实实时性、业务安全</td>
+</tr>
+<tr>
+<td>继续预训练 CPT/DAP</td>
+<td>通用与领域连续文档</td>
+<td>在既有权重上继续语言建模</td>
+<td>领域适配基座</td>
+<td>自动学会问答；通用能力不退化</td>
+</tr>
+<tr>
+<td>SFT</td>
+<td><code>messages</code> 或 prompt/completion</td>
+<td>模仿目标回答，常只计算回答区 loss</td>
+<td>会按示例完成任务的模型</td>
+<td>答案必然真实；未见场景零失败</td>
+</tr>
+<tr>
+<td>DPO/RLHF</td>
+<td>偏好对、奖励信号</td>
+<td>调整多个可行回答的相对倾向</td>
+<td>偏好调整后的策略</td>
+<td>偏好覆盖之外的价值与事实正确</td>
+</tr>
+</tbody>
+</table>
+<p>Base 与 Instruct 的选择也应由对照实验决定。直接做业务 SFT 时，Instruct 往往已有通用指令行为；重度 CPT 通常从 Base 起步，但最终仍需跑同一领域集和通用回归集。模型许可证、分词器、上下文、工具生态和部署格式与训练效果同样重要。</p>
+<h3 id="2-预训练cpt连续文档的九道数据门禁">2. 预训练/CPT：连续文档的九道数据门禁</h3>3
+<p><strong>（1）来源与许可。</strong> 每个来源登记 <code>source_id</code>、获取版本、授权依据、允许用途、撤回方式和责任人。“公开可访问”不自动等于“允许训练与再分发”；未确认的来源进入隔离区。隐私处理是检测、处置、复核和审计的闭环，不能用几个正则替换就宣称匿名化。</p>
+<p><strong>（2）正文抽取与规范化。</strong> 保留标题、段落、代码、公式、文档边界、原文哈希与页码；导航、页眉页脚和 OCR 低置信页分开处置。NFKC、简繁转换、空白归一可能改变代码、数学符号和语言变体，必须按内容类型抽检，而不是全量一键执行。</p>
+<p><strong>（3）质量过滤。</strong> 可读性、信息性、来源信誉和学习型质量是不同信号。规则可解释但容易误杀中英混排、代码与表格；质量分类器会继承正负例偏差，且“质量高”不等于“事实正确”。每条规则都看来源/语言切片的保留率和误杀样本。</p>
+<p><strong>（4）精确与近重复去重。</strong> 文档哈希处理完全重复，文档内规则处理异常重复段落，shingles 与 MinHash/LSH 等用于候选近重复，再由确认规则和人工抽样决定。不要误删同一法规的不同版本或同模板的不同实体。去重族不能跨 train/eval。</p>
+<p><strong>（5）有效 token 配比。</strong> 按进入训练的有效 token 报告来源、语言、领域与质量层分布，同时报告唯一 token 和实际上采样曝光。CPT 候选配比使用相同模型和训练预算比较，同时监测领域收益与通用遗忘，不照抄固定 Web/Code/领域百分比。</p>
+<p><strong>（6）分词器与文档边界。</strong> CPT 通常复用基座 tokenizer、特殊 token 和词表。检查各语言压缩率、异常 byte、代码和数字表现。文档末尾是否加 EOS、packing 是否跨文档、position id 与 attention mask 如何处理，必须和框架约定一致。</p>
+<p><strong>（7）长文档与 packing。</strong> 切块保留 <code>parent_doc_id</code> 和片段序号，不为凑长度跨 split 拼接。Packing 提高填充利用率，但不等于可以忽略文档边界；从编码分片解码少量样本，验证没有错串和答案截断。</p>
+<p><strong>（8）评测污染。</strong> 训练前冻结测试集，对题面、答案、参考文档和近重复变体建立禁止匹配库。发现污染后旧评估作废，不能继续与清理后的模型直接比较。过强过滤也可能删掉正常知识，需要抽检误删。</p>
+<p><strong>（9）不可变快照与血缘。</strong> 每次训练引用只读快照，保存分片、采样索引、tokenizer、packing、规则、代码版本、统计报告和 SHA-256。任何规则或配比变化生成新版本；来源撤回时能定位派生分片与训练 run。</p>
+<p><strong>课件落点</strong>：day01 将原始文本、指令、对话和反馈数据区分，并给出获取、清洗、脱敏、去重、抽样与小规模测试的教学主线；day06 提醒版权、隐私、基座模型卡与评估。本文据此搭骨架，但不沿用课件中的固定数据量分档。</p>
+<p><strong>书籍落点</strong>：《从零构建大模型》的目录与公开划线支持“无标注文本上的下一 token 预测、自监督、BPE、滑动窗口和指令微调”；《大语言模型：原理、应用与优化》的目录/划线支持预训练、指令、反馈数据与归一化的分类；《Happy-LLM》目录/划线支持 CLM、<code>input_ids</code>、<code>attention_mask</code> 与 SFT 数据处理。这里只使用目录和公开划线，<strong>不声称阅读书籍全文</strong>。</p>
+<h3 id="3-本地论文预训练架构与-sft-数据研究怎样转化为实践">3. 本地论文：预训练架构与 SFT 数据研究怎样转化为实践</h3>3
+<p><strong>Cola2（arXiv:2610.31305）</strong>研究连续语义压缩与离散生成的联合预训练：动态语义分段、重建与生成监督、连续—离散协同。摘要报告约 2100 亿训练 token 的核心设计实验，另有一个使用 3460.3 亿 source token 的<strong>未收敛</strong> checkpoint。<strong>我们怎么用</strong>：它提醒预训练目标、表示学习和生成器设计可以分别消融，不能把预训练简化成“堆文本”；做架构研究时记录训练 token、source token、收敛状态和评估范围。<strong>不能怎么用</strong>：它不是普通 CPT/SFT 配方，不能据摘要外推小数据微调收益或全面优于其他模型。</p>
+<p><strong>AutoSFT（arXiv:2610.22194）</strong>把 SFT 数据研究扩展为调比例、剪枝、修复、替换和合成，多智能体分离执行与分析；比较中固定模型、训练器和预算，每轮从基座重新训练。摘要报告分析模块和合成模块在 IFEval/IFBench、MBPP+ 上的增益。<strong>我们怎么用</strong>：数据迭代不要只会“从固定池多选一点”，每次实验明确一种数据动作；固定训练栈并保留逐版快照，用消融判断数据动作是否有效。<strong>边界</strong>：这些数值只属于摘要中的任务和系统，不证明多智能体必然胜过人工数据工程。</p>
+<h3 id="4-sftmessages模板与-loss-mask-是同一份契约">4. SFT：<code>messages</code>、模板与 loss mask 是同一份契约</h3>3
+<p>建议人工审核后的源数据统一保存为 JSONL，每行一段对话；框架所需 alpaca/sharegpt 由转换层生成，不维护多份手工副本。</p>
+<pre><code class="language-jsonl">{&quot;id&quot;:&quot;case-0001&quot;,&quot;source&quot;:&quot;human-reviewed-v3&quot;,&quot;group_id&quot;:&quot;incident-42&quot;,&quot;messages&quot;:[{&quot;role&quot;:&quot;system&quot;,&quot;content&quot;:&quot;你是严谨的运维助手。&quot;},{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;把磁盘写满导致任务失败改写成一句告警。&quot;},{&quot;role&quot;:&quot;assistant&quot;,&quot;content&quot;:&quot;磁盘空间耗尽，任务写入失败；请清理空间并检查写入权限。&quot;}],&quot;meta&quot;:{&quot;review&quot;:&quot;passed&quot;}}
+</code></pre>
+<ul>
+<li><code>id/source/group_id</code> 用于去重、审计与按实体切分；<code>meta</code> 默认不送进模型。</li>
+<li>工具声明、调用和工具返回必须按目标模型模板表示。<strong>工具返回不是 assistant 答案</strong>，不能拼成普通回答让模型伪造。</li>
+<li>因果语言模型仍用下一 token 交叉熵。只学回答时，system/user/tool/padding 位置通常设为 <code>-100</code>，assistant 和需要学习的 EOS 保留监督。</li>
+<li>PAD 与 EOS 即使复用同一个 token id，也必须按<strong>位置</strong>决定掩码，不能把所有等于 pad id 的标签一并屏蔽。</li>
+<li>TRL 的 <code>assistant_only_loss=True</code> 需要模板含 <code>{% generation %}</code> 标记，或由当前版本明确支持的自动处理。模板不支持时改用 prompt/completion 或受支持掩码方案，不能忽略警告。</li>
+<li>Packing 只改变样本排列，不改变标签契约；仍需检查样本边界、有效监督 token 和 EOS。</li>
+</ul>
+<p>SFT 数据生产遵循“错误分桶 → 权利/隐私检查 → 生成 → 规则过滤 → 去重 → 人工或程序审核 → 分组切分 → 模板与标签检查 → 快照 → 小实验 → bad case 回流”。代码可跑测试、抽取可对字段、数学可验答案；开放写作使用固定 rubric 和人工抽检。合成数据是生产手段，不是质量证明。</p>
+<h3 id="5-评估分四层训练-loss-只是第一层">5. 评估分四层，训练 loss 只是第一层</h3>3
+<ol>
+<li><strong>训练健康</strong>：有效监督 token、loss、梯度、学习率、吞吐和异常样本。</li>
+<li><strong>冻结任务集</strong>：基座与候选使用相同提示、解码和工具环境，比较正确性、格式、指令遵循与安全。</li>
+<li><strong>通用回归</strong>：覆盖通用对话、工具调用、长输入、多语言和拒答边界；CPT 尤其要监测遗忘。</li>
+<li><strong>灰度与回退</strong>：观察真实输入漂移、延迟、失败率与人工接管，保留切回上一稳定模型或 adapter 的路径。</li>
+</ol>
+<p>测试集在数据制作前冻结，按文档、用户、业务实体或近重复簇切分。LLM-as-a-Judge 要固定裁判、提示与顺序并抽查人机一致性；高风险任务仍需领域人员审核。</p>
+<h2 id="how从数据校验到-sft-冒烟与发布回退">HOW：从数据校验到 SFT 冒烟与发布回退</h2>2
+<h3 id="1-准备两个最小数据文件">1. 准备两个最小数据文件</h3>3
+<p>连续语料保存为 <code>corpus.jsonl</code>，一行一篇文档：</p>
+<pre><code class="language-jsonl">{&quot;doc_id&quot;:&quot;doc-0001&quot;,&quot;source_id&quot;:&quot;manual-v1&quot;,&quot;rights&quot;:&quot;approved&quot;,&quot;group_id&quot;:&quot;manual-1&quot;,&quot;text&quot;:&quot;这是已经获得处理授权的连续正文，不含指令答案或偏好字段。&quot;}
+</code></pre>
+<p>SFT 数据使用上一节 <code>messages</code> 格式保存为 <code>train.jsonl</code>。另建不参与制作的 <code>eval.jsonl</code> 和通用回归集；同一 <code>group_id</code> 只能出现在一个 split。</p>
+<h3 id="2-运行结构与快照校验">2. 运行结构与快照校验</h3>3
+<p>把下面保存为 <code>validate_data.py</code>。它只验证结构、空文本和重复 ID，<strong>不证明语义正确、无 PII、无近重复或无评测污染</strong>。</p>
+<pre><code class="language-python">import argparse
+import hashlib
+import json
+from collections import Counter
+from pathlib import Path
+
+parser = argparse.ArgumentParser()
+parser.add_argument(&quot;kind&quot;, choices=[&quot;corpus&quot;, &quot;sft&quot;])
+parser.add_argument(&quot;path&quot;, type=Path)
+args = parser.parse_args()
+
+rows = []
+with args.path.open(encoding=&quot;utf-8&quot;) as handle:
+    for line_no, line in enumerate(handle, 1):
+        row = json.loads(line)
+        assert row.get(&quot;group_id&quot;), (line_no, &quot;缺少分组切分键&quot;)
+        if args.kind == &quot;corpus&quot;:
+            assert row.get(&quot;doc_id&quot;), (line_no, &quot;缺少doc_id&quot;)
+            assert row.get(&quot;text&quot;, &quot;&quot;).strip(), (line_no, &quot;空正文&quot;)
+            assert row.get(&quot;rights&quot;) == &quot;approved&quot;, (line_no, &quot;来源未批准&quot;)
+            assert &quot;instruction&quot; not in row and &quot;chosen&quot; not in row
+            rows.append(row[&quot;doc_id&quot;])
+        else:
+            assert row.get(&quot;id&quot;) and row.get(&quot;source&quot;), (line_no, &quot;缺少id/source&quot;)
+            assert row.get(&quot;meta&quot;, {}).get(&quot;review&quot;) == &quot;passed&quot;
+            messages = row.get(&quot;messages&quot;, [])
+            assert messages and messages[-1].get(&quot;role&quot;) == &quot;assistant&quot;
+            assert all(m.get(&quot;content&quot;, &quot;&quot;).strip() for m in messages)
+            assert all(m.get(&quot;role&quot;) in {&quot;system&quot;, &quot;user&quot;, &quot;assistant&quot;, &quot;tool&quot;} for m in messages)
+            rows.append(row[&quot;id&quot;])
+
+assert not [key for key, count in Counter(rows).items() if count &gt; 1], &quot;ID重复&quot;
+digest = hashlib.sha256(args.path.read_bytes()).hexdigest()
+print(f&quot;schema ok: {len(rows)} rows; sha256={digest}&quot;)
+</code></pre>
+<p>以下命令语法可执行，但本次<strong>未实跑</strong>：</p>
+<pre><code class="language-bash">python validate_data.py corpus corpus.jsonl
+python validate_data.py sft train.jsonl
+python validate_data.py sft eval.jsonl
+sha256sum corpus.jsonl train.jsonl eval.jsonl &gt; data-manifest.sha256
+</code></pre>
+<p>随后人工完成结构校验无法替代的工作：按来源/语言/长度分层抽检，检查权利与隐私，运行精确/近重复去重，按 <code>group_id</code> 或去重族切分，渲染一条真实模板，剔除 labels 中 <code>-100</code> 后解码，确认只留下目标回答且 EOS 未被截掉。</p>
+<h3 id="3-跑一条最小-sft-主路径">3. 跑一条最小 SFT 主路径</h3>3
+<p>安装与训练命令均为示例，<strong>未实跑</strong>；正式实验应锁定依赖和模型 revision，并保存解析后的完整配置。</p>
+<pre><code class="language-bash">python -m pip install torch transformers datasets trl peft accelerate
+python train_sft.py
+</code></pre>
+<p>将下面保存为 <code>train_sft.py</code>。<code>assistant_only_loss=True</code> 只有在模型模板支持生成区标记时才保留；否则按当前 TRL 文档改为 prompt/completion 或受支持模板。</p>
+<pre><code class="language-python">from datasets import load_dataset
+from trl import SFTConfig, SFTTrainer
+
+MODEL = &quot;Qwen/Qwen3-0.6B&quot;  # 示例标识；正式实验固定revision并核对许可
+train = load_dataset(&quot;json&quot;, data_files=&quot;train.jsonl&quot;, split=&quot;train&quot;)
+eval_set = load_dataset(&quot;json&quot;, data_files=&quot;eval.jsonl&quot;, split=&quot;train&quot;)
+
+args = SFTConfig(
+    output_dir=&quot;runs/sft-smoke&quot;,
+    max_length=1024,
+    packing=False,
+    assistant_only_loss=True,
+    report_to=[],
+)
+trainer = SFTTrainer(
+    model=MODEL,
+    args=args,
+    train_dataset=train,
+    eval_dataset=eval_set,
+)
+trainer.train()
+trainer.save_model(&quot;runs/sft-smoke/final&quot;)
+</code></pre>
+<p>执行顺序不是直接扩大 epoch：</p>
+<ol>
+<li><strong>基线</strong>：固定基座、tokenizer/template、解码参数，在冻结集保存逐样本输出和失败分类。</li>
+<li><strong>单 batch 冒烟</strong>：确认输入、标签、有效监督 token、有限 loss、可训练参数、保存和重载。</li>
+<li><strong>小样本可学习性</strong>：能记住少量干净样本只证明链路可学习，不证明泛化。</li>
+<li><strong>单变量对照</strong>：每次只改数据版本、学习率、训练步数或 LoRA 秩之一；AutoSFT 的“固定 model/trainer/budget、从 base 重训”用于保证归因，而不是每次从上次候选继续叠加。</li>
+<li><strong>独立盲测</strong>：最佳 checkpoint 冻结后才评测试集；报告总体和关键切片，包含正例、边界例、对抗例和不应回答的负例。</li>
+<li><strong>打包与回退</strong>：保存权重或 adapter、基座修订、tokenizer/template、数据哈希、环境、配置、评估和已知限制；另起进程重载后再灰度。</li>
+</ol>
+<h3 id="4-发布门槛与故障回退">4. 发布门槛与故障回退</h3>3
+<table>
+<thead>
+<tr>
+<th>检查</th>
+<th>通过口径</th>
+<th>失败时回退</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据可复现</td>
+<td>快照只读、哈希与血缘齐全，分组/近重复未跨 split</td>
+<td>作废旧评估，回到上一合规快照</td>
+</tr>
+<tr>
+<td>模板与标签</td>
+<td>解码有效 labels 与目标回答一致，无全 <code>-100</code> batch</td>
+<td>修模板/掩码后从基座重跑，不在错标签上追加训练</td>
+</tr>
+<tr>
+<td>主任务有效</td>
+<td>基座/候选同集同解码达到预定义改善</td>
+<td>回到基线，修数据和错误定义，不盲目加 epoch</td>
+</tr>
+<tr>
+<td>通用能力保留</td>
+<td>对话、工具、安全和长上下文不越过降级预算</td>
+<td>回滚基座或较早 checkpoint，重做配比和训练强度</td>
+</tr>
+<tr>
+<td>产物可加载</td>
+<td>基座、adapter/权重、tokenizer、template 和配置绑定</td>
+<td>恢复上一完整产物，不用缺文件目录上线</td>
+</tr>
+<tr>
+<td>服务可回退</td>
+<td>灰度期间能切回旧版并复测</td>
+<td>出现安全/隐私问题立即隔离新版并保存最小复现</td>
+</tr>
+</tbody>
+</table>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>"模型选择要可对照"的真实落点：冒烟评测矩阵（<code>/home/wuyafang/.hermes/scripts/eval_smoke.py</code>，grep 可验）</strong>：<br />
+<code>python
+  MODELS = {
+      "mimo": {
+          "base_url": "https://api.xiaomimimo.com/v1",
+          "model": "mimo-v2.5-pro",
+          "api_key_env": "XIAOMIMIMO_API_KEY",
+          "timeout": 60,
+      },</code><br />
+  同一组用例跑多个模型，输出 <code>准确率 / 平均延迟 / P95延迟 / tokens/s / 通过/总</code> 汇总表——模型选型和微调前后对照都该用同一张表，而不是"感觉变好了"。</li>
+<li><strong>判分规则是确定性的（<code>/home/wuyafang/.hermes/scripts/eval_smoke.py</code> 的 <code>judge()</code>）</strong>：<code>missing = [kw for kw in case["expected_keywords"] if kw not in response]</code>，关键词全中才算过；不引入 LLM 当裁判，避免"裁判漂移"混淆结论。</li>
+<li><strong>和课件讲法的差异</strong>：课件微调选型常用 <code>lm-evaluation-harness</code> / <code>C-Eval</code> 跑通用基准；本库没有跑基准任务，只有自建短用例冒烟（成本低、可天天跑）。<strong>本库暂无微调前后对照评测管线</strong>（微调本身未做），上述模板可直接当"微调后回归"的骨架：把基座和微调产物各配一个 <code>MODELS</code> 条目即可。</li>
+<li><strong>另一处</strong>：<code>/home/wuyafang/.hermes/scripts/batch_audit.py</code> 用"分段字数/代码块数/三段齐全/来源行数"做文档质量机械审计——同一思路可用于检查微调数据集的字段完整性，而不只看 loss。</li>
+</ul>
+<h2 id="三源引用与证据边界">三源引用与证据边界</h2>2
+<table>
+<thead>
+<tr>
+<th>来源类别</th>
+<th>具体路径或固定入口</th>
+<th>正文落点</th>
+<th>未声称什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>课件</td>
+<td><code>raw/courseware/微调篇/day01微调101__课件__大模型微调-1-101-250815.md</code></td>
+<td>WHY 的训练/RAG 分流；WHAT 第2节的数据分类与清洗主线</td>
+<td>未把课件固定样本量当通用门槛</td>
+</tr>
+<tr>
+<td>课件</td>
+<td><code>raw/courseware/微调篇/day06微调之最佳实践__课件__大模型微调-6-最佳实践.md</code></td>
+<td>基座模型卡、合规、人工/基准评估和发布验收</td>
+<td>未复现课件训练与部署演示</td>
+</tr>
+<tr>
+<td>书籍·目录/公开划线</td>
+<td><code>raw/weread/从零构建大模型.md</code>；<code>raw/weread/3300144307/chapters.md</code></td>
+<td>下一 token、自监督、BPE、预训练与指令微调</td>
+<td>不是书籍全文，不引用未见实验</td>
+</tr>
+<tr>
+<td>书籍·目录/公开划线</td>
+<td><code>raw/weread/大语言模型：原理、应用与优化.md</code>；<code>raw/weread/3300123976/chapters.md</code></td>
+<td>预训练/指令/反馈数据、数据预处理与质量主题</td>
+<td>不用目录推导具体算法数值</td>
+</tr>
+<tr>
+<td>书籍·目录/公开划线</td>
+<td><code>raw/weread/Happy-LLM：从零开始构建大模型.md</code>；<code>raw/weread/3300213399/chapters.md</code></td>
+<td>CLM、SFT、<code>input_ids/attention_mask</code> 学习链路</td>
+<td>不声称已读完整章节</td>
+</tr>
+<tr>
+<td>业内·本地论文摘要</td>
+<td><code>raw/sources/arxiv-daily/2026-10-22-2610.31305.md</code>，<a href="https://arxiv.org/abs/2610.31305">arXiv:2610.31305</a></td>
+<td>WHAT 第3节：预训练目标与架构消融；区分训练 token、未收敛 checkpoint</td>
+<td>本地只有标题/摘要，不冒充全文；不外推 CPT/SFT 收益</td>
+</tr>
+<tr>
+<td>业内·本地论文摘要</td>
+<td><code>raw/sources/arxiv-daily/2026-10-15-2610.22194.md</code>，<a href="https://arxiv.org/abs/2610.22194">arXiv:2610.22194</a></td>
+<td>WHAT 第3节与 HOW 第3步：数据动作空间、固定训练栈、逐轮从 base 重训</td>
+<td>增益只限摘要任务，不证明多智能体普遍更优</td>
+</tr>
+<tr>
+<td>业内·经典论文/官方接口</td>
+<td><a href="https://arxiv.org/abs/2203.02155">InstructGPT, arXiv:2203.02155</a>；<a href="https://huggingface.co/docs/trl/sft_trainer">TRL SFTTrainer</a>；<a href="https://huggingface.co/docs/datasets/index">HF Datasets</a></td>
+<td>SFT 在训练链中的位置、数据格式与训练接口核对入口</td>
+<td>本轮未联网复核页面；代码未实跑，以安装版本文档为准</td>
+</tr>
+</tbody>
+</table>
+<p>旧《L6-模型微调-最佳答案》《大模型是怎么训练出来的》《L6-数据集构建-预训练语料》《L6-数据集构建-指令监督SFT》已按主题融入本篇；历史文件名与原始 SHA-256 见 <code>00-融合清单与验收.md</code>，旧 wiki 不作为独立事实来源。</p></div></body></html>

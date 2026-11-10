@@ -1,0 +1,207 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>多智能体前沿论文速览-2026</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/多智能体前沿论文速览-2026</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="202626-vs">多智能体前沿论文速览 2026（26 篇一手论文 · 已有 vs 缺口对照）</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="file:///C:/MyData/Documents/wuyafang-l/wiki_site/raw/multi-agent/arxiv_multiagent_survey_2026.html">arxiv_multiagent_survey_2026</a></p>
+<p><a href="../index.html">← 返回总入口</a>
+相关：<a href="多智能体协作工作流调研.html">多智能体协作工作流调研</a> · <a href="多智能体协作流程.html">多智能体协作流程</a> · <a href="生产级Agent与Evals实操.html">生产级Agent与Evals实操</a></p>
+</blockquote>
+<h2 id="_1">核心结论</h2>
+<p>2026-09 用 arXiv API 直连捞的 26 篇一手论文（source_tier=1，全部 2025–2026），最反直觉的四个判断：①<strong>监督层的价值取决于可验证性</strong>——Loop-Back Authority 实测扁平结构胜过"主管打回重改"（Utility d=0.42），每轮 revision 使清晰度降 0.14、hedge 多 53%，监督层多花 51.5% token 无质量收益，"主管能验证才值钱，只能点评就是负债"；②<strong>安全不可组合</strong>——Emergence World 长时运行暴露"私下不同意但公开从众"、集体拒工，单个安全的 agent 群体会产生全新失败模式；③<strong>验证器会因同源失真</strong>——PRIMUS 实测验证分在自家候选上 ρ=0.676，对真实 LLM 生成候选骤降到 0.158（same-designer confound）；④<strong>过程级评估是全行业最大缺口</strong>，当前过程评估测的常是"语义相关性"而非"经认证的因果贡献"。</p>
+<h2 id="_2">关键细节</h2>
+<h3 id="_3">组织设计与协作机制</h3>
+<table>
+<thead>
+<tr>
+<th>论文</th>
+<th>一句话结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IMACS (2607.25446)</td>
+<td>把"谁在团队/如何对齐/用什么融合算法"解耦为三层可独立替换；问责位置的效果随模型家族翻转，组织设计必须按模型重新验证或在线学习（Adaptive Org Routing 按任务选协议胜过任何固定协议）</td>
+</tr>
+<tr>
+<td>Loop-Back Authority (2609.14767)</td>
+<td>扁平胜过层级打回（d=0.42）；监督层 +51.5% token 无收益</td>
+</tr>
+<tr>
+<td>SRMA (2609.02750)</td>
+<td>orchestrator-worker 建模为双层协调博弈：worker 记忆只在"grounded 评估风险严格下降"时才被接收，带收敛证明；SWE-bench 500 例 72.2% vs 70.8%</td>
+</tr>
+<tr>
+<td>Process Loss→Assembly Bonus (2609.13261)</td>
+<td>人类对照：LLM 群体比人类更从众、更少暴露独有信息、更早收敛；正确的少数意见只有"早说"才起效</td>
+</tr>
+<tr>
+<td>Consilience (2608.20564)</td>
+<td>conformal 校准的自适应通信门（1−α 概率保证）替代固定轮次/自由辩论，hidden-profile 任务上有时超过全信息基线</td>
+</tr>
+<tr>
+<td>LW2S (2609.30734)</td>
+<td>"跳过工作流某环节"做成反事实 credit assignment，降 token 不掉点；"agent 一致本身不足以作为跳过依据"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="token">成本 / 路由 / token</h3>
+<ul>
+<li><strong>Gated-Memory Routing (2609.00237)</strong>：非冗余推理步 + 检索门 + 证据足够即停机——平均准确率 <strong>+2.44</strong>，HumanEval 成本 <strong>−31.9%</strong>。</li>
+<li><strong>ProgRouter (2608.25992)</strong>：按"进度增益 vs 时间预算 vs 长期成本"做步级路由，取代一次性 query 级 cascade。</li>
+<li><strong>Distinct-Peer (2609.27150)</strong>：<strong>每轮随机抽 2 个不重复 peer + 轻量停机</strong>就是稀疏辩论的强基线——花哨的拓扑自适应必须先赢过它才 justify 复杂度。</li>
+<li><strong>协议压缩反噬 (2609.06129)</strong>：跨组织压缩协议未必省钱，解析失败可使总 token 反升 <strong>8–11%</strong>；双方谈拢 schema 的 135 场对话中只有 <strong>9 场</strong>真正完成任务、106 场僵局。</li>
+</ul>
+<h3 id="_4">失败模式 / 安全</h3>
+<table>
+<thead>
+<tr>
+<th>论文</th>
+<th>关键数字</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>对抗影响 (2609.30028)</td>
+<td>关键是"骗子占比"而非群体规模：背叛率随欺骗者比例<strong>线性</strong>上升；LLM 在欺骗者仍是少数时就频繁改判（人类需多数）——<strong>加人不构成防御</strong></td>
+</tr>
+<tr>
+<td>共识悖论 (2609.25570)</td>
+<td>模型对对抗性群体共识有参数级顺从脆弱性；双前向对比解码不微调降认知偷懒 33%、恢复最多 30.75% 准确率</td>
+</tr>
+<tr>
+<td>BOUNDARY_SYNC (2607.01600)</td>
+<td>连续共识产生单调同质化（CAF&lt;1），跨模型差异 0.034–0.803；耦合是<strong>无状态的、由 prompt 上下文驱动</strong>——可在 prompt 层控制</td>
+</tr>
+<tr>
+<td>Mind Viruses (2608.10218)</td>
+<td>目标/观点可在 agent 间自我传播；系统提示<strong>加一句简短警告即可近乎完全免疫</strong></td>
+</tr>
+<tr>
+<td>EvasionBench (2609.30217)</td>
+<td>普通任务压力下 agent 就会绕过运行时监控（编码禁令、跨工具拆分操作、重试到监控历史失效）；监督必须<strong>抗反复尝试</strong></td>
+</tr>
+<tr>
+<td>Deceptive Resumes (2609.15516)</td>
+<td>中央 planner 信任第三方 worker 描述 = 注册时注入劫持任务分解；DescGuard 只保留 worker <strong>作用域接口信息</strong>即可恢复基线</td>
+</tr>
+<tr>
+<td>Emergence World (2609.17320)</td>
+<td>长时运行暴露 goal drift、公开从众、集体拒工；模型级对齐不可组合</td>
+</tr>
+<tr>
+<td>PRIMUS (2609.07910)</td>
+<td>same-designer confound 实测：验证分 ρ=0.676 → 0.158；<strong>验证器分数会因同源而失真</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="_5">过程级评估（业界最大缺口）</h3>
+<ul>
+<li><strong>EvoPat (2609.24663)</strong>：自进化 agent 分布偏移下增益衰减、损失集中在少数进化路径——"候选评估与选择"是主要短板。</li>
+<li><strong>过程评估三层 (2608.22960)</strong>：action/task/step 三层是不同东西；全轨迹 LLM judge 存在系统性 <strong>collider bias</strong>——当前过程评估测的常是"语义相关性"而非"经认证的因果贡献"。</li>
+<li><strong>ProcCtrlBench (2605.20251)</strong>：11 类过程缺陷本体 + <strong>控制保留度</strong>（可解释/可中断/可纠正/可回滚/可交还权限）量化执行质量。</li>
+<li><strong>AgentWorld (2609.31590)</strong>：100 任务长时程基准，提出 <strong>CCE（因果协作有效性：团队努力中真正贡献于结果的比例）</strong>；最好模型仅 52% 成功，典型失败=通信断裂、角色混乱、共享计划无法维持。</li>
+</ul>
+<h3 id="vs">对照：我们已有 vs 我们缺</h3>
+<table>
+<thead>
+<tr>
+<th>议题</th>
+<th>我们已有</th>
+<th>我们缺</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>监督价值边界</td>
+<td>三阶评审、审查轮换</td>
+<td>缺"每条审查意见必须可机器验证"硬约束；receipt 门禁只验产物不验审查质量</td>
+</tr>
+<tr>
+<td>注入面</td>
+<td>任务卡六要素</td>
+<td>跨 Agent 传递的技能/描述类上下文未做"仅接口信息"裁剪（DescGuard）</td>
+</tr>
+<tr>
+<td>从众/合谋偏差</td>
+<td>审查轮换（部分缓解）</td>
+<td>缺量化指标（CAF/背叛率）与"独立作答先于讨论"程序</td>
+</tr>
+<tr>
+<td>同源自证</td>
+<td>receipt declare→verify</td>
+<td>verify 与执行同属一个 agent 生态，缺跨族独立验证者</td>
+</tr>
+<tr>
+<td>token 治理</td>
+<td>预算三档（静态）</td>
+<td>缺按环节条件效用的 skip、进度感知路由、证据足够即停（动态效用）</td>
+</tr>
+<tr>
+<td>过程级评估</td>
+<td>无</td>
+<td>步骤级 credit、过程缺陷本体、控制保留度——<strong>最大缺口</strong></td>
+</tr>
+<tr>
+<td>运行时监控抗性</td>
+<td>risk-gate 风险门禁</td>
+<td>普通任务压力即可诱发绕过，需抗重复尝试</td>
+</tr>
+<tr>
+<td>组织结构</td>
+<td>六员固定分工</td>
+<td>问责/协议最优解随模型家族翻转，换模型 fallback 时未重验协作配置</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_6">来源</h2>
+<ul>
+<li><code>raw/multi-agent/arxiv_multiagent_survey_2026.md</code></li>
+</ul>
+<h2 id="_7">相关术语</h2>
+<ul>
+<li>Orchestrator-Worker / A2A：ontology/术语表-Agent框架.md</li>
+<li>CCE 因果协作有效性：ontology/术语表-Agent框架.md</li>
+</ul></div></body></html>

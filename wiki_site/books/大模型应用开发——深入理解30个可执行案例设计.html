@@ -1,0 +1,286 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>大模型应用开发——深入理解30个可执行案例设计</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 大模型应用开发——深入理解30个可执行案例设计</span></div><div class="wrap"><h1 id="书章节重点-大模型应用开发深入理解30个可执行案例设计">书章节重点 · 大模型应用开发——深入理解30个可执行案例设计</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书以30个可执行项目为载体，系统演示如何将大语言模型（以ChatGPT为代表）与Streamlit、Gradio以及图像、音频处理组件结合，快速构建覆盖文本生成、图像处理、推荐系统、职业服务、检索问答和内容创作等场景的AI应用</li><li>全书采用“总体设计—开发环境—系统实现—功能测试”的统一工程化框架，强调从需求到落地的完整开发闭环</li><li>它的价值不只是展示模型能做什么，更在于把模型调用、输入组织、界面交互、外部数据解析和结果验证放在同一个项目里，帮助读者理解一个可运行原型应如何拆解、实现与验收</li></ul></div>2
+<p>本书以30个可执行项目为载体，系统演示如何将大语言模型（以ChatGPT为代表）与Streamlit、Gradio以及图像、音频处理组件结合，快速构建覆盖文本生成、图像处理、推荐系统、职业服务、检索问答和内容创作等场景的AI应用。全书采用“总体设计—开发环境—系统实现—功能测试”的统一工程化框架，强调从需求到落地的完整开发闭环。它的价值不只是展示模型能做什么，更在于把模型调用、输入组织、界面交互、外部数据解析和结果验证放在同一个项目里，帮助读者理解一个可运行原型应如何拆解、实现与验收。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 美食推荐</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：以推荐类应用为入门案例，展示大模型在个性化内容生成中的基础用法</li><li>输入可以围绕口味、食材和用餐需求组织，输出则应尽量形成可读、可执行的推荐结果</li><li>核心观点2：遵循“总体设计→环境搭建→系统实现→功能测试”四步法，建立可复用的项目开发范式；先画清输入、模型和展示层的关系，再开始写代码</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：以推荐类应用为入门案例，展示大模型在个性化内容生成中的基础用法。输入可以围绕口味、食材和用餐需求组织，输出则应尽量形成可读、可执行的推荐结果。</li>
+<li><strong>核心观点2</strong>：遵循“总体设计→环境搭建→系统实现→功能测试”四步法，建立可复用的项目开发范式；先画清输入、模型和展示层的关系，再开始写代码。</li>
+<li><strong>核心观点3</strong>：推荐应用的难点不在于让模型生成一段话，而在于把用户条件传递完整，并检查结果是否满足忌口、地域和可获得性等边界。</li>
+<li><strong>核心观点4</strong>：功能测试应覆盖正常提问、条件缺失和不合理条件等情况，观察界面是否能稳定返回结果，而不是只验证一次成功调用。</li>
+</ul>
+<h3 id="第2章-语言学习">第2章 语言学习</h3>3
+<ul>
+<li><strong>核心观点1</strong>：通过构造包含应用ID、用户ID及请求文本的JSON对象与大模型交互，实现翻译、例句生成等语言学习功能。</li>
+<li><strong>核心观点2</strong>：请求结构化的设计是调用大模型API的关键，text数组承载用户具体指令；把任务、目标语言和输出要求分开写，有利于稳定复用。</li>
+<li><strong>核心观点3</strong>：语言学习场景适合把翻译、解释、例句和纠错拆成不同操作，避免一个提示同时承担过多目标而造成输出混杂。</li>
+<li><strong>核心观点4</strong>：测试时应比较短词、完整句子和上下文不完整的输入，重点观察模型是否遵守目标语言与格式要求。<blockquote>
+<p>创建一个包含应用程序ID、用户ID等信息的JSON对象，其中，text数组包含用户发出的请求，例如，翻译某个单词并给出例句。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 生成戏文</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：利用大模型的文本生成能力进行戏曲文本创作，体现模型在传统文化内容生产中的应用</li><li>核心观点2：提示词设计决定生成文本的风格与质量，需结合领域特征进行引导，例如明确人物、冲突、场景和语言风格</li><li>核心观点3：创作型任务宜先约束结构，再要求模型填充内容；先给出角色关系和情节节点，可以减少长文本前后矛盾</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：利用大模型的文本生成能力进行戏曲文本创作，体现模型在传统文化内容生产中的应用。</li>
+<li><strong>核心观点2</strong>：提示词设计决定生成文本的风格与质量，需结合领域特征进行引导，例如明确人物、冲突、场景和语言风格。</li>
+<li><strong>核心观点3</strong>：创作型任务宜先约束结构，再要求模型填充内容；先给出角色关系和情节节点，可以减少长文本前后矛盾。</li>
+<li><strong>核心观点4</strong>：生成结果需要人工复核文化表达、人物行为和故事连贯性，模型的流畅并不等于内容符合传统戏文要求。</li>
+</ul>
+<h3 id="第4章-智能电影">第4章 智能电影</h3>3
+<ul>
+<li><strong>核心观点1</strong>：将大模型用于电影相关信息的智能生成与推荐，拓展内容消费场景。</li>
+<li><strong>核心观点2</strong>：项目延续统一开发框架，强调功能测试对输出质量的验证作用；界面、调用和结果展示应分别检查。</li>
+<li><strong>核心观点3</strong>：电影推荐可先收集类型、偏好和观看目的，再让模型按照这些条件组织说明，避免只输出没有理由的片名列表。</li>
+<li><strong>核心观点4</strong>：涉及作品事实的信息时，应区分模型生成的描述与外部资料，不能把模型的记忆当成实时片库或权威数据库。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 图像处理</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：展示大模型在多模态图像处理任务中的应用路径，关键是把图像输入、文本指令和结果展示连接起来</li><li>核心观点2：图像类项目需在开发环境中额外配置图像处理相关依赖，并对上传、读取、格式转换等环节进行测试</li><li>核心观点3：图像提示应明确要求模型观察的对象、输出的字段和描述粒度，泛泛地要求“分析图片”不利于稳定使用</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：展示大模型在多模态图像处理任务中的应用路径，关键是把图像输入、文本指令和结果展示连接起来。</li>
+<li><strong>核心观点2</strong>：图像类项目需在开发环境中额外配置图像处理相关依赖，并对上传、读取、格式转换等环节进行测试。</li>
+<li><strong>核心观点3</strong>：图像提示应明确要求模型观察的对象、输出的字段和描述粒度，泛泛地要求“分析图片”不利于稳定使用。</li>
+<li><strong>核心观点4</strong>：图像识别结果仍需考虑遮挡、分辨率和模型误判等边界，应用层应允许用户重新上传或补充说明。</li>
+</ul>
+<h3 id="第6章-职业匹配">第6章 职业匹配</h3>3
+<ul>
+<li><strong>核心观点1</strong>：通过解析职位信息提取职位名称、公司、地点、发布时间与描述等关键字段，存入info_dict供后续匹配使用。</li>
+<li><strong>核心观点2</strong>：使用多种提示模板引导GPT生成准确输出，模板多样性是提升答复质量的重要手段；不同模板可以分别负责解析、比较和总结。</li>
+<li><strong>核心观点3</strong>：由于ChatGPT母语为英文且LinkedIn职位多为英文，Prompt应使用英文以获得更准确结果；语言选择应与原始职位材料保持一致。</li>
+<li><strong>核心观点4</strong>：职业匹配不是单次生成，而是“职位解析—用户条件整理—匹配说明—结果复核”的连续流程，结构化字段便于后续扩展。</li>
+<li><strong>核心观点5</strong>：Streamlit可将语言模型、外部数据与组件结合，构建信息检索与生成的智能系统；国内网络环境下建议源码安装。<blockquote>
+<p>注意：由于ChatGPT的“母语”是英文，并且LinkedIn上很多职位也是英文介绍，所以需要使用英文作为Prompt的语言。<br />
+在解析后，代码提取职位名称、公司名称、工作地点、发布时间和工作描述等重要信息，并将这些信息存储在info_dict中。<br />
+为了更好地引导GPT获得准确答复，代码中使用多种不同的模板，构建与语言模型的交互，通过生成合适的提示引导模型生成所需的输出。<br />
+它可以将语言模型、外部数据和其他组件相结合，创建能够进行信息检索、处理和生成人类语言的智能系统。<br />
+用户可以使用pip包管理器或者Conda内置的包管理器来安装Streamlit，但是由于国内网络环境不稳定，即使把以上两个工具换到国内镜像源也有可能出现问题，因此建议用户通过源码安装Streamlit。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 生成简历</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：利用大模型自动生成结构化简历内容，提升求职材料准备效率</li><li>核心观点2：提示词需明确简历字段与格式要求，以保证输出可直接使用</li><li>核心观点3：简历生成应把个人经历、目标岗位和已有事实作为输入，让模型负责组织表达而不是虚构经历</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：利用大模型自动生成结构化简历内容，提升求职材料准备效率。</li>
+<li><strong>核心观点2</strong>：提示词需明确简历字段与格式要求，以保证输出可直接使用。</li>
+<li><strong>核心观点3</strong>：简历生成应把个人经历、目标岗位和已有事实作为输入，让模型负责组织表达而不是虚构经历。</li>
+<li><strong>核心观点4</strong>：可将教育经历、项目经历和技能分别生成后再合并，分阶段处理有利于控制篇幅和重点。</li>
+</ul>
+<h3 id="第8章-产品推荐">第8章 产品推荐</h3>3
+<ul>
+<li><strong>核心观点1</strong>：将大模型应用于产品推荐场景，实现基于语义理解的个性化推荐。</li>
+<li><strong>核心观点2</strong>：推荐效果依赖输入信息的结构化程度与提示设计的精准性。</li>
+<li><strong>核心观点3</strong>：推荐理由应与用户条件一一对应，应用不能只展示结论，还要让用户知道为什么匹配。</li>
+<li><strong>核心观点4</strong>：当产品信息来自外部数据时，应先整理字段再交给模型，减少杂乱文本对判断的干扰。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第9章 重生之水浒穿越</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：基于Gradio构建对话式交互界面，通过消息字典维护对话历史，Role设为Assistant、Content为回复内容并追加至Messages列表</li><li>核心观点2：使用Style方法设置按钮边框半径、背景色、字体颜色、粗细与内边距等样式，提升界面体验</li><li>核心观点3：click事件绑定predict函数并传入[msg, chatbot]作为输入输出组件，实现对话交互闭环</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：基于Gradio构建对话式交互界面，通过消息字典维护对话历史，Role设为Assistant、Content为回复内容并追加至Messages列表。</li>
+<li><strong>核心观点2</strong>：使用Style方法设置按钮边框半径、背景色、字体颜色、粗细与内边距等样式，提升界面体验。</li>
+<li><strong>核心观点3</strong>：click事件绑定predict函数并传入[msg, chatbot]作为输入输出组件，实现对话交互闭环。</li>
+<li><strong>核心观点4</strong>：对话应用的核心是同时维护用户消息、机器人消息和界面状态，预测函数既要完成模型调用，也要返回更新后的组件数据。<blockquote>
+<p>②构建消息字典将Role设为Assistant，将Content设为回复结果，这个消息字典添加到mess_dict中的Messages列表中，表示机器人发送了一条消息。<br />
+④使用Style方法设置按钮的样式，如边框半径、背景颜色、字体颜色、字体粗细和内边距。<br />
+click(predict, [msg, chatbot], [msg, chatbot])</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第10章-小说创作">第10章 小说创作</h3>3
+<ul>
+<li><strong>核心观点1</strong>：借助大模型进行小说文本生成，展示长文本创作中的提示工程技巧。</li>
+<li><strong>核心观点2</strong>：需通过分阶段提示控制情节走向与文风一致性。</li>
+<li><strong>核心观点3</strong>：先生成大纲、人物和章节目标，再逐段扩写，比一次性要求模型写完整小说更容易控制上下文。</li>
+<li><strong>核心观点4</strong>：长文本应用要持续回传必要的前文摘要和人物状态，避免模型在多轮生成中遗忘设定。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第11章 情绪分析</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：利用大模型对文本进行情绪识别与分类，服务舆情与用户反馈分析</li><li>核心观点2：情绪分析类任务需设计明确的分类标签体系以约束模型输出</li><li>核心观点3：分类标签应与业务动作对应，例如把负面反馈交给人工处理，而不是只输出一个情绪词</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：利用大模型对文本进行情绪识别与分类，服务舆情与用户反馈分析。</li>
+<li><strong>核心观点2</strong>：情绪分析类任务需设计明确的分类标签体系以约束模型输出。</li>
+<li><strong>核心观点3</strong>：分类标签应与业务动作对应，例如把负面反馈交给人工处理，而不是只输出一个情绪词。</li>
+<li><strong>核心观点4</strong>：测试中要加入反讽、否定和含糊表达，验证模型是否按约定格式返回而非自由发挥。</li>
+</ul>
+<h3 id="第12章-文字转图像">第12章 文字转图像</h3>3
+<ul>
+<li><strong>核心观点1</strong>：展示文本到图像生成的多模态应用开发流程。</li>
+<li><strong>核心观点2</strong>：提示词对图像生成结果的风格与内容起决定性作用。</li>
+<li><strong>核心观点3</strong>：提示可以按主体、环境、构图、风格和限制条件组织，结构越清楚越便于反复修改。</li>
+<li><strong>核心观点4</strong>：图像应用除了生成，还要处理结果预览、保存和失败重试等产品流程。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第13章 足球资讯</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：将大模型用于体育资讯的生成与聚合，体现垂直领域内容生产价值</li><li>核心观点2：领域知识注入是提升资讯准确性的关键</li><li>核心观点3：资讯生成应把赛事、球队和球员等实体信息整理后再生成，事实性内容不能只依赖模型记忆</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：将大模型用于体育资讯的生成与聚合，体现垂直领域内容生产价值。</li>
+<li><strong>核心观点2</strong>：领域知识注入是提升资讯准确性的关键。</li>
+<li><strong>核心观点3</strong>：资讯生成应把赛事、球队和球员等实体信息整理后再生成，事实性内容不能只依赖模型记忆。</li>
+<li><strong>核心观点4</strong>：聚合结果要区分原始信息、模型摘要和推测性观点，便于读者判断可信程度。</li>
+</ul>
+<h3 id="第14章-图书馆检索">第14章 图书馆检索</h3>3
+<ul>
+<li><strong>核心观点1</strong>：结合大模型实现智能图书检索与问答，提升信息获取效率。</li>
+<li><strong>核心观点2</strong>：检索类应用需将外部数据与大模型生成能力结合使用。</li>
+<li><strong>核心观点3</strong>：检索系统应先返回候选资料，再让模型根据资料组织答案，避免把生成当作检索本身。</li>
+<li><strong>核心观点4</strong>：用户输入可能是自然语言问题，系统需要把问题转换为可查询条件，并处理无结果情况。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第15章 音色转换</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：展示大模型在语音音色转换中的应用，拓展多模态交互边界</li><li>核心观点2：音频类项目需在开发环境中配置相应的语音处理依赖</li><li>核心观点3：音频流程通常包含上传、格式读取、转换处理和结果播放，任何一步失败都应给出明确反馈</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：展示大模型在语音音色转换中的应用，拓展多模态交互边界。</li>
+<li><strong>核心观点2</strong>：音频类项目需在开发环境中配置相应的语音处理依赖。</li>
+<li><strong>核心观点3</strong>：音频流程通常包含上传、格式读取、转换处理和结果播放，任何一步失败都应给出明确反馈。</li>
+<li><strong>核心观点4</strong>：涉及真实人物声音时，应明确授权与使用边界，技术可行性不能替代合规要求。</li>
+</ul>
+<h3 id="第16章-智能换脸">第16章 智能换脸</h3>3
+<ul>
+<li><strong>核心观点1</strong>：演示图像换脸功能的实现路径，体现生成式视觉模型的应用。</li>
+<li><strong>核心观点2</strong>：此类项目需关注伦理与合规边界。</li>
+<li><strong>核心观点3</strong>：应用应对输入图像、人物身份和输出用途设置限制，避免把原型能力直接用于误导性内容。</li>
+<li><strong>核心观点4</strong>：测试不仅要关注图像效果，也要检查隐私保护、授权确认和结果标识等产品机制。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第17章 留学文书</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：利用大模型辅助生成留学申请文书，提升写作效率</li><li>核心观点2：提示设计需明确文书类型、目标院校与个人背景信息</li><li>核心观点3：模型更适合帮助整理结构、改进表达和检查逻辑，个人经历与事实必须由申请者提供并核对</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：利用大模型辅助生成留学申请文书，提升写作效率。</li>
+<li><strong>核心观点2</strong>：提示设计需明确文书类型、目标院校与个人背景信息。</li>
+<li><strong>核心观点3</strong>：模型更适合帮助整理结构、改进表达和检查逻辑，个人经历与事实必须由申请者提供并核对。</li>
+<li><strong>核心观点4</strong>：可以先生成提纲，再分段修改，最后统一检查语气、重点和篇幅要求。</li>
+</ul>
+<h3 id="第18章-宠物帮手">第18章 宠物帮手</h3>3
+<ul>
+<li><strong>核心观点1</strong>：将大模型应用于宠物养护问答场景，体现生活服务类应用开发。</li>
+<li><strong>核心观点2</strong>：领域问答需通过提示约束回答范围与专业性。</li>
+<li><strong>核心观点3</strong>：回答应先收集宠物种类、年龄和症状等背景，避免脱离条件给出笼统建议。</li>
+<li><strong>核心观点4</strong>：健康问题属于高风险边界，系统应提醒用户在必要时寻求专业人员帮助。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第19章 用户评价</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：利用大模型对用户评价进行生成或分析，服务电商与产品运营</li><li>核心观点2：评价类任务需兼顾情感倾向与内容结构化输出</li><li>核心观点3：可将评价拆成优点、问题、场景和建议等字段，便于运营人员统计和跟进</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：利用大模型对用户评价进行生成或分析，服务电商与产品运营。</li>
+<li><strong>核心观点2</strong>：评价类任务需兼顾情感倾向与内容结构化输出。</li>
+<li><strong>核心观点3</strong>：可将评价拆成优点、问题、场景和建议等字段，便于运营人员统计和跟进。</li>
+<li><strong>核心观点4</strong>：分析时要保留原评价与模型结论的对应关系，避免摘要掩盖用户真正的问题。</li>
+</ul>
+<h3 id="第20章-旅游图鉴">第20章 旅游图鉴</h3>3
+<ul>
+<li><strong>核心观点1</strong>：结合大模型生成旅游景点介绍与图鉴内容，服务文旅场景。</li>
+<li><strong>核心观点2</strong>：多模态内容生成需协调文本与图像输出的一致性。</li>
+<li><strong>核心观点3</strong>：景点介绍可以围绕位置、特色、适合人群和行程建议组织，但实时开放状态仍需外部信息核验。</li>
+<li><strong>核心观点4</strong>：图文生成应统一景点名称和描述重点，防止图片主题与文字说明不一致。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第21章 文案助手</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：利用大模型生成营销文案，体现内容生产效率提升</li><li>核心观点2：文案风格需通过提示词中的角色设定与示例进行引导</li><li>核心观点3：文案任务要明确目标受众、传播渠道、字数和行动号召，输出才更接近可发布稿件</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：利用大模型生成营销文案，体现内容生产效率提升。</li>
+<li><strong>核心观点2</strong>：文案风格需通过提示词中的角色设定与示例进行引导。</li>
+<li><strong>核心观点3</strong>：文案任务要明确目标受众、传播渠道、字数和行动号召，输出才更接近可发布稿件。</li>
+<li><strong>核心观点4</strong>：生成后仍要检查事实、品牌用语和夸张承诺，避免效率提升带来传播风险。</li>
+</ul>
+<h3 id="第22章-菜谱推荐">第22章 菜谱推荐</h3>3
+<ul>
+<li><strong>核心观点1</strong>：将大模型用于菜谱生成与推荐，服务饮食场景。</li>
+<li><strong>核心观点2</strong>：推荐结果需结合食材、口味等约束条件进行提示设计。</li>
+<li><strong>核心观点3</strong>：菜谱输出应包含食材、步骤和注意事项等结构，方便用户直接执行。</li>
+<li><strong>核心观点4</strong>：对过敏、忌口和营养要求应显式传入，不能假设模型自动知道用户的全部限制。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第23章 文字纠错</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：利用大模型进行文本纠错与润色，提升内容质量</li><li>核心观点2：纠错任务需明确错误类型与修改粒度以控制输出</li><li>核心观点3：如果用户只希望纠正错别字，就应限制模型不要改变原意和语气；若要润色，则应另行说明</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：利用大模型进行文本纠错与润色，提升内容质量。</li>
+<li><strong>核心观点2</strong>：纠错任务需明确错误类型与修改粒度以控制输出。</li>
+<li><strong>核心观点3</strong>：如果用户只希望纠正错别字，就应限制模型不要改变原意和语气；若要润色，则应另行说明。</li>
+<li><strong>核心观点4</strong>：最好同时返回修改稿与修改说明，便于用户复核模型是否误改了事实。</li>
+</ul>
+<h3 id="第24章-网球运动员">第24章 网球运动员</h3>3
+<ul>
+<li><strong>核心观点1</strong>：将大模型应用于体育人物信息生成与问答，体现垂直领域知识应用。</li>
+<li><strong>核心观点2</strong>：领域实体信息的准确性依赖提示中的事实约束。</li>
+<li><strong>核心观点3</strong>：人物问答应区分基础介绍、比赛表现和推测性评价，避免把不确定信息写成确定事实。</li>
+<li><strong>核心观点4</strong>：当问题涉及最新赛事时，需要接入外部资料或明确知识时效，不能仅凭静态模型回答。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第25章 职业推荐</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：基于用户特征与大模型生成职业推荐，服务职业规划场景</li><li>核心观点2：推荐逻辑需通过结构化输入与提示模板保证可解释性</li><li>核心观点3：用户的技能、经验、兴趣和限制条件应分开整理，再让模型比较岗位要求与个人特征</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：基于用户特征与大模型生成职业推荐，服务职业规划场景。</li>
+<li><strong>核心观点2</strong>：推荐逻辑需通过结构化输入与提示模板保证可解释性。</li>
+<li><strong>核心观点3</strong>：用户的技能、经验、兴趣和限制条件应分开整理，再让模型比较岗位要求与个人特征。</li>
+<li><strong>核心观点4</strong>：推荐结果是辅助决策材料，不应替代用户对岗位、行业和自身目标的进一步判断。</li>
+</ul>
+<h3 id="第26章-职场助手">第26章 职场助手</h3>3
+<ul>
+<li><strong>核心观点1</strong>：构建面向职场场景的智能助手，覆盖问答与内容生成。</li>
+<li><strong>核心观点2</strong>：助手类应用需维护对话上下文以提升交互连贯性。</li>
+<li><strong>核心观点3</strong>：上下文管理要区分当前任务与历史信息，只保留对当前回答有用的内容，避免无关历史干扰。</li>
+<li><strong>核心观点4</strong>：邮件、会议纪要和沟通建议等任务适合采用固定输出格式，便于直接复制到工作流中。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第27章 手绘图像识别</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：展示大模型在手绘图像识别中的应用，体现多模态识别能力</li><li>核心观点2：图像输入需配合明确的识别指令以提升准确率</li><li>核心观点3：识别任务应允许模型表达不确定性，并通过候选类别或补充提问减少误判</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：展示大模型在手绘图像识别中的应用，体现多模态识别能力。</li>
+<li><strong>核心观点2</strong>：图像输入需配合明确的识别指令以提升准确率。</li>
+<li><strong>核心观点3</strong>：识别任务应允许模型表达不确定性，并通过候选类别或补充提问减少误判。</li>
+<li><strong>核心观点4</strong>：界面层要处理图片上传、预览和重新识别，使用户能快速修正输入。</li>
+</ul>
+<h3 id="第28章-文献阅读">第28章 文献阅读</h3>3
+<ul>
+<li><strong>核心观点1</strong>：利用大模型辅助文献阅读与摘要生成，提升科研效率。</li>
+<li><strong>核心观点2</strong>：长文档处理需通过分段提示与信息提取策略实现。</li>
+<li><strong>核心观点3</strong>：可以按研究问题、方法、数据、结论和局限等字段提取内容，再汇总为结构化摘要。</li>
+<li><strong>核心观点4</strong>：摘要必须回到原文核对，尤其是数字、实验结论和引用关系，不能把模型概括视为原文证据。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第29章 法律咨询</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：将大模型应用于法律咨询问答，体现专业领域应用潜力</li><li>核心观点2：专业领域应用需通过提示约束回答边界并提示风险</li><li>核心观点3：法律类系统更适合做条文检索、问题整理和材料初步分析，重要结论需要专业人员复核</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：将大模型应用于法律咨询问答，体现专业领域应用潜力。</li>
+<li><strong>核心观点2</strong>：专业领域应用需通过提示约束回答边界并提示风险。</li>
+<li><strong>核心观点3</strong>：法律类系统更适合做条文检索、问题整理和材料初步分析，重要结论需要专业人员复核。</li>
+<li><strong>核心观点4</strong>：回答应明确适用前提、信息缺口和不确定性，避免用绝对语气掩盖事实差异。</li>
+</ul>
+<h3 id="第30章-文风模拟">第30章 文风模拟</h3>3
+<ul>
+<li><strong>核心观点1</strong>：利用大模型模拟特定文风进行文本生成，展示风格迁移能力。</li>
+<li><strong>核心观点2</strong>：文风模拟需提供充足的风格示例作为提示上下文。</li>
+<li><strong>核心观点3</strong>：风格要求可以拆成句式、节奏、词汇和叙述视角等维度，便于逐项调整而不是只说“写得像”。</li>
+<li><strong>核心观点4</strong>：生成结果要检查主题是否仍然准确，不能为了模仿风格而牺牲事实、可读性和原创表达边界。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">适用场景标签</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Streamlit/Gradio 快速原型</li></ul></div>2
+<ul>
+<li>大模型应用开发入门</li>
+<li>Streamlit/Gradio 快速原型</li>
+<li>Prompt 工程实践</li>
+<li>多模态AI应用</li>
+<li>项目驱动学习</li>
+<li>垂直领域AI落地</li>
+</ul>
+<h2 id="一句话推荐">一句话推荐</h2>2
+<p>30个案例带你从零落地大模型应用。</p></div></details></div></body></html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>六员高阶玩法与并行调度</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 六员高阶玩法与并行调度</span></div><div class="wrap"><h1 id="多智能体六员高阶玩法与并行调度kanban-goals-loops-moa-自进化">多智能体（六员）高阶玩法与并行调度（Kanban · Goals · Loops · MoA · 自进化）</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="%E5%85%AD%E5%91%98%E9%85%8D%E7%BD%AE%E7%BB%88%E5%B1%80.html">六员配置终局</a> · <a href="%E5%AD%90%E4%BB%A3%E7%90%86%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91%E4%B8%8E%E6%8A%80%E8%83%BD%E7%BC%96%E5%86%99.html">子代理驱动开发与技能编写</a> · <a href="../L5-Agent%E5%B7%A5%E7%A8%8B/02-Multi-Agent%E5%8D%8F%E4%BD%9C.html">Multi-Agent 协作</a> · <a href="%E5%85%AD%E5%91%98%E9%80%9A%E9%81%93%E4%B8%8E%E6%B4%BE%E5%8D%95%E7%9B%91%E7%9D%A3-%E4%B8%80%E6%89%8B.html">六员通道与派单监督-一手</a></p>
+<p><strong>同主题去重导航（4 篇分工）</strong>：本篇=<strong>最权威</strong>（编排原语 + 并行调度引擎全量细节）；<a href="%E5%85%AD%E5%91%98%E9%85%8D%E7%BD%AE%E7%BB%88%E5%B1%80.html">六员配置终局</a>=角色/模型/预算配置；<a href="%E5%85%AD%E5%91%98%E9%80%9A%E9%81%93%E4%B8%8E%E6%B4%BE%E5%8D%95%E7%9B%91%E7%9D%A3-%E4%B8%80%E6%89%8B.html">六员通道与派单监督-一手</a>=通道实测与派单监督；<a href="../L5-Agent%E5%B7%A5%E7%A8%8B/02-Multi-Agent%E5%8D%8F%E4%BD%9C.html">Multi-Agent 协作</a>=协作模式、任务契约与失败归因。看编排细节看本篇，看配置看终局篇，看派单看通道篇，看通用协作设计看 L5 篇。</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心结论</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>六员体系除了"角色 + 模型路由"，还有一套可组合的高阶编排原语与并行调度引擎</li><li>配套一条团队硬纪律：任务完成后必须删过程垃圾</li></ul></div>2
+<p>六员体系除了"角色 + 模型路由"，还有一套可组合的<strong>高阶编排原语</strong>与<strong>并行调度引擎</strong>。核心分层是六个角色各占一层——Hermes=战略规划层 / DSH=战术执行层（新增，Hermes 的直接执行臂）/ Claude Code=工程设计层 / Codex=快速原型层 / OpenClaw=多模态外联层 / QwenCode=补岗/小运维层（后补入六员），<strong>Hermes 直接指挥全部六个 Agent（去掉 OpenClaw 中间调度）</strong>。并行调度引擎提供 4 种策略（independent / pipeline / race / scatter-gather），<code>max_concurrency: 3</code>，错误按 L1–L4 分级。高阶玩法手册给出 10 类能力（Kanban Swarm / Persistent Goals / Recurring Loops / MoA / Computer Use / Browser / Voice / Holographic / 协作模式 / 自进化），每类都有可复制的命令与"何时用"判据。配套一条团队硬纪律：<strong>任务完成后必须删过程垃圾</strong>。</p>
+<h2 id="关键细节">关键细节</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">一、多智能体（六员）分层与任务分发决策树</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>六员角色/模型路由/预算三档配置详见 六员配置终局篇（本节只讲分层与分发决策树）</li></ul></div>3
+<blockquote>
+<p>六员角色/模型路由/预算三档配置<strong>详见 <a href="%E5%85%AD%E5%91%98%E9%85%8D%E7%BD%AE%E7%BB%88%E5%B1%80.html">六员配置终局篇</a></strong>（本节只讲分层与分发决策树）。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Agent</th>
+<th>层级</th>
+<th>核心差异化能力</th>
+<th>成本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Hermes</strong></td>
+<td>战略规划层</td>
+<td>记忆、监控、部署、调度</td>
+<td>调度层</td>
+</tr>
+<tr>
+<td><strong>DSH</strong></td>
+<td>战术执行层（新增）</td>
+<td>子 Agent 编排、workflow fan-out、目标持久化</td>
+<td>低</td>
+</tr>
+<tr>
+<td><strong>Claude Code</strong></td>
+<td>工程设计层</td>
+<td>14 个预定义子 Agent、ultrareview、工作树隔离</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>Codex</strong></td>
+<td>快速原型层</td>
+<td>代码审查、沙箱执行、会话管理</td>
+<td>低</td>
+</tr>
+<tr>
+<td><strong>OpenClaw</strong></td>
+<td>多模态外联层</td>
+<td>浏览器自动化、多平台消息、魔鬼代言人</td>
+<td>低</td>
+</tr>
+<tr>
+<td><strong>QwenCode</strong></td>
+<td>补岗/小运维层</td>
+<td>批量执行、简单查询、熵增清理、收口（补岗加入六员）</td>
+<td>低</td>
+</tr>
+</tbody>
+</table>
+<p>分发决策树（节选）：需求分析/任务拆分→Hermes 直接处理；常规开发/文件操作→DSH；复杂重构/深度分析→DSH→Claude Code；代码审查（工程化）→Claude Code <code>ultrareview</code>；代码审查（快速）→Codex <code>review</code>；快速代码生成→Codex <code>exec</code>；安全审查/架构质疑→OpenClaw 魔鬼代言人；UI 自动化/网页抓取→OpenClaw browser；跨平台消息→OpenClaw message；部署运维→Hermes+DSH；定时监控→Hermes cronjob。</p>
+<p>调用命令速查：<code>dsh --profile headless "任务描述"</code>；<code>claude -p --agent bug-locator "问题"</code> / <code>claude ultrareview --base main</code>；<code>codex exec "需求"</code> / <code>codex review --base main</code>；<code>openclaw browser open &lt;url&gt;</code> / <code>openclaw message send --channel telegram ...</code>。</p>
+<h3 id="二并行调度引擎-v2">二、并行调度引擎 v2</h3>3
+<blockquote>
+<p>派单前门禁、通道实测与派单后监督细则<strong>详见 <a href="%E5%85%AD%E5%91%98%E9%80%9A%E9%81%93%E4%B8%8E%E6%B4%BE%E5%8D%95%E7%9B%91%E7%9D%A3-%E4%B8%80%E6%89%8B.html">六员通道与派单监督-一手篇</a></strong>（本节只讲引擎策略本身）。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>任务类型</th>
+<th>并行策略</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>独立任务</td>
+<td>完全并行，无依赖</td>
+<td>同时写前端 + 后端 + 文档</td>
+</tr>
+<tr>
+<td>流水线任务</td>
+<td>阶段并行，流水线执行</td>
+<td>A 完成后 B 开始，同时 C 也在进行</td>
+</tr>
+<tr>
+<td>竞争任务</td>
+<td>多 Agent 同时尝试取最优</td>
+<td>Codex 和 Claude 各写一版选优</td>
+</tr>
+<tr>
+<td>聚合任务</td>
+<td>分片并行最终合并</td>
+<td>多文件同时改，最后合并</td>
+</tr>
+</tbody>
+</table>
+<p><code>task_batch</code> 格式：<code>parallel_strategy</code>（independent/pipeline/race/scatter-gather）、<code>max_concurrency: 3</code>、每个 task 带 <code>agent/description/dependencies/timeout/retry</code>。<strong>错误分级</strong>：L1 可自愈（Agent 自行重试 ≤ 2 次）/ L2 需协助（上报 Hermes）/ L3 需切换（Hermes 重新分配）/ L4 阻塞（暂停整批等人）。性能指标：并行效率目标 &gt; 0.6、一次通过率 &gt; 0.8、返工率 &lt; 0.15。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">三、Kanban Swarm（持久化 SQLite 任务板）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>把大任务拆为并行 Worker → Verifier → Synthesizer，用依赖链自动编排</li><li>避坑：不要把 support card 链回它要解阻塞的父任务（死锁）</li><li>Worker 通过 「kanban_*」 工具驱动（「kanban_show/comment/block/complete/request_review」），不是 CLI</li></ul></div>3
+<p>把大任务拆为<strong>并行 Worker → Verifier → Synthesizer</strong>，用依赖链自动编排。组件：Board（独立 SQLite DB + 调度器循环）、Task（状态机 <code>triage→todo→ready→running→blocked→review→done→archived</code>）、Link（parent→child 依赖，所有 parent 完成时 todo 自动→ready）、Dispatcher（长驻循环，每 <strong>60 秒</strong>回收过期、提升 ready、原子 claim、spawn worker）。Worker 通过 <code>kanban_*</code> 工具驱动（<code>kanban_show/comment/block/complete/request_review</code>），不是 CLI。工作空间 <code>scratch</code>（默认，完成后<strong>删除</strong>，artifacts 先复制）/ <code>dir:&lt;path&gt;</code>（保留）/ <code>worktree</code>（保留）。避坑：<strong>不要把 support card 链回它要解阻塞的父任务</strong>（死锁）。</p>
+<h3 id="四persistent-goals完成契约">四、Persistent Goals（完成契约）</h3>3
+<p><code>/goal</code> 设目标，Judge 模型判完成、未完成自动继续。完成契约五字段：<code>outcome</code>（单一状态，必须为真）/ <code>verification</code>（可运行的测试/命令/产物）/ <code>constraints</code>（不能回归的内容）/ <code>boundaries</code>（范围内文件/目录/工具）/ <code>stop_when</code>（停止并请求输入的条件）。质量门禁：<code>/goal gate add "pytest tests/ -x"</code>、<code>"ruff check src/"</code>、<code>"mypy src/ --strict"</code>（<strong>至少含测试 + lint 两个门禁</strong>）。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">五、Recurring Loops（会话内定时循环）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>两模式：固定间隔（「/loop 5m ...」，精确执行）与自适应节奏（省略间隔，Agent 按状态自决）</li><li>最佳实践：短间隔 + 次数限制；条件停止优于手动停止；自适应适合不确定时长任务（如迁移）</li></ul></div>3
+<p>两模式：<strong>固定间隔</strong>（<code>/loop 5m ...</code>，精确执行）与<strong>自适应节奏</strong>（省略间隔，Agent 按状态自决）。停止条件：<code>LOOP_COMPLETE</code> 标记 / <code>--times N</code> / <code>--until &lt;证据条件&gt;</code> / <code>/loop stop</code> / <code>loops.max_ticks</code>（<strong>默认 100 次</strong>）。最佳实践：短间隔 + 次数限制；条件停止优于手动停止；自适应适合不确定时长任务（如迁移）。</p>
+<h3 id="六moa-多模型协作专家委员会">六、MoA 多模型协作（专家委员会）</h3>3
+<p>多个<strong>参考模型</strong>先独立分析 → <strong>聚合模型</strong>综合输出。预设：<code>coding</code>（2 参考 + 1 聚合：mimo-v2.6-pro + deepseek-v4-pro / 聚合 mimo-v2.6-pro）；<code>reasoning</code>（3 参考 + 1 聚合，加 qwen3.8-max）。<code>/moa &lt;问题&gt;</code> 一次性使用。<strong>成本警告：MoA 的 token 消耗是单模型的 N 倍（N=参考模型数）</strong>——复杂决策（架构/选型/安全）才用，简单任务用单模型。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">七、Holographic 高级检索（本地 SQLite 记忆引擎）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>三层检索：「FTS5 全文 → HRR 向量 → 信任评分校验」；9 项操作 add/search/probe/related/reason/contradict/update/remove/list</li><li>信任机制：点赞 +0.05、踩 -0.10、长期未访问自动衰减</li><li>动态路由：「trust > 0.8 → 执行层」；「> 0.5 → 规划层」；「else → 探索层」</li></ul></div>3
+<p>三层检索：<code>FTS5 全文 → HRR 向量 → 信任评分校验</code>；9 项操作 add/search/probe/related/reason/contradict/update/remove/list。<strong>信任机制</strong>：点赞 <strong>+0.05</strong>、踩 <strong>-0.10</strong>、长期未访问自动衰减。<strong>动态路由</strong>：<code>trust &gt; 0.8 → 执行层</code>；<code>&gt; 0.5 → 规划层</code>；<code>else → 探索层</code>。记忆分层：Hermes=架构决策/选型、DSH=任务流程、Claude=代码模式、Codex=脚本模板、OpenClaw=交互/多模态。<strong>只有 Hermes 支持 holographic</strong>。</p>
+<h3 id="八自进化机制curator">八、自进化机制（curator）</h3>3
+<p>技能沉淀触发条件：同类任务出现 <strong>3 次以上</strong> / 解决非平凡问题（耗时 &gt; 10 分钟）/ 发现通用避坑方法 / 用户主动要求"记住"。<strong>自动维护</strong>：30 天未使用→标 stale；90 天未使用→归档 <code>.archive/</code>；LLM 合并建议（opt-in）。Curator 配置：<code>interval_hours: 168</code>（7 天）、<code>stale_after_days: 30</code>、<code>archive_after_days: 90</code>、<code>consolidate: false</code>。记忆同步：会话结束触发 提取事实 → 分类存储 → 同步到 <code>~/shared-skills</code>；手动 <code>~/shared-skills/sync-memory.sh -a</code>。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">九、团队行为纪律（agent-team-conventions · 4 Agent 共享）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 每次沟通/跑完项目后必须删除过程垃圾：临时脚本（「/tmp/*.py」）、测试产物、备份残留、无价值中间产物；任务收尾立即清，不留到下次</li><li>2. 节约 Token 准则：优先结构化记忆不重复解释；复用技能不重复造轮子；长日志落盘只回传结论/摘要；结论先行；一次性批量执行；长会话定期归档</li><li>区分：⚠️垃圾（临时脚本/测试副产品/诊断中间文件/无用途备份）vs ✅保留（正式成果/记忆/技能/配置/有价值日志）</li></ul></div>3
+<ol>
+<li><strong>每次沟通/跑完项目后必须删除过程垃圾</strong>：临时脚本（<code>/tmp/*.py</code>）、测试产物、备份残留、无价值中间产物；任务收尾立即清，不留到下次。区分：⚠️垃圾（临时脚本/测试副产品/诊断中间文件/无用途备份）vs ✅保留（正式成果/记忆/技能/配置/有价值日志）。<strong>有疑问先列清单确认再删</strong>。</li>
+<li><strong>节约 Token 准则</strong>：优先结构化记忆不重复解释；复用技能不重复造轮子；长日志落盘只回传结论/摘要；结论先行；一次性批量执行；长会话定期归档。</li>
+<li><strong>配置类任务铁律（2026-09-18 复盘）</strong>：配置完<strong>必须立即验证</strong>（调用工具/API/端口测试）；禁止"配置存在=功能可用"；验证阶段不深入分析（先直接测，失败再查日志）；验证失败优先级 重启→重配→查日志→分析代码；单个验证 ≤ 2 次 tool call，超 3 次修复仍失败才进深入分析。</li>
+</ol>
+<h2 id="来源">来源</h2>2
+<ul>
+<li><code>WSL:~/shared-skills/five-agent-advanced-playbook.md</code>（高阶玩法手册 v1.0，2026-09-18）</li>
+<li><code>WSL:~/shared-skills/multi-agent-collaboration-v2.md</code>（并行调度引擎 v2）</li>
+<li><code>WSL:~/shared-skills/agent-team-conventions.md</code>（垃圾清理 + 节约 Token + 配置类铁律）</li>
+<li><code>WSL:~/shared-skills/agent-shared-memory.md</code>（六条核心执行原则 + 派单必带用户偏好）</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">相关术语</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Orchestrator-Walker 模式、A2A / MCP：ontology/术语表-Agent框架.md</li><li>Budget-Tiered Routing、Quality Gating：ontology/Agent记忆术语表.md</li></ul></div>2
+<ul>
+<li>Orchestrator-Walker 模式、A2A / MCP：ontology/术语表-Agent框架.md</li>
+<li>Budget-Tiered Routing、Quality Gating：ontology/Agent记忆术语表.md</li>
+</ul></div></details></div></body></html>

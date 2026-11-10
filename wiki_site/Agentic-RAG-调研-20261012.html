@@ -1,0 +1,88 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agentic-RAG-调研-20261012</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="index.html">🏠 总入口</a><a href="graph.html">🕸 关联图谱</a><a href="ontology/index.html">📖 术语表</a><span class="cur">/ Agentic-RAG-调研-20261012</span></div><div class="wrap"><h1 id="agentic-rag-调研-20261012distilljson">Agentic-RAG-调研-20261012.distill.json</h1>
+<ul>
+<li>source_file: raw/distill/Agentic-RAG-调研-20261012.distill.json</li>
+<li>format: json</li>
+</ul>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">内容</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>base: Agentic-RAG-调研-20261012</li><li>[机制] LangChain/LangGraph已给出标准实现模板：核心是一个6节点的图结构——Agent决策→检索→文档质量评估→问题改写→生成答案→循环</li><li>关键在"Grade documents"节点：评估检索结果是否真的相关，不相关则rewrite question再检索</li></ul></div>2
+<ul>
+<li><strong>base</strong>: Agentic-RAG-调研-20261012</li>
+<li><strong>source_file</strong>: raw/sources/Agentic-RAG-调研-20261012.md</li>
+<li><strong>model</strong>: deepseek-ai/DeepSeek-V3</li>
+<li><strong>generated_at</strong>: 2026-10-21 20:24:08</li>
+<li><strong>level1_excerpts</strong>: - <strong>[机制]</strong> 从"固定管线"到"动态决策"是Agentic RAG的本质跃迁：传统RAG是"query→检索→生成"的一步到位管线；Agentic RAG让LLM在回答前自主决定"要不要检索、检索什么、检索几次、结果够不够"，检索成为tool call而非固定前置步骤。｜依据:核心结论  </li>
+<li><strong>[机制]</strong> LangChain/LangGraph已给出标准实现模板：核心是一个6节点的图结构——Agent决策→检索→文档质量评估→问题改写→生成答案→循环。关键在"Grade documents"节点：评估检索结果是否真的相关，不相关则rewrite question再检索。｜依据:核心结论  </li>
+<li><strong>[机制]</strong> Anthropic "Building Effective Agents"明确了augmented LLM = LLM + retrieval + tools + memory的基础构建块，并给出5种workflow pattern——Agentic RAG本质上是"tool use"pattern的特例。｜依据:核心结论  </li>
+<li><strong>[机制]</strong> Anthropic提出"just-in-time context loading"：agent不预计算embedding，而是维护轻量级标识符（文件路径、URL），运行时按需用tool加载数据——这是对传统pre-indexed RAG的激进替代路线。｜依据:核心结论  </li>
+<li><strong>[原则]</strong> 生产环境的核心挑战是"错误传播"：Anthropic明确指出，agent系统中一步失败会导致完全不同的执行轨迹，prototype到production的gap比传统软件大得多——这也是为什么evals是agentic系统的必要配套。｜依据:核心结论  </li>
+<li><strong>[机制]</strong> 把现有的"query→retrieve→generate"管线改为：LLM先判断"这个问题需要检索吗？"不需要检索的简单问题直接回答（减少延迟和成本）。｜依据:可落地的实操步骤  </li>
+<li><strong>[机制]</strong> 文档质量评估（Grade Documents）节点是Agentic RAG与简单tool-use的关键区别：给LLM一个prompt评估检索结果是否相关，过滤掉不相关的chunks。｜依据:可落地的实操步骤  </li>
+<li><strong>[机制]</strong> 如果grade_documents判定检索结果不相关，LLM基于原始query + "之前的检索结果不相关"改写query，重新执行retrieve→grade循环。｜依据:可落地的实操步骤  </li>
+<li><strong>[机制]</strong> 按Anthropic的routing pattern：根据query类型选择不同检索源（向量库/Web搜索/SQL数据库），Router用LLM判断query类型，分发到对应tool。｜依据:可落地的实操步骤  </li>
+<li><strong>[原则]</strong> Agentic RAG必须配套Evals监控：需要追踪LLM在每一步的选择是否合理，不仅评估最终答案质量，还要评估"检索决策是否正确"。｜依据:可落地的实操步骤  </li>
+<li><strong>[机制]</strong> 三种Agentic RAG范式对比：Tool-use RAG（通用场景）、Multi-agent RAG（复杂研究）、Just-in-time retrieval（代码库/大型文档）。｜依据:三种Agentic RAG范式对比  </li>
+<li><strong>[原则]</strong> Anthropic的核心建议："从最简单的方案开始，只在灵活性收益大于延迟和成本时才增加复杂度"——不要一上来就上multi-agent，先用单agent + tool use模式。｜依据:关键洞察  </li>
+<li><strong>[原则]</strong> LangGraph的grade_documents是实操核心：真正提升质量的是那个"评估检索结果够不够好"的判断节点。｜依据:关键洞察  </li>
+<li><strong>[原则]</strong> 成本是双刃剑：Agentic RAG减少了不必要的检索成本，但增加了LLM决策调用的token成本——对简单query直接回答的能力至关重要。｜依据:关键洞察</li>
+<li><strong>level2_summary</strong>: ```markdown<br />
+<strong>Agentic RAG的核心机制变革</strong><br />
+从固定管线转向动态决策，LLM自主决定检索必要性、内容和次数，检索变为工具调用而非固定步骤。LangGraph的6节点模板（决策→检索→评估→改写→生成→循环）是标准实现，其中文档质量评估节点是关键。</li>
+</ul>
+<p><strong>动态检索的实现路径</strong><br />
+Anthropic提出"just-in-time context loading"：运行时按需加载数据而非预计算embedding，适合大型文档场景。路由模式（Router）允许根据query类型选择不同检索源（向量库/Web/SQL），提升灵活性。</p>
+<p><strong>质量控制的必要组件</strong><br />
+文档质量评估节点（Grade Documents）是核心差异点，通过prompt让LLM过滤不相关结果。若评估不通过，系统会改写query重新检索，形成闭环反馈。这种机制显著降低错误传播风险。</p>
+<p><strong>落地原则与权衡</strong><br />
+Anthropic建议从单agent+tool use开始，避免过早引入multi-agent复杂度。需配套Evals监控每一步决策合理性，而成本控制依赖LLM对简单query的直接响应能力。LangGraph的评估节点是质量提升关键。</p>
+<pre><code>- **level3_digest**: ```markdown
+1. **Agentic RAG的核心是动态决策机制** - LLM自主控制检索流程（必要性/内容/次数），将检索从固定步骤转变为按需工具调用。  
+2. **质量评估节点是系统关键差异点** - 通过prompt实现的文档过滤和query改写闭环，能有效阻断错误传播链条。  
+3. **动态检索需要&quot;适时加载&quot;架构** - 运行时按需加载数据（而非预计算）和路由机制，是处理大规模文档的可行路径。  
+4. **落地需克制复杂度** - 单agent+工具调用起步，配合细粒度评估监控，比过早追求multi-agent更实际。  
+
+**核心问题**：如何通过动态决策架构实现更智能、高精度的RAG系统？
+</code></pre></div></details></div></body></html>

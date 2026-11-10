@@ -1,0 +1,372 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>02-秒杀抢购模块实战</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../../index.html">🏠 总入口</a><a href="../../graph.html">🕸 关联图谱</a><a href="../../ontology/index.html">📖 术语表</a><span class="cur">/ 02-秒杀抢购模块实战</span></div><div class="wrap"><h1 id="秒杀抢购模块实战">秒杀抢购模块实战</h1>
+<h2 id="why">WHY</h2>2
+<h3 id="1-背景与目标">1. 背景与目标</h3>3
+<p>云岚到家在促销时会出现几万名用户同时抢购同一件限量商品。秒杀流量具有突发、集中、持续时间短的特点，正常商品页的读写模型无法直接承受。教程采用 Spring Boot 2.7.18、Spring Cloud 2021.0.8、Spring Cloud Alibaba 2021.0.5.0、Nacos 2.2.3、RocketMQ 4.9.7、Redis 7（Redis 6 同样适用）、JDK 17，示例 API 与官方客户端保持一致，需在真实环境配置中间件后联调。</p>
+<p>秒杀的三个挑战分别是高并发读、高并发写和超卖。读请求必须尽可能在 CDN、网关和 Redis 层结束；写请求应快速完成资格校验后进入消息队列；库存扣减要保证同一件商品不会被多个线程同时成功。库存最终以数据库条件更新为事实来源，Redis 预扣只是快速闸门。系统还要面对客户端重试、消息重复、进程宕机、网络超时和支付取消，因此每一个状态都需要可重放、可补偿。</p>
+<h2 id="what">WHAT</h2>2
+<h3 id="2-分层架构">2. 分层架构</h3>3
+<pre><code class="language-mermaid">flowchart LR
+  U[用户/小程序] --&gt; CDN[CDN静态页]
+  CDN --&gt; G[Spring Cloud Gateway]
+  G --&gt; S[Sentinel限流与验证码]
+  S --&gt; API[秒杀API服务]
+  API --&gt; R[(Redis库存与资格)]
+  API --&gt; MQ[(RocketMQ 4.9.7)]
+  MQ --&gt; C[下单消费者]
+  C --&gt; DB[(MySQL订单/库存)]
+  C --&gt; O[订单服务]
+  O --&gt; MQ
+  MQ --&gt; W[超时回补/通知]
+</code></pre>
+<p>网关只做轻量的身份、签名、频率和路由检查；秒杀 API 不在同步链路写订单，而是校验商品活动时间、验证码、用户幂等标记和 Redis 库存后投递消息。消费者在一个本地数据库事务中完成唯一订单写入和条件扣减，随后删除或确认用户资格。查询接口返回排队中、成功、失败三类明确结果，避免让用户反复提交。</p>
+<h2 id="how">HOW</h2>2
+<h3 id="3-商品预热与-redis-库存">3. 商品预热与 Redis 库存</h3>3
+<p>活动开始前由定时任务把数据库库存加载到 Redis。Key 使用 <code>seckill:stock:{id}</code>，花括号是 Redis Cluster 的 hash tag，保证库存、用户资格和订单去重键可以落在同一个 slot，便于 Lua 脚本原子操作。预热应校验版本和活动时间，不能把过期活动库存重新灌入。</p>
+<pre><code class="language-java">package com.yunlan.seckill.service;
+
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+@Service
+public class StockWarmupService {
+    private final StringRedisTemplate redis;
+    private final JdbcTemplate jdbc;
+
+    public StockWarmupService(StringRedisTemplate redis, JdbcTemplate jdbc) {
+        this.redis = redis;
+        this.jdbc = jdbc;
+    }
+
+    public void warmup(long activityId) {
+        Integer stock = jdbc.queryForObject(&quot;SELECT stock FROM seckill_goods WHERE activity_id=? AND starts_at&gt;NOW()&quot;, Integer.class, activityId);
+        if (stock == null) throw new IllegalStateException(&quot;活动不存在&quot;);
+        String key = &quot;seckill:stock:{&quot; + activityId + &quot;}&quot;;
+        Boolean loaded = redis.opsForValue().setIfAbsent(key, stock.toString());
+        if (!Boolean.TRUE.equals(loaded)) throw new IllegalStateException(&quot;禁止覆盖活动中的库存&quot;);
+    }
+}
+</code></pre>
+<p>预热任务要使用分布式锁或单实例调度，写入后记录 <code>stock_warmup_version</code>。Redis 重启时通过数据库重新预热；预热失败不能开放秒杀入口。库存负数、商品不存在、活动时间不一致都应报警。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">4. Lua 原子扣减与数据库兜底</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Redis Lua 脚本同时检查库存、用户是否下单并写入资格标记，避免“先查再减”的竞态</li><li>下面脚本返回 1 表示成功，0 表示库存不足，-1 表示重复购买</li><li>所有 key 必须使用同一 hash tag</li></ul></div>3
+<p>Redis Lua 脚本同时检查库存、用户是否下单并写入资格标记，避免“先查再减”的竞态。下面脚本返回 1 表示成功，0 表示库存不足，-1 表示重复购买。所有 key 必须使用同一 hash tag。</p>
+<pre><code class="language-lua">local previous = redis.call('GET', KEYS[3])
+if previous == 'RESERVED' then return 1 end
+if previous == 'RELEASED' then return -3 end
+local stock = tonumber(redis.call('GET', KEYS[1]) or '-1')
+if stock &lt;= 0 then return 0 end
+if redis.call('EXISTS', KEYS[2]) == 1 then return -1 end
+redis.call('DECR', KEYS[1])
+redis.call('SET', KEYS[2], ARGV[1], 'EX', ARGV[2], 'NX')
+redis.call('SET', KEYS[3], 'RESERVED', 'EX', ARGV[2])
+return 1
+</code></pre>
+<p>Java 端使用 <code>DefaultRedisScript</code>，并把用户 ID、订单请求号写入资格值。若脚本返回成功但 RocketMQ 发送超时，不能直接把库存加回去：消息可能已经到达。应把请求标记为 <code>UNKNOWN</code>，由后台根据请求号查询 MQ 投递结果和数据库订单，确认未投递后才执行带幂等号的回补。</p>
+<pre><code class="language-java">package com.yunlan.seckill.service;
+
+import java.util.List;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.stereotype.Service;
+
+@Service
+public class RedisStockService {
+    private final StringRedisTemplate redis;
+    private final DefaultRedisScript&lt;Long&gt; script;
+
+    public RedisStockService(StringRedisTemplate redis) {
+        this.redis = redis;
+        this.script = new DefaultRedisScript&lt;&gt;(new ClassPathResource(&quot;lua/seckill.lua&quot;), Long.class);
+    }
+
+    public long reserve(long goodsId, long userId, String requestId) {
+        String tag = &quot;{&quot; + goodsId + &quot;}&quot;;
+        String stockKey = &quot;seckill:stock:&quot; + tag;
+        String userKey = &quot;seckill:order:&quot; + tag + &quot;:user:&quot; + userId;
+        String requestKey = &quot;seckill:request:&quot; + tag + &quot;:&quot; + requestId;
+        Long result = redis.execute(script, List.of(stockKey, userKey, requestKey), requestId, &quot;1800&quot;);
+        return result == null ? -2 : result;
+    }
+}
+</code></pre>
+<p>数据库是第二道闸门。库存表使用 <code>version</code> 乐观锁并且带 <code>stock &gt; 0</code> 条件；即使 Redis 被绕过，也不会产生负库存。订单表对 <code>(activity_id,user_id)</code> 建唯一索引，消费者重复执行时得到唯一键冲突即可查询已存在订单。</p>
+<pre><code class="language-sql">CREATE TABLE seckill_order (
+  id BIGINT PRIMARY KEY,
+  request_id VARCHAR(64) NOT NULL UNIQUE,
+  activity_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  status VARCHAR(20) NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  UNIQUE KEY uk_activity_user(activity_id, user_id)
+);
+
+UPDATE seckill_goods
+SET stock = stock - 1, version = version + 1
+WHERE activity_id = ? AND stock &gt; 0 AND version = ?;
+</code></pre>
+<h3 id="5-网关sentinel-与防刷">5. 网关、Sentinel 与防刷</h3>3
+<p>网关按 IP、用户和活动维度限流，Sentinel 在 API 服务内再做并发保护。验证码只在风险评分高或短时间失败次数过多时展示，验证码答案存 Redis 并设置短 TTL，校验成功立即删除。秒杀地址在活动开始前不下发，地址中使用签名和过期时间，服务端仍必须重新验证，不可把隐藏地址当作安全边界。</p>
+<pre><code class="language-java">package com.yunlan.gateway.filter;
+
+import java.nio.charset.StandardCharsets;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.core.Ordered;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
+
+@Component
+public class SeckillAuthFilter implements GlobalFilter, Ordered {
+    private final TokenService tokenService;
+    public SeckillAuthFilter(TokenService tokenService) { this.tokenService = tokenService; }
+
+    @Override public Mono&lt;Void&gt; filter(ServerWebExchange exchange, org.springframework.cloud.gateway.filter.GatewayFilterChain chain) {
+        String token = exchange.getRequest().getHeaders().getFirst(&quot;X-Token&quot;);
+        if (token == null || !tokenService.valid(token)) {
+            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+            byte[] body = &quot;未授权&quot;.getBytes(StandardCharsets.UTF_8);
+            return exchange.getResponse().writeWith(Mono.just(exchange.getResponse().bufferFactory().wrap(body)));
+        }
+        return chain.filter(exchange);
+    }
+    @Override public int getOrder() { return -100; }
+}
+</code></pre>
+<pre><code class="language-java">package com.yunlan.seckill.web;
+
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping(&quot;/seckill&quot;)
+public class SeckillController {
+    private final SeckillService service;
+    public SeckillController(SeckillService service) { this.service = service; }
+
+    @PostMapping(&quot;/{goodsId}&quot;)
+    @SentinelResource(value = &quot;seckill:submit&quot;, blockHandler = &quot;blocked&quot;)
+    public SubmitResult submit(@PathVariable long goodsId, @RequestHeader(&quot;X-User-Id&quot;) long userId,
+                               @RequestHeader(&quot;X-Captcha&quot;) String captcha) {
+        return service.submit(goodsId, userId, captcha);
+    }
+    public SubmitResult blocked(long goodsId, long userId, String captcha, BlockException ex) {
+        return SubmitResult.limited();
+    }
+}
+</code></pre>
+<p>生产环境把 Sentinel 规则持久化到 Nacos，避免实例重启丢失；流控可选快速失败或匀速排队，熔断状态按 closed、open、half-open 转换。网关限流是第一层，Sentinel 是第二层，业务中的 SETNX 仍是“一人一单”的最终约束。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6. 异步下单与 RocketMQ</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>请求通过校验后发送 「SeckillMessage」，消息键使用 requestId，便于查找</li><li>生产者发送失败时保留 UNKNOWN 记录并重试，不能依据客户端异常直接回补</li><li>消费者必须在同一个数据库事务里执行幂等检查、条件扣库存、写订单和更新请求状态</li></ul></div>3
+<p>请求通过校验后发送 <code>SeckillMessage</code>，消息键使用 requestId，便于查找。生产者发送失败时保留 UNKNOWN 记录并重试，不能依据客户端异常直接回补。消费者必须在同一个数据库事务里执行幂等检查、条件扣库存、写订单和更新请求状态。</p>
+<pre><code class="language-java">package com.yunlan.seckill.mq;
+
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.stereotype.Component;
+
+@Component
+public class SeckillProducer {
+    private final RocketMQTemplate template;
+    public SeckillProducer(RocketMQTemplate template) { this.template = template; }
+    public void send(SeckillMessage message) {
+        template.syncSend(&quot;SECKILL_ORDER&quot;, MessageBuilder.withPayload(message)
+                .setHeader(&quot;KEYS&quot;, message.requestId()).build(), 3000);
+    }
+}
+</code></pre>
+<pre><code class="language-java">package com.yunlan.seckill.mq;
+
+import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
+import org.apache.rocketmq.spring.core.RocketMQListener;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+@Component
+@RocketMQMessageListener(topic = &quot;SECKILL_ORDER&quot;, consumerGroup = &quot;seckill-order-v1&quot;)
+public class SeckillConsumer implements RocketMQListener&lt;SeckillMessage&gt; {
+    private final SeckillOrderRepository orders;
+    private final SeckillGoodsRepository goods;
+    private final RequestRepository requests;
+    public SeckillConsumer(SeckillOrderRepository orders, SeckillGoodsRepository goods, RequestRepository requests) {
+        this.orders = orders; this.goods = goods; this.requests = requests;
+    }
+    @Override @Transactional
+    public void onMessage(SeckillMessage message) {
+        if (requests.isFinished(message.requestId())) return;
+        if (orders.existsByRequestId(message.requestId())) { requests.finish(message.requestId()); return; }
+        int updated = goods.decreaseIfPositive(message.goodsId());
+        if (updated == 0) { requests.fail(message.requestId(), &quot;库存不足&quot;); return; }
+        orders.insert(message.toOrder());
+        requests.finish(message.requestId());
+    }
+}
+</code></pre>
+<p>消费者异常抛出让 RocketMQ 重试；业务明确失败则落库并确认消息。重试达到阈值进入死信队列，由人工或补偿任务处理。消息体必须包含活动 ID、商品 ID、用户 ID、requestId 和创建时间，不要依赖消费者本地时间判断活动。</p>
+<h3 id="7-一人一单与状态机">7. 一人一单与状态机</h3>3
+<pre><code class="language-mermaid">sequenceDiagram
+  participant U as 用户
+  participant G as Gateway
+  participant A as 秒杀API
+  participant R as Redis Lua
+  participant M as RocketMQ
+  participant C as 消费者
+  participant D as MySQL
+  U-&gt;&gt;G: 提交签名请求+验证码
+  G-&gt;&gt;A: 身份与频率通过
+  A-&gt;&gt;R: 库存扣减/用户SETNX
+  R--&gt;&gt;A: 成功或重复
+  A-&gt;&gt;M: requestId消息
+  M-&gt;&gt;C: 投递消息(可重试)
+  C-&gt;&gt;D: 唯一订单+条件扣库存事务
+  D--&gt;&gt;C: 提交结果
+  C--&gt;&gt;U: 查询返回排队/成功/失败
+</code></pre>
+<pre><code class="language-mermaid">stateDiagram-v2
+  [*] --&gt; INIT
+  INIT --&gt; RESERVED: Redis预扣成功
+  RESERVED --&gt; QUEUED: 消息确认
+  RESERVED --&gt; UNKNOWN: 发送超时
+  UNKNOWN --&gt; QUEUED: 查询确认已投递
+  UNKNOWN --&gt; RELEASED: 确认未投递并补偿
+  QUEUED --&gt; CREATED: 数据库事务成功
+  QUEUED --&gt; FAILED: 库存不足/参数失败
+  CREATED --&gt; PAID: 支付成功
+  CREATED --&gt; CANCELED: 超时未支付
+  CANCELED --&gt; STOCK_RETURNED: 回补事务成功
+  FAILED --&gt; STOCK_RETURNED: Redis与数据库对账后回补
+</code></pre>
+<p>SETNX 的过期时间不能覆盖新状态。补偿程序更新资格时必须使用 Lua 比较 requestId：只有值仍等于原请求号且订单不存在时才删除并回补；如果用户已经成功下单或新请求占用该键，补偿必须放弃删除并报警。数据库唯一索引是最终的一人一单约束，Redis 标记只是削峰。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">8. 回补、幂等与故障处理</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>回补记录表保存 「compensation_id」 唯一键、requestId、数量和执行结果</li><li>正确做法是先持久化请求状态，再尝试发送；发送超时进入 UNKNOWN，由定时任务查询生产者回执、消费记录和订单事实</li><li>消费者、回补任务和对账任务都使用同一幂等表，重试不会重复增加库存</li></ul></div>3
+<p>回补记录表保存 <code>compensation_id</code> 唯一键、requestId、数量和执行结果。消费者、回补任务和对账任务都使用同一幂等表，重试不会重复增加库存。订单取消先更新订单状态，再在事务消息或本地消息表中记录回补事件；库存服务消费回补事件时执行 <code>UPDATE ... SET stock=stock+1 WHERE ...</code>，并校验当前已扣数量，防止重复回补。</p>
+<p>Redis 预扣与 MQ 发送是跨系统双写，无法用一个本地事务覆盖。正确做法是先持久化请求状态，再尝试发送；发送超时进入 UNKNOWN，由定时任务查询生产者回执、消费记录和订单事实。只有三方都证明未成功，才执行带补偿号的回滚。Redis 宕机时关闭入口或降级为排队，不可绕过库存闸门直接写数据库造成流量击穿。</p>
+<h4 id="81-请求事实表与补偿任务">8.1 请求事实表与补偿任务</h4>
+<p>建议增加 <code>seckill_request</code> 事实表：<code>request_id</code> 是主键，状态包含 <code>INIT</code>、<code>RESERVED</code>、<code>SENT</code>、<code>UNKNOWN</code>、<code>SUCCESS</code>、<code>FAILED</code>、<code>RELEASED</code>。API 在调用 Lua 前先插入 INIT；Lua 成功后更新 RESERVED；RocketMQ 返回发送结果后更新 SENT。任何网络异常都只写 UNKNOWN。补偿任务以数据库分页读取 UNKNOWN，先查询订单表和消费者幂等表，再查询 RocketMQ 消息轨迹。查询到订单则置 SUCCESS，查询到已消费失败则置 FAILED，确认没有投递记录且超过安全等待窗口才执行 RELEASED。</p>
+<p>补偿执行需要数据库行锁和 Redis Lua 两层保护。Lua 应比较 requestKey 当前值是否仍为 RESERVED，并用 <code>SET ... NX</code> 写入补偿标记；数据库更新使用 <code>WHERE status='UNKNOWN'</code>，这样多台补偿实例同时运行也只有一个成功。补偿成功后写一条 <code>stock_compensation</code> 唯一记录，再把 Redis 库存加一。若加库存超时，保持补偿处理中，下一次根据唯一记录重试，不能因为客户端超时再次加一。</p>
+<h4 id="82-消费幂等的事务边界">8.2 消费幂等的事务边界</h4>
+<p>消费者事务顺序建议为：锁定请求事实行；检查订单请求号和活动用户唯一索引；条件扣减数据库库存；写订单；更新请求状态；提交事务。任意一步抛出异常都回滚，消息由 RocketMQ 重试。已存在订单时不要再次扣库存，只把请求标为 SUCCESS 并确认消息。唯一索引冲突是可预期的幂等结果，不应当被当作系统故障反复重试。</p>
+<pre><code class="language-mermaid">flowchart TD
+  A[UNKNOWN请求] --&gt; B{订单或消费记录存在?}
+  B -- 是 --&gt; C[标记SUCCESS/FAILED]
+  B -- 否 --&gt; D{消息轨迹已确认投递?}
+  D -- 是 --&gt; E[等待消费者重试]
+  D -- 否 --&gt; F{超过安全等待窗口?}
+  F -- 否 --&gt; A
+  F -- 是 --&gt; G[Redis Lua校验RESERVED]
+  G -- 仍保留 --&gt; H[幂等回补+标记RELEASED]
+  G -- 已变化 --&gt; I[放弃删除并报警]
+</code></pre>
+<h4 id="83-性能与容量估算">8.3 性能与容量估算</h4>
+<p>容量评估应分别测网关、Redis、MQ 和数据库。假设活动持续十秒、峰值十万请求每秒，入口限流可只允许每秒五千个请求进入业务层，其余快速返回排队或稍后重试。Redis Lua 每次只访问三个同 slot key，延迟通常低于单次网络往返；必须监控脚本耗时、命中率和 rejected_calls。RocketMQ 消费并发根据数据库写入能力设置，不能盲目增加线程，否则死锁和重试会放大流量。数据库库存更新要按活动 ID 建索引，订单唯一索引字段顺序与查询条件一致。</p>
+<p>压测脚本应生成固定用户和随机用户两组数据：固定用户验证一人一单，随机用户验证库存守恒。故障注入包括杀死消费者、断开 Redis、让生产者发送超时、制造数据库死锁、重复投递同一 requestId。验收指标不只是吞吐和平均延迟，还应检查成功订单数不超过初始库存、回补数量与取消数量一致、UNKNOWN 最终收敛为成功或释放、死信队列有人工处理路径。</p>
+<h4 id="84-三类挑战的工程拆解">8.4 三类挑战的工程拆解</h4>
+<p>高并发读首先要区分静态内容和动态内容。商品图片、活动规则和倒计时可以放在 CDN，并通过版本化文件名长期缓存；库存、用户资格和订单状态属于动态数据，只能从 Redis 或订单查询接口读取。倒计时由服务端返回开始和结束时间，客户端本地时钟只负责展示，提交时必须由服务端再次校验。热点商品详情可以使用本地短缓存，但缓存失效必须加入随机抖动，避免同一时刻大量实例同时回源数据库。</p>
+<p>高并发写不能让每个请求都获得数据库连接。网关先过滤无效 token、过期签名和明显的机器人流量，业务 API 再执行验证码、活动状态和 Lua 脚本。脚本失败应返回明确错误码，客户端只允许有限次重试；对同一个 requestId 的重试必须返回原结果。进入 RocketMQ 后，消费者并发量由数据库连接池和锁等待共同决定，应该通过监控逐步调高，而不是直接设置为机器核数的几十倍。</p>
+<p>超卖问题经常来自多个“看起来安全”的步骤组合，例如先在 Redis 查询库存、再调用数据库扣减，或者数据库扣减成功后网络断开导致消费者重试。解决方法是把条件更新、唯一索引和请求状态放在一个数据库事务里，把 Redis 作为流量闸门而不是最终事实。库存台账还应记录初始数量、成功扣减、取消回补和人工调整四类变更，日终对账以台账和订单状态交叉计算，发现差异立即冻结活动。</p>
+<h4 id="85-风控与防刷策略">8.5 风控与防刷策略</h4>
+<p>验证码服务要绑定用户、活动、随机挑战和过期时间，答案只存哈希值，不把明文写入日志。验证通过后删除挑战，重复提交返回验证码已使用。隐藏地址应当包含活动 ID、用户 ID、签名和过期时间，签名算法使用服务端密钥并采用常量时间比较；密钥轮换时保留短暂的旧密钥窗口。接口还可以根据设备指纹、访问速度、失败次数和账号注册时间计算风险等级，高风险用户进入更严格的队列或人工审核。</p>
+<p>防刷系统本身也要防止误伤。企业网络出口可能共享一个 IP，单纯 IP 限流会把正常用户全部挡住，因此应采用 IP、账号、设备和活动四个维度的组合规则。限流响应不应泄漏真实库存，只返回“当前繁忙”或“资格已结束”。所有拒绝原因使用内部枚举映射为统一外部消息，日志中记录 requestId、规则版本和决策耗时，便于追踪而不会暴露用户隐私。</p>
+<h4 id="86-排障清单">8.6 排障清单</h4>
+<p>出现库存为负时，先冻结入口并保存 Redis、数据库和消息轨迹快照，再检查是否存在绕过 Lua 的写路径、数据库条件更新是否缺少 <code>stock&gt;0</code>、回补任务是否重复执行。出现库存长期大于初始值时，重点核对取消订单、补偿记录和人工脚本是否有唯一约束。出现订单重复时，检查消费组是否变更、订单请求号是否在所有消息中保持不变，以及唯一索引是否被错误删除。</p>
+<p>如果大量请求停留在 UNKNOWN，先区分生产者网络超时和 NameServer 不可达，再查询 MQ 轨迹与数据库事实；不要批量删除 Redis 资格。若消费者反复重试，查看数据库死锁、锁等待和序列化异常，修复后让原消息继续重试。若 Sentinel 规则未生效，确认规则数据源和 Nacos namespace、group、dataId 是否一致，并检查应用启动时是否成功拉取规则。每次补偿和人工处理都应留下操作者、原因、前后数量和审批编号，方便审计与回滚。</p>
+<p>常见踩坑包括：把库存放在 JVM 导致多实例不一致；Lua key 不在同一 slot 导致 Cluster 报 CROSSSLOT；只使用 IP 限流导致代理下用户误伤；消费者捕获异常后仍确认消息；回补没有唯一键造成库存膨胀；查询接口暴露真实库存引发恶意试探。压测应覆盖库存为 0、重复请求、消息重复、发送超时、消费者宕机、Redis 重启和数据库死锁，检查订单唯一性、库存守恒和状态闭合。</p>
+<h3 id="9-配置示例">9. 配置示例</h3>3
+<pre><code class="language-yaml">spring:
+  application:
+    name: seckill-service
+  data:
+    redis:
+      host: redis.example
+      port: 6379
+      timeout: 2s
+rocketmq:
+  name-server: rocketmq-namesrv:9876
+  producer:
+    group: seckill-producer
+    send-message-timeout: 3000
+server:
+  shutdown: graceful
+</code></pre>
+<pre><code class="language-java">package com.yunlan.seckill.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
+
+@Configuration
+public class RedisConfig {
+    @Bean
+    RedisTemplate&lt;String, String&gt; redisTemplate(RedisConnectionFactory factory) {
+        RedisTemplate&lt;String, String&gt; t = new RedisTemplate&lt;&gt;();
+        t.setConnectionFactory(factory);
+        t.setKeySerializer(new StringRedisSerializer());
+        t.setValueSerializer(new StringRedisSerializer());
+        return t;
+    }
+}
+</code></pre>
+<p>上述代码展示真实 Spring Data Redis、RocketMQ Spring 和 Sentinel API 的组合方式，示例未实际连接中间件联调。部署时应补齐 TLS、密码、ACL、监控和告警，压测数据不能直接当作生产容量结论。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">小结</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>秒杀系统以 Redis Lua 快速挡住大多数请求，以数据库条件更新和唯一索引守住事实边界，以 RocketMQ 把突发写入变成可控消费</li><li>Gateway、Sentinel、验证码和隐藏地址降低攻击面；UNKNOWN 状态、幂等表、死信队列和回补记录保证异常可恢复</li><li>最终验收应验证库存守恒、每个用户至多一单、消息可重放、状态机无悬挂，并对 Redis、MQ、数据库分别做故障演练</li></ul></div>3
+<p>秒杀系统以 Redis Lua 快速挡住大多数请求，以数据库条件更新和唯一索引守住事实边界，以 RocketMQ 把突发写入变成可控消费。Gateway、Sentinel、验证码和隐藏地址降低攻击面；UNKNOWN 状态、幂等表、死信队列和回补记录保证异常可恢复。最终验收应验证库存守恒、每个用户至多一单、消息可重放、状态机无悬挂，并对 Redis、MQ、数据库分别做故障演练。</p>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] <strong>课程内容落点</strong>：<a href="../../../raw/sources/%E8%AF%BE%E7%A8%8B%E5%A4%A7%E7%BA%B2-%E9%BB%91%E9%A9%AC-AI%E5%BA%94%E7%94%A8%E6%99%BA%E8%83%BD%E4%BD%93v6-20261026.md">黑马 AI 应用智能体课程项目大纲</a>；<code>raw/courseware/</code> 未检索到对应 Java 微服务原始课件，故不虚构课件路径。</li>
+<li>[业1] <strong>业内官方</strong>：以下 Redis、RocketMQ 与 Sentinel 官方文档，落在 Lua、Cluster hash tag、消息重试和限流规则。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">官方参考</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<ul>
+<li>Spring Data Redis API：https://docs.spring.io/spring-data/redis/docs/2.7.x/reference/html/</li>
+<li>RocketMQ Spring：https://github.com/apache/rocketmq-spring</li>
+<li>RocketMQ 事务与重试：https://rocketmq.apache.org/docs/4.x/producer/04transactionmessage/</li>
+<li>Sentinel 注解与规则：https://sentinelguard.io/zh-cn/docs/annotation-support.html</li>
+<li>Redis Lua 脚本：https://redis.io/docs/latest/develop/interact/programmability/eval-intro/</li>
+<li>Redis Cluster hash tags：https://redis.io/docs/latest/operate/oss_and_stack/reference/cluster-spec/</li>
+</ul></div></details></div></body></html>

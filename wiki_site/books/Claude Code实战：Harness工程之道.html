@@ -1,0 +1,173 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Claude Code实战：Harness工程之道</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ Claude Code实战：Harness工程之道</span></div><div class="wrap"><h1 id="书章节重点-claude-code实战harness工程之道">书章节重点 · Claude Code实战：Harness工程之道</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书从软件工程视角系统解析Claude Code的四层架构与核心机制（记忆、Skills、子智能体、Hooks、MCP），揭示“Harness比模型更重要”的工程哲学</li><li>其价值在于将AI编程工具从被动交互升级为可编程、可维护、可集成的Agent工作流，覆盖个人开发到企业级部署全链路</li><li>全书的主线不是介绍某个命令，而是回答一个工程问题：如何把模型的生成能力嵌入稳定的上下文、工具、权限、验证和协作边界，使一次偶然的好回答变成可重复的交付能力</li></ul></div>2
+<p>本书从软件工程视角系统解析Claude Code的四层架构与核心机制（记忆、Skills、子智能体、Hooks、MCP），揭示“Harness比模型更重要”的工程哲学。其价值在于将AI编程工具从被动交互升级为可编程、可维护、可集成的Agent工作流，覆盖个人开发到企业级部署全链路。全书的主线不是介绍某个命令，而是回答一个工程问题：如何把模型的生成能力嵌入稳定的上下文、工具、权限、验证和协作边界，使一次偶然的好回答变成可重复的交付能力。读者可以把它理解为从单次对话走向持续软件生产的架构指南。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 登高望远：Claude Code技术架构全景</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：同一模型在不同Harness下的表现差异，远大于不同模型在同一Harness下的表现差异——工程化封装（Harness）是决定AI编程效果的关键变量</li><li>核心观点2：Claude Code本身即基于Agent SDK构建的AI Agent，终端中的读文件、写代码、执行命令本质都是SDK层面的工具调用</li><li>核心观点3：四层架构可以分别理解为记忆层、扩展层、集成层和编程层</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：同一模型在不同Harness下的表现差异，远大于不同模型在同一Harness下的表现差异——工程化封装（Harness）是决定AI编程效果的关键变量。评价模型时不能只看裸模型的回答质量，还要看它是否获得了正确的项目背景、工具权限、反馈回路和验收机制。</li>
+<li><strong>核心观点2</strong>：Claude Code本身即基于Agent SDK构建的AI Agent，终端中的读文件、写代码、执行命令本质都是SDK层面的工具调用。因而终端体验、程序化调用和自定义Agent并非三套互不相干的产品，而是同一能力在不同入口上的表现。</li>
+<li><strong>核心观点3</strong>：四层架构可以分别理解为记忆层、扩展层、集成层和编程层。记忆层提供项目规则，扩展层组织Skills、Hooks和子智能体，集成层连接外部服务，编程层则把这些能力组合成可调用的Agent。</li>
+<li><strong>核心观点4</strong>：子智能体旨在化解上下文窗口的有限性瓶颈，将多文件重构任务拆解为独立上下文单元，实现并行处理与逻辑隔离。拆分不是为了增加代理数量，而是为了让每个单元拥有清楚的输入、边界和输出责任。</li>
+<li><strong>核心观点5</strong>：Skills采用“按需加载、闲时静默”机制，由Claude根据语义上下文自动研判加载，无需用户手动触发；Commands已并入Skills体系，成为“任务型Skill”。这体现了常驻索引与深度知识分离的思想。</li>
+<li><strong>核心观点6</strong>：优秀架构师懂得平衡——既知何时引入抽象层提升扩展性，也知何时仅需CLAUDE.md即可解决问题。抽象越多并不代表系统越先进，只有当复用、隔离或治理收益超过维护成本时才值得引入。</li>
+</ul>
+<blockquote>
+<p>同一模型在不同Harness下的表现差异，远大于不同模型在同一Harness下的表现差异。<br />
+换句话说，Harness比模型本身更为重要。</p>
+</blockquote>
+<h3 id="第2章-温故知新记忆系统工程实践">第2章 温故知新：记忆系统工程实践</h3>3
+<ul>
+<li><strong>核心观点1</strong>：CLAUDE.md的核心价值在于将散落各处的隐性知识凝聚为显性指导文档，确保Claude在编码前构建准确的项目心智模型。好的记忆应说明目录职责、运行命令、不可违反的约束和验收方式，而不是复制整本技术手册。</li>
+<li><strong>核心观点2</strong>：记忆规则应遵循“可删除性检验”——若删去某条规则后Claude仍能做出正确行为，则这条规则不该出现在CLAUDE.md中。该检验能够抑制文件无限膨胀，把上下文预算留给真正影响决策的约束。</li>
+<li><strong>核心观点3</strong>：记忆系统是AI从“一次性对话”走向“持续协作”的基础设施，解决的是项目上下文跨会话丢失的问题。它的作用不是替模型保存所有历史，而是为每次任务提供稳定的起点。</li>
+<li><strong>核心观点4</strong>：五层记忆体系强调作用域和优先级：全局层适合个人习惯，项目层适合仓库规范，目录层适合局部技术约束，任务层适合本次目标，运行时上下文则承载临时事实。层级越具体，内容越接近当前动作；冲突时应让更具体、更新鲜的规则获得优先处理。</li>
+<li><strong>核心观点5</strong>：记忆文档要写成可执行契约，使用“必须、禁止、完成条件”等明确语言，并配合命令、示例和边界。对React、Node.js、Python等不同项目，应分别描述启动、测试、格式化、依赖和目录规则，避免一份泛化规范覆盖所有技术栈。</li>
+</ul>
+<blockquote>
+<p>如果删去某条规则后，Claude依然能做出正确的行为，那么这条规则不该出现在CLAUDE.md中。</p>
+</blockquote>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 授人以渔：Skills工程实践</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：CLAUDE.md与Skills构成知识的两个维度——前者是常驻的项目心智模型，后者是按需投放的技能知识</li><li>核心观点2：Skills解决的是知识的按需投放问题，通过语义匹配自动加载，避免无关知识占用上下文</li><li>核心观点3：渐进式披露的第一层级是所有Skill的description以常驻方式注入上下文，实现“轻量索引+深度加载”的分层策略</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：CLAUDE.md与Skills构成知识的两个维度——前者是常驻的项目心智模型，后者是按需投放的技能知识。前者回答“这个仓库怎样工作”，后者回答“遇到某类任务应该怎样做”。</li>
+<li><strong>核心观点2</strong>：Skills解决的是知识的按需投放问题，通过语义匹配自动加载，避免无关知识占用上下文。description是路由器，不只是宣传文字；它应包含触发场景、对象和动作，使正确任务能命中而相近任务不过度触发。</li>
+<li><strong>核心观点3</strong>：渐进式披露的第一层级是所有Skill的description以常驻方式注入上下文，实现“轻量索引+深度加载”的分层策略。只有任务真正相关时才继续读取SKILL.md及其references，因而能在知识丰富和上下文节约之间取得平衡。</li>
+<li><strong>核心观点4</strong>：一个Skill通常包含身份元数据、正文路由说明和可选的脚本、模板、参考资料。正文不应堆满百科内容，而应告诉Agent下一步读什么、如何判断适用、怎样执行和怎样验收。</li>
+<li><strong>核心观点5</strong>：allowed-tools把知识约束为行动边界，最小权限能减少误用和副作用；$ARGUMENTS、位置参数与动态上下文注入则让同一Skill适配不同项目。参考型Skill偏重指导，任务型Skill偏重完成动作，复合型Skill则把两者按阶段组合。</li>
+<li><strong>核心观点6</strong>：Skills必须通过测试与迭代治理欠触发和过触发。测试应覆盖明确命中、相邻任务不命中、缺少参数时能否安全停手，以及执行失败时是否给出可恢复信号。</li>
+</ul>
+<blockquote>
+<p>准确地说，Skills解决的是知识的按需投放问题。</p>
+</blockquote>
+<h3 id="第4章-分而治之子智能体与任务委派的艺术">第4章 分而治之：子智能体与任务委派的艺术</h3>3
+<ul>
+<li><strong>核心观点1</strong>：上下文窗口的有限性是Agent架构的核心瓶颈，子智能体通过任务拆解与委派化解上下文溢出。主智能体保留全局目标，子智能体处理局部事实，最后由主流程汇总和验收。</li>
+<li><strong>核心观点2</strong>：优秀的架构原则具有跨领域普适性——分解复杂性、隔离故障、高效协作，与微服务、分布式计算的设计思想一脉相承。将涉及6个文件的重构任务拆解为6个独立上下文单元，实现并行处理与逻辑隔离，是分而治之的典型实践。拆解时应按单一职责划分，而不是简单按文件数量平均切片；共享接口和依赖关系必须写进任务契约。</li>
+<li><strong>核心观点3</strong>：子智能体可分为只读观察者、执行型处理器、并行专家、流水线环节和团队协作单元。只读模式适合盘点与审查，执行模式适合高噪声修改，流水线模式适合“分析—实现—验证”的串行链路。</li>
+<li><strong>核心观点4</strong>：子智能体与Skills存在两种组合方向：子智能体预加载Skill，或由Skill派生子智能体。前者适合固定岗位，后者适合按任务动态生成能力单元。无论哪种方式，都必须定义输入、允许工具、输出格式和失败处理。</li>
+<li><strong>核心观点5</strong>：Token经济学要求把上下文边界当作资源管理问题。委派能减少主上下文噪声，但创建、传递和汇总也有成本；任务过小会产生编排开销，任务过大又失去隔离收益。</li>
+</ul>
+<blockquote>
+<p>子智能体旨在解决一个更深层次的瓶颈：上下文窗口的有限性。<br />
+子智能体：化解上下文溢出，将涉及6个文件重构任务拆解为6个独立的上下文单元，实现并行处理与逻辑隔离。<br />
+优秀的架构原则具有跨领域的普适性。无论是设计微服务系统、分布式计算框架，还是构建AI Agent架构，开发者面临的根本挑战始终如一——如何分解复杂性、如何隔离故障，以及如何实现高效协作。</p>
+</blockquote>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 防微杜渐：Hooks事件驱动自动化</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：Hooks在Claude扩展体系中承担“防微杜渐”的守卫角色，可在关键节点插入校验、拦截或增强逻辑</li><li>Hooks的本质是在特定事件发生时自动执行预设逻辑，将被动交互转化为事件驱动的自动化流程</li><li>核心观点2：事件驱动模式使AI工作流具备可预测性和可控性，是工程化落地的关键机制</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：Hooks在Claude扩展体系中承担“防微杜渐”的守卫角色，可在关键节点插入校验、拦截或增强逻辑。Hooks的本质是在特定事件发生时自动执行预设逻辑，将被动交互转化为事件驱动的自动化流程。它把安全、审计、格式化和质量检查放到系统边界，而不是依赖模型每次自觉记住。</li>
+<li><strong>核心观点2</strong>：事件驱动模式使AI工作流具备可预测性和可控性，是工程化落地的关键机制。会话事件、工具调用事件、子智能体事件和完成事件构成生命周期。PreToolUse适合在行动前阻止危险操作，PostToolUse适合记录和修复，Stop适合在任务结束时做质量门控。</li>
+<li><strong>核心观点3</strong>：command、prompt和agent三类处理器形成确定性逐步降低的阶梯。命令适合稳定规则，prompt适合一次判断，agent适合需要多轮观察和验证的复杂检查，选择时要以风险和可解释性为依据。</li>
+<li><strong>核心观点4</strong>：Hook输出协议不仅能允许或拒绝工具，还能向Claude返回结构化反馈。把失败原因、修复建议和下一步动作写清楚，才能形成真正的反馈循环，而不是只让流程静默中断。</li>
+<li><strong>核心观点5</strong>：安全Hook应覆盖危险命令拦截、敏感文件保护和全量操作审计；质量Hook可覆盖自动格式化、Lint反馈和测试门控。异步Hook适合不阻塞主流程的记录工作，但不能把关键安全判断放到无法及时返回的后台任务中。</li>
+<li><strong>核心观点6</strong>：调试Hooks要结合环境变量、事件输入和实际日志，逐个确认触发条件、处理器返回值和退出码。常见问题不是逻辑本身，而是配置作用域、路径、权限或事件名称不匹配。</li>
+</ul>
+<blockquote>
+<p>其本质皆遵循统一模式：在特定事件发生时，自动执行预设逻辑。</p>
+</blockquote>
+<h3 id="第6章-海纳百川mcp">第6章 海纳百川：MCP</h3>3
+<ul>
+<li><strong>核心观点1</strong>：MCP通过标准化协议将集成复杂度从M×N降为M+N，是工具生态互联的“通用接口”。客户端负责发现和调用，服务器负责暴露能力，双方通过统一协议降低耦合。</li>
+<li><strong>核心观点2</strong>：MCP架构包含Tools、Resources和Prompts等不同能力面。Tools偏向可执行动作，Resources偏向可读取数据，Prompts偏向可复用的交互模板，三者边界清晰才能便于权限管理。</li>
+<li><strong>核心观点3</strong>：MCP使Claude Code能够海纳百川地接入外部工具与数据源，扩展Agent的能力边界。标准化的力量在于解耦——工具提供方与消费方无需两两适配，只需各自实现协议即可互通。传输方式的选择则要结合本地进程、远程服务、网络隔离和部署稳定性。</li>
+<li><strong>核心观点4</strong>：配置不仅有CLI入口，也有.mcp.json及不同作用域。工程实践应先明确服务器来源、启动命令、环境变量、超时和日志位置，再把配置纳入版本控制或安全的部署管理。</li>
+<li><strong>核心观点5</strong>：MCP扩大了Agent能力边界，也扩大了信任边界。数据库连接、文件系统和第三方服务都应遵循最小权限、输入校验、输出裁剪和审计原则，避免工具输出无界增长吞噬上下文。</li>
+<li><strong>核心观点6</strong>：MCP与Skills的关系可以概括为“厨房与菜谱”：MCP提供可调用工具，Skills提供何时调用、如何组合和如何验收的知识。只接入服务器而没有使用规范，能力越多反而越容易失控。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 无为而治：Headless模式与CI/CD集成</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：与CI/CD集成意味着AI辅助编程从个人工具升级为团队基础设施，实现“无为而治”的自动化运转</li><li>Headless模式实现从人机交互到无人值守的关键架构演进，使Claude Code可嵌入自动化流水线</li><li>核心观点2：text、json和stream-json等输出格式分别适合人工阅读、机器消费和长任务实时监控</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：与CI/CD集成意味着AI辅助编程从个人工具升级为团队基础设施，实现“无为而治”的自动化运转。Headless模式实现从人机交互到无人值守的关键架构演进，使Claude Code可嵌入自动化流水线。它要求输入、输出和退出状态都能被程序可靠处理。</li>
+<li><strong>核心观点2</strong>：text、json和stream-json等输出格式分别适合人工阅读、机器消费和长任务实时监控。CI系统应优先使用结构化输出，并对空结果、异常退出和超时设置明确断言。</li>
+<li><strong>核心观点3</strong>：无人值守场景要求更高的确定性与安全性设计，是工程化成熟度的重要标志。成本护栏、工具权限、模型选择和结构化Prompt是无人值守执行的四个控制维度。自动化不是放开权限，而是把权限、预算、超时和并发写成可审计的配置。</li>
+<li><strong>核心观点4</strong>：Unix管道可以把Claude嵌入已有命令行工作流，GitHub Actions则可实现代码审查、参数透传和并发控制。多阶段CI应把分析、修改、测试和报告拆开，避免一次调用承担所有责任。</li>
+<li><strong>核心观点5</strong>：生产级CI需要安全管理Secrets、隔离容器、保存审计日志并限制成本；MCP服务器若进入CI，还要确认网络、凭据和工具权限与本地环境不同。</li>
+<li><strong>核心观点6</strong>：渐进式落地比一步到位更可靠：先在只读审查中验证输出，再开放有限修改，最后才考虑跨步骤会话和自动合并。每一步都应有可回滚的人工接管点。</li>
+</ul>
+<h3 id="第8章-器以载道agent-sdk智能体开发套件">第8章 器以载道：Agent SDK智能体开发套件</h3>3
+<ul>
+<li><strong>核心观点1</strong>：Agent SDK的定位是从“工具”到“组件”——Claude Code本身即其产物，开发者可基于SDK构建自定义Agent。选择SDK意味着把原本隐含在CLI中的循环、权限和会话管理显式化。</li>
+<li><strong>核心观点2</strong>：SDK将Agent能力封装为可编程接口，使工具调用、上下文管理、任务编排均可代码化控制。核心query函数负责发起任务并消费消息流；system、assistant、user和result等消息类型分别表达初始化、模型响应、工具结果和任务完成状态。理解消息流是处理长任务与错误恢复的前提。</li>
+<li><strong>核心观点3</strong>：理解SDK层是理解Claude Code一切行为的底层钥匙。ClaudeAgentOptions允许精细控制权限模式、工具匹配、模型、会话和输出格式。权限应先从最小集合开始，再根据真实失败逐项增加，而不是用全权限掩盖配置问题。</li>
+<li><strong>核心观点4</strong>：基于session_id可以延续上下文，也可以分叉会话探索不同方案。会话管理要区分可复用的事实、临时决策和敏感数据，不能把所有历史无条件带入下一次执行。</li>
+<li><strong>核心观点5</strong>：自定义工具可用装饰器定义，并通过参数模型进行校验；SDK Hooks则把执行前拦截和执行后处理程序化。四道安全防线应覆盖输入、工具、权限和结果，而不是只验证最终文本。</li>
+<li><strong>核心观点6</strong>：结构化输出通过JSON Schema把模型结果变成可验证接口，适合代码分析Web服务和自动化流水线。SDK适合需要深度编程控制的场景，Headless CLI适合快速接入已有脚本，两者应按维护成本选型。</li>
+</ul>
+<blockquote>
+<p>Claude Code本身，正是基于Agent SDK构建的一个AI Agent。你在终端中所见的一切行为——读取文件、编写代码、执行命令——本质上都是Agent SDK层面的工具调用。</p>
+</blockquote>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第9章 集腋成裘：Plugins生态</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：Plugins的定位是能力的封装与分发，将分散的Skills、Hooks、子智能体等组件打包为可复用的插件单元</li><li>核心观点2：插件的物理结构应让命令、子智能体、Hooks和MCP配置各自归位，便于安装、测试和升级</li><li>核心观点3：插件生命周期包括安装来源、日常管理、本地开发测试和存储位置</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：Plugins的定位是能力的封装与分发，将分散的Skills、Hooks、子智能体等组件打包为可复用的插件单元。plugin.json承担身份、版本和组件入口等元数据职责。</li>
+<li><strong>核心观点2</strong>：插件的物理结构应让命令、子智能体、Hooks和MCP配置各自归位，便于安装、测试和升级。清晰的命名空间能够避免多个Plugin共存时发生命令或资源冲突。</li>
+<li><strong>核心观点3</strong>：插件生命周期包括安装来源、日常管理、本地开发测试和存储位置。团队不能只关注“能否安装”，还要建立版本、兼容性、回滚和变更说明。</li>
+<li><strong>核心观点4</strong>：插件生态使个体智慧得以沉淀为制度规范，实现团队间的能力共享与标准化交付。团队能力包应把安全扫描、质量检查和发布流程固化在插件中，使个体经验变成组织级可重复机制。发布前应检查权限、脚本来源、敏感信息和文档完整性。</li>
+<li><strong>核心观点5</strong>：集腋成裘的生态思维是AI工程化从个人实践走向组织能力的关键路径。私有市场和组织级管理适合统一分发与治理，但集中化不应取消项目级边界。单一职责、渐进迭代、最小权限和文档完备是长期可维护性的基础。</li>
+</ul>
+<blockquote>
+<p>这正是将个体智慧沉淀为制度规范的工程思想精髓。</p>
+</blockquote>
+<h3 id="第10章-炉火纯青工程化实战从个人到团队">第10章 炉火纯青：工程化实战——从个人到团队</h3>3
+<ul>
+<li><strong>核心观点1</strong>：工程化实战需覆盖从个人开发习惯到团队协作规范再到企业级部署的完整链路。成本控制的核心是“让Token为你工作，而不是烧钱”——通过合理的上下文管理与组件选型优化Token消耗。应区分固定指令、可缓存内容、任务输入和工具输出，避免反复发送无关材料。</li>
+<li><strong>核心观点2</strong>：模型选择要与任务风险、复杂度和延迟目标匹配；调试时打开debug、stream-json或审计Hook，才能看见工具调用、上下文变化和失败位置，而不是只看最后一句回答。</li>
+<li><strong>核心观点3</strong>：安全准则的底线是最小权限。权限模式、工具白名单、.claudeignore、Hook扫描、MCP信任评估和API密钥生命周期共同构成纵深防御，任何单一开关都不能替代整体治理。</li>
+<li><strong>核心观点4</strong>：面对百万行代码，应使用层次化CLAUDE.md引导搜索，而不是让模型全量阅读；子智能体负责模块化上下文边界，上下文压缩负责保留决定性事实。核心目标是让模型尽快到达正确文件和正确验证命令。</li>
+<li><strong>核心观点5</strong>：高质量指令应量化目标、提供示例、明确边界并分步确认。团队共享配置要有治理规范，组织策略要能逐步推广，新人培训则应从可观察、可回滚的小任务开始。</li>
+<li><strong>核心观点6</strong>：理解原理远比记住操作步骤更具长期价值——技术细节随版本更迭，但工程思想历久弥新。SDD生态和工作流融合的重点，是把需求、设计、实现、验证和复盘连接成闭环。八种核心机制并不是孤立插件，而是共同构成从个人习惯到组织能力的协奏。</li>
+</ul>
+<blockquote>
+<p>理解原理远比记住操作步骤更具长期价值——毕竟技术细节会随版本更新而更迭，但工程思想历久弥新。</p>
+</blockquote>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">适用场景标签</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<ul>
+<li>AI编程工具深度集成</li>
+<li>Agent架构设计</li>
+<li>团队协作工作流</li>
+<li>CI/CD自动化</li>
+<li>上下文工程</li>
+</ul>
+<h2 id="一句话推荐">一句话推荐</h2>2
+<p>Harness比模型更重要。</p></div></details></div></body></html>

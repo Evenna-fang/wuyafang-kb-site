@@ -1,0 +1,366 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L9-项目实战-微服务</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../../index.html">🏠 总入口</a><a href="../../graph.html">🕸 关联图谱</a><a href="../../ontology/index.html">📖 术语表</a><span class="cur">/ L9-项目实战-微服务</span></div><div class="wrap"><h1 id="项目实战三跨行业企业级微服务系统spring-cloud-alibaba-ai-智能化升级">项目实战三：跨行业企业级微服务系统（Spring Cloud Alibaba + AI 智能化升级）</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../../raw/sources/%E8%AF%BE%E7%A8%8B%E5%A4%A7%E7%BA%B2-%E9%BB%91%E9%A9%AC-AI%E5%BA%94%E7%94%A8%E6%99%BA%E8%83%BD%E4%BD%93v6-20261026.md">课程大纲-黑马-AI应用智能体v6-20261026</a></p>
+<p><a href="../L9-%E5%85%A8%E6%A0%88%E5%B7%A5%E7%A8%8B-2026.html">← 返回 L9 主线</a> · 相关：<a href="L9-%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98-RAG%E9%97%AE%E7%AD%94.html">项目实战一·RAG 问答</a> · <a href="L9-%E9%A1%B9%E7%9B%AE%E5%AE%9E%E6%88%98-Agent%E6%99%BA%E8%83%BD%E4%BD%93.html">项目实战二·Agent 智能体</a> · <a href="../%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%9E%E6%88%98">微服务实战系列</a> · <a href="../%E5%AE%B9%E9%87%8F%E5%8E%8B%E6%B5%8B%E4%B8%8E%E6%88%90%E6%9C%AC%E6%B5%8B%E7%AE%97.html">容量压测与成本测算</a></p>
+</blockquote>
+<h2 id="why">WHY</h2>2
+<h3 id="项目价值与适用场景">项目价值与适用场景</h3>3
+<ol>
+<li><strong>支撑高并发与弹性</strong>：单体扛不住流量洪峰。微服务按域拆分、独立扩缩容，配合限流、缓存、异步削峰，才能应对秒杀/大促/早高峰。</li>
+<li><strong>故障隔离与高可用</strong>：一个服务出问题不拖垮全站；Sentinel 熔断降级、多级缓存、消息重试保证整体可用。</li>
+<li><strong>团队与迭代效率</strong>：服务边界清晰、独立部署、独立演进，多团队并行开发不互相阻塞。</li>
+<li><strong>AI 落地的天然载体</strong>：传统业务系统智能化升级（风控、智能派单、推荐、AI 客服）需要在微服务里挂 AI 服务（SpringAI / LangChain / LangGraph），这是"业务 + AI 双能力"的核心体现。</li>
+<li><strong>大厂生产标准对标</strong>：分布式事务、幂等、全链路追踪、灰度发布、容量压测——这些是面试与实际交付的硬通货。</li>
+</ol>
+<h2 id="what">WHAT</h2>2
+<h3 id="系统定义与适用边界">系统定义与适用边界</h3>3
+<p>一个<strong>生产级、分布式的微服务业务系统</strong>：把单体应用按业务域拆成独立服务（订单、运单、骑手/派单、支付…），用 <strong>Spring Cloud Alibaba</strong> 做服务治理（注册/配置/网关/限流熔断/远程调用/消息/分布式事务），并在关键业务环节<strong>注入 AI 能力</strong>（风控、智能派单、推荐、问答）。</p>
+<p>以本知识库 <strong>微服务实战系列</strong>（物流系统）为骨架，它覆盖了企业级微服务的全部硬骨头：<br />
+- <strong>架构治理</strong>：Nacos 注册/配置、Gateway 网关、Sentinel 限流熔断、OpenFeign 远程调用；<br />
+- <strong>高并发核心</strong>：秒杀抢购（Redis 库存预热 + Lua 原子扣减 + RocketMQ 异步下单 + 一人一单）；<br />
+- <strong>分布式业务</strong>：派单调度（GEO 检索 + 评分 + 分布式锁 + 条件更新）、支付（异步通知 + 验签 + 幂等 + 状态机 + Seata AT）。</p>
+<p>在黑马项目库中对应 <strong>智链云途（智能物流）/ 云岚到家（家政 O2O）/ 四方保险（保险 SAAS）/ 天机学堂（在线教育）</strong> 四选一的"AI 工程化-微服务智能体实战"阶段。换业务域即换行业，骨架通用。</p>
+<h2 id="how">HOW</h2>2
+<h3 id="实施路径">实施路径</h3>3
+<h4 id="31-需求分析">3.1 需求分析</h4>
+<p><strong>业务需求（以物流系统为例）</strong><br />
+- 订单域：下单、取消、状态流转。<br />
+- 运单域：运单创建、状态跟踪、轨迹。<br />
+- 骑手/派单域：位置上报、智能派单、接单、超时重派。<br />
+- 支付域：支付单创建、支付、退款、对账。<br />
+- （AI 升级点）登录风控、智能派单推荐、运费/路线优化、AI 客服问答。</p>
+<p><strong>功能需求（FR）</strong><br />
+- FR1 服务注册发现：各服务启动注册 Nacos，调用方按服务名发现实例。<br />
+- FR2 配置中心：Nacos Config 动态刷新配置（开关、阈值），支持多环境 namespace。<br />
+- FR3 网关：统一入口、鉴权、路由、限流、跨域、审计。<br />
+- FR4 高并发秒杀：库存预热、原子扣减、防超卖、一人一单、异步下单、削峰。<br />
+- FR5 智能派单：GEO 半径检索骑手、多维评分、抢占接单锁、条件更新、超时重派。<br />
+- FR6 支付：异步通知、验签、幂等、状态机、最终一致、分布式事务。</p>
+<p><strong>非功能需求（NFR）</strong><br />
+- NFR1 高并发：秒杀目标 QPS 万级，DB 不被打垮（缓存 + 异步 + 限流）。<br />
+- NFR2 高可用：限流降级、熔断、重试、死信兜底、幂等防重。<br />
+- NFR3 一致性：跨服务写操作幂等键 + 补偿任务；支付/扣库存最终一致。<br />
+- NFR4 可观测：traceId 全链路、结构化日志、指标告警。<br />
+- NFR5 安全：JWT/网关鉴权、防刷风控、密钥不落库。</p>
+<p><strong>领域与数据</strong>：每服务独占数据库（订单库/运单库/支付库）；Redis 存库存/缓存/GEO/分布式锁；RocketMQ 传递领域事件。</p>
+<h4 id="32-架构设计">3.2 架构设计</h4>
+<pre><code class="language-mermaid">flowchart TB
+  C[用户端/骑手端/第三方] --&gt; G[Spring Cloud Gateway&lt;br/&gt;鉴权·限流·路由·跨域]
+  G --&gt; O[订单服务]
+  G --&gt; W[运单服务]
+  G --&gt; R[骑手与派单服务]
+  G --&gt; P[支付服务]
+  G --&gt; AI[AI 服务&lt;br/&gt;SpringAI/LangChain/LangGraph]
+
+  N[(Nacos&lt;br/&gt;注册+配置)] -.注册/拉取.-&gt; O &amp; W &amp; R &amp; P
+  O --&gt; REDIS[(Redis&lt;br/&gt;库存/缓存/GEO/锁)]
+  R --&gt; REDIS
+  O --&gt; MQ[RocketMQ&lt;br/&gt;订单事件/延迟消息]
+  W --&gt; MQ
+  P --&gt; MQ
+  O --&gt; DB[(MySQL 订单库)]
+  W --&gt; DB2[(MySQL 运单库)]
+  P --&gt; DB3[(MySQL 支付库)]
+  G --&gt; S[Sentinel&lt;br/&gt;流控·熔断·降级]
+  O -.OpenFeign.-&gt; W
+  R -.OpenFeign.-&gt; W
+</code></pre>
+<p><strong>治理组件分工</strong><br />
+| 组件 | 职责 | 关键点 |<br />
+|---|---|---|<br />
+| Nacos | 注册 + 配置中心 | namespace 分环境、group 分领域；心跳续租 |<br />
+| Gateway | 统一入口 | 鉴权早于路由；限流（令牌桶）；lb:// 路由 |<br />
+| Sentinel | 流控/熔断/降级 | 阈值来自压测；热点参数；规则持久化到 Nacos |<br />
+| OpenFeign + LoadBalancer | 声明式远程调用 | 超时小于上游；重试只用于幂等 GET |<br />
+| RocketMQ | 异步解耦/削峰/延迟消息 | 消费幂等、死信、事务消息 |<br />
+| Seata AT | 分布式事务 | 下单扣库存、派单等跨服务写 |<br />
+| Redis | 热点/库存/GEO/锁 | 多级缓存、原子操作、分布式锁 |</p>
+<p><strong>关键设计决策</strong><br />
+- <strong>缓存抗并发、DB 保一致</strong>：Redis 挡住读写洪峰，DB 乐观锁 + 唯一索引兜底，绝不产生负库存/重复单。<br />
+- <strong>原子操作优先</strong>：库存扣减用 Lua 脚本"检查+扣减+标记"一步完成，避免"先查再减"竞态。<br />
+- <strong>异步削峰</strong>：下单等重操作写 RocketMQ，消费者异步处理，主链路快速返回。<br />
+- <strong>幂等贯穿</strong>：接口幂等键、消息消费幂等、支付通知幂等，数据库唯一索引做最后防线。<br />
+- <strong>锁只降竞争、不保正确</strong>：Redis 接单锁减少并发，但最终靠 DB 条件更新（<code>status='已派单' AND rider_id=?</code>）保证正确。</p>
+<h4 id="33-代码实现核心片段来自微服务实战系列">3.3 代码实现（核心片段，来自微服务实战系列）</h4>
+<p><strong>（1）Nacos 注册与配置（<code>application.yml</code> + <code>bootstrap.yml</code>）</strong></p>
+<pre><code class="language-yaml"># order-service/src/main/resources/application.yml
+spring:
+  application:
+    name: order-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: nacos.example.com:8848
+        namespace: logistics-dev        # 实际 UUID
+        group: LOGISTICS_GROUP
+      config:
+        server-addr: nacos.example.com:8848
+        namespace: logistics-dev
+        group: LOGISTICS_GROUP
+        file-extension: yaml
+</code></pre>
+<p><strong>（2）Gateway 路由 + 限流（要点）</strong></p>
+<pre><code class="language-yaml">spring:
+  cloud:
+    gateway:
+      routes:
+        - id: order-service
+          uri: lb://order-service          # 依赖 LoadBalancer
+          predicates:
+            - Path=/api/order/**
+      default-filters:
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter.replenishRate: 100   # 令牌桶
+            redis-rate-limiter.burstCapacity: 200
+</code></pre>
+<p><strong>（3）秒杀：Redis Lua 原子扣减（防超卖 + 一人一单）</strong></p>
+<pre><code class="language-lua">-- lua/seckill.lua  返回 1成功 / 0库存不足 / -1重复购买
+local previous = redis.call('GET', KEYS[3])
+if previous == 'RESERVED' then return 1 end
+if previous == 'RELEASED' then return -3 end
+local stock = tonumber(redis.call('GET', KEYS[1]) or '-1')
+if stock &lt;= 0 then return 0 end
+if redis.call('EXISTS', KEYS[2]) == 1 then return -1 end
+redis.call('DECR', KEYS[1])
+redis.call('SET', KEYS[2], ARGV[1], 'EX', ARGV[2], 'NX')
+redis.call('SET', KEYS[3], 'RESERVED', 'EX', ARGV[2])
+return 1
+</code></pre>
+<pre><code class="language-java">@Service
+public class RedisStockService {
+    private final StringRedisTemplate redis;
+    private final DefaultRedisScript&lt;Long&gt; script;
+    public RedisStockService(StringRedisTemplate redis) {
+        this.redis = redis;
+        this.script = new DefaultRedisScript&lt;&gt;(new ClassPathResource(&quot;lua/seckill.lua&quot;), Long.class);
+    }
+    public long reserve(long goodsId, long userId, String requestId) {
+        String tag = &quot;{&quot; + goodsId + &quot;}&quot;;                 // 同 hash tag 保证同槽
+        String stockKey   = &quot;seckill:stock:&quot; + tag;
+        String userKey    = &quot;seckill:order:&quot; + tag + &quot;:user:&quot; + userId;
+        String requestKey = &quot;seckill:request:&quot; + tag + &quot;:&quot; + requestId;
+        Long r = redis.execute(script, List.of(stockKey, userKey, requestKey), requestId, &quot;1800&quot;);
+        return r == null ? -2 : r;
+    }
+}
+</code></pre>
+<p><strong>DB 兜底（乐观锁 + 唯一索引）</strong></p>
+<pre><code class="language-sql">CREATE TABLE seckill_order (
+  id BIGINT PRIMARY KEY,
+  request_id VARCHAR(64) NOT NULL UNIQUE,
+  activity_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  status VARCHAR(20) NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  UNIQUE KEY uk_activity_user(activity_id, user_id)   -- 一人一单
+);
+
+UPDATE seckill_goods
+SET stock = stock - 1, version = version + 1
+WHERE activity_id = ? AND stock &gt; 0 AND version = ?;  -- 乐观锁，杜绝负库存
+</code></pre>
+<blockquote>
+<p>异步下单超时<strong>不能直接回补库存</strong>（消息可能已到达）：标记 <code>UNKNOWN</code>，后台核对 MQ 投递与 DB 订单后，才带幂等号回补。</p>
+</blockquote>
+<p><strong>（4）智能派单：GEO 检索 + 评分 + 抢占锁 + 条件更新</strong></p>
+<pre><code class="language-java">@Service
+@RequiredArgsConstructor
+public class AcceptService {
+    private final StringRedisTemplate redis;
+    private final WaybillMapper waybillMapper;
+
+    @Transactional
+    public boolean accept(long waybillId, long riderId, String requestId) {
+        String key = &quot;rider:accept:&quot; + waybillId;               // 锁只降竞争
+        Boolean locked = redis.opsForValue().setIfAbsent(key, requestId, Duration.ofSeconds(10));
+        if (!Boolean.TRUE.equals(locked)) return false;
+        int changed = waybillMapper.accept(waybillId, riderId);  // DB 条件更新保正确
+        if (changed != 1) { redis.delete(key); return false; }
+        return true;
+    }
+}
+</code></pre>
+<pre><code class="language-java">@Mapper
+public interface WaybillMapper {
+    @Update(&quot;UPDATE delivery_order SET status='已接单', updated_at=NOW() &quot; +
+            &quot;WHERE id=#{waybillId} AND rider_id=#{riderId} AND status='已派单'&quot;)
+    int accept(long waybillId, long riderId);   // 影响行数=1 才算成功
+}
+</code></pre>
+<p><strong>派单评分</strong>：先过滤（在线、位置 90s 内、未超载、无锁），再按 <code>0.5×距离分 + 0.3×负载分 + 0.2×服务分</code>（归一化到 0~1）取前 N；候选空则扩大半径或进人工池。超时用 RocketMQ 延迟消息（<code>delayLevel</code>）触发重派。</p>
+<p><strong>（5）支付幂等与最终一致</strong><br />
+- 支付单状态机：<code>待支付→支付中→成功/失败/关闭</code>，状态单向流转。<br />
+- 异步通知：验签 + 幂等（以支付单号 + 通知序号去重）+ 本地消息表。<br />
+- Seata AT：下单扣库存、派单等跨服务写纳入分布式事务；不可逆迁移走"新增字段→双写→回填→切读→删除"。</p>
+<p><strong>（6）AI 智能化升级点（业务 + AI）</strong><br />
+- <strong>登录风控</strong>：SpringAI/LangChain 做身份认证风控 + Token 刷新。<br />
+- <strong>智能派单/网点推荐</strong>：LangGraph 多节点智能体产出推荐方案。<br />
+- <strong>AI 客服/问答</strong>：接 RAG（项目一）做业务问答；接 Agent（项目二）做智能助手。<br />
+- <strong>运费/路线优化</strong>：XGBoost/BERT 等模型微服务化后被 Feign 调用。</p>
+<h4 id="34-部署与运维">3.4 部署与运维</h4>
+<p><strong>部署</strong><br />
+1. <strong>容器化 + 编排</strong>：每服务一个镜像，Docker Compose（开发）/ Kubernetes（生产）编排；Nacos、Redis、MySQL、RocketMQ 独立部署并数据卷持久化。<br />
+2. <strong>CI/CD</strong>：Jenkins/Gitee Go 流水线——构建→漏洞扫描→契约测试→镜像→灰度发布。<br />
+3. <strong>灰度</strong>：Nacos metadata 标记版本，网关/LoadBalancer 按灰度 Header 导流小流量；观察错误率、P95、线程池、GC 达基线再放量。<br />
+4. <strong>服务拆分原则</strong>：每服务独占数据；跨域只读视图走 API/事件；同步链路不超过 2~3 个核心服务，其余走事件异步。</p>
+<p><strong>运维与监控</strong><br />
+- <strong>全链路追踪</strong>：traceId 由 Gateway 生成/透传，Feign、MQ 生产/消费者继续传递；接入 SkyWalking/OpenTelemetry。<br />
+- <strong>指标告警</strong>：注册实例数、配置拉取失败、网关 4xx/5xx、Sentinel block、Feign 超时、MQ 积压、DB 连接池、缓存命中率；告警分入口成功率/依赖成功率/资源水位三类。<br />
+- <strong>日志</strong>：结构化 JSON（service、instance、traceId、userId 脱敏、orderId、errorCode）。<br />
+- <strong>容量压测</strong>：用 JMeter/Gatling 压出 DB 连接池、线程池、下游安全上限，再据此设 Sentinel 阈值（Warm Up、排队等待按场景选）。<br />
+- <strong>故障演练</strong>：Nacos 短暂不可用、Redis 主从切换、MQ 消费延迟、DB 连接池耗尽、实例 Full GC；目标是"能限流、能降级、能重试、最终一致"。<br />
+- <strong>发布与回滚</strong>：回滚不仅回镜像，还要确认配置、DB 迁移、消费者版本兼容。</p>
+<p><strong>踩坑要点（速查）</strong><br />
+- Nacos 账号密码用环境变量/密钥挂载；namespace 用实际 UUID；2.x 通不通查 9848/9849 gRPC 端口。<br />
+- Gateway <code>lb://</code> 依赖 LoadBalancer starter；WebFlux 网关别引 Servlet MVC 过滤器；请求体只读一次。<br />
+- Sentinel 资源名要稳定；fallback 只返回可解释降级，不能吞掉扣库存异常。<br />
+- Feign 超时 &lt; 上游网关超时；重试只用于幂等 GET，支付/扣库存禁用无脑重试。<br />
+- RocketMQ 延迟消息用 <code>delayLevel</code>（非任意毫秒）；消费幂等 + 死信；Redis Keyspace Notification 不做唯一超时机制。<br />
+- 金额用 <code>BigDecimal</code>/最小货币单位整数；时间统一 UTC 存储、展示层转换。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">四、行业变体（复用同一骨架）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>行业</th>
+<th>项目</th>
+<th>业务域</th>
+<th>AI 升级点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>物流</td>
+<td>智链云途</td>
+<td>订单/运单/派单/支付</td>
+<td>智能派单、路线优化、风控</td>
+</tr>
+<tr>
+<td>家政 O2O</td>
+<td>云岚到家</td>
+<td>四端协同/派单/支付/LBS</td>
+<td>智能派单算法、AI 预约助手</td>
+</tr>
+<tr>
+<td>保险 SAAS</td>
+<td>四方保险</td>
+<td>产品/保费/核保/理赔</td>
+<td>规则引擎、OCR、智能推荐</td>
+</tr>
+<tr>
+<td>在线教育</td>
+<td>天机学堂</td>
+<td>视频/课程/订单/积分</td>
+<td>AI 学习助手、课程推荐</td>
+</tr>
+<tr>
+<td>招聘</td>
+<td>智聘云图</td>
+<td>职位/图谱/检索</td>
+<td>知识图谱、意图识别、LoRA 微调</td>
+</tr>
+</tbody>
+</table>
+<h3 id="五企业级进阶与调优深度">五、企业级进阶与调优（深度）</h3>3
+<h4 id="51-服务怎么拆边界怎么定">5.1 服务怎么拆、边界怎么定</h4>
+<p>拆分按业务域能力而非技术分层：订单、运单、支付各自拥有数据与生命周期。判定标准是"高内聚低耦合、可独立扩缩容、能由一个小团队全权负责"。避免两种极端——拆得过细导致分布式开销大于收益、拆得过粗回到单体。数据所有权一旦确定就别跨服务直连对方数据库，只通过 API 或领域事件交换只读视图，否则边界名存实亡。</p>
+<h4 id="52-高并发三板斧缓存异步限流">5.2 高并发三板斧：缓存、异步、限流</h4>
+<p>缓存抗读：多级缓存（本地缓存 + Redis）挡热点，注意缓存一致性（延迟双删、失效订阅）与缓存穿透/击穿/雪崩（空值缓存、互斥重建、随机过期）。异步抗写：把重操作丢进 RocketMQ 削峰，主链路快速返回，消费者慢慢处理。限流保命：Sentinel 按总 QPS、用户、IP、并发数分层设阈值，超出就降级排队或快速失败，绝不让流量打穿数据库。</p>
+<h4 id="53-一致性与幂等的工程底线">5.3 一致性与幂等的工程底线</h4>
+<p>分布式下没有免费的一致性。同步调用链要短，跨服务写用"本地消息表 + 最终一致"或 Seata AT。幂等三件套：接口幂等键（请求指纹去重）、消费幂等（业务唯一键 + 唯一索引）、支付通知幂等。重试必须指数退避 + 最大次数 + 死信队列；只对幂等操作重试，扣库存、支付这类禁用无脑重试。记住：锁只降低竞争，数据库条件更新与唯一索引才是正确性的最后防线。</p>
+<h4 id="54-可观测性与稳定性">5.4 可观测性与稳定性</h4>
+<p>traceId 全链路透传是排障的前提。指标要覆盖入口成功率、依赖成功率、资源水位三类，而不是只盯 CPU。日志结构化并脱敏。故障演练常态化：Nacos 不可用、Redis 切换、MQ 积压、连接池耗尽、Full GC 都要演练过，验证目标是"能限流、能降级、能重试、最终一致"，而不是"没有报错"。</p>
+<h4 id="55-演进从微服务到-ai-化业务系统">5.5 演进：从微服务到 AI 化业务系统</h4>
+<p>微服务是 AI 落地的载体。把模型能力封装成独立 AI 服务（SpringAI/LangChain/LangGraph），通过 Feign/MCP 被业务服务调用：风控、智能派单、推荐、RAG 问答、Agent 助手。AI 服务要单独做超时、降级、成本控制与灰度，不能让一次模型调用拖垮主交易链路。业务服务保持无状态、可水平扩展，AI 服务按 GPU/并发独立伸缩。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">六、复现清单（DoD）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>[ ] Nacos 注册发现 + 配置动态刷新跑通（多环境 namespace）</li><li>[ ] Gateway 统一鉴权/路由/限流，OpenFeign 跨服务调用</li><li>[ ] Sentinel 限流熔断生效，阈值来自压测</li></ul></div>3
+<ul>
+<li>[ ] Nacos 注册发现 + 配置动态刷新跑通（多环境 namespace）</li>
+<li>[ ] Gateway 统一鉴权/路由/限流，OpenFeign 跨服务调用</li>
+<li>[ ] Sentinel 限流熔断生效，阈值来自压测</li>
+<li>[ ] 秒杀：Redis 预热 + Lua 原子扣减 + 一人一单 + 异步下单 + DB 兜底，无超卖无重复单</li>
+<li>[ ] 派单：GEO 检索 + 评分 + 接单锁 + DB 条件更新 + 超时重派</li>
+<li>[ ] 支付：验签 + 幂等 + 状态机 + Seata/最终一致</li>
+<li>[ ] 全链路 traceId + 结构化日志 + 指标告警</li>
+<li>[ ] （进阶）挂 AI 服务：风控/智能派单/RAG 问答/Agent 助手</li>
+<li>[ ] （进阶）灰度发布 + 容量压测 + 故障演练</li>
+</ul>
+<blockquote>
+<p>一句话：微服务项目 = <strong>Nacos 治理 + Gateway 入口 + Sentinel 保护 + 缓存/异步抗并发 + 幂等/事务保一致 + 全链路可观测 + AI 化升级</strong>。分层守住"高并发不垮、数据不错、故障可控"，换业务域即换行业。</p>
+</blockquote>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>先说边界：本库</strong>没有<strong>Spring 微服务代码（本次 <code>find -name '*.java'</code> 全仓计数 0，<code>pom.xml</code> 0 个）</strong>，<code>wiki/L9-全栈工程/微服务实战/</code> 六篇是「课件知识 + 工业实践」，不是本库源码。写这篇时把这一条说清楚，比硬凑一个「本库实践」更有价值。</li>
+<li><strong>本库真正在跑的「多服务协作」是另一种形态（本次实测）</strong>：<br />
+  | 组件 | 位置 | 角色 |<br />
+  |---|---|---|<br />
+  | Hermes 网关 | <code>~/.hermes/gateway</code>、<code>gateway.pid</code> | 消息/会话调度 |<br />
+  | 六员 Agent 进程 | DSH / Claude / Codex / OC / Qwen / Hermes | 执行者 |<br />
+  | 任务总线 | <code>~/.hermes/shared-state.db</code>（tasks + inbox） | 类「注册中心 + 任务队列」 |<br />
+  | 知识库服务 | <code>rag/serve.py</code>（OpenAI 兼容） | 数据服务 |<br />
+  它没有 Nacos/网关路由/Dubbo，但<strong>「服务发现靠表、调用靠契约、失败靠状态机」</strong>这三个微服务核心问题都在。</li>
+<li><strong>最接近微服务的真实配置文件是 <code>projects/agent-service-toolkit/compose.yaml</code></strong>：postgres + agent_service + streamlit_app 三服务，用 <code>depends_on: condition: service_healthy</code> 表达启动依赖，用 <code>healthcheck</code> 表达「就绪」——<strong>单机 Compose 就是小规模微服务</strong>。</li>
+<li><strong>和课件讲法的差异</strong>：课件微服务重点在 Spring Cloud 组件；本库的现实是「<strong>Agent 即服务</strong>」——服务之间的契约是 OpenAI 兼容的 JSON，注册中心是 SQLite 表。</li>
+<li><strong>本库暂无</strong>：服务网格、链路追踪、限流熔断（<code>rag/query.py</code> 的熔断是函数级超时，不是服务级）。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库<strong>没有 Spring 微服务代码</strong>（全仓 <code>*.java</code> 计数 0，本次实测），真正在跑的「多服务协作」是 Hermes 网关 + 六员 Agent + SQLite 任务总线（<code>scripts/task_bus.py</code>），微服务对比放在 <code>projects/agent-service-toolkit</code> 的 compose（3 服务）。</li>
+<li><strong>读源码</strong>：项目分层；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] <strong>课程内容落点</strong>：<a href="../../../raw/sources/%E8%AF%BE%E7%A8%8B%E5%A4%A7%E7%BA%B2-%E9%BB%91%E9%A9%AC-AI%E5%BA%94%E7%94%A8%E6%99%BA%E8%83%BD%E4%BD%93v6-20261026.md">黑马 AI 应用智能体课程项目大纲</a>；<code>raw/courseware/</code> 未检索到对应 Java 微服务原始课件，故不虚构课件路径。</li>
+<li>[课2] <strong>课程项目文档</strong>：<a href="../%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%9E%E6%88%98/01-Spring-Cloud-Alibaba%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84%E5%9F%BA%E7%A1%80.html">微服务架构基础</a>、<a href="../%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%9E%E6%88%98/02-%E7%A7%92%E6%9D%80%E6%8A%A2%E8%B4%AD%E6%A8%A1%E5%9D%97%E5%AE%9E%E6%88%98.html">秒杀抢购</a>、<a href="../%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%AE%9E%E6%88%98/03-%E6%B4%BE%E5%8D%95%E8%B0%83%E5%BA%A6%E4%B8%8E%E6%94%AF%E4%BB%98%E6%A8%A1%E5%9D%97%E5%AE%9E%E6%88%98.html">派单调度与支付</a>，落在本篇的治理、高并发与分布式业务骨架。</li>
+<li>[业1] <strong>业内官方</strong>：<a href="https://sca.aliyun.com/zh-cn/docs/overview/what-is-sca">Spring Cloud Alibaba</a>、<a href="https://nacos.io/doc/v2/quickstart/quick-start/">Nacos</a>、<a href="https://sentinelguard.io/zh-cn/docs/">Sentinel</a>、<a href="https://rocketmq.apache.org/docs/">RocketMQ</a> 与 <a href="https://seata.apache.org/docs/overview/what-is-seata/">Seata</a>，落在组件职责与工程边界。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">参考</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>微服务实战系列：「wiki/L9-全栈工程/微服务实战/01~03-*.md」（Nacos/Gateway/Sentinel/秒杀/派单/支付）</li><li>黑马微服务项目（智链云途/云岚到家/四方保险/天机学堂）：「raw/sources/课程大纲-黑马-AI应用智能体v6-20261026.md」</li><li>官方：Spring Cloud Alibaba、Nacos、Sentinel、RocketMQ、Seata 文档</li></ul></div>3
+<ul>
+<li>微服务实战系列：<code>wiki/L9-全栈工程/微服务实战/01~03-*.md</code>（Nacos/Gateway/Sentinel/秒杀/派单/支付）</li>
+<li>黑马微服务项目（智链云途/云岚到家/四方保险/天机学堂）：<code>raw/sources/课程大纲-黑马-AI应用智能体v6-20261026.md</code></li>
+<li>官方：Spring Cloud Alibaba、Nacos、Sentinel、RocketMQ、Seata 文档</li>
+</ul></div></details></div></body></html>

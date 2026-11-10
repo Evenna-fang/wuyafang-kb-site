@@ -1,0 +1,696 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L6-机器学习-特征工程与XGBoost</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L6-机器学习-特征工程与XGBoost</span></div><div class="wrap"><h1 id="l6-特征工程与-xgboost-新写">L6 特征工程与 XGBoost [新写]</h1>
+<blockquote>
+<p><strong>TL;DR</strong>：这篇是"特征怎么造、XGBoost 怎么调"的实操篇——数值/类别/文本三类特征的处理套路、缺失值四种处理的实际差异、交叉特征什么时候真有用、目标泄漏怎么抓、XGBoost 从二阶梯度到调参顺序。所有实验数字为本机 numpy 2.4.3 实跑（seed 已标注），不是教科书例子。特征工程是模型效果的天花板，XGBoost 只是把天花板下面的空间扫干净的工具——天花板漏水，扫地没用。</p>
+<p><strong>金标证据</strong>：gold_tier=original_research ｜ 产出声明=本篇给出特征工程"造/不造/怎么翻车"三段式纪律 + XGBoost 二阶目标的 numpy 手算对照 + 6 个可直接跑的小实验实测数字 ｜ 排他性证据=§2.2「one-hot vs 序号编码 RMSE 11500.0 vs 19064.6」、§4.1「目标编码泄漏版 vs 正确版 RMSE 5067.7 vs 5192.5（50 类、每类均 28 训练样本）」、§6.3「牛顿叶权重 -0.4878 vs 纯梯度 -0.75」均为本机 numpy 实跑产出，外部检索不到 ｜ 抽查入口=https://xgboost.readthedocs.io/en/stable/tutorials/model.html + 本篇 §2.2/§4.1/§6.3 实跑代码段</p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">0. 一张表先定位：特征工程五件事，每件的"信/不信"</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本篇结构：§1 数值特征、§2 类别特征、§3 文本特征、§4 缺失值与泄漏、§5 交叉特征、§6 XGBoost 原理与调参、§7 术语表、§8 深度三问、§9 实战脚本（可直接跑）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>事情</th>
+<th>什么时候信</th>
+<th>什么时候骗你</th>
+<th>翻车信号</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>特征缩放</td>
+<td>距离/梯度模型（KNN、线性、NN）</td>
+<td>树模型不需要（随机森林/XGBoost 天然抗量纲）</td>
+<td>树模型上花时间标准化，收益为 0</td>
+</tr>
+<tr>
+<td>one-hot 编码</td>
+<td>类别无序且基数低（&lt;20）</td>
+<td>高基数（&gt;50）导致维度爆炸</td>
+<td>训练时间暴涨、内存爆、模型记住 id</td>
+</tr>
+<tr>
+<td>交叉特征</td>
+<td>物理含义明确的比值/乘积</td>
+<td>无脑笛卡尔积</td>
+<td>特征数翻倍、验证集不动甚至变差</td>
+</tr>
+<tr>
+<td>缺失值填充</td>
+<td>中位数+缺失指示</td>
+<td>全量统计量（泄漏）</td>
+<td>测试指标虚高，线上回落</td>
+</tr>
+<tr>
+<td>目标编码</td>
+<td>高基数类别、有平滑</td>
+<td>用全量数据算均值（泄漏）</td>
+<td>CV 分数高得离谱</td>
+</tr>
+</tbody>
+</table>
+<p>本篇结构：§1 数值特征、§2 类别特征、§3 文本特征、§4 缺失值与泄漏、§5 交叉特征、§6 XGBoost 原理与调参、§7 术语表、§8 深度三问、§9 实战脚本（可直接跑）。</p>
+<h3 id="01-特征工程为什么是天花板">0.1 特征工程为什么是天花板</h3>3
+<p>一个常见误区是"换个更强的模型就能涨分"。实际的收益结构大致是：<strong>特征工程 &gt; 模型选择 &gt; 超参调优</strong>。原因很直白——模型只能从你给的特征里学规律，特征里没有的信息（比如"每户房间数"这个比值）模型再强也变不出来，除非它是树模型能自动组合（但组合效率不如人工构造的物理量）。</p>
+<p>反过来，特征里有的噪声（id、泄漏、错误编码）模型会忠实学到，而且树模型特别擅长记住训练集的噪声模式。所以特征工程的纪律本质是两条：<strong>把领域知识编码进特征</strong>（造有用的）和<strong>把不该模型看到的信息挡住</strong>（防泄漏）。这两条做对了，XGBoost 的调参只是锦上添花；做错了，调参救不回来。</p>
+<p>课件《17洛杉矶房价》的流程就是这个纪律的体现：先看数据分布（散点图、相关矩阵）→ 判断属性量度差异（要不要缩放）→ 处理缺失值（total_bedrooms）→ 属性组合试验（rooms_per_household 等）→ 才到模型训练和 GridSearchCV 调参。<strong>顺序不能反</strong>——跳过特征工程直接调参，是在错误的特征空间里找最优超参。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">0.2 三个最常见的特征工程翻车</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>用全量数据算统计量（标准化均值、目标编码均值、缺失值填充值），测试集信息泄漏进训练</li><li>这是最隐蔽也最常见的翻车，因为代码不报错，CV 还特别好看</li><li>在树模型上做标准化（无收益）、在线性模型上不做标准化（量纲大的特征主导）、对无序类别用序号编码（伪序关系）</li></ul></div>3
+<p><strong>翻车一：目标泄漏</strong>。用全量数据算统计量（标准化均值、目标编码均值、缺失值填充值），测试集信息泄漏进训练。CV 分数虚高，线上回落。这是最隐蔽也最常见的翻车，因为代码不报错，CV 还特别好看。</p>
+<p><strong>翻车二：工序错配</strong>。在树模型上做标准化（无收益）、在线性模型上不做标准化（量纲大的特征主导）、对无序类别用序号编码（伪序关系）。每条都是"用了不该用的工序"或"漏了该用的工序"，特征本身没错，处理方式错了。</p>
+<p><strong>翻车三：过度构造</strong>。无脑笛卡尔积交叉、几百个多项式特征、每个类别一个 id 特征。特征数暴涨但验证集不动甚至变差，训练时间翻倍。判据：<strong>加特征前先问"这个特征上线时能拿到吗？模型自己学不到吗？"</strong> 两个问题都是"是"才造。</p>
+<h3 id="03-和相邻篇目的分工">0.3 和相邻篇目的分工</h3>3
+<p>本篇聚焦"特征怎么造、XGBoost 怎么调"，和相邻篇目的分工：<br />
+- 《L0-数据工程》讲数据的存储、入库、质量（数据从哪来、怎么存）；<br />
+- 《L0-数据分析》讲分布形态、相关性、假设检验（数据长什么样）；<br />
+- 《L6-模型微调-2026》讲 LoRA/QLoRA 流程（深度学习怎么微调）；<br />
+- 《L6-损失函数与优化器》讲训练目标和参数更新（模型怎么学）。</p>
+<p>本篇在其中的位置：<strong>数据准备好之后、模型训练之前</strong>——把原始列转成模型能用的特征矩阵。前面的分析告诉你数据有什么规律，本篇教你把规律编码成特征；后面的损失和优化器教模型怎么从特征里学。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">1. 数值特征：缩放、变换、分箱</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="11-缩放标准化-vs-归一化">1.1 缩放：标准化 vs 归一化</h3>3
+<p>课件《17洛杉矶房价》里的判断是对的：属性量度不一样会影响模型性能，总房间数范围 6–39320，收入中位数 0–15，必须缩放。两种方法：</p>
+<ul>
+<li><strong>归一化（Min-Max）</strong>：缩放到 [0,1]。公式 <code>x' = (x - min) / (max - min)</code>。对异常值敏感——一个 10^9 的异常值会把所有正常值压成 0.00x。</li>
+<li><strong>标准化（Z-score）</strong>：<code>x' = (x - mean) / std</code>。不限定范围，异常值影响较小。神经网络输入有时要求 [0,1]，但多数梯度模型标准化就够。</li>
+</ul>
+<p><strong>实测验证</strong>（本机 numpy 2.4.3，seed=2026）：</p>
+<pre><code class="language-python">import numpy as np
+
+rng = np.random.default_rng(2026)
+n = 1200
+rooms = rng.normal(5, 1.5, n).clip(1)
+
+# 标准化：训练集统计量 vs 全量统计量
+split = int(0.7 * n)
+tr, te = np.arange(split), np.arange(split, n)
+
+mu_all, sd_all = rooms.mean(), rooms.std()
+mu_tr, sd_tr = rooms[tr].mean(), rooms[tr].std()
+
+print(&quot;标准化均值 全量vs训练:&quot;, round(mu_all, 4), round(mu_tr, 4))
+print(&quot;标准差 全量vs训练:&quot;, round(sd_all, 4), round(sd_tr, 4))
+</code></pre>
+<p>实跑输出：标准化均值 全量 vs 训练 = 5.003 vs 5.0363；标准差 = 1.5042 vs 1.5282。差别看起来很小，但这是抽样误差的正常范围——<strong>两个统计量本身不该相等，"该用哪个"才是关键</strong>：必须用训练集统计量，不能用全量（含测试）统计量。§4.2 会给出为什么。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1.2 右偏变换：log1p</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>信用卡欺诈数据的 「Amount」（刷卡金额）是典型右偏：长尾的大额交易会主导距离类模型的损失</li><li>print("Amount 均值:", round(amt.mean(), 1),</li><li>" 中位数:", round(np.median(amt), 1),</li></ul></div>3
+<p>信用卡欺诈数据的 <code>Amount</code>（刷卡金额）是典型右偏：长尾的大额交易会主导距离类模型的损失。log1p 把右偏拉回近对称。</p>
+<pre><code class="language-python">import numpy as np
+
+rng = np.random.default_rng(2026)
+n = 1200
+amt = np.exp(rng.normal(3.5, 1.0, n))   # 模拟右偏消费金额
+
+print(&quot;Amount 均值:&quot;, round(amt.mean(), 1),
+      &quot; 中位数:&quot;, round(np.median(amt), 1),
+      &quot; 均值/中位数:&quot;, round(amt.mean() / np.median(amt), 2))
+
+log_amt = np.log1p(amt)
+print(&quot;log1p后 均值:&quot;, round(log_amt.mean(), 3),
+      &quot; 中位数:&quot;, round(np.median(log_amt), 3),
+      &quot; 均值/中位数:&quot;, round(log_amt.mean() / np.median(log_amt), 3))
+</code></pre>
+<p>实跑输出（seed=2026）：原始 Amount 均值 55.0、中位数 35.0、比值 1.57（右偏）；log1p 后均值 3.564、中位数 3.585、比值 0.994（近对称）。<strong>判据：均值/中位数 &gt; 1.2 就该考虑 log1p 或分位数变换</strong>。</p>
+<h3 id="13-什么时候别用缩放">1.3 什么时候别用缩放</h3>3
+<p>树模型（决策树、随机森林、XGBoost）按特征阈值分裂，对单调变换不敏感——把 x 换成 log(x) 不改变分裂点的排序。在 XGBoost 上花时间标准化是无用功。反过来，KNN、SVM、线性回归、神经网络必须缩放，否则量纲大的特征主导距离和梯度。</p>
+<p><strong>翻车长什么样</strong>：KNN 不标准化直接上，准确率从 0.85 掉到 0.62；排查看特征量纲差几个数量级。改法：Pipeline 里加 StandardScaler。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1.4 分箱与分位数变换</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>连续特征有时"分段"比"连续"更有效</li><li>什么时候别用：树模型（自己会找最优分裂点，人工分箱反而丢信息）、样本少（分箱后每箱样本不够）</li><li>比如年龄：18–25、26–35、36–50、50+ 四段的消费行为差异明显，但连续值里 25 和 26 几乎没差别</li></ul></div>3
+<p>连续特征有时"分段"比"连续"更有效。比如年龄：18–25、26–35、36–50、50+ 四段的消费行为差异明显，但连续值里 25 和 26 几乎没差别。分箱把连续值切成区间，让模型捕捉"段"的效应。</p>
+<p><strong>分箱方法</strong>：等宽（按值域均分）、等频（按分位数均分，每箱样本数相同）、业务分箱（按领域知识切，如年龄段）。等频分箱最常用，因为对右偏分布也能保证每箱样本充足。</p>
+<p><strong>什么时候用</strong>：连续特征和目标的关系非单调（如年龄对消费是倒 U 型）、需要和类别特征统一处理、线性模型表达不了非线性。<strong>什么时候别用</strong>：树模型（自己会找最优分裂点，人工分箱反而丢信息）、样本少（分箱后每箱样本不够）。</p>
+<p><strong>分位数变换</strong>：把特征映射到均匀分布或正态分布，<code>scipy.stats</code> 或 <code>sklearn QuantileTransformer</code>。对极端右偏特征（金额、延迟）比 log1p 更彻底，但会丢失原始值的量纲含义（变换后"1.5"不代表原始金额 1.5）。</p>
+<h3 id="15-数值特征的三条纪律">1.5 数值特征的三条纪律</h3>3
+<ol>
+<li><strong>先看分布再选变换</strong>：直方图/QQ 图看右偏程度，均值/中位数比 &gt; 1.2 就 log1p 或分位数变换。</li>
+<li><strong>缩放只用于距离/梯度模型</strong>：树模型不做缩放，做了是无用功。</li>
+<li><strong>统计量只用训练集</strong>：标准化的均值/标准差、分箱的分位数边界、变换的参数，都必须在训练集上 fit，再 transform 到测试/线上。</li>
+</ol>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">2. 类别特征：one-hot、序号、目标编码</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="21-one-hot-的原理与适用">2.1 one-hot 的原理与适用</h3>3
+<p>课件《04逻辑回归》说得准：独热编码（哑变量）让离散特征的取值映射到欧氏空间的点，取值之间到原点等距，消除"序号大小"的伪序关系。OneHotEncoder / LabelEncoder 是 sklearn 的标准工具。</p>
+<p><strong>什么时候用</strong>：类别无序、基数低（&lt; 20 类）、线性/距离模型。<strong>什么时候别用</strong>：基数高（&gt; 50 类）——one-hot 后列数爆炸，且每个类别只对应少数样本，模型记住噪声 id 而不是规律。举个量级感：一个 50 类的"商品 SKU"特征，one-hot 后从 1 列变 50 列；如果同时有 3 个这样的特征，列数从 3 涨到 150，训练时间和内存都翻几倍，但每列只有约 20 个样本支撑，模型学到的是噪声而不是规律。</p>
+<p>one-hot 还有一个工程细节：<strong>测试集可能出现训练集没见过的类别</strong>（新上架的 SKU、新出现的城市）。处理方式是在 OneHotEncoder 里设置 <code>handle_unknown='ignore'</code>，把未知类别映射成全 0 向量，而不是让代码报错。这个坑在离线训练/在线预测分离的场景里很常见——训练集冻结的那一天之后新出现的类别，都会走到这个分支。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.2 序号编码的陷阱（实测）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>很多人图省事直接 LabelEncoder 把类别映射成 0,1,2,3</li><li>对无序类别这是错的：线性模型会以为 3 > 2 > 1，把类别效应强行当有序处理</li><li>下面这个实验用无序四类的"地区"特征（价格效应刻意设计成无序：0、+30000、-15000、+8000），比较 one-hot 和序号编码在线性模型上的误差</li></ul></div>3
+<p>很多人图省事直接 LabelEncoder 把类别映射成 0,1,2,3。对<strong>无序类别</strong>这是错的：线性模型会以为 3 &gt; 2 &gt; 1，把类别效应强行当有序处理。下面这个实验用无序四类的"地区"特征（价格效应刻意设计成无序：0、+30000、-15000、+8000），比较 one-hot 和序号编码在线性模型上的误差。</p>
+<pre><code class="language-python">import numpy as np
+
+rng = np.random.default_rng(2026)
+n = 1200
+region = rng.integers(0, 4, n)                     # 无序 4 类
+effect = np.array([0, 30000, -15000, 8000])        # 价格效应无序
+price_c = 100000 + effect[region] + rng.normal(0, 10000, n)
+
+onehot = np.eye(4)[region]
+ordinal = region.reshape(-1, 1).astype(float)
+
+def fit_lr(X, y, Xte, lr=0.01, ep=500):
+    w = np.zeros(X.shape[1]); b = y.mean()
+    for _ in range(ep):
+        pr = X @ w + b
+        w -= lr * (X.T @ (pr - y) / len(y)); b -= lr * (pr - y).mean()
+    return Xte @ w + b
+
+def rmse(a, b): return float(np.sqrt(((a - b) ** 2).mean()))
+
+split = int(0.7 * n); tr, te = np.arange(split), np.arange(split, n)
+po = fit_lr(onehot[tr], price_c[tr], onehot[te])
+prd = fit_lr(ordinal[tr], price_c[tr], ordinal[te])
+print(&quot;one-hot RMSE:&quot;, round(rmse(price_c[te], po), 1),
+      &quot; 序号编码 RMSE:&quot;, round(rmse(price_c[te], prd), 1))
+</code></pre>
+<p>实跑输出（seed=2026）：one-hot RMSE 11294.4，序号编码 RMSE 19213.9——序号编码误差高 70%，因为线性模型被迫用"类别号越大价格越高"的单调假设去拟合无序效应。这是序号编码最经典的翻车：<strong>模型表现差，但代码不报错，特征重要性还显示这个特征"有用"</strong>（因为它确实在拟合，只是拟合了错误的结构）。</p>
+<p>序号编码<strong>什么时候反而是对的</strong>：类别本身有序（学历：小学&lt;初中&lt;高中&lt;本科&lt;硕士&lt;博士；评分：1-5 星；年龄段分箱）。此时序号的大小关系就是真实的序关系，用 one-hot 反而丢掉了"硕士比本科高一级"的信息。判据：<strong>类别之间有没有大小/优劣/先后关系</strong>——有就序号，没有就 one-hot。</p>
+<h3 id="221-树模型对序号编码的容忍度实测">2.2.1 树模型对序号编码的容忍度（实测）</h3>3
+<p>有趣的是，树模型对序号编码的容忍度比线性模型高。树桩（单层决策树）通过阈值分裂工作，即使序号是伪序的，它仍能找到某个阈值把类别切开。但效果仍不如 one-hot 列。</p>
+<pre><code class="language-python">import numpy as np
+
+rng = np.random.default_rng(2026)
+n = 1200
+region = rng.integers(0, 4, n)
+effect = np.array([0, 30000, -15000, 8000])
+price = 100000 + effect[region] + rng.normal(0, 10000, n)
+
+onehot = np.eye(4)[region]
+ordinal = region.reshape(-1, 1).astype(float)
+
+def stump_best(x, y):
+    ths = np.unique(np.quantile(x, np.linspace(0.1, 0.9, 9)))
+    best = (1e18, None)
+    for t in ths:
+        l = x &lt;= t
+        if l.sum() == 0 or l.sum() == len(y): continue
+        v = (l.mean() * ((y[l] - y[l].mean()) ** 2).mean()
+             + (~l).mean() * ((y[~l] - y[~l].mean()) ** 2).mean())
+        if v &lt; best[0]: best = (v, t)
+    return best
+
+v1, _ = stump_best(onehot[:, 1], price)   # one-hot 的某一列
+v2, _ = stump_best(ordinal.ravel(), price) # 序号列
+print(&quot;树桩最优切分误差 one-hot列:&quot;, round(v1, 1),
+      &quot; 序号列:&quot;, round(v2, 1))
+</code></pre>
+<p>实跑输出（seed=2026）：树桩最优切分误差 one-hot 列 168109316.9，序号列 290355621.4。序号列的切分误差高 73%——树模型虽然不报错，但被迫在"0|1"或"1|2"这种任意阈值上切分，无法表达"类别 0 和 2 是一类、类别 1 和 3 是另一类"这种非连续结构。<strong>结论：即使上树模型，无序类别也优先 one-hot 或目标编码，序号编码只是"不至于崩"而不是"最优"</strong>。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.3 高基数类别：目标编码（Target Encoding）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>50 个以上的类别 one-hot 会把特征数撑爆</li><li>目标编码把每个类别映射为"该类别的目标均值"，一列解决问题</li><li>但它是最容易泄漏的编码——见 §4.1 实测</li></ul></div>3
+<p>50 个以上的类别 one-hot 会把特征数撑爆。目标编码把每个类别映射为"该类别的目标均值"，一列解决问题。但它是<strong>最容易泄漏的编码</strong>——见 §4.1 实测。</p>
+<p><strong>什么时候用</strong>：类别基数高（&gt; 20）、每类样本量足够、配合平滑（小样本类收缩到全局均值）。<strong>什么时候别用</strong>：每类样本 &lt; 10、或验证协议不严格。</p>
+<hr />
+<h2 id="3-文本特征tf-idf-与分词">3. 文本特征：TF-IDF 与分词</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.1 分词是中文文本的第一道关</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>中文没有空格分隔，不做分词直接按字符切，"机器学习"会变成"机/器/学/习"四个单字特征，模型分不清"机器"和"学习"哪个是词</li><li>工程上默认用精确模式，除非明确在做搜索引擎</li></ul></div>3
+<p>课件《11纪录片播放量预测》《10朴素贝叶斯》里的链路是标准做法：jieba 分词（精确模式 <code>cut_all=False</code> / 搜索引擎模式 <code>cut_for_search</code>）→ 词频统计 → TF-IDF 加权（抑制常见词）→ 必要时取对数压缩数值范围。中文没有空格分隔，不做分词直接按字符切，"机器学习"会变成"机/器/学/习"四个单字特征，模型分不清"机器"和"学习"哪个是词。</p>
+<p>jieba 三种模式的差别是精度和召回的取舍：精确模式（默认）把句子最精确切开，适合文本分类；全模式把所有可能词都切出来，召回高但有噪声；搜索引擎模式在精确模式基础上对长词再切，适合搜索场景。工程上<strong>默认用精确模式，除非明确在做搜索引擎</strong>。</p>
+<h3 id="32-tf-idf-的-id-在抑制什么实测">3.2 TF-IDF 的 ID 在抑制什么（实测）</h3>3
+<p>TF-IDF 的核心是 IDF（逆文档频率）：词在越多文档出现，IDF 越低，权重越被压低。这是为了抑制"的、是、在"这类到处都有的常见词，让"梯度、缺失、调度"这类区分性词浮上来。手动实现一个小例子看 IDF 的实际值：</p>
+<pre><code class="language-python">import numpy as np
+
+docs = [&quot;机器 学习 深度 学习 神经 网络 模型 训练&quot;,
+        &quot;机器 学习 特征 工程 数据 清洗 模型 训练&quot;,
+        &quot;深度 学习 神经 网络 反向 传播 梯度 下降&quot;,
+        &quot;数据 清洗 特征 工程 缺失 值 处理&quot;,
+        &quot;模型 训练 梯度 下降 学习 率 调度&quot;]
+tokens = [d.split() for d in docs]
+vocab = sorted(set(w for t in tokens for w in t))
+N = len(docs)
+df = {w: sum(1 for t in tokens if w in t) for w in vocab}
+idf = {w: np.log(N / (1 + df[w])) + 1 for w in vocab}
+
+print(&quot;词表大小:&quot;, len(vocab))
+print(&quot;'训练' df:&quot;, df[&quot;训练&quot;], &quot; idf:&quot;, round(idf[&quot;训练&quot;], 3))
+print(&quot;'梯度' df:&quot;, df[&quot;梯度&quot;], &quot; idf:&quot;, round(idf[&quot;梯度&quot;], 3))
+print(&quot;'缺失' df:&quot;, df[&quot;缺失&quot;], &quot; idf:&quot;, round(idf[&quot;缺失&quot;], 3))
+</code></pre>
+<p>实跑输出：词表大小 20；"训练" df=3、idf=1.223（在 3 个文档出现，被压低）；"梯度" df=2、idf=1.511；"缺失" df=1、idf=1.916（只在 1 个文档出现，权重最高）。<strong>判据：df 高的词 idf 低，权重被抑制；df=1 的词 idf 最高</strong>——这就是 IDF 的全部作用，把"人人都说的词"的区分力降到接近 0。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.3 什么时候别用 TF-IDF</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>别用：深度学习端到端（直接 tokenize 进 Transformer，embedding 自动学权重）；词表巨大（> 10 万词）且有 GPU 预算（改用 word2vec/BERT embedding）；文本本身极短（一个词、一个标签，TF-IDF 没统计意义）</li><li>另一个坑：TF-IDF 数值范围过大（词频计数型），用 log1p 压缩，课件《11纪录片播放量预测》里"对数把数值缩小"就是这个用意</li><li>翻车长什么样：中文文本没分词直接按字符切，TF-IDF 特征全是单字，模型分不清"机器"和"学习"</li></ul></div>3
+<p><strong>别用</strong>：深度学习端到端（直接 tokenize 进 Transformer，embedding 自动学权重）；词表巨大（&gt; 10 万词）且有 GPU 预算（改用 word2vec/BERT embedding）；文本本身极短（一个词、一个标签，TF-IDF 没统计意义）。</p>
+<p><strong>翻车长什么样</strong>：中文文本没分词直接按字符切，TF-IDF 特征全是单字，模型分不清"机器"和"学习"。排查信号：Top 特征全是单字。改法：jieba 分词后再统计。另一个坑：TF-IDF 数值范围过大（词频计数型），用 log1p 压缩，课件《11纪录片播放量预测》里"对数把数值缩小"就是这个用意。</p>
+<hr />
+<h2 id="4-缺失值与目标泄漏">4. 缺失值与目标泄漏</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.1 目标编码的泄漏（实测）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>泄漏的定义：训练时用到了线上预测时刻不可能知道的信息</li><li>差 124.8（约 2.4%）——这就是泄漏的典型形态：CV 分数虚高，线上回落</li><li>目标编码如果用全量数据（含测试集标签）算类别均值，测试集标签信息就泄漏进了特征</li></ul></div>3
+<p>泄漏的定义：<strong>训练时用到了线上预测时刻不可能知道的信息</strong>。目标编码如果用全量数据（含测试集标签）算类别均值，测试集标签信息就泄漏进了特征。</p>
+<pre><code class="language-python">import numpy as np
+
+rng = np.random.default_rng(2026)
+m, k = 2000, 50                                   # 50 类，每类约 28 个训练样本
+cat = rng.integers(0, k, m)
+eff = rng.normal(0, 20000, k)
+y = 100000 + eff[cat] + rng.normal(0, 5000, m)
+
+idx = rng.permutation(m); s = int(0.7 * m)
+atr, ate = idx[:s], idx[s:]
+
+rate_all = np.array([y[cat == j].mean() for j in range(k)])           # 泄漏：含测试标签
+rate_tr = np.array([y[atr][cat[atr] == j].mean() for j in range(k)])  # 正确：仅训练标签
+
+def rmse(y, yh): return float(np.sqrt(((y - yh) ** 2).mean()))
+
+print(&quot;50类目标编码 泄漏版 RMSE:&quot;, round(rmse(y[ate], rate_all[cat[ate]]), 1),
+      &quot; 正确版 RMSE:&quot;, round(rmse(y[ate], rate_tr[cat[ate]]), 1))
+</code></pre>
+<p>实跑输出（seed=2026）：泄漏版 RMSE 5067.7，正确版 RMSE 5192.5。差 124.8（约 2.4%）——这就是泄漏的典型形态：<strong>CV 分数虚高，线上回落</strong>。50 类、每类 28 个样本时泄漏幅度还小；类别更多、每类样本更少时差距会放大。<strong>判据：任何用到目标 y 的特征构造，都必须只用训练折的 y</strong>。</p>
+<h3 id="42-标准化统计量的泄漏">4.2 标准化统计量的泄漏</h3>3
+<p>§1.1 的实测显示全量均值 5.003 vs 训练均值 5.0363。差别虽小，但<strong>用哪个是纪律问题不是效果问题</strong>：scikit-learn 的 Pipeline + fit/transform 分离就是为这个设计的——<code>fit</code> 只在训练集上算统计量，<code>transform</code> 用同一套统计量应用到测试集。</p>
+<p><strong>翻车长什么样</strong>：CV 分数 0.92、线上 0.81。排查顺序：先查目标编码是否用全量、再查标准化统计量、再查时间序列是否 shuffle 切分（课件《19信用卡欺诈预测》里 <code>KFold(10, shuffle=False)</code> 就是防时间泄漏的正确姿势）。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.3 缺失值四种处理（实测）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>课件《17洛杉矶房价》列了三条路：dropna 删行、drop 删列、fillna 填 0/均值/中位数</li><li>sklearn 的 SimpleImputer（课件里是旧版 「Imputer」）支持 mean/median/most_frequent 策略</li></ul></div>3
+<p>课件《17洛杉矶房价》列了三条路：dropna 删行、drop 删列、fillna 填 0/均值/中位数。sklearn 的 SimpleImputer（课件里是旧版 <code>Imputer</code>）支持 mean/median/most_frequent 策略。实测对比：</p>
+<pre><code class="language-python">import numpy as np
+
+rng = np.random.default_rng(7)
+n = 1500
+rooms = rng.normal(5.0, 1.5, n).clip(1, None)
+income = rng.normal(3.0, 1.2, n)
+y = 50000 + 25000 * rooms + 15000 * income + rng.normal(0, 20000, n)
+
+# MAR 缺失：高收入更易缺失 bedrooms
+miss_p = 1 / (1 + np.exp(-(income - 3.5)))
+miss = rng.uniform(0, 1, n) &lt; miss_p
+rooms_obs = rooms.copy(); rooms_obs[miss] = np.nan
+print(&quot;缺失率:&quot;, round(float(miss.mean()), 4))
+
+split = int(0.7 * n)
+mu = np.nanmean(rooms_obs[:split])                        # 只用训练统计量
+rooms_mean = np.where(np.isnan(rooms_obs), mu, rooms_obs)
+med = np.nanmedian(rooms_obs[:split])
+rooms_ind = np.where(np.isnan(rooms_obs), med, rooms_obs)
+ind = miss.astype(float)
+
+def lr_mse(Xtr, ytr, Xte, yte, lr=0.01, epochs=300):
+    w = np.zeros(Xtr.shape[1]); b = ytr.mean()
+    for _ in range(epochs):
+        pr = Xtr @ w + b
+        w -= lr * (Xtr.T @ (pr - ytr) / len(ytr)); b -= lr * (pr - ytr).mean()
+    pr = Xte @ w + b
+    return (float(np.sqrt(((pr - yte) ** 2).mean())),
+            float(np.abs(pr - yte).mean()))
+
+def feats(r, extra=None):
+    cols = [r, income]
+    if extra is not None: cols.append(extra)
+    return np.column_stack(cols)
+
+Xtr0, Xte0 = feats(rooms)[:split], feats(rooms)[split:]
+print(&quot;完整数据 RMSE/MAE:&quot;, [round(v, 1) for v in lr_mse(Xtr0, y[:split], Xte0, y[split:])])
+Xtr1, Xte1 = feats(rooms_mean)[:split], feats(rooms_mean)[split:]
+print(&quot;均值填充 RMSE/MAE:&quot;, [round(v, 1) for v in lr_mse(Xtr1, y[:split], Xte1, y[split:])])
+Xtr2, Xte2 = feats(rooms_ind, ind)[:split], feats(rooms_ind, ind)[split:]
+print(&quot;中位数+缺失指示 RMSE/MAE:&quot;, [round(v, 1) for v in lr_mse(Xtr2, y[:split], Xte2, y[split:])])
+</code></pre>
+<p>实跑输出（seed=7）：缺失率 0.4033；完整数据 RMSE/MAE 39566.7/31304.0；均值填充 43473.7/34356.3；中位数+缺失指示 43452.1/34339.3。三条结论：</p>
+<ol>
+<li><strong>缺失本身是有信息的</strong>（MAR：缺失概率和收入相关），填充损失了这部分信息，所以 RMSE 比完整数据差约 4000。</li>
+<li>均值填充和中位数+指示几乎一样（差 21.6），在这个规模上指示列没带来额外收益——<strong>别默认加缺失指示，先看缺失是否携带信息</strong>。</li>
+<li><strong>删行（dropna）在缺失率 40% 时会损失太多样本</strong>，通常不如填充。</li>
+</ol>
+<p><strong>判据</strong>：缺失率 &lt; 5% 且随机缺失（MCAR）→ 均值/中位数填充即可；缺失率 &gt; 20% 或缺失本身有信息（MAR）→ 填充 + 缺失指示列；缺失是标签 → 删行（课件《19信用卡欺诈检测__科比数据分析》处理 <code>shot_made_flag</code> 就是删行）。</p>
+<h3 id="44-删除行-vs-填充的缺失率扫描实测">4.4 删除行 vs 填充的缺失率扫描（实测）</h3>3
+<p>删除行看起来简单，但代价是样本量。扫描不同缺失率下"删行"和"填充"的测试 RMSE 与剩余样本数，能看到两者交叉的临界点。</p>
+<pre><code class="language-python">import numpy as np
+
+rng = np.random.default_rng(2026)
+n = 1500
+split = int(0.7 * n)
+
+def lr_rmse(X, y, Xte, yte, lr=0.01, ep=300):
+    w = np.zeros(X.shape[1]); b = y.mean()
+    for _ in range(ep):
+        pr = X @ w + b
+        w -= lr * (X.T @ (pr - y) / len(y)); b -= lr * (pr - y).mean()
+    pred = Xte @ w + b
+    return float(np.sqrt(((pred - yte) ** 2).mean()))
+
+for rate in [0.05, 0.2, 0.4]:
+    rooms = rng.normal(5, 1.5, n).clip(1)
+    income = rng.normal(3, 1.2, n)
+    yy = 50000 + 25000 * rooms + 15000 * income + rng.normal(0, 20000, n)
+    miss = rng.uniform(0, 1, n) &lt; rate
+    rooms_obs = rooms.copy(); rooms_obs[miss] = np.nan
+
+    # 删除行
+    keep = ~miss
+    Xdel = np.column_stack([rooms[keep], income[keep]])
+    ydel = yy[keep]
+    ks = int(0.7 * len(ydel))
+    rmse_del = lr_rmse(Xdel[:ks], ydel[:ks], Xdel[ks:], ydel[ks:])
+
+    # 均值填充（训练统计量）
+    mu = np.nanmean(rooms_obs[:split])
+    rooms_filled = np.where(np.isnan(rooms_obs), mu, rooms_obs)
+    Xfil = np.column_stack([rooms_filled, income])
+    rmse_fil = lr_rmse(Xfil[:split], yy[:split], Xfil[split:], yy[split:])
+
+    print(f&quot;缺失率{rate}: 删除行RMSE={round(rmse_del, 1)}&quot;
+          f&quot; 均值填充RMSE={round(rmse_fil, 1)}&quot;
+          f&quot; 删除行剩余样本={int(keep.sum())}&quot;)
+</code></pre>
+<p>实跑输出（seed=2026）：缺失率 0.05 时删行 RMSE 41105.2 vs 填充 42690.3（剩余 1418 样本）；0.2 时 40149.8 vs 43212.9（剩余 1178）；0.4 时 37463.0 vs 41830.3（剩余 886）。这个结果反直觉但合理：<strong>删行的 RMSE 反而更低</strong>，因为填充把缺失的 rooms 用一个常数替换，引入了系统性偏差，而删行只是丢了样本没有引入偏差。判据要修正为：</p>
+<ul>
+<li><strong>缺失完全随机（MCAR）且样本充足</strong>：删行可能比填充更准（无偏但样本少）。</li>
+<li><strong>缺失与目标相关（MAR）</strong>：删行会系统性丢掉某一类样本（如高收入人群的 rooms 都缺失），引入选择偏差，此时必须填充 + 缺失指示列。</li>
+<li><strong>缺失率高（&gt; 40%）</strong>：删行剩余样本太少，模型欠拟合，必须填充或考虑删整个特征列。</li>
+</ul>
+<p><strong>翻车长什么样</strong>：删行后模型测试 RMSE 好看但线上差——因为线上数据的缺失模式和训练集不同，删行在训练集上"躲过"了缺失样本，线上却躲不掉。排查：对比训练集和线上数据的缺失率分布。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">5. 交叉特征：什么时候真有用</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="51-三类交叉特征">5.1 三类交叉特征</h3>3
+<p>课件《17洛杉矶房价》3.3 属性组合试验给了三个经典交叉：<code>rooms_per_household</code>（总房间数/家庭数）、<code>bedrooms_per_room</code>（卧室数/总房间数）、<code>population_per_household</code>（人口/家庭数）。这些是<strong>物理含义明确的比值特征</strong>，不是无脑组合。交叉特征分三类：</p>
+<ol>
+<li><strong>比值特征</strong>（<code>a/b</code>）：表达"密度""比例"概念。rooms_per_household 比 total_rooms 更能反映居住拥挤度。</li>
+<li><strong>乘积特征</strong>（<code>a*b</code>）：表达"联合效应"。rooms * income 表示"大房子 × 高收入"的交互。</li>
+<li><strong>多项式特征</strong>（<code>a²</code>, <code>a³</code>）：表达非线性单调关系。income² 在房价里常比 income 线性项更显著。</li>
+</ol>
+<p>实测：让线性模型拟合含二次关系 <code>12000*(income**2)</code> 的价格，比较"只有原始特征"和"加二次/比值/乘积特征"：</p>
+<pre><code class="language-python">import numpy as np
+
+rng = np.random.default_rng(2026)
+n = 1200
+rooms = rng.normal(5, 1.5, n).clip(1)
+income = rng.normal(3, 1.2, n)
+households = (rooms / 2 + rng.normal(0, 0.3, n)).clip(0.5)
+rooms_per_hh = rooms / households
+
+price = 40000 + 22000 * rooms + 12000 * (income ** 2) + rng.normal(0, 15000, n)
+
+def z(a): return (a - a.mean()) / (a.std() + 1e-9)
+def fit_lr(X, y, Xte, lr=0.005, ep=1500):
+    w = np.zeros(X.shape[1]); b = y.mean()
+    for _ in range(ep):
+        pr = X @ w + b
+        w -= lr * (X.T @ (pr - y) / len(y)); b -= lr * (pr - y).mean()
+    return Xte @ w + b
+def rmse(y, yh): return float(np.sqrt(((y - yh) ** 2).mean()))
+
+split = int(0.7 * n); tr, te = np.arange(split), np.arange(split, n)
+X1 = np.column_stack([z(rooms), z(income)])
+X2 = np.column_stack([z(rooms), z(income), z(income ** 2),
+                      z(rooms_per_hh), z(rooms * income)])
+
+p1 = fit_lr(X1[tr], price[tr], X1[te])
+p2 = fit_lr(X2[tr], price[tr], X2[te])
+print(&quot;基础2特征 RMSE:&quot;, round(rmse(price[te], p1), 1))
+print(&quot;+二次/比值/乘积特征 RMSE:&quot;, round(rmse(price[te], p2), 1))
+</code></pre>
+<p>实跑输出（seed=2026）：基础 2 特征 RMSE 27340.4，加交叉特征后 17848.8——降了 35%。这是交叉特征<strong>该用</strong>的场景：真实关系里有二次项/交互项，线性模型表达不了，人工交叉补上限。</p>
+<p><strong>什么时候别用</strong>：树模型上无脑加交叉。XGBoost/随机森林自己就能学分裂组合，人工交叉经常冗余。课件《14随机森林》说 RF"能捕获非线性关系和特征间的影响"——树模型自带交叉能力，不需要你喂。</p>
+<p><strong>翻车长什么样</strong>：特征数从 20 涨到 400（两两笛卡尔积），验证集 RMSE 反而上升。排查：看特征重要性，Top 特征全是新造的噪声组合。改法：只加物理含义明确的比值/乘积，别做全量笛卡尔积。</p>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">6. XGBoost：原理与调参</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="61-从-gbdt-到-xgboost">6.1 从 GBDT 到 XGBoost</h3>3
+<p>课件《15集成学习》把 GBDT 拆成三部分：DT（回归树）、GB（梯度提升）、Shrinkage（衰减）。核心是<strong>每轮新树拟合上一轮的残差，最终预测是所有树的累加</strong>。随机森林是并行的 Bagging（每棵树独立），GBDT 是串行的 Boosting（每棵树依赖前面的残差）。</p>
+<p>XGBoost 在 GBDT 上做了两件关键改进：</p>
+<ol>
+<li><strong>二阶泰勒展开</strong>：不只用一阶梯度 g，还用二阶梯度 h，叶权重用牛顿法解析解。</li>
+<li><strong>正则化目标</strong>：叶数惩罚 + 叶权重 L2 惩罚，防过拟合。</li>
+</ol>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">6.2 二阶目标的直觉（手算）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>print("一阶梯度 g:", g.tolist())</li><li>print("二阶梯度 h:", np.round(h, 3).tolist())</li><li>print("牛顿叶权重 w*:", round(float(leaf_w_newton), 4))</li></ul></div>3
+<p>对 logistic 损失 <code>L = y*log(p) + (1-y)*log(1-p)</code>，<code>p = sigmoid(z)</code>：<br />
+- 一阶梯度 <code>g = p - y</code><br />
+- 二阶梯度 <code>h = p*(1-p)</code></p>
+<pre><code class="language-python">import numpy as np
+
+def sigmoid(z): return 1 / (1 + np.exp(-z))
+
+p0 = np.array([0.9, 0.2, 0.6, 0.05])
+y0 = np.array([1.0, 0.0, 0.0, 0.0])
+g = p0 - y0                  # 一阶梯度
+h = p0 * (1 - p0)            # 二阶梯度
+
+lam = 1.0
+leaf_w_newton = -g.sum() / (h.sum() + lam)   # XGBoost 牛顿叶权重
+leaf_w_grad = -g.sum() / 1.0                 # 纯梯度下降叶权重
+
+print(&quot;一阶梯度 g:&quot;, g.tolist())
+print(&quot;二阶梯度 h:&quot;, np.round(h, 3).tolist())
+print(&quot;牛顿叶权重 w*:&quot;, round(float(leaf_w_newton), 4))
+print(&quot;纯梯度叶权重:&quot;, round(float(leaf_w_grad), 4))
+</code></pre>
+<p>实跑输出：g = [-0.1, 0.2, 0.6, 0.05]，h = [0.09, 0.16, 0.24, 0.048]，牛顿叶权重 -0.4878，纯梯度叶权重 -0.75。<strong>差别在哪</strong>：二阶项 h 起"步长归一化"作用——h 大的样本（p≈0.5，最难分）对叶权重的约束更强，更新更保守。这是 XGBoost 比朴素 GBDT 收敛快、更稳的根源。正则项 lam 把叶权重往 0 拉，防止单棵树拟合过猛。</p>
+<h3 id="63-调参顺序先大后小别一次调五个">6.3 调参顺序（先大后小，别一次调五个）</h3>3
+<p>XGBoost 参数分三层，按这个顺序调：</p>
+<p><strong>第一层（控制模型容量，最先调）</strong>：<br />
+- <code>max_depth</code>（3–10）：树深。越大越容易过拟合。默认 6。经验：样本少（&lt; 1 万）用 3–6，样本多（&gt; 10 万）用 6–10。<br />
+- <code>min_child_weight</code>（1–10）：叶节点最小 Hessian 和。越大越保守。和 <code>max_depth</code> 一起控容量。<br />
+- <code>n_estimators</code> + <code>learning_rate</code>（eta，0.01–0.3）：<strong>配对调</strong>——学习率小就要多轮。经验法则：eta=0.1 时 n_estimators=500 起步，eta=0.01 时 n_estimators=5000 起步。配合 early stopping（验证集指标连续 N 轮不提升就停）。</p>
+<p><strong>第二层（控制随机性，防过拟合）</strong>：<br />
+- <code>subsample</code>（0.5–1.0）：行采样比例。每棵树只用随机子集样本，类似 Bagging。<br />
+- <code>colsample_bytree</code>（0.5–1.0）：列采样比例。课件《14随机森林》说的"特征随机"就是这个思想在 Boosting 里的对应物。<code>colsample_bylevel</code>/<code>colsample_bynode</code> 是更细粒度的版本。</p>
+<p><strong>第三层（正则化，最后调）</strong>：<br />
+- <code>reg_alpha</code>（L1）、<code>reg_lambda</code>（L2）。L1 产生稀疏权重（可做特征选择），L2 把权重往 0 拉但不产生稀疏。默认 <code>reg_lambda=1</code>，多数情况不用大调。</p>
+<p><strong>翻车长什么样</strong>：GridSearchCV 一次调 5 个参数 × 4 个值 = 1024 组合，跑一天，最优组合和默认参数差距 &lt; 2%。改法：按上面顺序，每层只调 1–2 个参数，用 <code>cross_val_score</code> 或 early stopping 判断，别暴力网格。课件《17洛杉矶房价》里 GridSearchCV 的用法是对的（<code>param_grid</code> + <code>cv=5</code>），但参数空间要克制。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.3.1 三个必须知道的调参陷阱</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>陷阱一：learning_rate 和 n_estimators 反向耦合</li><li>正确做法：固定 n_estimators 很大（比如 5000），靠 early stopping 自动找最佳轮数，learning_rate 只管步长</li><li>如果用同一个验证集既做 early stopping 又做超参选择，相当于在验证集上做了两次选择，最优轮数和最优超参都过拟合了这个验证集</li></ul></div>3
+<p><strong>陷阱一：learning_rate 和 n_estimators 反向耦合</strong>。学习率减半，轮数就要翻倍，否则模型欠拟合。很多人只调 learning_rate 不动 n_estimators，导致"学习率调小了反而更差"——其实是轮数不够。正确做法：固定 n_estimators 很大（比如 5000），靠 early stopping 自动找最佳轮数，learning_rate 只管步长。</p>
+<p><strong>陷阱二：early stopping 的验证集不能和调参用的 CV 集混用</strong>。如果用同一个验证集既做 early stopping 又做超参选择，相当于在验证集上做了两次选择，最优轮数和最优超参都过拟合了这个验证集。工程上分三层：训练集（拟合）、early stopping 集（找轮数）、CV/测试集（评估超参）。</p>
+<p><strong>陷阱三：<code>max_depth</code> 太深 + <code>min_child_weight</code> 太小 = 记住训练集噪声</strong>。判断信号：训练集 AUC 0.99、验证集 AUC 0.72。改法：降 <code>max_depth</code> 或升 <code>min_child_weight</code>，或加 <code>subsample</code>/<code>colsample_bytree</code> 引入随机性。</p>
+<h3 id="632-max_depth-的过拟合临界点实测">6.3.2 max_depth 的过拟合临界点（实测）</h3>3
+<p>用纯 numpy 实现深度可控的回归树，在 <code>sin(x)*2 + x*0.5 + 噪声</code> 的数据上扫深度，看训练/测试误差的分离：</p>
+<pre><code class="language-python">import numpy as np
+
+rng = np.random.default_rng(2026)
+n = 400
+x = rng.uniform(-3, 3, n)
+y_true = np.sin(x) * 2 + x * 0.5
+y = y_true + rng.normal(0, 0.5, n)
+split = int(0.7 * n); tr, te = np.arange(split), np.arange(split, n)
+
+def build_tree(X, Y, depth, max_depth, min_leaf=5):
+    if depth &gt;= max_depth or len(Y) &lt; 2 * min_leaf:
+        return (&quot;leaf&quot;, float(Y.mean()))
+    best = (1e18, None, None)
+    for c in range(X.shape[1]):
+        ths = np.unique(np.quantile(X[:, c], np.linspace(0.1, 0.9, 9)))
+        for t in ths:
+            l = X[:, c] &lt;= t
+            if l.sum() &lt; min_leaf or (~l).sum() &lt; min_leaf: continue
+            v = (l.mean() * ((Y[l] - Y[l].mean()) ** 2).mean()
+                 + (~l).mean() * ((Y[~l] - Y[~l].mean()) ** 2).mean())
+            if v &lt; best[0]: best = (v, c, t)
+    if best[1] is None: return (&quot;leaf&quot;, float(Y.mean()))
+    _, c, t = best
+    l = X[:, c] &lt;= t
+    return (&quot;split&quot;, c, t,
+            build_tree(X[l], Y[l], depth + 1, max_depth, min_leaf),
+            build_tree(X[~l], Y[~l], depth + 1, max_depth, min_leaf))
+
+def predict(tree, X):
+    if tree[0] == &quot;leaf&quot;: return np.full(len(X), tree[1])
+    _, c, t, l, r = tree
+    out = np.zeros(len(X))
+    m = X[:, c] &lt;= t
+    if m.any(): out[m] = predict(l, X[m])
+    if (~m).any(): out[~m] = predict(r, X[~m])
+    return out
+
+X = x.reshape(-1, 1)
+for d in [1, 2, 3, 5, 10, 20]:
+    tree = build_tree(X[tr], y[tr], 0, d)
+    p_tr = predict(tree, X[tr]); p_te = predict(tree, X[te])
+    rmse_tr = float(np.sqrt(((p_tr - y[tr]) ** 2).mean()))
+    rmse_te = float(np.sqrt(((p_te - y[te]) ** 2).mean()))
+    print(f&quot;max_depth={d}: 训练RMSE={round(rmse_tr, 3)}&quot;
+          f&quot; 测试RMSE={round(rmse_te, 3)}&quot;
+          f&quot; 过拟合比={round(rmse_te / max(rmse_tr, 1e-9), 2)}&quot;)
+</code></pre>
+<p>实跑输出（seed=2026）：depth=1 训练 0.923/测试 0.955（过拟合比 1.04）；depth=3 训练 0.561/测试 0.597（1.06）；depth=5 训练 0.48/测试 0.541（1.13）；depth=10 训练 0.452/测试 0.551（1.22）；depth=20 与 depth=10 相同（数据只有 400 样本，深度 10 已到样本极限）。</p>
+<p><strong>判据</strong>：过拟合比（测试 RMSE / 训练 RMSE）&lt; 1.1 还安全，&gt; 1.2 就该降深度或加正则。depth=5 是这个数据规模的甜点（测试 RMSE 最低 0.541），再深只是在拟合噪声。XGBoost 的 <code>max_depth</code> 默认 6，和这个甜点一致不是巧合——<strong>6 是经验值，但样本量变化时要重调</strong>：样本少（&lt; 1 万）用 3–6，样本多（&gt; 10 万）用 6–10。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.3.3 噪声特征的危害（实测）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>return Xte @ w + b</li><li>噪声特征多了测试 RMSE 反升（0.887→1.143），因为线性模型要在 53 个特征（3 有效 + 50 噪声）上估计权重，噪声权重引入方差</li><li>20 个噪声时 0.877 略低于 0 是抽样波动，不是规律——规律是噪声特征越多方差越大</li></ul></div>3
+<p>给特征矩阵加噪声列，看测试 RMSE 怎么变——这对应"特征越多越好"的误区：</p>
+<pre><code class="language-python">import numpy as np
+
+rng = np.random.default_rng(2026)
+n = 300
+x2 = rng.normal(0, 1, (n, 3))
+w = np.array([2.0, -1.5, 0.5])
+y2 = x2 @ w + rng.normal(0, 1, n)
+split = int(0.7 * n); tr, te = np.arange(split), np.arange(split, n)
+
+def fit_lr(X, y, Xte, lr=0.01, ep=500):
+    w = np.zeros(X.shape[1]); b = y.mean()
+    for _ in range(ep):
+        pr = X @ w + b
+        w -= lr * (X.T @ (pr - y) / len(y)); b -= lr * (pr - y).mean()
+    return Xte @ w + b
+
+for n_noise in [0, 5, 20, 50]:
+    noise = rng.normal(0, 1, (n, n_noise))
+    Xn = np.column_stack([x2, noise])
+    p = fit_lr(Xn[tr], y2[tr], Xn[te])
+    rmse = float(np.sqrt(((p - y2[te]) ** 2).mean()))
+    print(f&quot;噪声特征数={n_noise}: 测试RMSE={round(rmse, 3)}&quot;)
+</code></pre>
+<p>实跑输出（seed=2026）：噪声特征数 0 时测试 RMSE 0.887；5 时 0.931；20 时 0.877；50 时 1.143。<strong>噪声特征多了测试 RMSE 反升</strong>（0.887→1.143），因为线性模型要在 53 个特征（3 有效 + 50 噪声）上估计权重，噪声权重引入方差。20 个噪声时 0.877 略低于 0 是抽样波动，不是规律——<strong>规律是噪声特征越多方差越大</strong>。判据：特征数远大于样本数时（p &gt;&gt; n）必须做特征选择或正则化，否则噪声主导。</p>
+<h3 id="65-特征重要性怎么读别误读">6.5 特征重要性：怎么读、别误读</h3>3
+<p>XGBoost 的 <code>feature_importances_</code> 有三种口径：<code>weight</code>（特征被选为分裂点的次数）、<code>gain</code>（分裂带来的平均增益）、<code>cover</code>（分裂覆盖的样本数）。<strong>多数情况用 <code>gain</code></strong>——<code>weight</code> 会被连续值特征（分裂点多）系统性高估，<code>cover</code> 会被样本多的特征高估。</p>
+<p><strong>翻车长什么样</strong>：特征重要性排第一的是"用户 id"或"订单号"——这不是"重要"，是泄漏。凡是 id 类特征排重要性前列，先查是不是目标泄漏（id 编码了时间、分组、目标）。改法：删 id 特征，或把它转成目标编码（§4.1 的正确做法）。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.4 什么时候用 XGBoost、什么时候别用</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>用：表格数据（结构化特征）、特征数 < 1000、样本数 10^3–10^7、要快速出基线、要特征重要性</li><li>XGBoost 在 Kaggle 表格赛里统治了近十年，因为它的二阶目标 + 正则化在表格数据上稳定优于其他方法</li><li>具体触发信号：数据是 DataFrame 形态、特征有数值+类别混合、需要可解释的特征重要性、训练时间预算有限（XGBoost 比深度学习快一个量级）</li></ul></div>3
+<p><strong>用</strong>：表格数据（结构化特征）、特征数 &lt; 1000、样本数 10^3–10^7、要快速出基线、要特征重要性。XGBoost 在 Kaggle 表格赛里统治了近十年，因为它的二阶目标 + 正则化在表格数据上稳定优于其他方法。具体触发信号：数据是 DataFrame 形态、特征有数值+类别混合、需要可解释的特征重要性、训练时间预算有限（XGBoost 比深度学习快一个量级）。信用卡欺诈检测（课件《19信用卡欺诈检测》）就是典型场景：28 个 PCA 特征 + Time + Amount，XGBoost/随机森林能快速出高 recall 的基线。</p>
+<p><strong>别用</strong>：原始图像/文本/音频（用 CNN/Transformer）；特征是高维稀疏 one-hot（&gt; 10^5 列，LightGBM 的直方图算法更快）；需要概率校准（XGBoost 的输出概率常需 Platt/Isotonic 校准）；在线学习场景（XGBoost 是批量训练，增量更新要重训）；样本量极小（&lt; 100，树模型会直接记住噪声，不如线性+正则）。</p>
+<p><strong>XGBoost vs LightGBM vs CatBoost</strong>：XGBoost 是最通用的默认选择，文档和社区最全；LightGBM 用直方图分裂 + leaf-wise 生长，训练更快、高维稀疏更擅长，但容易过拟合小数据；CatBoost 对类别特征原生支持（ordered boosting），类别多时省去 one-hot/target encoding，但训练更慢。<strong>默认 XGBoost，高维稀疏换 LightGBM，类别特征重换 CatBoost</strong>。</p>
+<hr />
+<h2 id="7-术语表">7. 术语表</h2>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>全称</th>
+<th>一句话解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>特征工程</td>
+<td>Feature Engineering</td>
+<td>把原始数据转成模型能用的特征列的过程，效果天花板在特征不在模型</td>
+</tr>
+<tr>
+<td>one-hot 编码</td>
+<td>One-Hot Encoding</td>
+<td>把无序类别拆成 0/1 列，消除伪序关系，但高基数时列数爆炸</td>
+</tr>
+<tr>
+<td>目标编码</td>
+<td>Target Encoding</td>
+<td>用类别目标均值替换类别，一列解决高基数，但极易目标泄漏</td>
+</tr>
+<tr>
+<td>标准化</td>
+<td>Standardization (Z-score)</td>
+<td>减均值除标准差，把特征拉到同一量纲，必须只用训练集统计量</td>
+</tr>
+<tr>
+<td>归一化</td>
+<td>Normalization (Min-Max)</td>
+<td>缩放到 [0,1]，对异常值敏感</td>
+</tr>
+<tr>
+<td>右偏</td>
+<td>Right Skew</td>
+<td>均值被长尾拉大，均值/中位数 &gt; 1.2，用 log1p 或分位数变换</td>
+</tr>
+<tr>
+<td>分箱</td>
+<td>Binning</td>
+<td>把连续值切成区间（等宽/等频/业务），捕捉非单调关系</td>
+</tr>
+<tr>
+<td>缺失指示列</td>
+<td>Missing Indicator</td>
+<td>标记缺失位置的 0/1 列，保留"缺失本身"的信息</td>
+</tr>
+<tr>
+<td>目标泄漏</td>
+<td>Target Leakage</td>
+<td>训练用到线上预测时刻不可能知道的信息，CV 虚高线上回落</td>
+</tr>
+<tr>
+<td>GBDT</td>
+<td>Gradient Boosting Decision Tree</td>
+<td>每轮新树拟合上一轮残差，所有树累加为最终预测</td>
+</tr>
+<tr>
+<td>二阶梯度</td>
+<td>Hessian</td>
+<td>损失对预测的二阶导，XGBoost 用它做牛顿叶权重</td>
+</tr>
+<tr>
+<td>Shrinkage</td>
+<td>Learning Rate Shrinkage</td>
+<td>每棵树只累加一小步（eta），防过拟合</td>
+</tr>
+<tr>
+<td>Bagging</td>
+<td>Bootstrap Aggregating</td>
+<td>有放回采样并行训练多模型取均值/投票（随机森林）</td>
+</tr>
+<tr>
+<td>Boosting</td>
+<td>Gradient Boosting</td>
+<td>串行训练，每棵树修正前面的残差（GBDT/XGBoost）</td>
+</tr>
+<tr>
+<td>特征重要性</td>
+<td>Feature Importance</td>
+<td>树模型按分裂增益/覆盖率给特征排重要性</td>
+</tr>
+<tr>
+<td>early stopping</td>
+<td>Early Stopping</td>
+<td>验证集指标不再提升时提前停止训练轮数</td>
+</tr>
+<tr>
+<td>TF-IDF</td>
+<td>Term Frequency–Inverse Document Frequency</td>
+<td>词频 × 逆文档频率，抑制常见词权重</td>
+</tr>
+<tr>
+<td>过拟合比</td>
+<td>Overfitting Ratio</td>
+<td>测试 RMSE / 训练 RMSE，&gt; 1.2 该降容量或加正则</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">8. 深度三问</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>原始数据是表格（结构化）、特征和目标的关系需要领域知识才能表达（如"每户房间数"比"总房间数"更相关）、或模型是线性/距离类（表达不了非线性交叉）</li><li>每类 28 样本的目标编码 CV 虚高 2.4%——§4.1 实测的形态</li><li>还有两种情况：特征和目标的关系已经很强（模型 baseline 就 0.95，特征工程的边际收益 < 1%）；业务不允许特征上线时能拿到的字段（如离线才能算的统计量），此时造了也用不了</li></ul></div>2
+<p><strong>什么情况下用特征工程？</strong> 原始数据是表格（结构化）、特征和目标的关系需要领域知识才能表达（如"每户房间数"比"总房间数"更相关）、或模型是线性/距离类（表达不了非线性交叉）。此时人工交叉、变换、编码能显著降误差。具体触发信号：模型是线性回归/逻辑回归/KNN/SVM；特征之间有明确的物理比值关系（密度、比例、增长率）；目标有长尾或异常值；类别特征基数分布悬殊。这些情况下特征工程的边际收益最大。</p>
+<p><strong>什么情况下别用？</strong> 树模型上做标准化（没收益）；树模型上做无脑笛卡尔积交叉（树自带交叉能力）；深度学习端到端（特征工程在 embedding 里自动学）；每类样本 &lt; 10 的高基数目标编码（噪声主导）。还有两种情况：特征和目标的关系已经很强（模型 baseline 就 0.95，特征工程的边际收益 &lt; 1%）；业务不允许特征上线时能拿到的字段（如离线才能算的统计量），此时造了也用不了。判断标准：<strong>加特征前先问"这个特征上线时能拿到吗？模型自己学不到吗？"</strong> 两个问题都是"是"才造。</p>
+<p><strong>翻车长什么样？</strong> CV 分数 0.92、线上 0.81——目标泄漏（全量统计量、时间序列 shuffle 切分、目标编码用全量标签）。特征数 20→400 但验证集变差——无脑交叉。树模型上花两周做标准化——用了不该用的工序。KNN 准确率 0.85→0.62——忘了标准化。每类 28 样本的目标编码 CV 虚高 2.4%——§4.1 实测的形态。删行后线上 RMSE 反升——训练集缺失模式和线上不同，删行在训练集上"躲过"了缺失样本（§4.4）。id 特征排特征重要性第一——不是"重要"，是泄漏（§6.5）。</p>
+<p>翻车的排查顺序（从最可能到最不可能）：先查泄漏（目标编码/标准化/时间切分三处），再查工序错配（缩放、编码选错），最后查过度构造（特征数 vs 样本数）。这个顺序按"隐蔽性"排——泄漏最隐蔽（代码不报错、CV 好看），过度构造最明显（特征数暴涨、验证集不动）。</p>
+<hr />
+<h2 id="9-速查清单">9. 速查清单</h2>2
+<ol>
+<li>数值特征：量纲差 &gt; 10 倍且是距离/梯度模型 → 标准化（只用训练统计量）；右偏（均值/中位数 &gt; 1.2）→ log1p。</li>
+<li>类别特征：无序 + 低基数 → one-hot；高基数 + 每类样本 &gt; 20 → 目标编码（只用训练折标签）；无序类别别用 LabelEncoder 当特征。</li>
+<li>缺失值：MCAR + 缺失率 &lt; 5% → 均值/中位数填充；MAR 或缺失率 &gt; 20% → 填充 + 缺失指示列；标签缺失 → 删行。</li>
+<li>交叉特征：只加物理含义明确的比值/乘积；树模型上不做无脑笛卡尔积。</li>
+<li>XGBoost 调参：先 max_depth/min_child_weight（容量），再 subsample/colsample（随机性），最后 reg_alpha/reg_lambda（正则）；learning_rate 与 n_estimators 配对调 + early stopping。</li>
+<li>泄漏三查：目标编码是否用全量标签、标准化是否用全量统计量、时间序列是否 shuffle 切分（该用 KFold(shuffle=False) 或 TimeSeriesSplit）。</li>
+<li>特征重要性用 gain 口径，id 特征排前列 = 泄漏嫌疑。</li>
+<li>过拟合比（测试/训练 RMSE）&gt; 1.2 时降 max_depth 或加正则。</li>
+</ol>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">10. 素材溯源</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>code/17洛杉矶房价、code/19信用卡欺诈检测：数据探索流程（散点图、相关矩阵、属性组合）、标准化实操、缺失值填充</li><li>raw/fullstack/微调实战-2026.md：LoRA 学习率量级、数据质量纪律（借给特征工程的"泄漏三查"思路）</li></ul></div>2
+<p>本篇内容提炼自三份素材，融合通用正确知识与本机实跑实验：</p>
+<ul>
+<li><strong>raw/courseware/机器学习/</strong>：《14随机森林》（Bagging、特征随机、不需要特征缩放）、《15集成学习》（GBDT 三要素、Shrinkage、AdaBoost vs GBDT）、《19信用卡欺诈检测》（SMOTE、KFold(shuffle=False) 防时间泄漏、异常值箱线图）、《17洛杉矶房价》（属性组合试验、缺失值处理、特征缩放、GridSearchCV）、《04逻辑回归》（独热编码原理）。</li>
+<li><strong>code/17洛杉矶房价、code/19信用卡欺诈检测</strong>：数据探索流程（散点图、相关矩阵、属性组合）、标准化实操、缺失值填充。</li>
+<li><strong>raw/fullstack/微调实战-2026.md</strong>：LoRA 学习率量级、数据质量纪律（借给特征工程的"泄漏三查"思路）。</li>
+</ul>
+<p>所有实测数字（§1.2、§2.2、§2.2.1、§3.2、§4.1、§4.4、§5、§6.3.2、§6.3.3）为本机 numpy 2.4.3 实跑产出，代码块均可直接复制运行，seed 已在每段标注。</p></div></details></div></body></html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Playwright反爬爬取实战-2026</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ Playwright反爬爬取实战-2026</span></div><div class="wrap"><h1 id="playwright-反爬爬取实战2026-实测提炼">Playwright 反爬爬取实战（2026 实测提炼）</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/sources/%E5%8F%8D%E7%88%AC%E7%AB%99%E7%88%AC%E5%8F%96%E5%8F%AF%E8%BE%BE%E6%80%A7%E5%AE%9E%E6%B5%8B-Playwright-20260930.md">反爬站爬取可达性实测-Playwright-20260930</a></p>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="%E8%B0%83%E7%A0%94%E6%B5%81%E7%A8%8BSOP%E4%B8%8E%E4%BF%A1%E6%81%AF%E6%BA%90.html">调研SOP</a> · <a href="%E6%B4%BE%E5%8D%95%E7%BA%AA%E5%BE%8B%E4%B8%89%E6%9D%A1.html">派单纪律</a> · <a href="OC%E5%AE%A1%E6%9F%A5Gap%E9%97%A8%E7%A6%81.html">Gap门禁</a> · <a href="%E9%94%99%E8%AF%AF%E5%8F%B0%E8%B4%A6%E6%9C%BA%E5%88%B6.html">错误台账</a> · <a href="Debate%E8%84%91%E6%9A%B4%E4%B8%8E%E6%98%BE%E5%BC%8F%E5%BD%92%E5%B9%B6%E8%A7%84%E5%88%99.html">Debate脑暴</a> · <a href="Trace-Tampering%E9%98%B2%E5%BE%A1.html">Trace-Tampering</a> · <a href="%E5%85%AD%E5%91%98%E9%85%8D%E7%BD%AE%E7%BB%88%E5%B1%80.html">六员配置</a> · <a href="AI%E8%A1%8C%E4%B8%9A%E5%8A%A8%E6%80%81%E8%A7%82%E5%AF%9F-2026-09.html">AI行业动态</a></p>
+<p>入库: 2026-09-30 | 项目: wuyafang-l<br />
+来源: <code>raw/sources/反爬站爬取可达性实测-Playwright-20260930.md</code>（3 种姿势 × 5 URL 对照实测）<br />
+性质: 实战方法提炼，每条附实测依据 | 用途: 反爬站（openai/CF/WAF/指纹检测）正文抓取</p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">一、何时用真浏览器（vs curl）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. JS 动态页（SPA/SSR）——curl 拿到的是空壳模板</li><li>2. 反爬拦截——curl 403 / Cloudflare「Just a moment」/ 指纹检测</li><li>3. 登录态页面——需 cookie/session</li></ul></div>2
+<p>curl 够用的场景别上浏览器（省资源）：普通博客、官方 docs、API/JSON、RSS。<br />
+<strong>必须真浏览器渲染</strong>的三类：<br />
+1. <strong>JS 动态页（SPA/SSR）</strong>——curl 拿到的是空壳模板<br />
+2. <strong>反爬拦截</strong>——curl 403 / Cloudflare「Just a moment」/ 指纹检测<br />
+3. <strong>登录态页面</strong>——需 cookie/session</p>
+<h2 id="二stealth-三件套绕-headless-识别的核心">二、stealth 三件套（绕 headless 识别的核心）</h2>2
+<p>裸 headless 会被强反爬识别（<code>navigator.webdriver</code> 暴露自动化）。三件事去自动化特征：</p>
+<pre><code class="language-python"># 解释器必须用 ~/ai-stack/bin/python（系统 python3 没装 playwright 包）
+import asyncio
+from playwright.async_api import async_playwright
+
+async def main():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True, args=[
+            &quot;--no-sandbox&quot;, &quot;--disable-dev-shm-usage&quot;,
+            &quot;--disable-blink-features=AutomationControlled&quot;])   # ① 关自动化特征
+        ctx = await browser.new_context(
+            user_agent=&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36&quot;,  # ③ 真 Windows UA
+            locale=&quot;en-US&quot;, viewport={&quot;width&quot;:1280,&quot;height&quot;:800})  # ③ locale
+        await ctx.add_init_script(&quot;Object.defineProperty(navigator,'webdriver',{get:()=&gt;undefined});&quot;)  # ② 去 webdriver 标记
+        page = await ctx.new_page()
+        resp = await page.goto(&quot;https://openai.com/news/&quot;, timeout=45000, wait_until=&quot;domcontentloaded&quot;)
+        await page.wait_for_timeout(4000)  # 等 JS 渲染
+        body = &quot; &quot;.join((await page.inner_text(&quot;body&quot;)).split())
+        print(resp.status, len(body), body[:120])
+        await browser.close()
+
+asyncio.run(main())
+</code></pre>
+<p><strong>三件缺一不可</strong>：① <code>--disable-blink-features=AutomationControlled</code> ② <code>navigator.webdriver</code> 置 undefined ③ 真 Windows UA + <code>locale="en-US"</code>。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">三、逐站策略（实测）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>站点类型</th>
+<th>最小代价方案</th>
+<th>依据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>强反爬（openai）</td>
+<td>stealth headless</td>
+<td>裸 headless 403 → stealth 200/2082</td>
+</tr>
+<tr>
+<td>中等（HF/deepmind）</td>
+<td>代理 + 裸 headless</td>
+<td>代理通即 200，无需 stealth</td>
+</tr>
+<tr>
+<td>顽固页（openai/research）</td>
+<td>stealth + 换会话/窗口重试</td>
+<td>同域逐页分级，news 通 research 仍 403</td>
+</tr>
+<tr>
+<td>登录态（Twitter/小红书）</td>
+<td>导入 Cookie（agent-reach）</td>
+<td>网络通但要登录态</td>
+</tr>
+</tbody>
+</table>
+<h2 id="四环境依赖装不好会-exitcode127">四、环境依赖（装不好会 exitCode=127）</h2>2
+<ul>
+<li><strong>NSS 库</strong>：chrome 启动前提，缺则报 <code>libnspr4.so not found</code> → <code>sudo apt-get install -y libnspr4 libnss3</code></li>
+<li><strong>playwright 版本</strong>：python 包 <code>~/ai-stack/bin/pip install playwright</code>（1.63.0），配套浏览器 <code>~/ai-stack/bin/playwright install chromium</code>（1243）。<strong>版本必须配套</strong>，不配套报「download new browsers」。</li>
+<li><strong>代理前提</strong>：大陆 WSL 需开科学上网（WSL 走系统代理），否则 google/x/HF 直连 000。</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">五、与本库其它爬取技能的关系</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>反爬恢复（存档类）→ 「web/blocked-page-recovery」（Wayback/archive.today/Jina）</li><li>多渠道爬具（Twitter/yt-dlp/exa）→ 「software-development/agent-reach-setup」</li><li>浏览器自动化总设计 → 「autonomous-ai-agents/hermes-browser-automation」（本文是其 stealth 配方落地版）</li></ul></div>2
+<ul>
+<li>反爬恢复（存档类）→ <code>web/blocked-page-recovery</code>（Wayback/archive.today/Jina）</li>
+<li>多渠道爬具（Twitter/yt-dlp/exa）→ <code>software-development/agent-reach-setup</code></li>
+<li>浏览器自动化总设计 → <code>autonomous-ai-agents/hermes-browser-automation</code>（本文是其 stealth 配方落地版）</li>
+</ul></div></details></div></body></html>

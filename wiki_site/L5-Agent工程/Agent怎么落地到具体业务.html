@@ -1,0 +1,166 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent怎么落地到具体业务</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/Agent怎么落地到具体业务</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="agent-7">Agent 怎么落地到具体业务：从 7 本书的项目案例提炼</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<h2 id="_1">这个问题的答案是什么</h2>
+<p><strong>一句话</strong>：Agent 不是"通用智能助手"，而是"某个具体痛点的数字员工"——7 本书给出的 20+ 个落地案例，全部遵循同一个公式：<strong>一个明确的重复劳动 + 一个可验证的输出 + 一个能被工具化的数据源</strong>。</p>
+<p><strong>能落地的 vs 不能落地的，分界在哪</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>能落地（数字员工）</th>
+<th>不落地（玩具）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>输入是结构化的（发票/标书/聊天记录）</td>
+<td>输入是开放的"帮我想想"</td>
+</tr>
+<tr>
+<td>输出可验证（对/错、过/不过）</td>
+<td>输出只能主观评价</td>
+</tr>
+<tr>
+<td>有现成工具能查真相（OCR/数据库/API）</td>
+<td>只能靠模型脑补</td>
+</tr>
+<tr>
+<td>人工原来就要花 1 小时以上</td>
+<td>人工 5 分钟搞定，Agent 反而更慢</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_2">详细内容</h2>
+<h3 id="7">一、7 本书的项目案例分类（按业务域）</h3>
+<p><strong>A. 文档/票据处理类（最成熟）</strong>
+- 发票识别 Agent（《零基础搭建》第 7 章）：OCR + 字段抽取 + 结构化输出，"告别手动录入"。
+- 标书阅读 Agent（第 8 章）：合规性检查，"减少标书违规"。
+- 知识问答 Agent（第 9 章）：企业知识库 RAG，"让知识库活起来"。
+- 财报检索 Agent（《动手做 AI Agent》第 8 章）：LlamaIndex + ReAct RAG。</p>
+<p><strong>B. 人机交互/陪练类</strong>
+- 模拟面试官 Agent（第 10 章）：结构化面试流程。
+- 小学生英语陪练 Agent（第 11 章）：多模态对话 + 引导逻辑。</p>
+<p><strong>C. 信息收集/内容生产类</strong>
+- 旅游助手 Agent（第 12 章）：查航班、酒店、攻略。
+- 抖音/小红书文案提取仿写 Agent（第 13 章）：短链抓取 + 风格仿写。
+- 新闻播报智能体（第 4 章提到）：插件取新闻 + 卡片化输出。</p>
+<p><strong>D. 工程/自动化类</strong>
+- 创作 PPT Agent（《动手做》第 4 章）：Assistants API + DALL·E 3。
+- 鲜花定价 Agent（第 6 章）：ReAct + 外部 API 查询价格。
+- 库存调度 Agent（第 7 章）：Plan-and-Execute。
+- 辅助编程 Agent（《大模型项目实战》第 12 章）：AutoGen 多 Agent。
+- 多智体图像应用（第 15 章）：Qwen-Agent + CogVLM2。</p>
+<p><strong>E. 企业监控类</strong>
+- 运营/财务异常监控（《零基础搭建》划线上提到）：实时监控、发现异常、提醒排查——"财务造假、设备故障、合规风险"。</p>
+<h3 id="5">二、落地的 5 步通用流程（跨书提炼）</h3>
+<ol>
+<li><strong>找痛点</strong>：挑一个"每周重复 ≥ 3 次、单次 ≥ 30 分钟、出错代价高"的活。《动手做》引的创业建议："初期专注特定、小规模业务场景，深入解决具体问题，而不是追求建立大型平台。"</li>
+<li><strong>定输入输出</strong>：输入是什么格式（PDF/Excel/聊天记录）、输出是什么格式（结构化 JSON / 卡片 / 邮件）。</li>
+<li><strong>选工具</strong>：哪些是 RAG（查知识库）、哪些是 FC（调 API）、哪些是代码执行（Python 算）。</li>
+<li><strong>搭循环</strong>：简单用 ReAct，复杂用 Plan-and-Execute，要质量加 Reflection。</li>
+<li><strong>接日志和回调</strong>：《零基础搭建》特别强调 LangChain 的回调处理器——"每次用户提问、链的运行状态、模型输出都记录到日志文件，出问题能快速定位"。这一步是从 demo 到生产的分水岭。</li>
+</ol>
+<h3 id="vs">三、低代码 vs 代码：不同阶段的选型</h3>
+<p>（详见同目录《Coze-Dify-LangChain边界在哪》，这里只给落地视角的判断）：
+- <strong>老板演示 / 1 周内要出结果</strong> → Coze。发票识别、文案仿写这类，Coze 工作流节点拖一拖就出。
+- <strong>企业内网 / 数据不能出公司</strong> → Dify 私有化。知识问答、标书阅读。
+- <strong>要断点续跑 / 多 Agent / 和业务系统耦合</strong> → LangChain/LangGraph。库存调度、运营监控。</p>
+<h3 id="_3">四、常见的失败模式（从书里反推）</h3>
+<ul>
+<li><strong>追求"通用 Agent"</strong>：一个 Bot 什么都能干 = 什么都干不好。7 本书所有成功案例都是单痛点。</li>
+<li><strong>跳过 RAG 直接让模型答</strong>："大模型在专业领域（医疗/法律/企业内部知识）会回答不准、信息滞后"——这是《零基础搭建》划线上的第 1 名，2379 人同意。</li>
+<li><strong>不做日志</strong>：用户反馈"回复异常"时无法定位。</li>
+<li><strong>忽视数学/数字短板</strong>：《零基础搭建》第 3 章专门讲"为什么 AI 无法准确识别数字、为什么有数学逻辑短板"——涉及金额、数量的必须外挂计算器/代码执行，不能让模型心算。</li>
+</ul>
+<h2 id="_4">来自哪些书的哪些观点</h2>
+<ul>
+<li><strong>《零基础搭建 Coze+Dify+LangChain》（徐洋）</strong>：13 个章节全部是业务案例，是"落地视角"最完整的一本。</li>
+<li><strong>《动手做 AI Agent》（黄佳）</strong>：7 个 Agent 从简单到复杂（Assistants→FC→ReAct→Plan-and-Execute→RAG→AutoGen→多 Agent），是"技术栈递进"最清晰的一本。</li>
+<li><strong>《大模型项目实战》（高强文）</strong>：覆盖 GLM-4/AgentScope/LangChain/LangGraph/AutoGen/CrewAI/LlamaIndex/Qwen-Agent 8 个框架的对比，是"框架选型"最丰富的一本。</li>
+<li><strong>《Building Agentic AI Systems》</strong>：企业级视角——信任、安全、偏见、检查点恢复，是"生产化"视角。</li>
+<li><strong>《MCP 原理与实战》/《一本书讲透 MCP》</strong>：当你的 Agent 要接 5+ 个外部系统时，工具层该用 MCP 而不是写 5 套集成。</li>
+</ul>
+<h2 id="_5">我们库当前的落地点（对照六员体系）</h2>
+<table>
+<thead>
+<tr>
+<th>业务场景</th>
+<th>候选方案</th>
+<th>对照书</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>wuyafang-l 知识库问答</td>
+<td>已有 RAG 路线（rag-quick-start 技能）</td>
+<td>《零基础》第 9 章 / 《动手做》第 8 章</td>
+</tr>
+<tr>
+<td>短链抓取（头条/抖音/小红书）</td>
+<td>已有 <code>app-shortlink-scraper</code> 技能</td>
+<td>《零基础》第 13 章同款</td>
+</tr>
+<tr>
+<td>多 Agent 编码（编码任务派发）</td>
+<td>已有 <code>kanban-swarm</code> / <code>delegate_task</code></td>
+<td>《动手做》第 10 章 AutoGen/MetaGPT</td>
+</tr>
+<tr>
+<td>财务/运营异常监控</td>
+<td>待建（用 Hermes cron + 异常检测 prompt）</td>
+<td>《零基础》运营监控划线</td>
+</tr>
+<tr>
+<td>标书/合同合规审查</td>
+<td>待建（RAG + 规则抽取 + Reflection）</td>
+<td>《零基础》第 8 章</td>
+</tr>
+</tbody>
+</table>
+<p><strong>下一步动作</strong>：按"每周重复 ≥ 3 次、单次 ≥ 30 分钟、出错代价高"的标准，从 wuyafang-l 工作流里挑一个真实痛点（比如"每次整理 7 本书划线笔记成 wiki"这件事本身——我们现在就是在做一个半自动的 wiki Agent），固化成一个可复用的 Agent 技能。</p></div></body></html>

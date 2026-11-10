@@ -1,0 +1,909 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L5-Agent核心循环与业务落地-深挖整合</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/L5-Agent核心循环与业务落地-深挖整合</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="l5-agent-reactplan-and-executereflection">L5 Agent 核心循环与业务落地：ReAct、Plan-and-Execute、Reflection 与动手实现</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<h2 id="_1">导读</h2>
+<p>这篇文章回答三个问题：Agent 的循环怎么选，一个业务场景怎么变成可落地的 Agent，以及这些循环在代码里长什么样。全文按"原理、方法、代码"的顺序展开，同一个概念只在一处讲透，其余地方用链接指回。</p>
+<p>核心结论有四条：</p>
+<ol>
+<li><strong>循环按任务复杂度分层，不分先进与落后。</strong> ReAct 适合短任务和路径不明的任务，Plan-and-Execute 适合步骤多且可分解的任务，Reflection 用来补产出质量。三者可以叠加使用。</li>
+<li><strong>默认先上 ReAct，遇到跑偏再加 Planner，产出不满意再加 Reflection。</strong> 这个顺序的成本最低，也最容易排查问题。</li>
+<li><strong>能落地的 Agent 是某个具体痛点的数字员工。</strong> 它需要一个重复劳动、一个可验证的输出，以及一个能被工具化的数据源。7 本书里所有成功案例都是单一痛点，没有一个是"通用助手"。</li>
+<li><strong>动手时按课件顺序推进：先搭 HTTP 外壳，再接检索和工具，最后加推理模式。</strong> 课件代码按 FastAPI、LlamaIndex、LangChain 的顺序组织。</li>
+</ol>
+<p>框架选型、低代码平台的边界、工具协议、记忆设计、多 Agent 编排和生产化要求分属其他文章。本文只在需要时用一句话指向它们，相关链接见文末。</p>
+<h2 id="_2">一、循环模式与选型</h2>
+<h3 id="11">1.1 三种循环的节奏与适用边界</h3>
+<p>Agent 的核心是"LLM 在循环里根据环境反馈调用工具"。循环的形态决定了 Agent 每一步怎么想、怎么做、什么时候停。下表列出三种最常见的循环，以及它们各自适合和不适合的任务。</p>
+<table>
+<thead>
+<tr>
+<th>循环</th>
+<th>核心节奏</th>
+<th>适合的任务</th>
+<th>不适合的任务</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ReAct</strong></td>
+<td>观察、思考、行动、再观察，循环到结束</td>
+<td>步骤不超过 5 步、路径不明确、需要边走边看</td>
+<td>步骤多、要全局最优、容易跑偏的长任务</td>
+</tr>
+<tr>
+<td><strong>Plan-and-Execute</strong></td>
+<td>先一次性拆解成 N 步计划，再逐步执行</td>
+<td>任务清晰、步骤不少于 5 步、可分解（库存调度、标书阅读）</td>
+<td>路径高度不确定，计划做了也白做</td>
+</tr>
+<tr>
+<td><strong>Reflection / Introspection</strong></td>
+<td>产出、自我批判、修订</td>
+<td>对质量要求高的任务（代码、文案、法律文书）</td>
+<td>低成本、高并发的任务，因为反思本身很贵</td>
+</tr>
+</tbody>
+</table>
+<p>三种循环的差别在于"什么时候做决定"。ReAct 每一步都重新决定下一步动作，决定是在看到结果之后做出的。Plan-and-Execute 在开始时就把整条路径定下来，之后按计划执行。Reflection 不关心路径，只关心产出过不过关。因此，三者解决的是不同层面的问题，不构成互相替代的关系。</p>
+<h3 id="12">1.2 判断口诀与叠加方式</h3>
+<p>选循环时可以记一句口诀：<strong>默认先上 ReAct，跑偏了加 Planner，产出不满意加 Reflection。</strong></p>
+<p>三层可以叠加使用。Plan-and-Execute 的每一步内部本身就是一个 ReAct 循环，最终产出还可以再过一遍 Reflection。</p>
+<h3 id="13-react">1.3 ReAct：边想边干</h3>
+<p>ReAct 是最经典的 Agent 循环。它的设计哲学来自《动手做 AI Agent》（黄佳）引述的原话："在动态和不确定的环境中，有效的决策需要持续的学习和适应，以及快速将推理转化为行动的能力，即形成有效的观察—思考—行动—再观察的循环。"</p>
+<p>《动手做 AI Agent》第 6 章直接用 LangChain 的 <code>create_react_agent</code> 跑了鲜花定价的案例。《大模型项目实战》（高强文）基于 AgentScope 的 ReAct Agent 也是同一套结构：<code>UserAgent</code> 接收任务，<code>ReActAgent</code> 做 Reason-Acting 迭代。两本书用的框架不同，循环结构相同，说明 ReAct 已经是教材级的标准件。</p>
+<p>ReAct 有两个主要的坑。</p>
+<ul>
+<li><strong>步数不可控。</strong> 模型可能在第 10 步还在原地打转。因此必须设置 <code>max_iterations</code>。最佳答案给出的经验值是长任务一般设为 10 到 20 步。</li>
+<li><strong>计划视野短。</strong> ReAct 不看全局，容易走偏。所以它只适合"边走边看"的活，不适合需要全局规划的长任务。</li>
+</ul>
+<h3 id="14-plan-and-execute">1.4 Plan-and-Execute：先想清楚再动手</h3>
+<p>Plan-and-Execute 的标准样例见《动手做 AI Agent》第 7 章，案例是物流管理和库存调度。它由三个角色组成。</p>
+<ol>
+<li><strong>Planner</strong> 一次性把任务拆成 N 步，输出结构化的计划。</li>
+<li><strong>Executor</strong> 逐步执行计划，每一步本身是一个小的 ReAct 循环。</li>
+<li><strong>Replanner</strong> 可选。执行完几步后回头看剩余计划是否需要调整。</li>
+</ol>
+<p>《大模型项目实战》里的 BabyAGI 是这个范式的极简原型。它"根据先前任务的结果和预定义的目标创建任务"，并用向量库存放任务上下文。原书评价它"代码量虽小，但方法论起了意想不到的效果"。</p>
+<p>这种循环适合任务可以分解、步骤多、路径可预期的场景。发票识别、标书阅读、库存调度都属于这一类。</p>
+<p>它不适合任务本身就模糊的场景。比如"帮我调研一下竞品"这种需求，Planner 第一次拆出来的步骤很可能就是错的，计划做了也白做。这时应该先用 ReAct 把问题澄清，再考虑规划。</p>
+<h3 id="15-reflection">1.5 Reflection：给自己挑毛病</h3>
+<p>《Building Agentic AI Systems》第 4 章专门讲了 Reflection and Introspection。它的核心做法是：Agent 产出结果后，让另一个 LLM 调用对产出做批判，例如"这个定价合理吗？数据来源可靠吗？"。批评意见再交还给原 Agent，让它修订。</p>
+<p>Reflection 的几个典型场景如下。</p>
+<ul>
+<li><strong>代码生成。</strong> 写完代码后跑一下测试，测试不过就进入反思。</li>
+<li><strong>文案生成。</strong> 写完后让 Critic 打分，分数不够就修改。</li>
+<li><strong>个性化推荐。</strong> 《Building Agentic AI Systems》提到"反思型代理"可以用于营销推荐，通过识别"某些类型的推荐总是低分"来调整策略。</li>
+</ul>
+<p>Reflection 的代价是贵。如果每一步都反思，token 消耗几乎翻倍。因此，它应该只用在最终产出或关键节点上，不要每一步都做。</p>
+<h3 id="16-agent">1.6 组合：现实中的 Agent 长什么样</h3>
+<p>现实中的 Agent 很少只用一种循环。《Building Agentic AI Systems》第 6 章提出了 Coordinator-Worker-Delegator 三层编排。</p>
+<ul>
+<li><strong>Coordinator</strong> 接收任务并做规划，相当于 Planner。</li>
+<li><strong>Delegator</strong> 把子任务分派给 Worker。</li>
+<li><strong>Worker</strong> 具体执行，内部是 ReAct 循环。</li>
+</ul>
+<p>在关键节点再叠加 Reflection，就得到一个可以投入生产的 Agent 骨架。同一本书还提出，高风险任务应该"投入更多计算资源做更深入推理"，也就是按风险自适应地分配算力。</p>
+<p>《零基础搭建 Coze+Dify+LangChain》（徐洋）则从另一个角度给出了类似的结论。低代码平台里的"工作流节点"，其实就是 Plan-and-Execute 的可视化版本。每个节点是一步，连线就是执行顺序。</p>
+<h3 id="17-agentic-rag">1.7 Agentic RAG 的六种模式</h3>
+<p>当 Agent 的工具是检索时，循环结构会变成 Agentic RAG。L5 最佳答案列出了六种模式：Router、Agent-as-retriever、CRAG、Self-RAG、Adaptive 和 Agentic-GraphRAG。源文目前只对 CRAG 给出了思路：加一个轻量的检索质量评估组件，自动判断检索质量，并在质量不够时触发 web 搜索兜底。其余五种在源文中只有名称，库里还没有对应的代码模板。</p>
+<h2 id="_3">二、循环设计细则</h2>
+<p>循环设计的核心是给每个循环定义边界，包括何时停止、步数上限、反思次数和失败处理。下面按源文的说法逐条整理。</p>
+<h3 id="21">2.1 终止与步数上限</h3>
+<p>终止条件分为两类。一类是任务完成，另一类是达到上限。ReAct 循环最需要显式的上限，因为它没有全局计划可以判断是否已经走完。源文给出的经验是长任务设置 <code>max_iterations</code>，一般为 10 到 20 步。</p>
+<p>Plan-and-Execute 在执行中途失败时需要处理。课件的说法是每步失败还能 replan，即重新规划剩余步骤，而不是整条计划作废。</p>
+<h3 id="22">2.2 反思的频率与位置</h3>
+<p>反思是循环里最贵的环节，所以它的位置比它的存在更重要。源文的原则是：只在最终产出或关键节点做反思。每一步都反思，等于每一步的 token 消耗翻倍。</p>
+<p>这个原则也适用于代码任务。例如代码写完后跑一次测试，失败时进入一轮反思，而不是在每个函数写完后都做一轮反思。</p>
+<h3 id="23-plan-and-execute">2.3 Plan-and-Execute 中的重规划</h3>
+<p>重规划的触发点通常是执行中出现与计划不符的结果。源文没有给出具体的触发阈值，只说明 Replanner 是可选的，执行完几步后回头看剩余计划是否需要调整。因此，重规划的频率需要根据任务本身确定，源文没有给出通用的数字。</p>
+<h3 id="24">2.4 中间件作为循环的守门员</h3>
+<p>课件把中间件作为在 Agent 循环外围做拦截、审计和注入的机制。LangChain <code>create_agent</code> 支持的钩子有五种，每种对应循环中的一个位置。</p>
+<ul>
+<li><code>@before_agent</code>：Agent 启动前，适合做权限、敏感词和上下文注入。</li>
+<li><code>@before_model</code>：每次调用 LLM 前，适合做动态系统提示词和上下文压缩。</li>
+<li><code>@after_model</code>：LLM 输出后，适合做日志和审计。</li>
+<li><code>@wrap_model_call</code>：包住一次 LLM 调用，适合做重试和降级（fallback）。</li>
+<li><code>@wrap_tool_call</code>：包住一次工具调用，适合做权限校验和参数清洗。</li>
+</ul>
+<p>中间件的好处是不需要改动循环本身。权限和审计逻辑放在钩子里，循环的主流程保持不变。具体代码见第四章。</p>
+<h3 id="25">2.5 循环的状态与恢复</h3>
+<p>循环中的状态分为两种。一种是会话内的短期状态，按会话 ID 保存。另一种是跨会话的长期状态。课件中 LangChain 的 <code>InMemorySaver</code> 对应短期状态，<code>thread_id</code> 是会话隔离的主键。源文特别提醒，不同用户必须传入不同的 <code>thread_id</code>，否则会话内容会串台。</p>
+<p>长期状态的存储和检索属于记忆设计，不在本文展开，见 <a href="L5-Agent记忆与自进化-深挖整合.html">L5-Agent记忆与自进化-深挖整合.md</a>。</p>
+<h2 id="_4">三、业务落地方法</h2>
+<h3 id="31">3.1 能落地的与不能落地的</h3>
+<p>源文用一张表区分了"数字员工"和"玩具"。判断一个场景能不能落地，只需要对照这四条。</p>
+<table>
+<thead>
+<tr>
+<th>能落地（数字员工）</th>
+<th>不落地（玩具）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>输入是结构化的，例如发票、标书、聊天记录</td>
+<td>输入是开放的"帮我想想"</td>
+</tr>
+<tr>
+<td>输出可验证，有对错或过不过的判断</td>
+<td>输出只能靠主观评价</td>
+</tr>
+<tr>
+<td>有现成工具能查到真相，例如 OCR、数据库、API</td>
+<td>只能靠模型脑补</td>
+</tr>
+<tr>
+<td>人工原本要花 1 小时以上</td>
+<td>人工 5 分钟就能完成，Agent 反而更慢</td>
+</tr>
+</tbody>
+</table>
+<p>这张表的第四行经常被忽略。如果人工只要几分钟，Agent 调用模型、等待工具和校验结果的时间加起来，往往比人工还慢。落地前应该先算清楚这笔账。</p>
+<h3 id="32">3.2 落地的五步流程</h3>
+<p>源文跨 7 本书提炼出五步通用流程。</p>
+<ol>
+<li><strong>找痛点。</strong> 挑一个"每周重复 3 次以上、单次 30 分钟以上、出错代价高"的工作。《动手做 AI Agent》引用的创业建议是："初期专注特定、小规模业务场景，深入解决具体问题，而不是追求建立大型平台。"</li>
+<li><strong>定输入输出。</strong> 明确输入的格式，例如 PDF、Excel 或聊天记录。再明确输出的格式，例如结构化 JSON、卡片或邮件。</li>
+<li><strong>选工具。</strong> 区分哪些步骤是 RAG（查知识库），哪些是 FC（调 API），哪些是代码执行（用 Python 算）。</li>
+<li><strong>搭循环。</strong> 简单任务用 ReAct，复杂任务用 Plan-and-Execute，需要质量时加 Reflection。</li>
+<li><strong>接日志和回调。</strong> 《零基础搭建 Coze+Dify+LangChain》特别强调 LangChain 的回调处理器。它要求把每次用户提问、链的运行状态和模型输出都记录到日志文件，出问题时才能快速定位。源文认为这一步是从 demo 到生产的分水岭。</li>
+</ol>
+<h3 id="33">3.3 常见的失败模式</h3>
+<p>源文从书里反推出四种常见失败模式。</p>
+<ul>
+<li><strong>追求"通用 Agent"。</strong> 一个 Bot 什么都能干，结果就是什么都干不好。7 本书所有成功案例都是单一痛点。</li>
+<li><strong>跳过 RAG，直接让模型回答。</strong> 《零基础搭建》划线统计中，这一条排在第 1 位，有 2379 人同意。书中的观点是，大模型在医疗、法律和企业内部知识等专业领域回答不准，且信息滞后。</li>
+<li><strong>不做日志。</strong> 用户反馈"回复异常"时，无法定位是哪一步出的问题。这一条和落地第 5 步是同一件事的两面。</li>
+<li><strong>忽视数字短板。</strong> 《零基础搭建》第 3 章专门讲了 AI 为什么无法准确识别数字、为什么有数学逻辑短板。因此，涉及金额和数量的计算必须交给计算器或代码执行，不能让模型心算。</li>
+</ul>
+<p>这四种模式的共同点是把 Agent 当成万能工具使用。业务落地的方法，本质上就是把它拉回到单一痛点、可验证输出和可靠工具上。</p>
+<h3 id="34">3.4 业务案例的分类</h3>
+<p>源文收集了 7 本书中 20 多个落地案例，并按业务域分成五类。下面的列表保留了每个案例的来源章节，方便回查。</p>
+<p><strong>A. 文档与票据处理类（最成熟）</strong></p>
+<ul>
+<li>发票识别 Agent（《零基础搭建》第 7 章）：OCR 加字段抽取，再输出结构化结果，即"告别手动录入"。</li>
+<li>标书阅读 Agent（第 8 章）：做合规性检查，即"减少标书违规"。</li>
+<li>知识问答 Agent（第 9 章）：企业知识库 RAG，即"让知识库活起来"。</li>
+<li>财报检索 Agent（《动手做 AI Agent》第 8 章）：LlamaIndex 加 ReAct 的 RAG。</li>
+</ul>
+<p><strong>B. 人机交互与陪练类</strong></p>
+<ul>
+<li>模拟面试官 Agent（《零基础搭建》第 10 章）：按结构化的面试流程进行。</li>
+<li>小学生英语陪练 Agent（第 11 章）：多模态对话加引导逻辑。</li>
+</ul>
+<p><strong>C. 信息收集与内容生产类</strong></p>
+<ul>
+<li>旅游助手 Agent（第 12 章）：查询航班、酒店和攻略。</li>
+<li>抖音、小红书文案提取仿写 Agent（第 13 章）：短链抓取加风格仿写。</li>
+<li>新闻播报智能体（第 4 章提到）：通过插件取新闻，再做卡片化输出。</li>
+</ul>
+<p><strong>D. 工程与自动化类</strong></p>
+<ul>
+<li>创作 PPT Agent（《动手做 AI Agent》第 4 章）：Assistants API 加 DALL·E 3。</li>
+<li>鲜花定价 Agent（《动手做 AI Agent》第 6 章）：ReAct 加外部 API 查价格。</li>
+<li>库存调度 Agent（《动手做 AI Agent》第 7 章）：Plan-and-Execute。</li>
+<li>辅助编程 Agent（《大模型项目实战》第 12 章）：AutoGen 多 Agent。</li>
+<li>多智体图像应用（《大模型项目实战》第 15 章）：Qwen-Agent 加 CogVLM2。</li>
+</ul>
+<p><strong>E. 企业监控类</strong></p>
+<ul>
+<li>运营与财务异常监控（《零基础搭建》划线中提到）：实时监控、发现异常、提醒排查，适用于"财务造假、设备故障、合规风险"。</li>
+</ul>
+<p>源文的"最成熟"标注出现在 A 类，理由是这类任务的输入结构化、输出可核对。</p>
+<h3 id="35">3.5 低代码与代码的选型</h3>
+<p>低代码平台与代码框架的取舍，源文给出了阶段性的判断，具体的阶梯和对比在 <a href="Coze-Dify-LangChain边界在哪.html">Coze-Dify-LangChain边界在哪</a> 中展开。这里只保留落地视角的一条判断：演示和一周内要结果的场景偏向低代码，内网数据不能出域的场景偏向私有化平台，要断点续跑、多 Agent 或深度耦合业务系统的场景偏向代码框架。</p>
+<h3 id="36">3.6 本库的候选落地点</h3>
+<p>源文对照 wuyafang-l 知识库的现状，列出了几个候选业务场景。</p>
+<table>
+<thead>
+<tr>
+<th>业务场景</th>
+<th>候选方案</th>
+<th>对照书</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>wuyafang-l 知识库问答</td>
+<td>已有 RAG 路线（rag-quick-start 技能）</td>
+<td>《零基础》第 9 章、《动手做》第 8 章</td>
+</tr>
+<tr>
+<td>短链抓取（头条、抖音、小红书）</td>
+<td>已有 <code>app-shortlink-scraper</code> 技能</td>
+<td>《零基础》第 13 章同款</td>
+</tr>
+<tr>
+<td>多 Agent 编码（编码任务派发）</td>
+<td>已有 <code>kanban-swarm</code> 与 <code>delegate_task</code></td>
+<td>《动手做》第 10 章 AutoGen、MetaGPT</td>
+</tr>
+<tr>
+<td>财务与运营异常监控</td>
+<td>待建，用 Hermes cron 加异常检测 prompt</td>
+<td>《零基础》运营监控划线</td>
+</tr>
+<tr>
+<td>标书与合同合规审查</td>
+<td>待建，RAG 加规则抽取加 Reflection</td>
+<td>《零基础》第 8 章</td>
+</tr>
+</tbody>
+</table>
+<p>源文还指出，知识库本身就在做一个半自动的 wiki Agent。整理 7 本书的划线笔记并沉淀为 wiki 的工作，本身就符合"每周重复、单次耗时、可验证"的标准。因此，下一步的动作是把这类工作固化成一个可复用的 Agent 技能。</p>
+<h3 id="37">3.7 本库各角色的循环形态</h3>
+<p>源文记录了六员体系中各角色使用的循环形态。</p>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>循环形态</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hermes 主对话</td>
+<td>ReAct 加软 Reflection</td>
+<td>边想边调用工具，<code>self-verification-blindspots</code> 技能承担强制反思</td>
+</tr>
+<tr>
+<td>Claude Code</td>
+<td>Plan 加 ReAct 执行加 Reflection</td>
+<td>先写计划，执行时边做边看，跑测试做自验</td>
+</tr>
+<tr>
+<td>Codex</td>
+<td>与 Claude Code 类似</td>
+<td>OpenAI 官方的 coding agent</td>
+</tr>
+<tr>
+<td>OpenClaw</td>
+<td>以 ReAct 为主</td>
+<td>工具调用循环，没有显式 Planner</td>
+</tr>
+<tr>
+<td>DSH</td>
+<td>只做派发，不做循环</td>
+<td>任务路由层</td>
+</tr>
+<tr>
+<td>QwenCode</td>
+<td>ReAct</td>
+<td>通义系的 coding agent</td>
+</tr>
+</tbody>
+</table>
+<p>这张表显示，本库的主流循环是 ReAct 加 Reflection，显式的 Planner 只出现在 Claude Code 的执行流程中。源文还给出了一个下一步动作：Hermes 的 <code>auto-iterate-goal</code> 技能是 Plan-and-Execute 的雏形，因为它会自己持续推进直到目标完成。可以借鉴 BabyAGI 的向量库任务上下文，让跨会话的长任务不丢状态。</p>
+<h2 id="_5">四、动手实现</h2>
+<p>这一章的代码按课件的顺序排列：先搭 HTTP 壳，再接检索，然后是 Agent 工具与中间件，最后是三种推理模式。代码保留课件的骨架，注释保留原文，个别参数的说明写在代码后面。</p>
+<h3 id="41-fastapi">4.1 FastAPI 后端骨架</h3>
+<p>FastAPI 在这里的角色是给后面的 RAG 和 Agent 应用套一层 HTTP 外壳。这部分代码量不大，但参数校验、异步模型和文件上传这三件事，是后面所有 Agent API 服务都会反复用到的。</p>
+<h4 id="411">4.1.1 最小示例与路径、查询参数</h4>
+<p>下面的代码来自 day01。</p>
+<pre><code class="language-python">from enum import Enum
+from typing import Annotated
+import uvicorn
+from fastapi import FastAPI, Path, Query
+
+class ModelName(str, Enum):
+    English = &quot;英语&quot;
+    Chinese = &quot;中文&quot;
+    French  = &quot;法语&quot;
+
+app = FastAPI()
+
+# 1) 路径参数 + 枚举校验：?model_name=xxx 不在枚举里直接 422
+@app.get(&quot;/models/{model_name}&quot;)
+async def get_model(model_name: ModelName):
+    if model_name is ModelName.English:
+        return {&quot;model_name&quot;: model_name, &quot;message&quot;: &quot;这是英文&quot;}
+    if model_name.value == &quot;中文&quot;:
+        return {&quot;model_name&quot;: model_name, &quot;message&quot;: &quot;这是中文&quot;}
+    return {&quot;model_name&quot;: model_name, &quot;message&quot;: &quot;这是法语&quot;}
+
+# 2) 路径参数 + 元数据（Swagger 里会显示 description）
+@app.get(&quot;/users/{id}&quot;)
+async def get_user(id: Annotated[int, Path(description=&quot;用户id&quot;)]):
+    return {&quot;id&quot;: id, &quot;message&quot;: f&quot;这是用户id为{id}的人&quot;}
+
+# 3) 查询参数：有默认值 = Query 参数（?skip=0&amp;limit=5）
+fake_items = [{&quot;item_name&quot;: n} for n in
+              [&quot;苹果&quot;,&quot;香蕉&quot;,&quot;橙子&quot;,&quot;笔记本电脑&quot;,&quot;无线鼠标&quot;]]
+
+@app.get(&quot;/items/&quot;)
+async def read_item(skip: int = 0,
+                    limit: Annotated[int, Query(description=&quot;条数&quot;)] = 5):
+    return fake_items[skip: skip + limit]
+
+if __name__ == &quot;__main__&quot;:
+    uvicorn.run(app)
+</code></pre>
+<p>这段代码有三个关键点，源文都列为常见坑。</p>
+<ul>
+<li>接口匹配是按从上到下的顺序进行的。<code>/root/{id}</code> 必须写在 <code>/root/test</code> 后面，否则 <code>test</code> 会被当作 <code>id</code> 匹配掉。</li>
+<li><code>Annotated[int, Path()]</code> 的第一个位置参数必须是类型，元数据跟在后面，不能省略类型。</li>
+<li>启动后访问 <code>http://127.0.0.1:8000/docs</code> 即可得到 Swagger UI，这是 FastAPI 免费提供的功能。</li>
+</ul>
+<h4 id="412-pydantic">4.1.2 Pydantic 请求体校验</h4>
+<p>下面的代码来自 day01。</p>
+<pre><code class="language-python">from typing import Annotated
+import uvicorn
+from fastapi import FastAPI, Body
+from pydantic import BaseModel, Field
+
+class Item(BaseModel):
+    name: str = Field(description=&quot;商品名称&quot;)
+    # 字符串长度约束用 max_length；数值约束用 ge / le / lt / gt
+    description: str | None = Field(default=None, description=&quot;商品描述&quot;, max_length=100)
+    price: float = Field(description=&quot;商品价格&quot;, ge=0, le=5000)
+    tax: float | None = None
+
+app = FastAPI()
+
+@app.post(&quot;/items/&quot;)
+async def create_item(item: Annotated[list[Item], Body(embed=True)]):
+    item_dict = item[0].model_dump()
+    if item[0].tax is not None:
+        item_dict[&quot;price_with_tax&quot;] = item[0].price + item[0].tax
+    return item_dict
+
+if __name__ == &quot;__main__&quot;:
+    uvicorn.run(app, host=&quot;127.0.0.1&quot;, port=8000)
+</code></pre>
+<p>参数的使用规则如下。</p>
+<ul>
+<li><code>ge=0, le=5000</code> 用于数值范围。字符串应使用 <code>max_length=100</code>、<code>min_length=2</code> 之类的约束，不要混用。</li>
+<li><code>Body(embed=True)</code> 表示请求体的形状是 <code>{"item": {...}}</code>。不加 <code>embed</code> 时，请求体直接就是对象本身。批量接收列表时经常踩到这个坑。</li>
+<li><code>model_dump()</code> 把 Pydantic 对象转成字典，这是新版本的写法，<code>dict()</code> 已经被标记为弃用。</li>
+</ul>
+<h4 id="413">4.1.3 文件上传接口</h4>
+<p>下面的代码来自 day01，给出了两种读取方式。</p>
+<pre><code class="language-python">import uvicorn
+from fastapi import FastAPI, File, UploadFile
+
+app = FastAPI()
+
+# 方式 A：bytes 一次性读进内存（小文件用）
+@app.post(&quot;/uploadfile/&quot;)
+def create_upload_file(file: bytes = File(description=&quot;以字节形式读取&quot;)):
+    return {&quot;file_size&quot;: len(file)}
+
+# 方式 B：UploadFile 流式（大文件、要拿元数据用这个）
+@app.post(&quot;/uploadfile1/&quot;)
+async def create_upload_file(file: UploadFile = File(description=&quot;流式读取&quot;)):
+    return {&quot;filename&quot;: file.filename,
+            &quot;content_type&quot;: file.content_type,
+            &quot;size&quot;: file.size}
+
+if __name__ == &quot;__main__&quot;:
+    uvicorn.run(app, host=&quot;127.0.0.1&quot;, port=8000)
+</code></pre>
+<p>两种方式的选择取决于文件大小。<code>bytes</code> 会把整个文件读进内存，适合小文件。<code>UploadFile</code> 是 SpooledTemporaryFile，超过阈值会自动落盘，适合大文件，而且能拿到文件名、类型和大小等元数据。</p>
+<p>RAG 场景上传 PDF 或文档时，建议使用 <code>UploadFile</code>，这样几百 MB 的文件不会被整个读进内存。另外，只有 <code>async def</code> 配合 <code>UploadFile</code> 才能享受异步 IO。普通的 <code>def</code> 函数会被放到线程池中执行。</p>
+<h4 id="414">4.1.4 前后端分离的项目骨架</h4>
+<p>day02 给出的是一个 FastAPI 加 Vue 的完整项目，目录结构如下。它可以作为后面 Agent 产品化的参考骨架。</p>
+<pre><code>fastapi项目案例/
+├── app/
+│   ├── main.py               # FastAPI 入口
+│   ├── api/v1/                # 路由层：/chat /upload /agent
+│   ├── core/                  # 配置：settings.py、安全
+│   ├── models/                # Pydantic 请求/响应模型
+│   ├── services/              # 业务逻辑（LLM 调用、向量库）
+│   └── utils/
+├── web/                       # Vue 前端（独立 dev server）
+├── requirements.txt
+└── .env                       # DASHSCOPE_API_KEY 等
+</code></pre>
+<p>后端的核心约定有三条。</p>
+<ul>
+<li>所有路由都在 <code>api/v1/</code> 下按资源拆分，例如 <code>chat.py</code> 和 <code>agent.py</code>，<code>main.py</code> 只负责 include_router。</li>
+<li>LLM 客户端放在 <code>services/</code> 中做单例化，避免每个请求都新建一个客户端。</li>
+<li>前端通过 <code>VITE_API_BASE=http://127.0.0.1:8000</code> 跨域访问后端，因此后端需要加 CORS middleware。</li>
+</ul>
+<p>这部分代码和业务耦合较深，课程中没有给出能独立运行的最小后端片段。如果要参考，建议直接读 day02 项目的 <code>main.py</code> 和 <code>chat.py</code>。</p>
+<h3 id="42-llamaindex-functionagent">4.2 LlamaIndex 检索与 FunctionAgent</h3>
+<p>LlamaIndex 是 RAG 的主要工具之一，和 LangChain 相比，它更偏向数据管道和索引引擎。课件 day03 讲入门，day04 讲文本切分，day05 讲摄取管道和路由，day06 讲自定义查询、检索和合成。</p>
+<h4 id="421-llmembedding">4.2.1 索引构建与默认 LLM、Embedding 配置</h4>
+<p>下面的代码来自 day03。</p>
+<pre><code class="language-python">from dotenv import load_dotenv
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.llms.dashscope import DashScope
+import os
+
+load_dotenv()
+
+model = &quot;qwen3-max&quot;
+api_key = os.getenv(&quot;DASHSCOPE_API_KEY&quot;)
+api_base = os.getenv(&quot;DASHSCOPE_BASE_URL&quot;)
+
+# LlamaIndex 全局默认配置：以后所有节点/查询引擎都用它
+Settings.llm = DashScope(model_name=model,
+                        api_key=api_key,
+                        api_base_url=api_base)
+Settings.embed_model = HuggingFaceEmbedding(
+    model_name=r&quot;D:\llm\Local_model\BAAI\bge-small-zh-v1___5&quot;
+)
+
+# 1) 加载文档（自动按后缀选择 reader）
+documents = SimpleDirectoryReader(input_files=[&quot;../data/公司规章制度.txt&quot;]).load_data()
+# 2) 构建向量索引（内存版；生产上换 Qdrant/Chroma）
+index = VectorStoreIndex.from_documents(documents)
+# 3) 查询引擎 + 提问
+query_engine = index.as_query_engine()
+print(query_engine.query(&quot;公司的上下班时间？&quot;))
+</code></pre>
+<p>这段代码里有几个参数需要注意。</p>
+<ul>
+<li><code>Settings.llm</code> 和 <code>Settings.embed_model</code> 是全局单例，修改一次整个工程都会生效。不要在每个文件里各自新建一个 LLM，否则会重复加载 embedding 模型。</li>
+<li><code>bge-small-zh-v1.5</code> 适合中文，本地加载快。生产环境建议换成 <code>bge-large-zh-v1.5</code> 或 <code>bge-m3</code>。</li>
+<li><code>VectorStoreIndex.from_documents</code> 内部默认的 <code>chunk_size</code> 是 1024，中文文档建议通过 <code>Settings.chunk_size=512</code> 调小。</li>
+</ul>
+<h4 id="422-functionagent">4.2.2 FunctionAgent 最小示例</h4>
+<p>下面的代码来自 day03。</p>
+<pre><code class="language-python">import asyncio
+from dotenv import load_dotenv
+from llama_index.core.agent.workflow import FunctionAgent
+from llama_index.llms.dashscope import DashScope
+import os
+
+load_dotenv()
+llm = DashScope(model_name=&quot;qwen3-max&quot;,
+                api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+                api_base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;))
+
+def multiply(a: float, b: float) -&gt; float:
+    &quot;&quot;&quot;两个数相乘并返回乘积&quot;&quot;&quot;
+    return a * b
+
+def add(a: float, b: float) -&gt; float:
+    &quot;&quot;&quot;两个数相加并返回和&quot;&quot;&quot;
+    return a + b
+
+# FunctionAgent = 函数自动被识别为工具，docstring 就是工具描述
+workflow = FunctionAgent(
+    tools=[multiply, add],
+    llm=llm,
+    system_prompt=&quot;你是一个可以使用工具执行基本数学运算的代理。请用中文回答&quot;,
+)
+
+async def main():
+    response = await workflow.run(user_msg=&quot;请计算 20+(2*4)?&quot;)
+    print(response)
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())
+</code></pre>
+<p>FunctionAgent 的要点有三个。</p>
+<ul>
+<li>LlamaIndex 会读取函数签名和 docstring，自动生成工具的 schema。因此 docstring 写得越清楚，模型调用工具就越准确。</li>
+<li>课件备注称，千问模型在 LlamaIndex agent 中对某些工具调用的兼容性不好，建议换成 DeepSeek。这是课件作者实际遇到的问题。</li>
+<li>需要流式输出时，使用 <code>workflow.stream_events()</code> 加 <code>AgentStream</code> 事件，不要用 <code>print(response)</code> 阻塞等待结果。</li>
+</ul>
+<h4 id="423">4.2.3 文本切分器</h4>
+<p>下面的代码来自 day04。</p>
+<pre><code class="language-python">from llama_index.core.node_parser import CodeSplitter, HierarchicalNodeParser
+from llama_index.core import SimpleDirectoryReader
+
+# 1) 代码切分器：按语言 AST 切，比字符串切分更准
+documents = SimpleDirectoryReader(input_files=[&quot;./03-MarkdownElement解析器.py&quot;]).load_data()
+splitter = CodeSplitter(
+    language=&quot;python&quot;,
+    chunk_lines=50,          # 每块目标行数
+    chunk_lines_overlap=10,  # 块之间重叠行数
+    max_chars=300,          # 单块最大字符
+)
+nodes = splitter.get_nodes_from_documents(documents)
+
+# 2) 层次节点解析器：生成&quot;粗块-细块&quot;两级，配合 AutoMergingRetriever
+node_parser = HierarchicalNodeParser.from_defaults(
+    chunk_sizes=[512, 300],  # 从粗到细的 token 数
+    chunk_overlap=70,
+)
+hier_nodes = node_parser.get_nodes_from_documents(documents)
+</code></pre>
+<p>三种切分器的选用场景如下。</p>
+<ul>
+<li>普通中文文档使用 <code>SentenceSplitter(chunk_size=512, chunk_overlap=50)</code>，day05 用的就是这个配置。</li>
+<li>代码仓库使用 <code>CodeSplitter</code>。</li>
+<li>长文档和制度手册使用 <code>HierarchicalNodeParser</code> 配合 <code>AutoMergingRetriever</code>。检索到叶节点后，系统会自动合并回父节点，再一起交给 LLM，避免切得太碎导致上下文丢失。</li>
+</ul>
+<h4 id="424-ingestionpipeline">4.2.4 摄取管道 IngestionPipeline</h4>
+<p>下面的代码来自 day05。</p>
+<pre><code class="language-python">from llama_index.core import SimpleDirectoryReader
+from llama_index.core.ingestion import IngestionPipeline
+from llama_index.core.text_splitter import SentenceSplitter
+from llama_index.core.extractors import TitleExtractor
+
+documents = SimpleDirectoryReader(input_files=[&quot;../data/小说.txt&quot;]).load_data()
+
+# 1) 切分器
+text_splitter = SentenceSplitter(chunk_size=256, chunk_overlap=30)
+# 2) 自动标题抽取器（用 LLM 给每个 chunk 起标题，存进 metadata）
+title_extractor = TitleExtractor(
+    nodes=5,
+    node_template=&quot;请为以下文档生成一个简洁的标题: {context_str}&quot;,
+    num_workers=5,
+)
+
+# 3) 管道 = 切分 → 向量化 → 抽取标题，一次跑完
+pipeline = IngestionPipeline(
+    transformations=[text_splitter, embed_model, title_extractor]
+)
+nodes = pipeline.run(documents=documents)
+for node in nodes:
+    print(node.metadata)
+</code></pre>
+<p>使用管道的理由有两点。第一，普通的 <code>VectorStoreIndex.from_documents</code> 背后就是一条默认管道。第二，一旦需要加入自定义抽取器、embedding、去重或缓存，就得自己编写 <code>IngestionPipeline</code>。</p>
+<p><code>num_workers=5</code> 表示并行调用 LLM 抽取标题的并发数。文档多时能明显加速，但并发数不能超过 API 的 QPS 上限。</p>
+<h4 id="425-routerqueryengine">4.2.5 路由索引 RouterQueryEngine</h4>
+<p>下面的代码来自 day05。</p>
+<pre><code class="language-python">from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+from llama_index.core.query_engine import RouterQueryEngine
+from llama_index.core.selectors import LLMSingleSelector
+from llama_index.core.tools import QueryEngineTool, ToolMetadata
+
+# 1) 多个独立文档各自建索引
+tech_docs = SimpleDirectoryReader(input_files=[&quot;../data/java_basics_manual.md&quot;]).load_data()
+product_docs = SimpleDirectoryReader(input_files=[&quot;../data/DeepSeek15天指导手册.pdf&quot;]).load_data()
+tech_index = VectorStoreIndex.from_documents(tech_docs)
+product_index = VectorStoreIndex.from_documents(product_docs)
+
+# 2) 每个索引配一个 query engine，参数不同
+tech_engine = tech_index.as_query_engine(similarity_top_k=3, response_mode=&quot;compact&quot;)
+product_engine = product_index.as_query_engine(similarity_top_k=5, response_mode=&quot;tree_summarize&quot;)
+
+# 3) 包装成&quot;工具&quot;，用 ToolMetadata 描述适用场景
+query_tools = [
+    QueryEngineTool(query_engine=tech_engine,
+                    metadata=ToolMetadata(name=&quot;technical_docs&quot;,
+                                          description=&quot;java 基础技术文档库...&quot;)),
+    QueryEngineTool(query_engine=product_engine,
+                    metadata=ToolMetadata(name=&quot;product_manual&quot;,
+                                          description=&quot;deepseek 使用手册...&quot;)),
+]
+
+# 4) RouterQueryEngine 用 LLM 自动选引擎
+router = RouterQueryEngine(
+    selector=LLMSingleSelector.from_defaults(),
+    query_engine_tools=query_tools,
+)
+print(router.query(&quot;怎么在 Java 里写一个单例？&quot;))
+</code></pre>
+<p>这里有两个需要注意的点。</p>
+<ul>
+<li><code>response_mode</code> 的选择影响答案的形式。<code>compact</code> 适合快问快答，<code>tree_summarize</code> 适合长文综述，<code>refine</code> 会逐个 chunk 迭代修改答案，速度慢但更准确。</li>
+<li><code>ToolMetadata.description</code> 写得好不好，直接决定路由能不能选对引擎。这和 Agent 工具描述的原理相同。</li>
+</ul>
+<h4 id="426">4.2.6 聊天引擎与存储持久化</h4>
+<p>下面的代码来自 day06。</p>
+<pre><code class="language-python">from llama_index.core import (
+    VectorStoreIndex, SimpleDirectoryReader, StorageContext, load_index_from_storage
+)
+
+# 1) 首次：建索引并持久化到磁盘
+documents = SimpleDirectoryReader(input_files=[&quot;../data/公司规章制度.txt&quot;]).load_data()
+index = VectorStoreIndex.from_documents(documents)
+index.storage_context.persist(persist_dir=&quot;./storage&quot;)
+
+# 2) 之后：直接从磁盘加载，跳过 embedding 计算
+storage_context = StorageContext.from_defaults(persist_dir=&quot;./storage&quot;)
+index = load_index_from_storage(storage_context)
+
+# 3) 聊天引擎（带 memory）
+chat_engine = index.as_chat_engine(chat_mode=&quot;context&quot;, verbose=True)
+print(chat_engine.chat(&quot;公司请假流程是什么？&quot;))
+print(chat_engine.chat(&quot;那年假呢？&quot;))  # 自动带上下文
+</code></pre>
+<p>课件指出，不持久化就意味着每次启动都要重新计算 embedding，已经花掉的 API 费用就白白浪费了。生产环境必须做持久化。</p>
+<p><code>chat_mode</code> 有两个常用选项。<code>context</code> 把检索结果作为系统上下文，适合单个知识库。<code>react</code> 把检索结果当作工具使用，适合多个知识库。</p>
+<h3 id="43-langchain-create_agentfunction-calling">4.3 LangChain create_agent：Function Calling 与中间件</h3>
+<h4 id="431-before_agent">4.3.1 自定义中间件：@before_agent 做权限与敏感词拦截</h4>
+<p>下面的代码来自 day08。</p>
+<pre><code class="language-python">from langchain.agents import create_agent, AgentState
+from langchain.agents.middleware import before_agent
+from langchain.messages import HumanMessage, AIMessage
+from langchain_openai import ChatOpenAI
+from langgraph.runtime import Runtime
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class Context:           # 通过 runtime 注入的运行时上下文
+    user_id: str
+    user_permissions: str
+
+@before_agent(can_jump_to=&quot;end&quot;)
+def guard_middleware(state: AgentState, runtime: Runtime[Context]):
+    # 1) 找到最新用户问题
+    user_msg = &quot;&quot;
+    for m in reversed(state[&quot;messages&quot;]):
+        if isinstance(m, HumanMessage):
+            user_msg = m.content
+            break
+    # 2) 敏感词拦截
+    sensitive = [&quot;TM&quot;, &quot;TMD&quot;, &quot;CNM&quot;, &quot;垃圾&quot;]
+    if any(w in user_msg.upper() for w in sensitive):
+        return {&quot;messages&quot;: [AIMessage(content=&quot;检测到不当言论，请文明交流&quot;)],
+                &quot;jump_to&quot;: &quot;end&quot;}     # 直接结束 agent
+    # 3) 权限控制
+    if runtime.context.user_permissions != &quot;Vip&quot;:
+        print(&quot;非 VIP，限制可用工具&quot;)
+    return None
+
+agent = create_agent(model=llm, tools=[...], middleware=[guard_middleware])
+</code></pre>
+<p>这段代码的结构可以拆成三部分。第一部分从消息列表中取出最新的用户问题。第二部分做敏感词拦截，命中时直接返回提示语，并通过 <code>jump_to</code> 结束 Agent。第三部分根据运行时上下文中的权限字段做控制。</p>
+<p>运行时上下文 <code>Context</code> 是冻结的数据类，通过 runtime 注入，中间件从 <code>runtime.context</code> 读取用户身份和权限。</p>
+<h4 id="432-function-calling">4.3.2 Function Calling 的真实代码</h4>
+<p>下面的代码来自 day09。</p>
+<pre><code class="language-python">import os
+from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
+from langchain_core.tools import tool
+from langchain.agents import create_agent
+
+load_dotenv()
+llm = ChatOpenAI(model=&quot;qwen3.5-flash&quot;,
+                 api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+                 base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;))
+
+@tool
+def calculator(expression: str) -&gt; str:
+    &quot;&quot;&quot;支持多个表达式的数学计算器（使用 numexpr），用分号分隔多个表达式&quot;&quot;&quot;
+    import numexpr, math
+    local = {&quot;pi&quot;: math.pi, &quot;e&quot;: math.e}
+    exprs = [e.strip() for e in expression.split(&quot;;&quot;) if e.strip()]
+    return &quot;\n&quot;.join(f&quot;{e} = {numexpr.evaluate(e, local_dict=local)}&quot;
+                      for e in exprs)
+
+@tool
+def get_weather(city: str) -&gt; str:
+    &quot;&quot;&quot;获取指定城市的实时天气&quot;&quot;&quot;
+    return f&quot;{city} 今天晴朗，24-28°C&quot;
+
+agent = create_agent(model=llm, tools=[calculator, get_weather])
+resp = agent.invoke({&quot;messages&quot;: [{&quot;role&quot;: &quot;user&quot;,
+        &quot;content&quot;: &quot;北京天气怎么样？另外帮我算一下 (52+18)*2/pi&quot;}]})
+print(resp[&quot;messages&quot;][-1].content)
+</code></pre>
+<p>这段代码的关键点如下。</p>
+<ul>
+<li><code>@tool</code> 装饰器会把函数签名和 docstring 转换成 OpenAI function schema。docstring 的第一行就是工具描述，必须写得让模型能看懂"什么时候该用这个工具"。</li>
+<li><code>create_agent</code> 内部会自动处理工具调用循环。模型返回 tool_calls 后，系统执行函数，把结果放回消息列表，再调用 LLM。开发者不需要手写 while 循环。</li>
+<li>千问和 DashScope 兼容 OpenAI 协议，直接设置 <code>ChatOpenAI(base_url=...)</code> 即可使用。</li>
+</ul>
+<p><code>calculator</code> 支持用分号分隔多个表达式，每个表达式各输出一行结果。</p>
+<h3 id="44">4.4 三种推理模式的代码</h3>
+<p>课件 day10 把 Plan-and-Execute、Self-ASK 和 Reflection 放在同一天讲。下面三节分别给出每种模式的代码或结构。</p>
+<h4 id="441-plan-and-execute">4.4.1 Plan-and-Execute</h4>
+<p>下面的代码来自 day10。</p>
+<pre><code class="language-python">import os, math, numexpr
+from dotenv import load_dotenv
+from langchain_openai import ChatOpenAI
+from langchain_experimental.plan_and_execute import (
+    PlanAndExecute, load_agent_executor, load_chat_planner
+)
+from langchain_tavily import TavilySearch
+from langchain_core.tools import tool
+
+load_dotenv()
+llm = ChatOpenAI(model=&quot;MiniMax-M2.1&quot;,
+                 api_key=os.getenv(&quot;DASHSCOPE_API_KEY&quot;),
+                 base_url=os.getenv(&quot;DASHSCOPE_BASE_URL&quot;))
+
+@tool
+def calculator(expression: str) -&gt; str:
+    &quot;&quot;&quot;数学计算器，支持分号分隔多个表达式&quot;&quot;&quot;
+    local = {&quot;pi&quot;: math.pi, &quot;e&quot;: math.e}
+    return &quot;\n&quot;.join(f&quot;{e} = {numexpr.evaluate(e.strip(), local_dict=local)}&quot;
+                     for e in expression.split(&quot;;&quot;) if e.strip())
+
+tools = [TavilySearch(), calculator]
+
+# Planner = 先写计划（一串步骤）
+planner  = load_chat_planner(llm)
+# Executor = 每一步用 ReAct 执行
+executor = load_agent_executor(llm, tools, verbose=True)
+
+agent = PlanAndExecute(planner=planner, executor=executor, verbose=True)
+result = agent.invoke(
+    &quot;我有5000人民币预算，想去日本旅行5天。按当前汇率在东京能住几晚中等价位酒店？&quot;
+)
+print(result)
+</code></pre>
+<p>这段代码把循环拆成了 Planner 和 Executor 两部分。Planner 先生成计划，Executor 中每一步都是 ReAct。</p>
+<p>Plan-Execute 和 ReAct 的区别在于两点。ReAct 走一步看一步，容易走偏或绕圈。Plan-Execute 则先一次性生成 N 步计划，然后逐步执行，每步失败还可以重新规划。它适合任务可以分解、步骤明确的场景，例如旅行规划和数据处理流水线。它不适合开放式对话。</p>
+<h4 id="442-self-ask">4.4.2 Self-ASK</h4>
+<p>Self-ASK 的核心是一个暂停和续接的过程。模型输出 <code>Follow up: xxx</code> 后暂停，外部搜索工具填入 <code>Intermediate answer: xxx</code>，然后模型再继续提出下一个问题。课件通过自定义 stop words 加中间件实现这个过程。</p>
+<pre><code class="language-python">from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(model=&quot;deepseek-chat&quot;, ...)
+# 关键：让模型在&quot;Intermediate answer:&quot; 处停下来，把控制权交给外部搜索
+llm_with_stop = llm.bind(stop=[
+    &quot;\nIntermediate answer:&quot;, &quot;Intermediate answer:&quot;,
+    &quot;\nIntermediate answer：&quot;, &quot;Intermediate answer：&quot;,
+])
+
+SELF_ASK_SYSTEM_PROMPT = &quot;&quot;&quot;你是搜索链推理专家。
+规则：
+1. 每次只输出一个 &quot;Follow up:&quot; 问题，输出后立即停止。
+2. 禁止自己生成 &quot;Intermediate answer:&quot;，那是外部工具填的。
+3. 格式：
+   Question: [用户输入]
+   Are follow up questions needed here: [Yes/No]
+   Follow up: [具体搜索问题]
+   Intermediate answer: (等待工具)
+   So the final answer is: [结论]
+&quot;&quot;&quot;
+</code></pre>
+<p><code>llm.bind(stop=...)</code> 的 stop 列表同时包含半角冒号和全角冒号两种写法。系统提示词的三条规则分别约束了问题的数量、中间答案的来源和输出格式。</p>
+<p>Self-ASK 适合多跳问题。例如"马斯克第二家公司的现任 CEO 是谁"，需要先搜"第二家公司是什么"，再搜"现任 CEO"。与纯 ReAct 相比，它每一步只问一个问题，因此更省 token。</p>
+<h4 id="443-reflection">4.4.3 Reflection</h4>
+<p>课件的 <code>thinking_and_self-Refection</code> 用两个 LLM 节点串联完成反思，结构如下。</p>
+<pre><code>draft_node:    LLM 生成答案
+review_node:   LLM 读草稿 → 指出问题
+revise_node:   LLM 读草稿+批评 → 改一版
+</code></pre>
+<p>在 LangGraph 中，可以用三个节点加一条条件边实现这个结构。如果 review 认为没有问题，流程直接结束；否则回到 revise 节点。课件认为这是 day16 "自定义主管架构" 的雏形。LangGraph 的节点和条件边的详细用法，见 <a href="L5-Agent框架选型与平台生态-深挖整合.html">L5-Agent框架选型与平台生态-深挖整合.md</a>，这里不再重复。</p>
+<p>Reflection 的结构与 Plan-and-Execute 不同，它是一个固定的三节点闭环，没有 Planner。由于反思本身很贵，它应该限制在关键节点上，与 2.2 节的原则一致。</p>
+<h2 id="_6">五、环境依赖与学习路径</h2>
+<h3 id="51">5.1 依赖清单</h3>
+<p>课件给出的依赖清单可以覆盖本文所有代码。下面的 requirements 写法按课件保留。</p>
+<pre><code class="language-text"># requirements.txt
+fastapi          # day01-02 后端
+uvicorn[standard]
+python-multipart # 文件上传
+pydantic&gt;=2
+
+llama-index-core
+llama-index-llms-dashscope
+llama-index-embeddings-huggingface
+llama-index-vector-stores-chroma
+
+langchain
+langchain-openai
+langchain-tavily
+langchain-experimental
+langchain-mcp-adapters
+
+langgraph
+langgraph-checkpoint-sqlite
+
+autogen
+crewai
+crewai-tools
+
+fastmcp
+mcp
+numexpr
+</code></pre>
+<p>环境变量通过 <code>.env</code> 文件读取。课件的写法如下，真实的密钥请替换成自己账号的值，不要写入代码或文档。</p>
+<pre><code class="language-bash"># .env
+DASHSCOPE_API_KEY=&lt;填入你自己的 DashScope 密钥&gt;
+DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+TAVILY_API_KEY=&lt;填入你自己的 Tavily 密钥&gt;
+</code></pre>
+<p>依赖清单中的 autogen、crewai、langgraph 和 fastmcp 等包，对应的代码在其他文章中展开，本文的代码不涉及它们。</p>
+<h3 id="52">5.2 学习路径</h3>
+<p>课件的学习路径按 day 编号递进，下表给出每个阶段应当达到的能力。</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>day</th>
+<th>应当能做到</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>后端</td>
+<td>01-02</td>
+<td>用 FastAPI 写一个带文件上传、参数校验的 REST 服务</td>
+</tr>
+<tr>
+<td>RAG 基础</td>
+<td>03-06</td>
+<td>用 LlamaIndex 建索引、切分、持久化、做多库路由</td>
+</tr>
+<tr>
+<td>Agent 基础</td>
+<td>07-09</td>
+<td>用 <code>create_agent</code> 加自定义工具加中间件，做一个带权限控制的对话 Agent</td>
+</tr>
+<tr>
+<td>推理模式</td>
+<td>10</td>
+<td>说清 ReAct、Plan-Execute、Self-ASK、Reflection 各自适用的场景</td>
+</tr>
+<tr>
+<td>多智能体</td>
+<td>10</td>
+<td>用 AutoGen 跑两人对话，用 CrewAI 跑"搜索、分析、写作"流水线</td>
+</tr>
+<tr>
+<td>状态图</td>
+<td>11-12</td>
+<td>手写一个带并行、条件边和父子图的工作流</td>
+</tr>
+<tr>
+<td>记忆</td>
+<td>13-15</td>
+<td>给 Agent 加 checkpointer（短期记忆）、Store（长期记忆）和消息修剪</td>
+</tr>
+<tr>
+<td>工具协议</td>
+<td>17</td>
+<td>自己写一个 MCP server，并让 LangChain Agent 调用它</td>
+</tr>
+</tbody>
+</table>
+<p>本文覆盖的是前三行和推理模式一行。后面几行对应的状态图、记忆和工具协议，分别在其他文章中展开，见文末相关条目。</p>
+<h2 id="_7">小结</h2>
+<p>Agent 的循环分为 ReAct、Plan-and-Execute 和 Reflection 三种，它们按任务复杂度分层，可以叠加使用。默认先用 ReAct，跑偏了加 Planner，产出不满意再加 Reflection。循环需要明确的步数上限，Reflection 应该放在关键节点上。</p>
+<p>业务落地要求场景具备重复劳动、可验证输出和可靠工具三个条件。落地按找痛点、定输入输出、选工具、搭循环和接日志五步进行。常见的失败包括追求通用、跳过 RAG、不做日志和忽视数字短板。</p>
+<p>动手实现时，先用 FastAPI 搭 HTTP 外壳，再用 LlamaIndex 完成检索，然后用 LangChain 的 <code>create_agent</code> 加中间件和 Function Calling 实现工具调用，最后用代码实现三种推理模式。依赖和学习路径按课件的 day 顺序组织。</p>
+<h2 id="_8">来源</h2>
+<ul>
+<li><code>Agent循环怎么设计.md</code>：三种循环的对照、ReAct、Plan-and-Execute、Reflection、组合与本库循环形态。</li>
+<li><code>Agent怎么落地到具体业务.md</code>：能落地的判断、五步流程、业务案例分类、失败模式和本库候选场景。</li>
+<li><code>L5-Agent工程-最佳答案.md</code>：WHY、WHAT、HOW 总纲，循环对照表，五步落地流程，Agentic RAG 六种模式和本库循环形态。</li>
+<li><code>L5-Agent工程-课件实操.md</code>：§一 FastAPI（1.1 至 1.4）、§二 LlamaIndex（2.1 至 2.6）、§三的 3.2 与 3.3、§四的 4.1 至 4.3、§七依赖与环境变量、§八学习路径。</li>
+</ul>
+<h2 id="_9">相关条目</h2>
+<ul>
+<li><a href="L5-多Agent协作与编排-深挖整合.html">L5-多Agent协作与编排-深挖整合.md</a>：多 Agent 的拆分信号、独立评审与编排模式。</li>
+<li><a href="L5-Agent框架选型与平台生态-深挖整合.html">L5-Agent框架选型与平台生态-深挖整合.md</a>：框架对比、LangGraph、CrewAI 与 AutoGen 的选型。</li>
+<li><a href="L5-工具层与协议-FC-MCP-A2A-深挖整合.html">L5-工具层与协议-FC-MCP-A2A-深挖整合.md</a>：Function Calling、MCP 与 A2A 的分层关系。</li>
+<li><a href="L5-Agent记忆与自进化-深挖整合.html">L5-Agent记忆与自进化-深挖整合.md</a>：记忆分层与跨会话状态。</li>
+<li><a href="L5-Agent生产化可靠性与评估-深挖整合.html">L5-Agent生产化可靠性与评估-深挖整合.md</a>：错误处理、观测、安全与评估。</li>
+<li><a href="L5-OpenClaw模块协同-深挖整合.html">L5-OpenClaw模块协同-深挖整合.md</a>：OpenClaw 的模块协同方式。</li>
+<li><a href="Coze-Dify-LangChain边界在哪.html">Coze-Dify-LangChain边界在哪</a>：低代码平台与代码框架的阶梯边界。</li>
+<li><a href="生产级Agent与Evals实操.html">生产级Agent与Evals实操</a>：生产级 Agent 与评估的实操笔记。</li>
+</ul></div></body></html>

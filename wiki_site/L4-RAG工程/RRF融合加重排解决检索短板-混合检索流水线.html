@@ -1,0 +1,150 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RRF融合加重排解决检索短板-混合检索流水线</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ RRF融合加重排解决检索短板-混合检索流水线</span></div><div class="wrap"><h1 id="rrf-融合重排解决检索单一短板混合检索流水线方法论">RRF 融合+重排解决检索单一短板：混合检索流水线方法论</h1>
+<blockquote>
+<p>类型:方法论笔记(Evergreen/Zettelkasten原子化) ｜ 生成:CODE Distill 生产线三级渐进摘要(DeepSeek-V3 Pro)<br />
+一手源:<code>raw/sources/RAG优化-外部调研-20260929.md</code>（2026-09-29，本地知识库如何变成最强 FDE 可查知识库）<br />
+溯源（tier1 一手）:arxiv.org/html/2402.05131v3｜arxiv.org/html/2604.01733v1（hybrid+rerank 实测）｜newsletter.bytebytego.com（RAG vs Graph RAG vs Agentic RAG）<br />
+二手实测引用源:atlan.com chunking 策略｜denser.ai hybrid search｜dev.to chunking/graph-rag 对比｜iternal.ai 向量库 2026｜firecrawl.dev 向量库评测｜langfuse.com faithfulness 评测｜deepeval.com/ragas 评测对比 ｜ 素材:<code>raw/distill/RAG优化-方法论.distill.json</code></p>
+</blockquote>
+<h2 id="why">WHY</h2>2
+<h3 id="核心论点">核心论点</h3>3
+<p><strong>检索短板不能靠换 embedding 硬扛，要靠"并行检索→RRF 融合→cross-encoder 重排"的流水线补齐</strong>——arXiv 2604.01733 实测 hybrid+rerank 的 Recall@5 达 0.816，比纯向量检索高 39%。RRF 只做排名融合、回避了不同检索器分数不可校准的难题；比"再调一次模型"收益更大的是 chunk 元数据（heading path / source file）与 256-512 token 的递归分块。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">为什么成立</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 分数不可校准是结构性问题：BM25 与 embedding 相似度量纲不同，RRF 用排名融合绕开校准，是多检索器融合的最低风险方案</li><li>2. 召回率上限决定生成上限：recall 不够，rerank 和生成再强也无货可排——先补召回（hybrid），再精排（cross-encoder）</li><li>3. 结构信息比向量精度更可控：元数据/层级结构是确定性收益，换 embedding 是概率性收益</li></ul></div>3
+<ol>
+<li><strong>分数不可校准是结构性问题</strong>：BM25 与 embedding 相似度量纲不同，RRF 用排名融合绕开校准，是多检索器融合的最低风险方案。</li>
+<li><strong>召回率上限决定生成上限</strong>：recall 不够，rerank 和生成再强也无货可排——先补召回（hybrid），再精排（cross-encoder）。</li>
+<li><strong>结构信息比向量精度更可控</strong>：元数据/层级结构是确定性收益，换 embedding 是概率性收益。</li>
+</ol>
+<h2 id="what">WHAT</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">机制拆解</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>两阶段流水线：BM25 + dense 并行检索 → RRF 融合 → cross-encoder rerank</li><li>据[一手源]：RAG进阶调研-6方向-Top3落地方案-20260928（混合检索数据，tier2 博客实测）：纯向量 recall@10 约 78%，纯 BM25 约 65%，RRF 混合后约 91%，且无需任何分数归一化；纯向量在精确匹配/缩写/产品 ID 类 query 上 miss 30–40%</li><li>模型取舍：bge-reranker-v2-m3（568M，MIT，MTEB Rerank 60.4，多语言默认，RTX4090 上 100 对约 90ms）；要质量用 v2-Gemma（9B，64.5 但约 1050ms）；要延迟用 Jina v2 base（28ms）或 mxbai-base（24ms）</li></ul></div>3
+<ul>
+<li><strong>两阶段流水线</strong>：BM25 + dense 并行检索 → RRF 融合 → cross-encoder rerank。RRF 用排名而非原始分数融合，天然免疫稠密分与 BM25 分不可比的问题。</li>
+<li><strong>分块策略</strong>：256-512 tokens 递归字符切分（RecursiveCharacterSplitter）为主流；hierarchical chunking 解决"检索要小块、生成要大上下文"的矛盾。</li>
+<li>据[一手源]：RAG优化-外部调研-20260929（arXiv 2604.01733 基准，23,088 queries / 7,318 docs，10 种检索策略）：Recall@5 三档对照为 dense-only 0.587 → hybrid-only 0.695 → hybrid+rerank 0.816，即 rerank 在 hybrid 上再 +17.4%、整条链比 dense-only +39%；MRR@3 从 0.433 升到 0.605。补召回（hybrid）和精排（rerank）两步各自都有独立收益，不能只上一步。</li>
+<li>据[一手源]：RAG优化-外部调研-20260929（StackAI fix-order playbook，调优顺序口诀）：召回差时按 <strong>chunking + metadata（heading / section path / version / date）→ hybrid → candidate size → 最后才换 embedding 模型</strong> 的顺序排查；元数据优先于换模型是确定性收益。</li>
+<li>据[一手源]：RAG进阶调研-6方向-Top3落地方案-20260928（混合检索数据，tier2 博客实测）：纯向量 recall@10 约 78%，纯 BM25 约 65%，RRF 混合后约 91%，且无需任何分数归一化；纯向量在精确匹配/缩写/产品 ID 类 query 上 miss 30–40%。公式 <code>RRF_score(d) = Σ 1/(k + rank(d,r))</code>，k=60（LangChain EnsembleRetriever 默认硬编码）；<strong>不能直接相加 cosine（0–1）与 BM25（0–30+）分数</strong>；默认权重 0.7 向量 / 0.3 BM25；混合只加 10–30ms，远低于 rerank 的 50–150ms。bge-m3 的 sparse 输出可直接当"学习版 BM25"，省掉一个 ES 索引，比单独建 BM25 索引工程量小一半。</li>
+<li>据[一手源]：RAG进阶调研-6方向-Top3落地方案-20260928（重排选型与门控）：标准链路 = 召回 top-30 shortlist → bge-reranker-v2-m3 交叉编码 → 取 top-4/5，硬 query 上 recall@5 +5–15 点、延迟 +50–150ms。模型取舍：bge-reranker-v2-m3（568M，MIT，MTEB Rerank 60.4，多语言默认，RTX4090 上 100 对约 90ms）；要质量用 v2-Gemma（9B，64.5 但约 1050ms）；要延迟用 Jina v2 base（28ms）或 mxbai-base（24ms）。chunk 控制在 512 token 内保持延迟可预测；可用已有阈值门控——dense top-1 过线的 query 跳过 rerank，低置信才触发，省算力。</li>
+<li>据[一手源]：RAG进阶调研-6方向-Top3落地方案-20260928（查询改写层）：默认组合"对话式改写 + HyDE"约加 150ms TTFT，覆盖大部分失败模式；生成 3–6 个 rewrite（同义词扩展 + 意图分解 + 改写，叙事文档加 HyDE）。路由口诀：factoid 短 query 上 HyDE（桥接问题-答案语义鸿沟）；多面/多跳 query 才走子问题分解并行检索；raw query 相似度已高于阈值就跳过 HyDE。多 query 合并时每个 rewrite 取 top-5~10，按 chunk hash 去重并记录哪个 rewrite 命中；k 别拉到 50，那是 index/chunking 的锅。</li>
+<li>据[一手源]：RAG进阶调研-6方向-Top3落地方案-20260928（分块实测）：recursive 400 token 时检索 recall 85–89.5%；semantic chunking 检索 recall 91–92%（+2–3 点）但每句都要 embedding、ingestion 成本高；另一口径是端到端答案准确率（FloTorch/Vecta benchmark），recursive@512 为 69%、semantic chunking 为 54%（平均切出 43 token 碎片），两组指标不同，不可直接对比；先做 recursive@512 + 10% overlap 的 A/B 再考虑 semantic。分析型/多跳问题用 512–1024，factoid 用 256–512，PDF 分页文档用 page-level，代码用语言特定 splitter。</li>
+<li><strong>元数据优先于模型</strong>：每个 chunk 带 heading path / source file / 层级元数据，收益大于换 embedding 模型。</li>
+<li><strong>知识库单元设计（FDE 场景）</strong>：以带上下文的完整决策记录（发票+采购单+合同条款这类成套材料）为检索单元，输出附引用、强制暴露歧义点；MIT 数据 95% 企业 AI 试点失败源于未固化工作流逻辑与监控层。</li>
+<li><strong>工具分工</strong>：Chroma 适合百万级向量内本地开发；DeepEval 做 PR 拦截测试，RAGAS 负责生产监控；纯向量适合企业文档搜索，Graph RAG 在法律/合规类关系推理场景占优。</li>
+</ul>
+<h3 id="是什么定义与边界">是什么（定义与边界）</h3>3
+<p><strong>定义</strong>：混合检索流水线 = "并行检索（BM25 + dense）→ RRF 融合 → cross-encoder 重排"的两阶段检索架构；RRF（Reciprocal Rank Fusion）用排名倒数融合多路检索结果，回避不同检索器分数不可校准的问题。本篇是其方法论笔记：机制拆解、为什么成立、最小流水线代码与阈值。</p>
+<p><strong>边界</strong>：<br />
+- ✅ 管：多路检索融合（RRF）、重排（cross-encoder）、分块与元数据的协同原则、评测三件套分工。<br />
+- ❌ 不管：embedding 选型（<a href="Embedding%E6%A8%A1%E5%9E%8B%E9%80%89%E5%9E%8B%E5%AF%B9%E6%AF%94.html">Embedding模型选型对比</a>）、chunk 大小参数（<a href="Chunk%E5%A4%A7%E5%B0%8F%E6%80%8E%E4%B9%88%E9%80%89.html">Chunk大小怎么选</a>）、图谱路线（<a href="GraphRAG%E6%9C%80%E5%B0%8F%E7%A4%BA%E4%BE%8B.html">GraphRAG最小示例</a>）。<br />
+- ⚠️ RRF 只解决"多路分数不可比"的融合问题，不提升单路召回质量——单路召回差（如 sparse 没启用）时 RRF 救不回来，先补召回再融合。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">一句话洞见（L3）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 混合检索架构：BM25 + 稠密检索并行后经 RRF 融合，再通过 cross-encoder 重排序是最优检索流水线方案</li><li>2. 决策知识库设计：以带上下文的完整决策记录为检索单元，并强制暴露歧义点是企业 AI 落地的关键</li><li>4. 工具分工原则：Chroma 适合本地开发，DeepEval/RAGAS 分治测试与监控，不同场景需匹配专用方案</li></ul></div>3
+<ol>
+<li>混合检索架构：BM25 + 稠密检索并行后经 RRF 融合，再通过 cross-encoder 重排序是最优检索流水线方案。</li>
+<li>决策知识库设计：以带上下文的完整决策记录为检索单元，并强制暴露歧义点是企业 AI 落地的关键。</li>
+<li>内容分块策略：256-512 tokens 的递归分块配合层级元数据，比单纯优化 embedding 模型收益更大。</li>
+<li>工具分工原则：Chroma 适合本地开发，DeepEval/RAGAS 分治测试与监控，不同场景需匹配专用方案。</li>
+</ol>
+<p><strong>这篇源文回答的核心问题</strong>：如何构建高召回率、可解释且易维护的企业级 RAG 系统？</p>
+<h2 id="how">HOW</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">怎么用（源码框架与阈值）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<p>最小流水线（LangChain + Chroma/Qdrant）：</p>
+<pre><code class="language-python">from langchain.retrievers import EnsembleRetriever
+from langchain_community.retrievers import BM25Retriever
+# 1) BM25 + dense 并行
+ensemble = EnsembleRetriever(retrievers=[bm25, dense], weights=[0.4, 0.6])
+# 2) cross-encoder 精排（top-20 → 取 top-4 送生成）
+reranker = CohereRerank(model=&quot;rerank-v3.5&quot;, top_n=4)  # 或 bge-reranker-v2-m3 本地
+</code></pre>
+<ul>
+<li>分块：RecursiveCharacterSplitter(chunk_size=256~512 tokens, overlap≈15%)，每个 chunk 注入 <code>heading_path</code>/<code>source_file</code> 元数据。</li>
+<li>检索进位：hybrid 取 top-20 → rerank 收敛到 top-3~5 上下文。</li>
+<li>据[一手源]：RAG进阶调研-6方向-Top3落地方案-20260928（权重口径差异）：上面示例的 weights=[0.4, 0.6] 是 EnsembleRetriever 的加权写法，该源的默认口径是 RRF k=60、向量 0.7 / 稀疏 0.3；两者都是起点，权重要用自己的 golden query 集校准，不要照搬。进阶调研给出的最小落地序是"bge-m3 开 sparse 输出 + RRF（预期 recall@10 约 78% → 约 91%，+10–30ms）→ 加 rerank 短路径（硬 query recall@5 +5–15 点）→ 低置信 query 才触发改写"，按投入产出比排序。</li>
+<li>据[一手源]：RAG进阶调研-6方向-Top3落地方案-20260928（方向 6，术语表代替 ontology）：同一实体多种叫法（别名/缩写/英文名）是中文个人库最常见的召回盲区；轻量解法是建"规范名 → 别名/同义词"术语表，在 query 侧做术语扩展后再 embedding，可与查询改写合并成一个节点。归一化会轻微打乱 cross-encoder 排序，rerank 时要用原始文本而非归一化文本。上 GraphRAG/ontology 之前先做 ingestion 清洗审计（去 tab/空白/页眉页脚）——SEC 10-K 实验里图抽取近零的真因是文本被污染，ontology 救不了上游坏掉的实体抽取。</li>
+<li>评测三件套：DeepEval（PR 阶段拦截）+ RAGAS faithfulness（生产监控）+ Langfuse（trace 与成本）。</li>
+<li>据[一手源]：RAG优化-外部调研-20260929（方向 4，生产评测 pattern，genai.qa 2026）：Langfuse 捕获全部生产 trace（question / retrieved context / answer / metadata）→ RAGAS CronJob 每小时采样 1–5% trace 算 faithfulness + context precision + answer relevance 并回写 Langfuse → DeepEval 在 CI 拦 golden-question 回归 → Grafana 看 7 天滚动平均，<strong>faithfulness &lt; 0.80 触发告警</strong>。口诀："DeepEval 在 PR 时抓回归，RAGAS 随时间监控漂移"。faithfulness 是 reference-free（claim 分解，不需要标准答案），适合个人库冷启动；起步只需 20 条 golden question + RAGAS 离线算 baseline，约半天。</li>
+<li>据[一手源]：RAG优化-外部调研-20260929（方向 1 &amp; 6，内容侧）：每个 chunk 带 <code>source_file / heading_path / date / chunk_type(decision|error|note|diary) / decision_id</code>，让"找 9 月 15 日的决策"从模糊匹配变精确过滤；agentic chunking（LLM 定边界）质量最高但贵 10–50×，个人库不值得；chunking 不是一次性配置，按生产 query log 每季度回顾一次。</li>
+<li>不要一上来上 Graph RAG：关系推理明确（法律/合规/合同）才用，普通文档搜索纯向量+hybrid 足够。</li>
+</ul>
+<h3 id="关联笔记">关联笔记</h3>3
+<ul>
+<li><a href="../L10-%E6%96%B9%E6%B3%95%E8%AE%BA%E5%B1%82/01-FDE%E6%96%B9%E6%B3%95%E8%AE%BA%E5%85%A8%E6%99%AF.html">FDE方法论全景：证据与能力沉淀</a></li>
+<li><a href="../L10-%E6%96%B9%E6%B3%95%E8%AE%BA%E5%B1%82/03-%E4%BA%A4%E4%BB%98%E6%96%B9%E6%B3%95%E8%AE%BA%E4%B8%8E%E9%97%A8%E7%A6%81.html">交付方法论与门禁：检索权限、动作边界与负例</a></li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库的 RRF 实现只有 20 行，公式与课件一致（<code>rag/query.py</code> L428，本次读源码）</strong>：<br />
+<code>python
+  def rrf_fuse(rank_lists, k=None, weights=None):
+      """Reciprocal Rank Fusion"""
+      k = k or CONFIG["retrieval"]["rrf_k"]
+      ...
+          for rank_idx, h in enumerate(rank_list, start=1):
+              hid = h.get("_id") or (h["source"], h["chunk"])
+              scores[hid] = scores.get(hid, 0.0) + w / (k + rank_idx)</code><br />
+<code>k</code> 取配置 <code>rrf_k: 60</code>（config L64）；<code>_id</code> 是 <code>source#chunk</code>，<strong>融合单位是 chunk 不是文档</strong>。</li>
+<li><strong>本库的流水线比课件多两个环节（本次实跑日志可见）</strong>：<br />
+  | 环节 | 位置 | 本次证据 |<br />
+  |---|---|---|<br />
+  | 三路召回（dense + sparse + 图谱实体直取） | <code>_do_retrieve</code> / <code>_linked_chunk_hits</code> | <code>merged top-435</code> |<br />
+  | RRF 融合 | <code>rrf_fuse</code> | <code>top_rrf=0.0164</code> |<br />
+  | 层权重（<code>wiki/</code>×2.0、<code>ontology/</code>×1.8） | <code>weight_by_tier</code> + config L151-156 | <code>top1=wiki/A2A协议调研-...</code> |<br />
+  | rerank（熔断后回退） | <code>rerank()</code> | <code>[rerank] 熔断: 回退排序 top-3</code> |</li>
+<li><strong>一个反直觉的调参结论（config L96-104 注释）</strong>：图谱命中「无条件置顶」会让 R@1 从 45.1% 掉到 19.6%（51 条正样本），所以改成 <code>graph_slot_mode: after_top1</code>——<strong>融合之后还有一步「怎么放」，放错位置比不放更糟</strong>。</li>
+<li><strong>和课件讲法的差异</strong>：课件讲 RRF 只讲融合公式；本库的经验是 <strong>RRF 只解决「谁排前面」，解决不了「层之间的权重」与「特殊片段的落位」</strong>，后两者要靠单独机制。</li>
+<li><strong>本库暂无</strong>：没有对「RRF k 值」做过扫描实验（固定 60，沿用文献默认）；融合权重 <code>weights</code> 参数已实现但当前调用未使用。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库 RRF 的公式与落点都在 <code>rag/query.py</code> L428 <code>rrf_fuse()</code>：<code>scores[hid] = scores.get(hid, 0.0) + w / (k + rank_idx)</code>，<code>k</code> 取 <code>CONFIG["retrieval"]["rrf_k"]</code>（配置 L64 为 60）；本次实跑融合 435 条、<code>top_rrf=0.0164</code>。</li>
+<li><strong>读源码</strong>：流水线阶段；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+</div></details><h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<h3 id="三源融合清单">三源融合清单</h3>3
+<ul>
+<li>[业1] 业内：arXiv:2402.05131 与 arXiv:2604.01733（hybrid+rerank 基准），原始溯源信息见文首。</li>
+<li>[业2] 业内：<a href="../../raw/sources/RAG%E4%BC%98%E5%8C%96-%E5%A4%96%E9%83%A8%E8%B0%83%E7%A0%94-20260929.md">RAG优化外部调研</a> 与 <a href="../../raw/rag-arch/RAG%E8%BF%9B%E9%98%B6%E8%B0%83%E7%A0%94-6%E6%96%B9%E5%90%91-Top3%E8%90%BD%E5%9C%B0%E6%96%B9%E6%A1%88-20260928.md">RAG进阶调研</a>。</li>
+<li>说明：原文未列课件或书籍来源，本次不补造。</li>
+</ul></div></body></html>

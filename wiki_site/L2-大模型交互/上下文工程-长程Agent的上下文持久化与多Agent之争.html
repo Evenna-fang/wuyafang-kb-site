@@ -1,0 +1,489 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>上下文工程-长程Agent的上下文持久化与多Agent之争</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 上下文工程-长程Agent的上下文持久化与多Agent之争</span></div><div class="wrap"><h1 id="上下文工程长程-agent状态放到窗口之外以及多-agent-该不该用">上下文工程·长程 Agent：状态放到窗口之外，以及多 Agent 该不该用</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B-Context-Engineering.html">上下文工程-Context-Engineering</a> · <a href="L2-%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L2 上下文工程深挖整合</a> · 姊妹篇 <a href="%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B-%E7%BC%93%E5%AD%98%E4%B8%8E%E5%B7%A5%E5%85%B7%E4%B8%8A%E4%B8%8B%E6%96%87-%E6%88%90%E6%9C%AC%E4%BE%A7%E5%AE%9E%E6%88%98.html">缓存与工具上下文-成本侧实战</a></p>
+</blockquote>
+<h1 id="why窗口有限而长程任务需要跨会话延续">WHY：窗口有限而长程任务需要跨会话延续</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心结论</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>任务跑得足够久，总会超过一个窗口</li><li>Manus 不信任不可逆压缩，原因是“你无法可靠地预测，哪条观察在十步之后会变得关键”</li><li>内部评测中，两者结合比基线高 39%，只用 context editing 高 29%；在 100 轮网页搜索评测里，context editing 使 token 消耗降低 84%，并让原本会因上下文耗尽而失败的流程得以完成</li></ul></div>2
+<p>任务跑得足够久，总会超过一个窗口。省 token 只能延缓这个时刻，不能取消它。一手资料给出的共同答案是：<strong>把状态放到窗口之外，窗口里只留当前这一步需要的东西。</strong> 本文整理这条思路在各家的具体做法，并回答一个有争议的问题：要不要把长任务拆给多个 Agent。</p>
+<ol>
+<li><strong>文件系统是最实用的“窗口外记忆”。</strong> Manus 称它为“终极上下文”：大小不受限、天然持久、Agent 自己可以直接操作。Anthropic 的 memory tool、Anthropic 长程 harness 里的 <code>claude-progress.txt</code> 和 feature list、LangChain Deep Agents 的落盘，都是同一模式。</li>
+<li><strong>压缩必须可恢复。</strong> Manus 不信任不可逆压缩，原因是“你无法可靠地预测，哪条观察在十步之后会变得关键”。网页内容可以删，但要保留 URL；文档内容可以省，但要保留路径。</li>
+<li><strong>Anthropic 在 Claude 开发者平台上提供了两个原生机制：context editing 和 memory tool。</strong> 内部评测中，两者结合比基线高 39%，只用 context editing 高 29%；在 100 轮网页搜索评测里，context editing 使 token 消耗降低 84%，并让原本会因上下文耗尽而失败的流程得以完成。</li>
+<li><strong>长程任务靠 harness 接力。</strong> Anthropic 的做法是把工作拆成“初始化 Agent 搭环境 + 编码 Agent 逐个功能推进”，每个会话结束留下进度文件、git 提交和 JSON 功能清单，下一个会话读这些东西接上。</li>
+<li><strong>多 Agent 的争议有一个可操作的分界线。</strong> Cognition 主张默认不要多 Agent，理由是上下文无法在 Agent 之间无损传递；Anthropic 的研究系统用多 Agent 比单 Agent 高 90.2%，但消耗约 15 倍于聊天的 token。两方并不矛盾：前者针对要写出一致产物的任务，后者针对可并行的宽度优先检索。</li>
+</ol>
+<h2 id="一问题窗口有限任务不限">一、问题：窗口有限，任务不限</h2>2
+<p>Anthropic 长程 harness 一文开头直接点破：长程 Agent 要分多个会话工作，而“每个新会话开始时，都不记得之前发生过什么”。可以把它想象成轮班的工程师，每个人上班时前一班的人已经走了，手里只有交接文档。</p>
+<p>文中有一个重要观察：即使用 Claude Agent SDK 带 compaction 的循环，让 Opus 4.5 只收到“做一个 claude.ai 的克隆”这种高层指令，它也做不出生产级的 Web 应用。失败有两种典型形态：</p>
+<ul>
+<li><strong>一口气做完（one-shot）。</strong> 试图在一个窗口里做完所有事，上下文耗尽时留下做了一半、没有任何记录的功能，下一个会话要花大量精力猜现场。</li>
+<li><strong>过早宣布完成。</strong> 项目后期，后来的 Agent 看到已有进展，就认定任务做完了。</li>
+</ul>
+<p>这两种失败的共同点是：状态只存在于窗口里，窗口一结束，状态就蒸发。后面所有的做法都是在回答“状态存在哪”。</p>
+<h1 id="whyt窗口外状态可恢复记忆与平台原生机制">WHYT：窗口外状态、可恢复记忆与平台原生机制</h1>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">二、Manus 的五条经验（除缓存外）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>缓存相关的两条（KV-cache 设计、mask 而非 remove）已在姊妹篇讲过</li><li>需要注意，作者自己强调“这里的内容不是普遍真理”，只是在他们数百万用户的场景里有效的模式</li><li>Manus 博客的另外几节直接对应长程问题</li></ul></div>2
+<p>缓存相关的两条（KV-cache 设计、mask 而非 remove）已在姊妹篇讲过。Manus 博客的另外几节直接对应长程问题。作者团队说自己的 Agent 框架已重构四次，并把这种靠试错摸索的过程称为 “Stochastic Graduate Descent”，所以下面的经验有明显的实战痕迹。需要注意，作者自己强调“这里的内容不是普遍真理”，只是在他们数百万用户的场景里有效的模式。</p>
+<h3 id="21-以文件系统作为上下文">2.1 以文件系统作为上下文</h3>3
+<p>前沿模型的窗口已经到 128K token 以上，但真实任务里仍常不够，甚至成为负担。文中给出三个痛点：</p>
+<ol>
+<li>观察结果可能非常大（网页、PDF）；</li>
+<li>超过一定长度后，模型性能下降；</li>
+<li>即使有前缀缓存，长输入仍然昂贵。</li>
+</ol>
+<p>很多系统的应对是截断或压缩。Manus 的看法是，任何不可逆的压缩都有风险，因为你无法预知哪条信息稍后会变得关键。他们的方案是把文件系统当作外部记忆：Agent 按需读写文件，窗口里只保留指针。</p>
+<p>“可恢复”是这里的关键词。判断一个压缩方案好不好，只需要问：被压掉的东西，Agent 之后还能不能找回来？删掉网页正文但保留 URL，答案是能；直接删掉并不留痕迹，答案是不能。</p>
+<p>作者还有一个推测：如果状态空间模型（SSM）能熟练使用基于文件的记忆，也许会成为新一代 Agent 的基础，并称之为 Neural Turing Machines 的可能继承者。这是作者的推测，不是已验证的结论。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.2 通过复述（Recitation）操纵注意力</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Manus 处理复杂任务时，会创建一个 「todo.md」，每完成一项就更新、打勾</li><li>末尾位于模型的近期注意力范围内，这样既对冲了 lost-in-the-middle，又减少了目标漂移</li><li>文中说一个典型任务平均要约 50 次工具调用，长循环里模型很容易偏题或忘掉最初的目标</li></ul></div>3
+<p>Manus 处理复杂任务时，会创建一个 <code>todo.md</code>，每完成一项就更新、打勾。文中说一个典型任务平均要约 50 次工具调用，长循环里模型很容易偏题或忘掉最初的目标。</p>
+<p>反复改写待办清单，实际效果是把全局计划<strong>不断复述到上下文的末尾</strong>。末尾位于模型的近期注意力范围内，这样既对冲了 lost-in-the-middle，又减少了目标漂移。本库前一篇讲位置偏置时，给出的工程对策是“最相关的放开头或结尾”；复述是这条对策在 Agent 循环里的动态版本：计划不是放一次，而是每隔几步重新放到末尾。</p>
+<h3 id="23-保留错误">2.3 保留错误</h3>3
+<p>常见做法是出错就隐藏痕迹、重试，或者重置状态再靠 temperature 碰运气。Manus 的判断是：“抹去失败就抹去了证据，没有证据，模型就无法适应。”把错误的路径和堆栈信息留在上下文里，模型会更新自己的内部信念，减少重复同样的错误。作者还认为错误恢复是判断“真正的 Agent 行为”最清晰的指标之一，而学术研究和公开基准大多只关注理想条件下的成功率，对此重视不够。</p>
+<p>这条与第一章的“一口气做完”形成互补：不是所有东西都该留在窗口里，但<strong>失败信息比成功信息更值得留</strong>。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.4 避免被 few-shot 带进固定节奏</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>语言模型会模仿上下文里的行为模式</li><li>如果上下文里全是相似的“动作—观察”对，模型会沿用这个节奏，哪怕已经不是最优选择</li><li>”注意这和第 2.1 节的“只追加、序列化要确定”表面上冲突，实际不矛盾：缓存要求前缀已写入的部分不变，多样性要求新追加的内容别千篇一律</li></ul></div>3
+<p>语言模型会模仿上下文里的行为模式。如果上下文里全是相似的“动作—观察”对，模型会沿用这个节奏，哪怕已经不是最优选择。Manus 的例子是用 Agent 批量评审 20 份简历：Agent 很容易陷入重复节奏，出现漂移、过度泛化甚至幻觉。</p>
+<p>对策是增加受控的多样性：对动作和观察使用不同的序列化模板、换措辞、在顺序或格式上加少量噪声。作者的总结是：“上下文越统一，Agent 越脆弱。”注意这和第 2.1 节的“只追加、序列化要确定”表面上冲突，实际不矛盾：缓存要求<strong>前缀已写入的部分</strong>不变，多样性要求<strong>新追加的内容</strong>别千篇一律。</p>
+<h2 id="三anthropic-的原生机制context-editing-与-memory-tool">三、Anthropic 的原生机制：Context Editing 与 Memory Tool</h2>2
+<p>Anthropic 在 2025-09-29 的博客《Managing context on the Claude Developer Platform》里，发布了两个平台级能力，处于公开 beta 阶段，也通过 Amazon Bedrock 和 Google Cloud Vertex AI 提供。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.1 Context editing：自动清掉过时的工具结果</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>定义（原文大意）：当接近 token 上限时，自动清除上下文窗口里已经过时的工具调用及其结果，同时保留对话流程</li><li>博客没有给出具体的触发阈值，只说“接近上限时”，具体参数请查官方文档</li><li>道理很直接：一个工具结果在被模型读过、用掉之后，大概率不需要再原样留着</li></ul></div>3
+<p>定义（原文大意）：当接近 token 上限时，自动清除上下文窗口里已经过时的工具调用及其结果，同时保留对话流程。博客没有给出具体的触发阈值，只说“接近上限时”，具体参数请查官方文档。</p>
+<p>它对应本库《上下文工程-Context-Engineering》里提到的“清理已消费的工具结果”——Anthropic 在《Effective context engineering》里把它列为最安全的轻量压缩。道理很直接：一个工具结果在被模型读过、用掉之后，大概率不需要再原样留着。</p>
+<h3 id="32-memory-tool窗口外的文件目录">3.2 Memory tool：窗口外的文件目录</h3>3
+<p>定义（原文大意）：让 Claude 通过基于文件的系统，在上下文窗口之外存取信息。Claude 可以对一个专用的记忆目录创建、读取、更新、删除文件。关键设计点是：这个工具完全在客户端通过工具调用运作，目录位于开发者自己的基础设施里，跨对话持久保存。存储后端由开发者管理，所以数据放哪、怎么持久化，开发者说了算。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.3 评测数据</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>第一，“降低 84% token”并不只是省钱，它同时改变了任务的可完成性：没有它，任务在中途就因窗口耗尽而失败</li><li>第二，单用 context editing 已有 29% 的提升，说明“少带点旧东西”本身就是收益，这与 Chroma 的 context rot 结论一致</li><li>博客还提到 Claude Sonnet 4.5 内置了上下文感知（context awareness），可以跟踪对话中还剩多少 token</li></ul></div>3
+<p>以下是内部 Agent 搜索评测集上的结果（原文数字，博客未给出评测集规模）：</p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>memory tool + context editing 结合</td>
+<td>相比基线高 39%</td>
+</tr>
+<tr>
+<td>只用 context editing</td>
+<td>相比基线高 29%</td>
+</tr>
+<tr>
+<td>100 轮网页搜索评测</td>
+<td>context editing 使 token 消耗降低 84%，并让原本会因上下文耗尽失败的流程得以完成</td>
+</tr>
+</tbody>
+</table>
+<p>这里要读出两层意思。第一，“降低 84% token”并不只是省钱，它同时改变了任务的可完成性：没有它，任务在中途就因窗口耗尽而失败。第二，单用 context editing 已有 29% 的提升，说明“少带点旧东西”本身就是收益，这与 Chroma 的 context rot 结论一致。</p>
+<p>博客还提到 Claude Sonnet 4.5 内置了上下文感知（context awareness），可以跟踪对话中还剩多少 token。模型知道自己还剩多少空间，才能更合理地决定什么时候写笔记、什么时候收尾。</p>
+<h1 id="how长程-harnessskills多-agent-取舍与中间件落地">HOW：长程 Harness、Skills、多 Agent 取舍与中间件落地</h1>
+<h2 id="四长程-harness用环境做接力棒">四、长程 Harness：用环境做接力棒</h2>2
+<p>Anthropic 工程博客《Effective harnesses for long-running agents》（2025-11-26）给出了一套完整的接力做法。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.1 双段设计</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Initializer agent（只在第一个会话运行）：搭环境</li><li>产出 「init.sh」（启动开发服务器）、「claude-progress.txt」（进度日志）、一个初始 git 提交，以及完整的功能清单</li><li>Coding agent（之后每个会话）：每次只做一个功能，结束时留下结构化更新，并保证代码处于可以直接合并的干净状态</li></ul></div>3
+<p>两种 Agent 用同一套系统提示、工具和 harness，只有第一次会话的初始提示不同：</p>
+<ul>
+<li><strong>Initializer agent</strong>（只在第一个会话运行）：搭环境。产出 <code>init.sh</code>（启动开发服务器）、<code>claude-progress.txt</code>（进度日志）、一个初始 git 提交，以及完整的功能清单。</li>
+<li><strong>Coding agent</strong>（之后每个会话）：每次只做一个功能，结束时留下结构化更新，并保证代码处于可以直接合并的干净状态。</li>
+</ul>
+<h3 id="42-四件环境组件">4.2 四件环境组件</h3>3
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>作用</th>
+<th>设计要点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>feature list（JSON）</td>
+<td>把“什么叫做完”变成机器可读的清单</td>
+<td>claude.ai 克隆示例里有 200 多项，初始全部标为失败；Agent 只允许改 <code>passes</code> 字段；删改测试被明令禁止</td>
+</tr>
+<tr>
+<td><code>claude-progress.txt</code></td>
+<td>每个会话做了什么，下一个会话怎么接</td>
+<td>交接文档</td>
+</tr>
+<tr>
+<td>git 提交</td>
+<td>回滚坏改动、恢复可用状态</td>
+<td>每个改动一个说明清楚的 commit</td>
+</tr>
+<tr>
+<td><code>init.sh</code></td>
+<td>启动服务</td>
+<td>避免每个会话重新摸索怎么跑应用</td>
+</tr>
+</tbody>
+</table>
+<p>选择 JSON 而不是 Markdown 的理由：模型更不容易误改 JSON 结构，而 Markdown 清单容易被改乱。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.3 每个会话的固定开场</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>4. 运行 「init.sh」 启动服务，做一次基础的端到端测试（比如新建聊天、发消息、收到回复）</li><li>如果发现遗留的破损，先修复，再开发新功能</li><li>作者的看法是，这样既省 token，也避免在已经损坏的状态上继续叠加问题</li></ul></div>3
+<ol>
+<li>运行 <code>pwd</code> 确认工作目录；</li>
+<li>读 git 日志和进度文件；</li>
+<li>读功能清单，选优先级最高的未完成项；</li>
+<li>运行 <code>init.sh</code> 启动服务，做一次基础的端到端测试（比如新建聊天、发消息、收到回复）。如果发现遗留的破损，先修复，再开发新功能。</li>
+</ol>
+<p>作者的看法是，这样既省 token，也避免在已经损坏的状态上继续叠加问题。</p>
+<h3 id="44-失败模式与对策">4.4 失败模式与对策</h3>3
+<table>
+<thead>
+<tr>
+<th>失败模式</th>
+<th>初始化阶段的做法</th>
+<th>编码阶段的做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>过早宣布整个项目完成</td>
+<td>按规格写出结构化的 JSON 功能清单</td>
+<td>读清单，每次只选一项</td>
+</tr>
+<tr>
+<td>环境里留下 bug 或未记录的进度</td>
+<td>初始化 git 仓库，写进度笔记</td>
+<td>开始时读进度和 git 日志并做基础测试；结束时提交并更新进度</td>
+</tr>
+<tr>
+<td>过早标记某功能完成</td>
+<td>设定功能清单</td>
+<td>充分自测后才标记为 passing</td>
+</tr>
+<tr>
+<td>花时间摸索如何运行应用</td>
+<td>写 <code>init.sh</code></td>
+<td>开始时先读 <code>init.sh</code></td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.5 测试方式也是上下文问题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>文中一个很实在的发现：Claude 原本常在做完单元测试或 curl 检查后就把功能标成完成，没有验证端到端效果</li><li>明确要求它用浏览器自动化工具（Puppeteer MCP）像人一样测试后，效果明显提升，能发现只看代码看不出的 bug</li><li>局限是 Claude 看不到浏览器原生的 alert 弹窗，依赖弹窗的功能更容易出 bug</li></ul></div>3
+<p>文中一个很实在的发现：Claude 原本常在做完单元测试或 curl 检查后就把功能标成完成，没有验证端到端效果。明确要求它用浏览器自动化工具（Puppeteer MCP）像人一样测试后，效果明显提升，能发现只看代码看不出的 bug。局限是 Claude 看不到浏览器原生的 alert 弹窗，依赖弹窗的功能更容易出 bug。放在上下文工程的视角里：<strong>验证用的信号源，决定了“已完成”这个状态是否可信</strong>，而这个状态要被写进窗口外的文件，传给下一个会话。</p>
+<h3 id="46-与本库的对照">4.6 与本库的对照</h3>3
+<p>本库总地图 N6 要求收口时写 handoff 笔记（做了什么、下一步、关键决策），N5 要求“自报不采信”、完成必须有凭据（<code>receipt.py</code>），这和上面的 progress 文件、feature list 的 <code>passes</code> 字段、端到端测试是同一类设计：用窗口外的、可核对的记录，取代“模型自己说做完了”。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">五、Skills：渐进披露三层</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>其一，技能里的脚本可以直接执行，不必把脚本内容载入上下文，所以文中说技能可打包的内容“实际上没有上限”</li><li>编写建议：先让 Agent 跑代表性任务，找到它卡住的地方，再针对性加技能；SKILL.md 变笨重时拆分文件，把互斥或少用的内容分开放；特别注意 「name」 和 「description」，因为模型凭它们决定是否触发；只安装可信来源的技能，来源不明的要通读其脚本和依赖</li><li>其二，博客没有给出元数据和正文的具体 token 量级，不要凭印象写数字</li></ul></div>2
+<p>Anthropic 工程博客《Equipping agents for the real world with Agent Skills》（2025-10-16）给出的结构，是前面所有“按需加载”思路中最规整的一个：</p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>内容</th>
+<th>何时进入上下文</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第一层：元数据</td>
+<td>每个 <code>SKILL.md</code> 开头的 YAML frontmatter，含必填的 <code>name</code> 和 <code>description</code></td>
+<td>启动时，所有已安装技能的这两项放进系统提示</td>
+</tr>
+<tr>
+<td>第二层：SKILL.md 正文</td>
+<td>完整说明</td>
+<td>Claude 判断该技能与当前任务相关时才读取</td>
+</tr>
+<tr>
+<td>第三层及以上：附加文件</td>
+<td>技能目录里被 SKILL.md 引用的其他文件</td>
+<td>只在需要时读；例如 PDF 技能里填表说明放在 <code>forms.md</code>，填表时才读</td>
+</tr>
+</tbody>
+</table>
+<p>两个细节。其一，技能里的脚本可以直接执行，不必把脚本内容载入上下文，所以文中说技能可打包的内容“实际上没有上限”。其二，博客没有给出元数据和正文的具体 token 量级，不要凭印象写数字。</p>
+<p>编写建议：先让 Agent 跑代表性任务，找到它卡住的地方，再针对性加技能；SKILL.md 变笨重时拆分文件，把互斥或少用的内容分开放；特别注意 <code>name</code> 和 <code>description</code>，因为模型凭它们决定是否触发；只安装可信来源的技能，来源不明的要通读其脚本和依赖。</p>
+<h2 id="六多-agent-之争该不该拆">六、多 Agent 之争：该不该拆</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">6.1 反方：Cognition《Don't Build Multi-Agents》（2025-06-12）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>作者 Walden Yan，来自 Devin 的开发团队</li><li>加一个压缩历史的 LLM：专门用一个模型把动作和对话历史压缩为关键细节、事件和决策，延长有效上下文</li><li>他对 Claude Code 子 Agent 的评价是：这是符合原则的保守设计，子 Agent 不与主 Agent 并行工作，通常只回答一个明确的问题，不写代码；好处是子 Agent 的调查过程不留在主 Agent 的历史里，主 Agent 因此能承载更长的轨迹</li></ul></div>3
+<p>作者 Walden Yan，来自 Devin 的开发团队。核心主张是，生产级长时间运行的 Agent 应默认排除违反下面两条原则的架构：</p>
+<ol>
+<li><strong>共享上下文，并且共享完整的 Agent 轨迹，而不只是单条消息。</strong></li>
+<li><strong>动作隐含决策，相互冲突的决策会导致糟糕的结果。</strong></li>
+</ol>
+<p>文中的例子是“做一个 Flappy Bird 克隆”被拆成两个子任务。子任务 1 的 Agent 把背景理解成类似超级马力欧的风格，子任务 2 的 Agent 做出的小鸟既不像游戏素材，运动方式也不对。最后主 Agent 只能合并两个相互误解的结果。作者指出，把原始任务复制给子 Agent 并不够，因为真实系统是多轮对话，拆任务之前可能已经调用过工具，每个细节都影响对任务的理解。即使共享了上下文，两个子 Agent 仍可能因为各自基于未事先约定的假设而做出风格不一致的产物。</p>
+<p>作者的推荐架构有两种：</p>
+<ul>
+<li><strong>单线程线性 Agent</strong>：上下文连续，结构最简单。局限是子任务很多的超大任务会耗尽窗口。</li>
+<li><strong>加一个压缩历史的 LLM</strong>：专门用一个模型把动作和对话历史压缩为关键细节、事件和决策，延长有效上下文。作者承认这很难做好，可能需要微调小模型，Cognition 已经这样做过；局限是最终仍会触及上限。</li>
+</ul>
+<p>他对 Claude Code 子 Agent 的评价是：这是符合原则的保守设计，子 Agent 不与主 Agent 并行工作，通常只回答一个明确的问题，不写代码；好处是子 Agent 的调查过程不留在主 Agent 的历史里，主 Agent 因此能承载更长的轨迹。文中注明这一评价基于 2025 年 6 月的实现，当前版本可能已有变化。</p>
+<h3 id="62-正方anthropic-多-agent-研究系统2025-06-13">6.2 正方：Anthropic 多 Agent 研究系统（2025-06-13）</h3>3
+<p>仅晚一天发布的 Anthropic 博客，给出了相反方向的数据：</p>
+<ul>
+<li>架构是 orchestrator-worker：主 Agent 规划并协调，把任务分给并行运行的子 Agent。内部评测中，Claude Opus 4 作主 Agent、Claude Sonnet 4 作子 Agent 的系统，比单 Agent Claude Opus 4 高 <strong>90.2%</strong>。</li>
+<li>在 BrowseComp 评测中，三个因素解释了 95% 的性能差异，其中 token 用量单独解释 <strong>80%</strong>，其余两个因素是工具调用次数和模型选择。也就是说，多 Agent 之所以强，主要是因为它能同时花掉更多 token，在更多窗口里独立思考。</li>
+<li>代价：Agent 约消耗聊天的 4 倍 token，多 Agent 系统约消耗聊天的 <strong>15 倍</strong>。因此只适合任务价值足够高的场景。</li>
+<li>适用的任务类型：可大量并行、信息量超出单个窗口、需要对接众多复杂工具；文中举的例子是“列出信息技术类 S&amp;P 500 公司的所有董事会成员”这种宽度优先的查询。</li>
+<li>主 Agent 会把计划存入外部 Memory，因为文中提到当上下文超过 200,000 token 时会被截断，计划如果只在窗口里就会丢失。</li>
+</ul>
+<p>Anthropic 在 prompt 层面给出的几条原则，也和上下文工程有关：</p>
+<table>
+<thead>
+<tr>
+<th>原则</th>
+<th>要点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>教会主 Agent 怎么委派</td>
+<td>每个子任务需要明确的目标、输出格式、工具与来源指引、任务边界，否则会重复劳动或留下空白</td>
+</tr>
+<tr>
+<td>按复杂度分配投入</td>
+<td>简单查询 1 个 Agent、3 到 10 次工具调用；复杂研究才动用 10 个以上子 Agent</td>
+</tr>
+<tr>
+<td>工具描述要清晰、不重叠</td>
+<td>让 Agent 自己重写工具描述后，后续任务完成时间减少 40%</td>
+</tr>
+<tr>
+<td>先宽后窄</td>
+<td>先用短而宽的查询，再逐步缩小</td>
+</tr>
+<tr>
+<td>并行调用</td>
+<td>主 Agent 并行启动 3 到 5 个子 Agent，子 Agent 并行使用 3 个以上工具，复杂查询的研究时间最多减少 90%</td>
+</tr>
+</tbody>
+</table>
+<p>最值得注意的一条是 <strong>artifact 做法</strong>：让子 Agent 把成果写入外部系统，只把轻量引用交回主 Agent。原文说法是，这样既减少信息在“转述”中丢失，也降低 token 开销，在代码、报告、数据可视化这类结构化输出上效果好。这恰好回应了 Cognition 的核心担忧——上下文在 Agent 之间传递会损耗——办法是让产物直接落在共享存储里，而不是靠主 Agent 复述。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.3 两篇文章其实在回答不同问题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>由此可以得到一条操作性的判断规则：子任务之间的决策相互依赖越强，越不该拆；越是读多写少、可以独立完成的探索，越适合拆</li><li>写代码的主干流程偏前者，大范围调研偏后者</li><li>Claude Code 的做法（子 Agent 只回答问题，不并行写代码）正好是折中</li></ul></div>3
+<p>把两边放到一起比较：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Cognition 反方</th>
+<th>Anthropic 正方</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>典型任务</td>
+<td>写出一个<strong>自洽的产物</strong>（一个游戏、一段代码）</td>
+<td><strong>检索、调研</strong>：信息分散、可并行</td>
+</tr>
+<tr>
+<td>子任务之间</td>
+<td>强耦合：风格、接口、假设要一致</td>
+<td>弱耦合：各自查各自的，最后汇总</td>
+</tr>
+<tr>
+<td>失败的原因</td>
+<td>隐含决策冲突</td>
+<td>单窗口装不下、串行太慢</td>
+</tr>
+<tr>
+<td>上下文传递</td>
+<td>需要完整轨迹，消息不够</td>
+<td>轻量引用加外部存储即可</td>
+</tr>
+<tr>
+<td>成本态度</td>
+<td>用单线程换一致性</td>
+<td>用 15 倍 token 换覆盖面和速度</td>
+</tr>
+</tbody>
+</table>
+<p>由此可以得到一条操作性的判断规则：<strong>子任务之间的决策相互依赖越强，越不该拆；越是读多写少、可以独立完成的探索，越适合拆。</strong> 写代码的主干流程偏前者，大范围调研偏后者。Claude Code 的做法（子 Agent 只回答问题，不并行写代码）正好是折中。</p>
+<h2 id="七langchain-v1把上述做法落成三类上下文和中间件">七、LangChain v1：把上述做法落成三类上下文和中间件</h2>2
+<p>LangChain 官方文档《Context engineering in agents》提供了一个很适合“写代码时对号入座”的分类。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7.1 三类上下文</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>三种数据源：Runtime Context（静态配置：用户 ID、密钥、权限）、State（会话级短期记忆：消息、上传的文件、工具结果）、Store（跨会话长期记忆：用户偏好、历史洞察）</li><li>很多上下文事故，来自把这两者搞混——想只改一次调用，结果永久改了历史；或者想永久压缩，结果只在单次调用里生效，下一轮又恢复了</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>控制什么</th>
+<th>持久性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Model Context</td>
+<td>每次模型调用的输入：指令、消息、工具、模型、输出格式</td>
+<td>瞬态——模型在这一次调用里看到什么</td>
+</tr>
+<tr>
+<td>Tool Context</td>
+<td>工具读取和产生的内容，即对 state、store、runtime context 的读写</td>
+<td>持久</td>
+</tr>
+<tr>
+<td>Life-cycle Context</td>
+<td>模型调用与工具调用之间的步骤：摘要、护栏、日志等</td>
+<td>持久——跨轮次保存在 state 里</td>
+</tr>
+</tbody>
+</table>
+<p>三种数据源：<strong>Runtime Context</strong>（静态配置：用户 ID、密钥、权限）、<strong>State</strong>（会话级短期记忆：消息、上传的文件、工具结果）、<strong>Store</strong>（跨会话长期记忆：用户偏好、历史洞察）。</p>
+<p>这个分类的价值是区分“瞬态”和“持久”：在 Model Context 里裁剪消息，只影响这一次调用，原始历史不动；在 Life-cycle Context 里做摘要，则会写进 state，之后每一轮都只看到摘要。很多上下文事故，来自把这两者搞混——想只改一次调用，结果永久改了历史；或者想永久压缩，结果只在单次调用里生效，下一轮又恢复了。</p>
+<h3 id="72-middleware-钩子">7.2 Middleware 钩子</h3>3
+<p>Middleware 可挂在 Agent 生命周期的任意步骤，做两件事：更新上下文（改 state、store 或对话历史），或者跳转到其他步骤。原文提到的钩子包括 <code>before_model</code>、<code>after_model</code>、<code>wrap_model_call</code>、<code>wrap_tool_call</code>，以及 <code>dynamic_prompt</code> 装饰器。</p>
+<p>内置的 <code>SummarizationMiddleware</code> 有三个参数：<code>model</code>（用于摘要的模型）、<code>trigger</code>（触发阈值，例如 <code>{"tokens": 4000}</code>）、<code>keep</code>（保留最近多少条消息，例如 <code>("messages", 20)</code>）。超过阈值后，它用单独的 LLM 调用压缩旧消息，把摘要持久写入 state。这就是第三章 context editing、以及前一篇文档里“85% 触发压缩”的框架内实现。</p>
+<p>下面是按官方 API 精简改写的示意，不是原文照搬：</p>
+<pre><code class="language-python">from langchain.agents.middleware import dynamic_prompt, wrap_model_call, ModelRequest
+
+@dynamic_prompt
+def build_prompt(request: ModelRequest) -&gt; str:
+    role = request.runtime.context.user_role      # 读 runtime context
+    return &quot;You are a helpful assistant.&quot; + (&quot; Read-only mode.&quot; if role == &quot;viewer&quot; else &quot;&quot;)
+
+@wrap_model_call
+def route_model(request, handler):
+    if len(request.messages) &gt; 20:
+        request = request.override(model=large_model)   # 瞬态替换，不改 state
+    return handler(request)                              # 必须调用 handler 并返回
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7.3 几个值得记住的设计点</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>额外上下文可以作为 user 消息追加在末尾，官方给的理由是“模型更关注最后的消息”，这和 Manus 的复述是同一个原理</li><li>注意：在会话中途改变 tools，会触发上一篇讲过的缓存失效，因此要权衡</li><li>输出格式用 Pydantic 的 「BaseModel」 定义，每个字段写 「description」，并可按对话阶段、用户偏好或角色切换不同的 schema</li></ul></div>3
+<ul>
+<li>额外上下文可以作为 user 消息追加在末尾，官方给的理由是“模型更关注最后的消息”，这和 Manus 的复述是同一个原理。</li>
+<li>工具筛选通过过滤 <code>request.tools</code> 再用 <code>request.override(tools=...)</code> 写回，属于瞬态，也支持运行时注册来自 MCP 服务器的工具。注意：在会话中途改变 tools，会触发上一篇讲过的缓存失效，因此要权衡。</li>
+<li>输出格式用 Pydantic 的 <code>BaseModel</code> 定义，每个字段写 <code>description</code>，并可按对话阶段、用户偏好或角色切换不同的 schema。</li>
+</ul>
+<h3 id="74-官方给出的六条最佳实践">7.4 官方给出的六条最佳实践</h3>3
+<ol>
+<li>从静态提示和工具开始，需要时再加动态逻辑；</li>
+<li>每次只增加一项上下文工程功能，并单独测试；</li>
+<li>跟踪模型调用次数、token 用量和延迟；</li>
+<li>优先使用内置中间件，如 <code>SummarizationMiddleware</code> 和 <code>LLMToolSelectorMiddleware</code>；</li>
+<li>记录上下文策略，写明传入了什么、为什么；</li>
+<li>牢记瞬态与持久的区别。</li>
+</ol>
+<p>第 1、2 条尤其值得强调：它与 Anthropic 工具文档里“用评测驱动迭代”的立场一致，反对一上来堆满策略。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">八、选型决策：状态该放在哪</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<p>把各家的机制放到一张表里，按“我的任务是什么样的”选：</p>
+<table>
+<thead>
+<tr>
+<th>任务特征</th>
+<th>首选做法</th>
+<th>出处</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单会话内工具结果越积越多</td>
+<td>context editing / 大结果落盘，只留预览加路径</td>
+<td>Anthropic；LangChain Deep Agents</td>
+</tr>
+<tr>
+<td>跨会话要记住偏好、事实</td>
+<td>memory tool（文件目录）或 LangChain Store</td>
+<td>Anthropic；LangChain</td>
+</tr>
+<tr>
+<td>跨会话的长任务（数小时到数天）</td>
+<td>进度文件加 git 加 JSON 功能清单，每会话固定开场</td>
+<td>Anthropic harness</td>
+</tr>
+<tr>
+<td>单会话内目标容易漂移</td>
+<td>复述：todo.md 持续改写到上下文末尾</td>
+<td>Manus</td>
+</tr>
+<tr>
+<td>常驻指令太多</td>
+<td>Skills 三层披露</td>
+<td>Anthropic Skills</td>
+</tr>
+<tr>
+<td>宽度优先的调研，可并行</td>
+<td>orchestrator-worker 多 Agent，产物落外部存储</td>
+<td>Anthropic 研究系统</td>
+</tr>
+<tr>
+<td>需要产出风格一致的单一产物</td>
+<td>单线程，必要时加专门的历史压缩模型</td>
+<td>Cognition</td>
+</tr>
+<tr>
+<td>想知道某个机制是否真有用</td>
+<td>先上 tracing 和评测，再逐项加</td>
+<td>LangChain、Anthropic 工具文档</td>
+</tr>
+</tbody>
+</table>
+<h2 id="九常见误区">九、常见误区</h2>2
+<ol>
+<li><strong>只靠压缩续命。</strong> Anthropic harness 一文说明，仅靠 compaction，Opus 4.5 也做不出生产级应用。状态要有窗口外的家。</li>
+<li><strong>压缩了就找不回来。</strong> 违背“可恢复”原则，之后某一步需要被压掉的信息时只能重来。</li>
+<li><strong>只记录成功。</strong> 保留失败痕迹，模型才会避开同一个坑。</li>
+<li><strong>功能清单用 Markdown 自由书写。</strong> 容易被模型改乱，用结构化格式并限制可修改字段。</li>
+<li><strong>模型自述“已完成”就算完成。</strong> 要有端到端的验证信号，并写进持久记录。</li>
+<li><strong>看见 90.2% 就全面多 Agent。</strong> 同一篇文章写明了约 15 倍 token 的代价和适用边界。</li>
+<li><strong>看见 Cognition 就全面禁用多 Agent。</strong> 反方论证针对的是强耦合的产物生成。</li>
+<li><strong>把瞬态改动当持久改动。</strong> 在中间件里裁剪消息，只影响当次调用；要永久压缩必须写入 state。</li>
+<li><strong>所有策略一次上齐。</strong> LangChain 官方建议每次只加一项并单独测试。</li>
+</ol>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">十、与本库其他文档的关系</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>《上下文工程-Context-Engineering》给出四类策略与失效模式，本文是其中 write（笔记）、isolate（子 Agent）两类在长程场景下的展开</li><li>《L2 上下文工程深挖整合》第五章讲了“结构化笔记”“隔离”两类，第九章有一个长任务的虚拟案例；本文提供的是该案例背后的一手出处与数据</li><li>姊妹篇《缓存与工具上下文-成本侧实战》讲怎么让这些机制不破坏缓存，例如 context editing 清除旧结果会改动前缀，需要和缓存断点的位置一起设计</li></ul></div>2
+<ul>
+<li>《上下文工程-Context-Engineering》给出四类策略与失效模式，本文是其中 write（笔记）、isolate（子 Agent）两类在长程场景下的展开。</li>
+<li>《L2 上下文工程深挖整合》第五章讲了“结构化笔记”“隔离”两类，第九章有一个长任务的虚拟案例；本文提供的是该案例背后的一手出处与数据。</li>
+<li>姊妹篇《缓存与工具上下文-成本侧实战》讲怎么让这些机制不破坏缓存，例如 context editing 清除旧结果会改动前缀，需要和缓存断点的位置一起设计。</li>
+<li>L3 层的《Harness工程到底是什么》是更上层的工程环境视角；本文第四章的 harness 做法可作为其实例。</li>
+</ul>
+<h2 id="来源">来源</h2>2
+<p>一手来源（官方博客或官方文档，抓取日期 2026-11-02）：</p>
+<ul>
+<li>Manus 官方博客：Context Engineering for AI Agents: Lessons from Building Manus — https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus</li>
+<li>Anthropic：Managing context on the Claude Developer Platform（2025-09-29）— https://claude.com/blog/context-management</li>
+<li>Anthropic Engineering：Effective harnesses for long-running agents（Justin Young，2025-11-26）— https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents</li>
+<li>Anthropic Engineering：How we built our multi-agent research system（2025-06-13）— https://www.anthropic.com/engineering/multi-agent-research-system</li>
+<li>Cognition：Don't Build Multi-Agents（Walden Yan，2025-06-12）— https://cognition.com/blog/dont-build-multi-agents</li>
+<li>Anthropic Engineering：Equipping agents for the real world with Agent Skills（2025-10-16）— https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills</li>
+<li>LangChain 官方文档：Context engineering in agents — https://docs.langchain.com/oss/python/langchain/context-engineering</li>
+</ul>
+<p>使用说明：</p>
+<ul>
+<li>所有百分比、token 数、倍数均来自上述原文；凡是原文没给的数值（如 context editing 的触发阈值、Skills 元数据的 token 量级）本文明确写了“未给出”，没有补写。</li>
+<li>Cognition 对 Claude Code 子 Agent 的评价基于 2025 年 6 月的实现。</li>
+<li>第七章代码为按官方 API 精简改写的示意。</li>
+</ul>
+<blockquote>
+<p>来源：Manus《Context Engineering for AI Agents: Lessons from Building Manus》；Anthropic《Managing context on the Claude Developer Platform》《Effective harnesses for long-running agents》《How we built our multi-agent research system》《Equipping agents for the real world with Agent Skills》；Cognition《Don't Build Multi-Agents》；LangChain《Context engineering in agents》。</p>
+</blockquote></div></details></div></body></html>

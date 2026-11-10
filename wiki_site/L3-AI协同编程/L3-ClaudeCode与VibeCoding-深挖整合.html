@@ -1,0 +1,190 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L3-ClaudeCode与VibeCoding-深挖整合</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L3-ClaudeCode与VibeCoding-深挖整合</span></div><div class="wrap"><h1 id="claude-code-与-vibe-coding从需求到可维护代码">Claude Code 与 Vibe Coding：从需求到可维护代码</h1>
+<blockquote>
+<p>本主题覆盖 Copilot、自然语言原型、Claude Code 的上下文、Skills、Hooks 与重构；团队分工与 Codex 操作见<a href="L3-%E5%85%AD%E5%91%98%E5%8D%8F%E5%90%8C%E4%B8%8E%E5%B7%A5%E5%85%B7%E9%80%89%E5%9E%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">协作篇</a>。核验日：2026-11-03。</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY：把“能演示”推进到“能负责”</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>自然语言很适合表达界面、数据处理和脚本需求，但一句“做个待办应用”没有回答数据损坏怎么办、删除是否可恢复、代码由谁维护</li><li>旧稿宣称“效率提升 5—10 倍”，原材料没有实验设计、基线、任务集与耗时记录，本篇撤下这个结论</li><li>AI 加快实现之后，验收与理解成为必要的工作，而不是可以省略的尾声</li></ul></div>2
+<p>自然语言很适合表达界面、数据处理和脚本需求，但一句“做个待办应用”没有回答数据损坏怎么办、删除是否可恢复、代码由谁维护。AI 加快实现之后，验收与理解成为必要的工作，而不是可以省略的尾声。旧稿宣称“效率提升 5—10 倍”，原材料没有实验设计、基线、任务集与耗时记录，本篇撤下这个结论。</p>
+<p>书籍摘录强调 CLAUDE.md、Skills、SubAgents、Hooks 的协同；课件销售分析 Skill 则给出可观察的实例：先看表头和指标定义，再调用脚本，最后按结构化结果写报告。把两者融合到编程场景，就是先明确接口与验收，再调用工具实现，最后按运行结果解释行为。[书1][课1]</p>
+<p>Vibe coding 的含义需要限定。Simon Willison 在 2025-03-19 的原文中将其解释为使用大模型构建软件而不审阅生成代码；审阅、充分测试并能解释实现的过程属于负责任的 AI 辅助开发。这个定义是历史概念来源，2026-11-03 复核可访问，并非“2026 年新发布”。工具名称也不决定工作方式：使用 Claude Code 可以做快速实验，也可以进行严格工程开发。[业2]</p>
+<h2 id="what-whyt四种机制分别解决什么问题">WHAT / WHYT：四种机制分别解决什么问题</h2>2
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>适合放什么</th>
+<th>不应承诺什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CLAUDE.md</td>
+<td>常用验证命令、项目约束、需要读取的规范入口</td>
+<td>自动执行所有规则、替代沙箱</td>
+</tr>
+<tr>
+<td>Skills</td>
+<td>专门流程、参考资料、可复用脚本与模板</td>
+<td>自动抹除已经进入会话的上下文</td>
+</tr>
+<tr>
+<td>Hooks</td>
+<td>在具体事件运行确定性检查</td>
+<td>任意脚本失败都会阻断、覆盖所有执行通道</td>
+</tr>
+<tr>
+<td>Subagents</td>
+<td>范围清晰、可独立完成的调查或实现</td>
+<td>没有协调成本、天然没有文件冲突</td>
+</tr>
+</tbody>
+</table>
+<p>“财务 Skill 在话题切换后退场”是书中说明按需加载的比喻；它不能证明宿主会即时删除已加载正文。实际收益取决于发现、加载和上下文整理机制。[书1]</p>
+<p>本次 Claude Code 文档站的 best-practices 和 hooks 页面返回 403，未拿到正文；改用官方 GitHub CHANGELOG，固定到提交 <code>964d69565952a176ac1975ed218362991db71433</code>，提交时间为 2026-11-03。该文件顶部为 2.1.317。这里只把它作为更新证据，不把它当完整配置说明，也不声称本机已安装这个版本。[业1]</p>
+<p>两项当前变化值得落实到验证：2.1.314 提到 <code>permissions.blockWritesOutsideWorkingDirectories</code>，适用于 Write、Edit、NotebookEdit；不能推断 Bash 也被这个字段约束。2.1.317 提到 Agent SDK hook callback 的 <code>onFailure: "block"</code>；这是 SDK 回调选项，不能随手塞到 CLI hooks 配置。由此可见，“有 Hook”与“失败时确实阻断”必须分别测试。[业1]</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">原型、补全与工程协作的使用边界</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Copilot 可作为编辑器内补全和对话助手；产品具体能力随版本变化，本篇不再把它限定成“只能自动补全”</li><li>对局部函数，先写输入、输出、边界再采纳建议；对跨模块重构，先建立调用关系与回归</li><li>没有必要为了一个明确的局部修改引入复杂编排</li></ul></div>3
+<p>Copilot 可作为编辑器内补全和对话助手；产品具体能力随版本变化，本篇不再把它限定成“只能自动补全”。对局部函数，先写输入、输出、边界再采纳建议；对跨模块重构，先建立调用关系与回归。没有必要为了一个明确的局部修改引入复杂编排。</p>
+<p>Vibe 原型适合低风险、可丢弃的探索。转向长期维护时，必须补接口说明、测试、数据迁移和错误处理。原型做出来以后再读代码，也仍然要读；不能因为“AI 生成”就把理解责任转交给模型。</p>
+<h2 id="how一次可交接的-claude-code-实战">HOW：一次可交接的 Claude Code 实战</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 准备仓库与真实约束</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>claude --version</li><li>这些命令用于核对工作目录、未提交修改和本机 CLI 语法；本次编辑工作没有替读者启动模型会话</li><li>若本地帮助没有某个选项，就停止套用旧文章命令</li></ul></div>3
+<p>以<a href="L3-AI%E5%8D%8F%E5%90%8C%E7%BC%96%E7%A8%8B-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">基础篇</a>的 <code>normalize_tags</code> 小项目为例，先在练习仓库执行：</p>
+<pre><code class="language-bash">pwd
+git status --short
+claude --version
+claude --help
+</code></pre>
+<p>这些命令用于核对工作目录、未提交修改和本机 CLI 语法；本次编辑工作没有替读者启动模型会话。若本地帮助没有某个选项，就停止套用旧文章命令。旧稿中的 <code>claude ultrareview --base main</code>、<code>--background</code> 和 <code>bug-locator</code> 等名称没有在本次所读官方资料中完成核验，不再列为通用内置命令。自定义 agent 名称必须先在项目中定义。</p>
+<p>在 CLAUDE.md 只保留项目真正需要的规则：保持公开接口、限定文件、运行 <code>python3 -m unittest -v test_tags.py</code>、完成时解释异常分支。复杂的迁移说明放 <code>docs/</code>，并写清何时读取。不是所有规则都要删到固定 100 行或 2000 字；先看内容对行为是否有价值，再做减法。[书1][书2]</p>
+<h3 id="2-先探索再实现">2. 先探索再实现</h3>3
+<p>直接给交互会话以下任务。这是可复制提示模板，不保证任何版本仅凭文字就拥有只读权限；应同时使用宿主提供的权限控制。</p>
+<pre><code class="language-text">读取 tags.py、test_tags.py 和项目规则。
+先说明现有行为、可能受影响的调用方和计划，暂不修改。
+目标：normalize_tags 增加稳定去重；保留首次出现顺序。
+非字符串继续抛 TypeError；不得吞掉异常或改写输入列表。
+只允许修改 tags.py 和 test_tags.py。
+验收至少覆盖空输入、重复值、顺序、非法类型、输入不变。
+如果旧测试与目标冲突，先列出冲突，不通过删测试消除失败。
+</code></pre>
+<p>读计划时检查三点：是否识别稳定顺序、是否修改了公共签名、是否遗漏其他调用方。计划正确后进入实现，先跑现有测试建立基线，再做最小修改。若基线已经失败，保留失败项并单独归因，不能将所有失败都归咎于新修改。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 把复用流程做成 Skill</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Agent篇的 day16 Skill 包含 「name」、「description」、参考资料、脚本、输出结构，这种包结构可以迁移到代码任务</li><li>下面给出项目内示意内容，宿主的发现路径和字段支持需要以其版本文档确认；它不是已安装的插件</li><li>name: stable-refactor</li></ul></div>3
+<p>Agent篇的 day16 Skill 包含 <code>name</code>、<code>description</code>、参考资料、脚本、输出结构，这种包结构可以迁移到代码任务。下面给出项目内示意内容，宿主的发现路径和字段支持需要以其版本文档确认；它不是已安装的插件。</p>
+<pre><code class="language-markdown">---
+name: stable-refactor
+description: 公开接口保持不变的局部重构；适用于已有测试和明确写入范围的任务。
+---
+# 稳定重构
+1. 读接口契约和调用方；记录现有失败。
+2. 明确允许写入的文件及兼容性要求。
+3. 完成最小变更，运行目标测试和受影响回归。
+4. 对照 diff 检查异常路径、排序、编码与资源释放。
+5. 输出改动、命令、结果、未覆盖事项和回退方法。
+涉及数据库迁移或外部发布时使用相应专门流程。
+</code></pre>
+<p>从课件迁移的是“参考资料→现成脚本→结构化结果”的方法，不是销售指标本身。例如编程 Skill 的 references 可以放接口约定，scripts 放仓库已有检查器，assets 放评审模板。不要把每次任务输入都写成永久 Skill，也不要重复实现已经存在的测试工具。[课1]</p>
+<h3 id="4-用可运行的检查证明约束逻辑">4. 用可运行的检查证明约束逻辑</h3>3
+<p>下面是通用路径归属检查器，不是 Claude Code Hook API。保存为练习目录的 <code>check_scope.py</code>，先离线验证算法，再按当前宿主文档接入事件。它只检查传入路径，不阻止另外一个未受控 shell，因此不能作为完整安全边界。</p>
+<pre><code class="language-python">from pathlib import Path
+
+def allowed(root, candidate):
+    base = Path(root).resolve()
+    target = (base / candidate).resolve()
+    return target.is_relative_to(base)
+
+if __name__ == &quot;__main__&quot;:
+    root = Path.cwd()
+    assert allowed(root, &quot;tags.py&quot;)
+    assert allowed(root, &quot;src/../tags.py&quot;)
+    assert not allowed(root, &quot;../outside.txt&quot;)
+    assert not allowed(root, root.parent / &quot;outside.txt&quot;)
+    print(&quot;scope: 4 checks passed&quot;)
+</code></pre>
+<pre><code class="language-bash">python3 check_scope.py
+</code></pre>
+<p>它要求 Python 3.9+。正例与 <code>..</code> 负例应同时通过断言；生产检查还要考虑符号链接竞态、工具实际 cwd、路径大小写及不同操作系统行为。接 Hook 后再做事件级验证：允许行为通过、拒绝行为确实未执行、检查器崩溃时结果明确。不能只看到脚本输出“拒绝”就断言宿主阻断成功。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5. Vibe 待办应用从一句话变成验收矩阵</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>制作浏览器本地待办应用，持久化仅用 localStorage</li><li>功能：新增、编辑、完成/取消完成、删除、刷新恢复</li><li>边界：空标题禁止；纯空白 trim 后判断；同名任务各有独立 ID</li></ul></div>3
+<p>旧稿的一句需求可以展开为如下任务卡，适合把原型做得可检验：</p>
+<pre><code class="language-text">制作浏览器本地待办应用，持久化仅用 localStorage。
+功能：新增、编辑、完成/取消完成、删除、刷新恢复。
+边界：空标题禁止；纯空白 trim 后判断；同名任务各有独立 ID。
+异常：localStorage 中存在损坏 JSON 时显示恢复提示，不静默覆盖原数据。
+安全：用户文本按文本渲染；输入 &lt;img src=x onerror=alert(1)&gt; 不执行脚本。
+交付：运行说明、数据结构、可复现的手动验收步骤、已知限制。
+不接后端，不处理真实用户数据，不自动部署。
+</code></pre>
+<p>按顺序操作：空白输入应被拒绝；新增两个同名任务，删除其中一个后另一个仍在；刷新后完成状态保持；人为放入损坏 JSON，页面应进入明确恢复流程；输入 HTML 字符串，页面应显示文字而非执行。这里的“手动验收”是待执行清单，本次未创建该应用，也没有宣称浏览器端已通过。</p>
+<h3 id="6-重构如何收口">6. 重构如何收口</h3>3
+<pre><code class="language-bash">python3 -m unittest -v test_tags.py
+git diff --check
+git diff --stat
+git diff -- tags.py test_tags.py
+</code></pre>
+<p>先看测试，再读 diff：有没有修改测试期望来掩盖退化，有没有把异常捕获成空结果，有没有顺手改无关模块。独立评审应拿到需求和补丁，不只拿执行者的解释。大重构按接口或垂直功能切增量，而不是“每个文件分一个 agent”。一个接口跨三个文件时，让单一负责人维护一致性往往更省协调成本。</p>
+<p>如果会话停滞，区分仍在生成、等待权限、工具超时、进程已退出。未取得新证据前不要重复发同一任务造成双写。交接记录应含完成的子目标、测试状态与待处理问题；哈希只用于核对文件版本，不能替代独立执行和内容评审。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库 AI 协同编程的证据不是「用没用 AI」，而是「AI 改过的文件留没留痕」（本次实测）</strong>：<code>~/.hermes/scripts/</code> 下同一个门禁脚本有 4 个带日期戳的备份——<code>dispatch-guard.py.bak-20261104-jev2</code>、<code>dispatch-guard.py.bak-20261104-probe-rewrite</code>、<code>dispatch-guard.py.bak-20261104-proberegex</code>、<code>dispatch-guard.py.bak-jev-20261104-1357</code>。<br />
+<strong>一个人手工改 4 次只会有 1 个 <code>~</code> 备份，4 个带语义后缀的备份是「多次 AI 动手 + 每次可回滚」的指纹</strong>。</li>
+<li><strong>自定义 skill 目录是 VibeCoding 的产物形态</strong>：<code>projects/agent-service-toolkit/.claude/skills/</code> 下有 <code>dependency-refresh/</code>（含 <code>references/live-e2e.md</code>）、<code>smoke-test/</code> 等 skill，把「刷新依赖」「冒烟测试」这类重复动作写成 Skill 而不是每次描述一遍。<br />
+  本库知识库侧也一样：<code>~/.hermes/skills/software-development/</code> 下 100+ 个 SKILL.md，本次任务就用到了 <code>receipt-declare-verify</code>、<code>error-ledger</code> 两个。</li>
+<li><strong>AI 协同的纪律在 <code>AGENTS.md</code> 里被写成硬规则</strong>：写操作派子智能体、审查链 OC→DSH→Claude→Codex 轮次 ≤2、trace 带 sha256、同错 3 次停手。<strong>规则不是建议，是派单门禁的判据</strong>（<code>dispatch-guard.py</code> 遇到写操作会拒派非真通道）。</li>
+<li><strong>和课件讲法的差异</strong>：课件/博客讲 VibeCoding 多强调「一句话生成整个应用」；本库的经验是 <strong>AI 改代码必须绑定可回滚的备份 + 可复跑的验收命令</strong>，速度来自「改完立刻验证」，不是来自「一次写对」。</li>
+<li><strong>本库暂无</strong>：没有 Claude Code 的使用度量（每次会话改了哪些文件、耗时多少），协同质量靠复盘经验而非数据。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库的 Claude Code 落地证据是两个被 Agent 改过的门禁脚本都留了带日期戳的 <code>.bak</code>（<code>~/.hermes/scripts/dispatch-guard.py.bak-jev-20261104-1357</code>、<code>receipt.py</code> 系列），以及 <code>projects/agent-service-toolkit/.claude/skills/</code> 下按技能拆的自定义 skill。</li>
+<li><strong>读源码</strong>：AI 协同编程的交付物形态；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">来源与三源融合落点</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>[课1] 课件：day16 销售分析 Skill，执行流程、输入处理原则、脚本调用规则；day15 AGENTS.md，先理解需求、禁止编造、修改需求后重新规划</li><li>[书1] 书籍摘录：Claude Code实战：Harness工程之道，划线 3、5、6、10、11、15、17、20</li><li>本地只有目录与 20 条划线，未引用未见全文的操作细节</li></ul></div>2
+<ul>
+<li><strong>[课1] 课件</strong>：<a href="../../raw/courseware/Agent%E7%AF%87/day16__skills__sales-analysis__SKILL.md">day16 销售分析 Skill</a>，执行流程、输入处理原则、脚本调用规则；<a href="../../raw/courseware/Agent%E7%AF%87/day15__AGENTS.md">day15 AGENTS.md</a>，先理解需求、禁止编造、修改需求后重新规划。应用到编程契约与复用流程。</li>
+<li><strong>[书1] 书籍摘录</strong>：<a href="../../raw/weread/Claude%20Code%E5%AE%9E%E6%88%98%EF%BC%9AHarness%E5%B7%A5%E7%A8%8B%E4%B9%8B%E9%81%93.md">Claude Code实战：Harness工程之道</a>，划线 3、5、6、10、11、15、17、20。本地只有目录与 20 条划线，未引用未见全文的操作细节。</li>
+<li><strong>[书2] 书籍摘录</strong>：<a href="../../raw/weread/Claude%20Code%E6%8A%80%E6%9C%AF%E6%9E%B6%E6%9E%84%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90%EF%BC%9AHarness%E5%B7%A5%E7%A8%8B%E4%B8%8EAI%E7%BC%96%E7%A8%8B%E6%96%B0%E8%8C%83%E5%BC%8F.md">Claude Code技术架构深度解析</a>，划线 10、16、18、20，支持 Git 反馈、写操作并发冲突和理解生成代码的必要性；不把源码摘录当当前版本接口。</li>
+<li><strong>[业1] 官方更新记录</strong>：<a href="https://github.com/anthropics/claude-code/blob/964d69565952a176ac1975ed218362991db71433/CHANGELOG.md">Claude Code CHANGELOG 固定提交</a>，本次通过 raw GitHub GET 200 读取；2.1.314 / 2.1.317 的边界与修复如正文所述。</li>
+<li><strong>[业2] 业内作者原文</strong>：<a href="https://simonwillison.net/2025/Mar/19/vibe-coding/">Not all AI-assisted programming is vibe coding</a>，2025-03-19 发布，2026-11-03 GET 200；用于术语澄清，不是效率实测。</li>
+</ul>
+<p>本篇任务卡、路径检查器、待办验收矩阵为基于三源的原创教学设计。离线验证范围与结果见<a href="00-%E8%9E%8D%E5%90%88%E6%B8%85%E5%8D%95%E4%B8%8E%E9%AA%8C%E6%94%B6.html">验收记录</a>。</p></div></details></div></body></html>

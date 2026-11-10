@@ -1,0 +1,173 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Tracing可观测选型-Arize-Phoenix-Langfuse-OTEL横评</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ Tracing可观测选型-Arize-Phoenix-Langfuse-OTEL横评</span></div><div class="wrap"><h1 id="tracing-可观测选型arize-phoenix-langfuse-opentelemetryjaeger-langsmith-横评78g-wsl-约束">Tracing 可观测选型：Arize Phoenix / Langfuse / OpenTelemetry+Jaeger / LangSmith 横评（7.8G WSL 约束）</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/sources/Tracing%E9%80%89%E5%9E%8B%E8%B0%83%E7%A0%94-20261026.md">Tracing选型调研-20261026</a></p>
+<p>类型：方法论笔记（Evergreen/Zettelkasten 原子化） ｜ 生成：CODE Distill 生产线（一手源蒸馏）<br />
+一手源：<code>raw/sources/Tracing选型调研-20261026.md</code>（2026-10-26，四方案横评矩阵 + 内存实测，全一手源）<br />
+相关：<a href="LLM%E7%94%9F%E4%BA%A7%E7%9B%91%E6%8E%A7%E4%B8%8EEval%E8%A7%82%E6%B5%8B.html">LLM生产监控与Eval观测</a> · <a href="../L4-RAG%E5%B7%A5%E7%A8%8B/RAG%E8%AF%84%E4%BC%B0%E6%80%8E%E4%B9%88%E8%B7%91.html">RAG评估怎么跑</a></p>
+</blockquote>
+<h2 id="why为什么在-78g-wsl-约束下重做-tracing-选型">WHY：为什么在 7.8G WSL 约束下重做 Tracing 选型</h2>2
+<p>在 <strong>7.8G WSL + 本地自托管 + 轻量 + 能串"检索→rerank→生成"全链路</strong>的约束下，<strong>Arize Phoenix（单容器，官方 2GB RAM + 1 vCPU）是唯一在该内存下无压力、且带完整 UI 的方案</strong>；Langfuse 功能最全但 v3+ 自托管需 5 容器（Web 4G + Worker 4G + PG 4G + Redis 1.5G + ClickHouse 8G ≈ 15GiB 基线），在 7.8G WSL 上偏重；OpenTelemetry+Jaeger 最轻（~200-500MB）但需手写 span 无开箱 UI；LangSmith 自托管仅 Enterprise 付费 + K8s，本地直接排除。</p>
+<h3 id="选型动机的机制拆解">选型动机的机制拆解</h3>3
+<ul>
+<li><strong>四方案内存实测 vs 本机约束（关键决策点）</strong>：本机 WSL 内存 7.8G，且 query.py 本身要跑 torch（bge-embedding + bge-reranker，<code>RAG_TORCH_THREADS=4</code>）已占可观内存。实测对比：</li>
+<li>Langfuse 自托管 v3+：官方 production 最低 Web 2C/4G + Worker 2C/4G + PG 2C/4G + Redis 1C/1.5G + ClickHouse 2C/8G ≈ <strong>21.5G</strong>（推荐），最小 Docker Compose 可砍到 8-12G 但 UI 慢、ClickHouse 吃紧 → ⚠️ 勉强/高风险，与 RAG 模型抢内存，低负载个人用可跑但需盯 OOM。</li>
+<li>LangSmith 自托管：需 K8s 集群 + Enterprise 许可 → ❌ 不可行（门槛 + 重量级）。</li>
+<li>OpenTelemetry + Jaeger all-in-one：Jaeger 单容器 <strong>~200-500MB</strong> → ✅ 极轻，无忧。</li>
+<li>Arize Phoenix：官方内部 <strong>2GB RAM + 1 vCPU</strong>，单容器 + SQLite → ✅ 轻，最推荐的"完整 UI"方案。</li>
+<li><strong>接入成本的"基线"逻辑</strong>：LangSmith 的 5 个 <code>@traceable</code> 已经在 query.py 里跑通（L45-52 导入，L499/535/634/714/1949 打点），所以<strong>任何新方案的接入成本都应对照"替换这 5 个装饰器"来评估</strong>，而不是从零打点——这是判断"改多少代码"的锚点。</li>
+<li><strong>Langfuse 被收购的背景</strong>：2026-01-16 被 ClickHouse 收购（MIT 许可承诺不变），~35k stars，90 天 ~1550 commits，最近 release v4.50.0（2026-10-02）——社区活跃度是四方案中最高的，但内存门槛也是最高的。</li>
+<li><strong>Phoenix 的定位差异</strong>：~12k stars，v20.26.x（2026-10-25 仍在发版），Apache 2.0 + ELv2（部分），Arize 商业公司背书；OpenInference SpanKind（<code>retriever</code>/<code>reranker</code>/<code>llm</code>/<code>chain</code>/<code>tool</code>）原生支持 RAG 各环节分类，trace 树 + eval（retrieval evals、response evals）内置——<strong>RAG 场景是 Phoenix 的主打场景</strong>，与本项目 golden/e2e eval 体系天然契合。</li>
+</ul>
+<h3 id="现状代价与切换权衡">现状、代价与切换权衡</h3>3
+<ul>
+<li><strong>现状</strong>：<code>query.py</code>（2116 行）是 LangGraph 状态机 + CRAG 纠错环的 Adaptive RAG，链路为<br />
+<code>user_query → route_question(路由) → retrieve_node(检索) → grade_documents(CRAG评分) → [rewrite_node(重写)?] → rerank_node(rerank) → generate_node(LLM生成)</code>。<br />
+  已通过 <code>from langsmith import traceable</code> 在 5 个关键函数上打点（<code>retrieve</code> / <code>retrieve_hybrid</code> / <code>rerank</code> / <code>ollama_chat</code> / <code>query</code>，run_type 分别为 retriever/llm/chain）——<strong>但 LangSmith 云端免费档仅 5k traces/月、1 席位、14 天保留</strong>，长期本地方案需替换。</li>
+<li><strong>不做的代价</strong>：检索→rerank→生成这条链路上任一环节的延迟/错误无法定位，生产排障靠猜；LangSmith 免费额度撞顶后直接断数据。</li>
+<li><strong>权衡</strong>：切换成本 = 替换 5 个 <code>@traceable</code> 装饰器（约 5-8 处改动，30 分钟量级）+ 可选 span 属性增强。<strong>LangSmith 的 <code>@traceable</code> 本身就是"改多少代码"的基线</strong>——任何方案的接入成本都应对照这个基线评估，不是从零打点。</li>
+</ul>
+<h2 id="what-whyttracing-的定义职责与内存边界">WHAT / WHYT：Tracing 的定义、职责与内存边界</h2>2
+<ul>
+<li><strong>Tracing 可观测</strong>：对 RAG 管线每个环节（检索/重排/生成/全链路）打 span，记录耗时、token、命中文档，用于生产排障与质量归因。</li>
+<li><strong>✅ 管什么</strong>：span 树结构、检索/rerank/生成的业务语义分类（OpenInference SpanKind）、LLM 成本/token 统计、数据主权（本地存储）。</li>
+<li><strong>❌ 不管什么</strong>：向量库本身调优、embedding 模型选型、chunk 切分策略——这些是 RAG 检索层的事，不在 tracing 范围。</li>
+<li><strong>⚠️ 红线</strong>：<code>RAG_TORCH_THREADS=4</code> 的 torch（bge-embedding + bge-reranker）已占可观内存，任何 tracing 方案都不得再挤占这 7.8G 的剩余空间导致 OOM。</li>
+</ul>
+<h2 id="how四方案横评phoenix-接入与验证">HOW：四方案横评、Phoenix 接入与验证</h2>2
+<p><strong>四方案横评矩阵（核心维度）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th><strong>Langfuse（自托管）</strong></th>
+<th><strong>LangSmith</strong></th>
+<th><strong>OpenTelemetry + Jaeger</strong></th>
+<th><strong>Arize Phoenix</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>自托管/本地</td>
+<td>✅ MIT，Docker Compose 一键起；但 v3+ 需 Postgres+ClickHouse+Redis+MinIO 5 容器，~15GiB</td>
+<td>❌ 自托管仅 Enterprise 付费 + K8s（Helm）；SDK MIT 平台闭源</td>
+<td>✅ 协议/SDK，零存储；配 Jaeger all-in-one 单容器 ~200MB 或 Tempo</td>
+<td>✅ 单容器 <code>docker run arizephoenix/phoenix</code>，官方 2GB RAM + 1 vCPU，SQLite/PG 可选</td>
+</tr>
+<tr>
+<td>接入成本</td>
+<td>低：<code>from langfuse.langchain import CallbackHandler</code> + <code>config={"callbacks":[langfuse_handler]}</code> 一行接 LangGraph；自定义函数 <code>@observe()</code> 替 <code>@traceable</code>（1:1）</td>
+<td>极低（现状已接好 5 个 @traceable）；但云端免费档 5k traces/月</td>
+<td>中-高：<code>tracer.start_as_current_span()</code> 手动包每个环节，无现成装饰器</td>
+<td>低：<code>arize-phoenix-otel</code> 的 <code>register(auto_instrument=True)</code> 自动 instrument；检索/rerank 仍需手动 span</td>
+</tr>
+<tr>
+<td>串全链路</td>
+<td>✅✅ 最强：LangGraph CallbackHandler 自动串 StateGraph 全节点为嵌套 trace；<code>@observe(as_type=...)</code> 显式标注</td>
+<td>✅ 自动串，但业务语义分层靠 run_type 命名，不如 Langfuse 丰富</td>
+<td>✅ GenAI Semantic Conventions（<code>gen_ai.operation.name</code>、<code>gen_ai.usage.*</code>）+ 自定义 <code>retrieval.*</code>/<code>rerank.*</code>；最规范但最费手</td>
+<td>✅ OpenInference SpanKind（<code>retriever</code>/<code>reranker</code>/<code>llm</code>/<code>chain</code>/<code>tool</code>）原生支持 RAG 各环节分类</td>
+</tr>
+<tr>
+<td>社区/维护</td>
+<td>✅✅ ~35k stars，90 天 ~1550 commits，2026-01-16 被 ClickHouse 收购（MIT 不变）</td>
+<td>⚠️ 活跃但闭源；2026-05 起存储引擎 SmithDB（闭源替代 ClickHouse）</td>
+<td>✅✅ CNCF 标准，永不消失，厂商中立</td>
+<td>✅ ~12k stars，2026-10-25 仍高频发版，Apache 2.0，Arize 商业背书</td>
+</tr>
+<tr>
+<td>数据主权</td>
+<td>✅ 完全本地（ClickHouse/PG）</td>
+<td>❌ SaaS 或 Enterprise 自托管</td>
+<td>✅ 完全本地</td>
+<td>✅ 完全本地（SQLite/PG）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>推荐结论（按本机约束排序）</strong>：<br />
+- 🏆 <strong>首选 Arize Phoenix</strong>：单容器 + SQLite，2GB/1vCPU，唯一在 7.8G WSL 上无内存压力且带完整 UI；接入约 5-8 处改动、30 分钟量级；RAG 检索/响应 eval 是 Phoenix 主打场景，与本项目 golden/e2e eval 体系契合。<br />
+- 🥈 <strong>备选 Langfuse</strong>：功能最全（OTEL 原生、LangGraph 一行接入），但 5 容器 + ClickHouse 内存基线在 7.8G WSL 上偏重——未来迁到 ≥16G 机器且需 prompt 管理 + LLM-as-judge + 成本核算时再选。<br />
+- 🥉 <strong>第三 OpenTelemetry + Jaeger</strong>：协议永不消失、~200MB 极轻；代价是检索/rerank 属性要手写、无 LLM 成本/eval 开箱能力。<br />
+- ❌ <strong>不推荐 LangSmith 自托管</strong>：Enterprise 付费 + K8s，个人/本地场景直接排除；云端免费档可临时调试，注意额度撞顶。</p>
+<p><strong>接入步骤概要（以首选 Phoenix 为例，⚠️ 概要设计，执行需另开实施单，本条目不改配置）</strong>：<br />
+1. 起 Phoenix：<code>docker run -d --name phoenix -p 6006:6006 -p 4317:4317 arizephoenix/phoenix:latest</code>（UI: http://localhost:6006）<br />
+2. 装 SDK：<code>pip install "arize-phoenix-otel&gt;=0.16.0"</code><br />
+3. 注册 tracer（query.py 顶部替换现有 langsmith import 块）：<br />
+<code>python
+   from phoenix.otel import register
+   tracer_provider = register(project_name="wuyafang-rag", auto_instrument=True)</code><br />
+   本地无需 API key：<code>export PHOENIX_COLLECTOR_ENDPOINT="http://localhost:6006"</code><br />
+4. 替换 5 个 <code>@traceable</code> 为 OpenInference span：<br />
+   - <code>retrieve</code> / <code>retrieve_hybrid</code> / <code>rerank</code> → <code>tracer.start_as_current_span(name, attributes={OpenInferenceSpanKindValues.RETRIEVER/RERANKER})</code>，属性挂 <code>retrieval.top_k</code>、<code>retrieval.query</code>、命中 <code>document.id/text/score</code><br />
+   - <code>ollama_chat</code> → span kind <code>LLM</code>，属性 <code>gen_ai.request.model</code>、<code>gen_ai.usage.input_tokens/output_tokens</code><br />
+   - <code>query()</code> 顶层 → span kind <code>CHAIN</code> 作为 root，天然串起子 span<br />
+5. （可选）LangGraph 全自动：若走 LangChain/LangGraph CallbackHandler 路线，Phoenix <code>auto_instrument=True</code> 自动抓 StateGraph 各节点，检索/rerank/生成自动成嵌套 span。<br />
+6. 验证：跑一次 <code>python query.py --question "..."</code> → 打开 http://localhost:6006 看 trace 树是否含 检索→rerank→生成 三层。</p>
+<p><strong>若选 Langfuse（备选）接入差异</strong>：起服务 <code>git clone https://github.com/langfuse/langfuse &amp;&amp; cd langfuse &amp;&amp; docker compose up</code>（5 容器，注意内存）；LangGraph 一行接入 <code>from langfuse.langchain import CallbackHandler; config={"callbacks":[CallbackHandler()]}</code>；自定义函数 <code>from langfuse import observe</code> → <code>@observe(as_type="generation"/"retriever")</code> 替换 5 个 <code>@traceable</code>。</p>
+<h3 id="溯源来源-url-或本地路径">溯源（来源 URL 或本地路径）</h3>3
+<p>一手源：<code>raw/sources/Tracing选型调研-20261026.md</code>（2026-10-26 四方案横评 + 内存实测，28 条一手源清单见该文件"七、来源清单"）；<code>rag/query.py</code> L45-52（traceable 导入）、L499/535/634/714/1949（5 个装饰器）。<br />
+关键一手 URL：<a href="https://langfuse.com/self-hosting/configuration/scaling">langfuse.com/self-hosting/configuration/scaling</a>（Langfuse 最低内存）· <a href="https://docs.langchain.com/langsmith/self-hosted">docs.langchain.com/langsmith/self-hosted</a>（LangSmith Enterprise）· <a href="https://arize.com/docs/phoenix/get-started">arize.com/docs/phoenix/get-started</a>（Phoenix 起步/最低硬件）· <a href="https://opentelemetry.io/docs/languages/python/instrumentation/">opentelemetry.io/docs/languages/python/instrumentation</a>（OTel 手动打点）· <a href="https://github.com/open-telemetry/semantic-conventions-genai/blob/main/docs/gen-ai/gen-ai-spans.md">github.com/open-telemetry/semantic-conventions-genai</a>（GenAI semconv）。</p>
+<hr />
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">E6 补充（2026-10-26 前沿进化 · 可观测/评测标配）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>来源：「raw/sources/20261026-前沿进化/E6-可观测评测标配.md」（纯知识登记，不改现有评测脚本/配置）</li><li>LangSmith AI Search：按行为（behavior）搜索 traces，直接定位 agent 行为链路</li><li>Langfuse 立场："评测抓假绿"——评测分数高不等于真实行为好，强调评测要能抓出假阳性（假绿）</li></ul></div>3
+<blockquote>
+<p>来源：<code>raw/sources/20261026-前沿进化/E6-可观测评测标配.md</code>（纯知识登记，不改现有评测脚本/配置）</p>
+</blockquote>
+<p>近 30 天（2026-09-26~2026-10-26）Agent 可观测/评测标准化情报：</p>
+<ul>
+<li><strong>LangSmith AI Search</strong>：按<strong>行为</strong>（behavior）搜索 traces，直接定位 agent 行为链路。依据：https://www.langchain.com/blog/agent-traces-ai-search-langsmith</li>
+<li><strong>Langfuse 立场</strong>："评测抓假绿"——评测分数高不等于真实行为好，强调评测要能抓出假阳性（假绿）。</li>
+<li><strong>共识</strong>：LLM 应用 tracing + evals 成标配——可观测层（traces）+ 评测层（evals）联合判，不能只看评测分。</li>
+<li><strong>对本项目含义</strong>：三层评测（检索/生成/端到端）之外，补<strong>可观测层候选</strong>（tracing 工具选型：LangSmith vs Langfuse vs Phoenix，见上方横评）；"评测抓假绿"呼应 <code>L4-RAG工程/RAG评估怎么跑.md</code> 中"Recall 不降 ≠ 答案对"与"判读陷阱"——评测绿了仍要抽 traces 验证真实行为。</li>
+<li><strong>影响范围</strong>：纯知识登记，不改现有评测脚本/配置。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] <strong>课件</strong>：原文未引用课件，本次仅重排结构，不新增来源。</li>
+<li>[书1] <strong>书籍</strong>：原文未引用书籍，本次仅重排结构，不新增来源。</li>
+<li>[业1] <strong>业内官方横评</strong>：<code>raw/sources/Tracing选型调研-20261026.md</code>，落在四方案内存、接入成本、数据主权与 Phoenix 首选结论；28 条一手 URL 见该文件"七、来源清单"。</li>
+<li>[业2] <strong>业内官方补充</strong>：<code>raw/sources/20261026-前沿进化/E6-可观测评测标配.md</code>，落在 tracing 与 evals 联合验收、用 traces 识别评测假绿。</li>
+</ul></div></details></div></body></html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LangGraph智能体设计模式与多智能体开发</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ LangGraph智能体设计模式与多智能体开发</span></div><div class="wrap"><h1 id="书章节重点-langgraph智能体设计模式与多智能体开发">书章节重点 · LangGraph智能体设计模式与多智能体开发</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书以 LangGraph 1.0 运行时框架为核心，系统讲解从单智能体到多智能体的完整开发路径，覆盖 9 种智能体设计模式与 3 个真实业务案例</li><li>核心价值在于将“大模型能力组件”转化为“可闭环执行任务的智能体系统”，并给出从原型到生产部署的工程化方法</li><li>全书同时强调：智能体不是单纯更长的提示词，而是由状态、工具、知识、角色、路由、反馈和协作协议共同组成的运行系统；只有把这些要素显式建模，才可能稳定复用和持续评测</li></ul></div>2
+<p>本书以 LangGraph 1.0 运行时框架为核心，系统讲解从单智能体到多智能体的完整开发路径，覆盖 9 种智能体设计模式与 3 个真实业务案例。核心价值在于将“大模型能力组件”转化为“可闭环执行任务的智能体系统”，并给出从原型到生产部署的工程化方法。全书同时强调：智能体不是单纯更长的提示词，而是由状态、工具、知识、角色、路由、反馈和协作协议共同组成的运行系统；只有把这些要素显式建模，才可能稳定复用和持续评测。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 初识智能体</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：大语言模型本质是“擅长模式识别与生成的能力组件”，只能被动生成内容，无法自主完成闭环任务或主动调用工具；智能体必须在模型外增加状态、工具和控制流</li><li>核心观点2：智能体的质变来自“大模型 + 结构化知识/技能”的结合，弥补大模型在确定性与一致性上的不足，实现从统计模拟到逻辑推理的跃升</li><li>核心观点4：多智能体协作需设计统一消息交互协议（如 JSON 封装任务与结果），通过事件驱动机制触发跨智能体流程流转；协议应同时覆盖状态同步、任务交接和冲突协调</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：大语言模型本质是“擅长模式识别与生成的能力组件”，只能被动生成内容，无法自主完成闭环任务或主动调用工具；智能体必须在模型外增加状态、工具和控制流。</li>
+<li><strong>核心观点2</strong>：智能体的质变来自“大模型 + 结构化知识/技能”的结合，弥补大模型在确定性与一致性上的不足，实现从统计模拟到逻辑推理的跃升。</li>
+<li><strong>核心观点3</strong>：LangGraph 1.0 的价值在于容错机制、日志追踪与 LangChain 生态协同，支撑从原型搭建到生产部署的平滑过渡；节点级追踪还能帮助定位是模型、工具还是路由出错。</li>
+<li><strong>核心观点4</strong>：多智能体协作需设计统一消息交互协议（如 JSON 封装任务与结果），通过事件驱动机制触发跨智能体流程流转；协议应同时覆盖状态同步、任务交接和冲突协调。<blockquote>
+<p>智能体通过引入知识与技能，弥补了大模型在确定性与一致性上的不足，实现了从“统计模拟”到“逻辑推理”的质变。<br />
+通信层面则需设计统一的消息交互协议，支持智能体间的状态同步、任务交接与冲突协调，例如采用JSON格式封装任务数据与执行结果，通过事件驱动机制触发跨智能体的流程流转，确保协作效率与结果一致性。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第2章-agent环境安装与大模型配置">第2章 Agent环境安装与大模型配置</h3>3
+<ul>
+<li><strong>核心观点1</strong>：本章聚焦开发环境搭建，包括 Python 环境配置与 Qwen3 模型的接入方式；应先验证解释器、依赖和模型接口，再开始复杂图编排。</li>
+<li><strong>核心观点2</strong>：提供网页端使用与在线 API 两种模型调用路径，适配不同开发阶段需求；网页端适合体验提示词，API更适合接入程序和自动化测试。</li>
+<li><strong>核心观点3</strong>：通过“Hello Agent”最小实战打通环境到首个智能体的完整链路，最小闭环应包含输入、模型调用、结构化状态和输出。</li>
+<li><strong>核心观点4</strong>：配置文件、模型名称和网络错误要分层排查，不应把环境故障误判为 LangGraph 图逻辑故障。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 LangGraph编程基础</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：LangGraph 以“图”的方式搭建工作流，核心要素包括基本输入范式、工具调用范式与输出范式；State承载共享数据，Node负责处理，Edge负责控制流</li><li>核心观点2：Map 与 Reduce 机制支持对批量数据的并行处理与结果聚合，适合把同类任务分发给多个执行节点后再统一汇总</li><li>核心观点3：设计模式1“反应式智能体”以自动导航为案例，展示单一线性流程智能体的构建方式；它通过观察环境、选择动作和更新状态逐步推进</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：LangGraph 以“图”的方式搭建工作流，核心要素包括基本输入范式、工具调用范式与输出范式；State承载共享数据，Node负责处理，Edge负责控制流。</li>
+<li><strong>核心观点2</strong>：Map 与 Reduce 机制支持对批量数据的并行处理与结果聚合，适合把同类任务分发给多个执行节点后再统一汇总。</li>
+<li><strong>核心观点3</strong>：设计模式1“反应式智能体”以自动导航为案例，展示单一线性流程智能体的构建方式；它通过观察环境、选择动作和更新状态逐步推进。</li>
+<li><strong>核心观点4</strong>：输出范式需结构化封装（如日期、地点、温度等字段），便于下游节点消费；类型约束还能减少模型自由文本导致的解析失败。</li>
+</ul>
+<h3 id="第4章-构建图的多条件分支">第4章 构建图的多条件分支</h3>3
+<ul>
+<li><strong>核心观点1</strong>：单一线性流程只能应对固定场景，实际业务需根据输入类型（查询/操作/咨询）触发不同处理逻辑。</li>
+<li><strong>核心观点2</strong>：多场景条件分支是智能体从“固定响应”走向“多样化输入处理”的关键能力；路由函数应返回有限类别，并对未知输入进入澄清或人工路径。</li>
+<li><strong>核心观点3</strong>：节点并行化处理可提升图中多分支任务的执行效率，但并发写状态时必须设计聚合策略和冲突边界。</li>
+<li><strong>核心观点4</strong>：流式输出和 Command 跳转让分支执行过程可见、可控，适合需要动态回到上游节点的流程。<blockquote>
+<p>第3章的单一流程智能体仅能应对固定场景的线性响应，但实际开发中，智能体常需处理多样化输入。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 智能体设计模式2：React</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：ReAct 范式让智能体无须一次性生成完整方案，而是通过“逐步行动积累信息”完成多步推理任务；每轮都以新的观察更新下一步策略</li><li>核心观点2：整体逻辑围绕“状态管理—工具定义—节点协作—流程控制”展开，ToolNode 是工具调用的核心载体</li><li>核心观点3：预构建 create_agent 模块可替代手写 ReAct 流程，并支持结构化输入输出；快速原型可先用预构建模块，复杂业务再展开为自定义图</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：ReAct 范式让智能体无须一次性生成完整方案，而是通过“逐步行动积累信息”完成多步推理任务；每轮都以新的观察更新下一步策略。</li>
+<li><strong>核心观点2</strong>：整体逻辑围绕“状态管理—工具定义—节点协作—流程控制”展开，ToolNode 是工具调用的核心载体。</li>
+<li><strong>核心观点3</strong>：预构建 create_agent 模块可替代手写 ReAct 流程，并支持结构化输入输出；快速原型可先用预构建模块，复杂业务再展开为自定义图。</li>
+<li><strong>核心观点4</strong>：middleware 中间件机制为 create_agent 提供可扩展的流程拦截与增强能力，可用于重构输入、增加审计或在模型调用前后注入规则。<blockquote>
+<p>智能体无须一次性生成完整解决方案，而是通过逐步行动积累信息。<br />
+整体逻辑围绕“状态管理—工具定义—节点协作—流程控制”展开，完美复刻了ReAct智能体的核心工作流。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第6章-智能体设计模式3记忆系统">第6章 智能体设计模式3：记忆系统</h3>3
+<ul>
+<li><strong>核心观点1</strong>：LangGraph 提供记忆存储机制，区分短期会话记忆与长期记忆的载入路径；短期记忆服务当前线程，长期记忆要跨会话检索。</li>
+<li><strong>核心观点2</strong>：长期记忆需解决“载入与整理”问题，避免历史信息无序膨胀干扰推理；应筛选稳定事实、用户偏好和仍有效的任务信息。</li>
+<li><strong>核心观点3</strong>：记忆系统是智能体保持上下文连贯性与个性化能力的基础设施，但记忆不是越多越好，必须有更新、删除和纠错机制。</li>
+<li><strong>核心观点4</strong>：记忆注入位置会影响模型行为，既要保证任务相关事实可见，也要避免把无关历史直接塞进活跃上下文。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 智能体设计模式4：规划与执行</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：tavily 搜索工具为智能体提供外部信息支撑，自动将零散网页内容提炼为结构化关键信息，降低后续推理算力成本</li><li>核心观点2：tavily 支持上下文关联搜索，结合任务进度与历史交互调整策略，避免重复搜索无效内容；搜索结果仍需核验来源和时效</li><li>核心观点3：TypedDict 与 BaseModel 在聚合型数据场景下应使用嵌套结构，使状态空间组织逻辑与业务逻辑一致，避免扁平键名冗余</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：tavily 搜索工具为智能体提供外部信息支撑，自动将零散网页内容提炼为结构化关键信息，降低后续推理算力成本。</li>
+<li><strong>核心观点2</strong>：tavily 支持上下文关联搜索，结合任务进度与历史交互调整策略，避免重复搜索无效内容；搜索结果仍需核验来源和时效。</li>
+<li><strong>核心观点3</strong>：TypedDict 与 BaseModel 在聚合型数据场景下应使用嵌套结构，使状态空间组织逻辑与业务逻辑一致，避免扁平键名冗余。</li>
+<li><strong>核心观点4</strong>：以“成长指导”为案例，展示基于智能体规划的分解—执行—反馈闭环；规划节点生成步骤，执行节点逐项完成，反馈再触发修订。<blockquote>
+<p>数据嵌套通过“父模型包含子模型”的层级结构，可将关联数据聚合封装，让状态空间的组织逻辑与业务逻辑保持一致。<br />
+当LangGraph构建的智能体在执行任务时需要外部信息支撑（如获取实时数据、查询特定领域知识、验证信息准确性等）时，tavily能快速响应搜索请求，不仅能精准抓取目标信息，还会自动对内容进行结构化处理，将零散的网页内容提炼为简洁、规整的关键信息点，大幅降低LangGraph后续进行信息解析、逻辑推理的算力成本。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第8章-智能体设计模式5上下文工程">第8章 智能体设计模式5：上下文工程</h3>3
+<ul>
+<li><strong>核心观点1</strong>：上下文污染会让错误事实渗入目标设定、摘要或历史记忆，导致智能体执着于不可能目标或机械重复动作；因此需要区分事实、推断、草稿和工具原始输出。</li>
+<li><strong>核心观点2</strong>：过多无关信息造成模型“认知过载”，既可能触及窗口上限，又会干扰推理逻辑、推高决策错误率；上下文应围绕当前任务动态裁剪。</li>
+<li><strong>核心观点3</strong>：上下文卸载采用“分层存储”：核心即时信息留在活跃上下文，历史记录、工具日志、长期计划卸载至外部系统，兼顾专注度与信息完整性。</li>
+<li><strong>核心观点4</strong>：提示词模板、人格描述和任务约束应结构化组织，避免把系统规则、用户内容和历史记录混成一段不可审计的文本。<blockquote>
+<p>上下文卸载通过“分层存储”的思路完美破解了这一困境……既避免了上下文冗余，又保障了信息完整性。<br />
+这对依赖连贯上下文运行的Agent来说特别要命，要是错误事实渗入其目标设定、信息摘要或历史记忆中，Agent可能会执着于不可能实现的目标，或是机械重复毫无意义的动作。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第9章 多智能体实战</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：多智能体系统不依赖“全能超人”，而是构建多个专项智能体组成的协作网络，形成攻克难题的合力；角色划分应以任务边界和可验证产出为依据</li><li>核心观点2：“批判—优化循环”是典型协作模式：创作者产出初稿，批评者从质量、合规、准确性维度审查，创作者迭代优化</li><li>核心观点3：该模式在代码生成、内容创作与质量控制领域尤为实用，本章给出多智能体基础设计模式的实战演练；循环必须设置停止条件和最大迭代次数</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：多智能体系统不依赖“全能超人”，而是构建多个专项智能体组成的协作网络，形成攻克难题的合力；角色划分应以任务边界和可验证产出为依据。</li>
+<li><strong>核心观点2</strong>：“批判—优化循环”是典型协作模式：创作者产出初稿，批评者从质量、合规、准确性维度审查，创作者迭代优化。</li>
+<li><strong>核心观点3</strong>：该模式在代码生成、内容创作与质量控制领域尤为实用，本章给出多智能体基础设计模式的实战演练；循环必须设置停止条件和最大迭代次数。</li>
+<li><strong>核心观点4</strong>：多智能体通信要约定任务、结果、错误和完成事件，避免依靠共享字符串猜测当前阶段。<blockquote>
+<p>多智能体系统……通过构建由多个具备专项专长的智能体组成的协作网络，形成攻克难题的合力。<br />
+而在批判—优化循环中，创作者智能体产出初稿后，批评者智能体从质量、合规性、准确性等维度进行严格审查，创作者再依据反馈迭代优化，这种模式在代码生成、内容创作和质量控制领域尤为实用。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第10章-案例实战结合长短期目标的新能源车文案设计">第10章 案例实战：结合长短期目标的新能源车文案设计</h3>3
+<ul>
+<li><strong>核心观点1</strong>：案例将长短期目标融入文案设计流程，展示智能体在营销内容生成中的落地方式；长期目标约束品牌方向，短期目标约束当前活动和受众。</li>
+<li><strong>核心观点2</strong>：合规师智能体基于 ComplianceOutput 模型做专业校验，检查“最”“第一”等禁用词及续航标注、智能驾驶表述等合规项。</li>
+<li><strong>核心观点3</strong>：合规校验与修正建议同步输出，形成“生成—审查—修正”的内容质量防线；结构化审核结果便于主智能体决定重写还是提交。</li>
+<li><strong>核心观点4</strong>：历史文案可通过 Embedding 检索提供风格和业务背景，但相似内容只能作为参考，不能绕过最新规则审核。<blockquote>
+<p>合规师基于ComplianceOutput模型开展专业校验，通过禁用词检查排查“最”“第一”等违规表述，依据行业规则完成续航标注、智能驾驶表述等合规审核，同步给出针对性修正建议，筑牢内容合规防线。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第11章 案例实战：共享空间驱动的多智能体</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：共享空间驱动是多智能体协作的一种组织范式，智能体通过共享状态空间实现信息同步与任务协同；共享空间应明确字段所有权和更新规则</li><li>核心观点2：本章以完整实战演示共享空间下多智能体的角色分工与流程编排，适合需要多个角色共同读写任务状态的场景</li><li>核心观点3：共享空间模式适合需要多方读写同一状态、强调协作一致性的业务场景，但必须防止并发覆盖和无序写入</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：共享空间驱动是多智能体协作的一种组织范式，智能体通过共享状态空间实现信息同步与任务协同；共享空间应明确字段所有权和更新规则。</li>
+<li><strong>核心观点2</strong>：本章以完整实战演示共享空间下多智能体的角色分工与流程编排，适合需要多个角色共同读写任务状态的场景。</li>
+<li><strong>核心观点3</strong>：共享空间模式适合需要多方读写同一状态、强调协作一致性的业务场景，但必须防止并发覆盖和无序写入。</li>
+<li><strong>核心观点4</strong>：管控全局的共享状态应包含阶段、待办、结果和错误信息，让每个 Agent 能够判断当前是否轮到自己执行。</li>
+</ul>
+<h3 id="第12章-案例实战主智能体驱动的多智能体">第12章 案例实战：主智能体驱动的多智能体</h3>3
+<ul>
+<li><strong>核心观点1</strong>：本章先定义多智能体角色及其实现方式，明确各角色的职责边界；专家 Agent 专注局部任务，主管 Agent 负责全局计划和收口。</li>
+<li><strong>核心观点2</strong>：设计模式9“Supervisor”由主智能体统一调度子智能体，负责任务分派与结果汇总；主智能体需要依据任务状态选择下一个专家，而不是盲目广播。</li>
+<li><strong>核心观点3</strong>：主智能体驱动模式适合任务可分解、需集中决策与协调的复杂业务场景；子任务描述必须自包含，结果应采用统一结构化格式。</li>
+<li><strong>核心观点4</strong>：主管还要处理失败重试、冲突结果和终止判断，并保留各专家的中间结果以便审计和复盘。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">适用场景标签</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>LangGraph 智能体开发入门</li></ul></div>2
+<ul>
+<li>LangGraph 智能体开发入门</li>
+<li>多智能体系统架构设计</li>
+<li>大模型应用工程化落地</li>
+<li>智能体设计模式参考</li>
+<li>生产级 AI 应用案例学习</li>
+</ul>
+<h2 id="一句话推荐">一句话推荐</h2>2
+<p>从单智能体到多智能体的工程化实战指南。</p></div></details></div></body></html>

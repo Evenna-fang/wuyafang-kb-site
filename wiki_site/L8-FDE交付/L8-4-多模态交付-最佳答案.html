@@ -1,0 +1,211 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L8-4-多模态交付-最佳答案</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L8-4-多模态交付-最佳答案</span></div><div class="wrap"><h1 id="l8-4-多模态交付-最佳答案">L8-4 多模态交付 · 最佳答案</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>客户知识库不再只是 PDF/Word——合同扫描件带印章手写批注、产线摄像头拍的质检图、车间 SOP 截图、客服通话录音、工人戴手套不能打字只能语音</li><li>2025-2026 年 Qwen-VL、FunASR、CosyVoice、ColPali 这一套开源栈成熟后，多模态交付从"PPT 概念"变成"可落地方案"，这是 FDE 区别于普通 RAG 外包的关键能力</li><li>纯文本 RAG 在这些场景直接残废：OCR 认不出图表含义和红笔批注、表格切分后行列关系全丢、音频先转文字丢失情绪和说话人</li></ul></div>2
+<p>客户知识库不再只是 PDF/Word——合同扫描件带印章手写批注、产线摄像头拍的质检图、车间 SOP 截图、客服通话录音、工人戴手套不能打字只能语音。纯文本 RAG 在这些场景直接残废：OCR 认不出图表含义和红笔批注、表格切分后行列关系全丢、音频先转文字丢失情绪和说话人。2025-2026 年 Qwen-VL、FunASR、CosyVoice、ColPali 这一套开源栈成熟后，多模态交付从"PPT 概念"变成"可落地方案"，这是 FDE 区别于普通 RAG 外包的关键能力。</p>
+<h2 id="what这个节点的最佳答案是什么">WHAT：这个节点的最佳答案是什么</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 真实场景触发词</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>制造业：SOP 是 JPG/截图、质检报告是扫描件、设备报警带照片 → 纯文本检索不到"第 3 张图那个红色按钮"</li><li>金融/法务：合同 PDF 大量印章、手写批注、扫描表格 → OCR 出来结构全丢</li><li>客服/呼叫中心：每天几万通 wav/mp3 → 文本 RAG 处理不了</li></ul></div>3
+<ul>
+<li><strong>制造业</strong>：SOP 是 JPG/截图、质检报告是扫描件、设备报警带照片 → 纯文本检索不到"第 3 张图那个红色按钮"。</li>
+<li><strong>金融/法务</strong>：合同 PDF 大量印章、手写批注、扫描表格 → OCR 出来结构全丢。</li>
+<li><strong>客服/呼叫中心</strong>：每天几万通 wav/mp3 → 文本 RAG 处理不了。</li>
+<li><strong>医疗/教育</strong>：病历单、试卷、板书天生非文本。</li>
+<li><strong>现场作业</strong>：工人戴手套不能打字 → 必须语音输入 + 语音播报。</li>
+</ul>
+<h3 id="2-技术选型清单2026">2. 技术选型清单（2026）</h3>3
+<p><strong>VLM（视觉语言模型）</strong>：<br />
+| 模型 | 参数 | 中文 | 硬件 | 适用 |<br />
+|------|------|------|------|------|<br />
+| Qwen2.5-VL-7B/32B | 7B/32B | 强 | 7B: 24G 单卡；32B: 2×A100 | 合同/票据/SOP，首选 |<br />
+| Qwen3-VL-2B/4B/8B/32B/235B | 全档位 | 强 | 2B/4B CPU 边缘；8B 单卡 | 新一代（2025Q4） |<br />
+| InternVL3 | 多档 | 良 | 同 Qwen | 开源备选 |<br />
+| MiniCPM-V 2.6/4 | 2B-8B | 良 | 边缘 | 资源受限 |</p>
+<p>经验：VLM 显存要在 LLM 基础上加 ViT encoder，预留 20-30% KV cache 余量。Qwen3-VL-8B BF16 ≈ 18-20 GB，4090 可跑。</p>
+<p><strong>ASR（语音识别）</strong>：中文生产首选 <strong>FunASR/SenseVoiceSmall</strong>（阿里开源）——热词定制、流式 WebSocket、说话人分离、Docker 一键起；RTF 0.0076，4 vCPU/8G 跑 16 路并发。Whisper large-v3-turbo / faster-whisper 是多语言备选。</p>
+<p><strong>TTS（语音合成）</strong>：<strong>CosyVoice3</strong>（阿里开源 2025）——零样本音色克隆、多语言、情感控制。简单播报 Piper 够了。</p>
+<p><strong>多模态 RAG 新范式</strong>：传统 OCR→切文本→embedding 全丢版面。2025-2026 新做法 <strong>ColPali / Qwen3-VL-Embedding</strong>：<br />
+- 把每一页 PDF 渲染成图，VLM 直接对页面图提 patch embedding，存进向量库<br />
+- 查询时直接检索"最像这张图的页面"，把原图 + 问题一起喂给 VLM<br />
+- <strong>优势是不丢版面</strong>——表格、印章、批注、图表全保留视觉语义<br />
+- 代价：向量体积比纯文本大 5-10×，需要 Qdrant/LanceDB 支持多向量索引</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">HOW：端到端多模态交付步骤</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="步骤-1离线准备资产">步骤 1：离线准备资产</h3>3
+<pre><code class="language-bash">huggingface-cli download Qwen/Qwen2.5-VL-7B-Instruct --local-dir /models/qwen2.5-vl-7b
+huggingface-cli download Qwen/Qwen3-VL-Embedding-2B --local-dir /models/qwen3-vl-embedding
+huggingface-cli download iic/SenseVoiceSmall --local-dir /models/sensevoice-small
+huggingface-cli download iic/CosyVoice-300M --local-dir /models/cosyvoice
+</code></pre>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">步骤 2：VLM 服务（vLLM 多模态）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>v /models:/models -p 8000:8000 \</li><li>vllm/vllm-openai:latest \</li><li>model /models/qwen2.5-vl-7b-instruct --dtype bfloat16 \</li></ul></div>3
+<pre><code class="language-bash">docker run -d --name vllm-vlm --gpus all --ipc=host \
+    -v /models:/models -p 8000:8000 \
+    vllm/vllm-openai:latest \
+    --model /models/qwen2.5-vl-7b-instruct --dtype bfloat16 \
+    --max-model-len 8192 --limit-mm-per-prompt '{&quot;image&quot;: 4}' \
+    --served-model-name qwen2.5-vl
+</code></pre>
+<p>验证：发一张图 + 一个问题（"这张图里有几个红色按钮？"），看返回。</p>
+<h3 id="步骤-3asr-服务">步骤 3：ASR 服务</h3>3
+<pre><code class="language-python">from funasr import AutoModel
+from funasr.utils.postprocess_utils import rich_transcription_postprocess
+
+model = AutoModel(model=&quot;/models/sensevoice-small&quot;,
+                  vad_model=&quot;fsmn-vad&quot;, punc_model=&quot;ct-punc&quot;, device=&quot;cuda:0&quot;)
+
+def transcribe(path, language=&quot;zh&quot;):
+    res = model.generate(input=path, language=language, use_itn=True, batch_size_s=60)
+    return rich_transcription_postprocess(res[0][&quot;text&quot;])
+
+# 批量处理通话录音，同时保留音频引用 + 说话人时间戳
+for wav in glob.glob(&quot;/data/calls/*.wav&quot;):
+    text = transcribe(wav)
+    kb.insert(doc_id=wav, text=text, modality=&quot;audio&quot;, source=wav)
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">步骤 4：多模态 RAG 索引（ColPali 风格）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-python"># 每页 PDF 当一张图
+import fitz  # PyMuPDF
+from colpali_engine.models import ColQwen2Processor, ColQwen2
+
+processor = ColQwen2Processor.from_pretrained(&quot;/models/colqwen2&quot;)
+model = ColQwen2.from_pretrained(&quot;/models/colqwen2&quot;).cuda().eval()
+
+doc = fitz.open(&quot;/data/contract.pdf&quot;)
+for page_no, page in enumerate(doc):
+    pix = page.get_pixmap(dpi=150)
+    img = Image.frombytes(&quot;RGB&quot;, (pix.width, pix.height), pix.samples)
+    inputs = processor.process_images([img]).to(&quot;cuda&quot;)
+    with torch.no_grad():
+        patch_emb = model(**inputs).cpu().numpy()[0]  # [num_patches, dim]
+    client.upsert(collection_name=&quot;pages&quot;,
+                  points=[PointStruct(id=hash((doc.name, page_no)) &amp; 0x7fffffff,
+                                      vector=patch_emb.tolist(),
+                                      payload={&quot;doc&quot;: doc.name, &quot;page&quot;: page_no})])
+</code></pre>
+<h3 id="步骤-5查询时多模态检索-vlm-生成">步骤 5：查询时多模态检索 + VLM 生成</h3>3
+<p>用同模型编码 query（multi-vector）→ Qdrant 多向量检索（MaxSim）→ 取回对应页面图 → 喂给 Qwen2.5-VL 生成答案。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">步骤 6：TTS 播报（CosyVoice3 零样本克隆）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>for out in cosy.inference_zero_shot(</li><li>write_wav("/out/reply.wav", out["tts_speech"])</li></ul></div>3
+<pre><code class="language-python">for out in cosy.inference_zero_shot(
+    text=&quot;您的工单已处理完毕，工单号 WO-20261014-001。&quot;,
+    prompt_speech_16k=load_wav(&quot;/ref/operator_voice.wav&quot;),
+    prompt_text=&quot;参考音频的原文转写&quot;):
+    write_wav(&quot;/out/reply.wav&quot;, out[&quot;tts_speech&quot;])
+</code></pre>
+<h3 id="端到端链路">端到端链路</h3>3
+<pre><code>[工人说话] → wav
+    ↓ FunASR/SenseVoice（ASR）
+query_text
+    ↓ Qwen3-VL-Embedding（多向量编码）
+    ↓ Qdrant 多向量检索（MaxSim）
+top-k 页面图（PDF/扫描件/SOP 截图）
+    ↓ Qwen2.5-VL（VLM 读图 + 生成答案）
+answer_text
+    ↓ CosyVoice3（TTS，克隆现场操作员音色）
+[播报 wav → 扬声器]
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">验收清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>[ ] 合同扫描件（含手写批注）能问到具体条款位置，答案引用到具体页而不是文本片段</li><li>[ ] 1 小时通话录音 ASR 字错率 < 10%（中文）</li><li>[ ] 多模态查询端到端延迟 < 5s（4090 单卡）</li></ul></div>3
+<ul>
+<li>[ ] 合同扫描件（含手写批注）能问到具体条款位置，答案引用到<strong>具体页</strong>而不是文本片段</li>
+<li>[ ] 质检照片入库后，问"图里有几个红色按钮"能直接答对</li>
+<li>[ ] 项目目标（未实测）：1 小时通话录音 ASR 字错率 &lt; 10%（中文）；须保存音频分层、转写与评分口径</li>
+<li>[ ] 项目目标（未实测）：TTS 输出音色与参考音频相似度人工评分 &gt; 4/5；须先取得声音授权并记录评委与样本</li>
+<li>[ ] 项目目标（未实测）：多模态查询端到端延迟 &lt; 5s（4090 单卡）；须固定页数、向量数、生成长度和并发</li>
+</ul>
+<h3 id="常见坑">常见坑</h3>3
+<ol>
+<li><strong>VLM 显存算错</strong>：只算 LLM 权重忘了 ViT + KV cache → 预留 30% 余量。</li>
+<li><strong>ColPali 索引体积爆炸</strong>：每页几百个 patch 向量，1 万页 PDF ≈ 几亿向量 → 限制 top-k，用 Qdrant on-disk HNSW，别全入内存。</li>
+<li><strong>ASR 热词没定制</strong>：产品名、型号、人名识别错 → SenseVoice 支持 <code>hotword</code> 参数，上线前必须跑一轮热词表。</li>
+<li><strong>TTS 克隆音色侵权</strong>：直接克隆员工/客户声音有合规风险 → 合同里明确录音授权，或用预置音色库。</li>
+<li><strong>多模态 RAG 还是走 OCR 老路</strong>：切完图再 OCR 再 embedding，等于没做多模态 → 要么上 ColPali，要么至少把图本身挂到 chunk 上让 VLM 现场读。</li>
+</ol>
+</div></details><h3 id="三源论文与证据定位验收">三源、论文与证据定位验收</h3>3
+<ul>
+<li><strong>课件</strong>：<code>raw/courseware/AI大模型私有化微调篇__AI大模型私有化微调篇__6-多模态⼤模型（下）基于_Transformers_的模型-2025-8-27-陈钢__day05微调之多模态模型（下）/_代码课件汇总.md</code> 提供多模态模型结构素材；它不提供 ColPali、Qdrant、ASR/TTS 整条链路的兼容性与性能保证。</li>
+<li><strong>书籍/摘录</strong>：<code>raw/weread/FDE/FDE-AI落地实战指南.md</code> 第 15、17、20 章目录及 RAG、成本/效果/延迟、可靠性相关划线，对应分别验收检索、端到端成本和安全边界；只据目录与热门划线，未声称阅读全书。</li>
+<li><strong>业内材料</strong>：<code>raw/sources/Anthropic-FDE与Palantir-Ontology一手-20260930.md</code> 的最小高信号上下文与权限约束用于限制送入 VLM 的页面和可调用工具；模型服务协议与向量索引协议必须按各自官方版本另行核对。</li>
+<li><strong>论文落地</strong>：arXiv:2610.31385（<code>raw/sources/arxiv-daily/2026-10-22-2610.31385.md</code>）把长文档 VQA 拆为解析、证据组织与检索、生成、评估，强调证据充分、可验证、可纠正和预算协调。多模态验收因此分别检查页面解析、证据覆盖、页码/版本引用与预算；VLM 答案流畅但引用缺页、证据不足或版本错误时仍判失败。</li>
+</ul>
+<p>上文模型调用片段存在环境对象、依赖与集合适配前提，<strong>均未实跑，不是可直接执行的完整管线</strong>；尤其不得混用 ColPali/ColQwen2 与其他编码器的向量空间，也不得把单向量集合配置用于多向量写入。以下仅用标准库检查合成检索结果的证据定位，可在无 GPU、无网络环境运行。</p>
+<pre><code class="language-bash">python -I - &lt;&lt;'PY'
+required = {&quot;doc_id&quot;, &quot;version&quot;, &quot;page&quot;, &quot;evidence_id&quot;}
+results = [
+    {&quot;doc_id&quot;: &quot;SOP-17&quot;, &quot;version&quot;: &quot;v3&quot;, &quot;page&quot;: 8, &quot;evidence_id&quot;: &quot;p8-region-2&quot;},
+    {&quot;doc_id&quot;: &quot;SOP-17&quot;, &quot;version&quot;: &quot;v2&quot;, &quot;page&quot;: 3, &quot;evidence_id&quot;: &quot;p3-region-1&quot;},
+]
+assert all(required &lt;= item.keys() for item in results)
+current = [item for item in results if item[&quot;version&quot;] == &quot;v3&quot;]
+assert current and all(isinstance(item[&quot;page&quot;], int) and item[&quot;page&quot;] &gt; 0 for item in current)
+assert all(item[&quot;doc_id&quot;] == &quot;SOP-17&quot; for item in current)
+print(&quot;多模态证据定位结构：PASS；证据充分性与答案正确性仍需人工评分&quot;)
+PY
+</code></pre>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>多模态交付在本库的真实边界：文档形态多、模态只有文本（<code>rag/ingest.py</code> L67 <code>EXCLUDE_DIRS</code>，grep 可验）</strong>：<br />
+<code>python
+  EXCLUDE_DIRS = (
+      "node_modules", ".git", "dist", "build", "__pycache__",
+      ".venv", "venv", "site-packages", "__MACOSX",
+  )
+  # 路径子串匹配: 备份/历史归档不应进正文库
+  EXCLUDE_PATH_PARTS = (
+      "books.bak-",          # raw/weread/books.bak-*/ 书籍备份
+      "plans-历史方案",       # raw/practice/plans-历史方案/ 历史方案副本
+      "/archive/",           # raw/_task_orders/archive/ 流程历史版本
+  )</code><br />
+  入库覆盖面：Markdown 与 Python 等文本类 + 结构文件；<strong>图片/PDF 扫描件/视频没有解析路径</strong>。多模态交付=客户材料五花八门时，本库的答案是"先把材料转成 md 再入库"，而不是在管线里塞一堆解析器。单文件上限 150 万字符（<code>MAX_FILE_CHARS</code>，注释里记录了"1.02 亿字符的语料撑爆入库导致后续 192 个课件没进库"的真实事故）。</li>
+<li><strong>表格与代码块的保护（<code>rag/ingest.py</code> L397 <code>_split_table_segments()</code> / L434 <code>_split_table_block()</code>）</strong>：表格整块保留（表头+数据行必须同 chunk），代码围栏整段保留——多模态材料里最常见的"结构化片段被切散"在这里被处理。</li>
+<li><strong>和课件讲法的差异</strong>：课件多模态常用 MinerU/Docling 做版面解析 + VLM 抽图注；本库<strong>暂无 PDF/图片解析</strong>。若客户交付材料以 PDF 为主，需按课件补解析器，并把 <code>chunk_type</code> 细分为 prose/table/code/ocr（本库现只有 raw/skill/note/decision/error 五类）。</li>
+</ul>
+<h2 id="缺口清单">缺口清单</h2>2
+<ul>
+<li>缺"单模态 RAG → 多模态 RAG"的渐进迁移路径（先给文档挂图，再上 ColPali）</li>
+<li>缺 VLM 离线打包（权重 + vLLM 镜像）的完整 docker save 命令清单</li>
+<li>缺热词定制（产品名/型号/方言口音）的标准流程文档</li>
+<li>缺多模态场景的 golden set 构造方法（图 + 问题 + 期望答案）</li>
+</ul></div></details></div></body></html>

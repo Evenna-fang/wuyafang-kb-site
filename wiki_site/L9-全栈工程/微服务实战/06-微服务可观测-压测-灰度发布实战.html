@@ -1,0 +1,726 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>06-微服务可观测-压测-灰度发布实战</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../../index.html">🏠 总入口</a><a href="../../graph.html">🕸 关联图谱</a><a href="../../ontology/index.html">📖 术语表</a><span class="cur">/ 06-微服务可观测-压测-灰度发布实战</span></div><div class="wrap"><h2 id="why">WHY</h2>2
+<h3 id="1-本篇定位与版本口径">1. 本篇定位与版本口径</h3>3
+<p>本系列 01 篇的 8.5 节和 8.7 节只用几段话说了"要有 traceId、要灰度、要压测"。本篇把这三件事展开成能照着做的流程，主线仍是秒杀（02 篇）和派单支付（03 篇）两条链路。LLM 服务的容量压测见《容量压测与成本测算》，LLM 应用的 tracing 选型见《Tracing可观测选型》，两篇讲的是模型推理侧，本篇不重复，只讲 Java 微服务链路。</p>
+<h2 id="what">WHAT</h2>2
+<h3 id="版本适用边界">版本适用边界</h3>3
+<p><strong>版本口径要先讲清楚。</strong> 01 篇的基线是 Spring Boot 2.7.18、Spring Cloud 2021.0.8、RocketMQ 4.9.7。但本次抓取到的 Spring Boot 官方文档是 4.1.2 版 [1][2][3][4]，Spring Cloud Gateway 官方文档是 5.0.4 版 [18]，Micrometer Tracing 当前稳定版是 1.7.2 [5]。Micrometer Tracing 源自 Spring Cloud Sleuth，1.0.0 GA 在 2022 年 11 月发布 [5]。因此：</p>
+<ul>
+<li>第 2 节里 <code>management.tracing.*</code>、<code>logging.pattern.correlation</code> 等属性，出处是 Boot 4.1.2 文档。Boot 2.7 没有这套自动配置，直接复制到 2.7 工程不会生效。</li>
+<li>Boot 2.7 工程有两条路：升级到带 Micrometer Tracing 的 Boot 版本（升级本身是一次迁移，需要单独评估），或者用 OpenTelemetry Java agent 做无侵入采集（2.4 节）。</li>
+<li>文中凡是出现"未核实"字样的，表示本次抓取的页面没有给出该细节，不能当成官方结论。</li>
+</ul>
+<p>文末列出了所有实际访问过的页面。配置与脚本均未在 Java 工程和集群里实跑，见第 9 节。</p>
+<h2 id="how">HOW</h2>2
+<h3 id="2-链路追踪与日志关联">2. 链路追踪与日志关联</h3>3
+<h4 id="21-observation-与-micrometer-tracing-的关系">2.1 Observation 与 Micrometer Tracing 的关系</h4>
+<p>Spring Boot 的指标和链路都来自 Micrometer Observation：一次 <code>Observation</code> 既产生指标，也产生 span。低基数（low cardinality）的 key-value 同时进入指标和链路，高基数（high cardinality）的 key-value 只进入链路 [2]。这条规则直接决定了标签怎么设计：<code>userId</code>、<code>orderId</code> 这类取值几乎无限的字段只能作高基数标签，放进指标会让 Prometheus 的时间序列数爆炸。</p>
+<p>Micrometer Tracing 是 JVM 上的追踪门面，通过 <code>micrometer-tracing-bridge-brave</code> 或 <code>micrometer-tracing-bridge-otel</code> 接入具体 tracer [5]。它为 Micrometer 的 <code>ObservationHandler</code> 提供追踪扩展，每个 <code>Observation</code> 会创建、启动、结束并上报一个 span，要求 Micrometer 1.10.0 及以上 [5]。</p>
+<p>自己埋点的写法（Boot 官方示例 [2]）：</p>
+<pre><code class="language-java">Observation.createNotStarted(&quot;seckill.deduct&quot;, this.observationRegistry)
+    .lowCardinalityKeyValue(&quot;sku.type&quot;, &quot;flash&quot;)
+    .highCardinalityKeyValue(&quot;userId&quot;, &quot;42&quot;)
+    .observe(() -&gt; {
+        // 扣库存的业务逻辑
+    });
+</code></pre>
+<p>注解方式需要打开 <code>management.observations.annotations.enabled=true</code>，并引入 <code>org.aspectj:aspectjweaver</code>。官方特别提醒：对已经被框架埋点的代码（Spring MVC 控制器、Spring Data 仓库）再加注解，会得到重复的 observation [2]。</p>
+<h4 id="22-依赖与配置">2.2 依赖与配置</h4>
+<p>Boot 4.1.2 提供两套官方组合：OpenTelemetry + OTLP 用 <code>spring-boot-starter-opentelemetry</code>；Brave + Zipkin 用 <code>spring-boot-starter-zipkin</code> [1]。页面同时提示，OpenTelemetry 已弃用 Zipkin 支持，对应自动配置将在 Boot 4.2 移除 [1]，所以新工程直接选 OTLP。</p>
+<pre><code class="language-yaml"># application.yml（Boot 4.1.2 口径；属性名出自 [1][2][3][4]）
+spring:
+  application:
+    name: seckill-service
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0        # 默认只采 10%；压测和灰度观察期临时调到 1.0，常态按流量下调 [1]
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus   # 默认只暴露 health；prometheus 必须显式开启 [4][3]
+  endpoint:
+    health:
+      probes:
+        enabled: true          # /actuator/health/liveness 与 /readiness，供 K8s 探针使用 [4]
+  observations:
+    key-values:
+      region: cn-east          # 对所有 observation 追加低基数标签 [2]
+      stack: prod
+  metrics:
+    tags:
+      region: cn-east          # 对所有指标追加公共标签 [3]
+      stack: prod
+
+logging:
+  pattern:
+    correlation: &quot;[${spring.application.name:},%X{traceId:-},%X{spanId:-}] &quot;  # 日志带上 traceId [1]
+  include-application-name: false
+</code></pre>
+<p>几个容易踩的点：</p>
+<ul>
+<li>采样率默认是 10% [1]。采样率低时，线上单个报错请求恰好没有 trace，排障时就找不到链路。常态方案是低采样率加"错误请求必留"，后者需要尾部采样（tail sampling），在 OTel Collector 侧做，本次未抓取其文档，属未核实项。</li>
+<li>OTLP 导出地址：官方页面指出使用 <code>management.opentelemetry.tracing.export.otlp.*</code>，但具体的 endpoint 属性名页面没有给出，需查 Common Application Properties [1]。保险的做法是用环境变量：Boot 会把 <code>OTEL_EXPORTER_OTLP_ENDPOINT=http://collector:4318</code> 映射成 <code>http://collector:4318/v1/traces</code> 用于链路，<code>OTEL_EXPORTER_OTLP_TRACES_ENDPOINT</code> 优先且按原样使用 [2]。</li>
+<li>手写 <code>new RestTemplate()</code>、<code>RestClient.create()</code>、<code>WebClient.create()</code> 不会传播 trace。必须使用自动配置的 <code>RestTemplateBuilder</code>、<code>RestClient.Builder</code>、<code>WebClient.Builder</code> [1]。这条对 01 篇里 Feign 以外的内部 HTTP 调用尤其重要。</li>
+<li>响应式链路（Gateway 是 WebFlux）里，ThreadLocal 默认不会在 reactive 算子中恢复，需要 <code>spring.reactor.context-propagation=auto</code>；<code>@Async</code> 线程池需要 <code>spring.task.execution.propagate-context</code>，自建线程池要注册 <code>ContextPropagatingTaskDecorator</code> [2]。秒杀的异步下单线程池如果自己 <code>new ThreadPoolExecutor</code>，traceId 会在这里断掉。</li>
+</ul>
+<h4 id="23-trace-如何跨服务传播">2.3 trace 如何跨服务传播</h4>
+<p>OpenTelemetry 的 context propagation 把上下文序列化在发送方、反序列化在接收方，默认传播器用 W3C Trace Context，<code>traceparent</code> 头的格式是 <code>&lt;version&gt;-&lt;trace-id&gt;-&lt;parent-id&gt;-&lt;trace-flags&gt;</code>，例如 <code>00-a0892f3577b34da6a3ce929d0e0e4736-f03067aa0ba902b7-01</code> [6]。Baggage 可以跨服务携带任意键值对，但官方明确说不要放凭证、API key、个人信息，因为它可能被记录或发给不可信的下游 [6]。Boot 侧：W3C 传播时 baggage 自动跨网络传播，B3 传播时不会，需要配置 <code>management.tracing.baggage.remote-fields</code> [1]。</p>
+<p>微服务链路里的传播断点按"Gateway → Feign → RocketMQ → 消费者"逐段检查：</p>
+<table>
+<thead>
+<tr>
+<th>环节</th>
+<th>传播方式</th>
+<th>本次核实情况</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>客户端 → Gateway</td>
+<td>请求头 <code>traceparent</code></td>
+<td>Gateway 是 WebFlux，OTel agent 支持列表含 Spring Cloud Gateway 2.0+ 和 Spring WebFlux 5.3+ [8]</td>
+</tr>
+<tr>
+<td>Gateway → 业务服务</td>
+<td>同上</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>服务 → 服务（OpenFeign）</td>
+<td>同上</td>
+<td>OTel agent 支持列表<strong>没有</strong>单列 OpenFeign [8]，需靠底层 HTTP 客户端的埋点，必须实测</td>
+</tr>
+<tr>
+<td>生产者 → RocketMQ → 消费者</td>
+<td>消息属性携带上下文</td>
+<td>agent 列表含 Apache RocketMQ Remoting 客户端 4.8+（对应本系列 4.9.7），条目写的是 Messaging Spans，是否自动把上下文写进消息未说明 [8]，必须实测</td>
+</tr>
+</tbody>
+</table>
+<p>RocketMQ 这一段是整条链路最容易断的地方，而秒杀的价值恰恰在"下单请求 → 消息 → 订单落库"这一跳。验证方法：压一个带固定 <code>traceparent</code> 的请求，在追踪后端搜索这个 trace id，检查消费者的 span 是否挂在生产者 span 之下。如果消费者 span 是独立的新 trace，说明上下文没传过去，退路是用 OTel 的 Propagators API 手动注入和提取：发送侧把上下文 inject 到消息的用户属性，消费侧 extract 出来再开 span。官方的态度是只有在没有埋点库处理传播时才手动用该 API [6]。</p>
+<p>RocketMQ 自带的消息轨迹是另一套机制，与 OTel 的 trace 无关，但对排查消息去向很有用。Broker 配置 <code>traceTopicEnable=true</code>，启动后自动创建系统 Topic <code>RMQ_SYS_TRACE_TOPIC</code>；生产者和消费者构造时传入第二个参数 <code>true</code> 开启；可以用 <code>mqadmin QueryMsgTraceById -n &lt;nameserver&gt; -i &lt;msgId&gt;</code> 按消息 ID 查询 [11]。轨迹记录生产者的发送耗时、是否成功，消费者的投递轮次、消费耗时和是否成功，以及 Broker 的存储位置 [11]。轨迹数据量大时，官方建议用一台专用 Broker 存储，使普通消息与轨迹的磁盘 IO 隔离，此模式要求至少两台 Broker [11]。秒杀高峰期不建议在所有 Broker 上都开轨迹，推荐专用 Broker。</p>
+<h4 id="24-boot-27-工程的采集路线otel-java-agent">2.4 Boot 2.7 工程的采集路线：OTel Java agent</h4>
+<p>OpenTelemetry Java agent 是一个 JAR，可以挂到任何 Java 8+ 应用上 [7]。因为它按字节码埋点，对 Boot 2.7 不需要改依赖。agent 的启动参数（<code>-javaagent:</code>）和环境变量（<code>OTEL_SERVICE_NAME</code>、<code>OTEL_TRACES_SAMPLER</code> 等）在其 Getting started 与 Configuration 页面，本次只读到概览页，这些具体参数未核实 [7]，使用前以官方页面为准。</p>
+<p>这条路线的取舍：好处是不改代码、覆盖面由 agent 的支持列表决定；代价是与 Boot 自己的 Observation 机制是两套体系，同时开启会出现重复 span，要选一条。agent 对 HikariCP 提供连接池指标 [8]，与 Boot 的 <code>hikaricp</code> 指标 [3] 也可能重复，上线前核对。</p>
+<h4 id="25-日志与-trace-的关联">2.5 日志与 trace 的关联</h4>
+<p>日志里带 traceId 是最便宜的关联手段。Boot 启用 Micrometer Tracing 后默认输出 <code>[traceId-spanId]</code> 格式，上面的 <code>logging.pattern.correlation</code> 是自定义成带服务名的格式 [1]。01 篇 8.5 节要求的 JSON 结构化日志，需要把 MDC 里的 <code>traceId</code>、<code>spanId</code> 作为字段输出，具体的 Logback encoder 本次未核实。</p>
+<p>排障顺序固定为：监控面板发现异常 → 取一个失败请求的 traceId → 在日志系统按 traceId 查全链路日志 → 在追踪后端看 span 耗时分布。Prometheus 还支持 exemplar，把 trace id 挂到指标样本上，直接从面板跳到 trace。Boot 的 exemplar 需要 <code>SpanContext</code> bean（使用 Micrometer Tracing 时自动配置），由 <code>management.tracing.exemplars.include</code> 控制包含哪些 trace，默认只含已采样的，且 Prometheus 不支持 <code>all</code> 值 [3]。</p>
+<h3 id="3-指标体系reduse-与四个黄金信号">3. 指标体系：RED、USE 与四个黄金信号</h3>3
+<p>Google SRE 书的四个黄金信号是延迟、流量、错误、饱和度 [13]。几个对本篇有直接指导意义的原文要点：</p>
+<ul>
+<li>成功请求和失败请求的延迟要分开统计，因为"慢错误比快错误更糟" [13]。</li>
+<li>只看平均值会掩盖长尾，一个后端的 99 分位很容易成为前端的中位数 [13]。微服务扇出越多，这条越重要。</li>
+<li>延迟分布用直方图记录，桶边界大致按指数间隔，例如每档约 3 倍 [13]。</li>
+<li>饱和度要看最受限的资源，很多系统在利用率到 100% 之前性能就已经下降，需要设定利用率目标 [13]。</li>
+<li>告警应当可执行：每次呼叫都应引起紧迫感且需要人的判断，而不是机械操作 [13]。</li>
+</ul>
+<p>RED（速率、错误、耗时）面向请求型服务，USE（利用率、饱和度、错误）面向资源。这两个缩写的定义不在上述 SRE 页面里，属未核实的通用说法，这里仅作为分类标签：入口和每个服务用 RED，线程池、连接池、Redis、Broker 用 USE。</p>
+<h4 id="31-开箱即用的指标">3.1 开箱即用的指标</h4>
+<p>Boot 默认提供的指标（出自 [3]）：</p>
+<ul>
+<li>HTTP 服务端：指标名 <code>http.server.requests</code>，适用于 Spring MVC、WebFlux、Jersey，可通过 <code>management.observations.http.server.requests.name</code> 改名。</li>
+<li>JVM：<code>jvm.</code> 前缀，含内存与缓冲池、GC、线程、类加载。</li>
+<li>系统：<code>system.</code>、<code>process.</code>、<code>disk.</code> 前缀。</li>
+<li>线程池：自动埋点所有 <code>ThreadPoolTaskExecutor</code> 和 <code>ThreadPoolTaskScheduler</code> bean，标签是 bean 名。具体指标名页面未列出。</li>
+<li>连接池：<code>jdbc.connections</code> 前缀（当前活跃、空闲、最大、最小连接数），HikariCP 用 <code>hikaricp</code> 前缀，按池名打标签，池名由 <code>spring.datasource.name</code> 控制。</li>
+</ul>
+<p>Micrometer 指标名到 Prometheus 指标名的转换规则，官方页面没有写 [3]。常见约定是点变下划线、计数器加 <code>_total</code>、计时器以秒为单位加 <code>_seconds</code>，所以下文 PromQL 里的 <code>http_server_requests_seconds_count</code>、<code>hikaricp_connections_active</code> 是<strong>按约定推出的写法</strong>，务必先访问 <code>/actuator/prometheus</code> 核对实际输出再写规则。</p>
+<p>Prometheus 抓取配置的官方示例 [3]：</p>
+<pre><code class="language-yaml">scrape_configs:
+- job_name: &quot;spring&quot;
+  metrics_path: &quot;/actuator/prometheus&quot;
+  static_configs:
+  - targets: [&quot;HOST:PORT&quot;]
+</code></pre>
+<p>注册中心场景下建议用服务发现替代 static_configs，具体写法本次未核实。</p>
+<h4 id="32-sentinel-指标">3.2 Sentinel 指标</h4>
+<p>Sentinel 本身把数据写在本地日志里 [10]：</p>
+<ul>
+<li>拦截日志 <code>${user_home}/logs/csp/sentinel-block.log</code>，按秒记录被拦截的情况；拦截原因分三种：<code>FlowException</code> 限流、<code>DegradeException</code> 降级、<code>SystemBlockException</code> 系统保护。没有拦截发生时该文件不会出现。</li>
+<li>秒级监控日志 <code>${user_home}/logs/csp/${app_name}-${pid}-metrics.log</code>，字段依次为：时间戳、格式化时间、资源名、通过数（passed QPS）、拦截数（blocked QPS）、每秒结束的调用数、异常数、平均 RT、占用未来请求数（1.5.0 起）、最大并发（预留）、资源分类（1.7.0 起）。</li>
+<li>日志目录可用 <code>csp.sentinel.log.dir</code> 改。</li>
+</ul>
+<p>注意文件名不是固定的 <code>metric.log</code>，而是带应用名和进程号 [10]。本次没有找到官方文档里直接把 Sentinel 指标暴露成 Prometheus 格式的方案，常见做法是采集这份 metrics 日志后转成指标，或者在 <code>@SentinelResource</code> 的 <code>blockHandler</code> 里自增一个 Micrometer 计数器。后者是自建指标，见下一小节。</p>
+<h4 id="33-业务指标秒杀与派单">3.3 业务指标：秒杀与派单</h4>
+<p>框架指标回答"服务健不健康"，回答不了"业务有没有卡住"。下表的指标名是<strong>本篇建议自定义的名字</strong>，不是任何框架自带的：</p>
+<table>
+<thead>
+<tr>
+<th>链路</th>
+<th>自定义指标（建议）</th>
+<th>类型</th>
+<th>回答的问题</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>秒杀</td>
+<td><code>seckill_deduct_total{result}</code>，result 取 success / sold_out / duplicate / blocked</td>
+<td>Counter</td>
+<td>流量被谁挡掉了，库存是否正常卖完</td>
+</tr>
+<tr>
+<td>秒杀</td>
+<td><code>seckill_order_create_seconds</code></td>
+<td>Histogram</td>
+<td>消息消费到订单落库的耗时</td>
+</tr>
+<tr>
+<td>秒杀</td>
+<td><code>seckill_stock_mismatch_total</code></td>
+<td>Counter</td>
+<td>Redis 库存与数据库对账不一致次数</td>
+</tr>
+<tr>
+<td>派单</td>
+<td><code>dispatch_assign_seconds</code></td>
+<td>Histogram</td>
+<td>从下单到分配到骑手的耗时</td>
+</tr>
+<tr>
+<td>派单</td>
+<td><code>dispatch_timeout_reassign_total</code></td>
+<td>Counter</td>
+<td>骑手超时未接而重新调度的次数</td>
+</tr>
+<tr>
+<td>支付</td>
+<td><code>payment_notify_total{result}</code></td>
+<td>Counter</td>
+<td>异步通知验签通过、失败、重复的次数</td>
+</tr>
+<tr>
+<td>支付</td>
+<td><code>payment_pending_orders</code></td>
+<td>Gauge</td>
+<td>超过阈值时间仍未终态的支付单数</td>
+</tr>
+</tbody>
+</table>
+<p>标签只放低基数字段（结果类别、渠道、城市），不放订单号和用户号 [2]。</p>
+<h4 id="34-消息队列指标">3.4 消息队列指标</h4>
+<p>RocketMQ 5.x 文档里的 Broker 端指标（出自 [12]）：</p>
+<ul>
+<li><code>rocketmq_consumer_lag_latency</code>（毫秒）：消息从可消费到被消费之间的延迟，按最早一条未确认消息的就绪时间计算。</li>
+<li><code>rocketmq_consumer_ready_messages</code>：就绪消息数，即最大 offset 减最新拉取 offset。</li>
+<li><code>rocketmq_consumer_inflight_messages</code>：已拉取未确认的消息数。</li>
+<li><code>rocketmq_consumer_queueing_latency</code>（毫秒）：最早一条就绪消息的排队时长，反映消费者拉取是否及时。</li>
+<li><code>rocketmq_send_to_dlq_messages_total</code>：投递到死信队列的消息数。</li>
+<li><code>rocketmq_send_cost_time</code>、<code>rocketmq_process_time</code>：发送耗时与消费处理耗时的直方图。</li>
+</ul>
+<p>开启方式是 Broker 配置 <code>metricsExporterType=PROM</code>，Broker 在 <code>http://&lt;broker-ip&gt;:5557/metrics</code> 暴露指标，端口由 <code>metricsPromExporterPort</code> 控制；也可设为 <code>OTLP_GRPC</code> 推送到 OTel Collector [12]。页面里没有 <code>rocketmq_consumer_lag_messages</code> 这个名字，不要想当然地写 [12]。</p>
+<p><strong>版本差异</strong>：以上是 5.x 文档，而 01 篇基线是 RocketMQ 4.9.7。4.x 的官方做法是单独部署 rocketmq-exporter，本次只在搜索结果摘要里看到它，没有读正文，属未核实。如果集群是 4.9.7，先确认上面这些指标是否存在，不存在就改用 exporter 的指标名。</p>
+<h3 id="4-告警规则与阈值推导">4. 告警规则与阈值推导</h3>3
+<h4 id="41-规则格式">4.1 规则格式</h4>
+<p>Prometheus 告警规则文件的结构 [9]：<code>groups</code> 下每组有 <code>name</code>、可选 <code>labels</code> 和 <code>rules</code>；每条规则有 <code>alert</code>、<code>expr</code>、<code>for</code>、<code>keep_firing_for</code>、<code>labels</code>、<code>annotations</code>。<code>for</code> 是条件持续多久才从 pending 转 firing，省略则首次评估即触发；<code>keep_firing_for</code> 是条件消失后继续保持 firing 的时长，用于防抖；<code>labels</code> 和 <code>annotations</code> 可用模板 <code>{{ $labels.&lt;name&gt; }}</code> 和 <code>{{ $value }}</code> [9]。</p>
+<pre><code class="language-yaml"># rules/seckill.yml —— 阈值均为示例，必须按第 4.2 节方法用自己的基线推导
+groups:
+- name: seckill-red
+  labels:
+    team: trade
+  rules:
+  - alert: SeckillHighErrorRate
+    # 指标名按 Micrometer 约定推出，上线前对照 /actuator/prometheus 核对
+    expr: |
+      sum(rate(http_server_requests_seconds_count{application=&quot;seckill-service&quot;,status=~&quot;5..&quot;}[5m]))
+        /
+      sum(rate(http_server_requests_seconds_count{application=&quot;seckill-service&quot;}[5m])) &gt; 0.01
+    for: 3m
+    keep_firing_for: 5m
+    labels:
+      severity: page
+    annotations:
+      summary: &quot;秒杀服务 5xx 比例超过 1%&quot;
+      description: &quot;当前值 {{ $value }}，先按 traceId 抽样看失败请求的链路&quot;
+
+  - alert: SeckillOrderConsumerLag
+    expr: max by (consumer_group) (rocketmq_consumer_lag_latency) &gt; 30000
+    for: 2m
+    labels:
+      severity: page
+    annotations:
+      summary: &quot;消费组 {{ $labels.consumer_group }} 延迟超过 30 秒&quot;
+      description: &quot;订单落库落后，库存已扣但订单未创建的用户会越来越多&quot;
+
+  - alert: RocketMQDeadLetterIncreasing
+    expr: increase(rocketmq_send_to_dlq_messages_total[10m]) &gt; 0
+    labels:
+      severity: ticket
+    annotations:
+      summary: &quot;10 分钟内有消息进入死信队列&quot;
+
+- name: resource-use
+  rules:
+  - alert: DbPoolNearlyExhausted
+    expr: |
+      hikaricp_connections_active / hikaricp_connections_max &gt; 0.8
+    for: 5m
+    labels:
+      severity: ticket
+    annotations:
+      summary: &quot;{{ $labels.pool }} 连接池使用率超过 80%&quot;
+</code></pre>
+<p>规则写完需要用 <code>promtool check rules</code> 校验语法，本次未实跑，属未验证项。</p>
+<h4 id="42-阈值怎么推导">4.2 阈值怎么推导</h4>
+<p>上面所有数字都是示例。推导阈值的步骤：</p>
+<ol>
+<li><strong>取基线</strong>。选一段正常流量（包含一次完整的高峰），用 PromQL 取各指标的 P50、P95、P99 和日内最大值。没有基线就先别设硬阈值，只做面板。</li>
+<li><strong>从业务目标反推</strong>。例如"点击抢购后 3 秒内看到结果"，扣掉网关和网络，得到订单链路的耗时预算，消费延迟告警值必须小于这个预算，否则告警响起时用户早已超时。</li>
+<li><strong>加余量</strong>。常用做法是在基线 P95 上乘一个系数（例如 1.5 到 2 倍），再用最近两周的告警历史校正，目标是"每次告警都需要人处理"，对应 SRE 书的"可执行"原则 [13]。系数本身没有权威出处，是经验值。</li>
+<li><strong>用 <code>for</code> 和 <code>keep_firing_for</code> 控制抖动</strong> [9]。秒杀是脉冲流量，<code>for: 3m</code> 在活动 1 分钟就结束的场景下永远不会触发，活动期间要单独设一组更短 <code>for</code> 的规则，或者活动期间用 recording rule 先做聚合。</li>
+<li><strong>饱和度提前报</strong>。SRE 书建议在"接近有问题"时就告警 [13]，所以连接池告警设 80%，而不是 100%。</li>
+</ol>
+<h4 id="43-仪表盘清单">4.3 仪表盘清单</h4>
+<table>
+<thead>
+<tr>
+<th>面板</th>
+<th>内容</th>
+<th>主要用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>入口总览</td>
+<td>Gateway 的请求速率、错误率、P95/P99</td>
+<td>第一眼判断是否有事</td>
+</tr>
+<tr>
+<td>秒杀专页</td>
+<td><code>seckill_deduct_total</code> 各 result 占比、库存余量、Sentinel 拦截数</td>
+<td>判断被限流、售罄、重复下单的比例</td>
+</tr>
+<tr>
+<td>消息链路</td>
+<td>消费延迟、就绪消息数、死信计数、消费处理耗时</td>
+<td>判断异步落库是否追得上</td>
+</tr>
+<tr>
+<td>派单专页</td>
+<td>分配耗时分布、超时重派次数、骑手在线数</td>
+<td>03 篇的超时重调度是否在放大</td>
+</tr>
+<tr>
+<td>支付专页</td>
+<td>通知验签失败、重复通知、悬挂支付单数</td>
+<td>对账与幂等是否生效</td>
+</tr>
+<tr>
+<td>资源水位</td>
+<td>各服务线程池、Hikari 连接池、JVM GC 与堆、Redis 内存与连接数</td>
+<td>USE 方法的资源检查</td>
+</tr>
+<tr>
+<td>依赖健康</td>
+<td>Nacos 实例数、Sentinel 规则推送失败</td>
+<td>01 篇 8.1、8.2 的运行细节</td>
+</tr>
+</tbody>
+</table>
+<h3 id="5-压测方法">5. 压测方法</h3>3
+<h4 id="51-压测要回答什么问题">5.1 压测要回答什么问题</h4>
+<p>压测先定问题，再定方案。针对秒杀和派单，常见的四个问题：</p>
+<ol>
+<li>单实例在延迟达标的前提下最大吞吐是多少（容量）。</li>
+<li>流量超过容量时，限流、降级是否按预期生效，核心接口是否还能保住（保护）。</li>
+<li>异步链路（消息、对账）在高峰后多久追平（恢复）。</li>
+<li>持续压若干小时是否有资源泄漏（稳定性）。</li>
+</ol>
+<h4 id="52-开放模型与封闭模型">5.2 开放模型与封闭模型</h4>
+<p>k6 的执行器分为按虚拟用户数驱动（<code>constant-vus</code>、<code>ramping-vus</code>，封闭模型）和按到达速率驱动（<code>constant-arrival-rate</code>、<code>ramping-arrival-rate</code>，开放模型）两类 [14]。这个划分页面是用 VU 或到达速率来描述的，"开放/封闭"的对应关系是页面推断，详细定义在其链接的另一篇文章里，未读 [14]。</p>
+<p>工程上的结论是：秒杀是"用户不会因为系统慢而减少点击"，应该用开放模型（固定到达速率）。封闭模型下，服务变慢时虚拟用户都卡在等待上，实际施加的压力反而下降，会得出偏乐观的结论。</p>
+<h4 id="53-k6-脚本">5.3 k6 脚本</h4>
+<p>阈值语法 [15]：<code>options.thresholds</code> 以指标名为键；Trend 类指标支持 <code>avg</code>、<code>min</code>、<code>max</code>、<code>med</code>、<code>p(N)</code>，Rate 类支持 <code>rate</code>；<code>abortOnFail: true</code> 让阈值失败时立即中止测试，<code>delayAbortEval</code> 推迟首次评估以避免开局的偶发数据误中止；官方警告同一指标不能重复写同一个对象键，否则后者静默覆盖前者 [15]。</p>
+<pre><code class="language-javascript">// seckill_load.js —— 开放模型阶梯加压；脚本未实跑
+import http from 'k6/http';
+import { check } from 'k6';
+
+export const options = {
+  scenarios: {
+    seckill_spike: {
+      executor: 'ramping-arrival-rate',   // 执行器名出自 [14]；下列参数名为 k6 通用用法，本次未在抓取页面核实
+      startRate: 100,
+      timeUnit: '1s',
+      preAllocatedVUs: 200,
+      maxVUs: 2000,
+      stages: [
+        { target: 500,  duration: '1m' },
+        { target: 2000, duration: '2m' },
+        { target: 2000, duration: '3m' },   // 峰值保持
+        { target: 100,  duration: '1m' },   // 回落，观察消息积压追平时间
+      ],
+    },
+  },
+  thresholds: {
+    // 5xx 率；注意 429（被限流）属于预期结果，不应计入 http_req_failed
+    http_req_failed: [{ threshold: 'rate&lt;0.01', abortOnFail: true, delayAbortEval: '30s' }],
+    http_req_duration: ['p(95)&lt;800', 'p(99)&lt;1500'],
+    checks: ['rate&gt;0.95'],   // checks 要写阈值才会影响退出状态 [15]
+  },
+};
+
+export default function () {
+  const res = http.post(`${__ENV.BASE_URL}/seckill/buy`,
+    JSON.stringify({ skuId: 1001, quantity: 1 }),
+    { headers: { 'Content-Type': 'application/json',
+                 'X-Load-Test': '1' } });          // 压测流量标记，见 5.4
+  check(res, { 'status is 200/429': (r) =&gt; r.status === 200 || r.status === 429 });
+}
+</code></pre>
+<p>脚本里有两点需要处理：一是 k6 默认把 4xx、5xx 都计入 <code>http_req_failed</code>，秒杀被限流返回 429 是预期行为，需要用 <code>http.setResponseCallback</code> 之类的机制调整，具体 API 本次未核实，建议跑通后看结果指标再定；二是用户身份要从参数文件读，避免所有虚拟用户用同一个账号，否则"一人一单"规则会让绝大多数请求命中重复下单分支，压测变成了测重复校验。</p>
+<h4 id="54-全链路压测流量标记与影子库">5.4 全链路压测、流量标记与影子库</h4>
+<p>这一节是工程设计思路，<strong>没有本次抓取的一手源作依据</strong>，仅作方案参考。</p>
+<p>压测流量进入真实生产链路时，需要保证三件事：</p>
+<ul>
+<li><strong>可识别</strong>。入口给压测请求打标记（如上面脚本的 <code>X-Load-Test</code> 头），网关把它写入 baggage 或 MDC，下游所有服务通过 baggage 读取。注意 baggage 不要放敏感信息 [6]，一个布尔标记是合适的。</li>
+<li><strong>可隔离</strong>。带标记的请求写入影子库、影子 Topic、影子 Redis key 前缀，或者在测试环境整体复制。只在业务代码里 <code>if (loadTest) return</code> 绕过写入，测不到真实写入路径，不推荐。</li>
+<li><strong>可清理</strong>。压测数据要有统一前缀或独立 schema，结束后批量清理。</li>
+</ul>
+<p>没有条件做影子库时，独立的压测环境配套"数据量与生产同量级"的库表，比在生产里做不隔离的压测安全得多。支付类接口必须使用支付渠道的沙箱，不要对真实渠道压测。</p>
+<h4 id="55-容量估算">5.5 容量估算</h4>
+<p>给定目标峰值 QPS 与目标响应时间，需要的并发度由 Little 定律给出：并发数 ≈ QPS × 平均响应时间（秒）。例如目标 2000 QPS、平均 200 ms，稳态约 400 个并发请求在飞。这个数字用来核对 Tomcat 或 Netty 线程数、Hikari 连接池大小、Feign 连接池上限是否会先成为瓶颈。上面算出的并发数不是配置建议，只用于识别"理论需要远大于配置"的环节。</p>
+<p>逐环节的瓶颈检查：</p>
+<ol>
+<li>先压网关，确认网关自身不是瓶颈。</li>
+<li>再压单个下游服务，记录达标延迟下的最大 QPS，作为单实例容量。</li>
+<li>实例数 = 目标峰值 QPS ÷ 单实例容量，再留出余量（至少应能承受单实例故障时的重新分配），余量比例需要团队自己定。</li>
+<li>消息消费者的容量单独压，因为它决定"高峰过后多久追平"。</li>
+</ol>
+<h4 id="56-读压测报告">5.6 读压测报告</h4>
+<ul>
+<li><strong>延迟看分位数，不看平均值</strong> [13]。同一次测试里 P50 稳定而 P99 翻倍，通常意味着排队或锁竞争。</li>
+<li><strong>看拐点</strong>。随着到达速率上升，延迟突然陡增的点就是容量拐点，容量取拐点之前的值，不是测试里的最高值。</li>
+<li><strong>错误分类</strong>。区分被限流（预期）、超时、5xx，三者含义不同。</li>
+<li><strong>同步看资源</strong>。压测期间同时看 Hikari 活跃连接、线程池队列、GC、Redis CPU 与慢日志。延迟升高但各项资源都不高，往往是下游依赖或锁的问题。</li>
+<li><strong>压测后看恢复</strong>。停止加压后消费延迟多久回到基线，是否有消息进死信，库存对账是否一致。</li>
+<li><strong>复现性</strong>。记录被测版本、配置、数据量、脚本版本，否则报告不能和下一次对比。</li>
+</ul>
+<h3 id="6-灰度发布">6. 灰度发布</h3>3
+<h4 id="61-基于-kubernetes-的滚动更新与金丝雀">6.1 基于 Kubernetes 的滚动更新与金丝雀</h4>
+<p>Deployment 的滚动更新有两个参数 [16]：<code>maxUnavailable</code> 是更新期间允许不可用的最大 Pod 数，<code>maxSurge</code> 是可以超出期望副本数创建的最大 Pod 数，两者都可以是整数或百分比，默认都是 25%；百分比的 <code>maxUnavailable</code> 向下取整、<code>maxSurge</code> 向上取整；两者不能同时为 0。<code>minReadySeconds</code> 指新 Pod 就绪后要持续多少秒无容器崩溃才算可用，默认 0；<code>progressDeadlineSeconds</code> 默认 600，超过后 Deployment 会报告 <code>ProgressDeadlineExceeded</code>，且该值必须大于 <code>minReadySeconds</code> [16]。</p>
+<pre><code class="language-yaml">spec:
+  replicas: 4
+  minReadySeconds: 30          # 新 Pod 就绪后再观察 30 秒；数值为示例
+  progressDeadlineSeconds: 600
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0        # 业务服务建议先加后减，不降低可用容量
+</code></pre>
+<p>回滚用 <code>kubectl rollout undo deployment/&lt;name&gt;</code>，指定版本加 <code>--to-revision=N</code>；用 <code>kubectl rollout history deployment/&lt;name&gt;</code> 查看历史，<code>--revision=N</code> 看某个版本详情 [16]。官方特别说明：只有 Pod 模板（<code>.spec.template</code>）变化才产生新 revision，扩缩容不产生，所以回滚只回滚模板部分 [16]。这印证了 01 篇 8.7 的提醒：回滚镜像不等于回滚配置和数据库迁移，数据库变更必须用"新增字段、双写、回填、切读、删除"的分阶段方式。</p>
+<p>金丝雀的官方做法 [17]：两个 Deployment 共用 <code>app</code>、<code>tier</code> 标签，用 <code>track</code> 标签区分 <code>stable</code> 与 <code>canary</code>；Service 的 selector 去掉 <code>track</code>，因此同时选中两组 Pod；通过调整两边副本数决定流量比例，例子里 3 个稳定副本加 1 个金丝雀副本，比例为 3:1；确认没问题后把稳定版更新为新版本，再删除金丝雀 [17]。</p>
+<p>这个方式的局限：流量比例只能近似到副本数，不能精确到 1%，也不能"只让内部用户先用"。页面本身没写局限，这是从机制得出的推论。要按请求头或用户分流，就用下一节的网关方案。</p>
+<h4 id="62-基于-nacos-元数据与-gateway-的请求级灰度">6.2 基于 Nacos 元数据与 Gateway 的请求级灰度</h4>
+<p>目标：带灰度标记的请求走新版本，其余请求走稳定版本，比例与副本数无关。</p>
+<p><strong>第一步，给实例打元数据</strong>。Nacos 的 <code>spring.cloud.nacos.discovery.metadata</code> 用 Map 格式配置，默认为空；<code>weight</code> 默认 1，取值 1 到 100，数值越大权重越大 [20]。</p>
+<pre><code class="language-yaml"># 新版本实例
+spring:
+  cloud:
+    nacos:
+      discovery:
+        metadata:
+          hint: gray
+# 稳定版本实例
+#   hint: stable
+</code></pre>
+<p><strong>第二步，让 LoadBalancer 按 hint 过滤</strong>。Spring Cloud LoadBalancer 会读取请求头 <code>X-SC-LB-Hint</code>（可通过 <code>spring.cloud.loadbalancer.hint-header-name</code> 改名），用它的值去匹配实例 <code>metadataMap</code> 里 <code>hint</code> 键的值；没有请求头时用 <code>spring.cloud.loadbalancer.hint.[SERVICE_ID]</code>，再回退到 <code>spring.cloud.loadbalancer.hint.default</code> [19]。启用需要自定义 <code>ServiceInstanceListSupplier</code>：</p>
+<pre><code class="language-java">public class CustomLoadBalancerConfiguration {
+    @Bean
+    public ServiceInstanceListSupplier discoveryClientServiceInstanceListSupplier(
+            ConfigurableApplicationContext context) {
+        return ServiceInstanceListSupplier.builder()
+                .withDiscoveryClient()
+                .withCaching()
+                .withHints()
+                .build(context);
+    }
+}
+</code></pre>
+<p><strong>这里有一个必须处理的坑</strong>：官方规则是"没设置 hint 时返回全部实例；有 hint 但没有匹配的实例时也返回全部实例" [19]。所以如果稳定版实例没有标记，且普通请求没有 hint，<strong>普通流量也会被分到灰度实例上</strong>。解决办法是给所有稳定实例打 <code>hint: stable</code>，并设置 <code>spring.cloud.loadbalancer.hint.default=stable</code>，让没有灰度头的请求默认只走稳定实例。同时要想到另一面：灰度头指向的版本如果没有存活实例，请求会落到全部实例，灰度范围会悄悄变大。</p>
+<p><strong>第三步，在网关按条件加 hint 头</strong>。Gateway 路由断言支持 <code>Header=&lt;name&gt;, &lt;regexp&gt;</code> 与 <code>Weight=&lt;group&gt;, &lt;weight&gt;</code>；Weight 按 group 分别计算，8 比 2 的两条路由会把约 80% 和 20% 的流量分过去 [18]。下面的 YAML 前缀是 Gateway 5.0.4 的写法 [18]，更早的版本（01 篇用的 2021.0.x 系列）的前缀不同，页面未覆盖，以对应版本文档为准。</p>
+<pre><code class="language-yaml">spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+          - id: seckill_gray_by_header
+            uri: lb://seckill-service
+            predicates:
+            - Path=/seckill/**
+            - Header=X-Gray-User, true
+            filters:
+            - AddRequestHeader=X-SC-LB-Hint, gray
+          - id: seckill_gray_by_weight
+            uri: lb://seckill-service
+            predicates:
+            - Path=/seckill/**
+            - Weight=seckill-group, 5      # 与下一条同组，约 5% 走灰度
+            filters:
+            - AddRequestHeader=X-SC-LB-Hint, gray
+          - id: seckill_stable
+            uri: lb://seckill-service
+            predicates:
+            - Path=/seckill/**
+            - Weight=seckill-group, 95
+            filters:
+            - AddRequestHeader=X-SC-LB-Hint, stable
+</code></pre>
+<p><code>AddRequestHeader</code> 过滤器和路由顺序的细节本次未抓取到 Gateway 的 filters 页面，属未核实。另外，灰度头只在网关到第一个服务这一跳有效。服务内部再通过 OpenFeign 调用下游时，需要用 <code>RequestInterceptor</code> 把 <code>X-SC-LB-Hint</code> 透传，否则下游又回到默认的稳定集合，灰度链路在第二跳断掉。这是设计层面的提示，透传代码未实跑。</p>
+<p>灰度范围的选择顺序建议：内部员工账号（按头或 Cookie，Gateway 也有 Cookie 断言 [18]）→ 1% 到 5% 的随机用户 → 逐级扩大。秒杀这类有时间窗口的活动，不建议在活动当天做灰度，灰度窗口应安排在活动前的低峰期，避免在峰值时验证新版本。</p>
+<h4 id="63-回滚判据">6.3 回滚判据</h4>
+<p>回滚标准必须在发布前写好，发布中不临时争论：</p>
+<table>
+<thead>
+<tr>
+<th>判据</th>
+<th>示例阈值（按基线调整）</th>
+<th>动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>灰度实例 5xx 率明显高于稳定实例</td>
+<td>持续 3 分钟高出 0.5 个百分点</td>
+<td>立即摘除灰度 hint，回滚</td>
+</tr>
+<tr>
+<td>灰度实例 P95 延迟</td>
+<td>高于稳定版 1.3 倍并持续 5 分钟</td>
+<td>暂停放量，定位后再决定</td>
+</tr>
+<tr>
+<td>消息消费延迟、死信计数</td>
+<td>出现新的死信，或延迟持续增长</td>
+<td>回滚消费者版本，先确认消息格式兼容</td>
+</tr>
+<tr>
+<td>业务对账</td>
+<td>库存、订单、支付对账出现差异</td>
+<td>停止放量，保留现场，按补偿流程处理</td>
+</tr>
+<tr>
+<td>Deployment 进度</td>
+<td>出现 <code>ProgressDeadlineExceeded</code> [16]</td>
+<td><code>kubectl rollout undo</code></td>
+</tr>
+</tbody>
+</table>
+<p>对比灰度与稳定的指标，需要指标里有"版本"这个维度。可以通过 <code>management.metrics.tags.version=&lt;发布版本&gt;</code> 给所有指标加公共标签 [3]，这样面板上能直接按版本分组对比。</p>
+<h3 id="7-上线检查清单">7. 上线检查清单</h3>3
+<p><strong>发布前</strong></p>
+<ol>
+<li><code>/actuator/prometheus</code> 已暴露并能抓取，关键指标名与告警规则一致 [3][4]。</li>
+<li>请求日志带 traceId；用一个固定 <code>traceparent</code> 请求验证：Gateway、两跳 Feign、RocketMQ 消费者的 span 在同一个 trace 内。</li>
+<li>采样率已按场景设置，压测和灰度观察期调到 1.0 [1]。</li>
+<li>告警规则通过 <code>promtool</code> 校验，阈值有基线依据，有处理人和 runbook 链接。</li>
+<li>压测脚本使用开放模型，阈值已写入 <code>thresholds</code>，用户身份参数化，压测流量有标记。</li>
+<li>稳定实例已打 <code>hint: stable</code>，默认 hint 已设置，确认普通流量不会分到灰度实例 [19]。</li>
+<li>回滚判据已写成表，回滚命令演练过一次，数据库迁移已确认向后兼容。</li>
+<li>如使用 RocketMQ 轨迹，已确认专用 Broker 或评估过 IO 影响 [11]。</li>
+</ol>
+<p><strong>发布中</strong></p>
+<ol>
+<li>先放灰度实例，每一级放量后观察窗口至少覆盖一个完整的指标抓取与告警评估周期。</li>
+<li>对比灰度与稳定的错误率、P95、消费延迟、对账差异，不看单一指标。</li>
+<li>任何一条回滚判据触发，立即执行回滚，不先排查再回滚。</li>
+</ol>
+<p><strong>发布后</strong></p>
+<ol>
+<li>恢复采样率，关闭临时放宽的告警。</li>
+<li>保存本次压测报告与灰度对比截图，作为下一次的基线。</li>
+<li>记录实际触发的告警和误报，修正阈值。</li>
+</ol>
+<h3 id="8-排障表">8. 排障表</h3>3
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>常见原因</th>
+<th>排查与处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>追踪后端看不到某服务的 span</td>
+<td>手写 <code>new RestTemplate()</code>，或采样率低</td>
+<td>改用自动配置的 Builder [1]；调高采样率</td>
+</tr>
+<tr>
+<td>一个 trace 在网关后断成两段</td>
+<td>Feign 调用没有传播头，或线程池丢失上下文</td>
+<td>检查 Feign 底层客户端是否被埋点；注册 <code>ContextPropagatingTaskDecorator</code> [2]</td>
+</tr>
+<tr>
+<td>消费者 span 独立成新 trace</td>
+<td>RocketMQ 上下文未写入消息</td>
+<td>实测确认；必要时用 Propagators API 手动注入提取 [6][8]</td>
+</tr>
+<tr>
+<td>响应式网关里日志没有 traceId</td>
+<td>ThreadLocal 未恢复</td>
+<td>设置 <code>spring.reactor.context-propagation=auto</code> [2]</td>
+</tr>
+<tr>
+<td>指标面板查不到 <code>http_server_requests_*</code></td>
+<td>Prometheus 端点没暴露，或指标名转换与预期不同</td>
+<td>确认 <code>exposure.include</code> 含 prometheus [4]；直接访问 <code>/actuator/prometheus</code> 核对名字 [3]</td>
+</tr>
+<tr>
+<td>指标时间序列暴涨</td>
+<td>把 userId、orderId 放进指标标签</td>
+<td>高基数字段只作 span 标签 [2]</td>
+</tr>
+<tr>
+<td>同一个操作出现重复 span</td>
+<td>注解和框架自动埋点叠加</td>
+<td>去掉注解或用 <code>ObservationPredicate</code> 关闭 [2]</td>
+</tr>
+<tr>
+<td>Sentinel 拦截日志不存在</td>
+<td>没有发生过拦截（文件不会生成）</td>
+<td>属正常现象 [10]</td>
+</tr>
+<tr>
+<td>压测结果比线上好得多</td>
+<td>使用了封闭模型，或所有虚拟用户用同一账号</td>
+<td>改用到达速率执行器 [14]，参数化用户</td>
+</tr>
+<tr>
+<td>压测一开始就被中止</td>
+<td><code>abortOnFail</code> 在样本不足时评估</td>
+<td>加 <code>delayAbortEval</code> [15]</td>
+</tr>
+<tr>
+<td>普通用户请求落到灰度实例</td>
+<td>稳定实例未打 hint 且无默认 hint</td>
+<td>补 <code>hint: stable</code> 与默认 hint [19]</td>
+</tr>
+<tr>
+<td>灰度请求落到了稳定实例</td>
+<td>灰度头在 Feign 第二跳丢失，或灰度实例没有存活</td>
+<td>透传头；检查灰度实例健康</td>
+</tr>
+<tr>
+<td>滚动更新卡住</td>
+<td>新 Pod 不就绪</td>
+<td>查 <code>ProgressDeadlineExceeded</code> [16]，必要时 <code>kubectl rollout undo</code></td>
+</tr>
+<tr>
+<td>回滚后仍有异常</td>
+<td>只回滚了镜像，未处理配置或数据库</td>
+<td>回滚只回滚 Pod 模板 [16]，另行处理其他变更</td>
+</tr>
+</tbody>
+</table>
+<h3 id="9-验证状态与局限">9. 验证状态与局限</h3>3
+<p><strong>已核实</strong>（对照第 10 节所列页面）：Boot Actuator 的追踪、Observation、Prometheus 与端点暴露的属性名；Micrometer Tracing 的定位；OTel context propagation 与 <code>traceparent</code> 格式；Prometheus 告警规则字段；Sentinel 日志格式；RocketMQ 消息轨迹的开启方式与 5.x 指标名；k6 的执行器名与阈值语法；Kubernetes 滚动更新参数、回滚命令与金丝雀做法；Gateway 的 Header 与 Weight 断言；LoadBalancer 的 hint 机制；Nacos 元数据与权重配置项。</p>
+<p><strong>未核实或需要实测</strong>：</p>
+<ul>
+<li>全部配置、脚本和 PromQL 均<strong>未实跑</strong>，本机没有 Java 工程、Prometheus、RocketMQ 与 K8s 集群环境。</li>
+<li>Boot 4.1.2 的配置不能直接用于 Boot 2.7 基线，需要先决定升级还是用 OTel agent。</li>
+<li>Micrometer 到 Prometheus 的指标名转换、<code>hikaricp_*</code> 等名字是按约定推出的写法。</li>
+<li>OTel agent 对 OpenFeign、RocketMQ 的上下文自动传播未核实 [8]。</li>
+<li>OTel Java agent 的 <code>-javaagent</code> 参数与环境变量未读到 [7]。</li>
+<li>RocketMQ 4.9.7 的指标来源（rocketmq-exporter）未读正文。</li>
+<li>k6 执行器参数名、<code>http_req_failed</code> 对 429 的处理、Gateway 的 <code>AddRequestHeader</code> 过滤器、Nacos 元数据与 Feign 头透传代码均未在抓取的页面核实。</li>
+<li>第 5.4 节的全链路压测与影子库、第 4.2 节的系数和余量属工程经验，无一手源。</li>
+<li>RED 与 USE 的定义、尾部采样未核实。</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>可观测（本库有真实实现，本次实跑日志）</strong>：<code>rag/query.py</code> 每个节点一行带指标日志，覆盖「召回数 / 融合分 / 距离 / 熔断 / 门控剔除 / 质量分」六类信号：<br />
+<code>[retrieve] merged top-435: top_rrf=0.0164 best_dist=0.2720
+  [rerank] 熔断: 回退排序 top-3
+  [gate] best_dist=0.2720 dense_gate_threshold=0.5
+  [jev门控] 前 3 条 -&gt; 后 2 条，剔除：wiki/L5-Agent工程/Agent框架实操选型-2026.md/0.08
+  [jev] 忠实度=0.90 质量=1.54/2 置信度=0.31</code><br />
+  另有一处「健康检查自检依赖」的写法可抄：<code>projects/agent-service-toolkit/src/service/service.py</code> L485-489，<code>/health</code> 在 <code>settings.LANGFUSE_TRACING</code> 打开时会调 <code>langfuse.auth_check()</code>，把结果写进健康返回体的 <code>langfuse</code> 字段（connected/disconnected）——<strong>依赖可用性直接进健康端点</strong>。</li>
+<li><strong>压测：本库没有做（需如实说明）</strong>。间接可用的性能事实有两条：①单问题端到端约 3 分钟（含云端生成）②bge-m3 冷加载 224.7 秒、单句编码 0.3 秒。<strong>没有并发下的 p95 与错误率</strong>。</li>
+<li><strong>灰度：本库的「灰度」是配置开关 + 一键回退，不是流量切分</strong>。<code>rag/config.yaml</code> 里每个新能力都有 <code>enabled</code> 开关并在注释写好回退值（如 <code>high_key.enabled: false  # 默认关(先上代码不生效)</code>）——「代码先进、开关默认关、验收时开」是本库的小规模灰度法。</li>
+<li><strong>和课件讲法的差异</strong>：课件讲 Prometheus/Grafana/Nginx 权重切流；本库没有指标服务器，靠日志行 + 开关。<strong>能观测的最小单元不是看板，是一行能 grep 的日志</strong>。</li>
+<li><strong>本库暂无</strong>：无压测脚本与结果、无金丝雀/蓝绿、无告警通道（指标不落时序库）。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库可观测看两处：<code>rag/query.py</code> 每节点带指标的日志行（本次实跑贴出 8 行），<code>projects/agent-service-toolkit</code> 的 <code>/health</code> 里带 <code>langfuse: connected/disconnected</code> 自检（service.py L485-489）；压测与灰度无对应代码。</li>
+<li><strong>读源码</strong>：可观测/压测/灰度；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] <strong>课程内容落点</strong>：<a href="../../../raw/sources/%E8%AF%BE%E7%A8%8B%E5%A4%A7%E7%BA%B2-%E9%BB%91%E9%A9%AC-AI%E5%BA%94%E7%94%A8%E6%99%BA%E8%83%BD%E4%BD%93v6-20261026.md">黑马 AI 应用智能体课程项目大纲</a>；<code>raw/courseware/</code> 未检索到对应 Java 微服务原始课件，故不虚构课件路径。</li>
+<li>[业1] <strong>业内官方</strong>：以下 Spring Boot、Micrometer、OpenTelemetry、Prometheus、k6、Kubernetes 等官方资料，落在观测属性、告警语法、压测模型与灰度回滚。</li>
+</ul>
+<h3 id="10-官方参考">10. 官方参考</h3>3
+<p>访问日期均为 2026-11-02。</p>
+<ol>
+<li>Spring Boot 参考文档，Tracing：https://docs.spring.io/spring-boot/reference/actuator/tracing.html（页面版本 4.1.2）</li>
+<li>Spring Boot 参考文档，Observability：https://docs.spring.io/spring-boot/reference/actuator/observability.html</li>
+<li>Spring Boot 参考文档，Metrics：https://docs.spring.io/spring-boot/reference/actuator/metrics.html（后约 1 万字符未读）</li>
+<li>Spring Boot 参考文档，Endpoints：https://docs.spring.io/spring-boot/reference/actuator/endpoints.html（后约 2 万字符未读）</li>
+<li>Micrometer Tracing 参考文档：https://docs.micrometer.io/tracing/reference/（稳定版 1.7.2）</li>
+<li>OpenTelemetry，Context propagation：https://opentelemetry.io/docs/concepts/context-propagation/</li>
+<li>OpenTelemetry，Java agent：https://opentelemetry.io/docs/zero-code/java/agent/（仅概览页）</li>
+<li>opentelemetry-java-instrumentation，Supported libraries：https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/docs/supported-libraries.md</li>
+<li>Prometheus，Alerting rules：https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/</li>
+<li>Sentinel，日志：https://sentinelguard.io/zh-cn/docs/logs.html</li>
+<li>Apache RocketMQ 4.x，Message Trace：https://rocketmq.apache.org/docs/4.x/bestPractice/03messagetra</li>
+<li>Apache RocketMQ，Metrics：https://rocketmq.apache.org/docs/observability/01metrics</li>
+<li>Google SRE Book，Monitoring Distributed Systems：https://sre.google/sre-book/monitoring-distributed-systems/</li>
+<li>Grafana k6，Scenarios：https://grafana.com/docs/k6/latest/using-k6/scenarios/</li>
+<li>Grafana k6，Thresholds：https://grafana.com/docs/k6/latest/using-k6/thresholds/</li>
+<li>Kubernetes，Deployments：https://kubernetes.io/docs/concepts/workloads/controllers/deployment/</li>
+<li>Kubernetes，Managing Workloads（Canary deployments）：https://kubernetes.io/docs/concepts/workloads/management/</li>
+<li>Spring Cloud Gateway（WebFlux），Request Predicates：https://docs.spring.io/spring-cloud-gateway/reference/spring-cloud-gateway-server-webflux/request-predicates-factories.html（页面版本 5.0.4）</li>
+<li>Spring Cloud Commons，LoadBalancer：https://docs.spring.io/spring-cloud-commons/reference/spring-cloud-commons/loadbalancer.html</li>
+<li>Spring Cloud Alibaba，Nacos 进阶指南：https://sca.aliyun.com/docs/2023/user-guide/nacos/advanced-guide/</li>
+</ol>
+<p>访问失败或未获得有效内容：<code>https://rocketmq.apache.org/docs/4.x/features/04message1/</code>（404）；Sentinel 在 Spring Cloud Alibaba 下的 Actuator 与 <code>spring.cloud.sentinel.*</code> 配置页未取得内容；<code>https://sca.aliyun.com/docs/2023/user-guide/sentinel/quick-start/</code> 与 <code>.../nacos/quick-start/</code> 只含基础内容，未被引用。</p>
+<p>配置与脚本未实跑。</p></div></body></html>

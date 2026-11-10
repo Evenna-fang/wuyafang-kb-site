@@ -1,0 +1,490 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L8-5-测评基准-MMLU-CMMLU</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L8-5-测评基准-MMLU-CMMLU</span></div><div class="wrap"><h1 id="测评基准mmlu-与-cmmlu知识广度类选择题评测">测评基准：MMLU 与 CMMLU（知识广度类选择题评测）</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="L8-5-%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L8-5 评估体系最佳答案</a> · <a href="L8-5-%E6%B5%8B%E8%AF%84%E5%9F%BA%E5%87%86-C-Eval.html">测评基准 C-Eval</a> · <a href="LLM%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB-Evals-2026.html">LLM评估体系Evals</a> · <a href="../L12-%E6%A8%A1%E5%9E%8B%E9%83%A8%E7%BD%B2/L12-%E6%A8%A1%E5%9E%8B%E9%87%8F%E5%8C%96-GPTQ-AWQ-GGUF.html">模型量化 GPTQ/AWQ/GGUF</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心论点</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>MMLU 和 CMMLU 是两份"多学科四选一选择题"，只回答一个问题：模型脑子里装了多少跨学科知识</li><li>它们适合做模型选型的粗筛、微调或量化前后的回归对比，不适合当作业务效果的证明</li><li>要得到可信的数字，必须固定四件事：提示模板、few-shot 数量、打分方式（比较选项 logits 还是解析生成文本）、汇总口径（按学科平均还是按题数加权）</li></ul></div>2
+<p>MMLU 和 CMMLU 是两份"多学科四选一选择题"，只回答一个问题：模型脑子里装了多少跨学科知识。它们适合做模型选型的粗筛、微调或量化前后的回归对比，不适合当作业务效果的证明。要得到可信的数字，必须固定四件事：提示模板、few-shot 数量、打分方式（比较选项 logits 还是解析生成文本）、汇总口径（按学科平均还是按题数加权）。四件事里任何一件和别人不同，分数就不可比。本文给出从下载数据到出报告的完整操作，包括用 lm-evaluation-harness 一条命令跑、用 OpenCompass 跑、以及一份约 100 行的自写脚本，后者可以评测任何 HuggingFace 本地模型和 OpenAI 兼容接口。</p>
+<h2 id="一是什么">一、是什么</h2>2
+<p><strong>MMLU</strong>（Massive Multitask Language Understanding，Hendrycks 等，2020，arXiv:2009.03300）收录 57 个学科的英文四选一选择题，共 15908 题，分为 test 14042 题、validation 1531 题、dev 285 题。学科从初等数学、美国历史到专业法律、临床医学。随机猜对的基线是 25%。dev 集每个学科只有 5 题，专门用来做 5-shot 示例。</p>
+<p><strong>CMMLU</strong>（Li 等，2023，arXiv:2306.09212）是中文版思路的独立题库：67 个学科，共约 11528 题，同样是四选一，每个学科 dev 5 题。它不是 MMLU 的翻译，有相当一部分学科带有中国语境（论文单列 China-specific 类，如中国历史、中国法律、中医、中国驾驶规则等），翻译过去反而会失真。</p>
+<p><strong>C-Eval</strong>（Huang 等，2023，arXiv:2305.08322）见 <a href="L8-5-%E6%B5%8B%E8%AF%84%E5%9F%BA%E5%87%86-C-Eval.html">测评基准 C-Eval</a>，这里放进对比表便于选型。</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>MMLU</th>
+<th>CMMLU</th>
+<th>C-Eval</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>语言</td>
+<td>英文</td>
+<td>中文</td>
+<td>中文</td>
+</tr>
+<tr>
+<td>学科数</td>
+<td>57</td>
+<td>67</td>
+<td>52</td>
+</tr>
+<tr>
+<td>题量（约）</td>
+<td>15908</td>
+<td>11528</td>
+<td>13948</td>
+</tr>
+<tr>
+<td>题型</td>
+<td>四选一</td>
+<td>四选一</td>
+<td>四选一</td>
+</tr>
+<tr>
+<td>难度分层</td>
+<td>无显式分层</td>
+<td>无显式分层</td>
+<td>初中/高中/大学/专业四级，另有 Hard 子集</td>
+</tr>
+<tr>
+<td>中国语境</td>
+<td>无</td>
+<td>强（单列 China-specific 类）</td>
+<td>中等</td>
+</tr>
+<tr>
+<td>test 答案</td>
+<td>公开</td>
+<td>公开</td>
+<td><strong>不公开</strong>，需提交官方榜单</td>
+</tr>
+<tr>
+<td>本地可自测的集合</td>
+<td>test</td>
+<td>test</td>
+<td>val（1346 题，有答案）</td>
+</tr>
+<tr>
+<td>常用 shot</td>
+<td>5-shot</td>
+<td>0-shot 与 5-shot 都报</td>
+<td>5-shot（dev 带解析，可做 CoT）</td>
+</tr>
+<tr>
+<td>主要风险</td>
+<td>饱和、标注错误、污染</td>
+<td>学科样本量小、污染</td>
+<td>test 无法本地复核、val 偏小</td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">二、为什么要用它们</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 它们是跨模型比较的共同语言</li><li>所以结论是：把它们当"体检"，不当"考试成绩单"</li><li>GPT-3 175B 在 MMLU 上 few-shot 只有 43.9%，GPT-4 报告里是 86.4%，这条曲线就是过去几年能力提升的标尺</li></ul></div>2
+<p><strong>1. 它们是跨模型比较的共同语言。</strong> 几乎所有开源模型发布时都会报 MMLU 和中文三件套（CMMLU、C-Eval、GSM8K 类），厂商公布的数字是你判断"这个模型值不值得下载"的第一手信号。GPT-3 175B 在 MMLU 上 few-shot 只有 43.9%，GPT-4 报告里是 86.4%，这条曲线就是过去几年能力提升的标尺。</p>
+<p><strong>2. 它们是量化、微调、蒸馏的回归尺子。</strong> 本库 <a href="../L12-%E6%A8%A1%E5%9E%8B%E9%83%A8%E7%BD%B2/L12-%E6%A8%A1%E5%9E%8B%E9%87%8F%E5%8C%96-GPTQ-AWQ-GGUF.html">模型量化</a> 一类的工作，需要一个便宜、确定、秒懂的指标回答"量化后掉了几个点"。选择题用 logits 打分不涉及采样，同一模型同一模板重复跑结果完全一致，非常适合做门禁：4bit 量化掉 1 个点以内通常可接受，掉 3 个点以上要查量化校准集。</p>
+<p><strong>3. 它们暴露知识缺口而不暴露业务能力。</strong> 分学科分数能看出模型在法律、医学、中文古典文化上哪里弱，用来决定要不要补 RAG 或做领域继续预训练。但它们测不出长文档、多轮、工具调用、格式遵循，这些要靠业务 golden set（见 <a href="RAGAS%E4%B8%89%E5%B1%82%E8%AF%84%E6%B5%8B%E8%90%BD%E5%9C%B0-%E6%8C%87%E6%A0%87%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BB%A3%E7%A0%81%E5%AE%9E%E6%88%98-20261030.html">RAGAS 三层评测</a>）。</p>
+<p><strong>4. 它们有已知缺陷，必须带着缺陷使用。</strong><br />
+- 饱和：前沿模型 MMLU 已在 90% 上下，分数差 0.5 个点不代表能力差异。想拉开差距用 MMLU-Pro（10 选项、更多推理题）。<br />
+- 标注噪声：后续人工复核（MMLU-Redux）发现 MMLU 约有 6% 量级的题目存在答案错误或题意不清，这给分数设了天花板。<br />
+- 数据污染：题目在网络上公开多年，训练语料很可能包含。榜单第一名的成绩和真实泛化可能差几个点。<br />
+- 对提示敏感：同一模型换模板、换 shot 数，分数可以差 2 到 5 个点。</p>
+<p><strong>5. 两个基准要搭配着用，而不是二选一。</strong> MMLU 提供英文世界的通用参照，CMMLU 提供中文与中国语境的参照。同一个模型在两者上的差距有诊断价值：英文高、中文低，说明预训练语料里中文占比不足或中文质量差；两者都高但业务效果差，说明问题在指令遵循、长上下文或检索，而不在知识储备。以中文业务为主的团队，选型时应以 CMMLU 和 C-Eval 为主、MMLU 为辅；做英文或多语言产品则反过来。</p>
+<p><strong>6. 它们的价值取决于你怎么用，而不是分数本身。</strong> 一个分数孤零零地放在报告里没有意义，只有放在"同模型前后"或"同设置多模型"的对比里才有信息量。所以本文后面的所有操作，目标都是让两次测评之间只有一个变量不同。</p>
+<p>所以结论是：把它们当"体检"，不当"考试成绩单"。做横向比较时只比自己用同一脚本、同一设置跑出来的数，厂商公布数只做参考。</p>
+<h2 id="三怎么做">三、怎么做</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">3.0 整体流程</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>flowchart LR</li></ul></div>3
+<pre><code class="language-mermaid">flowchart LR
+    A[&quot;确定目的&lt;br/&gt;选型 / 回归 / 复现公布值&quot;] --&gt; B[&quot;固定设置&lt;br/&gt;模板 + shot + 打分方式 + 汇总口径&quot;]
+    B --&gt; C[&quot;准备数据&lt;br/&gt;MMLU / CMMLU csv&quot;]
+    C --&gt; D{&quot;模型形态&quot;}
+    D --&gt;|&quot;本地 HF 或 vLLM&quot;| E[&quot;logits 打分&lt;br/&gt;比较 A/B/C/D&quot;]
+    D --&gt;|&quot;仅有聊天 API&quot;| F[&quot;生成式打分&lt;br/&gt;解析输出字母&quot;]
+    E --&gt; G[&quot;分学科准确率&quot;]
+    F --&gt; G
+    G --&gt; H[&quot;汇总&lt;br/&gt;macro 与 micro 都记录&quot;]
+    H --&gt; I[&quot;对账&lt;br/&gt;与公布值差 小于等于 2 点&quot;]
+    I --&gt; J[&quot;落报告&lt;br/&gt;附设置与版本&quot;]
+</code></pre>
+<h3 id="31-先决定用哪条路">3.1 先决定用哪条路</h3>3
+<table>
+<thead>
+<tr>
+<th>目的</th>
+<th>推荐做法</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>复现公布值、对外汇报</td>
+<td>lm-evaluation-harness 或 OpenCompass</td>
+<td>社区通用模板，数字能和别人对账</td>
+</tr>
+<tr>
+<td>本地模型前后对比（量化、微调）</td>
+<td>自写脚本或 harness 都行，前后用同一个</td>
+<td>只需要同尺子</td>
+</tr>
+<tr>
+<td>只有云端聊天接口，没有 logprobs</td>
+<td>自写脚本的生成式打分</td>
+<td>harness 的 logits 打分在这类接口上用不了</td>
+</tr>
+<tr>
+<td>想要最快的粗筛</td>
+<td>每学科抽 20 题，约 1100 题</td>
+<td>误差约 ±1.5 点，足够排除明显差的模型</td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.2 环境与数据</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-bash">python -m venv ~/venvs/evalbench &amp;&amp; source ~/venvs/evalbench/bin/activate
+pip install -U &quot;lm-eval&quot; torch transformers accelerate huggingface_hub
+
+# 凭据只走环境变量，不写进脚本和报告
+export HF_TOKEN=...   # 仅在下载受限模型时需要
+
+mkdir -p ~/evaldata &amp;&amp; cd ~/evaldata
+# MMLU 原始 csv 在 Hendrycks 的 data.tar 中（解压后有 dev/ val/ test/ 三个目录，csv 无表头）
+# CMMLU 在 HF 数据集仓库 haonan-li/cmmlu（test/ 与 dev/ 目录，csv 有表头）
+huggingface-cli download haonan-li/cmmlu --repo-type dataset --local-dir ./cmmlu
+ls ./cmmlu            # 以实际目录结构为准，下面脚本按 test/{subject}.csv 读取
+</code></pre>
+<p>注意：新版 <code>datasets</code>（4.x）不再支持带加载脚本的数据集，<code>load_dataset("haonan-li/cmmlu")</code> 可能报错。遇到时不要降级库，直接用上面的方式下载 csv 文件读取。</p>
+<h3 id="33-方式-alm-evaluation-harness最省事">3.3 方式 A：lm-evaluation-harness（最省事）</h3>3
+<pre><code class="language-bash"># 本地 HF 模型，MMLU 5-shot
+lm_eval --model hf \
+  --model_args pretrained=/path/to/model,dtype=bfloat16 \
+  --tasks mmlu --num_fewshot 5 --batch_size auto \
+  --output_path results/mmlu_modelA --log_samples
+
+# CMMLU 同理，中文基准先跑 0-shot 与 5-shot 各一次
+lm_eval --model hf --model_args pretrained=/path/to/model,dtype=bfloat16 \
+  --tasks cmmlu --num_fewshot 5 --batch_size auto --output_path results/cmmlu_modelA
+
+# 已用 vLLM 起了 OpenAI 兼容服务（支持 logprobs）
+lm_eval --model local-completions \
+  --model_args model=my-model,base_url=http://127.0.0.1:8000/v1/completions,num_concurrent=8,tokenized_requests=False \
+  --tasks mmlu,cmmlu --num_fewshot 5 --output_path results/vllm_modelA
+</code></pre>
+<p>要点：<br />
+- 任务名以 <code>lm_eval --tasks list</code> 输出为准，不同版本可能有 <code>mmlu</code>、<code>mmlu_generative</code> 等多个变体。<br />
+- <code>--log_samples</code> 一定要加，后面查错题、查模板都靠它。<br />
+- 结果 JSON 里 <code>mmlu</code> 是总平均，<code>mmlu_stem</code>、<code>mmlu_humanities</code> 等是四大类。记录 harness 版本号（<code>pip show lm-eval</code>），升级后分数可能变。<br />
+- 首次联网下载数据后，把 HF 缓存目录打包留存，保证半年后能复现。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.4 方式 B：OpenCompass</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-bash">pip install -U opencompass
+# 先看有哪些预置配置
+python -c &quot;import opencompass, os; print(os.path.dirname(opencompass.__file__))&quot;
+# 评测命令格式（配置名以安装版本里 configs/datasets 下实际文件为准）
+opencompass --models hf_internlm2_7b --datasets mmlu_gen cmmlu_gen ceval_gen -w outputs/modelA
+</code></pre>
+<p>OpenCompass 的优势是模型和数据集配置都是现成的，一次出多个基准的汇总表；劣势是配置层级深，模板藏在配置文件里，要对账时必须打开配置确认 shot 数和模板。</p>
+<h3 id="35-方式-c自写最小脚本可评测任何模型约-100-行">3.5 方式 C：自写最小脚本（可评测任何模型，约 100 行）</h3>3
+<p>适用于需要完全掌控模板、需要评测自定义模型包装、或想理解分数怎么来的场景。数据读取兼容 MMLU（无表头）、CMMLU（有表头且首列是序号）、C-Eval（有表头、含 id 与 explanation）。</p>
+<pre><code class="language-python"># mc_eval.py
+import csv, json, re, sys
+from pathlib import Path
+
+HEAD = {
+    &quot;mmlu&quot;: &quot;The following are multiple choice questions (with answers) about {subject}.\n\n&quot;,
+    &quot;cmmlu&quot;: &quot;以下是关于{subject}的单项选择题，请直接给出正确答案的选项。\n\n&quot;,
+}
+SUFFIX = {&quot;mmlu&quot;: &quot;Answer:&quot;, &quot;cmmlu&quot;: &quot;答案：&quot;}
+LETTERS = &quot;ABCD&quot;
+
+
+def read_rows(path, header=True):
+    with open(path, newline=&quot;&quot;, encoding=&quot;utf-8-sig&quot;) as f:
+        if header:
+            rows = [{k.strip().lower(): v for k, v in r.items()} for r in csv.DictReader(f)]
+        else:
+            rows = [dict(zip([&quot;question&quot;, &quot;a&quot;, &quot;b&quot;, &quot;c&quot;, &quot;d&quot;, &quot;answer&quot;], r)) for r in csv.reader(f)]
+    return [
+        {&quot;q&quot;: r[&quot;question&quot;], &quot;opts&quot;: [r[&quot;a&quot;], r[&quot;b&quot;], r[&quot;c&quot;], r[&quot;d&quot;]], &quot;ans&quot;: (r.get(&quot;answer&quot;) or &quot;&quot;).strip()}
+        for r in rows
+    ]
+
+
+def fmt(item, bench, with_answer):
+    s = item[&quot;q&quot;].strip() + &quot;\n&quot;
+    s += &quot;&quot;.join(f&quot;{L}. {o}\n&quot; for L, o in zip(LETTERS, item[&quot;opts&quot;]))
+    s += SUFFIX[bench]
+    return s + (f&quot; {item['ans']}\n\n&quot; if with_answer else &quot;&quot;)
+
+
+def build_prompt(bench, subject, dev, item, k):
+    head = HEAD[bench].format(subject=subject.replace(&quot;_&quot;, &quot; &quot;))
+    shots = &quot;&quot;.join(fmt(d, bench, True) for d in dev[:k])
+    return head + shots + fmt(item, bench, False)
+
+
+def extract_letter(text):
+    t = text.strip()
+    m = re.match(r&quot;^\W*([ABCD])(?![A-Za-z])&quot;, t) or re.search(r&quot;(?:答案|[Aa]nswer)\s*[:：是为]?\s*([ABCD])(?![A-Za-z])&quot;, t)
+    if m:
+        return m.group(1)
+    found = re.findall(r&quot;(?&lt;![A-Za-z])([ABCD])(?![A-Za-z])&quot;, t)
+    return found[-1] if found else &quot;&quot;
+
+
+def evaluate(bench, subjects, load_split, scorer, k=5, limit=None, eval_split=&quot;test&quot;, names=None):
+    &quot;&quot;&quot;load_split(split, subject) -&gt; rows；scorer(prompt, k_used) -&gt; 'A'..'D'；names 为学科中文名映射。返回 (分学科字典, macro, micro)&quot;&quot;&quot;
+    per = {}
+    for sub in subjects:
+        dev, test = load_split(&quot;dev&quot;, sub), load_split(eval_split, sub)
+        test = test[:limit] if limit else test
+        shown = (names or {}).get(sub, sub)
+        hit = sum(scorer(build_prompt(bench, shown, dev, it, k), k) == it[&quot;ans&quot;] for it in test)
+        per[sub] = {&quot;n&quot;: len(test), &quot;correct&quot;: hit, &quot;acc&quot;: hit / max(len(test), 1)}
+    macro = sum(v[&quot;acc&quot;] for v in per.values()) / len(per)
+    micro = sum(v[&quot;correct&quot;] for v in per.values()) / sum(v[&quot;n&quot;] for v in per.values())
+    return per, macro, micro
+
+
+def make_hf_scorer(model_path, max_len=4096):
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    tok = AutoTokenizer.from_pretrained(model_path, trust_remote_code=False)
+    model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.bfloat16, device_map=&quot;auto&quot;).eval()
+    cand = [tok.encode(&quot; &quot; + L, add_special_tokens=False)[-1] for L in LETTERS]
+    assert len(set(cand)) == 4, &quot;A/B/C/D 的 token 编码重复，检查分词器&quot;
+
+    @torch.no_grad()
+    def scorer(prompt, k_used):
+        ids = tok(prompt, return_tensors=&quot;pt&quot;).input_ids[:, -max_len:].to(model.device)
+        logits = model(ids).logits[0, -1]
+        return LETTERS[int(logits[cand].argmax())]
+
+    return scorer
+
+
+if __name__ == &quot;__main__&quot;:
+    bench, root, model_path, out = sys.argv[1:5]
+    k = int(sys.argv[5]) if len(sys.argv) &gt; 5 else 5
+    limit = int(sys.argv[6]) if len(sys.argv) &gt; 6 else None
+    root = Path(root)
+    if bench == &quot;mmlu&quot;:
+        subjects = sorted(p.name[: -len(&quot;_test.csv&quot;)] for p in (root / &quot;test&quot;).glob(&quot;*_test.csv&quot;))
+        load = lambda sp, s: read_rows(root / sp / f&quot;{s}_{sp}.csv&quot;, header=False)
+    else:
+        subjects = sorted(p.stem for p in (root / &quot;test&quot;).glob(&quot;*.csv&quot;))
+        load = lambda sp, s: read_rows(root / sp / f&quot;{s}.csv&quot;, header=True)
+    per, macro, micro = evaluate(bench, subjects, load, make_hf_scorer(model_path), k, limit)
+    Path(out).write_text(json.dumps({&quot;macro&quot;: macro, &quot;micro&quot;: micro, &quot;per&quot;: per}, ensure_ascii=False, indent=1))
+    print(f&quot;{bench} k={k} macro={macro:.4f} micro={micro:.4f} subjects={len(per)}&quot;)
+</code></pre>
+<p>运行方式：</p>
+<pre><code class="language-bash"># 冒烟：每个学科只测 5 题，确认流程通、分数明显高于 25%
+python mc_eval.py cmmlu ./cmmlu /path/to/model out_smoke.json 5 5
+# 正式：全量 5-shot
+python mc_eval.py cmmlu ./cmmlu /path/to/model out_cmmlu_5shot.json 5
+python mc_eval.py cmmlu ./cmmlu /path/to/model out_cmmlu_0shot.json 0
+</code></pre>
+<p>脚本的关键设计决策：<br />
+- <strong>打分方式</strong>：只看最后一个位置上 <code>A/B/C/D</code> 四个 token 的 logit，取最大者，不让模型自由生成。这样消除了"模型多说了一句话导致解析失败"的噪声。<br />
+- <strong>截断</strong>：<code>input_ids[:, -max_len:]</code> 从左侧截，保住最后的题目和 <code>Answer:</code>。长学科（如法律）的 5-shot 可能超长，截断后如果示例被切坏，改用更小的 k 并在报告里写明。<br />
+- <strong>学科名</strong>：CMMLU 的 csv 文件名是英文，默认提示里学科也是英文，而 harness 的模板用中文学科名，这是和公布值差 1 个点左右的常见来源。想对齐，就准备一份 <code>{英文文件名: 中文学科名}</code> 的 json，作为 <code>evaluate(..., names=映射)</code> 传入。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.6 方式 D：只有聊天 API 时的生成式打分</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>没有 logprobs 的接口（多数云端聊天接口）只能让模型输出答案再解析</li><li>如果超过 1%，先查是不是限流或模板问题，而不是直接报分</li><li>把下面函数加到 「mc_eval.py」，用它替换 「make_hf_scorer」 即可</li></ul></div>3
+<p>没有 logprobs 的接口（多数云端聊天接口）只能让模型输出答案再解析。把下面函数加到 <code>mc_eval.py</code>，用它替换 <code>make_hf_scorer</code> 即可。</p>
+<pre><code class="language-python">import os
+
+
+def make_api_scorer(model, system=&quot;你是严谨的考生。只输出一个选项字母（A、B、C 或 D），不要输出任何其他内容。&quot;):
+    from openai import OpenAI
+
+    client = OpenAI(base_url=os.environ[&quot;EVAL_BASE_URL&quot;], api_key=os.environ[&quot;EVAL_API_KEY&quot;])
+
+    def scorer(prompt, k_used):
+        for _ in range(3):
+            try:
+                r = client.chat.completions.create(
+                    model=model, temperature=0, max_tokens=8,
+                    messages=[{&quot;role&quot;: &quot;system&quot;, &quot;content&quot;: system}, {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: prompt}],
+                )
+                return extract_letter(r.choices[0].message.content or &quot;&quot;)
+            except Exception:
+                continue
+        return &quot;&quot;   # 三次失败记为答错，同时在报告里单独统计失败率
+
+    return scorer
+</code></pre>
+<p>注意事项：<br />
+- <code>EVAL_BASE_URL</code>、<code>EVAL_API_KEY</code> 只放环境变量，不进命令历史、不进日志。<br />
+- 带思考过程的推理模型会先输出一大段推理，<code>max_tokens=8</code> 会截断出空答案。这类模型要放大 <code>max_tokens</code>，并改用 <code>extract_letter</code> 的最后一个字母规则，同时在报告里标注"带推理"，因为它和 logits 打分的成绩不是同一把尺子。<br />
+- 并发：用 <code>concurrent.futures.ThreadPoolExecutor(max_workers=8)</code> 包住 <code>evaluate</code> 内的逐题调用，需先确认接口限流。一次全量 CMMLU 约 1.1 万次调用，先跑冒烟估成本再决定。<br />
+- 空答案率必须单独统计。如果超过 1%，先查是不是限流或模板问题，而不是直接报分。</p>
+<h3 id="37-汇总口径与结果解读">3.7 汇总口径与结果解读</h3>3
+<p>脚本同时输出两个汇总值：<br />
+- <strong>macro</strong>：先算每个学科的准确率，再对学科取平均。小学科和大学科权重相同。<br />
+- <strong>micro</strong>：总答对数除以总题数。大学科权重大。</p>
+<p>两者通常差 0.3 到 1 个点。不同工具默认口径不同（旧版 harness 与新版也不同），<strong>报告里必须写明用的哪个</strong>，并且对账时先把口径对齐再比。</p>
+<p>解读时按下表走：</p>
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>可能原因</th>
+<th>处置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>总分接近 25%</td>
+<td>打分错位：token 编码错、标签错位、模板破坏</td>
+<td>打印一条完整 prompt 和 4 个 logit，人工核对</td>
+</tr>
+<tr>
+<td>0-shot 远低于 5-shot（差 10 点以上）</td>
+<td>基座模型不会按格式作答</td>
+<td>属正常，对基座模型以 5-shot 为准</td>
+</tr>
+<tr>
+<td>对话模型 5-shot 反而低于 0-shot</td>
+<td>示例干扰了对话模板</td>
+<td>改用对话模板包裹，或以 0-shot 为准</td>
+</tr>
+<tr>
+<td>STEM 类明显低于人文类</td>
+<td>数学推理类题目需要 CoT</td>
+<td>单独跑带 CoT 的版本，不与直答混比</td>
+</tr>
+<tr>
+<td>与公布值差超过 3 点</td>
+<td>模板、shot、口径、模型版本任一不同</td>
+<td>按 3.8 逐项排查</td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.8 对账与可信度控制（发数字前必做）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 复现一个已知模型：先拿一个公布了分数的小模型跑一遍，与公布值差 2 点以内才说明你的流程可信</li><li>2. 固定四项并写入报告：模板（脚本版本或 harness 版本）、shot 数、打分方式、汇总口径</li><li>3. 同尺子对比：前后对比（量化前后、微调前后）用同一份脚本、同一台机器、同一精度，只改变一个因素</li></ul></div>3
+<ol>
+<li><strong>复现一个已知模型</strong>：先拿一个公布了分数的小模型跑一遍，与公布值差 2 点以内才说明你的流程可信。差得多，先别评你自己的模型。</li>
+<li><strong>固定四项并写入报告</strong>：模板（脚本版本或 harness 版本）、shot 数、打分方式、汇总口径。报告表头必须带这四项。</li>
+<li><strong>同尺子对比</strong>：前后对比（量化前后、微调前后）用同一份脚本、同一台机器、同一精度，只改变一个因素。</li>
+<li><strong>看分学科差，不只看总分</strong>：总分降 0.5 点可能是 10 个学科升 2 点、10 个学科降 3 点的结果。分学科表存档，回归时逐科对比。</li>
+<li><strong>污染自查</strong>：用模型对题干做续写，若能近乎逐字续出选项，说明题目在训练语料里。发现时在报告里标注，并补一份自建的私有题（见下节）做对照。</li>
+<li><strong>小样本误差意识</strong>：CMMLU 单学科约 100 到 200 题，单科 ±3 点的抖动属正常，只有跨多科的整体趋势才有意义。</li>
+</ol>
+<h3 id="39-把它接到本库的评测门禁">3.9 把它接到本库的评测门禁</h3>3
+<ul>
+<li>选型粗筛：候选模型各跑一次 MMLU+CMMLU 的 5-shot，分数落到对比表，作为"是否进入业务 golden set 评测"的准入条件。</li>
+<li>量化/微调回归：基线文件存 <code>eval/mc_baseline.json</code>（含四项设置与分学科分数），变更后重跑，总分降超过 1.5 点或任一学科降超过 5 点则阻断，与 <a href="RAGAS%E7%94%9F%E4%BA%A7%E7%BA%A7%E8%AF%84%E4%BC%B0-CI%E9%9B%86%E6%88%90%E4%B8%8E%E7%BA%BF%E4%B8%8A%E6%B5%81%E9%87%8F%E8%AF%84%E4%BC%B0-20261030.html">RAGAS 生产级评估</a> 的"比 delta 不比绝对分"同一原则。</li>
+<li>私有题补充：从业务文档挑 100 条四选一题，做成与 CMMLU 同格式的 csv，同一脚本直接复用，用来抵消公开题污染。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.10 踩坑清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 把 「Answer:」 后的空格丢了：分词器对 「A」 与 「 A」 编码不同，导致 logits 位置错位，分数掉 5 到 15 点</li><li>6. 只看总分发布结论，不留分学科存档，后续无法定位退化来源</li><li>2. 对话模型没套对话模板直接喂基座式 prompt：分数偏低且不稳定</li></ul></div>3
+<ol>
+<li>把 <code>Answer:</code> 后的空格丢了：分词器对 <code>A</code> 与 <code>A</code> 编码不同，导致 logits 位置错位，分数掉 5 到 15 点。</li>
+<li>对话模型没套对话模板直接喂基座式 prompt：分数偏低且不稳定。</li>
+<li>用 <code>limit</code> 抽样冒烟后把冒烟结果当正式结果上报。</li>
+<li>各学科文件命名不一致（<code>_test.csv</code> 后缀）导致学科漏读，总题数对不上。上线前核对题量：MMLU test 14042、CMMLU 约 11528。</li>
+<li>升级 <code>lm-eval</code> 版本后与旧数字直接比较，不同版本的任务定义和汇总口径可能不同。</li>
+<li>只看总分发布结论，不留分学科存档，后续无法定位退化来源。</li>
+</ol>
+<h3 id="311-报告怎么写">3.11 报告怎么写</h3>3
+<p>每次测评产出一份固定格式的报告，放在 <code>eval/reports/</code> 下，文件名带日期和模型名。表头必须包含下面这些字段，缺一项就无法让别人复现。</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>模型与版本</td>
+<td>模型目录名加权重哈希前 8 位</td>
+</tr>
+<tr>
+<td>精度与硬件</td>
+<td>bfloat16，单卡型号</td>
+</tr>
+<tr>
+<td>基准与子集</td>
+<td>MMLU test 14042 题，CMMLU test</td>
+</tr>
+<tr>
+<td>模板与 shot</td>
+<td>官方英文模板 5-shot，中文模板 0-shot 与 5-shot</td>
+</tr>
+<tr>
+<td>打分方式</td>
+<td>logits 比较 或 生成式解析</td>
+</tr>
+<tr>
+<td>汇总口径</td>
+<td>macro 与 micro 均给出</td>
+</tr>
+<tr>
+<td>工具版本</td>
+<td>自写脚本的提交号，或 lm-eval 版本号</td>
+</tr>
+<tr>
+<td>空答案率</td>
+<td>生成式打分必须填写</td>
+</tr>
+</tbody>
+</table>
+<p>正文用三张表：第一张是总分和四大类（STEM、人文、社科、其他，CMMLU 另加 China-specific），第二张是与基线的差值，第三张是分学科明细放附录。结论只写能被表格支持的内容，例如"5-shot 下 CMMLU 总分比基线低 1.2 点，主要来自法律与中医两科，其余学科持平"，不写"模型变差了"这类无法证伪的话。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.12 常见问答</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>问：厂商公布 MMLU 85，我跑出来 82，是我错了吗</li><li>7B 模型在单张 24GB 显卡上，MMLU 全量 5-shot 约十几分钟到半小时，量级取决于序列长度和批大小</li><li>生成式打分时，在系统提示里强制"只输出字母"；若仍有违例，解析失败的记空答案并统计比例，超过 1% 就改提示，而不是写更复杂的解析规则去"救"答案</li></ul></div>3
+<p><strong>问：厂商公布 MMLU 85，我跑出来 82，是我错了吗？</strong> 先查四项设置是否一致。公布值常用厂商内部模板、不同 shot 数、有时用带思维链的版本，差 2 到 3 点很常见。你只需要保证自己各模型之间同设置可比。</p>
+<p><strong>问：能不能用 GPT 之类的强模型当裁判来打 MMLU？</strong> 不需要。选择题答案唯一，规则解析即可，裁判模型只会引入额外噪声和成本。</p>
+<p><strong>问：0-shot 和 5-shot 报哪个？</strong> 基座模型报 5-shot，对话模型两个都跑并写明。CMMLU 官方也是两个都报。</p>
+<p><strong>问：测评要多久？</strong> 7B 模型在单张 24GB 显卡上，MMLU 全量 5-shot 约十几分钟到半小时，量级取决于序列长度和批大小。冒烟（每科 5 题）在一两分钟内完成，应当先跑它。</p>
+<p><strong>问：模型输出的不是 A/B/C/D 而是选项内容怎么办？</strong> 生成式打分时，在系统提示里强制"只输出字母"；若仍有违例，解析失败的记空答案并统计比例，超过 1% 就改提示，而不是写更复杂的解析规则去"救"答案。</p>
+<h3 id="313-验收清单">3.13 验收清单</h3>3
+<ul>
+<li>[ ] 已记录模板、shot 数、打分方式、汇总口径、工具版本、模型版本</li>
+<li>[ ] 冒烟跑通，分数明显高于 25%</li>
+<li>[ ] 复现一个已知模型，与公布值差不超过 2 点</li>
+<li>[ ] 题量核对：学科数与总题数与官方一致</li>
+<li>[ ] 同时记录 macro 与 micro，空答案率低于 1%</li>
+<li>[ ] 分学科分数已存档，可用于下次回归</li>
+</ul></div></details></div></details></div></body></html>

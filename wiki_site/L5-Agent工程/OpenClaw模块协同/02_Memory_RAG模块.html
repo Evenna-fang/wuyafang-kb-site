@@ -1,0 +1,205 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>02_Memory_RAG模块</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../../index.html">🏠 总入口</a><a href="../../graph.html">🕸 关联图谱</a><a href="../../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/OpenClaw模块协同/02_Memory_RAG模块</span></div><div class="wrap"><blockquote><p><a href="../../index.html">← 返回总入口</a></p></blockquote><h1 id="openclaw-memory-rag">OpenClaw 核心模块 —— Memory RAG（记忆与检索融合）</h1>
+<h2 id="memory-rag">为什么需要 Memory RAG</h2>
+<p>在多智能体系统中，<strong>记忆（Memory）</strong> 用于保存上下文、历史对话、业务状态；<strong>检索（Retrieval）</strong> 则负责快速定位相关信息。单独的记忆或检索往往不足以满足复杂业务需求：
+- 记忆的线性增长导致查询效率下降；
+- 检索只能返回文档片段，缺少业务状态的时序关联。</p>
+<p><strong>Memory RAG（Retrieval‑Augmented Generation）</strong> 将两者融合：先通过向量检索定位相关文档，再在记忆库中补充时序状态，实现 <strong>上下文感知的生成</strong>，从而提升回答的准确性与一致性。</p>
+<h2 id="_1">体系结构概览</h2>
+<pre><code>+-------------------+      +----------------------+      +-------------------+
+|   用户请求（Task）| ---&gt; |   Routing（分发）      | ---&gt; |   Memory RAG 组件  |
++-------------------+      +----------------------+      +-------------------+
+                                                                |
+                                                                v
+                           +--------------------------+   +------------------------+
+                           | 向量检索引擎（Chroma）   |   | 时序记忆数据库（SQLite） |
+                           +--------------------------+   +------------------------+
+</code></pre>
+<ul>
+<li><strong>向量检索引擎</strong>：使用 <strong>Chroma</strong>（或 Zilliz）存储文档向量；支持 <strong>Hybrid</strong>（dense + sparse）检索，返回 Top‑k 片段。</li>
+<li><strong>时序记忆数据库</strong>：采用 <strong>SQLite</strong> + <strong>JSON</strong> 列，记录每一次 Agent 调用的输入、输出、状态以及时间戳。</li>
+<li><strong>RAG 流程</strong>：</li>
+<li><strong>Chunk 化</strong>：用户请求先进行语义 Chunk；</li>
+<li><strong>向量检索</strong>：返回候选文档片段；</li>
+<li><strong>记忆筛选</strong>：在 SQLite 中检索符合 <code>session_id</code>、<code>task_type</code> 的历史记录；</li>
+<li><strong>融合</strong>：把检索到的文档与时序记忆拼接为 <strong>Prompt</strong>；</li>
+<li><strong>生成</strong>：交给模型（Claude、OpenAI、DeepSeek）生成答案。</li>
+</ul>
+<p><strong>图：Memory RAG 查询数据流</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant R as Routing
+    participant M as MemoryRAG
+    participant V as Chroma 向量库
+    participant T as SQLite 时序记忆
+    participant L as 模型
+    R-&gt;&gt;M: 子任务 rag.enabled 为 true
+    M-&gt;&gt;M: 语义 Chunk 化
+    M-&gt;&gt;V: 向量检索 topK
+    V--&gt;&gt;M: 候选文档片段
+    M-&gt;&gt;T: 按 session_id 与 task_type 查询
+    T--&gt;&gt;M: 历史状态记录
+    M-&gt;&gt;M: 融合 concat 或 weighted 或 rerank
+    M-&gt;&gt;L: 富上下文 Prompt
+    L--&gt;&gt;M: 生成答案
+    M-&gt;&gt;T: 写回本次输入输出与时间戳
+    M--&gt;&gt;R: 返回答案
+</code></pre>
+<h2 id="openclawjson">关键配置（<code>openclaw.json</code>）</h2>
+<pre><code class="language-json5">{
+  &quot;memory&quot;: {
+    &quot;rag&quot;: {
+      &quot;enabled&quot;: true,
+      &quot;vectorStore&quot;: {
+        &quot;type&quot;: &quot;chroma&quot;,
+        &quot;path&quot;: &quot;~/openclaw/data/chroma&quot;,
+        &quot;embeddingModel&quot;: &quot;bge-m3&quot;,
+        &quot;topK&quot;: 8
+      },
+      &quot;temporalStore&quot;: {
+        &quot;type&quot;: &quot;sqlite&quot;,
+        &quot;path&quot;: &quot;~/openclaw/data/memory.sqlite&quot;,
+        &quot;purgeAfterDays&quot;: 180
+      },
+      &quot;fusionStrategy&quot;: &quot;concat&quot;,   // concat | weighted | rerank
+      &quot;weights&quot;: {
+        &quot;vector&quot;: 0.6,
+        &quot;temporal&quot;: 0.4
+      }
+    }
+  }
+}
+</code></pre>
+<ul>
+<li><code>topK</code> 控制检索返回数量；</li>
+<li><code>fusionStrategy</code> 支持 <strong>加权融合</strong>（在生成前对每段打分）或 <strong>rerank</strong>（调用二次检索模型进行排序）。</li>
+</ul>
+<h2 id="python">动态查询示例（Python）</h2>
+<pre><code class="language-python">from openclaw.rag import MemoryRAG
+
+rag = MemoryRAG()
+prompt = rag.build_prompt(
+    user_query=&quot;本月的用户活跃度下降原因是什么？&quot;,
+    session_id=&quot;sess-20261001&quot;,
+    task_type=&quot;analysis&quot;
+)
+# prompt 已经包含向量检索结果 + 时序记忆
+print(prompt)
+</code></pre>
+<blockquote>
+<p>输出示例（截取）</p>
+</blockquote>
+<pre><code>[向量检索] 文档片段1: “… 2026 年 9 月用户活跃度下降 12% …”
+[时序记忆] 2026‑09‑01 10:12:34 - 生成日报 – 活跃度 78% → 70%
+[时序记忆] 2026‑09‑02 09:45:12 - 部署新功能 – “社交分享”导致活跃度波动
+---
+请基于以上信息回答用户问题。
+</code></pre>
+<h2 id="_2">失效检测与恢复</h2>
+<ol>
+<li><strong>向量库损坏</strong>：<code>chroma check --path …</code> 若返回错误，执行 <code>chroma rebuild</code> 并从备份恢复；</li>
+<li><strong>时序记忆库锁死</strong>：SQLite 锁超时时，<code>openclaw memory reset --mode sqlite</code> 会自动切换到 <strong>WAL</strong> 模式并进行 <code>VACUUM</code>；</li>
+<li><strong>检索准确率下降</strong>：监控 <code>openclaw rag eval --metric recall</code>，当 Recall &lt; 0.7 时自动提示 <strong>重新 embeddings</strong>（<code>openclaw rag reembed</code>）。</li>
+</ol>
+<p><strong>图：Memory RAG 失效检测与恢复路径</strong></p>
+<pre><code class="language-mermaid">flowchart TD
+    M[&quot;监控或告警触发&quot;] --&gt; Q{&quot;症状&quot;}
+    Q --&gt;|&quot;检索准确率下降 Recall 小于 0.7&quot;| A1[&quot;openclaw rag reembed 重新生成 embeddings&quot;]
+    Q --&gt;|&quot;向量库 check 报错&quot;| A2[&quot;chroma rebuild 并从备份恢复&quot;]
+    Q --&gt;|&quot;SQLite 锁超时&quot;| A3[&quot;openclaw memory reset 切换 WAL 并 VACUUM&quot;]
+    Q --&gt;|&quot;融合 Prompt 超长&quot;| A4[&quot;降低 topK 并改用 weighted 融合&quot;]
+    A1 --&gt; V[&quot;复测 openclaw rag eval --metric recall&quot;]
+    A2 --&gt; V
+    A3 --&gt; V
+    A4 --&gt; V
+</code></pre>
+<h2 id="prometheus">监控指标（Prometheus）</h2>
+<ul>
+<li><code>openclaw_rag_vector_hits_total</code> – 向量检索命中次数；</li>
+<li><code>openclaw_rag_temporal_hits_total</code> – 时序记忆命中次数；</li>
+<li><code>openclaw_rag_fusion_latency_seconds</code> – 融合构建 Prompt 所用时间；</li>
+<li><code>openclaw_rag_query_total{status="error"}</code> – 异常查询计数（库文件损坏、超时等）。</li>
+</ul>
+<h2 id="_3">常见坑点 &amp; 推荐方案</h2>
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>可能原因</th>
+<th>解决方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>检索返回空</td>
+<td>向量库未同步 / 文档未嵌入</td>
+<td><code>openclaw rag index --path &lt;doc_dir&gt;</code> 并确认 <code>embeddingModel</code> 正常；</td>
+</tr>
+<tr>
+<td>时序记忆查询慢</td>
+<td>SQLite 未开启 WAL，磁盘 IO 瓶颈</td>
+<td><code>openclaw memory config --sqlite-wal true</code>；增加 <code>PRAGMA journal_mode=WAL</code>；</td>
+</tr>
+<tr>
+<td>融合 Prompt 超长</td>
+<td><code>topK</code> 设得过大或 <code>fusionStrategy=concat</code></td>
+<td>将 <code>topK</code> 调低至 6 并改为 <code>weighted</code> 融合；</td>
+</tr>
+<tr>
+<td>RAG 生成出现幻觉</td>
+<td>检索片段噪声大</td>
+<td>启用 <code>rerank</code> 并使用 <code>bge-reranker</code> 进行二次过滤；</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_4">与其他模块的协同</h2>
+<ul>
+<li><strong>Routing</strong> 会在任务拆分后为每个子任务指明 <code>rag.enabled=true</code>，让 Memory RAG 自动参与；</li>
+<li><strong>Sandbox</strong> 提供安全的执行环境，防止检索到的恶意代码被误执行；</li>
+<li><strong>Subagent</strong> 负责将 RAG 生成的答案包装为 <strong>Action</strong>（如写入数据库、触发外部 API），并将状态写回时序记忆，实现<strong>闭环</strong>。</li>
+</ul>
+<h2 id="_5">小结</h2>
+<p>Memory RAG 是 OpenClaw 多模态协作的核心增效器：通过向量检索提供语义上下文、通过时序记忆提供业务状态，实现 <strong>“记得过去、懂得现在、生成未来”</strong> 的完整闭环。正确的配置、健康的监控以及对常见失效场景的快速定位，是确保系统在生产环境中高可用的关键。</p></div></body></html>

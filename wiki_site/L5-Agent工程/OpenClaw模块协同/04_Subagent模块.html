@@ -1,0 +1,242 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>04_Subagent模块</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../../index.html">🏠 总入口</a><a href="../../graph.html">🕸 关联图谱</a><a href="../../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/OpenClaw模块协同/04_Subagent模块</span></div><div class="wrap"><blockquote><p><a href="../../index.html">← 返回总入口</a></p></blockquote><h1 id="openclaw-subagent">OpenClaw 核心模块 —— Subagent（子代理调度）</h1>
+<h2 id="subagent">什么是 Subagent</h2>
+<p>在 OpenClaw 中，<strong>Subagent</strong> 是指 <strong>由主 Agent（Gateway）派生的、具备独立运行环境的子任务执行体</strong>。它们可以是：
+- <strong>语言模型实例</strong>（如 Claude、DeepSeek、OpenAI）
+- <strong>脚本执行器</strong>（Python、Node、Shell）
+- <strong>外部服务代理</strong>（调用内部微服务、数据库、HTTP API）</p>
+<p>Subagent 的目标是 <strong>实现业务细化</strong>：把一个大任务拆解成若干细粒度子任务，每个子任务交给最适合的执行单元，从而提升整体吞吐与可靠性。</p>
+<h2 id="subagent_1">Subagent 的生命周期</h2>
+<pre><code>+-------------------+      +----------------------+      +-------------------+
+|   Routing 层      | ---&gt; | Subagent Manager     | ---&gt; |  Subagent 实例   |
++-------------------+      +----------------------+      +-------------------+
+          |                         |                         |
+          v                         v                         v
+    调度决策                资源分配                执行/返回
+</code></pre>
+<ol>
+<li><strong>调度决策</strong>（Routing）为每个子任务决定 <code>runtime</code>、<code>sandbox</code>、<code>priority</code> 等属性；</li>
+<li><strong>资源分配</strong>（Subagent Manager）为每个 Subagent 分配 <strong>cgroup、namespace、网络配额</strong>，并记录 <code>subagent_id</code>；</li>
+<li><strong>执行</strong>：Subagent 在 <strong>Sandbox</strong> 中启动，完成任务后将 <strong>结果、状态、日志</strong> 写回 <strong>Memory RAG</strong>；</li>
+<li><strong>回收</strong>：Manager 根据 <code>ttl</code> 以及 <code>exit_code</code> 自动回收容器或进程。</li>
+</ol>
+<p><strong>图：Subagent 生命周期状态机</strong></p>
+<pre><code class="language-mermaid">stateDiagram-v2
+    [*] --&gt; Pending
+    Pending: 排队中 等待资源
+    Pending --&gt; Spawning: 分配 cgroup 与 namespace
+    Spawning: 创建中
+    Spawning --&gt; Running: 启动成功
+    Spawning --&gt; Failed: SUB001 启动失败
+    Running: 执行中
+    Running --&gt; Succeeded: exit_code 为 0
+    Running --&gt; Failed: 非零退出
+    Running --&gt; Timeout: 超过 timeoutSeconds
+    Timeout --&gt; Pending: retryCount 小于 maxRetries
+    Failed --&gt; Pending: retryCount 小于 maxRetries
+    Timeout --&gt; Recycled: 重试耗尽 SUB004
+    Failed --&gt; Recycled: 重试耗尽
+    Succeeded --&gt; Recycled: 结果写回 Memory RAG
+    Recycled --&gt; [*]
+</code></pre>
+<h2 id="openclawjson">配置模型（<code>openclaw.json</code> 示例）</h2>
+<pre><code class="language-json5">{
+  &quot;subagents&quot;: {
+    &quot;defaults&quot;: {
+      &quot;runtime&quot;: &quot;codex&quot;,          // 可选：codex、openclaw、custom
+      &quot;sandbox&quot;: true,
+      &quot;timeoutSeconds&quot;: 180,
+      &quot;maxRetries&quot;: 2,
+      &quot;priority&quot;: &quot;normal&quot;
+    },
+    &quot;overrides&quot;: {
+      &quot;rag&quot;: {
+        &quot;runtime&quot;: &quot;openclaw&quot;,
+        &quot;sandbox&quot;: false,
+        &quot;timeoutSeconds&quot;: 300
+      },
+      &quot;highPriority&quot;: {
+        &quot;priority&quot;: &quot;high&quot;,
+        &quot;cpuQuota&quot;: &quot;400%&quot;
+      }
+    }
+  }
+}
+</code></pre>
+<ul>
+<li><code>defaults</code> 为全局默认值；</li>
+<li><code>overrides</code> 按 <strong>标签</strong>（如 <code>rag</code>、<code>highPriority</code>）自定义；</li>
+<li><code>runtime</code> 决定使用哪种 <strong>Agent Harness</strong>（Codex、OpenClaw、Claude Code）。</li>
+</ul>
+<h2 id="subagent_2">Subagent 运行方式</h2>
+<h3 id="1-codex-runtime">1. Codex Runtime</h3>
+<pre><code class="language-bash">openclaw agent exec '生成 Python 代码' \
+    --model xiaomimimo/mimo-v2.6-pro \
+    --runtime codex \
+    --sandbox true
+</code></pre>
+<ul>
+<li>Codex 通过内部插件 <code>codex</code> 与 OpenClaw 交互，返回 <strong>代码片段</strong> 并自动写入 <code>~/openclaw/tmp/</code>；</li>
+<li>结果会被 <strong>Sandbox</strong> 包装，防止恶意代码直接访问系统。</li>
+</ul>
+<h3 id="2-openclaw-runtime-llm">2. OpenClaw Runtime（内置 LLM）</h3>
+<pre><code class="language-bash">openclaw subagent run \
+    --task-id 0x1a2b3c \
+    --payload '{&quot;action&quot;:&quot;summarize&quot;,&quot;text&quot;:&quot;...&quot;}'
+</code></pre>
+<ul>
+<li>OpenClaw 自带的 <strong>轻量 LLM</strong>（默认 <code>deepseek-v4-pro</code>）用于低延迟的短文本处理；</li>
+<li><code>subagent_id</code> 自动生成，日志中可追踪 <code>subagent_id</code> 与 <code>task_id</code> 的对应关系。</li>
+</ul>
+<h3 id="3-runtime">3. 自定义 Runtime（插件）</h3>
+<pre><code class="language-bash">openclaw plugins enable my_custom_agent --accept-capabilities
+openclaw subagent run --runtime my_custom_agent --payload ...
+</code></pre>
+<ul>
+<li>插件提供 <strong>自定义入口</strong>（如调用内部微服务、运行 Rust 二进制），需要在 <code>plugins.load.extraDirs</code> 中声明路径。</li>
+</ul>
+<h2 id="memory-rag">结果回流至 Memory RAG</h2>
+<p>子代理完成后，<strong>Subagent Manager</strong> 会调用 <code>MemoryRAG.append_history</code>，写入如下结构（SQLite 表 <code>subagent_history</code>）：
+| col | type |
+|-----|------|
+| <code>subagent_id</code> | TEXT |
+| <code>task_id</code> | TEXT |
+| <code>status</code> | TEXT (<code>success</code>/<code>error</code>/<code>timeout</code>) |
+| <code>output</code> | TEXT |
+| <code>stderr</code> | TEXT |
+| <code>timestamp</code> | INTEGER |
+| <code>resource_usage</code> | JSON |</p>
+<p>示例记录：</p>
+<pre><code class="language-json">{&quot;subagent_id&quot;:&quot;sub-20261030-001&quot;,&quot;task_id&quot;:&quot;0x1a2b&quot;,&quot;status&quot;:&quot;success&quot;,&quot;output&quot;:&quot;生成的 Python 代码...&quot;,&quot;stderr&quot;:&quot;&quot;,&quot;timestamp&quot;:1730304001,&quot;resource_usage&quot;:{&quot;cpu_ms&quot;:124,&quot;mem_kb&quot;:3124}}
+</code></pre>
+<p>后续的 <strong>Routing</strong> 或 <strong>Memory RAG</strong> 在需要时可以直接查询此表，完成 <strong>状态闭环</strong> 与 <strong>结果复用</strong>（如缓存同类任务的输出）。</p>
+<p><strong>图：Subagent 运行时选择与结果回流数据流</strong></p>
+<pre><code class="language-mermaid">flowchart LR
+    P[&quot;任务 payload 含 tags&quot;] --&gt; M[&quot;Subagent Manager&quot;]
+    M --&gt; RT{&quot;选择 runtime&quot;}
+    RT --&gt;|&quot;codex&quot;| C1[&quot;Codex Runtime 生成代码&quot;]
+    RT --&gt;|&quot;openclaw&quot;| C2[&quot;内置轻量 LLM&quot;]
+    RT --&gt;|&quot;custom&quot;| C3[&quot;自定义插件 Runtime&quot;]
+    C1 --&gt; SB[&quot;Sandbox 内执行&quot;]
+    C2 --&gt; SB
+    C3 --&gt; SB
+    SB --&gt; H[&quot;MemoryRAG.append_history 写入 subagent_history&quot;]
+    H --&gt; RO[&quot;Routing 读取历史 复用 重试或升级模型&quot;]
+</code></pre>
+<h2 id="prometheus">监控指标（Prometheus）</h2>
+<ul>
+<li><code>openclaw_subagent_active_total</code> – 当前活跃的 Subagent 数量；</li>
+<li><code>openclaw_subagent_spawn_latency_seconds</code> – 创建 Subagent 所耗时；</li>
+<li><code>openclaw_subagent_execution_seconds{runtime="codex"}</code> – 单个 Subagent 的执行时长；</li>
+<li><code>openclaw_subagent_failure_total{reason="timeout"}</code> – 超时失败计数。</li>
+</ul>
+<h2 id="_1">常见故障及排查</h2>
+<table>
+<thead>
+<tr>
+<th>错误码</th>
+<th>含义</th>
+<th>可能原因</th>
+<th>解决办法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SUB001</code></td>
+<td>子代理启动失败</td>
+<td><code>unshare</code> 权限缺失、cgroup 配置错误</td>
+<td>确认用户在 <code>unprivileged_userns_clone=1</code>（WSL）或 <code>docker</code> 组；检查 <code>/etc/cgconfig.conf</code> 是否启用 <code>cpu,memory</code> 控制器</td>
+</tr>
+<tr>
+<td><code>SUB002</code></td>
+<td>沙箱内网络不可达</td>
+<td>域名未加入白名单</td>
+<td>更新 <code>sandbox.networkWhitelist</code> 并 <code>openclaw sandbox reload</code></td>
+</tr>
+<tr>
+<td><code>SUB003</code></td>
+<td>结果写入 Memory RAG 失败</td>
+<td>SQLite 锁冲突或磁盘满</td>
+<td>查看 <code>openclaw memory status</code>；若锁冲突，执行 <code>openclaw memory reset --mode sqlite</code>；</td>
+</tr>
+<tr>
+<td><code>SUB004</code></td>
+<td>超时</td>
+<td><code>timeoutSeconds</code> 设得过低</td>
+<td>根据任务复杂度调高，例如 <code>--timeout 300</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="_2">资源池与调度策略</h2>
+<p>OpenClaw 支持 <strong>两类资源池</strong>：
+1. <strong>本地进程池</strong>（默认） – 直接在本机创建 <code>cgroup</code>，适用于低延迟的轻任务；
+2. <strong>容器池</strong> – 基于 Docker（或 Podman）启动轻量容器 <code>openclaw/agent:&lt;runtime&gt;</code>，适用于需要特定运行时（如 Node、Java）。</p>
+<h3 id="python">动态伸缩示例（Python）</h3>
+<pre><code class="language-python">from openclaw.subagent import SubagentPool
+pool = SubagentPool()
+# 根据当前负载自动扩容至 16 实例
+pool.scale(target=16)
+# 运行任务
+result = pool.run(task_id=&quot;0xdeadbeef&quot;, payload={&quot;action&quot;:&quot;scrape&quot;,&quot;url&quot;:&quot;https://example.com&quot;})
+print(result.output)
+</code></pre>
+<h2 id="_3">与其他模块的闭环</h2>
+<ul>
+<li><strong>Routing</strong> 决定 <code>sandbox=true</code> 或 <code>runtime=codex</code>，将任务属性写入 <strong>Subagent</strong>；</li>
+<li><strong>Sandbox</strong> 为 Subagent 提供安全执行环境；</li>
+<li><strong>Memory RAG</strong> 持久化 Subagent 的输出与状态，实现 <strong>记忆</strong> 与 <strong>后续检索</strong>；</li>
+<li><strong>Routing</strong> 再次读取 Memory RAG，依据历史结果决定是否 <strong>复用</strong>、<strong>重试</strong> 或 <strong>升级</strong>（如转向更强大的模型）。</li>
+</ul>
+<h2 id="_4">实践建议</h2>
+<ol>
+<li><strong>标签化</strong>：在任务 payload 中加入 <code>tags</code>（如 <code>{"tags":["highPriority","ioBound"]}</code>），让 Subagent Manager 根据标签选取合适的资源池；</li>
+<li><strong>幂等设计</strong>：子任务必须使用唯一 <code>task_id</code>，子代理在异常重试时应 <strong>检查历史</strong>，避免重复写入导致业务重复；</li>
+<li><strong>日志统一</strong>：所有 Subagent 的 <code>stdout</code> 与 <code>stderr</code> 必须统一写入 <code>sandbox_audit.log</code>，并在 <code>Memory RAG</code> 中保存 <code>log_snapshot</code>，便于事后审计。</li>
+<li><strong>监控阈值</strong>：生产环境建议 <code>cpuQuota</code> 不超过 <code>300%</code>、<code>memoryLimit</code> 不超过 <code>1Gi</code>，以免单个子代理耗尽节点资源。</li>
+</ol>
+<h2 id="_5">小结</h2>
+<p>Subagent 通过 <strong>细粒度调度</strong>、<strong>安全沙箱</strong> 与 <strong>统一记忆</strong>，实现了 OpenClaw 多智能体平台的 <strong>可扩展、可观测、可安全</strong> 的核心能力。结合 Routing、Memory RAG、Sandbox，形成闭环的任务流转，使得平台能够在高并发、异构任务场景下保持高可用与高效能。后续章节将展示 <strong>模块间协同流程图</strong>，帮助快速定位端到端的执行路径。</p></div></body></html>

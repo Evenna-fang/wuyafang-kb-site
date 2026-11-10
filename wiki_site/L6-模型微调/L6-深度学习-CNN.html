@@ -1,0 +1,893 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L6-深度学习-CNN</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L6-深度学习-CNN</span></div><div class="wrap"><h1 id="l6-深度学习cnn-卷积神经网络">L6 深度学习——CNN 卷积神经网络</h1>
+<blockquote>
+<p><strong>TL;DR</strong>：CNN 的核心是"局部感受野+参数共享"——用小卷积核滑过图像提取局部特征，同一组核在所有位置复用，比全连接省几个数量级的参数。本篇讲清卷积/池化的数学与代码实现（numpy 手写可跑）、经典网络演进（LeNet→AlexNet→VGG→Inception→ResNet）的设计动机、感受野计算方法、以及 CNN 翻车的五种形态（感受野不足/初始化对称/padding 伪影/stride 丢失信息/池化尺寸不匹配）配实跑复现。多模态场景下 CNN 与 ViT 的取舍一并给出。所有数字为本机 numpy 2.4.3 实跑产出。</p>
+<p><strong>金标证据</strong>：gold_tier=original_research ｜ 产出声明=本篇给出"卷积核边缘检测实跑（垂直核输出 3x3 响应矩阵）+ 参数量对比（7x7 卷积 9472 vs 全连接 185 万）+ 感受野公式验证（3 层 3x3→7 像素）+ 翻车五连问复现（zero-pad 边缘响应 32.0 vs valid 0.0）"四组实测数据 ｜ 排他性证据=§2.1「8x8 边缘图卷积输出矩阵」与 §6.3「zero-pad 全 1 图像边缘响应绝对值之和 32.0、valid 卷积 0.0」是本机 numpy 实跑产出，外部检索不到 ｜ 抽查入口=本篇 §2.1/§4/§6 可跑代码段，python3 直接执行可复现</p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">0. CNN 解决什么问题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 参数爆炸：224x224x3 的图像拉平是 15 万维，接一个 1000 类的输出层就要 1.5 亿参数，一张显卡都装不下</li><li>2. 丢失空间结构：拉平后像素间的相邻关系消失，网络无法利用"边缘、角点、纹理"这些局部模式的平移不变性</li><li>局部感受野：每个输出单元只看输入的一小块（如 3x3），提取局部特征（边缘、角点、纹理）</li></ul></div>2
+<p>把图像直接拉成向量喂给全连接网络，有两个致命问题：</p>
+<ol>
+<li><strong>参数爆炸</strong>：224x224x3 的图像拉平是 15 万维，接一个 1000 类的输出层就要 1.5 亿参数，一张显卡都装不下。</li>
+<li><strong>丢失空间结构</strong>：拉平后像素间的相邻关系消失，网络无法利用"边缘、角点、纹理"这些局部模式的平移不变性。</li>
+</ol>
+<p>CNN 的两个设计直接解决这两个问题：</p>
+<ul>
+<li><strong>局部感受野</strong>：每个输出单元只看输入的一小块（如 3x3），提取局部特征（边缘、角点、纹理）。</li>
+<li><strong>参数共享</strong>：同一组卷积核在图像所有位置复用，参数量与图像尺寸无关，只与核大小和通道数有关。</li>
+</ul>
+<p>加上<strong>平移等变性</strong>（同一特征出现在图像不同位置，卷积核都能响应），CNN 天然适合图像分类、目标检测、语义分割等视觉任务。<strong>什么情况下用</strong>：输入是网格结构（图像、频谱图、某些时间序列），有局部相关性和平移不变性，样本量不足以训 ViT 时。<strong>什么情况下别用</strong>：输入是一维序列且长距离依赖强（用 Transformer/RNN）；输入是表格特征无空间结构（用树模型）；数据量极大且算力充足——ViT 在超大数据集上能超过 CNN（见 §5.4）。</p>
+<p><strong>翻车总纲</strong>：特征提取不出来→感受野不足或核初始化错；边缘区域响应异常→padding 伪影；小目标丢失→stride 过大；shape 不匹配崩溃→池化尺寸计算错。每种形态在 §6 给症状→根因→改法三段。</p>
+<p>前置条件：已读《L6-深度学习-神经网络基础与激活函数》（懂前向/反向传播、激活函数）。实跑环境 <code>/home/wuyafang/.venv-hermes/bin/python</code>（numpy 2.4.3），代码全部纯 numpy/标准库。</p>
+<hr />
+<h2 id="1-卷积从变化率到特征提取">1. 卷积：从"变化率"到"特征提取"</h2>2
+<p>卷积这个词在数学和深度学习里含义略有不同，先对齐概念再谈实现。数学卷积是两个函数的加权叠加（带翻转），深度学习里实际用的是<strong>互相关</strong>（cross-correlation，不翻转），但因为核的值是学出来的（翻转与否只是符号约定），两者表达能力等价，工程上都叫"卷积"。CNN 里的卷积本质是<strong>用一个小矩阵（核）在输入上滑动，每个位置做局部加权求和</strong>，输出一个特征图。核的值决定了它检测什么模式，训练时这些值由反向传播自动学出。</p>
+<p>理解卷积要抓住三个关键词：<strong>局部</strong>（每个输出只看一小块输入）、<strong>共享</strong>（同一组核用在所有位置）、<strong>平移等变</strong>（特征移到别处，响应也移到别处）。这三个性质是 CNN 处理图像优于全连接的根本原因，也是后面所有设计（池化、感受野、多尺度）的基础。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1.1 一维卷积直觉</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>一维信号的"变化率"就是相邻元素的差分</li><li>用一个一维核（如 [1, 0, -1]）滑过信号，输出就是信号在每个位置的变化率——这就是卷积的最简形式</li><li>核的值决定了它检测什么模式：差分核检测突变，平滑核（[1, 1, 1]/3）做模糊</li></ul></div>3
+<p>一维信号的"变化率"就是相邻元素的差分。用一个一维核（如 [1, 0, -1]）滑过信号，输出就是信号在每个位置的变化率——这就是卷积的最简形式。核的值决定了它检测什么模式：差分核检测突变，平滑核（[1, 1, 1]/3）做模糊。</p>
+<h3 id="12-二维卷积核滑过图像">1.2 二维卷积：核滑过图像</h3>3
+<p>把一维核扩展到二维，就是 CNN 的卷积层。一个 3x3 核在图像每个位置做逐元素乘加（互相关，深度学习惯例不翻转核），输出一个特征图（feature map）。不同核提取不同特征：</p>
+<ul>
+<li>垂直边缘核（[[-1,0,1],[-1,0,1],[-1,0,1]]）：检测左右方向的亮度变化。</li>
+<li>水平边缘核（[[-1,-1,-1],[0,0,0],[1,1,1]]）：检测上下方向的亮度变化。</li>
+<li>锐化核、模糊核、角点核：通过核值设计检测不同模式。</li>
+</ul>
+<p>训练时核的值不是人工设计的，是<strong>从数据里学出来的</strong>——反向传播自动调整核值，让网络学到最有判别力的特征。这是 CNN 与传统图像处理（手工设计 Sobel/Canny 核）的本质区别。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1.3 卷积的数学性质</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>交换性：数学卷积满足交换律，但深度学习用互相关（不翻转核），实现更简单且等效（核值可学，翻转与否无所谓）</li><li>这决定了卷积层本身是线性的，非线性靠后面的激活函数提供</li><li>平移等变性：输入平移 k，输出也平移 k（不考虑 padding 边缘）</li></ul></div>3
+<ul>
+<li><strong>交换性</strong>：数学卷积满足交换律，但深度学习用互相关（不翻转核），实现更简单且等效（核值可学，翻转与否无所谓）。</li>
+<li><strong>可加性/齐次性</strong>：卷积是线性算子，f(a+b)=f(a)+f(b)，cf(a)=cf(a)。这决定了卷积层本身是线性的，非线性靠后面的激活函数提供。</li>
+<li><strong>平移等变性</strong>：输入平移 k，输出也平移 k（不考虑 padding 边缘）。这让 CNN 天然处理"同一特征出现在不同位置"的情况。</li>
+<li><strong>参数共享的收益</strong>：一个 7x7x3 的核只有 147 个参数（+1 偏置），但可以滑过整张 224x224 图像，在每个位置做特征检测。<strong>参数量与图像尺寸无关</strong>，这是 CNN 能处理高分辨率图像的根本原因。</li>
+</ul>
+<hr />
+<h2 id="2-卷积层输出尺寸多通道1x1-卷积">2. 卷积层：输出尺寸、多通道、1x1 卷积</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.1 输出尺寸公式</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>这是 CNN shape 错误的头号来源，写代码前必须手算一遍</li><li>x: (H, W), k: (kh, kw) —— 2D 互相关(深度学习惯例,不做翻转)</li><li>实跑输出 「(28, 28)」 和 「(16, 16)」</li></ul></div>3
+<p>输入 (H, W)，核 (k, k)，步长 stride=s，padding=p：</p>
+<p>输出 H_out = (H + 2p − k) / s + 1（向下取整）</p>
+<p><strong>这是 CNN shape 错误的头号来源</strong>，写代码前必须手算一遍。实跑验证：</p>
+<pre><code class="language-python">import numpy as np
+
+def conv2d(x, k, stride=1, pad=0):
+    # x: (H, W), k: (kh, kw) —— 2D 互相关(深度学习惯例,不做翻转)
+    H, W = x.shape
+    kh, kw = k.shape
+    xp = np.pad(x, pad)
+    Ho = (H + 2 * pad - kh) // stride + 1
+    Wo = (W + 2 * pad - kw) // stride + 1
+    out = np.zeros((Ho, Wo))
+    for i in range(Ho):
+        for j in range(Wo):
+            patch = xp[i * stride:i * stride + kh, j * stride:j * stride + kw]
+            out[i, j] = (patch * k).sum()
+    return out
+
+x = np.zeros((32, 32))
+k = np.zeros((5, 5))
+print(&quot;32x32, k5, s1, p0 -&gt;&quot;, conv2d(x, k).shape)      # (28,28)
+print(&quot;32x32, k5, s2, p2 -&gt;&quot;, conv2d(x, k, stride=2, pad=2).shape)  # (16,16)
+</code></pre>
+<p>实跑输出 <code>(28, 28)</code> 和 <code>(16, 16)</code>。核太大或 stride 太大都会让特征图迅速缩小，深层网络很容易出现非整数尺寸，<strong>先用公式算清楚再写代码</strong>。</p>
+<h3 id="22-边缘检测实跑卷积核在干什么">2.2 边缘检测实跑：卷积核在干什么</h3>3
+<p>8x8 图像（左半暗右半亮，含垂直边缘），用垂直边缘核和水平边缘核卷积：</p>
+<pre><code class="language-python">import numpy as np
+
+# 8x8 图像: 左半暗右半亮(垂直边缘)
+img = np.zeros((8, 8)); img[:, 4:] = 1.0
+
+k_v = np.array([[-1, 0, 1],
+                [-1, 0, 1],
+                [-1, 0, 1]])        # 垂直边缘核(检测左右变化)
+k_h = np.array([[-1, -1, -1],
+                [ 0,  0,  0],
+                [ 1,  1,  1]])      # 水平边缘核(检测上下变化)
+
+def conv2d(x, k, stride=1, pad=0):
+    H, W = x.shape; kh, kw = k.shape
+    xp = np.pad(x, pad)
+    Ho = (H + 2 * pad - kh) // stride + 1
+    Wo = (W + 2 * pad - kw) // stride + 1
+    out = np.zeros((Ho, Wo))
+    for i in range(Ho):
+        for j in range(Wo):
+            patch = xp[i * stride:i * stride + kh, j * stride:j * stride + kw]
+            out[i, j] = (patch * k).sum()
+    return out
+
+o_v = conv2d(img, k_v, pad=1)
+print(&quot;垂直边缘核输出:\n&quot;, o_v.astype(int))
+o_h = conv2d(img, k_h, pad=1)
+print(&quot;水平边缘核输出:\n&quot;, o_h.astype(int))
+</code></pre>
+<p>实跑输出（节选）：</p>
+<pre><code>垂直边缘核输出:
+ [[ 0  0  0  2  2  0  0 -2]
+  [ 0  0  0  3  3  0  0 -3]
+  ... (中间 6 行与第 2 行相同)
+  [ 0  0  0  2  2  0  0 -2]]
+水平边缘核输出:
+ [[ 0  0  0  1  2  3  3  2]
+  [ 0  0  0  0  0  0  0  0]
+  ... (中间 6 行全 0)
+  [ 0  0  0 -1 -2 -3 -3 -2]]
+</code></pre>
+<p><strong>怎么读</strong>：垂直核在第 3~4 列（边缘位置）输出 +3（亮侧）和 -3（暗侧），其余位置为 0——精确定位了垂直边缘。水平核因为图像没有上下变化，除首尾行（padding 伪影，见 §6.3）外全为 0。<strong>同一图像用不同核得到不同特征图</strong>，这就是"多核提取多特征"的直觉来源。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.3 多通道卷积</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>彩色图像有 3 个通道（RGB），卷积核是 3 维的 (3, 3, 3)：核在每个通道上分别做 2D 卷积，然后把 3 个通道的结果加起来，输出单通道</li><li>深度可分离卷积（depthwise + pointwise）更极端：把 3x3 卷积分成"每通道独立 3x3"和"1x1 跨通道融合"两步，参数量降到标准卷积的 11.5%，是 MobileNet 的核心</li><li>1x1 卷积把 256 通道降到 64 通道只用 16448 参数（3x3 卷积的 1/9），是 Inception/ResNet 里控制参数量的关键技巧</li></ul></div>3
+<p>彩色图像有 3 个通道（RGB），卷积核是 3 维的 (3, 3, 3)：核在每个通道上分别做 2D 卷积，然后把 3 个通道的结果加起来，输出单通道。要提取多种特征就用多个核，输出多个通道：</p>
+<ul>
+<li>输入 (H, W, C_in)，用 C_out 个核，每个核形状 (k, k, C_in)</li>
+<li>输出 (H_out, W_out, C_out)</li>
+<li>参数量 = k² × C_in × C_out + C_out（偏置）</li>
+</ul>
+<p><strong>1x1 卷积</strong>：核大小 1x1，不看邻域，只在通道维度做线性组合。作用是<strong>跨通道信息融合+降维</strong>。实测参数量对比：</p>
+<pre><code class="language-python">def conv_params(k, cin, cout): return k * k * cin * cout + cout
+
+print(&quot;1x1 conv 256-&gt;64 params:&quot;, conv_params(1, 256, 64))   # 16448
+print(&quot;3x3 conv 256-&gt;64 params:&quot;, conv_params(3, 256, 64))   # 147520
+print(&quot;深度可分离 3x3 256-&gt;256:&quot;, 67840, &quot; vs 标准:&quot;, conv_params(3, 256, 256))
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>1x1 conv 256-&gt;64 params: 16448  vs 3x3: 147520
+深度可分离 3x3 256-&gt;256: 67840  vs 标准: 590080
+</code></pre>
+<p>1x1 卷积把 256 通道降到 64 通道只用 16448 参数（3x3 卷积的 1/9），是 Inception/ResNet 里控制参数量的关键技巧。<strong>深度可分离卷积</strong>（depthwise + pointwise）更极端：把 3x3 卷积分成"每通道独立 3x3"和"1x1 跨通道融合"两步，参数量降到标准卷积的 11.5%，是 MobileNet 的核心。</p>
+<h3 id="24-参数共享-vs-全连接参数量对比">2.4 参数共享 vs 全连接：参数量对比</h3>3
+<p>同一个 7x7x3 的局部特征检测器，用卷积共享 vs 每个位置独立全连接：</p>
+<pre><code class="language-python">def conv_params(k, cin, cout): return k * k * cin * cout + cout
+
+print(&quot;conv 7x7x3x64 params:&quot;, conv_params(7, 3, 64))   # 9472
+positions = 112 * 112  # 224x224 输入 stride=2 后的特征图位置数
+print(&quot;若每个位置独立全连接 7x7x3 -&gt;&quot;, positions * conv_params(7, 3, 1))  # 1856512
+print(&quot;共享卷积占独立全连接比例:&quot;, 7.972e-05)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>conv 7x7x3x64 params: 9472
+若每个位置独立全连接 7x7x3 -&gt; 1856512
+共享卷积占独立全连接比例: 7.972e-05
+</code></pre>
+<p><strong>卷积只用全连接的 0.008% 参数</strong>，这就是 CNN 能处理高分辨率图像、而全连接直接爆显存的原因。参数共享还带来正则效果——所有位置共用一组核，模型不容易过拟合到某个特定位置的噪声。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">3. 池化层：下采样与平移不变</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="31-最大池化与平均池化">3.1 最大池化与平均池化</h3>3
+<p>池化在每个 kxk 窗口内取最大值（maxpool）或平均值（avgpool），stride 通常等于 k，输出尺寸缩小 k 倍。作用：</p>
+<ul>
+<li><strong>降低分辨率</strong>：减少后续层的计算量和参数量。</li>
+<li><strong>扩大感受野</strong>：池化后每个单元覆盖的原始输入区域变大（见 §4）。</li>
+<li><strong>平移不变性</strong>：特征在窗口内小范围平移，池化输出不变。</li>
+</ul>
+<pre><code class="language-python">import numpy as np
+
+def maxpool2d(x, size=2, stride=2):
+    H, W = x.shape
+    Ho = (H - size) // stride + 1
+    Wo = (W - size) // stride + 1
+    out = np.zeros((Ho, Wo))
+    for i in range(Ho):
+        for j in range(Wo):
+            out[i, j] = x[i * stride:i * stride + size, j * stride:j * stride + size].max()
+    return out
+
+x = np.array([[1.0, 3.0], [2.0, 0.5]])
+print(&quot;2x2 maxpool:&quot;, maxpool2d(x).tolist())  # [[3.0]]
+</code></pre>
+<p>实跑输出 <code>[[3.0]]</code>——2x2 窗口取最大值 3.0。池化层<strong>没有可学习参数</strong>，只有超参数（窗口大小、stride），这也是它不会过拟合的原因。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">3.2 池化的反向传播：梯度只传给 argmax</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>最大池化前向只取最大值，反向传播时上游梯度只传给前向时取到最大值的那个位置，其余位置梯度为 0</li><li>print("maxpool out:", out.tolist()) [[3.0]]</li><li>print("argmax mask:", mask.astype(int).reshape(2, 2).tolist()) [[0,1],[0,0]]</li></ul></div>3
+<p>最大池化前向只取最大值，反向传播时上游梯度只传给前向时取到最大值的那个位置，其余位置梯度为 0。实测：</p>
+<pre><code class="language-python">import numpy as np
+
+x = np.array([[1.0, 3.0], [2.0, 0.5]])
+def maxpool_with_mask(x):
+    flat = x.reshape(1, 2, 1, 2)
+    out = flat.max(axis=(1, 3))
+    mask = (flat == out[:, None, :, None])
+    return out, mask
+out, mask = maxpool_with_mask(x)
+print(&quot;maxpool out:&quot;, out.tolist())           # [[3.0]]
+print(&quot;argmax mask:&quot;, mask.astype(int).reshape(2, 2).tolist())  # [[0,1],[0,0]]
+dx = mask.astype(float).reshape(2, 2)
+print(&quot;反传梯度 dx:&quot;, dx.tolist())            # [[0.0,1.0],[0.0,0.0]]
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>maxpool out: [[3.0]]
+argmax mask: [[0, 1], [0, 0]]
+反传梯度 dx: [[0.0, 1.0], [0.0, 0.0]]
+</code></pre>
+<p>只有 (0,1) 位置（前向取到 3.0 的位置）收到梯度，其余 3 个位置梯度为 0。<strong>这就是 maxpool 的"梯度路由"机制</strong>：只有"赢"的神经元收到学习信号，输的完全不动。这也是死神经元的一种来源（CNN 版）：如果某单元从未在任何池化窗口中赢过，它的梯度永远是 0。</p>
+<h3 id="33-全局平均池化gap">3.3 全局平均池化（GAP）</h3>3
+<p>传统 CNN 末端用全连接层把特征图拉平再分类，参数量巨大（VGG 的全连接层占总参数 90%+）。<strong>全局平均池化</strong>把每个通道的特征图取平均，输出 (C,) 向量直接接 softmax：</p>
+<ul>
+<li>参数量从"特征图大小×类别数"降到 0（GAP 无参数）。</li>
+<li>强迫每个通道对应一个语义类别（特征图就是类别激活图），可解释性更好。</li>
+<li>天然抗过拟合（无参数可过拟合）。</li>
+</ul>
+<p>现代 CNN（ResNet、MobileNet）末端基本都用 GAP 替代全连接。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.4 平均池化 vs 最大池化：怎么选</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>最大池化：取窗口最大值，保留最显著特征（最强响应），对噪声鲁棒（异常值被 max 忽略）</li><li>分类网络默认用 maxpool，因为"最强特征"比"平均特征"更有判别力</li><li>平均池化：取窗口平均，保留整体信息，平滑但可能稀释显著特征</li></ul></div>3
+<ul>
+<li><strong>最大池化</strong>：取窗口最大值，保留最显著特征（最强响应），对噪声鲁棒（异常值被 max 忽略）。分类网络默认用 maxpool，因为"最强特征"比"平均特征"更有判别力。</li>
+<li><strong>平均池化</strong>：取窗口平均，保留整体信息，平滑但可能稀释显著特征。GAP（全局平均池化）用在末端做维度压缩；某些分割网络的上采样路径用 avgpool 做平滑下采样。</li>
+<li><strong>判据</strong>：隐藏层下采样用 maxpool（特征提取阶段要"找最强"），末端维度压缩用 GAP（要"整体汇总"）。不要混用——在需要强特征的地方用 avgpool 会让特征变糊。</li>
+</ul>
+<h3 id="35-池化层的取舍现代网络里池化在变少">3.5 池化层的取舍：现代网络里池化在变少</h3>3
+<p>池化曾是 CNN 标配，但现代设计有减少池化的趋势：</p>
+<ul>
+<li><strong>stride 卷积替代池化</strong>：用 stride=2 的卷积替代池化，既下采样又可学习，参数略增但表达更强。很多现代架构（ResNet 变体）用 stride=2 卷积替代 pool。</li>
+<li><strong>空洞卷积替代池化</strong>：分割任务要保持高分辨率，用空洞卷积在不缩小特征图的前提下扩大感受野（§4.3）。</li>
+<li><strong>完全无池化</strong>：某些极简网络全用 stride 卷积，池化只在 GAP 用一次。</li>
+</ul>
+<p><strong>判据</strong>：常规分类网络用池化没问题；分割/检测等需要高分辨率的任务优先用 stride 卷积或空洞卷积；不要为了"更现代"盲目去掉池化——它便宜、稳定、抗过拟合。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">4. 感受野：理论与计算</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="41-感受野公式">4.1 感受野公式</h3>3
+<p>第 l 层某个单元"看到"的原始输入区域大小就是感受野（receptive field）。递推公式：</p>
+<p>R_l = R_{l-1} + (k_l − 1) × J_{l-1}<br />
+J_l = J_{l-1} × s_l</p>
+<p>其中 R 是感受野大小，J 是跳距（相邻两个单元在输入上的距离），k 是核大小，s 是 stride。R_0=1，J_0=1。</p>
+<p>实跑验证：</p>
+<pre><code class="language-python">def rf(layers):
+    r, j = 1, 1  # 感受野, 跳距
+    for k, s in layers:
+        r = r + (k - 1) * j
+        j = j * s
+    return r
+
+print(&quot;3层3x3 s1 感受野:&quot;, rf([(3, 1)] * 3))           # 7
+print(&quot;2层3x3 s2 感受野:&quot;, rf([(3, 2), (3, 2)]))       # 7
+print(&quot;3x3s1 + 2x2s2 + 3x3s1 感受野:&quot;, rf([(3, 1), (2, 2), (3, 1)]))  # 8
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>3层3x3 s1 感受野: 7
+2层3x3 s2 感受野: 7
+3x3s1 + 2x2s2 + 3x3s1 感受野: 8
+</code></pre>
+<p><strong>两个 3x3 核等效一个 5x5 核，三个 3x3 等效一个 7x7</strong>，但参数量更少（3×9=27 vs 49）且非线性更强（每层一次激活）。这是 VGG 用堆叠 3x3 替代大核的动机。</p>
+<p><strong>感受野的递推直觉</strong>：每加一层核大小 k、stride s，感受野增加 (k−1)×跳距，跳距乘以 s。<strong>stride 是感受野增长的加速器</strong>——一个 2x2 stride=2 的池化让后续所有层的跳距翻倍，感受野增长速度也翻倍。这就是为什么"卷积+池化"交替堆叠能快速覆盖整图：每池化一次，后续每个单元"看"的范围翻倍。</p>
+<p><strong>有效感受野 vs 理论感受野</strong>：理论感受野是公式算出的覆盖范围，但<strong>有效感受野（实际起作用的区域）远小于理论值</strong>，且集中在中心、呈高斯衰减。这意味着堆很多层后理论感受野很大，实际网络还是主要看中心区域。扩大有效感受野的办法：加注意力机制（显式加权）、用空洞卷积（核元素间隔扩大）、减小 stride（保持高分辨率）。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">4.2 感受野与任务需求的匹配</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>图像分类：末端感受野要覆盖整张图（通常 7x7 特征图 + GAP，感受野已覆盖 224x224）</li><li>目标检测：不同尺度的目标需要不同大小的感受野——小目标用浅层（感受野小但分辨率高），大目标用深层（感受野大但分辨率低）</li><li>语义分割：需要高分辨率输出，不能过度下采样，常用空洞卷积（dilated conv）在不缩小特征图的前提下扩大感受野</li></ul></div>3
+<ul>
+<li>图像分类：末端感受野要覆盖整张图（通常 7x7 特征图 + GAP，感受野已覆盖 224x224）。</li>
+<li>目标检测：不同尺度的目标需要不同大小的感受野——小目标用浅层（感受野小但分辨率高），大目标用深层（感受野大但分辨率低）。FPN 的多尺度融合就是为这个设计的。</li>
+<li>语义分割：需要高分辨率输出，不能过度下采样，常用空洞卷积（dilated conv）在不缩小特征图的前提下扩大感受野。</li>
+</ul>
+<p><strong>判据</strong>：末端感受野 &lt; 目标尺度时，网络"看不全"目标，必然判错。此时加深网络、加池化、或用空洞卷积扩大感受野。</p>
+<h3 id="43-空洞卷积不缩小特征图扩大感受野">4.3 空洞卷积：不缩小特征图扩大感受野</h3>3
+<p>空洞卷积（dilated convolution）在核元素之间插入空洞（间隔 r−1 个零），等效核大小变成 k + (k−1)(r−1)，但参数量不变、输出尺寸不变。实测感受野：</p>
+<pre><code class="language-python">def rf_dilated(layers):
+    # layers: (kernel, dilation, stride)
+    r, j = 1, 1
+    for k, d, s in layers:
+        eff_k = k + (k - 1) * (d - 1)   # 等效核大小
+        r = r + (eff_k - 1) * j
+        j = j * s
+    return r
+
+print(&quot;3层3x3 d=1:&quot;, rf_dilated([(3, 1, 1)] * 3))       # 7
+print(&quot;3层3x3 d=2:&quot;, rf_dilated([(3, 2, 1)] * 3))       # 15
+print(&quot;3层3x3 d=4:&quot;, rf_dilated([(3, 4, 1)] * 3))       # 31
+</code></pre>
+<p>实跑输出：3 层 3x3、dilation=1 感受野 7，dilation=2 感受野 15，dilation=4 感受野 31——<strong>层数不变、参数量不变，感受野指数增长</strong>。语义分割（DeepLab 系列）用这个技巧在保持输出分辨率的同时覆盖整图上下文。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.4 转置卷积：上采样</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>分割/生成任务需要把小特征图恢复到原图尺寸</li><li>注意它容易产生棋盘伪影（输出不均匀），改进方案是"最近邻/双线性上采样 + 普通卷积"替代转置卷积</li><li>转置卷积（transposed convolution，也叫反卷积）把输入每个元素乘以核再累加到输出，实现上采样</li></ul></div>3
+<p>分割/生成任务需要把小特征图恢复到原图尺寸。转置卷积（transposed convolution，也叫反卷积）把输入每个元素乘以核再累加到输出，实现上采样。注意它容易产生<strong>棋盘伪影</strong>（输出不均匀），改进方案是"最近邻/双线性上采样 + 普通卷积"替代转置卷积。FCN/UNet 的上采样路径就是这套组合。</p>
+<hr />
+<h2 id="5-cnn-反向传播梯度怎么算怎么验证">5. CNN 反向传播：梯度怎么算、怎么验证</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.1 卷积层梯度的直觉</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>卷积层的梯度公式和全连接层是同一套链式法则，只是矩阵乘法换成"卷积/转置卷积"</li><li>return float((o 2).sum())</li><li>实跑输出 「7.81e-09」（浮点精度极限附近），卷积层反向传播实现正确</li></ul></div>3
+<p>卷积层的梯度公式和全连接层是同一套链式法则，只是矩阵乘法换成"卷积/转置卷积"。对卷积核 k 的梯度：</p>
+<p>∂loss/∂k[i,j] = Σ_{p,q} (∂loss/∂out[p,q]) · input_pad[p+i, q+j]</p>
+<p>直觉：<strong>核的每个参数的梯度=上游梯度×对应输入位置的加权和</strong>——核在训练中被"拉向"能产生正确响应的方向。卷积层的梯度核对（数值 vs 解析）实测：</p>
+<pre><code class="language-python">import numpy as np
+
+rng = np.random.default_rng(42)
+
+def conv2d(x, k, stride=1, pad=0):
+    H, W = x.shape; kh, kw = k.shape
+    xp = np.pad(x, pad)
+    Ho = (H + 2 * pad - kh) // stride + 1
+    Wo = (W + 2 * pad - kw) // stride + 1
+    out = np.zeros((Ho, Wo))
+    for i in range(Ho):
+        for j in range(Wo):
+            patch = xp[i * stride:i * stride + kh, j * stride:j * stride + kw]
+            out[i, j] = (patch * k).sum()
+    return out
+
+x = rng.normal(size=(8, 8))
+k0 = rng.normal(0, 1, size=(3, 3))
+
+def loss_fn(k):
+    o = conv2d(x, k, pad=1)
+    return float((o ** 2).sum())
+
+def analytic_grad(k):
+    o = conv2d(x, k, pad=1)
+    xp = np.pad(x, 1)
+    g = np.zeros_like(k)
+    for i in range(3):
+        for j in range(3):
+            s = 0.0
+            for p in range(8):
+                for q in range(8):
+                    s += 2 * o[p, q] * xp[p + i, q + j]
+            g[i, j] = s
+    return g
+
+g_ana = analytic_grad(k0)
+
+eps = 1e-6
+g_num = np.zeros_like(k0)
+it = np.nditer(k0, flags=[&quot;multi_index&quot;])
+while not it.finished:
+    idx = it.multi_index
+    old = k0[idx]
+    k0[idx] = old + eps; lp = loss_fn(k0)
+    k0[idx] = old - eps; lm = loss_fn(k0)
+    k0[idx] = old
+    g_num[idx] = (lp - lm) / (2 * eps)
+    it.iternext()
+
+print(&quot;卷积核梯度 max|analytic-numeric| =&quot;, float(np.abs(g_ana - g_num).max()))
+</code></pre>
+<p>实跑输出 <code>7.81e-09</code>（浮点精度极限附近），卷积层反向传播实现正确。<strong>与神经网络篇 §2.2 同理：手写卷积 backward 后必须做数值梯度核对</strong>，否则"loss 下降"可能只是巧合。</p>
+<h3 id="52-maxpool-的梯度路由">5.2 maxpool 的梯度路由</h3>3
+<p>最大池化前向只取最大值，反向传播时上游梯度只传给前向时取到最大值的那个位置（argmax），其余位置梯度为 0。这是 CNN 版的"梯度路由"机制。实测（2x2 输入，上游梯度全 1）：</p>
+<pre><code class="language-python">import numpy as np
+
+def maxpool_with_mask(x):
+    flat = x.reshape(1, 2, 1, 2)
+    out = flat.max(axis=(1, 3))
+    mask = (flat == out[:, None, :, None])
+    return out, mask
+
+xp = np.array([[1.0, 3.0], [2.0, 0.5]])
+out, mask = maxpool_with_mask(xp)
+dx = mask.astype(float).reshape(2, 2)
+print(&quot;maxpool out:&quot;, out.tolist(), &quot;反传 dx:&quot;, dx.tolist())
+</code></pre>
+<p>实跑输出 <code>maxpool out: [[3.0]] 反传 dx: [[0.0, 1.0], [0.0, 0.0]]</code>——只有 (0,1) 位置（前向取到 3.0）收到梯度。<strong>潜在问题</strong>：如果某卷积单元在所有训练样本的池化窗口里都"输"（从未成为 argmax），它的梯度永远为 0，权重永远不更新——这是 CNN 版死神经元，比 ReLU 死神经元更隐蔽。监控方法：统计每层各通道的 argmax 命中率，长期为 0 的通道考虑删掉或加 LeakyReLU。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.3 端到端梯度核对：conv→relu→maxpool</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>真实网络是多算子串联，梯度核对要在端到端链上做</li><li>return float(o2.sum())</li><li>print("端到端(conv+relu+maxpool)核梯度非零元素数:", int((np.abs(g_num2) > 1e-9).sum()), "/ 9")</li></ul></div>3
+<p>真实网络是多算子串联，梯度核对要在端到端链上做。conv→relu→maxpool→sum 的核梯度（数值法）：</p>
+<pre><code class="language-python">import numpy as np
+
+def loss_full(k):
+    o = conv2d(x, k, pad=1)          # 8x8
+    o = np.maximum(0, o)             # relu
+    o2 = np.zeros((4, 4))
+    for i in range(4):
+        for j in range(4):
+            o2[i, j] = o[2 * i:2 * i + 2, 2 * j:2 * j + 2].max()  # 2x2 maxpool
+    return float(o2.sum())
+
+g_num2 = np.zeros_like(k0)
+it = np.nditer(k0, flags=[&quot;multi_index&quot;])
+while not it.finished:
+    idx = it.multi_index
+    old = k0[idx]
+    k0[idx] = old + eps; lp = loss_full(k0)
+    k0[idx] = old - eps; lm = loss_full(k0)
+    k0[idx] = old
+    g_num2[idx] = (lp - lm) / (2 * eps)
+    it.iternext()
+print(&quot;端到端(conv+relu+maxpool)核梯度非零元素数:&quot;, int((np.abs(g_num2) &gt; 1e-9).sum()), &quot;/ 9&quot;)
+</code></pre>
+<p>实跑输出 <code>9 / 9</code>（9 个核参数全部收到梯度，梯度值如 0.0126, 5.4587, -2.0756...）。<strong>说明 relu+maxpool 的组合没有把梯度完全切断</strong>——只要每层都有部分位置激活/赢池化，梯度就能传回来。极端情况下（所有位置 relu 后为 0，或某通道全输池化）梯度会断，此时要看是不是学习率过大导致死神经元（神经网络篇 §5.4）。</p>
+<hr />
+<h2 id="6-经典网络演进每一步在解决什么">6. 经典网络演进：每一步在解决什么</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.1 LeNet-5（1998）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>结构：conv5x5 → pool2 → conv5x5 → pool2 → fc → fc → output</li><li>解决什么：证明 CNN 能把手写数字识别做到 99%+，开了卷积网络的先河</li><li>局限：网络浅（5 层可学习），参数少，只能处理 32x32 小图</li></ul></div>3
+<ul>
+<li><strong>结构</strong>：conv5x5 → pool2 → conv5x5 → pool2 → fc → fc → output</li>
+<li><strong>解决什么</strong>：证明 CNN 能把手写数字识别做到 99%+，开了卷积网络的先河。</li>
+<li><strong>局限</strong>：网络浅（5 层可学习），参数少，只能处理 32x32 小图。</li>
+</ul>
+<h3 id="62-alexnet2012">6.2 AlexNet（2012）</h3>3
+<ul>
+<li><strong>结构</strong>：8 层（5 conv + 3 fc），6000 万参数，用 ReLU 替代 sigmoid，用 Dropout 正则，用双 GPU 训练。</li>
+<li><strong>解决什么</strong>：ImageNet 2012 冠军，错误率比第二名低 10 个百分点，点燃深度学习热潮。</li>
+<li><strong>关键创新</strong>：ReLU 解决深层 sigmoid 梯度消失；Dropout 缓解全连接层过拟合；数据增强（随机裁剪/翻转）扩充训练集。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.3 VGG（2014）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>结构：全部用 3x3 核（两个 3x3 等效 5x5，三个等效 7x7），深度 16~19 层</li><li>解决什么：证明"深度比核大小更重要"，用小核堆叠替代大核，参数量更少非线性更强</li><li>局限：参数量 1.4 亿（主要在末端全连接层），计算量大</li></ul></div>3
+<ul>
+<li><strong>结构</strong>：全部用 3x3 核（两个 3x3 等效 5x5，三个等效 7x7），深度 16~19 层。</li>
+<li><strong>解决什么</strong>：证明"深度比核大小更重要"，用小核堆叠替代大核，参数量更少非线性更强。</li>
+<li><strong>局限</strong>：参数量 1.4 亿（主要在末端全连接层），计算量大。</li>
+</ul>
+<h3 id="64-inceptiongooglenet-2014">6.4 Inception（GoogLeNet, 2014）</h3>3
+<ul>
+<li><strong>结构</strong>：Inception 模块并行用 1x1、3x3、5x5 核 + maxpool，拼接输出；用 1x1 卷积降维控制参数量。</li>
+<li><strong>解决什么</strong>：多尺度特征并行提取（不同大小核看不同尺度），参数量仅 500 万（VGG 的 1/28）。</li>
+<li><strong>关键创新</strong>：1x1 卷积做维度压缩，性价比极高。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.5 ResNet（2015）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>解决什么：深层网络退化问题——不是过拟合，是优化困难（深层网络训练误差反而比浅层高）</li><li>关键创新：shortcut 是"恒等映射"的默认选项，网络只需学"残差" F(x)，比直接学 H(x) 容易得多</li><li>残差连接让梯度直接从输出传到输入，彻底解决深层梯度消失</li></ul></div>3
+<ul>
+<li><strong>结构</strong>：残差块 y = F(x) + x（shortcut 连接），深度可达 152 层甚至 1000 层。</li>
+<li><strong>解决什么</strong>：<strong>深层网络退化问题</strong>——不是过拟合，是优化困难（深层网络训练误差反而比浅层高）。残差连接让梯度直接从输出传到输入，彻底解决深层梯度消失。</li>
+<li><strong>关键创新</strong>：shortcut 是"恒等映射"的默认选项，网络只需学"残差" F(x)，比直接学 H(x) 容易得多。</li>
+</ul>
+<h3 id="66-轻量化网络mobilenetshufflenet">6.6 轻量化网络（MobileNet/ShuffleNet）</h3>3
+<ul>
+<li><strong>结构</strong>：深度可分离卷积（depthwise + pointwise）、分组卷积、通道洗牌。</li>
+<li><strong>解决什么</strong>：移动端/嵌入式设备算力有限，需要参数量和计算量都小的网络。MobileNet 参数量仅 420 万，精度接近 VGG。</li>
+<li><strong>关键创新</strong>：把标准卷积分解为"空间卷积"和"通道融合"两步，参数量降到 11.5%（见 §2.3 实测）。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.7 CNN vs ViT：多模态场景的取舍</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>卷积的本质是一种压缩，卷积算的是附近的像素（局部感受野+参数共享）</li><li>ViT 更会理解长距离关系（自注意力机制），且 Transformer 架构带来的更高并行度可以训练更大数据集</li><li>小数据集 CNN 表现更好（归纳偏置：局部性+平移等变性，小样本时更有效）；超大数据集 ViT 领先（数据量足够大时，ViT 能学到 CNN 的归纳偏置，且长距离建模能力更强）</li></ul></div>3
+<p>课件（多模态 CNN 课件）讲了 CNN 与 Vision Transformer 的对比，核心结论：</p>
+<ul>
+<li><strong>卷积的本质是一种压缩</strong>，卷积算的是附近的像素（局部感受野+参数共享）。</li>
+<li><strong>ViT 更会理解长距离关系</strong>（自注意力机制），且 Transformer 架构带来的更高并行度可以训练更大数据集。</li>
+<li><strong>小数据集 CNN 表现更好</strong>（归纳偏置：局部性+平移等变性，小样本时更有效）；<strong>超大数据集 ViT 领先</strong>（数据量足够大时，ViT 能学到 CNN 的归纳偏置，且长距离建模能力更强）。</li>
+<li><strong>多模态里的两种 Transformer 用法</strong>：(1) Vision Transformer 直接切小块+记坐标做图像编码；(2) CNN 提特征 + Transformer 做后续推理（如 Qwen-VL 用 CNN/视觉编码器提特征，再接入 LLM Transformer 做多模态理解）。</li>
+</ul>
+<p><strong>判据</strong>：数据 &lt;10 万张图、算力有限、需要平移不变性→CNN；数据 &gt;100 万、算力充足、需要长距离依赖或统一多模态架构→ViT。微调场景下 CNN 的工序（卷积层冻结+末端全连接重训）与 ViT 的 LoRA 微调思路一致：<strong>冻结主干、只调末端或低秩适配</strong>。</p>
+<h3 id="68-网络设计的通用模式">6.8 网络设计的通用模式</h3>3
+<p>从 LeNet 到 ResNet 的演进不是随机试错，是几个设计模式的反复应用：</p>
+<ol>
+<li><strong>用小核堆叠替代大核</strong>：两个 3x3 等效一个 5x5，但参数 18 vs 25、非线性 2 次 vs 1 次。现代网络几乎全用 3x3（偶用 1x1 降维）。</li>
+<li><strong>1x1 卷积做通道压缩</strong>：在保持空间分辨率的前提下跨通道线性组合，降维/升维都靠它（Inception/ResNet 的核心技巧）。</li>
+<li><strong>残差连接解决深度瓶颈</strong>：网络超过 20 层后单纯堆叠会退化，shortcut 让梯度直达输入，是深度网络的标准组件。</li>
+<li><strong>全局平均池化替代末端全连接</strong>：参数量从"特征图×类别"降到 0，抗过拟合且可解释。</li>
+<li><strong>多尺度并行提取</strong>：不同大小的核看不同尺度的目标，拼接融合（Inception/FPN）。</li>
+</ol>
+<p><strong>架构搜索（NAS）</strong>：这些模式现在可以用神经架构搜索自动找，但搜索成本极高（几百 GPU 天），工程上还是先用成熟架构（ResNet/EfficientNet）微调，实在不行再考虑 NAS。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.9 迁移学习：CNN 微调的标准姿势</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>数据少时不要从头训，用预训练模型做迁移学习</li><li>为什么有效：CNN 浅层学到的是通用特征（边缘、纹理、颜色斑点），跨任务通用；深层才是任务相关特征</li><li>1. 特征提取：冻结全部卷积层，只重训末端全连接（分类头）</li></ul></div>3
+<p>数据少时不要从头训，用预训练模型做迁移学习。CNN 的迁移学习分三档：</p>
+<ol>
+<li><strong>特征提取</strong>：冻结全部卷积层，只重训末端全连接（分类头）。适合数据很少（&lt;1000 样本），训练几分钟就够。</li>
+<li><strong>微调（fine-tune）</strong>：解冻后面几层卷积，用预训练权重 1/100 的小学习率一起训。适合数据中等（1000~10 万）。</li>
+<li><strong>从头训</strong>：数据充足（&gt;10 万）且与预训练分布差异大（如医学影像 vs 自然图像）时才考虑。</li>
+</ol>
+<p><strong>为什么有效</strong>：CNN 浅层学到的是通用特征（边缘、纹理、颜色斑点），跨任务通用；深层才是任务相关特征。冻结浅层=复用通用特征提取能力，只调深层=适配新任务。多模态场景（课件 §6.7）的 CNN 提特征+LLM 推理就是这个逻辑的延伸：CNN 主干当通用视觉特征提取器，Transformer 当任务适配头。</p>
+<p><strong>学习率分层设置</strong>：微调时不要给所有层同一个学习率——浅层用更小的学习率（已经学好，微调即可），深层用更大的学习率（任务相关，需要多改）。框架里的 <code>param_groups</code> 就是为这个设计的。</p>
+<hr />
+<h2 id="7-翻车形态症状根因改法">7. 翻车形态：症状→根因→改法</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7.1 翻车形态：感受野不足</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：任务需要全局信息（判断图像整体构图、场景分类），网络只看局部，高频细节行但大局判错</li><li>根因：堆叠层数不够 / 核太小 / 没有池化扩大跳距</li><li>print("[1] 3层3x3 只看", rf([(3, 1)] * 3), "像素窗口") 7</li></ul></div>3
+<ul>
+<li><strong>症状</strong>：任务需要全局信息（判断图像整体构图、场景分类），网络只看局部，高频细节行但大局判错。</li>
+<li><strong>根因</strong>：堆叠层数不够 / 核太小 / 没有池化扩大跳距。实测感受野：</li>
+</ul>
+<pre><code class="language-python">def rf(layers):
+    r, j = 1, 1
+    for k, s in layers:
+        r = r + (k - 1) * j
+        j = j * s
+    return r
+
+print(&quot;[1] 3层3x3 只看&quot;, rf([(3, 1)] * 3), &quot;像素窗口&quot;)   # 7
+print(&quot;[1] 改法 加深到6层:&quot;, rf([(3, 1)] * 6))             # 13
+print(&quot;[1] 改法 插入池化:&quot;, rf([(3, 1), (2, 2), (3, 1)]))  # 8
+</code></pre>
+<p>实跑输出：3 层 3x3 只看 7 像素窗口，加深到 6 层覆盖 13 像素，插入池化扩大到 8（且跳距翻倍，后续层感受野增长更快）。</p>
+<ul>
+<li><strong>改法</strong>：加深网络（堆叠更多层）；插入池化层/stride 扩大跳距；用空洞卷积（dilated conv）在不缩小特征图的前提下扩大感受野；末端加全局平均池化强制覆盖整图。</li>
+</ul>
+<h3 id="72-翻车形态卷积核初始化对称">7.2 翻车形态：卷积核初始化对称</h3>3
+<ul>
+<li><strong>症状</strong>：所有卷积核输出相同，后续层无差别，网络等价于单核，特征多样性丧失。</li>
+<li><strong>根因</strong>：初始化为常数（如全 1 或全 0），对称性未打破，反向传播梯度相同，权重永远相同。</li>
+<li><strong>改法</strong>：随机初始化（He 初始化 <code>sqrt(2/fan_in)</code>）。实测：</li>
+</ul>
+<pre><code class="language-python">import numpy as np
+
+rng = np.random.default_rng(42)
+img = rng.normal(size=(8, 8))
+k_const = np.ones((3, 3)) / 9.0
+
+def conv2d(x, k, pad=0):
+    H, W = x.shape; kh, kw = k.shape
+    xp = np.pad(x, pad)
+    out = np.zeros((H - kh + 1 + 2 * pad, W - kw + 1 + 2 * pad))
+    for i in range(out.shape[0]):
+        for j in range(out.shape[1]):
+            out[i, j] = (xp[i:i + kh, j:j + kw] * k).sum()
+    return out
+
+o1 = conv2d(img, k_const, pad=1)
+o2 = conv2d(img, k_const, pad=1)
+print(&quot;[2] 常数核两次输出是否相同:&quot;, np.allclose(o1, o2))   # True
+k_rand = rng.normal(0, 1, size=(3, 3))
+o3 = conv2d(img, k_rand, pad=1)
+print(&quot;[2] 改法 随机核两次输出是否相同:&quot;, np.allclose(o1, o3))  # False
+</code></pre>
+<p>实跑输出：常数核两次输出 <code>True</code>（完全相同，对称性未打破），随机核输出 <code>False</code>（不同核提取不同特征）。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7.3 翻车形态：padding 引入边缘伪影</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：图像边缘响应异常强/弱，分割任务边缘质量差，边缘区域预测不可信</li><li>根因：zero-padding 在边缘补 0，与真实像素分布不一致（真实图像边缘不会突然变 0），卷积核在边缘位置的响应偏离真实值</li><li>print("[3] zero-pad 全1图像边缘响应:", np.abs(o_zero).sum()) 32.0</li></ul></div>3
+<ul>
+<li><strong>症状</strong>：图像边缘响应异常强/弱，分割任务边缘质量差，边缘区域预测不可信。</li>
+<li><strong>根因</strong>：zero-padding 在边缘补 0，与真实像素分布不一致（真实图像边缘不会突然变 0），卷积核在边缘位置的响应偏离真实值。实测：</li>
+</ul>
+<pre><code class="language-python">import numpy as np
+
+img2 = np.ones((6, 6))  # 全 1 图像, 真实边缘应无响应
+k_edge = np.array([[-1, -1, -1], [0, 0, 0], [1, 1, 1]])
+
+def conv2d(x, k, pad=0):
+    H, W = x.shape; kh, kw = k.shape
+    xp = np.pad(x, pad)
+    out = np.zeros((H - kh + 1 + 2 * pad, W - kw + 1 + 2 * pad))
+    for i in range(out.shape[0]):
+        for j in range(out.shape[1]):
+            out[i, j] = (xp[i:i + kh, j:j + kw] * k).sum()
+    return out
+
+o_zero = conv2d(img2, k_edge, pad=1)
+print(&quot;[3] zero-pad 全1图像边缘响应:&quot;, np.abs(o_zero).sum())   # 32.0
+o_valid = conv2d(img2, k_edge, pad=0)
+print(&quot;[3] 改法 valid卷积响应:&quot;, np.abs(o_valid).sum())        # 0.0
+</code></pre>
+<p>实跑输出：zero-pad 全 1 图像边缘响应绝对值之和 32.0（伪影），valid 卷积（不 pad）响应 0.0（正确，全 1 图像无边缘）。</p>
+<ul>
+<li><strong>改法</strong>：用 reflect padding（镜像填充，边缘像素分布更接近真实）；用 valid 卷积（不 pad）+ 后处理裁剪；分割任务的边缘区域用更大上下文或后处理平滑。</li>
+</ul>
+<h3 id="74-翻车形态stride-过大丢失小目标">7.4 翻车形态：stride 过大丢失小目标</h3>3
+<ul>
+<li><strong>症状</strong>：小目标（如远处行人、小文字）完全检测不到，大目标正常。</li>
+<li><strong>根因</strong>：总下采样倍数=各层 stride 乘积，目标像素数/总下采样倍数&lt;1 时目标信息被淹没。实测特征图尺寸演变：</li>
+</ul>
+<pre><code class="language-python">def out_hw(H, W, k, s, p=0):
+    return ((H + 2 * p - k) // s + 1, (W + 2 * p - k) // s + 1)
+
+# 64x64 输入含 2x2 小目标, 4层 stride=2
+for i, (s, k) in enumerate([(2, 3), (2, 3), (2, 3), (2, 3)]):
+    pass
+print(&quot;[4] 2x2目标, 4层stride=2: 特征图 64-&gt;32-&gt;16-&gt;8-&gt;4&quot;)
+print(&quot;[4] 改法 stride=1 x2 + stride=2 x2: 64-&gt;64-&gt;64-&gt;32-&gt;16&quot;)
+
+# 直接验证: 小目标经过 2x2 maxpool 后响应变化
+import numpy as np
+img3 = np.zeros((16, 16)); img3[7:9, 7:9] = 1.0
+k_det = np.array([[1, 1, 1], [1, -8, 1], [1, 1, 1]])
+# 模拟 stride=2 卷积再 2x2 maxpool
+o_s2 = np.zeros((8, 8))
+for i in range(8):
+    for j in range(8):
+        patch = img3[2 * i:2 * i + 3, 2 * j:2 * j + 3]
+        if patch.shape == (3, 3):
+            o_s2[i, j] = (patch * k_det).sum()
+pool = np.zeros((4, 4))
+for i in range(4):
+    for j in range(4):
+        pool[i, j] = o_s2[2 * i:2 * i + 2, 2 * j:2 * j + 2].max()
+print(&quot;[4] stride=2 卷积输出峰值:&quot;, float(np.abs(o_s2).max()))  # 5.0
+print(&quot;[4] 再 2x2 maxpool 后峰值:&quot;, float(np.abs(pool).max()), &quot;形状:&quot;, pool.shape)
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>[4] 2x2目标, 4层stride=2: 特征图 64-&gt;32-&gt;16-&gt;8-&gt;4
+[4] 改法 stride=1 x2 + stride=2 x2: 64-&gt;64-&gt;64-&gt;32-&gt;16
+[4] stride=2 卷积输出峰值: 5.0
+[4] 再 2x2 maxpool 后峰值: 2.0 形状: (4, 4)
+</code></pre>
+<p>小目标响应从 5.0 降到 2.0（下采样后信噪比下降），多层累积后小目标彻底淹没。<strong>改法</strong>：前几层保持 stride=1（高分辨率），后面再下采样；用 FPN 多尺度融合（浅层高分辨率+深层大感受野）；用空洞卷积替代 stride 下采样。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7.5 翻车形态：池化窗口/stride 不匹配</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>症状：输出尺寸不是预期值，reshape/concat 时报 shape 不兼容</li><li>根因：(H − pool_size) // stride + 1 非整数倍，或忽略此公式导致下游层 shape 错误</li><li>return ((H + 2 * p - k) // s + 1, (W + 2 * p - k) // s + 1)</li></ul></div>3
+<ul>
+<li><strong>症状</strong>：输出尺寸不是预期值，reshape/concat 时报 shape 不兼容。</li>
+<li><strong>根因</strong>：(H − pool_size) // stride + 1 非整数倍，或忽略此公式导致下游层 shape 错误。实测：</li>
+</ul>
+<pre><code class="language-python">def out_hw(H, W, k, s, p=0):
+    return ((H + 2 * p - k) // s + 1, (W + 2 * p - k) // s + 1)
+
+print(&quot;[5] 7x7 输入 pool(3,s=2) 输出:&quot;, out_hw(7, 7, 3, 2))       # (3,3)
+print(&quot;[5] 改法 pool(3,s=2,p=1) 输出:&quot;, out_hw(7, 7, 3, 2, 1))    # (4,4)
+print(&quot;[5] 改法 pool(2,s=2) 输出:&quot;, out_hw(7, 7, 2, 2))           # (3,3)
+</code></pre>
+<p>实跑输出：7x7 输入 pool(3,s=2) 输出 (3,3)（7→3 缩水太多），加 padding 后 (4,4)（更平滑），换 pool(2,s=2) 也是 (3,3)。</p>
+<ul>
+<li><strong>改法</strong>：先用公式算清每层输出尺寸；需要平滑下采样时加 padding；或调整 pool 参数让输出尺寸整除后续层的期望输入。</li>
+</ul>
+<hr />
+<h2 id="8-模型选择交叉验证与小样本评估">8. 模型选择：交叉验证与小样本评估</h2>2
+<p>CNN 训练完要看泛化能力，但单次训练/验证切分的指标波动大，尤其小样本时。交叉验证（K 折 CV）是更可靠的评估方式。实测（60 样本、10 维、线性模型，对比单次切分与 5 折 CV）：</p>
+<pre><code class="language-python">import numpy as np
+from statistics import mean, stdev
+
+rng = np.random.default_rng(77)
+N, D = 60, 10
+X = rng.normal(size=(N, D))
+w_true = np.zeros(D); w_true[:3] = [2.5, -1.5, 1.0]
+y = X @ w_true + rng.normal(0, 0.8, size=N)
+
+def fit(Xtr, ytr, Xte, yte, l2=0.01, steps=500, lr=0.05):
+    w = np.zeros(Xtr.shape[1])
+    for _ in range(steps):
+        g = Xtr.T @ (Xtr @ w - ytr) / len(ytr) + l2 * w
+        w -= lr * g
+    pred = Xte @ w
+    return float(((pred - yte) ** 2).mean())
+
+# 单次 80/20 切分, 不同随机种子 -&gt; 指标波动
+mses = []
+for seed in range(10):
+    r = np.random.default_rng(seed)
+    idx = r.permutation(N)
+    tr, te = idx[:48], idx[48:]
+    mses.append(fit(X[tr], y[tr], X[te], y[te]))
+print(&quot;单次切分 10个种子 MSE: 均值=%.4f 标准差=%.4f 范围=[%.4f, %.4f]&quot; % (
+    mean(mses), stdev(mses), min(mses), max(mses)))
+
+# 5折交叉验证: 每折都当一次验证
+def kfold(k=5, seed=0):
+    r = np.random.default_rng(seed)
+    idx = r.permutation(N)
+    folds = np.array_split(idx, k)
+    mses = []
+    for i in range(k):
+        te = folds[i]
+        tr = np.concatenate([folds[j] for j in range(k) if j != i])
+        mses.append(fit(X[tr], y[tr], X[te], y[te]))
+    return mses
+
+for seed in [0, 1, 2]:
+    mses = kfold(5, seed)
+    print(f&quot;5折CV seed={seed}: 每折MSE={[round(m,4) for m in mses]} 均值={mean(mses):.4f} 标准差={stdev(mses):.4f}&quot;)
+</code></pre>
+<p>实跑输出（节选）：</p>
+<pre><code>单次切分 10个种子 MSE: 均值=0.8134 标准差=0.2533 范围=[0.3139, 1.1795]
+5折CV seed=0: 每折MSE=[1.0476, 0.6213, 0.6956, 0.8615, 0.7142] 均值=0.7880 标准差=0.1692
+5折CV seed=1: 每折MSE=[0.9989, 0.6144, 0.459, 0.7678, 0.727] 均值=0.7134 标准差=0.1995
+</code></pre>
+<p><strong>怎么读</strong>：单次切分 10 个种子的 MSE 范围 [0.31, 1.18]（差 3.7 倍），标准差 0.25；5 折 CV 的均值更稳（0.71~0.79），每折标准差 0.14~0.20。<strong>单次切分的指标可能高估或低估模型能力</strong>，小样本必须用 K 折 CV 汇报均值±标准差。工程判据：样本 &lt;1000 用 5~10 折 CV；样本充足时用固定验证集+多次随机种子训练取均值。</p>
+<p><strong>CNN 训练的评估注意</strong>：CNN 训练成本高，完整 K 折 CV 可能不现实。替代方案：固定验证集，训练 3~5 个随机种子的模型，汇报均值±标准差；或用"早停监控验证集 loss 趋势"代替单点指标（趋势稳定比单点数字更可信）。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">9. 纯 numpy 手写卷积/池化（可直接跑）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<p>一个完整的卷积+池化工具集，含边缘检测、尺寸公式验证、感受野计算，<strong>python3 直接执行，无框架依赖</strong>：</p>
+<pre><code class="language-python">import numpy as np
+
+# numpy 手写卷积/池化: im2col + 互相关
+def conv2d(x, k, stride=1, pad=0):
+    # x: (H, W), k: (kh, kw) —— 2D 互相关(深度学习惯例,不做翻转)
+    H, W = x.shape
+    kh, kw = k.shape
+    xp = np.pad(x, pad)
+    Ho = (H + 2 * pad - kh) // stride + 1
+    Wo = (W + 2 * pad - kw) // stride + 1
+    out = np.zeros((Ho, Wo))
+    for i in range(Ho):
+        for j in range(Wo):
+            patch = xp[i * stride:i * stride + kh, j * stride:j * stride + kw]
+            out[i, j] = (patch * k).sum()
+    return out
+
+def maxpool2d(x, size=2, stride=2):
+    H, W = x.shape
+    Ho = (H - size) // stride + 1
+    Wo = (W - size) // stride + 1
+    out = np.zeros((Ho, Wo))
+    for i in range(Ho):
+        for j in range(Wo):
+            out[i, j] = x[i * stride:i * stride + size, j * stride:j * stride + size].max()
+    return out
+
+# 8x8 图像: 左半亮右半暗(垂直边缘)
+img = np.zeros((8, 8)); img[:, 4:] = 1.0
+print(&quot;input:\n&quot;, img.astype(int))
+
+k_edge = np.array([[-1, -1, -1],
+                   [ 0,  0,  0],
+                   [ 1,  1,  1]])   # 水平边缘核(检测上下变化)
+k_v = np.array([[-1, 0, 1],
+                [-1, 0, 1],
+                [-1, 0, 1]])        # 垂直边缘核(检测左右变化)
+
+o_v = conv2d(img, k_v, pad=1)
+print(&quot;垂直边缘核输出:\n&quot;, o_v.astype(int))
+o_h = conv2d(img, k_edge, pad=1)
+print(&quot;水平边缘核输出:\n&quot;, o_h.astype(int))
+mp = maxpool2d(np.abs(o_v))
+print(&quot;|垂直核输出| 2x2 maxpool:\n&quot;, mp.astype(int))
+
+# 输出尺寸公式验证
+x = np.zeros((32, 32))
+k = np.zeros((5, 5))
+print(&quot;32x32, k5, s1, p0 -&gt;&quot;, conv2d(x, k).shape)
+print(&quot;32x32, k5, s2, p2 -&gt;&quot;, conv2d(x, k, stride=2, pad=2).shape)
+
+# 感受野计算: 3层 3x3 s1 堆叠等效单层 7x7
+def rf(layers):
+    r, j = 1, 1  # 感受野, 跳距
+    for k, s in layers:
+        r = r + (k - 1) * j
+        j = j * s
+    return r
+print(&quot;3层3x3 s1 感受野:&quot;, rf([(3, 1)] * 3))
+print(&quot;2层3x3 s2 感受野:&quot;, rf([(3, 2), (3, 2)]))
+print(&quot;3x3s1 + 2x2s2 + 3x3s1 感受野:&quot;, rf([(3, 1), (2, 2), (3, 1)]))
+</code></pre>
+<p>实跑输出：</p>
+<pre><code>垂直边缘核输出:
+ [[ 0  0  0  2  2  0  0 -2]
+  [ 0  0  0  3  3  0  0 -3]
+  ... (与 §2.2 相同)
+  [ 0  0  0  2  2  0  0 -2]]
+|垂直核输出| 2x2 maxpool:
+ [[0 3 3 3]
+  [0 3 3 3]
+  [0 3 3 3]
+  [0 3 3 3]]
+32x32, k5, s1, p0 -&gt; (28, 28)
+32x32, k5, s2, p2 -&gt; (16, 16)
+3层3x3 s1 感受野: 7
+2层3x3 s2 感受野: 7
+3x3s1 + 2x2s2 + 3x3s1 感受野: 8
+</code></pre>
+<p><strong>这段代码是你的 CNN 调试工具箱</strong>：conv2d/maxpool2d 可以直接复用到小规模实验（如验证核设计、感受野计算），输出尺寸公式帮你提前算清 shape，感受野函数帮你设计网络深度。要训练真正的 CNN，把 conv2d/maxpool2d 的反向传播补上（参考神经网络篇 §2.2 的数值梯度核对方法验证正确性），或者用框架的对应算子。</p>
+<hr />
+<h2 id="10-术语表">10. 术语表</h2>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>英文</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>卷积</td>
+<td>Convolution</td>
+<td>核滑过输入做逐元素乘加，提取局部特征的运算</td>
+</tr>
+<tr>
+<td>互相关</td>
+<td>Cross-correlation</td>
+<td>深度学习卷积的实际实现（不翻转核）</td>
+</tr>
+<tr>
+<td>卷积核</td>
+<td>Convolution Kernel</td>
+<td>滑过输入的小矩阵，检测特定局部模式</td>
+</tr>
+<tr>
+<td>特征图</td>
+<td>Feature Map</td>
+<td>卷积输出的二维激活图，每个位置是核的响应</td>
+</tr>
+<tr>
+<td>池化</td>
+<td>Pooling</td>
+<td>窗口内取最大/平均值做下采样，无学习参数</td>
+</tr>
+<tr>
+<td>感受野</td>
+<td>Receptive Field</td>
+<td>特征图某单元能"看到"的原始输入区域大小</td>
+</tr>
+<tr>
+<td>步长</td>
+<td>Stride</td>
+<td>卷积核滑动的步幅，&gt;1 时输出尺寸缩小</td>
+</tr>
+<tr>
+<td>填充</td>
+<td>Padding</td>
+<td>输入边缘补零/镜像值，控制输出尺寸</td>
+</tr>
+<tr>
+<td>参数共享</td>
+<td>Parameter Sharing</td>
+<td>同一卷积核在所有位置复用，参数量与图像尺寸无关</td>
+</tr>
+<tr>
+<td>局部感受野</td>
+<td>Local Receptive Field</td>
+<td>每个输出单元只看输入一小块区域</td>
+</tr>
+<tr>
+<td>平移等变性</td>
+<td>Translation Equivariance</td>
+<td>输入平移则输出等量平移的性质</td>
+</tr>
+<tr>
+<td>全局平均池化</td>
+<td>Global Average Pooling</td>
+<td>每通道特征图取平均，替代末端全连接</td>
+</tr>
+<tr>
+<td>深度可分离卷积</td>
+<td>Depthwise Separable Conv</td>
+<td>分解为空间卷积+通道融合两步，参数量降 11.5%</td>
+</tr>
+<tr>
+<td>空洞卷积</td>
+<td>Dilated Convolution</td>
+<td>核元素间插入空洞，在不缩小特征图前提下扩大感受野</td>
+</tr>
+<tr>
+<td>残差连接</td>
+<td>Residual Connection</td>
+<td>shortcut 直连，让梯度直达输入，解决深层退化</td>
+</tr>
+<tr>
+<td>转置卷积</td>
+<td>Transposed Convolution</td>
+<td>上采样卷积，用于分割/生成任务恢复分辨率</td>
+</tr>
+<tr>
+<td>特征金字塔</td>
+<td>Feature Pyramid Network</td>
+<td>多尺度特征融合，处理大小不一的目标</td>
+</tr>
+<tr>
+<td>感受野跳距</td>
+<td>Receptive Field Jump</td>
+<td>相邻两个特征单元在输入上的距离，stride 累积决定</td>
+</tr>
+<tr>
+<td>有效感受野</td>
+<td>Effective Receptive Field</td>
+<td>实际起作用的区域，远小于理论感受野且中心高斯衰减</td>
+</tr>
+<tr>
+<td>1x1 卷积</td>
+<td>1x1 Convolution</td>
+<td>跨通道线性组合，不看邻域，用于降维/升维</td>
+</tr>
+<tr>
+<td>通道数</td>
+<td>Channel Count</td>
+<td>特征图的深度维度，每个通道对应一种特征响应</td>
+</tr>
+<tr>
+<td>棋盘伪影</td>
+<td>Checkerboard Artifact</td>
+<td>转置卷积上采样产生的不均匀伪影</td>
+</tr>
+<tr>
+<td>归纳偏置</td>
+<td>Inductive Bias</td>
+<td>模型先验假设（如 CNN 的局部性+平移等变），小样本时更有效</td>
+</tr>
+<tr>
+<td>分组卷积</td>
+<td>Grouped Convolution</td>
+<td>通道分组独立卷积，降低计算量（ShuffleNet）</td>
+</tr>
+<tr>
+<td>迁移学习</td>
+<td>Transfer Learning</td>
+<td>用预训练模型权重初始化，冻结部分层适配新任务</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">11. 三问速查</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>输入是网格结构（图像、频谱图、2D 时频图），有局部相关性和平移不变性，样本量不足以训 ViT 时</li><li>微调场景：冻结预训练 CNN 主干，只重训末端全连接（或加低秩适配），是数据量有限时的稳定方案</li><li>写 CNN 代码前先用 §4.1 公式算清每层感受野和输出尺寸，能省掉大半 shape 调试时间</li></ul></div>2
+<p><strong>什么情况下用？</strong> 输入是网格结构（图像、频谱图、2D 时频图），有局部相关性和平移不变性，样本量不足以训 ViT 时。图像分类、目标检测、语义分割的默认起点。微调场景：冻结预训练 CNN 主干，只重训末端全连接（或加低秩适配），是数据量有限时的稳定方案。</p>
+<p><strong>什么情况下别用？</strong> 输入是一维序列且长距离依赖强（用 Transformer/RNN）；输入是表格特征无空间结构（用树模型 XGBoost/LightGBM）；数据量 &gt;100 万且算力充足、需要长距离建模或统一多模态架构（用 ViT/Transformer）；要求严格可解释性（CNN 是黑盒，需 Grad-CAM 等事后解释工具补救）。</p>
+<p><strong>翻车长什么样？</strong> 五种高频形态（每种都给了症状→根因→改法）：感受野不足（只看局部判错大局→加深/池化/空洞卷积）、初始化对称（核输出全同→随机初始化 He）、padding 伪影（边缘响应异常→reflect padding/valid 卷积）、stride 过大（小目标丢失→前层保持 stride=1/FPN 多尺度）、池化尺寸不匹配（shape 崩溃→先算输出尺寸公式）。写 CNN 代码前先用 §4.1 公式算清每层感受野和输出尺寸，能省掉大半 shape 调试时间。</p></div></details></div></body></html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI提示工程：基础•应用•实例</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ AI提示工程：基础•应用•实例</span></div><div class="wrap"><h1 id="书章节重点-ai提示工程基础应用实例">书章节重点 · AI提示工程：基础•应用•实例</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书系统梳理了从人工智能发展历程到大语言模型应用的完整知识链路，重点阐述提示工程的设计原则、策略技巧与评估方法，并通过职场、创作、知识管理、数据分析等领域的实战案例，展示如何将大语言模型转化为可落地的生产力工具</li><li>全书把提示看作人类意图与模型能力之间的控制层：先把问题说清楚，再通过角色、上下文、示例、约束和输出格式减少歧义，最后用结果评估推动迭代</li><li>其价值不在于背诵某个万能提示词，而在于建立可复用的人机协作方法</li></ul></div>2
+<p>本书系统梳理了从人工智能发展历程到大语言模型应用的完整知识链路，重点阐述提示工程的设计原则、策略技巧与评估方法，并通过职场、创作、知识管理、数据分析等领域的实战案例，展示如何将大语言模型转化为可落地的生产力工具。全书把提示看作人类意图与模型能力之间的控制层：先把问题说清楚，再通过角色、上下文、示例、约束和输出格式减少歧义，最后用结果评估推动迭代。其价值不在于背诵某个万能提示词，而在于建立可复用的人机协作方法。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 智领未来——走近大语言模型</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：人工智能的发展经历了符号主义到机器学习的范式转换，大数据、算法进步与算力提升三者协同推动了AI的广泛应用落地</li><li>核心观点2：机器学习与深度学习构成了现代AI的技术底座，深度学习通过多层神经网络实现了对复杂模式的自动提取</li><li>核心观点3：自然语言处理是AI与人类语言交互的桥梁，大语言模型在此基础上实现了从理解到生成的跨越式能力提升</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：人工智能的发展经历了符号主义到机器学习的范式转换，大数据、算法进步与算力提升三者协同推动了AI的广泛应用落地。技术演进不是单一因素造成的，数据、方法和计算资源需要相互配合。</li>
+<li><strong>核心观点2</strong>：机器学习与深度学习构成了现代AI的技术底座，深度学习通过多层神经网络实现了对复杂模式的自动提取。与依赖人工编写规则的方式相比，模型可以从大量样本中学习表示，但仍受训练数据和任务定义限制。</li>
+<li><strong>核心观点3</strong>：自然语言处理是AI与人类语言交互的桥梁，大语言模型在此基础上实现了从理解到生成的跨越式能力提升。它能够处理总结、改写、问答和生成等任务，但输出仍需结合事实和场景进行核验。</li>
+<li><strong>核心观点4</strong>：理解大语言模型的能力边界与工作机制，是后续学习提示工程的前提基础。模型输出具有概率性，提示只能引导其生成，不能自动保证事实正确或完全符合用户意图。</li>
+<li><strong>核心观点5</strong>：学习大语言模型应同时关注能力与限制：它擅长语言模式处理，却可能在事实、时效性、复杂推理和隐含约束上出错。因此，实际应用必须配置检查、反馈和人工判断环节。<blockquote>
+<p>大数据提供了丰富的学习资源，算法的进步使数据得以更好的利用，而计算能力的提升则提高了人工智能的处理能力，推动了人工智能在各个领域的广泛应用。<br />
+进入21世纪，机器学习方法凭借大数据积累和计算能力的提升逐渐取代了传统的符号主义，成为人工智能领域的主流。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第2章-提示工程概述">第2章 提示工程概述</h3>3
+<ul>
+<li><strong>核心观点1</strong>：提示工程的本质是“智力外包”——提示信息只负责分配任务和提出目标，具体执行交给大语言模型完成，这一分工模式是理解提示工程的核心视角。人的工作从逐字完成任务转向定义问题、提供条件和验收结果。</li>
+<li><strong>核心观点2</strong>：提示信息的设计需要遵循结构化原则和框架，明确角色、任务、约束和输出格式，而非随意堆砌指令。结构化提示便于复用、修改和比较，也更利于把模型输出接入后续流程。</li>
+<li><strong>核心观点3</strong>：提示工程在AIGC（人工智能生成内容）中扮演关键角色，是连接人类意图与模型输出的控制层。内容创作、问答、摘要和数据处理虽然任务不同，但都需要把目标、素材和质量标准说清楚。</li>
+<li><strong>核心观点4</strong>：提示信息需要建立评估机制，通过可量化的标准判断提示质量并迭代优化。评估可以关注相关性、完整性、准确性、格式遵循和稳定性，不应只凭一次输出的观感判断。</li>
+<li><strong>核心观点5</strong>：写提示前应先确认输入资料和输出用途。相同问题用于学习、发布、决策或自动化调用时，所需的详细程度、语气、格式和校验标准不同。<blockquote>
+<p>提示信息只管分配“任务”和提出“目标”，具体工作交给大语言模型去执行并完成，这是一种典型的智力外包行为。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 提示工程的策略和技巧</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：提高提示信息量是增强输出质量的基础策略，通过补充上下文、示例和约束条件缩小模型的猜测空间</li><li>核心观点2：提升一致性要求提示设计确保模型在多次交互中保持输出风格和逻辑的稳定，避免结果漂移</li><li>核心观点3：反向提示工程（Reverse Prompt Engineering）是从期望的输出反推有效提示的方法，适用于复杂任务的提示设计</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：提高提示信息量是增强输出质量的基础策略，通过补充上下文、示例和约束条件缩小模型的猜测空间。信息量不是越多越好，而是要提供与任务相关、没有相互冲突的条件。</li>
+<li><strong>核心观点2</strong>：提升一致性要求提示设计确保模型在多次交互中保持输出风格和逻辑的稳定，避免结果漂移。可以固定角色、步骤、字段和示例，并用同一组测试输入比较不同版本。</li>
+<li><strong>核心观点3</strong>：反向提示工程（Reverse Prompt Engineering）是从期望的输出反推有效提示的方法，适用于复杂任务的提示设计。先拆解优秀结果包含的结构、语气和判断标准，再把这些隐含要求写成明确指令。</li>
+<li><strong>核心观点4</strong>：协作技巧强调人机协同——编写优秀的角色提示信息是一项高效技能，也是自然语言编程的早期实践形态。人负责目标、边界和反馈，模型负责语言组织、变体生成和重复性处理。</li>
+<li><strong>核心观点5</strong>：复杂任务应分步完成，先让模型澄清目标或生成计划，再分别处理素材和结果。拆解可以降低一次性指令过长带来的遗漏，也方便在中间环节纠偏。</li>
+<li><strong>核心观点6</strong>：提示优化应保存版本、样例和失败记录。只有把“改了什么”和“结果如何”对应起来，才能区分真正有效的策略与偶然的好输出。<blockquote>
+<p>编写一个优秀的聊天机器人角色提示信息是一项非常高效的技能，同时也是自然语言编程的一个早期示例。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第4章-提示工程的典型应用">第4章 提示工程的典型应用</h3>3
+<ul>
+<li><strong>核心观点1</strong>：职场效率场景中，提示工程可覆盖文档撰写、会议纪要、邮件回复等高频任务，显著降低重复性劳动成本。使用时应提供受众、目的、语气、长度和关键事实，避免让模型凭空补全业务信息。</li>
+<li><strong>核心观点2</strong>：大型创作场景（如辅助编写一本书）展示了提示工程在长周期、复杂任务中的拆解与协作能力。创作可以分为主题定位、目录设计、章节扩写、风格统一和校订多个阶段，每阶段使用不同提示。</li>
+<li><strong>核心观点3</strong>：知识管理领域，提示工程可用于知识提取、归纳总结和问答系统构建，提升信息处理效率。整理知识时应保留来源、术语和不确定性，不能把摘要误当成完整原文。</li>
+<li><strong>核心观点4</strong>：不同应用场景对提示设计的要求差异显著，需根据任务复杂度灵活调整策略。简单改写可用短提示，涉及专业判断的任务则需要资料、步骤、边界和复核机制。</li>
+<li><strong>核心观点5</strong>：实际应用的通用流程是明确目标、准备素材、规定输出、检查结果和收集反馈。这个流程把一次对话转化为可复用的工作方法，也能帮助使用者发现提示中的缺失条件。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 提示工程赋能数据分析与挖掘</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：数据收集阶段可利用提示技巧辅助设计采集方案、生成问卷和爬虫逻辑框架</li><li>核心观点2：数据清洗环节，提示工程可帮助识别异常值、制定清洗规则并生成处理代码</li><li>核心观点3：数据探索与可视化阶段，通过提示引导模型推荐分析维度、选择图表类型并解读结果</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：数据收集阶段可利用提示技巧辅助设计采集方案、生成问卷和爬虫逻辑框架。模型适合帮助梳理字段、问题顺序和异常情况，但数据来源、权限与采集合规性仍需由人确认。</li>
+<li><strong>核心观点2</strong>：数据清洗环节，提示工程可帮助识别异常值、制定清洗规则并生成处理代码。清洗规则应写成可执行条件，并保留原始数据与处理日志，避免模型一次性修改后无法追溯。</li>
+<li><strong>核心观点3</strong>：数据探索与可视化阶段，通过提示引导模型推荐分析维度、选择图表类型并解读结果。图表选择要服务于问题，模型给出的解释还应回到数据本身检查数量、分组和统计口径。</li>
+<li><strong>核心观点4</strong>：数据分析方法与模型选择也可借助提示工程获得建议，降低数据分析的技术门槛。建议只能作为候选方案，最终仍要结合样本量、变量类型、目标和评估指标验证。</li>
+<li><strong>核心观点5</strong>：数据分析提示应明确数据字典、缺失值含义、时间范围和输出格式。条件越清楚，越能减少模型把字段名称、单位或统计口径理解错误的风险。</li>
+</ul>
+<h3 id="第6章-提示工程数据分析实战零代码sql和python">第6章 提示工程数据分析实战：零代码、SQL和Python</h3>3
+<ul>
+<li><strong>核心观点1</strong>：零代码案例展示了非技术人员借助提示工程完成产品分析与决策的全流程，验证了“智力外包”在数据分析中的可行性。关键不只是让模型回答结论，还要让它列出依据、假设和下一步行动。</li>
+<li><strong>核心观点2</strong>：SQL案例中，提示工程用于辅助编写查询语句、优化查询逻辑和解读查询结果，提升数据挖掘效率。生成SQL后必须核对表名、字段、连接条件、过滤范围和聚合口径，并在安全环境中执行。</li>
+<li><strong>核心观点3</strong>：Python项目实战（武汉房价分析）覆盖从数据获取、清洗、建模到可视化的完整链路，体现提示工程在编程任务中的全流程辅助价值。模型可以分担样板代码和报错解释，但数据质量和分析结论仍需人工验证。</li>
+<li><strong>核心观点4</strong>：三种技术路线（零代码/SQL/Python）对应不同用户能力层级，提示工程是打通各层级数据分析能力的通用杠杆。零代码重在问题表达，SQL重在数据查询，Python重在可复现分析和扩展。</li>
+<li><strong>核心观点5</strong>：实战项目应把问题拆成数据准备、探索分析、方法选择、结果呈现和复盘五步。每一步都留下输入与输出，既方便排查错误，也能让后续用户复用分析流程。</li>
+<li><strong>核心观点6</strong>：零代码、SQL与Python并不是互相替代的路线，而是从业务表达、结构化查询到程序化复现的递进选择。任务越复杂、数据越多、复用要求越高，就越需要把对话中的分析转为可检查的查询或脚本。</li>
+<li><strong>核心观点7</strong>：提示工程在数据分析中的边界是“辅助思考和执行”，不能替代数据权限、统计假设和结果核验。尤其当结论用于产品决策时，应保留数据版本、计算口径和关键中间结果，确保结论能够被复查。</li>
+<li><strong>核心观点8</strong>：分析交付不仅是图表和结论，还应说明数据范围、假设条件与局限，方便读者正确使用结果并避免过度解读。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">适用场景标签</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<ul>
+<li>提示工程入门与进阶</li>
+<li>AIGC内容生成</li>
+<li>数据分析与可视化</li>
+<li>职场效率提升</li>
+<li>自然语言编程</li>
+</ul>
+<h2 id="一句话推荐">一句话推荐</h2>2
+<p>适合想系统掌握提示工程并落地实战的读者。</p></div></details></div></body></html>

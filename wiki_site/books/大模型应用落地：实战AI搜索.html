@@ -1,0 +1,131 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>大模型应用落地：实战AI搜索</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 大模型应用落地：实战AI搜索</span></div><div class="wrap"><h1 id="书章节重点-大模型应用落地实战ai搜索">书章节重点 · 大模型应用落地：实战AI搜索</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书基于大模型成功赋能AI搜索的实战经验总结，系统梳理AI搜索的实现原理、核心技术、关键工具及模块化实现路径</li><li>以"从0到1搭建专属AI搜索应用"为主线，覆盖从技术认知、架构设计到应用层开发与场景测试的完整闭环，配套全流程源码降低开发门槛</li></ul></div>2
+<p>本书基于大模型成功赋能AI搜索的实战经验总结，系统梳理AI搜索的实现原理、核心技术、关键工具及模块化实现路径。以"从0到1搭建专属AI搜索应用"为主线，覆盖从技术认知、架构设计到应用层开发与场景测试的完整闭环，配套全流程源码降低开发门槛。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 大模型技术分析与落地难点</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：从多个维度剖析大模型技术，帮助读者理解其技术变革的本质与应用的底层逻辑</li><li>核心观点2：系统归纳大模型落地过程中的难点，建立对大模型能力边界的全面认知</li><li>核心观点3：理解这些难点是后续设计AI搜索系统的前提——正因为模型有幻觉和知识时效问题，才需要RAG检索外部知识库来补充事实依据</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：从多个维度剖析大模型技术，帮助读者理解其技术变革的本质与应用的底层逻辑。大模型的能力跃迁不仅是参数规模的增长，更是从"专用AI"到"通用AI"的范式转变——同一模型可服务对话、搜索、生成等多场景。</li>
+<li><strong>核心观点2</strong>：系统归纳大模型落地过程中的难点，建立对大模型能力边界的全面认知。常见落地难点包括：幻觉问题（模型编造不存在的信息）、知识时效性（训练数据截止日期后的新信息无法覆盖）、推理成本高昂（高并发下API费用失控）、以及输出不可控（同样输入可能产生差异较大的输出）。</li>
+<li><strong>核心观点3</strong>：理解这些难点是后续设计AI搜索系统的前提——正因为模型有幻觉和知识时效问题，才需要RAG检索外部知识库来补充事实依据。</li>
+</ul>
+<h3 id="第2章-ai搜索历程与原理初探">第2章 AI搜索历程与原理初探</h3>3
+<ul>
+<li><strong>核心观点1</strong>：梳理AI搜索从关键词匹配到语义理解的发展路径，明确技术演进的主线。第一代搜索基于关键词倒排索引（BM25），只能匹配字面相同的词；第二代引入语义向量（dense retrieval），能理解"意思相近"；第三代结合大模型实现理解用户意图、规划检索策略、生成自然语言答案。</li>
+<li><strong>核心观点2</strong>：以LeptonSearch为例进行源码级解析，帮助读者建立AI搜索系统实现的初步认知框架。LeptonSearch展示了一个最小可行AI搜索系统的完整链路：接收用户问题→并行调用多个搜索引擎→抓取网页内容→大模型综合生成答案。</li>
+<li><strong>核心观点3</strong>：AI搜索与传统搜索引擎的本质区别在于——传统搜索返回"10个蓝色链接"让用户自己筛选，AI搜索直接返回"答案+引用来源"，用户体验从"找信息"变成"问问题"。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 深入AI搜索核心技术</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：查询理解技术是AI搜索准确性的起点，决定后续检索与生成的质量上限</li><li>用户输入的原始问题往往模糊、口语化、含错别字，查询理解需要完成意图识别、关键词提取、问题改写（扩展同义词）、以及复杂问题拆解为子查询</li><li>核心观点2：规划执行技术负责组织搜索流程，是系统从"能搜"到"搜得对"的关键环节</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：查询理解技术是AI搜索准确性的起点，决定后续检索与生成的质量上限。用户输入的原始问题往往模糊、口语化、含错别字，查询理解需要完成意图识别、关键词提取、问题改写（扩展同义词）、以及复杂问题拆解为子查询。</li>
+<li><strong>核心观点2</strong>：规划执行技术负责组织搜索流程，是系统从"能搜"到"搜得对"的关键环节。规划器决定"先搜什么、后搜什么、哪些需要并行搜、搜索结果不足时是否换关键词重搜"，类似人类面对复杂问题时的思考路径。</li>
+<li><strong>核心观点3</strong>：答案内容优化与答案缓存优化分别从质量与效率两个维度提升系统表现。内容优化包括去重、排序、引用标注、答案摘要压缩；缓存优化则是将高频问题的答案缓存下来，避免重复检索与生成，大幅降低延迟和成本。</li>
+</ul>
+<h3 id="第4章-掌握应用的开发技术栈">第4章 掌握应用的开发技术栈</h3>3
+<ul>
+<li><strong>核心观点1</strong>：OpenAI API与DeepSeek模型构成大模型能力接入的主要方式，是应用开发的基础工具。OpenAI API生态成熟、文档完善，但成本较高且数据出境；DeepSeek作为国产开源模型，成本低、可私有化部署，适合对数据隐私有要求的场景。</li>
+<li><strong>核心观点2</strong>：Milvus向量数据库支撑语义检索，并通过本地知识库实践打通向量存储与检索链路。Milvus支持多种索引类型（HNSW、IVF等）、分布式部署、以及向量+标量混合过滤，满足从原型到生产的全阶段需求。</li>
+<li><strong>核心观点3</strong>：LangChain的基础与高级用法为应用开发提供编排能力，有效降低开发门槛。LangChain的Chain/Agent/Retriever抽象让开发者不必从零实现检索-生成链路，但其抽象层也可能隐藏底层细节，调试时需理解封装背后的实际逻辑。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 后端方案设计与框架构建</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：技术方案设计是后端架构的顶层决策，决定系统整体走向</li><li>核心观点2：构建后端基础框架为后续功能模块开发打好地基，强调先框架后功能的工程顺序</li><li>核心观点3：AI搜索后端与传统Web后端的核心差异在于——AI链路（嵌入、检索、生成）耗时远大于普通数据库查询，需要异步处理、流式响应、以及超时降级机制</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：技术方案设计是后端架构的顶层决策，决定系统整体走向。需要明确系统边界（哪些功能自研、哪些用开源）、技术选型（语言、框架、数据库）、以及性能指标（响应时间、并发量、可用性）。</li>
+<li><strong>核心观点2</strong>：构建后端基础框架为后续功能模块开发打好地基，强调先框架后功能的工程顺序。基础框架包括项目结构（分层架构：DAO/Service/Controller）、配置管理、日志系统、异常处理、以及API文档自动生成。</li>
+<li><strong>核心观点3</strong>：AI搜索后端与传统Web后端的核心差异在于——AI链路（嵌入、检索、生成）耗时远大于普通数据库查询，需要异步处理、流式响应、以及超时降级机制。</li>
+</ul>
+<h3 id="第6章-构建ai搜索的核心架构">第6章 构建AI搜索的核心架构</h3>3
+<ul>
+<li><strong>核心观点1</strong>：实体、分析器、检索器、生成器、过滤器五大核心模块各有明确功能定位，共同构成搜索引擎内核。实体模块定义数据结构（文档、chunk、用户查询）；分析器负责查询理解与改写；检索器负责向量检索与关键词检索；生成器负责调用LLM生成答案；过滤器负责质量把关与去重。</li>
+<li><strong>核心观点2</strong>：模块化设计强调结构清晰、职责分明，是系统可维护与可扩展的前提。每个模块可独立替换（如换嵌入模型、换向量库、换生成模型），模块间通过定义良好的接口通信。</li>
+<li><strong>核心观点3</strong>：每个模块均配套代码实现，将架构设计落到可运行的工程层面。这种"架构+代码"并行的方式让读者不仅理解"为什么这样设计"，还能直接运行和修改代码验证效果。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 实现AI搜索的自动运行</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：通过动作类的定义与实现，将系统能力封装为可调度的执行单元</li><li>核心观点2：调度器模块的构建使系统具备自动化运行能力，提升整体智能化水平</li><li>动作类（Action）封装了"做什么、需要什么参数、返回什么结果"的完整描述，是调度器可以理解和执行的基本单位</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：通过动作类的定义与实现，将系统能力封装为可调度的执行单元。动作类（Action）封装了"做什么、需要什么参数、返回什么结果"的完整描述，是调度器可以理解和执行的基本单位。</li>
+<li><strong>核心观点2</strong>：调度器模块的构建使系统具备自动化运行能力，提升整体智能化水平。调度器根据查询理解结果决定调用哪些动作、按什么顺序执行、是否需要循环重试，实现从"用户每次手动发起"到"系统自动规划执行"的升级。</li>
+</ul>
+<h3 id="第8章-开发ai搜索的应用功能与场景测试">第8章 开发AI搜索的应用功能与场景测试</h3>3
+<ul>
+<li><strong>核心观点1</strong>：按DAO操作层、Service逻辑层、Controller接口层的分层方式开发应用功能，保证职责分离。DAO层处理数据持久化（文档存储、向量存储、日志记录）；Service层封装业务逻辑（检索流程编排、答案生成）；Controller层对外提供REST API接口。</li>
+<li><strong>核心观点2</strong>：提供多个接口实现示例，将分层设计转化为可调用的应用能力。典型接口包括：文档上传与索引、知识库管理、搜索查询、答案获取、以及引用溯源。</li>
+<li><strong>核心观点3</strong>：通过3个场景测试AI搜索效果，以实际验证闭环检验系统落地质量。测试场景通常覆盖：通用问答（事实性查询）、专业领域问答（依赖知识库的深度问题）、以及复杂多轮追问（需要上下文理解的连续对话）。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">补充章节 实践建议与常见踩坑</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：查询理解是AI搜索最容易被忽视的环节</li><li>核心观点4：AI搜索的评估不能只看"答案对不对"</li><li>一个简单的优化是：先用LLM做查询改写（扩展同义词、拆解复杂问题为子查询、修正错别字），改写后的查询再去检索——这一步往往能带来20%以上的召回率提升</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：查询理解是AI搜索最容易被忽视的环节。很多系统直接把用户原始问题丢给检索器，但用户输入往往模糊、口语化、含错别字。一个简单的优化是：先用LLM做查询改写（扩展同义词、拆解复杂问题为子查询、修正错别字），改写后的查询再去检索——这一步往往能带来20%以上的召回率提升。</li>
+<li><strong>核心观点2</strong>：检索结果的质量比数量更重要。很多人以为"检索10条比检索5条好"，实际上检索太多会引入噪声——生成模型面对10条不相关内容时，反而更容易被误导。建议检索Top-5到Top-8条，然后用重排序模型精排，取前3-4条传给生成模型。</li>
+<li><strong>核心观点3</strong>：答案缓存是效率优化的利器。高频问题（如"公司地址在哪""营业时间"）每次都重新检索+生成是浪费——可以建立问题相似度缓存：新问题到来时，先检查是否与缓存中的问题高度相似（向量相似度&gt;0.95），如果是就直接返回缓存答案。</li>
+<li><strong>核心观点4</strong>：AI搜索的评估不能只看"答案对不对"。还要评估：引用来源是否正确（答案说"根据文档X"，实际是不是来自文档X）、答案是否全面（是否遗漏了重要信息）、以及答案是否简洁（有没有多余的废话）。建议建立标注评测集，覆盖常见问题类型，定期跑评测。</li>
+</ul>
+<h3 id="核心要点总结">核心要点总结</h3>3
+<ul>
+<li><strong>观点回顾</strong>：AI搜索与传统搜索的本质区别是"返回答案而非返回链接"——用户体验从"找信息"变成"问问题"。核心技术链路是查询理解→规划执行→检索→生成→优化。</li>
+<li><strong>实践建议</strong>：先做查询改写（把口语化问题变成适合检索的表达），再做混合检索（向量+关键词），最后做答案优化（去重、引用、摘要）。不要跳过任何一步直接追求"端到端完美"。</li>
+<li><strong>常见错误</strong>：直接把用户原始问题丢给检索器（没有查询理解）、检索太多条（引入噪声）、没有缓存（高频问题重复计算）。</li>
+<li><strong>技术栈选择</strong>：开发阶段用OpenAI API+Milvus+LangChain快速验证；生产阶段可切换DeepSeek降本、加缓存优化延迟。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">补充说明 模块化架构的价值</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：五大模块（实体/分析器/检索器/生成器/过滤器）的拆分设计，本质是"单一职责原则"在AI搜索系统中的落地</li><li>核心观点2：这种模块化架构的最大价值在于"可演进性"</li><li>核心观点3：调度器和动作类的引入，让系统从"用户每次提问都从头走一遍流程"升级为"系统自动规划最优执行路径"</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：五大模块（实体/分析器/检索器/生成器/过滤器）的拆分设计，本质是"单一职责原则"在AI搜索系统中的落地。每个模块只做一件事，模块间通过明确定义的数据结构通信——这使得系统可以独立替换任何一个模块而不影响其他部分。</li>
+<li><strong>核心观点2</strong>：这种模块化架构的最大价值在于"可演进性"。初期用开源模型+Milvus快速上线；后期可以把嵌入模型换成自研模型、把向量库从Milvus换成Pinecone、把生成器从OpenAI换成本地模型——每个替换都是独立工程，不会引发全局重构。</li>
+<li><strong>核心观点3</strong>：调度器和动作类的引入，让系统从"用户每次提问都从头走一遍流程"升级为"系统自动规划最优执行路径"。这种自动化能力是AI搜索从"工具"走向"智能服务"的关键一步。</li>
+</ul>
+<h3 id="补充要点-场景测试的价值">补充要点 场景测试的价值</h3>3
+<ul>
+<li><strong>核心观点1</strong>：3个场景测试（通用问答、专业领域问答、多轮追问）覆盖了AI搜索系统最常见的使用模式。通用问答验证基础检索能力；专业领域问答验证知识库质量；多轮追问验证上下文理解能力。</li>
+<li><strong>核心观点2</strong>：场景测试应该在开发早期就开始——不要等"全部开发完了再测试"，而是每完成一个模块就跑相关场景的冒烟测试。这样能尽早发现问题，避免最后集成时大量问题一起爆发。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">适用场景标签</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<ul>
+<li>AI搜索系统开发</li>
+<li>大模型应用落地</li>
+<li>RAG与向量检索实践</li>
+<li>后端架构与模块化设计</li>
+<li>全流程源码学习</li>
+</ul>
+<h2 id="一句话推荐">一句话推荐</h2>2
+<p>从0到1搭建AI搜索实战指南。</p></div></details></div></body></html>

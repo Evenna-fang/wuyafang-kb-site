@@ -1,0 +1,73 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Transformer为什么有效</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ Transformer为什么有效</span></div><div class="wrap"><h1 id="transformer-为什么有效">Transformer 为什么有效</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">这个问题的答案是什么</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Transformer 之所以能打败 RNN/CNN 成为大模型的底座，靠三件事：自注意力让每个词直接看到所有词、位置编码补上"顺序"信息、并行计算让 GPU 能真正发力</li><li>前两件解决"模型能理解长句子"的问题，第三件解决"训练得起、跑得动"的问题</li></ul></div>2
+<p>Transformer 之所以能打败 RNN/CNN 成为大模型的底座，靠三件事：<strong>自注意力让每个词直接看到所有词、位置编码补上"顺序"信息、并行计算让 GPU 能真正发力</strong>。前两件解决"模型能理解长句子"的问题，第三件解决"训练得起、跑得动"的问题。</p>
+<h2 id="详细内容">详细内容</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 自注意力：每个词都能直接"看到"所有词</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>RNN 处理句子时是一个词一个词顺着读的，读到第 100 个词时，第 1 个词的信息要经过 99 次传递才能到达——中间任何一步丢失或变形，就忘了</li><li>自注意力换了个思路：在同一层里，每个词都直接跟句子里所有其他词算一遍"我该多看你一眼还是少看你一眼"</li><li>这就是 RNN 处理长句"失忆"的根本原因</li></ul></div>3
+<p>RNN 处理句子时是一个词一个词顺着读的，读到第 100 个词时，第 1 个词的信息要经过 99 次传递才能到达——中间任何一步丢失或变形，就忘了。这就是 RNN 处理长句"失忆"的根本原因。</p>
+<p>自注意力换了个思路：<strong>在同一层里，每个词都直接跟句子里所有其他词算一遍"我该多看你一眼还是少看你一眼"</strong>。具体做法就是 Q/K/V 三个矩阵：用 Q（Query）跟每个 K（Key）算相似度，得到一组权重，再用这组权重对 V（Value）做加权求和。翻译时翻到"I"就重点看原文的"我"，翻到"Today"就重点看"今天"——这是《大语言模型：原理、应用与优化》里给的经典例子。</p>
+<p>通俗点说，《大模型是怎样跑起来的》里那句最直白：<strong>"每个 Token 在参与计算时，都会回头看前面出现过的 Token，判断谁对自己更重要。"</strong> 因为所有词互相直接计算，长句子里相距很远的两个词（比如"它"和前面 50 个字外的主语）也能立刻建立联系，不需要靠中间一层层传递。</p>
+<h3 id="2-位置编码自注意力本身不识数得人为告诉它顺序">2. 位置编码：自注意力本身"不识数"，得人为告诉它顺序</h3>3
+<p>自注意力有个致命副作用：它对词的顺序是<strong>不敏感</strong>的。你把句子里词的排列打乱，每个词跟其他词算的相似度其实没变。但语言是有顺序的——"狗咬人"和"人咬狗"意思完全相反。</p>
+<p>《从零构建大模型》里写得很直接：<strong>"由于大语言模型的自注意力机制本质上与位置无关，因此向模型中注入额外的位置信息是有帮助的。"</strong> 《Transformer 模型开发从 0 到 1》也强调：<strong>"由于 Transformer 模型不包含递归和卷积操作，所以为了使 Transformer 模型能够利用输入序列的顺序，它引入了一些关于输入序列的相对或绝对位置信息。"</strong></p>
+<p>做法就是给每个位置加一个"位置向量"，跟词向量加在一起喂进网络。这样模型既知道这个词是什么，又知道它在第几个位置。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 并行计算：GPU 终于有活儿干了</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>RNN 是串行的——必须等前一个词算完才能算下一个，GPU 再多核心也只能在一个时间步里干一件事</li><li>Transformer 把这一层的所有词同时算自注意力矩阵，整个矩阵乘法可以一次性丢给 GPU 的 Tensor Core 并行处理</li><li>《大模型是怎样跑起来的》硬件篇点出了关键："大模型需要大量矩阵乘法，而现代 AI GPU 里有专门为矩阵乘法加速的硬件</li></ul></div>3
+<p>RNN 是串行的——必须等前一个词算完才能算下一个，GPU 再多核心也只能在一个时间步里干一件事。Transformer 把这一层的所有词同时算自注意力矩阵，整个矩阵乘法可以一次性丢给 GPU 的 Tensor Core 并行处理。</p>
+<p>《大模型是怎样跑起来的》硬件篇点出了关键：<strong>"大模型需要大量矩阵乘法，而现代 AI GPU 里有专门为矩阵乘法加速的硬件。"</strong> 斋藤康毅在《深度学习入门》里也早就强调过：<strong>"通过矩阵的乘积一次性完成计算的技巧，在实现的层面上可以说是非常重要的。"</strong></p>
+<p>这就是为什么 GPT 能从几百万参数一路涨到几千亿——不是 Transformer 结构更聪明，而是它能把规模真正转化为算力，而不是卡在串行瓶颈上。</p>
+<h2 id="来自哪些书的哪些观点标注来源">来自哪些书的哪些观点（标注来源）</h2>2
+<ul>
+<li><strong>《大模型是怎样跑起来的（轻科技）》</strong>：注意力机制的通俗解释——每个 Token 回头看前面出现过的 Token，判断谁更重要；GPU 有专门为矩阵乘法加速的硬件（Tensor Core/HBM），这是大模型能跑起来的硬件基础。</li>
+<li><strong>《大语言模型：原理、应用与优化》</strong>：翻译任务中注意力权重的例子（翻到"I"关注"我"，翻到"Today"关注"今天"）。</li>
+<li><strong>《Transformer 模型开发从 0 到 1》</strong>：Transformer 不含递归和卷积，必须显式引入位置信息才能感知序列顺序；自注意力通过 Q/K 相似度 × V 加权得到表示。</li>
+<li><strong>《从零构建大模型》</strong>：自注意力本质上与位置无关，所以必须额外注入位置嵌入；大语言模型的成功一方面靠 Transformer 架构，一方面靠海量数据。</li>
+<li><strong>《深度学习入门：基于 Python 的理论与实现》（斋藤康毅）</strong>：矩阵乘积的向量化计算是深度学习能在 GPU 上高效运行的实现基础。</li>
+<li><strong>《深度学习详解》（李宏毅）</strong>：编码器由多个 block 堆叠而成，每个 block 输入一组向量输出另一组向量——这是 Transformer 能堆到几十上百层的结构前提。</li>
+</ul></div></details></div></details></div></body></html>

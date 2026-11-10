@@ -1,0 +1,629 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>05-LangGraph状态机</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 05-LangGraph状态机</span></div><div class="wrap"><h1 id="langgraph-状态机从状态设计到可恢复执行">LangGraph 状态机：从状态设计到可恢复执行</h1>
+<blockquote>
+<p><a href="../index.html">← 返回知识库总入口</a></p>
+<p>本篇把课件的图编排语法、两本书的章节重点、官方文档和旧稿中的本机实验记录合并为一条完整主线。下一篇从业务上线角度讨论部署、验证、观测、评估与回滚：<a href="06-Agent%E7%94%9F%E4%BA%A7%E7%BA%A7%E9%83%A8%E7%BD%B2.html">Agent 生产级部署</a>。</p>
+<p><strong>证据口径</strong>：文中“旧稿记录的本机实测”均指旧稿在 <code>langgraph 1.2.11</code>、确定性节点和内存检查点上的历史实验，本次整理没有重跑。生产 PostgreSQL 路径未实连，代码是可继续验证的骨架，不代表已经在当前环境跑通。</p>
+</blockquote>
+<h2 id="why">WHY</h2>2
+<h3 id="为什么-agent-需要状态机而不是更长的提示词">为什么 Agent 需要状态机，而不是更长的提示词</h3>3
+<p>单轮问答的核心是“输入一个问题，返回一个答案”；业务 Agent 的核心却是“在多次模型判断和外部动作之间，持续推进一个可检查的任务”。后者天然包含循环、等待、失败、恢复和人工接管。若把所有逻辑塞进一个 ReAct 循环，短期看代码很少，长期会出现四类失控：模型反复调用同一工具却没有统一停止条件；进程退出后只剩一段聊天文本，无法知道哪些步骤真正完成；工具已经扣款或发信，重试又执行一次；人工审批期间一直占用进程，重启后无法接着审批。</p>
+<p>LangGraph 的价值不是让图看起来复杂，而是把这些隐式行为变成显式工程对象。状态回答“现在知道什么”，节点回答“这一步做什么”，边回答“接下来去哪”，检查点回答“失败以后从哪里恢复”，中断回答“何时把决定权交还给人”。这正好对应书籍章节笔记反复强调的图式思维：先确定状态变化，再确定控制流，最后才选择模型和工具。</p>
+<p>这也解释了为什么不能把状态机理解成固定 DAG。Agent 的“生成—检查—修订”“调用—失败—重试”“计划—执行—再规划”都需要回流边。但支持循环不等于鼓励自主漫游。生产图必须同时具备有限出口、步数预算、错误分类和人工兜底；否则图只是把一个不可控循环画得更漂亮。</p>
+<h3 id="为什么恢复能力会反过来决定代码结构">为什么恢复能力会反过来决定代码结构</h3>3
+<p>很多团队先写一个大节点，里面依次检索、调用模型、写数据库、发通知，最后再考虑接检查点。这种顺序会失败，因为检查点不是“给任意代码自动增加断点续传”的魔法。LangGraph 的恢复单位主要是节点：失败节点会从头重跑，而不是从抛异常的那一行继续。节点里越早发生的副作用，在重试和恢复时越可能重复。</p>
+<p>因此，节点边界必须按恢复语义设计，而不是按代码文件长短设计。昂贵或不确定的模型调用应独立；有外部副作用的调用应独立；便宜、确定、可重复的格式转换可以合并。拆分以后，检查点才能保存“草稿已经完成，只剩发送”这一事实，避免恢复时重新生成草稿并再次扣费。</p>
+<p>人机协同也遵循同一原则。<code>interrupt()</code> 恢复时，所在节点会从头执行，所以中断前的非幂等操作会重做。持久化不是最后接上的一个存储器，而是迫使我们把业务流程改写成可重放、可审计、可补偿的结构。</p>
+<h3 id="本篇解决什么问题">本篇解决什么问题</h3>3
+<p>下文用一条“状态—路由—错误—持久化—中断—回放—观察”的链路回答六个问题：State 应该保存什么；并行结果怎样不丢失；静态路由和动态路由怎样选择；不同错误为什么不能一概重试；崩溃和审批后怎样安全恢复；怎样把执行过程暴露给测试、前端和事故复盘。阅读目标不是背 API，而是能为一个真实业务流程画出可恢复的最小图，并写出对应验收用例。</p>
+<h2 id="whatwhyt">WHAT（WHYT）</h2>2
+<h3 id="一stategraph共享状态部分更新与受控流转">一、StateGraph：共享状态、部分更新与受控流转</h3>3
+<p>一张 <code>StateGraph</code> 由 State、Node 和 Edge 构成。节点接收当前状态，返回需要更新的字段，而不是直接修改整份状态；编译后的图负责把部分更新合并进状态并选择后继节点。普通边表达固定依赖，条件边表达有限路由，结束边把流程交给 <code>END</code>。</p>
+<p><code>TypedDict</code> 是图内部状态的常用轻量表达。它的价值首先是字段契约：哪些字段由入口提供，哪些由节点生成，哪些用于审计，都能被代码评审和测试看见。图的输入、输出 schema 可以与内部状态不同，因此对外只暴露必要字段，内部草稿和错误信息无需成为 API 承诺。入口边界若需要严格类型和范围校验，可以再用 Pydantic；不能把“内部 TypedDict 很轻”误解为“外部输入也不需要验证”。</p>
+<p>State 的第一条设计红线是：<strong>只存原始数据，不存格式化后的 prompt</strong>。例如保存邮件正文、分类字典、检索片段、工具结果和审批决定，不要保存“你现在是客服，请根据以下材料……”这类拼接字符串。原始数据可以被不同节点按不同方式消费，提示词改版也不会迫使历史 checkpoint 改变结构。调试时，开发者看到的也是事实和决策，而不是难以 diff 的大段文本。</p>
+<p>第二条原则是“跨步骤需要才保存，能推导则使用时再算”。把所有中间文本都放入 State，会让 checkpoint 膨胀、流式输出变大，也增加敏感数据长期留存的面。数据库连接、客户端对象等不可序列化资源不应作为业务状态保存；它们应由运行时依赖注入或节点内部获取。反过来，恢复后仍需要的业务事实不能因为“体积有点大”就藏进全局变量，否则换进程恢复时会丢失。</p>
+<h3 id="二reducer-与-add_messages定义合并而不是碰运气">二、Reducer 与 add_messages：定义合并，而不是碰运气</h3>3
+<p>普通字段的默认合并语义是新值覆盖旧值。对单一写入者的 <code>status</code>、<code>draft</code> 等字段，这通常合理；对并行分支共同写入的日志、结果列表，就会发生冲突。Reducer 用 <code>Annotated[类型, 合并函数]</code> 显式声明某个 key 如何合并已有值和节点更新，例如 <code>operator.add</code> 可以把各分支返回的列表拼接起来。</p>
+<p>对话字段应优先使用框架提供的 <code>add_messages</code>，或直接继承 <code>MessagesState</code>。它不仅处理追加，还按消息 ID 支持更新语义；简单使用列表相加并不等价。工具消息还要维持与工具调用的配对关系，错误回灌时不能随意丢掉 <code>tool_call_id</code>。消息裁剪、人工修改和恢复都依赖这些结构，而不是依赖消息在列表中的偶然位置。</p>
+<p>判断是否需要 reducer，不能只看“字段是不是列表”，而要看“同一执行步是否可能有多个写入者”。串行列表字段是否覆盖，由业务决定；并行列表字段若要汇总，就必须有合并规则。对于计数、集合、字典或只允许一个分支胜出的结果，也应选择符合业务的合并函数，而不是机械套 <code>operator.add</code>。Reducer 还要考虑空值和清空语义：追加型合并里返回空列表通常意味着“没有新增”，不是“清空历史”。</p>
+<h3 id="三super-step并行写冲突与节点边界">三、super-step、并行写冲突与节点边界</h3>3
+<p>LangGraph 以 super-step 推进执行：同一步可运行的节点形成一批，节点更新按规则写回，随后进入下一步。一个节点有多条普通出边时，可以形成并行分叉；多个上游汇入后继时，可以形成等待汇合。并行能减少关键路径上的等待，但也引入共享状态竞争、外部限流和成本放大。</p>
+<p>并行设计有三条检查线。第一，同一 key 的并发写入必须有明确 reducer，或者让每个分支只写自己的 key。第二，扇出数量必须有上限，尤其当分支数来自用户上传的文档数或模型生成的子任务数时。第三，外部工具要按下游容量限流，不能把“图支持并行”理解为“所有 API 都能承受同时调用”。</p>
+<p>super-step 也是理解恢复和流式的关键。前端看到某个节点事件，不等于整个业务事务已经提交；某个并行分支成功，也不等于整步成功。涉及多个外部系统的写入，不能假设它们自动组成一个原子事务。需要原子性的场景应把事务放到同一业务系统内部，跨系统则采用幂等、读回和补偿。</p>
+<h3 id="四普通边条件边command-与-send">四、普通边、条件边、Command 与 Send</h3>3
+<p>四种路由手段应按“谁决定下一步”选择，而不是混着用。</p>
+<table>
+<thead>
+<tr>
+<th>手段</th>
+<th>决策位置</th>
+<th>适用场景</th>
+<th>主要约束</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>普通边</td>
+<td>图结构预先决定</td>
+<td>固定先后、并行分叉与汇合</td>
+<td>多条出边可能并行，不是按书写顺序逐个选择</td>
+</tr>
+<tr>
+<td>条件边</td>
+<td>独立路由函数</td>
+<td>根据分类、错误码或审批状态选分支</td>
+<td>路由函数只读状态，返回有限且已声明的出口</td>
+</tr>
+<tr>
+<td><code>Command</code></td>
+<td>节点执行后决定</td>
+<td>同一节点要同时更新状态并跳转</td>
+<td>声明可能去向，避免和该节点静态路由重复</td>
+</tr>
+<tr>
+<td><code>Send</code></td>
+<td>运行时生成任务列表</td>
+<td>每项数据派一个 worker 的 map-reduce</td>
+<td>控制扇出，worker 输入是显式子状态，汇总需 reducer</td>
+</tr>
+</tbody>
+</table>
+<p>条件路由最适合把模型判断约束在枚举内。模型可以输出 <code>question</code>、<code>refund</code>、<code>human</code> 等类别，但不应自由生成任意节点名。路由函数遇到未知值要有安全出口，通常是澄清、人工审查或拒绝，而不是 <code>KeyError</code> 后让图崩溃。</p>
+<p><code>Command(update=..., goto=...)</code> 适合“执行结果本身决定下一步”。例如工具节点成功后去生成节点，参数可修正时把错误作为数据返回模型节点，超出修正次数则去人工节点。这里的关键是把状态更新和路由作为一个决策返回，而不是先修改一份隐藏全局状态再跳转。节点返回类型用 <code>Command[Literal[...]]</code> 标明可能去向，也有助于类型检查和图可视化。</p>
+<p><code>Send(node, state)</code> 用于运行时动态扇出。与固定并行不同，它允许为每个 worker 构造不同输入，例如每个文档片段只收到自己的 <code>document_id</code> 和正文。worker 不应假设能看到完整主状态；所需数据必须显式传入。所有 worker 的结果通过 reducer 汇总后，再进入 reduce 节点。若输入为空、重复或极大，路由层应先定义行为，避免静默返回空答案或制造调用风暴。</p>
+<h3 id="五循环预算recursion_limit-与-remainingsteps">五、循环预算：recursion_limit 与 RemainingSteps</h3>3
+<p>带环图必须有停止条件。<code>recursion_limit</code> 是运行时安全网，限制一次运行可推进的 super-step 数，超过后抛出递归错误。它应放在顶层 config，而不是塞进 <code>configurable</code>。它的作用是最后一道防爆阀，不能代替业务停止条件：订单已终态、审批已拒绝、证据已足够、错误不可恢复，都应在图内明确结束。</p>
+<p><code>RemainingSteps</code> 是由框架维护的剩余步数信息，可用于在接近上限前进入降级分支。与直接让递归错误冒出相比，图内降级能返回“暂时无法完成，已保留任务并转人工”这类可处理结果。但要给降级和收尾节点预留步数，不能在剩余一步时才试图执行一段多节点补偿流程。</p>
+<p>合理的上限来自业务 trace：先估算最大模型轮数、工具调用数、修订次数和并行汇合开销，再加少量余量。固定流程的防御上限与开放式 Agent 的循环预算不会相同。任何具体数值都只是业务配置起点，不是 LangGraph 官方保证；必须通过故障注入证明超限后确实停止、状态可查、费用不继续增长。</p>
+<h3 id="六错误分类retrypolicy-与-fallback">六、错误分类、RetryPolicy 与 fallback</h3>3
+<p>生产错误至少分四类，处理者和动作都不同。</p>
+<ol>
+<li><strong>瞬时基础设施错误</strong>：连接中断、明确可重试的限流或下游临时不可用。适合节点级 <code>RetryPolicy</code>，配合超时、指数退避和抖动。</li>
+<li><strong>模型可修正错误</strong>：工具参数不符合 schema、输出解析失败、缺少可推导字段。适合把结构化错误写回 State，让模型在有限次数内修正。</li>
+<li><strong>需要外部决定</strong>：缺账号、越权、高风险审批、证据冲突。适合 <code>interrupt()</code> 等待用户或人工，而不是让模型猜测。</li>
+<li><strong>程序缺陷或永久业务错误</strong>：字段不存在、依赖版本错误、余额不足、订单状态不允许退款。应快速失败或走确定 fallback，不能用重试掩盖。</li>
+</ol>
+<p><code>RetryPolicy</code> 的重试单位是节点。配置时应显式限定 <code>retry_on</code>，并设置最大尝试次数和时间参数；不要因为默认策略“可能认识某类异常”就把所有业务异常交给它。重试只能解决“再次执行可能成功”的问题，不能修复逻辑错误，更不能保证副作用只发生一次。</p>
+<p>fallback 也不是“换个模型再来一遍”这么简单。可靠顺序通常是：同类健康实例、能力较弱但可用的模型、缓存或简化结果、明确拒绝并保留任务。每次降级都要记录原因和质量损失，防止系统长期静默运行在低质量路径。重试耗尽后的恢复分支可以更新错误状态并路由到 fallback；具体声明式错误处理参数依赖框架版本，使用前要核对当前 API，不能把较新文档中的参数直接移植到旧版本。</p>
+<h3 id="七checkpointerstore-与-thread_id">七、Checkpointer、Store 与 thread_id</h3>3
+<p>Checkpointer 保存图执行过程中的状态快照，是会话续接、失败恢复、人审和 Time Travel 的基础。Store 保存应用自定义的跨线程数据，适合用户偏好、长期事实和共享知识。前者回答“这个任务执行到哪”，后者回答“不同任务之间哪些信息可以复用”，两者不能互相替代。</p>
+<p><code>thread_id</code> 是线程恢复的主键。同一任务的多次调用、崩溃后的 <code>invoke(None, config)</code>、审批后的 <code>Command(resume=...)</code> 都要使用同一个线程标识。不同用户或不同业务任务必须隔离，不能图省事共用固定值；业务授权还必须在数据层检查“当前调用者能否访问该 thread”，只知道标识不应等于拥有读取和恢复权限。</p>
+<p>内存 Saver 适合单测和原型，进程退出即丢。SQLite 适合本地或轻量单机场景。<code>PostgresSaver</code>／<code>AsyncPostgresSaver</code> 是生产候选，但要处理建表、连接池、迁移、并发、备份、保留和清理。旧稿只验证了内存检查点，<strong>没有实连 Postgres，因此本篇不宣称生产持久化已验证</strong>。</p>
+<p>checkpoint 会随步骤增长，保留策略必须区分运行中、等待审批、已完成和审计冻结的线程。不能简单按时间删除所有旧记录，否则一笔等待数天的审批会失去恢复依据。State 的 schema 演进也要考虑旧 checkpoint：新增字段应有默认或兼容读取逻辑，重命名节点和改变字段类型都可能让挂起线程无法在新代码上恢复。</p>
+<h3 id="八节点级恢复与-durable-execution">八、节点级恢复与 durable execution</h3>3
+<p>StateGraph 的恢复不是行级续跑。已完成节点从检查点读取结果，失败或中断节点从节点开头重跑；节点内子图还有相应父图和子图恢复边界。由此得到一条硬规则：<strong>恢复会重跑的节点必须幂等，至少不能造成不可接受的重复副作用</strong>。</p>
+<p>所谓幂等，不是“代码看起来一样”，而是同一业务动作用同一幂等键重复请求时，外部世界仍只有一个有效结果。下游若支持幂等键，应稳定传递订单号、任务号加动作名等标识；下游不支持时，需要本地去重记录、写后读回或补偿流程。仅在节点里打印“已经执行”不能防重。</p>
+<p>Functional API 的 <code>@task</code> 可以把已完成任务的结果记入检查点，恢复时复用，从而减少函数重放中的重复调用。但它仍不能解决“外部动作已经生效，本地在收到响应前崩溃”的半完成窗口。无论 Graph API 还是 Functional API，副作用本身的幂等和结果读回都不可省略。</p>
+<p>持久化写入时机也存在可靠性与延迟取舍：同步持久化更强调下一步前落盘，异步模式折中吞吐，退出时持久化则不适合要求中途崩溃可恢复的流程。选择应依据动作风险、任务长度和可重做成本，并用杀进程测试验证，而不是只凭模式名称判断。</p>
+<h3 id="九interruptcommandresume-与副作用位置">九、interrupt、Command(resume) 与副作用位置</h3>3
+<p><code>interrupt(payload)</code> 把可序列化的审批问题暴露给调用方并保存暂停状态；调用方之后用同一线程和 <code>Command(resume=value)</code> 恢复。恢复值会成为本次 <code>interrupt()</code> 的返回结果，节点再据此更新审批状态，后续条件边决定继续、修改或拒绝。</p>
+<p>最重要的规则是：<strong>恢复时节点从头执行，所以 interrupt 前不得有非幂等副作用</strong>。推荐把中断放在审批节点最前面，把扣款、发送、发布等动作放到审批后的独立节点。即使中断前只是写日志，也应考虑重放后是否会产生重复审计事件。不要用宽泛的 <code>try/except Exception</code> 包住 <code>interrupt()</code>，以免把框架用于暂停的控制流异常吞掉。</p>
+<p>同一节点多个中断按顺序匹配恢复值，条件性跳过或不确定循环会让恢复错位。需要反复校验输入时，应每轮保存提示和错误，再通过条件边重新进入审批节点，而不是在一个节点里写无限 <code>while True</code>。多个并行中断则需要按各自 ID 提交恢复值，不能假设一个布尔值能代表所有审批。</p>
+<h3 id="十time-travelreplay-是重走fork-是新增历史">十、Time Travel：replay 是重走，fork 是新增历史</h3>3
+<p><code>get_state_history(config)</code> 可查看线程历史。选择某个 checkpoint 后以空输入继续，是从该位置重放后续节点；<code>update_state(...)</code> 则可以在历史状态上写入修正并形成分叉。分叉不是把旧历史抹掉，原记录仍可用于审计，这一点对事故追责和人工纠错都很重要。</p>
+<p>重放并不保证得到原结果。模型输出可能变化，外部数据可能更新，副作用节点也可能再次执行。因此 replay 更像“在指定状态重新运行后续图”，不是无副作用的只读影片。用于生产纠错前，要识别后续路径上的写操作，必要时在隔离环境重放，或改走带补偿的分叉流程。最终已经无后继的检查点也不能提供“重新执行整个任务”的捷径。</p>
+<p>旧稿记录过一个值得复核的细节：从历史 checkpoint 重放到新的中断后，继续携带旧 <code>checkpoint_id</code> 恢复曾复用旧恢复值，改用只含 <code>thread_id</code> 的 config 后得到新决定。该现象本次未重跑、原因也未定位，不能上升为所有版本的普遍规则；但它提醒我们在恢复测试中明确区分历史 config 和线程最新 config。</p>
+<h3 id="十一streaming-与-functional-api-的定位">十一、Streaming 与 Functional API 的定位</h3>3
+<p>Streaming 解决的是执行过程如何被观察。<code>values</code> 提供每步完整状态，适合调试但数据量大；<code>updates</code> 提供节点增量，适合进度展示；<code>messages</code> 暴露模型 token，适合打字机效果；<code>custom</code> 让节点发送业务进度；检查点、任务和调试模式服务于更细的排障。多种模式可以同时订阅。若需要子图内部事件，要核对并启用子图流式选项，否则可能最终答案正确，却看不到子图 token 和节点进度。</p>
+<p>Functional API 用 <code>@entrypoint</code> 与 <code>@task</code> 表达普通 Python 控制流，同时复用持久化、恢复和中断能力。它适合线性或简单分支、已有函数渐进接入、希望用任务缓存减少重复工作的场景。Graph API 更适合复杂回流、显式路由、动态扇出和需要图评审的场景。两者是同一运行模型下的不同表达，不是“高级版”和“低级版”的关系。</p>
+<h2 id="how">HOW</h2>2
+<h3 id="一完整最小图原始状态条件路由与安全出口">一、完整最小图：原始状态、条件路由与安全出口</h3>3
+<p>下面的确定性骨架不调用真实模型，用来展示最小图的完整结构。实际接入时，只需把 <code>classify</code> 和 <code>draft</code> 内的占位逻辑替换为受控服务调用；测试仍应保留假实现，避免流程测试依赖模型随机性。</p>
+<pre><code class="language-python">import operator
+from typing import Annotated, Literal, TypedDict
+from langgraph.graph import END, START, StateGraph
+
+
+class TicketState(TypedDict):
+    ticket_id: str
+    raw_text: str
+    category: str
+    draft: str
+    status: str
+    trail: Annotated[list[str], operator.add]
+
+
+def classify(state: TicketState) -&gt; dict:
+    # 真实项目让模型只返回有限枚举，不返回节点名
+    text = state[&quot;raw_text&quot;]
+    category = &quot;billing&quot; if &quot;退款&quot; in text else &quot;question&quot;
+    return {
+        &quot;category&quot;: category,
+        &quot;trail&quot;: [f&quot;classify:{category}&quot;],
+    }
+
+
+def route_category(state: TicketState) -&gt; Literal[&quot;billing&quot;, &quot;answer&quot;, &quot;human&quot;]:
+    # 路由只读状态，未知类别进入人工安全出口
+    return {
+        &quot;billing&quot;: &quot;billing&quot;,
+        &quot;question&quot;: &quot;answer&quot;,
+    }.get(state[&quot;category&quot;], &quot;human&quot;)
+
+
+def billing_node(state: TicketState) -&gt; dict:
+    # 此处只做资格判断；真实退款应放到独立幂等动作节点
+    return {&quot;status&quot;: &quot;needs_refund_check&quot;, &quot;trail&quot;: [&quot;billing&quot;]}
+
+
+def answer_node(state: TicketState) -&gt; dict:
+    return {
+        &quot;draft&quot;: f&quot;已受理问题：{state['raw_text']}&quot;,
+        &quot;status&quot;: &quot;answered&quot;,
+        &quot;trail&quot;: [&quot;answer&quot;],
+    }
+
+
+def human_node(state: TicketState) -&gt; dict:
+    return {&quot;status&quot;: &quot;needs_human&quot;, &quot;trail&quot;: [&quot;human&quot;]}
+
+
+builder = StateGraph(TicketState)
+builder.add_node(&quot;classify&quot;, classify)
+builder.add_node(&quot;billing&quot;, billing_node)
+builder.add_node(&quot;answer&quot;, answer_node)
+builder.add_node(&quot;human&quot;, human_node)
+builder.add_edge(START, &quot;classify&quot;)
+builder.add_conditional_edges(
+    &quot;classify&quot;,
+    route_category,
+    {&quot;billing&quot;: &quot;billing&quot;, &quot;answer&quot;: &quot;answer&quot;, &quot;human&quot;: &quot;human&quot;},
+)
+builder.add_edge(&quot;billing&quot;, END)
+builder.add_edge(&quot;answer&quot;, END)
+builder.add_edge(&quot;human&quot;, END)
+graph = builder.compile()
+
+result = graph.invoke({
+    &quot;ticket_id&quot;: &quot;ticket-001&quot;,
+    &quot;raw_text&quot;: &quot;我想申请退款&quot;,
+    &quot;category&quot;: &quot;&quot;,
+    &quot;draft&quot;: &quot;&quot;,
+    &quot;status&quot;: &quot;new&quot;,
+    &quot;trail&quot;: [],
+})
+assert result[&quot;status&quot;] == &quot;needs_refund_check&quot;
+</code></pre>
+<p>验收重点不是输出文本是否漂亮，而是路径是否符合预期。至少准备 <code>question</code>、<code>billing</code>、未知类别三类输入，检查 <code>trail</code>、终态和没有访问的分支。若把分类节点改为 <code>Command</code> 路由，应在同一返回值中写入分类和 <code>goto</code>，并删除重复的静态条件边，避免两套路由同时生效。</p>
+<h3 id="二动态扇出send局部输入与-reducer-汇总">二、动态扇出：Send、局部输入与 reducer 汇总</h3>3
+<pre><code class="language-python">import operator
+from typing import Annotated, TypedDict
+from langgraph.graph import END, START, StateGraph
+from langgraph.types import Send
+
+
+class ResearchState(TypedDict):
+    documents: list[str]
+    summaries: Annotated[list[str], operator.add]
+    report: str
+
+
+def fan_out(state: ResearchState) -&gt; list[Send]:
+    # 扇出上限是业务预算的一部分，示例值不是通用推荐
+    documents = state[&quot;documents&quot;]
+    if not documents:
+        raise ValueError(&quot;空文档集必须显式拒绝或走空结果分支&quot;)
+    if len(documents) &gt; 20:
+        raise ValueError(&quot;超过单批上限；调用方必须分批，禁止静默截断&quot;)
+    return [
+        Send(&quot;summarize_one&quot;, {&quot;document&quot;: document})
+        for document in documents
+    ]
+
+
+def summarize_one(state: dict) -&gt; dict:
+    # worker 只依赖显式传入的局部状态
+    return {&quot;summaries&quot;: [f&quot;摘要:{state['document']}&quot;]}
+
+
+def reduce_results(state: ResearchState) -&gt; dict:
+    return {&quot;report&quot;: &quot;\n&quot;.join(state[&quot;summaries&quot;])}
+
+
+builder = StateGraph(ResearchState)
+builder.add_node(&quot;summarize_one&quot;, summarize_one)
+builder.add_node(&quot;reduce_results&quot;, reduce_results)
+builder.add_conditional_edges(START, fan_out, [&quot;summarize_one&quot;])
+builder.add_edge(&quot;summarize_one&quot;, &quot;reduce_results&quot;)
+builder.add_edge(&quot;reduce_results&quot;, END)
+map_reduce_graph = builder.compile()
+</code></pre>
+<p>当前骨架对空文档和超过 20 个文档都显式拒绝，由调用方选择空结果分支或分批；不会生成遗漏输入的“完整报告”。这里还要用三个负例验收：空文档列表是否按业务返回明确空结果或拒绝；超过上限是否按预期拒绝、截断或分批且行为可解释；两个 worker 同时写 <code>summaries</code> 时结果是否全部保留。还应记录扇出数和实际外部调用数，避免代码截断了输入，却在别的重试路径继续放大成本。</p>
+<h3 id="三循环降级与错误处理骨架">三、循环降级与错误处理骨架</h3>3
+<pre><code class="language-python">from typing import Literal, TypedDict
+from langgraph.errors import GraphRecursionError
+from langgraph.managed import RemainingSteps
+from langgraph.types import RetryPolicy
+
+
+class LoopState(TypedDict):
+    answer: str
+    repair_count: int
+    last_error: str
+    remaining_steps: RemainingSteps
+
+
+def route_remaining(state: LoopState) -&gt; Literal[&quot;repair&quot;, &quot;fallback&quot;]:
+    # 给降级和结束预留执行空间
+    return &quot;fallback&quot; if state[&quot;remaining_steps&quot;] &lt;= 2 else &quot;repair&quot;
+
+
+# 只把确认可重试的异常交给节点重试策略
+retry_policy = RetryPolicy(
+    max_attempts=3,
+    initial_interval=0.5,
+    retry_on=ConnectionError,
+)
+
+config = {
+    &quot;recursion_limit&quot;: 30,
+    &quot;configurable&quot;: {&quot;thread_id&quot;: &quot;ticket-001&quot;},
+}
+
+# 调用方仍需兜底，不能把递归异常静默吞掉
+# try:
+#     graph.invoke(initial_state, config)
+# except GraphRecursionError:
+#     # 记录告警并转人工，保留 thread_id 供后续处理
+#     pass
+</code></pre>
+<p>模型可修正错误应作为结构化数据返回，例如 <code>{"last_error": "缺少 order_id", "repair_count": 2}</code>，随后回模型节点修正；超过次数去人工。永久业务错误直接走拒绝或补偿，不进入上述重试。任何含写操作的节点都要先定义幂等键，再讨论重试次数。</p>
+<h3 id="四持久化崩溃恢复与-postgres-上线边界">四、持久化、崩溃恢复与 Postgres 上线边界</h3>3
+<p>开发和图级测试可用内存检查点验证恢复语义。</p>
+<pre><code class="language-python">from langgraph.checkpoint.memory import InMemorySaver
+
+checkpointer = InMemorySaver()
+persistent_graph = builder.compile(checkpointer=checkpointer)
+config = {&quot;configurable&quot;: {&quot;thread_id&quot;: &quot;ticket-recovery-001&quot;}}
+
+# 第一次执行若因可修复故障中断，修复后使用同一线程和空输入续跑
+# persistent_graph.invoke(initial_state, config, durability=&quot;sync&quot;)
+# result = persistent_graph.invoke(None, config, durability=&quot;sync&quot;)
+
+snapshot = persistent_graph.get_state(config)
+print(snapshot.next)       # 下一步节点，帮助判断停在哪里
+print(snapshot.values)     # 当前已保存状态
+</code></pre>
+<p>生产 PostgreSQL 的初始化骨架如下，但<strong>本次未实连、未建表、未验证并发与重启恢复</strong>。</p>
+<pre><code class="language-python">from langgraph.checkpoint.postgres import PostgresSaver
+
+# from_conn_string 是上下文管理器：with 必须覆盖图的编译与整个使用期
+with PostgresSaver.from_conn_string(&quot;postgresql://...&quot;) as postgres_checkpointer:
+    # 首次部署或受控迁移阶段执行，不放在每个请求里
+    postgres_checkpointer.setup()
+    persistent_graph = builder.compile(checkpointer=postgres_checkpointer)
+    # 在此作用域内处理请求；退出时由上下文管理器关闭连接
+</code></pre>
+<p>Web 服务应把这个生命周期接入应用启动/关闭流程，而不是让连接在首个请求返回前退出；高并发服务按所锁版本文档使用受控连接池并验证关闭语义。连接串由部署环境注入，不写入代码、日志或 State。</p>
+<p>上线验收要在真实数据库上完成：写入线程后杀掉 worker，另一实例能否恢复；两个 worker 同时恢复同一线程时如何防重；数据库短暂不可用时图是否失败清晰；备份还原后 checkpoint 是否可读；保留任务是否避开等待审批的线程。仅在单元测试中使用 <code>InMemorySaver</code> 不能回答这些问题。</p>
+<h3 id="五人审中断先行副作用后置">五、人审：中断先行，副作用后置</h3>3
+<pre><code class="language-python">from typing import Literal
+from langgraph.types import Command, interrupt
+
+
+def approve_refund(state: TicketState) -&gt; dict:
+    # 节点最前面中断，之前不扣款、不发通知、不写外部系统
+    decision = interrupt({
+        &quot;kind&quot;: &quot;refund_approval&quot;,
+        &quot;ticket_id&quot;: state[&quot;ticket_id&quot;],
+        &quot;summary&quot;: state[&quot;raw_text&quot;],
+    })
+    if decision not in {&quot;approve&quot;, &quot;reject&quot;}:
+        return {&quot;status&quot;: &quot;invalid_approval&quot;}
+    return {&quot;status&quot;: decision}
+
+
+def route_approval(state: TicketState) -&gt; Literal[&quot;execute&quot;, &quot;close&quot;, &quot;human&quot;]:
+    return {
+        &quot;approve&quot;: &quot;execute&quot;,
+        &quot;reject&quot;: &quot;close&quot;,
+    }.get(state[&quot;status&quot;], &quot;human&quot;)
+
+
+# 首次调用后检查 __interrupt__，恢复仍使用同一 thread_id
+# first = graph.invoke(initial_state, config)
+# resumed = graph.invoke(Command(resume=&quot;approve&quot;), config)
+</code></pre>
+<p><code>execute</code> 应是独立幂等节点，且执行后再做结果读回。验收用例至少覆盖：批准只执行一次；拒绝不执行；非法恢复值不执行；审批等待期间重启进程可恢复；同一中断重复提交不会产生第二笔动作；中断前的日志或通知是否因重放重复。若涉及钱、权限或对外发布，还要把审批人、理由、时间和动作版本写入不可变审计记录。</p>
+<h3 id="六time-travel历史查看重放与人工分叉">六、Time Travel：历史查看、重放与人工分叉</h3>3
+<pre><code class="language-python"># history = list(graph.get_state_history(config))
+# for item in history:
+#     print(item.config, item.next)
+
+# 选中有明确业务意义的检查点，而不是盲取列表下标
+# before_approval = next(
+#     item for item in history if item.next == (&quot;approve_refund&quot;,)
+# )
+
+# 重放：会重新执行后续节点，包括模型、工具和 interrupt
+# replay_result = graph.invoke(None, before_approval.config)
+
+# 分叉：在原历史上新增修正，不抹掉旧记录
+# fork_config = graph.update_state(
+#     before_approval.config,
+#     {&quot;raw_text&quot;: &quot;人工核准后的原始事实&quot;},
+#     as_node=&quot;human_correction&quot;,
+# )
+# fork_result = graph.invoke(None, fork_config)
+</code></pre>
+<p>示例中的 <code>as_node</code> 必须对应实际图和恢复语义，不能原样复制到一个没有该节点的图。重放验收要记录调用计数，确认是否再次触发外部动作；分叉验收要确认原历史仍可查、修正值来自授权操作者、后续路径没有绕过审批。对含副作用的生产线程，优先在隔离环境重放，不要为“看看会不会复现”而再次发信或扣款。</p>
+<h3 id="七streaming-与-functional-api-最小示例">七、Streaming 与 Functional API 最小示例</h3>3
+<pre><code class="language-python"># 节点增量与自定义业务进度可同时订阅
+# for mode, chunk in graph.stream(
+#     initial_state,
+#     config,
+#     stream_mode=[&quot;updates&quot;, &quot;custom&quot;],
+# ):
+#     # 前端只展示经过脱敏的公开字段，不把整个 State 外发
+#     publish_to_client(mode, chunk)
+
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.func import entrypoint, task
+
+
+@task
+def load_document(document_id: str) -&gt; str:
+    # 外部读取结果会作为 task 结果参与恢复
+    return f&quot;原始文档:{document_id}&quot;
+
+
+@task
+def summarize_document(document: str) -&gt; str:
+    return f&quot;摘要:{document}&quot;
+
+
+@entrypoint(checkpointer=InMemorySaver())
+def document_workflow(document_id: str) -&gt; str:
+    document = load_document(document_id).result()
+    return summarize_document(document).result()
+
+
+# functional_config = {&quot;configurable&quot;: {&quot;thread_id&quot;: &quot;doc-001&quot;}}
+# output = document_workflow.invoke(&quot;doc-001&quot;, functional_config)
+# 恢复时使用同一线程与空输入；已完成 task 的结果按框架语义复用
+</code></pre>
+<p>Functional API 的验收与图相同：在第二个 task 前制造失败，恢复后第一个 task 不应因已完成而无意义地重复；若第一个外部动作只执行到一半，则仍需要幂等和读回。流式验收则分别检查 token、节点事件、子图事件和中断载荷，不能只看最终文本。</p>
+<h3 id="八本批论文怎么用按可避免的任务损失验收状态与记忆">八、本批论文怎么用：按可避免的任务损失验收状态与记忆</h3>3
+<p><a href="../../raw/sources/arxiv-daily/2026-10-22-2610.31303.md">arXiv:2610.31303</a> 把记忆价值拆成保存、操作使用、 costly recovery 与修订：保留多少 token 不是目标，真正要比较的是某种持久状态能否降低后续任务损失。论文的反例还指出，一个与答案零互信息的指针仍可能降低精确恢复成本；在固定检索证据时，保存 ledger 会改变后续回答，在固定 Agent 输出时，评估器修订又会改变分数。因此不能只用“上下文更短”或一次回答分来证明 Checkpointer/Store 设计有效。</p>
+<p>我们怎么用：为 LangGraph 增加三组确定性对照。<strong>保存测试</strong>比较完整正文、受控引用和丢弃三种状态，在相同任务上测恢复成功率与读取成本；<strong>使用测试</strong>固定检索证据，只切换 ledger/checkpoint 是否可读，检查后续决策是否真正利用它；<strong>修订测试</strong>在需求变化后更新来源与版本，验证旧事实不再静默覆盖新事实，同时仍可从历史 checkpoint 审计。大对象优先存受控引用加哈希，但引用必须可解析、可授权、可恢复；不能因论文肯定某些指针的恢复价值，就把任意 URL 或不可序列化连接塞入 State。</p>
+<h3 id="九验收用例矩阵">九、验收用例矩阵</h3>3
+<table>
+<thead>
+<tr>
+<th>类别</th>
+<th>最小用例</th>
+<th>通过标准</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>State</td>
+<td>修改 prompt 模板后读取旧状态</td>
+<td>原始字段仍可消费，不需要迁移拼接文本</td>
+</tr>
+<tr>
+<td>Reducer</td>
+<td>两个并行 worker 同时追加结果</td>
+<td>两项都保留，无随机覆盖</td>
+</tr>
+<tr>
+<td>消息</td>
+<td>同 ID 消息更新、工具错误回灌</td>
+<td>消息结构和工具调用配对合法</td>
+</tr>
+<tr>
+<td>路由</td>
+<td>模型返回未知类别</td>
+<td>进入安全出口，不抛键错误</td>
+</tr>
+<tr>
+<td>Send</td>
+<td>空输入、超上限、重复输入</td>
+<td>行为明确，扇出与费用有界</td>
+</tr>
+<tr>
+<td>循环</td>
+<td>永久不收敛节点</td>
+<td>触发降级或递归上限，任务可恢复</td>
+</tr>
+<tr>
+<td>重试</td>
+<td>前两次连接失败、第三次成功</td>
+<td>只重试指定异常，副作用不重复</td>
+</tr>
+<tr>
+<td>永久错误</td>
+<td>余额不足或状态不允许</td>
+<td>不做无效重试，进入拒绝或人工</td>
+</tr>
+<tr>
+<td>恢复</td>
+<td>失败节点中有多步计算</td>
+<td>已完成节点复用，失败节点从头重跑</td>
+</tr>
+<tr>
+<td>人审</td>
+<td>中断后批准、拒绝、非法值、重复提交</td>
+<td>决定持久化，动作最多产生一个有效结果</td>
+</tr>
+<tr>
+<td>Time Travel</td>
+<td>历史重放和状态分叉</td>
+<td>原历史保留，后续副作用受控</td>
+</tr>
+<tr>
+<td>Streaming</td>
+<td>父图含子图、中断与自定义事件</td>
+<td>前端能区分进度、暂停和完成</td>
+</tr>
+</tbody>
+</table>
+<h3 id="十常见错误表">十、常见错误表</h3>3
+<table>
+<thead>
+<tr>
+<th>错误写法</th>
+<th>实际后果</th>
+<th>修正方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>State 保存完整格式化 prompt</td>
+<td>模板与 checkpoint 耦合，状态难比较</td>
+<td>保存原始事实，节点使用时再格式化</td>
+</tr>
+<tr>
+<td>并行列表只依赖默认覆盖</td>
+<td>结果随机丢失</td>
+<td>声明 reducer 或拆分独立 key</td>
+</tr>
+<tr>
+<td>用列表相加替代 <code>add_messages</code></td>
+<td>丢失按 ID 更新等消息语义</td>
+<td>使用内置消息 reducer</td>
+</tr>
+<tr>
+<td>路由函数顺便修改状态</td>
+<td>决策与副作用难测试</td>
+<td>修改放节点，路由保持只读</td>
+</tr>
+<tr>
+<td>无限制 <code>Send</code></td>
+<td>下游限流和成本爆炸</td>
+<td>入口限数量、分批、限流并记预算</td>
+</tr>
+<tr>
+<td>所有异常统一重试</td>
+<td>永久错误被放大</td>
+<td>分类错误并显式 <code>retry_on</code></td>
+</tr>
+<tr>
+<td>用递归上限代替终止条件</td>
+<td>每次异常结束，无法降级</td>
+<td>图内业务终止加最后安全网</td>
+</tr>
+<tr>
+<td>大节点混合检索、生成、扣款</td>
+<td>恢复重做昂贵步骤并重复扣款</td>
+<td>按昂贵调用与副作用拆节点</td>
+</tr>
+<tr>
+<td><code>interrupt()</code> 之前发通知</td>
+<td>恢复时重复通知</td>
+<td>中断置前，副作用放后续独立节点</td>
+</tr>
+<tr>
+<td>宽泛异常捕获包住中断</td>
+<td>暂停控制流被吞</td>
+<td>捕获具体业务异常</td>
+</tr>
+<tr>
+<td>把内存 Saver 当生产持久化</td>
+<td>重启后线程全部丢失</td>
+<td>使用受管持久存储并做故障演练</td>
+</tr>
+<tr>
+<td>replay 当作只读查看</td>
+<td>后续工具再次执行</td>
+<td>重放前审查副作用，必要时隔离或分叉</td>
+</tr>
+<tr>
+<td>前端直接展示完整 State</td>
+<td>泄露内部错误和敏感信息</td>
+<td>只发布白名单、脱敏事件</td>
+</tr>
+</tbody>
+</table>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li><strong>[课1] 课件原文：</strong><a href="../../raw/courseware/Agent%E7%AF%87/code/day11__01-%E5%85%A5%E9%97%A8%E6%A1%88%E4%BE%8B.py">day11 StateGraph 入门</a>、<a href="../../raw/courseware/Agent%E7%AF%87/code/day11__05-send%E5%8F%91%E9%80%81-%E5%AE%9E%E7%8E%B0%E5%B9%B6%E8%A1%8C.py">day11 Send</a>、<a href="../../raw/courseware/Agent%E7%AF%87/code/day12__12-%E6%A3%80%E6%9F%A5%E7%82%B9.py">day12 检查点</a>、<a href="../../raw/courseware/Agent%E7%AF%87/code/day13__04-%E4%BA%BA%E6%9C%BA%E4%BA%A4%E4%BA%92.py">day13 人机交互</a>、<a href="../../raw/courseware/Agent%E7%AF%87/code/day14__01-%E6%B5%81%E5%BC%8F%E8%BE%93%E5%87%BA%E6%A1%88%E4%BE%8B.py">day14 流式输出</a>。落点是 State/reducer/路由、持久化、中断和观察的完整 HOW；示例仍需按锁定版本复跑。</li>
+<li><strong>[书1] 书籍目录与公开划线摘录：</strong><a href="../../raw/weread/LangGraph%20%E5%AE%9E%E6%88%98%EF%BC%9A%E6%9E%84%E5%BB%BA%E6%96%B0%E4%B8%80%E4%BB%A3%20AI%20%E6%99%BA%E8%83%BD%E4%BD%93%E7%B3%BB%E7%BB%9F.md">LangGraph 实战</a>、<a href="../../raw/weread/LangGraph%E5%BC%80%E5%8F%91AI%20Agent%E5%AE%9E%E8%B7%B5.md">LangGraph开发AI Agent实践</a>。章节目录用于组织图式编排、MapReduce、交互、持久化、记忆、异常恢复与幂等；只使用本库存有的书籍信息与划线摘录，<strong>不声称阅读书籍全文</strong>。</li>
+<li><strong>[业1] 官方文档：</strong><a href="https://docs.langchain.com/oss/python/langgraph/graph-api">Graph API</a>、<a href="https://docs.langchain.com/oss/python/langgraph/persistence">Persistence</a>、<a href="https://docs.langchain.com/oss/python/langgraph/interrupts">Interrupts</a>、<a href="https://docs.langchain.com/oss/python/langgraph/use-time-travel">Time Travel</a>、<a href="https://docs.langchain.com/oss/python/langgraph/streaming">Streaming</a>、<a href="https://docs.langchain.com/oss/python/langgraph/use-functional-api">Functional API</a>。<a href="../../raw/sources/%E4%B8%9A%E5%86%85%E6%8A%80%E6%9C%AF%E6%A0%88%E6%89%AB%E6%8F%8F-20261103.md">业内技术栈扫描</a>与<a href="../../raw/sources/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%8D%8F%E4%BD%9C%E4%B8%9A%E5%86%85%E6%A0%87%E5%87%86%E8%B0%83%E7%A0%94-20261103.md">多智能体一手源调研</a>于 <strong>2026-11-03</strong> 核对相关公开文档，扫描所取 URL 记录为 <strong>GET 200：2026-11-03</strong>；本次未复跑请求。各文档分别落到节点拆分、恢复、重放和流式验收。</li>
+<li><strong>[业2] 本批论文：</strong><a href="../../raw/sources/arxiv-daily/2026-10-22-2610.31303.md">arXiv:2610.31303</a> 落入 HOW 第 8 节，转化为保存、使用、修订三组状态/记忆对照，防止把 checkpoint 存在或上下文缩短误当业务价值。</li>
+<li><strong>[业3] 历史实验边界：</strong>融合前旧稿记录 reducer、<code>Command</code>、<code>Send</code>、重试、崩溃续跑、中断重放和 Time Travel 等历史实验；旧总述的 Checkpointer/Store 分层已由 WHAT 第 7 节保留。相关“本机实测”均为旧稿记录，本次未重跑，原始实验脚本也未随本篇重新交付，不能当作可复现报告。</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>状态 schema 与业务级计数器（<code>rag/query.py</code> L1073 <code>class RAGState(TypedDict)</code>，grep 可验）</strong>：<br />
+<code>python
+  class RAGState(TypedDict):
+      question: str
+      original_question: str           # 原始query(用于生成引用)
+      route: str                       # simple_fact / complex_reasoning / multi_hop
+      documents: List[Dict[str, Any]]  # 检索到的hits
+      relevant_docs: List[Dict[str, Any]]  # CRAG过滤后的相关hits
+      answer: str
+      generation_count: int            # 防无限循环计数
+      rewrite_count: int               # 已重写次数</code><br />
+  每个节点只写自己负责的字段，<code>rewrite_count</code>/<code>generation_count</code> 就是业务级计数器——超限走 <code>refuse</code>，不靠框架 <code>recursion_limit</code> 兜底。</li>
+<li><strong>条件边就是集合映射（<code>rag/query.py</code> L2524、<code>rag/agentic_query.py</code> <code>build_agentic_graph</code>）</strong>：<br />
+<code>python
+  workflow.add_conditional_edges(                   # query.py L2523-2532
+      "grade",
+      should_rewrite,
+      {
+          "rewrite": "rewrite",                     # 不相关 -&gt; 重写后回 grade
+          "pass": "rerank",                         # 够相关 -&gt; 进 rerank
+      },
+  )
+  g.add_conditional_edges("grade", route_after_grade,
+      {"generate": "generate", "rewrite": "rewrite", "refuse": "refuse"})
+  g.add_edge("rewrite", "retrieve")                  # 回边: 有环但被 rewrite_count 收口</code></li>
+<li><strong>检查点/持久化的真实做法</strong>：本库<strong>没有用 LangGraph <code>SqliteSaver/PostgresSaver</code></strong>，跨会话状态落在 <code>~/.hermes/state/HANDOFF.md</code>（<code>/home/wuyafang/.hermes/scripts/handoff_state.py</code> 的 <code>TEMPLATE</code>：Current task / Confirmed decisions / Evidence / Completed / Still unverified / Next action），崩溃后由 hook 读回。</li>
+<li><strong>和课件讲法的差异</strong>：课件（Agent 篇 LangGraph）演示 <code>MemorySaver</code> 与 <code>graph.stream()</code> 逐步可视化；本库在 RAG 链路里只需单次 invoke（<code>rag/mcp_server.py</code> <code>graph.invoke(state)</code>），不需要中断-恢复，故未接 checkpointer；跨会话恢复交给 HANDOFF.md 而非内存 saver，原因是这些 Agent 多为短命 CLI 进程，内存 saver 随进程消失。</li>
+</ul>
+<h2 id="证据边界与未验证项">证据边界与未验证项</h2>2
+<ol>
+<li>本次工作是文档融合与代码骨架整理，没有安装依赖、运行示例、连接模型或访问外部服务。文中所有实验性表述都只能按旧稿历史记录理解，不是 2026-11-03 当天实测结论。</li>
+<li>旧稿实验环境为 <code>langgraph 1.2.11</code>，主要使用确定性节点和 <code>InMemorySaver</code>。不同版本的参数、异常类型、流式事件和恢复细节可能变化，落地时必须锁定版本并跑兼容回归。</li>
+<li><code>PostgresSaver</code> 仅给出部署骨架，未实连数据库，未验证建表、连接池、并发恢复、跨实例接管、备份还原和 checkpoint 清理，不能写成生产路径已验证。</li>
+<li><code>RemainingSteps</code>、<code>RetryPolicy</code>、durability、子图 streaming、Functional API 的示例用于说明定位与最小结构；具体参数支持范围需以目标版本官方参考和实际运行结果为准。</li>
+<li>旧稿关于“历史 checkpoint 重放后使用旧 config 恢复复用旧值”的现象未在本次复现，底层原因也未确认。本文保留它作为测试线索，不作为稳定 API 承诺。</li>
+<li>示例中的扇出上限、重试次数、时间间隔和循环预算都是演示值，不是官方推荐或本库生产阈值。真实配置必须由业务风险、下游容量、trace 和故障注入确定。</li>
+<li>Time Travel、checkpoint 和 Store 本身不提供完整业务授权、幂等、审计或数据保留合规。敏感字段脱敏、thread 访问控制、审批权限和外部动作读回仍需应用层实现。</li>
+</ol></div></body></html>

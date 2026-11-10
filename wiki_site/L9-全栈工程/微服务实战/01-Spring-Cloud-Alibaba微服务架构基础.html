@@ -1,0 +1,409 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>01-Spring-Cloud-Alibaba微服务架构基础</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../../index.html">🏠 总入口</a><a href="../../graph.html">🕸 关联图谱</a><a href="../../ontology/index.html">📖 术语表</a><span class="cur">/ 01-Spring-Cloud-Alibaba微服务架构基础</span></div><div class="wrap"><h2 id="why">WHY</h2>2
+<h3 id="1-学习目标与版本基线">1. 学习目标与版本基线</h3>3
+<p>本篇以智链云途物流为背景，搭建一套可以迁移到云岚到家的基础平台。示例统一使用 JDK 17、Spring Boot 2.7.18、Spring Cloud 2021.0.8、Spring Cloud Alibaba 2021.0.5.0、Nacos 2.2.3、RocketMQ 4.9.7 和 Redis 6/7。需要特别说明：Alibaba 2021.0.5.0 的官方依赖管理原始验证组合是 Boot 2.6.13 与 Cloud 2021.0.5；课程将 Boot/Cloud 升到 2.7.18/2021.0.8，生产上线前必须在自己的依赖树和回归环境中验证兼容性，不能只看版本号。</p>
+<h4 id="11-微服务演进">1.1 微服务演进</h4>
+<p>单体应用把用户、订单、库存和配送放在同一个进程，部署简单但代码耦合、扩容只能整体扩容。SOA 以服务和企业服务总线拆分能力，强调契约、治理和异步集成，不过 ESB 容易成为性能瓶颈。微服务进一步按业务边界拆成可独立发布的小服务，每个服务拥有清晰数据责任，通过 HTTP、消息或 RPC 协作。拆分不是目的，必须配套注册发现、配置管理、网关、熔断、链路追踪、日志和自动化交付。物流系统可把运单、骑手、计价、支付、通知拆开，使高峰期只扩容下单和派单服务。</p>
+<h2 id="what">WHAT</h2>2
+<h3 id="12-生态全景">1.2 生态全景</h3>3
+<p>Spring Boot 提供自动配置和运行时；Spring Cloud Commons 提供 DiscoveryClient、LoadBalancer 等抽象；Spring Cloud Alibaba 将 Nacos、Sentinel、RocketMQ、Seata 接入 Spring 生态。Nacos 负责服务目录和配置，Gateway 做统一入口，Sentinel 负责流控与降级，OpenFeign 声明 HTTP 契约，LoadBalancer 从服务实例列表中选择节点。运维侧还应配合 Prometheus、Micrometer、SkyWalking 或 OpenTelemetry。</p>
+<h2 id="how">HOW</h2>2
+<h3 id="maven-依赖服务端">Maven 依赖（服务端）</h3>3
+<p>以下依赖可放入 <code>pom.xml</code>，启动前准备 JDK 17、Nacos 2.2.3（8848）、Redis 6/7；代码片段是可运行示例，但本文未连接真实中间件联调。</p>
+<pre><code class="language-xml">&lt;!-- pom.xml，Boot 2.7.18 + Cloud 2021.0.8 + Alibaba 2021.0.5.0 --&gt;
+&lt;properties&gt;
+  &lt;java.version&gt;17&lt;/java.version&gt;
+  &lt;spring-boot.version&gt;2.7.18&lt;/spring-boot.version&gt;
+  &lt;spring-cloud.version&gt;2021.0.8&lt;/spring-cloud.version&gt;
+  &lt;spring-cloud-alibaba.version&gt;2021.0.5.0&lt;/spring-cloud-alibaba.version&gt;
+&lt;/properties&gt;
+&lt;dependencyManagement&gt;
+  &lt;dependencies&gt;
+    &lt;dependency&gt;&lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;&lt;artifactId&gt;spring-boot-dependencies&lt;/artifactId&gt;&lt;version&gt;${spring-boot.version}&lt;/version&gt;&lt;type&gt;pom&lt;/type&gt;&lt;scope&gt;import&lt;/scope&gt;&lt;/dependency&gt;
+    &lt;dependency&gt;&lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;&lt;artifactId&gt;spring-cloud-dependencies&lt;/artifactId&gt;&lt;version&gt;${spring-cloud.version}&lt;/version&gt;&lt;type&gt;pom&lt;/type&gt;&lt;scope&gt;import&lt;/scope&gt;&lt;/dependency&gt;
+    &lt;dependency&gt;&lt;groupId&gt;com.alibaba.cloud&lt;/groupId&gt;&lt;artifactId&gt;spring-cloud-alibaba-dependencies&lt;/artifactId&gt;&lt;version&gt;${spring-cloud-alibaba.version}&lt;/version&gt;&lt;type&gt;pom&lt;/type&gt;&lt;scope&gt;import&lt;/scope&gt;&lt;/dependency&gt;
+  &lt;/dependencies&gt;
+&lt;/dependencyManagement&gt;
+&lt;dependencies&gt;
+  &lt;dependency&gt;&lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;&lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;&lt;/dependency&gt;
+  &lt;dependency&gt;&lt;groupId&gt;com.alibaba.cloud&lt;/groupId&gt;&lt;artifactId&gt;spring-cloud-starter-alibaba-nacos-discovery&lt;/artifactId&gt;&lt;/dependency&gt;
+  &lt;dependency&gt;&lt;groupId&gt;com.alibaba.cloud&lt;/groupId&gt;&lt;artifactId&gt;spring-cloud-starter-alibaba-nacos-config&lt;/artifactId&gt;&lt;/dependency&gt;
+  &lt;dependency&gt;&lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;&lt;artifactId&gt;spring-cloud-starter-loadbalancer&lt;/artifactId&gt;&lt;/dependency&gt;
+&lt;/dependencies&gt;
+</code></pre>
+<h3 id="2-nacos-服务注册与发现">2. Nacos 服务注册与发现</h3>3
+<h4 id="21-原理和实例模型">2.1 原理和实例模型</h4>
+<p>应用启动时由 Nacos Discovery 自动配置创建 NamingService，向 Nacos 注册 service、group、cluster、ip、port 和 metadata。临时实例默认启用心跳：Nacos 1.x 主要走 HTTP 心跳，Nacos 2.x 在客户端和服务端之间增加 gRPC 长连接（同时保留兼容接口）；连接断开超过超时后实例被摘除。永久实例由服务端持久化，客户端不主动注销，适合数据库等固定节点，不能把短生命周期容器误注册成永久实例。发现调用先从本地缓存读取实例，缓存失效时请求 Nacos，再由 LoadBalancer 按权重、区域或随机策略选节点。</p>
+<pre><code class="language-mermaid">flowchart LR
+  A[运单服务启动] --&gt; B[Nacos NamingService]
+  B --&gt; C[(服务目录: service/group/cluster)]
+  A -- Nacos2 gRPC心跳 --&gt; B
+  D[订单服务] --&gt;|查询实例| B
+  B --&gt; D
+  D --&gt; E[LoadBalancer选择实例]
+  E --&gt; F[HTTP调用运单服务]
+</code></pre>
+<h5 id="applicationyml-与启动类">application.yml 与启动类</h5>
+<pre><code class="language-yaml"># order-service/src/main/resources/application.yml
+server:
+  port: 8081
+spring:
+  application:
+    name: order-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+        namespace: logistics-dev
+        group: LOGISTICS_GROUP
+        ephemeral: true
+        username: nacos
+        password: nacos
+</code></pre>
+<pre><code class="language-java">// OrderApplication.java；依赖 spring-cloud-starter-alibaba-nacos-discovery
+package com.example.order;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+
+@SpringBootApplication
+@EnableDiscoveryClient
+public class OrderApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(OrderApplication.class, args);
+    }
+}
+</code></pre>
+<p>永久实例可通过 <code>ephemeral: false</code> 或运维 API 管理，但必须配套实例健康检查和下线流程。命名空间用于环境隔离，group 用于业务分组，cluster 用于机房或可用区；三者任意一项不一致，客户端都会表现为“服务不存在”。</p>
+<h3 id="3-nacos-config-配置中心">3. Nacos Config 配置中心</h3>3
+<h4 id="31-dataidgroup-与动态刷新">3.1 dataId、group 与动态刷新</h4>
+<p>配置读取键通常是 <code>${spring.application.name}-${spring.profiles.active}.${file-extension}</code>，例如 <code>order-service-dev.yaml</code>。namespace 隔离 dev、test、prod，group 可按团队或业务线隔离。客户端首次从 Nacos 拉取配置并写入本地快照；长轮询监听 dataId 变化，收到变更后刷新 Environment。<code>@RefreshScope</code> 会重建标注 Bean，因此只把可热更新的超时、开关放进去，数据库连接池等对象仍应通过发布流程变更。bootstrap 上下文先于 application 上下文加载，必须引入 <code>spring-cloud-starter-bootstrap</code>。</p>
+<pre><code class="language-mermaid">flowchart LR
+  A[配置发布流水线] --&gt; B[Nacos Config dataId/group]
+  B --&gt;|长轮询变更通知| C[客户端Environment]
+  C --&gt; D[@RefreshScope Bean重建]
+  D --&gt; E[订单服务读取新阈值]
+</code></pre>
+<pre><code class="language-yaml"># bootstrap.yml；依赖 nacos-config 与 spring-cloud-starter-bootstrap
+spring:
+  application:
+    name: order-service
+  cloud:
+    nacos:
+      config:
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+        namespace: logistics-dev
+        group: LOGISTICS_GROUP
+        username: nacos
+        password: nacos
+        file-extension: yaml
+        refresh-enabled: true
+  profiles:
+    active: dev
+</code></pre>
+<pre><code class="language-java">// DiscountProperties.java；在 Nacos 修改 order-service-dev.yaml 后自动刷新
+package com.example.order.config;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.stereotype.Component;
+
+@Component
+@RefreshScope
+@ConfigurationProperties(prefix = &quot;logistics.discount&quot;)
+public class DiscountProperties {
+    private boolean enabled;
+    private int maxPercent;
+    public boolean isEnabled() { return enabled; }
+    public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    public int getMaxPercent() { return maxPercent; }
+    public void setMaxPercent(int maxPercent) { this.maxPercent = maxPercent; }
+}
+</code></pre>
+<pre><code class="language-yaml"># Nacos dataId=order-service-dev.yaml，group=LOGISTICS_GROUP
+logistics:
+  discount:
+    enabled: true
+    max-percent: 20
+</code></pre>
+<h3 id="4-spring-cloud-gateway">4. Spring Cloud Gateway</h3>3
+<p>Gateway 基于 Reactor Netty，在请求进入时依次执行 Route Predicate、局部 Filter 和 GlobalFilter。Predicate 判断路径、方法、Header、时间等条件；Filter 可改写路径、追加 Header、重试或限流。全局鉴权应校验 JWT 签名和过期时间，并把用户 ID 放入下游 Header，不能仅信任前端传来的 <code>X-User-Id</code>。跨域配置要明确允许的来源、方法和凭据，生产禁止 <code>*</code> 与 <code>allow-credentials=true</code> 同时使用。</p>
+<pre><code class="language-mermaid">flowchart LR
+  U[用户端] --&gt; G[Gateway]
+  G --&gt; P{Path Predicate}
+  P --&gt; F[GlobalFilter: JWT/CORS]
+  F --&gt; R1[order-service]
+  F --&gt; R2[dispatch-service]
+  F --&gt; R3[payment-service]
+</code></pre>
+<pre><code class="language-java">// GatewayRoutes.java；依赖 spring-cloud-starter-gateway、nacos-discovery
+package com.example.gateway.config;
+
+import org.springframework.cloud.gateway.route.RouteLocator;
+import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class GatewayRoutes {
+    @Bean
+    RouteLocator routes(RouteLocatorBuilder builder) {
+        return builder.routes()
+            .route(&quot;order&quot;, r -&gt; r.path(&quot;/api/orders/**&quot;)
+                .filters(f -&gt; f.stripPrefix(1).addRequestHeader(&quot;X-Gateway&quot;, &quot;logistics&quot;))
+                .uri(&quot;lb://order-service&quot;))
+            .route(&quot;dispatch&quot;, r -&gt; r.path(&quot;/api/dispatch/**&quot;)
+                .filters(f -&gt; f.stripPrefix(1))
+                .uri(&quot;lb://dispatch-service&quot;))
+            .build();
+    }
+}
+</code></pre>
+<pre><code class="language-java">// JwtGlobalFilter.java；示例使用已配置的 TokenService，生产应接入成熟JWT库
+package com.example.gateway.filter;
+
+import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.core.Ordered;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
+
+@Component
+public class JwtGlobalFilter implements GlobalFilter, Ordered {
+    private final TokenService tokenService;
+    public JwtGlobalFilter(TokenService tokenService) { this.tokenService = tokenService; }
+    @Override public Mono&lt;Void&gt; filter(ServerWebExchange exchange, org.springframework.cloud.gateway.filter.GatewayFilterChain chain) {
+        String path = exchange.getRequest().getURI().getPath();
+        if (path.startsWith(&quot;/api/auth/&quot;)) return chain.filter(exchange);
+        String auth = exchange.getRequest().getHeaders().getFirst(&quot;Authorization&quot;);
+        if (auth == null || !auth.startsWith(&quot;Bearer &quot;)) return reject(exchange);
+        String userId = tokenService.verifyAndGetSubject(auth.substring(7));
+        if (userId == null) return reject(exchange);
+        ServerWebExchange mutated = exchange.mutate().request(r -&gt; r.headers(h -&gt; h.set(&quot;X-User-Id&quot;, userId))).build();
+        return chain.filter(mutated);
+    }
+    private Mono&lt;Void&gt; reject(ServerWebExchange exchange) { exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED); return exchange.getResponse().setComplete(); }
+    @Override public int getOrder() { return -100; }
+    public interface TokenService { String verifyAndGetSubject(String token); }
+}
+</code></pre>
+<pre><code class="language-yaml"># application.yml：Gateway跨域与Redis令牌桶限流的基础配置
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: [&quot;https://app.example.com&quot;]
+            allowedMethods: [GET, POST, PUT, DELETE, OPTIONS]
+            allowedHeaders: [&quot;*&quot;]
+            allowCredentials: true
+      routes:
+        - id: order
+          uri: lb://order-service
+          predicates: [Path=/api/orders/**]
+          filters: [StripPrefix=1, RequestRateLimiter=redis-rate-limiter]
+</code></pre>
+<p>限流可用 Gateway RequestRateLimiter（Redis 令牌桶）拦住突发流量，再由 Sentinel 在服务内部保护数据库。网关只做粗粒度配额，用户维度和接口维度的细粒度规则放在业务服务，避免所有策略耦合在入口。</p>
+<h3 id="5-sentinel-熔断与限流">5. Sentinel 熔断与限流</h3>3
+<p>Sentinel 把受保护方法抽象成资源，规则包含流控、熔断降级、系统保护和热点参数。滑动窗口按时间桶统计 QPS、并发数和异常比例；熔断状态机为 CLOSED、OPEN、HALF_OPEN，OPEN 期间快速失败，等待恢复时间后放少量探测请求。流控效果支持快速失败、Warm Up 预热和排队等待。控制台配置默认只在内存，重启会丢失；接入 Nacos DataSource 后才可持久化，但仍需验证规则序列化和权限。</p>
+<pre><code class="language-mermaid">stateDiagram-v2
+  [*] --&gt; CLOSED
+  CLOSED --&gt; OPEN: 异常比例/慢调用超阈值
+  OPEN --&gt; HALF_OPEN: 熔断等待时间到
+  HALF_OPEN --&gt; CLOSED: 探测成功
+  HALF_OPEN --&gt; OPEN: 探测失败
+</code></pre>
+<pre><code class="language-java">// OrderController.java；依赖 sentinel、sentinel-annotation-aspectj
+package com.example.order.web;
+
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping(&quot;/orders&quot;)
+public class OrderController {
+    private final OrderService orderService;
+    public OrderController(OrderService orderService) { this.orderService = orderService; }
+    @GetMapping(&quot;/{id}&quot;)
+    @SentinelResource(value = &quot;order:detail&quot;, blockHandler = &quot;blocked&quot;, fallback = &quot;fallback&quot;)
+    public Order detail(@PathVariable Long id) { return orderService.find(id); }
+    public Order blocked(Long id, com.alibaba.csp.sentinel.slots.block.BlockException e) { return Order.unavailable(&quot;系统繁忙&quot;); }
+    public Order fallback(Long id, Throwable e) { return Order.unavailable(&quot;服务降级&quot;); }
+    public interface OrderService { Order find(Long id); }
+    public record Order(Long id, String status) { static Order unavailable(String s) { return new Order(0L, s); } }
+}
+</code></pre>
+<pre><code class="language-yaml"># application.yml：Sentinel控制台与Nacos规则持久化
+spring:
+  cloud:
+    sentinel:
+      transport:
+        dashboard: ${SENTINEL_DASHBOARD:127.0.0.1:8080}
+        port: 8719
+      datasource:
+        flow:
+          nacos:
+            server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+            namespace: logistics-dev
+            group-id: SENTINEL_GROUP
+            data-id: ${spring.application.name}-flow-rules
+            rule-type: flow
+            data-type: json
+</code></pre>
+<pre><code class="language-json">// Nacos dataId=order-service-flow-rules：控制台或发布流水线写入
+[
+  {&quot;resource&quot;:&quot;order:detail&quot;,&quot;grade&quot;:1,&quot;count&quot;:100,&quot;limitApp&quot;:&quot;default&quot;,&quot;strategy&quot;:0,&quot;controlBehavior&quot;:0}
+]
+</code></pre>
+<p>规则落库不是“打开 dashboard 就自动持久化”：要明确 Nacos DataSource、namespace、group、dataId 和写权限，发布后再重启实例验证规则仍存在。Feign 调用也应设置连接、读超时和 Sentinel fallback，避免线程池耗尽。</p>
+<h3 id="6-openfeign-与-loadbalancer">6. OpenFeign 与 LoadBalancer</h3>3
+<p>OpenFeign 以 Java 接口表达远程契约，<code>name</code> 对应 Nacos 服务名，底层由 Spring Cloud LoadBalancer 选实例。接口只放 DTO 和错误码，不把数据库实体直接暴露给跨服务调用。生产应启用超时、重试白名单和 fallback，并给每次调用加 traceId。</p>
+<pre><code class="language-java">// DispatchClient.java；依赖 spring-cloud-starter-openfeign
+package com.example.order.client;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.*;
+
+@FeignClient(name = &quot;dispatch-service&quot;, path = &quot;/dispatch&quot;, fallbackFactory = DispatchFallback.class)
+public interface DispatchClient {
+    @GetMapping(&quot;/capacity/{riderId}&quot;)
+    Capacity capacity(@PathVariable Long riderId);
+    record Capacity(Long riderId, int activeOrders) {}
+}
+</code></pre>
+<pre><code class="language-java">// OrderApplication.java 中启用Feign
+package com.example.order;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.SpringApplication;
+@SpringBootApplication
+@EnableFeignClients(basePackages = &quot;com.example.order.client&quot;)
+public class FeignEnabledApplication { public static void main(String[] args) { SpringApplication.run(FeignEnabledApplication.class, args); } }
+</code></pre>
+<pre><code class="language-yaml"># application.yml：Feign超时与LoadBalancer实例策略
+feign:
+  client:
+    config:
+      dispatch-service:
+        connect-timeout: 1000
+        read-timeout: 2000
+        logger-level: basic
+spring:
+  cloud:
+    loadbalancer:
+      enabled: true
+      cache:
+        ttl: 30s
+</code></pre>
+<h3 id="7-物流系统整体架构">7. 物流系统整体架构</h3>3
+<pre><code class="language-mermaid">flowchart TB
+  C[用户端/骑手端] --&gt; G[Spring Cloud Gateway]
+  G --&gt; O[订单服务]
+  G --&gt; W[运单服务]
+  G --&gt; R[骑手与派单服务]
+  G --&gt; P[支付服务]
+  O --&gt; N[(Nacos 注册/配置)]
+  W --&gt; N
+  R --&gt; N
+  O --&gt; REDIS[(Redis库存/缓存/GEO)]
+  R --&gt; REDIS
+  O --&gt; MQ[RocketMQ订单事件]
+  W --&gt; DB[(MySQL业务库)]
+  O --&gt; DB
+  P --&gt; DB
+  G --&gt; S[Sentinel流控降级]
+</code></pre>
+<p>一次下单请求先经过 Gateway 鉴权和粗限流，订单服务通过 Feign 查询库存和配送能力，关键事件写入 RocketMQ，消费者异步更新运单和通知。Nacos 只保存服务目录与配置，不保存业务数据；Redis 适合热点和短期状态，MySQL 保存最终事实。跨服务写操作应设计幂等键和补偿任务，不能把网络重试当成事务。</p>
+<h3 id="8-踩坑与最佳实践">8. 踩坑与最佳实践</h3>3
+<h4 id="81-注册发现的运行细节">8.1 注册发现的运行细节</h4>
+<p>注册动作不是一次性的配置读取，而是一个持续租约。客户端启动后先发送实例元数据，随后按照心跳周期续租；服务端维护实例最后更新时间并执行健康检查。临时实例失联达到超时阈值会被标记不健康，超过删除阈值才从目录移除，这段窗口用于网络抖动恢复。调用端本地缓存会造成短暂的“幽灵实例”，因此连接失败时 LoadBalancer 应触发重新拉取并配合有限重试。发布流程应先把实例权重调为零，等待连接排空，再停止进程，避免直接杀进程导致请求失败。</p>
+<p>服务名、分组和命名空间共同构成逻辑坐标。建议把环境写入 namespace，把领域写入 group，把可用区写入 cluster；例如 <code>logistics-dev/LOGISTICS_GROUP/order-service</code>。元数据可以记录版本、提交号和灰度标签，网关或自定义选择器据此实现按用户标记路由。不要在业务代码里缓存固定 IP，因为容器重建、弹性扩缩容和跨机房都会改变地址。</p>
+<h4 id="82-配置变更的安全边界">8.2 配置变更的安全边界</h4>
+<p>动态刷新适合开关、阈值和文案，不适合线程池核心数、数据源地址和序列化协议。变更前先在测试 namespace 发布，观察应用日志中的 dataId、group 和版本，再逐步放量。配置内容应该进行字段校验，启动时缺少关键字段要快速失败；对密码、密钥和第三方凭证使用独立密钥系统，Nacos 中只保留引用。回滚通过重新发布上一版本 dataId 完成，并保留审计记录。</p>
+<p>bootstrap 配置加载失败时，应用可能退回本地默认值，形成“看似启动成功、实际连接错误”的隐患。建议在健康检查中暴露当前 namespace、group 和配置版本摘要，但不要输出敏感值。多数据中心部署时，每个机房使用本地 Nacos 集群，跨机房只读同步服务目录，避免所有请求依赖单一 Nacos 地址。</p>
+<h4 id="83-网关过滤链与性能">8.3 网关过滤链与性能</h4>
+<p>Gateway 的过滤器按 order 排序，鉴权应早于路由，响应头和审计日志应在后置阶段执行。阻塞式数据库或文件 IO 不能直接放进 Netty 事件线程；必须使用响应式客户端，或明确切换到弹性调度器并设置并发上限。请求体只能读取一次，签名校验需要缓存时要限制最大 body 大小，防止大报文耗尽内存。跨域预检 OPTIONS 请求应在鉴权白名单中，否则浏览器会把正常接口误判为跨域失败。</p>
+<p>限流指标需要区分总 QPS、用户 QPS、IP QPS 和并发数。总 QPS 保护服务容量，用户维度抑制单个账号刷接口，并发数防止慢请求占满连接池。限流响应使用统一错误码和 <code>Retry-After</code>，客户端按照退避策略重试，不能立即忙循环。网关日志记录 traceId、路由 ID、状态码和耗时，敏感 Header 只记录哈希或脱敏值。</p>
+<h4 id="84-sentinel-规则设计">8.4 Sentinel 规则设计</h4>
+<p>流控规则的阈值应来自压测而不是经验。先测出数据库连接池、线程池和下游依赖的安全上限，再设置低于上限的保护值。Warm Up 适合刚启动的服务，让令牌速率逐步爬升；排队等待适合短时突发且请求可容忍毫秒级延迟的读接口。写接口通常快速失败并由上层提示稍后重试。熔断降级要区分慢调用比例与异常比例，超时属于慢调用时应同时检查网络、连接池和下游 GC。</p>
+<p>热点参数规则可针对运单 ID、用户 ID 设置单独阈值，但参数必须来自可信的解析结果，不能直接信任任意 Header。系统规则用于 CPU、负载和入口总并发的最后一道保护。规则持久化后要做双向验证：在控制台修改，检查 Nacos dataId 是否变化；直接改 Nacos，检查客户端是否收到并生效。发布脚本应校验 JSON 字段范围，避免错误规则导致全量拒绝。</p>
+<h4 id="85-可观测性和故障演练">8.5 可观测性和故障演练</h4>
+<p>每个请求携带 traceId，Gateway 生成或透传，Feign、消息生产者和消费者继续传递。指标至少包括注册实例数、配置拉取失败数、网关路由 4xx/5xx、Sentinel block 数、Feign 超时、消息积压和数据库连接池使用率。日志采用结构化 JSON，字段包含 service、instance、traceId、userId（脱敏）、orderId 和 errorCode。告警分为入口成功率、依赖成功率和资源水位三类，避免只监控机器 CPU。</p>
+<p>演练应覆盖 Nacos 短暂不可用、Redis 主从切换、RocketMQ 消费延迟、数据库连接池耗尽和单个实例频繁 Full GC。验证目标不是“没有报错”，而是流量能被限流、请求能被降级、消息能重试且最终数据一致。每次演练记录开始时间、影响范围、恢复动作和改进项，形成可审计的运行手册。</p>
+<h4 id="86-数据与接口契约">8.6 数据与接口契约</h4>
+<p>微服务边界一旦确定，数据所有权也必须确定。订单服务只能修改订单表，配送服务维护骑手和运单表，查询其他领域通过 API 或事件获得只读视图。跨服务接口采用版本化路径或兼容字段，新增字段先向后兼容，删除字段经过观察期。金额使用 <code>BigDecimal</code> 或最小货币单位整数，时间统一 UTC 保存并在展示层转换，避免跨时区结算错误。</p>
+<p>同步调用链不宜过深。入口请求最多串联两到三个核心服务，其余动作发布领域事件异步完成。对外 API 使用幂等键，服务端保存请求指纹和处理结果，重复请求直接返回同一结果。消息消费者也要记录业务唯一键和消费状态，数据库唯一索引是最后一道重复保护。失败重试采用指数退避并设置最大次数，超过次数进入死信队列，由人工或补偿任务处理。</p>
+<h4 id="87-发布与容量基线">8.7 发布与容量基线</h4>
+<p>每次发布先做依赖漏洞扫描、接口契约测试和数据库变更演练，再以小流量灰度。灰度实例通过 Nacos metadata 标记版本，LoadBalancer 或网关只把带灰度 Header 的测试用户导向新版本。观察错误率、P95 延迟、线程池和 GC 指标达到基线后再扩大比例。回滚不仅回滚镜像，还要确认配置、数据库迁移和消息消费者版本兼容；不可逆迁移必须采用新增字段、双写、回填、切读、删除的分阶段策略。</p>
+<ul>
+<li>不要把 Nacos 账号密码硬编码进仓库，使用环境变量或密钥挂载；namespace ID 必须是实际 UUID，不是显示名称。</li>
+<li>Gateway 的 <code>lb://</code> 路由依赖 LoadBalancer，缺少 starter 时会出现找不到协议处理器；WebFlux 网关不要引入 Servlet MVC 过滤器。</li>
+<li>Sentinel 资源名要稳定，代码重构时同步规则；fallback 只返回可解释的降级结果，不能吞掉库存扣减异常。</li>
+<li>临时实例适合容器，发布前先摘流量再停机；永久实例需要人工下线。Nacos 2.x 客户端网络不通时同时检查 9848/9849 gRPC 端口。</li>
+<li>Feign 超时要小于上游网关超时，避免请求堆积；重试只用于幂等 GET，支付和扣库存接口禁止无脑重试。</li>
+<li>版本升级先跑 <code>mvn dependency:tree</code>、契约测试和压测，确认 Boot 2.7 与 Alibaba 2021.0.5.0 的兼容边界。</li>
+</ul>
+<h3 id="9-小结">9. 小结</h3>3
+<p>本篇建立了从注册发现、配置动态刷新、网关治理到 Sentinel 保护的最小闭环，并用 Feign 与 LoadBalancer 串起物流业务服务。真正上线还要补充鉴权密钥轮换、灰度发布、链路追踪、指标告警、备份恢复和容量压测。下一篇可在此基础上实现秒杀库存预热、Lua 原子扣减与 RocketMQ 异步下单。</p>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] <strong>课程内容落点</strong>：<a href="../../../raw/sources/%E8%AF%BE%E7%A8%8B%E5%A4%A7%E7%BA%B2-%E9%BB%91%E9%A9%AC-AI%E5%BA%94%E7%94%A8%E6%99%BA%E8%83%BD%E4%BD%93v6-20261026.md">黑马 AI 应用智能体课程项目大纲</a>；<code>raw/courseware/</code> 未检索到对应 Java 微服务原始课件，故不虚构课件路径。</li>
+<li>[业1] <strong>业内官方</strong>：以下 Spring Cloud Alibaba、Nacos、Gateway、Sentinel、OpenFeign 与 LoadBalancer 官方文档，落在组件机理、配置项和版本边界。</li>
+</ul>
+<h3 id="官方参考">官方参考</h3>3
+<ul>
+<li>https://sca.aliyun.com/zh-cn/docs/overview/what-is-sca</li>
+<li>https://nacos.io/doc/v2/quickstart/quick-start/</li>
+<li>https://docs.spring.io/spring-cloud-gateway/docs/3.1.x/reference/html/</li>
+<li>https://sentinelguard.io/zh-cn/docs/</li>
+<li>https://docs.spring.io/spring-cloud-openfeign/docs/3.1.x/reference/html/</li>
+<li>https://spring.io/projects/spring-cloud-loadbalancer</li>
+</ul></div></body></html>

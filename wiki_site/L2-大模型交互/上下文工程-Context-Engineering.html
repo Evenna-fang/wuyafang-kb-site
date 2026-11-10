@@ -1,0 +1,302 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>上下文工程-Context-Engineering</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 上下文工程-Context-Engineering</span></div><div class="wrap"><h1 id="上下文工程context-engineering">上下文工程（Context Engineering）</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="L2-%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B-2026.html">L2 提示词工程-2026</a> · <a href="System%20Prompt%E6%80%8E%E4%B9%88%E5%86%99%E6%89%8D%E5%A5%BD.html">System Prompt 怎么写才好</a> · <a href="../L3-AI%E5%8D%8F%E5%90%8C%E7%BC%96%E7%A8%8B/Harness%E5%B7%A5%E7%A8%8B%E5%88%B0%E5%BA%95%E6%98%AF%E4%BB%80%E4%B9%88.html">Harness 工程到底是什么</a></p>
+</blockquote>
+<h1 id="why把有限上下文经营成最小高信号信息集">WHY：把有限上下文经营成最小高信号信息集</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心结论</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>上下文工程是提示词工程的自然升级：Prompt 工程只管"怎么写指令"，上下文工程管的是每一次推理时，模型的上下文窗口里到底应该装什么——系统指令、工具定义、外部数据、消息历史全部在内（Anthropic，2025-09）</li><li>它比"把话说清楚"更重要的原因是实证的：模型对上下文的使用并不均匀</li><li>因此上下文必须当作有限且边际收益递减的资源来经营</li></ul></div>2
+<p>上下文工程是提示词工程的自然升级：Prompt 工程只管"怎么写指令"，上下文工程管的是<strong>每一次推理时，模型的上下文窗口里到底应该装什么</strong>——系统指令、工具定义、外部数据、消息历史全部在内（Anthropic，2025-09）。它比"把话说清楚"更重要的原因是实证的：模型对上下文的使用并不均匀。相关信息埋在中部时，GPT-3.5-Turbo 多文档问答准确率甚至低于完全不给文档的闭卷基线（56.1%）（arXiv:2307.03172）；Chroma 对 18 个模型的测试显示，同样的信息，约 300 token 的聚焦提示在所有模型上全面胜过约 113K token 的全量历史（Context Rot，2025-07）。因此上下文必须当作<strong>有限且边际收益递减的资源</strong>来经营。最关键的三条判断：① 卡帕西的定义——上下文工程是"在每一步为上下文窗口装填恰好正确信息"的精密技艺；② Anthropic 的操作准则——"找到实现目标所需的最小高信号 token 集合"；③ LangChain 的落地框架——write / select / compress / isolate 四类策略，今天的好 Harness 本质上就是上下文工程的交付机制。</p>
+<h1 id="whyt上下文组成失效模式治理策略与-harness-关系">WHYT：上下文组成、失效模式、治理策略与 Harness 关系</h1>
+<h2 id="关键细节">关键细节</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">从 Prompt Engineering 到 Context Engineering</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>升级的推动力是 Agent：单体 prompt 一次性任务里，prompt 就是上下文的绝大部分；而一个跑在循环里的 Agent 会持续产生工具调用结果、计划、中间产物，这些信息每轮都要决定"留什么、丢什么"</li><li>Anthropic 原话：上下文工程是"在持续演化的可能信息宇宙中，策选出进入有限上下文窗口的内容的艺术与科学"</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Prompt Engineering</th>
+<th>Context Engineering</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>管理对象</td>
+<td>指令文本（主要是 system prompt）</td>
+<td>进入上下文窗口的全部 token：指令、工具定义、MCP、外部数据、消息历史</td>
+</tr>
+<tr>
+<td>工作方式</td>
+<td>一次性写好、静态复用</td>
+<td>每轮推理都要重新策展，迭代式</td>
+</tr>
+<tr>
+<td>失败模式</td>
+<td>措辞歧义、指令被忽略</td>
+<td>上下文腐烂（context rot）、注意力稀释、成本爆炸</td>
+</tr>
+<tr>
+<td>类比</td>
+<td>考卷上写一个好问题</td>
+<td>为决策者准备整套简报包</td>
+</tr>
+</tbody>
+</table>
+<p>升级的推动力是 <strong>Agent</strong>：单体 prompt 一次性任务里，prompt 就是上下文的绝大部分；而一个跑在循环里的 Agent 会持续产生工具调用结果、计划、中间产物，这些信息每轮都要决定"留什么、丢什么"。Anthropic 原话：上下文工程是"在持续演化的可能信息宇宙中，策选出进入有限上下文窗口的内容的艺术与科学"。</p>
+<p>时间线（一手脉络）：2025-06 Tobi Lütke 在 X 上提出用 context engineering 取代 prompt engineering；一周后 Andrej Karpathy 背书并给出被引用最广的定义——"the delicate art and science of filling the context window with just the right information for the next step"；同期 LangChain 创始人 Harrison Chase 给出工程定义："构建动态系统，以正确的格式在正确的时机提供正确的信息与工具，使 LLM 能合理地完成任务"；2025-09-29 Anthropic 工程博客发表 "Effective context engineering for AI agents"，标志着它从流行语变成完整方法论。</p>
+<h3 id="上下文的四个组成部分">上下文的四个组成部分</h3>3
+<p>LangChain 官方博客把需要管理的上下文归为四类（与 Anthropic 的解剖一致）：</p>
+<table>
+<thead>
+<tr>
+<th>组成部分</th>
+<th>内容</th>
+<th>管理策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>指令（Instructions）</strong></td>
+<td>system prompt、few-shot 示例、工具描述</td>
+<td>Anthropic：写在"正确高度"（right altitude）——足够具体能引导行为，又不硬编码脆弱逻辑；用 XML 标签/Markdown 标题分节；示例要多样且典型，不要堆边界 case</td>
+</tr>
+<tr>
+<td><strong>知识（Knowledge）</strong></td>
+<td>检索到的文档、外部数据、注入的事实</td>
+<td>不预塞，改用 <strong>just-in-time 检索</strong>（RAG/搜索），让 Agent 在需要时自己取；检索结果只给轻引用</td>
+</tr>
+<tr>
+<td><strong>工具定义（Tools）</strong></td>
+<td>工具 schema、MCP 服务描述</td>
+<td>工具要自包含、容错、<strong>最小且不重叠</strong>——臃肿的工具集制造模糊的决策点</td>
+</tr>
+<tr>
+<td><strong>历史（History）</strong></td>
+<td>消息历史、工具调用结果、Agent 中间产物</td>
+<td>最大的失控源：需压缩（compaction）、剔除（offload）、摘要治理</td>
+</tr>
+</tbody>
+</table>
+<p>一句话：<strong>指令和工具定义是常驻成本，要最小化；知识和历史是动态负载，要按需化。</strong></p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">上下文长度的五个失效模式</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>关键认知：NIAH（大海捞针）基准会骗人——它只测字面匹配检索，各模型近乎满分，让人以为长上下文已解决；换成需要语义关联的 NoLiMa，跌落立刻现形</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>失效模式</th>
+<th>实证结论与数字</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Lost in the middle（位置偏置）</strong></td>
+<td>性能呈 U 形曲线：相关信息在开头/结尾最好，埋在中部显著变差；20 篇文档场景下，GPT-3.5-Turbo 中部准确率低于闭卷基线 56.1%——<strong>给文档反而不如不给</strong>。专为此优化的长上下文模型同样中招</td>
+<td>arXiv:2307.03172（TACL 2023）</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Context rot（整体衰减）</strong></td>
+<td>Chroma 测 18 个模型（含 GPT-4.1、Claude 4、Gemini 2.5、Qwen3）：任务难度不变、只加长输入，准确率持续下降；LongMemEval 上约 300 token 的聚焦提示<strong>在所有模型上</strong>胜过约 113K token 的全量历史——多出的 11 万 token 是净负资产</td>
+<td>Chroma Research, 2025-07</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>注意力稀释（attention budget）</strong></td>
+<td>Transformer 让每个 token 两两交互（n² 关系），上下文越长关系捕捉越稀薄；Anthropic 称之为有限的"注意力预算"，且训练分布中短序列远多于长序列，模型对超长依赖缺乏专门参数</td>
+<td>Anthropic, 2025-09</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>干扰（distractor / poisoning）</strong></td>
+<td>Drew Breunig 四分：Poisoning（幻觉进入上下文被当真）、Distraction（上下文淹没训练知识）、Confusion（多余上下文影响回答）、Clash（上下文内部互相矛盾）。Chroma 实测：1 个干扰项就低于干净基线，4 个更差；NoLiMa 基准（非字面匹配）下 32K 处 12 个模型中 10 个跌破短上下文基线的 50%，GPT-4o 从 99.3% 掉到 69.7%</td>
+<td>LangChain 博客引 Breunig；Chroma 2025-07；arXiv:2502.05167（ICML 2025）</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>成本</strong></td>
+<td>上下文即成本：每 token 都计入计费、延迟与 KV cache（见本库 vLLM 笔记）；LangChain 官方提醒"不要把检索全文灌进主上下文，否则 80% token 浪费在搬运"</td>
+<td>LangChain 官方博客/文档</td>
+</tr>
+</tbody>
+</table>
+<p>关键认知：<strong>NIAH（大海捞针）基准会骗人</strong>——它只测字面匹配检索，各模型近乎满分，让人以为长上下文已解决；换成需要语义关联的 NoLiMa，跌落立刻现形。</p>
+<h3 id="实用策略清单">实用策略清单</h3>3
+<p>LangChain 把业界做法归为 <strong>write / select / compress / isolate</strong> 四类，加上 Anthropic 的补充：</p>
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>做什么</th>
+<th>适用条件</th>
+<th>一手出处</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>检索注入（select，just-in-time）</strong></td>
+<td>不预塞知识，Agent 用 RAG/搜索按需取</td>
+<td>知识库大且动态；Chroma 数据（300 vs 113K token）证明聚焦注入严格优于全量塞入</td>
+<td>Anthropic / LangChain</td>
+</tr>
+<tr>
+<td><strong>剔除/卸载（offload）</strong></td>
+<td>大结果不进窗口：LangChain Deep Agents SDK 对超过 <strong>20,000 token</strong> 的工具结果立即落盘，只留前 10 行预览 + 文件路径；超长的用户消息（阈值 50,000）同样处理</td>
+<td>工具输出大（读大文件、API 拉数据）；Anthropic 也把"清理已消费的工具结果"列为最安全的轻量压缩</td>
+<td>LangChain Deep Agents</td>
+</tr>
+<tr>
+<td><strong>压缩/摘要（compaction，compress）</strong></td>
+<td>上下文用到窗口 <strong>85%</strong> 时，用另一次 LLM 调用把旧消息压成结构化摘要（含会话意图、已产出、下一步），原文落盘可回查</td>
+<td>长会话、长程任务；摘要后 Agent 可通过读文件恢复细节</td>
+<td>LangChain Deep Agents / Anthropic</td>
+</tr>
+<tr>
+<td><strong>分层（渐进披露）</strong></td>
+<td>常驻的只有一行描述，正文按需加载——Skills/CLAUDE.md 的"薄入口 + 专业文档"模式；Anthropic 的系统提示分层（<code>## Tool guidance</code> 等分节）</td>
+<td>常驻指令太多互相干扰时；对应本库 Claude Code 条目的"给地图不给说明书"</td>
+<td>LangChain / Anthropic / 本库 L3</td>
+</tr>
+<tr>
+<td><strong>结构化笔记（write，note-taking）</strong></td>
+<td>Agent 定期把目标、进度、关键发现写到上下文外的文件（如 NOTES.md / todo list），需要时读回</td>
+<td>多步骤任务；Anthropic 用 Claude 玩宝可梦演示：跨数千步靠自笔记保持策略连贯</td>
+<td>Anthropic</td>
+</tr>
+<tr>
+<td><strong>隔离（isolate，子 Agent）</strong></td>
+<td>噪音大的活派给干净上下文的子 Agent，主 Agent 只拿浓缩结论——Anthropic 数据：子 Agent 可消耗数万 token，只回传 <strong>1,000–2,000 token</strong> 摘要</td>
+<td>可并行的探索型工作（研究、搜索）；对应本库 Harness"编排"组件的子智能体</td>
+<td>Anthropic / LangChain</td>
+</tr>
+<tr>
+<td><strong>重排序（re-rank）</strong></td>
+<td>把最相关的检索块放在上下文<strong>开头</strong>、次相关放结尾，其余夹中间</td>
+<td>RAG 多路召回时——直接对冲 lost-in-the-middle 的 U 形曲线</td>
+<td>arXiv:2307.03172 的工程推论</td>
+</tr>
+</tbody>
+</table>
+<p>选择原则（Anthropic）：压缩适合需要连续对话流的任务；笔记适合有清晰里程碑的迭代开发；多 Agent 适合并行探索有收益的复杂研究。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">与本库 Harness 的关系</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>本库 「Harness工程到底是什么」 里已经记录了三次命名演进：Prompt Engineering → Context Engineering → Harness Engineering</li><li>上下文工程是 Harness 的核心子系统</li><li>分工：本库 L2 提示词工程条目讲"单次调用怎么说"；本条讲"多轮系统每轮窗口里装什么"；L3 Harness 条目讲"整个工程环境怎么设计"</li></ul></div>3
+<p>本库 <code>Harness工程到底是什么</code> 里已经记录了三次命名演进：<strong>Prompt Engineering → Context Engineering → Harness Engineering</strong>。三者的关系是包含而非替代：</p>
+<ul>
+<li><strong>上下文工程是 Harness 的核心子系统</strong>。LangChain 在 "The Anatomy of an Agent Harness" 中说得很直白："今天的好 Harness 在很大程度上就是良好上下文工程的交付机制"——compaction、tool offloading、Skills 渐进披露、子 Agent 隔离，全是 Harness 组件在替上下文工程干活。</li>
+<li>映射到 Harness 五组件：</li>
+<li><strong>指令</strong> = 上下文的"指令"部分（system prompt 分层、CLAUDE.md 薄入口）</li>
+<li><strong>约束</strong> = 工具定义与输出格式的最小化、不重叠设计</li>
+<li><strong>记忆</strong> = 结构化笔记、文件系统外置记忆（Anthropic memory tool 的方向）</li>
+<li><strong>编排</strong> = 子 Agent 上下文隔离 + compaction，即"让十匹马各带各的缰绳"</li>
+<li><strong>反馈</strong> = 工具调用结果这条最肥的上下文流的治理（offload / 剔除）</li>
+<li>衔接本库前沿精读笔记的 <strong>Model + Harness</strong> 框架：模型是 CPU，上下文窗口是 RAM（Karpathy 的类比），Harness 是操作系统——上下文工程就是操作系统的<strong>内存管理器</strong>：决定哪个页进 RAM、哪个页换出、哪个页压缩。</li>
+<li>分工：本库 L2 提示词工程条目讲"单次调用怎么说"；本条讲"多轮系统每轮窗口里装什么"；L3 Harness 条目讲"整个工程环境怎么设计"。本条是 L2 与 L3 之间的桥梁。</li>
+</ul>
+<h1 id="how四类策略的最小可运行实现与-token-账2026-11-03-补强">HOW：四类策略的最小可运行实现与 token 账（2026-11-03 补强）</h1>
+<p>上面回答了 WHY 与 WHAT；这一节把 write / select / compress / isolate 里最适合手写落地的三件（offload、compress、re-rank）给出最小实现，并给出"上下文值多少钱"的算式。<strong>代码与算式为本文编写的工程实现</strong>；策略与阈值（20K offload、85% compaction）的一手出处见文末 LangChain 链接。</p>
+<h3 id="1-offload大工具结果落盘只留预览-路径">1. offload：大工具结果落盘，只留预览 + 路径</h3>3
+<p>对应 LangChain Deep Agents 的做法（超 20,000 token 的工具结果立即落盘、只留前 10 行预览）。手写版：</p>
+<pre><code class="language-python"># context_offload.py —— 工具结果卸载（本文编写，无第三方依赖）
+import hashlib, pathlib
+
+STORE = pathlib.Path(&quot;./context_store&quot;); STORE.mkdir(exist_ok=True)
+
+def offload_tool_result(text: str, max_chars: int = 2000, preview_lines: int = 10) -&gt; str:
+    &quot;&quot;&quot;超过阈值就把全文落盘，上下文里只留预览+指针；Agent 需要细节时按路径读回。&quot;&quot;&quot;
+    if len(text) &lt;= max_chars:
+        return text
+    digest = hashlib.sha256(text.encode()).hexdigest()[:16]
+    path = STORE / f&quot;{digest}.txt&quot;
+    path.write_text(text, encoding=&quot;utf-8&quot;)
+    preview = &quot;\n&quot;.join(text.splitlines()[:preview_lines])
+    return (f&quot;{preview}\n...[已截断] 全文 {len(text)} 字符，&quot;
+            f&quot;需要细节时用读文件工具读取：{path}&quot;)
+</code></pre>
+<p>要点：① 指针必须<strong>可操作</strong>（给真实可读的路径，不是"内容太长已省略"），否则 Agent 无法自救；② 按内容哈希命名天然去重，同一结果被多个工具反复返回不会重复占盘；③ 这是<strong>可逆</strong>压缩——与摘要不同，原文一个字没丢。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2. compress：85% 水位触发滚动摘要</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>"""上下文用量超过 budget 的 85% 时，把旧消息压成结构化摘要，原文落盘</li><li>阈值语义：85% 不是魔法数字，是"给最近几轮和输出留余量"的工程水位；真正要盯的是摘要后能不能接上活——回归方法：摘要在、原文撤掉，让 Agent 继续完成下一步，看它是否重复劳动或推翻已确认结论</li><li>摘要插回 system 之后，原文写盘留档</li></ul></div>3
+<pre><code class="language-python">def maybe_compact(messages, est_tokens, budget, watermark=0.85):
+    &quot;&quot;&quot;上下文用量超过 budget 的 85% 时，把旧消息压成结构化摘要，原文落盘。&quot;&quot;&quot;
+    if est_tokens(messages) &lt; budget * watermark:
+        return messages
+    old, recent = messages[1:-6], messages[-6:]     # system 与最近 3 轮不动
+    # ... 调便宜模型把 old 压成&quot;会话意图/已产出/下一步&quot;三段摘要（写法见最佳答案模板5）
+    # 摘要插回 system 之后，原文写盘留档
+</code></pre>
+<p>阈值语义：85% 不是魔法数字，是"给最近几轮和输出留余量"的工程水位；真正要盯的是<strong>摘要后能不能接上活</strong>——回归方法：摘要在、原文撤掉，让 Agent 继续完成下一步，看它是否重复劳动或推翻已确认结论。</p>
+<h3 id="3-re-rank对冲-lost-in-the-middle-的两行代码">3. re-rank：对冲 lost-in-the-middle 的两行代码</h3>3
+<p>arXiv:2307.03172 的 U 形曲线意味着检索块的<strong>摆放位置是免费的准确率</strong>：</p>
+<pre><code class="language-python">def reorder_for_context(chunks):          # chunks 已按相关度降序
+    &quot;&quot;&quot;最相关放开头、次相关放结尾，其余夹中间——对冲位置偏置（工程推论，非论文原算法）。&quot;&quot;&quot;
+    return chunks[::2] + chunks[1::2][::-1]
+</code></pre>
+<p>注意边界：如果检索器相关度排序本身不准，重排救不回来；先保证 top-1 真的最相关，再谈摆放。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4. 上下文成本算式：给"最小高信号 token 集合"一个量化目标</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>长会话月成本 ≈ 平均单轮token × 轮数 × 会话数 × 30 × 单价 / 1e6</li><li>第三行是关键：工具结果一旦进历史，之后每一轮都为它重复付费，所以 offload 的收益随会话长度平方级增长，而不是一次性</li></ul></div>3
+<pre><code>单轮输入成本 = (system + 工具schema + 历史 + 检索注入)token × 输入单价 / 1e6
+长会话月成本 ≈ 平均单轮token × 轮数 × 会话数 × 30 × 单价 / 1e6
+offload 收益 = 被卸载token × 该结果被后续轮次重复携带的次数 × 单价 / 1e6
+</code></pre>
+<p>第三行是关键：工具结果一旦进历史，<strong>之后每一轮都为它重复付费</strong>，所以 offload 的收益随会话长度平方级增长，而不是一次性。示例占位：一条 8,000 token 的工具结果在后续 20 轮里被携带，卸载它省 160,000 token/会话；日 5,000 会话、输入 2 元/百万 token，则日省约 1,600 元（单价为演示占位，以实际账单为准）。</p>
+<h2 id="来源">来源</h2>2
+<ul>
+<li>Anthropic 工程博客：Effective context engineering for AI agents（2025-09-29）— https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents</li>
+<li>LangChain 博客：Context Engineering（write/select/compress/isolate，Karpathy 引语）— https://blog.langchain.com/context-engineering</li>
+<li>LangChain 博客：Context Engineering: How Deep Agents Remember — https://www.langchain.com/blog/context-engineering-deep-agents-remember</li>
+<li>LangChain 博客：Context Management for Deep Agents（20K 卸载 / 85% 摘要阈值）— https://www.langchain.com/blog/context-management-for-deepagents</li>
+<li>LangChain 博客：The Anatomy of an Agent Harness — https://blog.langchain.com/the-anatomy-of-an-agent-harness</li>
+<li>Chroma Research：Context Rot: How Increasing Input Tokens Impacts LLM Performance（2025-07，18 模型，300 vs 113K token 对比）— https://research.trychroma.com/context-rot</li>
+<li>arXiv:2307.03172 — Lost in the Middle: How Language Models Use Long Contexts（Liu et al., TACL 2023）— https://arxiv.org/abs/2307.03172</li>
+<li>arXiv:2502.05167 — NoLiMa: Long-Context Evaluation Beyond Literal Matching（ICML 2025，32K 处 10/12 模型跌破基线 50%）— https://arxiv.org/abs/2502.05167</li>
+<li>arXiv:2507.13334 — A Survey of Context Engineering for Large Language Models（2025-07）— https://arxiv.org/abs/2507.13334</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">相关术语</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Model + Harness：ontology/术语表-Agent框架.md</li><li>上下文腐烂（Context Rot）/ Lost in the Middle / NoLiMa：ontology/术语表-Agent框架.md</li></ul></div>2
+<ul>
+<li>Model + Harness：ontology/术语表-Agent框架.md</li>
+<li>上下文腐烂（Context Rot）/ Lost in the Middle / NoLiMa：ontology/术语表-Agent框架.md</li>
+<li>Compaction / Offload / 渐进披露（Progressive Disclosure）：见本条与 <a href="../L3-AI%E5%8D%8F%E5%90%8C%E7%BC%96%E7%A8%8B/Harness%E5%B7%A5%E7%A8%8B%E5%88%B0%E5%BA%95%E6%98%AF%E4%BB%80%E4%B9%88.html">Harness 工程到底是什么</a>、<a href="../L3-AI%E5%8D%8F%E5%90%8C%E7%BC%96%E7%A8%8B/Claude%20Code%E6%80%8E%E4%B9%88%E7%94%A8%E6%89%8D%E9%AB%98%E6%95%88.html">Claude Code 怎么用才高效</a></li>
+</ul>
+<blockquote>
+<p>来源：Anthropic《Effective context engineering for AI agents》；LangChain 官方博客与 Deep Agents 文档；Chroma《Context Rot》；Lost in the Middle（arXiv:2307.03172）；NoLiMa（arXiv:2502.05167）；完整出处保留于文末“来源”。</p>
+</blockquote></div></details></div></body></html>

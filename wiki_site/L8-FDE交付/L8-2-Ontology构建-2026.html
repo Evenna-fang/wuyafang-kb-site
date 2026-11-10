@@ -1,0 +1,520 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L8-2-Ontology构建-2026</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L8-2-Ontology构建-2026</span></div><div class="wrap"><h1 id="l8-2-ontology-构建palantir-核心方法论-2026">L8-2 Ontology 构建（Palantir 核心方法论）· 2026</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="FDE%E4%BA%A4%E4%BB%98%E6%96%B9%E6%B3%95%E8%AE%BA-2026.html">FDE交付方法论</a> · <a href="FDE%E9%9C%80%E6%B1%82%E8%AF%84%E4%BC%B0%E6%A1%86%E6%9E%B6-2026.html">L8-1 需求评估</a> · <a href="L8-3-%E7%A7%81%E6%9C%89%E5%8C%96%E9%83%A8%E7%BD%B2-2026.html">L8-3 私有化部署</a> · <a href="L8-4-%E5%A4%9A%E6%A8%A1%E6%80%81%E4%BA%A4%E4%BB%98-2026.html">L8-4 多模态交付</a> · <a href="FDE%E5%AE%9E%E6%88%98%E6%96%B9%E6%B3%95%E8%AE%BA-2026.html">FDE实战方法论</a></p>
+<p>能力域定位：L8「战略交付层」之 L8-2。把客户散落在业务系统里的数据、表、模型，抽象成一张可被 AI Agent 安全读写的「业务数字孪生」。这是 Palantir Foundry / AIP 的核心方法论，也是我们交付行业 RAG / Agent 项目时区别于「普通知识库」的护城河。</p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY —— 为什么必须建 Ontology，而不是直接堆 RAG</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="1-纯-rag-的三个天花板">1. 纯 RAG 的三个天花板</h3>3
+<ul>
+<li><strong>读得到，改不动</strong>：向量库只能回答「文档里写了什么」，回答不了「把这张工单改派给张三会发生什么、需要谁审批、触发哪些下游」。</li>
+<li><strong>AI Agent 不敢碰真实业务</strong>：没有受控的写接口时，大模型直接调业务 API = 让实习生拿 root 连生产库。Ontology 的价值恰恰是「让 raw model 安全地指向一家真实公司」（Elementum, 2026）。</li>
+<li><strong>Dashboard 是后视镜</strong>：仪表盘告诉你「这票货迟到了」，但 Ontology 让你<strong>直接</strong>在同一张模型上执行「改路线 / 改承运商 / 通知客户」这一动作（BD Emerson, 2026）。</li>
+</ul>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2. 客户侧的真实痛点（触发词）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>客户问：「我上了 Coze/Dify，为什么业务部门不愿用</li><li>」——因为它回答的是文档，不是「我的订单、我的资产、我的患者」</li><li>客户问：「AI 能不能直接帮我把这批不合格批次隔离</li></ul></div>3
+<ul>
+<li>客户问：「我上了 Coze/Dify，为什么业务部门不愿用？」——因为它回答的是文档，不是「我的订单、我的资产、我的患者」。</li>
+<li>客户问：「AI 能不能直接帮我把这批不合格批次隔离？」——这需要 <strong>Action + 权限 + 审批</strong>，而不只是 retrieval。</li>
+<li>合规要求：金融、医药、军工客户，任何一次 AI 写操作必须可审计、可回滚、按角色授权。Ontology 的 Action 类型天然是受控事务。</li>
+</ul>
+<h3 id="3-对标">3. 对标</h3>3
+<p>Palantir 官方把 Ontology 定义为「组织的数字孪生，把数据集和模型映射为 object types / properties / link types / action types」（Palantir Docs, Core Concepts）。它不是数据湖，也不是语义层 / metrics store——<strong>关键差异在 Action 层</strong>：语义层只读，Ontology 是「读 + 受控写」的合一操作层。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">WHAT —— Palantir Ontology 方法论：三层原语</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="1-三大原语官方定义">1. 三大原语（官方定义）</h3>3
+<table>
+<thead>
+<tr>
+<th>原语</th>
+<th>含义</th>
+<th>举例（物流场景）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Object Type（对象类型）</strong></td>
+<td>真实世界实体 / 事件的 schema 定义</td>
+<td><code>Shipment</code>、<code>Asset</code>、<code>Order</code>、<code>Incident</code></td>
+</tr>
+<tr>
+<td><strong>Property（属性）</strong></td>
+<td>对象的特征字段（含主键、展示配置、时序列）</td>
+<td><code>Shipment.dest_city</code>、<code>Shipment.eta</code></td>
+</tr>
+<tr>
+<td><strong>Link Type（链接类型）</strong></td>
+<td>对象对之间的<strong>有类型</strong>关系</td>
+<td><code>Shipment → Asset</code>（1..N）、<code>Order → Shipment</code>（1..1）</td>
+</tr>
+<tr>
+<td><strong>Action Type（动作类型）</strong></td>
+<td>一次受控事务：改属性 + 改链接 + 副作用</td>
+<td><code>RerouteShipment</code>、<code>ApproveClaim</code>、<code>TakeAssetOutOfService</code></td>
+</tr>
+</tbody>
+</table>
+<p>要点（来自 Palantir 官方 anti-pattern 文档）：<br />
+- Action 是<strong>带参数、带提交校验（submission criteria）、带副作用</strong>的事务，不是「一个按钮改一个字段」。<br />
+- 命名动作要用<strong>业务动词</strong>：<code>TransferEmployee</code>、<code>ApprovePurchaseOrder</code>、<code>EscalateSupportTicket</code>，而不是 <code>UpdateInventoryStatus</code> 这种技术动作。<br />
+- 反模式：<code>CalculateRegionalSales</code> 这类「计算型动作」应改为<strong>每日 pipeline 聚合出一个 Summary 对象类型</strong>，而不是让用户点击触发计算。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2. 关键设计纪律</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>克制（restraint）：每一条 link 都是一条有人会走的路径，每条路径都是一个「过期关系 → 错误决策」的风险点</li><li>只建模操作真正会用的关系，其余留在数据层（BD Emerson）</li><li>先做透一条工作流，再扩第二条：先端到端跑通「一个操作工作流 + 动作写回」，再加第二个对象域</li></ul></div>3
+<ul>
+<li><strong>克制（restraint）</strong>：每一条 link 都是一条有人会走的路径，每条路径都是一个「过期关系 → 错误决策」的风险点。只建模操作真正会用的关系，其余留在数据层（BD Emerson）。</li>
+<li><strong>先做透一条工作流，再扩第二条</strong>：先端到端跑通「一个操作工作流 + 动作写回」，再加第二个对象域。不要一次性把全企业 E-R 图倒进来。</li>
+<li><strong>把 Ontology 变更当生产库 migration 管理</strong>：Ontology Manager 里的对象/动作定义要版本化、权限受控。</li>
+</ul>
+<h3 id="3-数据如何进入-ontology">3. 数据如何进入 Ontology</h3>3
+<p>Palantir 的路径：<strong>Object Data Funnel</strong> 从 Foundry 数据源读取 → 索引进对象库 → 源系统更新时保持同步。在我们自建栈里等价做法：<br />
+- 业务库（MySQL / ERP / MES）→ Airflow / dbt 清洗 → 同步为对象表<br />
+- 文档库（PDF、工单）→ 切分 + 向量化，同时挂到对应的 Object 上（例如所有关于 <code>Shipment#123</code> 的聊天记录，都 link 到这个对象）</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4. Ontology vs 语义层 / Graph RAG 的差异</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>纯 RAG</th>
+<th>知识图谱 / Graph RAG</th>
+<th>Palantir 式 Ontology</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据形态</td>
+<td>文本块</td>
+<td>实体+关系三元组</td>
+<td>对象+链接+<strong>动作</strong></td>
+</tr>
+<tr>
+<td>写操作</td>
+<td>无</td>
+<td>无（多为只读推理）</td>
+<td>有，受控事务</td>
+</tr>
+<tr>
+<td>权限模型</td>
+<td>文档级</td>
+<td>三元组级</td>
+<td>对象级 + 动作级 + 审批流</td>
+</tr>
+<tr>
+<td>AI Agent 用法</td>
+<td>检索回答</td>
+<td>多跳推理</td>
+<td>检索 + <strong>执行动作</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="how-从客户业务提炼-ontology-的落地步骤">HOW —— 从客户业务提炼 Ontology 的落地步骤</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">官方源码与论文引用</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>资源</th>
+<th>链接</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Palantir Foundry 官方文档</td>
+<td>https://palantir.com/docs/foundry/ontology/core-concepts</td>
+<td>Ontology 核心概念</td>
+</tr>
+<tr>
+<td>Palantir Ontology 产品页</td>
+<td>https://www.palantir.com/explore/platforms/foundry/ontology</td>
+<td>官方产品介绍</td>
+</tr>
+<tr>
+<td>Microsoft GraphRAG（开源对标）</td>
+<td>https://github.com/microsoft/graphrag</td>
+<td>知识图谱 RAG 框架</td>
+</tr>
+<tr>
+<td>LightRAG（轻量开源）</td>
+<td>https://github.com/HKUDS/LightRAG</td>
+<td>成本 1/100 的 GraphRAG</td>
+</tr>
+<tr>
+<td>Ontology Engineering 论文</td>
+<td>arXiv:2209.08615（"Ontology Engineering in the LLM Era"）</td>
+<td>LLM 时代本体工程</td>
+</tr>
+</tbody>
+</table>
+<h3 id="pip-install-命令自建栈">pip install 命令（自建栈）</h3>3
+<pre><code class="language-bash"># 对象存储 + Action 服务
+pip install fastapi uvicorn psycopg2-binary pydantic
+
+# 知识图谱检索（对标 GraphRAG）
+pip install graphrag lightrag-hku
+
+# 向量嵌入（挂在 Object UUID 上做 RAG）
+pip install sentence-transformers
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">完整可跑代码：Ontology Action 服务</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-python"># ontology_server.py —— 完整可运行的 FastAPI Ontology 服务
+from fastapi import FastAPI, HTTPException, Depends
+from pydantic import BaseModel
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import datetime
+
+app = FastAPI(title=&quot;Shipment Ontology Service&quot;)
+
+DB_CONFIG = {
+    &quot;host&quot;: &quot;localhost&quot;, &quot;dbname&quot;: &quot;logistics&quot;,
+    &quot;user&quot;: &quot;ontology_app&quot;, &quot;password&quot;: &quot;your_password&quot;,
+}
+
+def get_db():
+    conn = psycopg2.connect(**DB_CONFIG, cursor_factory=RealDictCursor)
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+class RerouteShipmentParams(BaseModel):
+    shipment_id: str
+    new_dest_city: str
+    reason_code: str  # CUSTOMER_CHANGE / WEATHER / CARRIER_DELAY
+
+class AssignClaimParams(BaseModel):
+    claim_id: str
+    assignee_id: str
+
+# ---- Object 查询工具（Agent 调用入口）----
+@app.get(&quot;/objects/{type_name}/{object_id}&quot;)
+def get_object(type_name: str, object_id: str, conn=Depends(get_db)):
+    &quot;&quot;&quot;查询一个对象类型的完整属性&quot;&quot;&quot;
+    with conn.cursor() as cur:
+        cur.execute(f&quot;SELECT * FROM {type_name.lower()} WHERE id = %s&quot;, (object_id,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(404, f&quot;{type_name} {object_id} not found&quot;)
+        return dict(row)
+
+@app.get(&quot;/objects/{type_name}/{object_id}/links/{link_type}&quot;)
+def get_links(type_name: str, object_id: str, link_type: str, conn=Depends(get_db)):
+    &quot;&quot;&quot;查询对象的所有链接（如 Shipment → Orders）&quot;&quot;&quot;
+    with conn.cursor() as cur:
+        cur.execute(&quot;&quot;&quot;
+            SELECT o.* FROM orders o
+            JOIN shipment_order_link l ON o.id = l.order_id
+            WHERE l.shipment_id = %s
+        &quot;&quot;&quot;, (object_id,))
+        return [dict(r) for r in cur.fetchall()]
+
+# ---- Action 执行（受控写操作）----
+@app.post(&quot;/actions/RerouteShipment&quot;)
+def reroute_shipment(p: RerouteShipmentParams, user: str = &quot;demo-user&quot;, conn=Depends(get_db)):
+    &quot;&quot;&quot;改运单目的地：带前置校验 + 审计日志 + 事务&quot;&quot;&quot;
+    with conn.cursor() as cur:
+        # 1. 行锁，防止并发冲突
+        cur.execute(&quot;SELECT status FROM shipment WHERE id = %s FOR UPDATE&quot;, (p.shipment_id,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(404, &quot;shipment not found&quot;)
+        # 2. 前置条件（submission criteria）
+        if row[&quot;status&quot;] != &quot;IN_TRANSIT&quot;:
+            raise HTTPException(409, f&quot;shipment status={row['status']}, only IN_TRANSIT can reroute&quot;)
+        if p.reason_code not in {&quot;CUSTOMER_CHANGE&quot;, &quot;WEATHER&quot;, &quot;CARRIER_DELAY&quot;}:
+            raise HTTPException(400, &quot;invalid reason_code&quot;)
+        # 3. 执行动作（事务内）
+        cur.execute(&quot;&quot;&quot;
+            UPDATE shipment SET dest_city = %s, updated_at = %s WHERE id = %s
+        &quot;&quot;&quot;, (p.new_dest_city, datetime.datetime.utcnow(), p.shipment_id))
+        # 4. 审计日志（不可篡改）
+        cur.execute(&quot;&quot;&quot;
+            INSERT INTO audit_log (user_id, action_type, object_id, payload, ts)
+            VALUES (%s, %s, %s, %s, %s)
+        &quot;&quot;&quot;, (user, &quot;RerouteShipment&quot;, p.shipment_id, p.model_dump_json(), datetime.datetime.utcnow()))
+        conn.commit()
+    # 5. 事务外触发副作用（webhook / 通知）
+    # notify_carrier_webhook(p.shipment_id, p.new_dest_city)
+    return {&quot;ok&quot;: True, &quot;shipment_id&quot;: p.shipment_id, &quot;new_dest&quot;: p.new_dest_city}
+
+@app.post(&quot;/actions/ApproveClaim&quot;)
+def approve_claim(claim_id: str, user: str = &quot;demo-user&quot;, conn=Depends(get_db)):
+    &quot;&quot;&quot;审批理赔：金额 &lt; 10k 自动通过&quot;&quot;&quot;
+    with conn.cursor() as cur:
+        cur.execute(&quot;SELECT * FROM claim WHERE id = %s FOR UPDATE&quot;, (claim_id,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(404, &quot;claim not found&quot;)
+        if row[&quot;amount&quot;] &gt; 10000:
+            raise HTTPException(403, &quot;amount &gt; 10000, requires human approval&quot;)
+        cur.execute(&quot;UPDATE claim SET status='APPROVED', resolved_by=%s, resolved_at=%s WHERE id=%s&quot;,
+                    (user, datetime.datetime.utcnow(), claim_id))
+        cur.execute(&quot;&quot;&quot;INSERT INTO audit_log (user_id, action_type, object_id, payload, ts)
+                       VALUES (%s, %s, %s, %s, %s)&quot;&quot;&quot;,
+                    (user, &quot;ApproveClaim&quot;, claim_id, '{&quot;auto&quot;: true}', datetime.datetime.utcnow()))
+        conn.commit()
+    return {&quot;ok&quot;: True, &quot;claim_id&quot;: claim_id, &quot;status&quot;: &quot;APPROVED&quot;}
+
+if __name__ == &quot;__main__&quot;:
+    import uvicorn
+    uvicorn.run(app, host=&quot;0.0.0.0&quot;, port=8080)
+</code></pre>
+<h3 id="阶段-0启动前的两个判断">阶段 0：启动前的两个判断</h3>3
+<ol>
+<li><strong>客户是否真的需要 Action 层？</strong> 如果只是「客服查手册」「员工查制度」，纯 RAG 够了，别上 Ontology。Ontology 的成本主要在 Action + 权限 + 写回审批。</li>
+<li><strong>有没有一条可端到端跑通的核心工作流？</strong> 找一条高频、跨系统、有明确「现在人工在做」的流程（例如「客诉→派单→换货→退款」），作为第一个建模对象域。</li>
+</ol>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">阶段 1：Definitional Workshop（定义工作坊）—— 最关键的一步</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Palantir 实施伙伴（BD Emerson、Elementum）都强调：Ontology 质量由 workshop 决定，不由平台决定</li><li>1. 业务流程 mapping：让业务方画出「谁、对哪个对象、做了什么、改了什么字段、触发谁」</li><li>2. 列出名词清单：把流程图里反复出现的名词圈出来（Shipment、Order、Customer、Asset…）</li></ul></div>3
+<p>Palantir 实施伙伴（BD Emerson、Elementum）都强调：<strong>Ontology 质量由 workshop 决定，不由平台决定</strong>。</p>
+<p>工作坊议程（建议 2 天）：<br />
+1. <strong>业务流程 mapping</strong>：让业务方画出「谁、对哪个对象、做了什么、改了什么字段、触发谁」。产出物：一张泳道图。<br />
+2. <strong>列出名词清单</strong>：把流程图里反复出现的名词圈出来（Shipment、Order、Customer、Asset…）。这就是候选 Object Type。<br />
+3. <strong>列出动词清单</strong>：把流程图里反复出现的动词圈出来（Approve、Reroute、Escalate、Assign…）。这就是候选 Action Type。<br />
+4. <strong>确认关系</strong>：每两个对象之间，关系是 1:1 / 1:N / N:N？是强约束还是弱关联？<br />
+5. <strong>定义 Action 的提交校验</strong>：<code>ApproveClaim</code> 要求金额 &lt; 10k？要求保险单在有效期内？这些规则写进 action rules。<br />
+6. <strong>权限矩阵</strong>：哪些角色能看哪些对象、能执行哪些动作。</p>
+<p>产出物模板：</p>
+<pre><code class="language-yaml">object_types:
+  - name: Shipment
+    primary_key: shipment_id
+    properties: [dest_city, eta, carrier, status, weight_kg]
+    links:
+      - to: Order
+        cardinality: N:1
+        relation: &quot;fulfills&quot;
+      - to: Asset
+        cardinality: 1:N
+        relation: &quot;carried_by&quot;
+action_types:
+  - name: RerouteShipment
+    input: [shipment_id, new_dest_city, reason_code]
+    preconditions:
+      - &quot;shipment.status == 'IN_TRANSIT'&quot;
+      - &quot;reason_code in {'CUSTOMER_CHANGE','WEATHER','CARRIER_DELAY'}&quot;
+    effects:
+      - &quot;shipment.dest_city = new_dest_city&quot;
+      - &quot;shipment.log.append({action: 'REROUTE', by: current_user, ts: now()})&quot;
+    side_effects:
+      - notify_carrier_webhook()
+      - update_eta_prediction()
+    roles_allowed: [DISPATCHER, PLANNER]
+</code></pre>
+<h3 id="阶段-2在自建栈里实现非-palantir-平台">阶段 2：在自建栈里实现（非 Palantir 平台）</h3>3
+<p>我们常用的等价栈：<br />
+- <strong>对象存储</strong>：PostgreSQL（对象表）+ 关系表（链接）+ 时序表（属性历史）<br />
+- <strong>检索增强</strong>：对象字段同时向量化（bge-m3），挂在对象 UUID 上做 RAG<br />
+- <strong>Action 执行器</strong>：FastAPI 服务，每个 Action 一个 endpoint，强制走事务 + 审计日志<br />
+- <strong>AI Agent 接口</strong>：给 Agent 暴露 <code>query_object(type, filters)</code>、<code>list_links(object)</code>、<code>apply_action(type, params)</code> 三个工具（Ontology MCP 思路）</p>
+<p>最小可运行示例（伪代码）：</p>
+<pre><code class="language-python"># ontology_action.py
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import psycopg
+
+app = FastAPI()
+
+class RerouteShipmentParams(BaseModel):
+    shipment_id: str
+    new_dest_city: str
+    reason_code: str
+
+@app.post(&quot;/actions/RerouteShipment&quot;)
+def reroute(p: RerouteShipmentParams, user: str):
+    with psycopg.connect(&quot;...&quot;) as conn, conn.transaction():
+        cur = conn.cursor()
+        cur.execute(&quot;SELECT status FROM shipment WHERE id=%s FOR UPDATE&quot;, (p.shipment_id,))
+        row = cur.fetchone()
+        if not row: raise HTTPException(404)
+        if row[0] != &quot;IN_TRANSIT&quot;: raise HTTPException(409, &quot;shipment not in transit&quot;)
+        cur.execute(&quot;UPDATE shipment SET dest_city=%s WHERE id=%s&quot;,
+                    (p.new_dest_city, p.shipment_id))
+        cur.execute(&quot;INSERT INTO audit_log(user, action, payload) VALUES (%s,%s,%s)&quot;,
+                    (user, &quot;RerouteShipment&quot;, p.model_dump_json()))
+    # 副作用 webhook 在事务外、提交成功后再触发
+    notify_carrier_webhook(p)
+    return {&quot;ok&quot;: True}
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">阶段 3：给 AI Agent 用</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>get_object(type, id) / search_objects(type, filters)</li><li>get_links(object_id, link_type)</li><li>apply_action(action_type, params) 任何写操作必须走这里</li></ul></div>3
+<p>Agent 的 system prompt 里只暴露 Ontology 的三个工具，禁止直连业务库：</p>
+<pre><code>你可以调用：
+- get_object(type, id) / search_objects(type, filters)
+- get_links(object_id, link_type)
+- apply_action(action_type, params)  # 任何写操作必须走这里
+</code></pre>
+<p>这样模型即使幻觉，也只会在<strong>受控对象 schema + 动作参数校验</strong>里被拦下，而不会直接 DELETE 生产表。</p>
+<h3 id="阶段-4验收清单">阶段 4：验收清单</h3>3
+<ul>
+<li>[ ] 一条核心工作流端到端跑通（人工操作的每一步都能映射到一个 Action）</li>
+<li>[ ] 每个 Action 都有 precondition + 审计日志 + 角色限制</li>
+<li>[ ] Agent 在压力测试下，没有一次直接绕过 Ontology 访问业务库</li>
+<li>[ ] Ontology 变更有版本记录，回滚脚本可执行</li>
+</ul>
+<hr />
+</div></details></div></details><h2 id="一手源补强官方三件套aip-节奏以及图谱结构质量验收">一手源补强：官方三件套、AIP 节奏，以及图谱「结构质量」验收</h2>2
+<h3 id="a-palantir-官方为什么说-ontology-不是语义层以及落地节奏">A. Palantir 官方：为什么说 Ontology 不是语义层，以及落地节奏</h3>3
+<blockquote>
+<p><strong>据[一手源]：Anthropic-FDE与Palantir-Ontology一手-20260930（palantir.com ontology-system，tier 1）· 全球FDE对标-Palantir与AI巨头方法论-20260930 §八</strong><br />
+- <strong>四重整合</strong>：Data（名词，把 ERP/CRM/工业库/传感器/文档统一成对象、属性、链接）+ Action（动词，"名词要配动词才能建模决策"，实时写回运营系统）+ Logic（规则、ML 模型、<strong>LLM 函数</strong>、多引擎编排）+ Security（织入前三者，AI agent 的安全范围继承其对应人类用户或项目权限）。官方原话"The Ontology is NOT a semantic layer"，因为这四件事做不进薄语义层或单体设计。<br />
+- <strong>Language / Engine / Toolchain 三件套</strong>：Language 管建模（对象/链接/属性、动作与自动化、逻辑字面量）；Engine 管读写（读：高并发 SQL、实时订阅、人+AI 混合物化；写：原子事务、批量变更、流、CDC 低延迟镜像）；Toolchain 管应用开发（OSDK + DevOps，把 Ontology 当后端）。自建栈对应物（自研对照，非源文）：Language≈对象/动作的 schema 文件，Engine≈上文 <code>ontology_server.py</code> 的读写服务，Toolchain≈给 Agent 的工具函数与 SDK。<br />
+- <strong>对象建模维度还多一个 interfaces</strong>：Foundry 官方 overview 页列的是 object types + link types + action types + <strong>interfaces</strong>（OC 图谱对标调研引用）。与本篇三大原语是同一套东西的不同切面。<br />
+- <strong>节奏锚点</strong>（AIP bootcamp 模式）：Day 0-1 建客户领域本体（Customer/Claim/Asset 等实体 + 属性 + 链接）→ Day 2 本体接入 AIP，暴露为 LLM 可推理的工具调用 → Day 3 交付一个分析员能端到端跑完的决策流应用 → Day 4-N 按用户反馈迭代本体与工具面。对照本篇「阶段 1 定义工作坊」（自研推论）：工作坊产出的第一版对象/动作清单应在 1-2 天内能跑出一条工作流，而不是画满整个企业。<br />
+- <strong>选型口诀</strong>：LLM 应用没有客户专属本体就失败；通用模型给通用答案，企业价值要扎根客户的"名词+动词"，<strong>这是工程，不是 prompt</strong>。</p>
+</blockquote>
+<h3 id="b-图谱结构质量交付给客户的-ontology知识图谱怎么验收">B. 图谱结构质量：交付给客户的 Ontology/知识图谱怎么验收</h3>3
+<blockquote>
+<p><strong>据[一手源]：FDE知识图谱全球对标调研-20261029（Medium《KG Health Assessment Part 1: Structure》Fanghua Joshua Yu，2026-05；MDPI 本体质量指标；ScienceDirect RIDE KG 密度）· OC-FDE图谱对标调研-20261029（OpenClaw 直连官方一手源，下文标注【一手】或【自研·待验证】）</strong></p>
+</blockquote>
+<p>核心原则：<strong>图谱质量不只是语义的，更是结构的、证据的、运行的。</strong> 7 项结构健康指标可直接当验收清单：</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>指标</th>
+<th>健康标准</th>
+<th>警戒信号</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>度分布/枢纽性</td>
+<td>少数有意义枢纽 + 多数低度节点（scale-free）</td>
+<td>枢纽是 Thing/Document/RelatedTo 之类泛化词 → 检索被污染</td>
+</tr>
+<tr>
+<td>2</td>
+<td>小世界/路径长度</td>
+<td>短而有意义的路径 + 局部簇 + 桥接概念</td>
+<td>路径过长（噪声）或过短（全靠泛化 hub）</td>
+</tr>
+<tr>
+<td>3</td>
+<td>模块度/社区</td>
+<td>有意义的领域社区</td>
+<td>过度碎片化，或语义坍缩成一团</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>语义密度（强类型边占比）</strong></td>
+<td>以 Drug-TREATS-Disease 这类强类型边为主</td>
+<td>大量 RELATED_TO/共现/提及弱边 → 看着连通，无法推理</td>
+</tr>
+<tr>
+<td>5</td>
+<td>语义枢纽质量</td>
+<td>高度节点保留语义</td>
+<td>噪声枢纽应排除遍历、降权或分层</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>证据接地覆盖率</strong></td>
+<td>实体/断言/关系/答案均可溯源到原始材料</td>
+<td>无证据 → 难审计、难修复（可作 release gate）</td>
+</tr>
+<tr>
+<td>7</td>
+<td>聚类系数</td>
+<td>中等聚类 = 连贯局部邻域</td>
+<td>过高（冗余）或过低（离散）</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>"深度"的判据</strong>："短不一定好。一条 2 跳的 RELATED_TO 路径，可能不如一条 4 跳的带类型、带证据的关系路径。"所以验收多跳能力，要看<strong>强边子图</strong>上的链，不能只报全图跳数。</li>
+<li><strong>分层拓扑</strong>（GenKM 多层结构）：文档图（Document→Section→Chunk→Sentence，树/序列）· 实体图（跨文档高频实体成枢纽，重尾）· 本体图（Thing→Organization→Company→Supplier，层级/DAG）· 社区图（模块化簇）· 跨层链接（异构、有类型、有向、含溯源）。</li>
+<li><strong>顶级图谱的五条结构标准</strong>【一手归纳】：① 边全是语义关系，共现/提及类弱边不进主图，只做候选池；② 每实体语义关系数高（Google KG &gt;5 亿 objects、&gt;35 亿 facts，约 <strong>7 facts/object</strong>，后者为自算）；③ 受控词汇表（Wikidata 官方 API 2026-10-29 实测 123,805,330 items、14,010 properties；Palantir 对象/链接/动作/接口；schema.org），禁止用自然语言短语直接当边；④ 层级结构 + 摘要（Microsoft GraphRAG：实体图→Leiden 分层社区→社区摘要）；⑤ 语句级溯源（Wikidata 记录"不只是陈述，还有来源"，每条语句带 sources 和 qualifiers）。</li>
+<li><strong>FDE 领域落地做法</strong>【自研·待验证，OC 提出】：受控关系表 <code>is_a / part_of / requires / leads_to / fixes / degrades / alternative_to / deployed_on / measured_by / owned_by</code>；把"怎么修、怎么部署"这类程序性知识建成五段式流程边型 <code>症状 →(diagnosed_by)→ 根因 →(fixed_by)→ 处置动作 →(requires)→ 工具/权限 →(validated_by)→ 验证凭据</code>（借 Palantir action type 的精神）；一级实体铺六类：客户场景 / 产品组件 / 部署形态 / 故障模式 / 处置 playbook / 升级路径；每条边附 provenance <code>{source_doc, source_span, confidence, extraction_date}</code>；用 link prediction（随机留出 10% 语义边测命中）给完备性一个可失败的指标。</li>
+<li><strong>和本篇"克制"纪律的关系</strong>（自研综合）：上面"边要多"指的是<strong>强类型语义边</strong>要多、弱边要退出主图，不是鼓励把所有表都建模成对象。客户的操作型 Ontology 仍遵守"只建模操作面"（常见坑 4）；这里的密度/溯源指标主要用于<strong>知识型图谱</strong>（FAQ、故障库、playbook）和对 Ontology 的质量体检。</li>
+</ul>
+<blockquote>
+<p><strong>本库基线快照（2026-10-29 实测，会过期，只用于理解差距）</strong>：FDE 图谱 538 实体 / 3263 关系；弱边 mentions(1804)+co_occurs(839)=2643 条，占 <strong>81%</strong>，真语义边（bfo:instance_of、skos 族、bfo 族）约 620 条，占 <strong>19%</strong>，平均 <strong>1.15 条/实体</strong>（顶级图谱锚点 5-7）；全图直径 6 跳、平均 2.86 跳，但强边子图直径 14 跳、平均 6.29 跳，强边稀疏（平均强边度 2.55，45 个小分量长尾断裂）。结论：骨架达标，<strong>短板是知识密度</strong>，现在更像"文档共现图"而非知识图谱；行动顺序是先补内容（真语义边占比目标 50%+、每实体语义关系 ≥5、补元数据）、再做 7 项体检、最后才重建向量库。</p>
+</blockquote>
+<hr />
+<h2 id="常见坑来自-palantir-anti-pattern-文档-实施经验">常见坑（来自 Palantir anti-pattern 文档 + 实施经验）</h2>2
+<ol>
+<li><strong>Action Sprawl</strong>：为每个字段写一个 update 动作。→ 按业务操作捆绑，一个动作 = 一次完整业务事务。</li>
+<li><strong>Time Machine</strong>：把历史版本建成独立对象类型。→ 一个实体一个对象，历史用 linked history 对象 / 时序属性。</li>
+<li><strong>把计算塞进 Action</strong>：<code>CalculateRegionalSales</code>。→ 让 pipeline 聚合出 Summary 对象。</li>
+<li><strong>Ontology 当数据湖用</strong>：把所有表都建模成对象。→ 只建模操作面，其余留在数据层。</li>
+<li><strong>权限事后补</strong>：上线前没定角色矩阵，上线后 Agent 乱调。→ Workshop 阶段就出权限矩阵。</li>
+</ol>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">信息来源</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<ul>
+<li>Palantir 官方文档 · Core Concepts：https://palantir.com/docs/foundry/ontology/core-concepts</li>
+<li>Palantir 官方文档 · Ontology Anti-patterns：https://palantir.com/docs/foundry/ontology/ontology-anti-patterns</li>
+<li>Palantir 官方文档 · Action types overview：https://palantir.com/docs/foundry/action-types/overview</li>
+<li>Palantir Foundry Ontology 产品页：https://www.palantir.com/explore/platforms/foundry/ontology</li>
+<li>Elementum · "Palantir Ontology Explained"（2026）：https://www.elementum.ai/blog/palantir-ontology-explained</li>
+<li>BD Emerson · "The Palantir Ontology, Explained"（2026）：https://www.bdemerson.com/article/palantir-ontology-explained</li>
+<li>PuppyGraph · "Palantir Ontology: Architecture &amp; Benefits"：https://www.puppygraph.com/blog/palantir-ontology</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>Ontology 的真实构建器（<code>rag/build_wiki_graph.py</code> L941 <code>main()</code>，grep 可验）</strong>：<br />
+<code>python
+  def main():
+      ap = argparse.ArgumentParser()
+      ap.add_argument("--dry-run", action="store_true")
+      entities: dict[str, dict] = {}
+      relations: list[dict] = []
+      # 五个数据源
+      load_triples_ent, load_triples_rel = load_triples()
+      entities.update(load_triples_ent)
+      relations.extend(load_triples_rel)
+      load_wiki_tags(entities, relations)
+      load_glossary(entities, relations)
+      load_term_body_cooc(entities, relations)   # 依赖 glossary 已建术语实体
+      load_wiki_entry_relations(entities, relations)  # 依赖 wiki_tags 已建 tag 实体</code><br />
+  数据源<strong>按可信度排序</strong>：人工审校三元组（<code>ontology/ontology-triples.csv</code>）打底，LLM 抽取的增量最后并入（<code>load_spike_delta</code>，端点严格对齐已有实体）。</li>
+<li><strong>实体消歧与悬空边收口（<code>rag/build_wiki_graph.py</code> L606 <code>resolve_aliases()</code>）</strong>：关系端点按 ①精确 key ②规范 name ③alias 三级查找，全 miss 才丢弃——注释写得很直白："entities 的键是 norm_key，而 display_name 会改写名字，导致 norm_key(展示名) 找不到对应键 → 边挂不上节点 → 变成孤立节点"。</li>
+<li><strong>和课件讲法的差异</strong>：课件 Ontology 常用 TTL/OWL 建类层次 + 对象属性约束，由推理机做一致性检查；本库用<strong>CSV 三元组 + 谓词三族重标</strong>（<code>relabel_relations</code>：structure 化/hierarchy/weak，weak 边压到权重 0.3），没有 OWL 推理机。好处是可直接进检索（高键路），坏处是没有形式化约束校验。</li>
+</ul>
+<h2 id="相关条目">相关条目</h2>2
+<ul>
+<li><a href="L8-2-Ontology%E6%9E%84%E5%BB%BA-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L8-2 Ontology 构建 · 最佳答案</a></li>
+</ul></div></details></div></body></html>

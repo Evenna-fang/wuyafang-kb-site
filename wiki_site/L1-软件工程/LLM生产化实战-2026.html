@@ -1,0 +1,349 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LLM生产化实战-2026</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ LLM生产化实战-2026</span></div><div class="wrap"><h1 id="llm-生产化实战2026prompt-管理-guardrails-streaming-成本追踪-观测-schema">LLM 生产化实战（2026）：prompt 管理 × guardrails × streaming × 成本追踪 × 观测 schema</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：（本域暂无其他文件）</p>
+<p>入库: 2026-09-30 | 项目: wuyafang-l | 来源: OpenTelemetry 官方 GenAI 语义约定博客 + Anthropic 工程博客(tool design/prompt caching) + Portkey/Confident AI 观测与 prompt 管理指南 + 各 guardrails 项目对比 + streaming 生产实践 | source_tier: 1(官方)/2(厂商博客)混合 | 用途: LLM 应用从 demo 到生产的五块硬骨头清单——每块给「怎么做 + 坑在哪 + 现成 schema」</p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心结论</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>生产化的五块硬骨头可以压成一张表：prompt 要版本化、guardrails 要分层、streaming 要按事件解析而非拼字符串、成本要按 OpenTelemetry GenAI 约定记进 span、观测三信号（trace/metric/event）要在网关层统一打点</li></ul></div>2
+<p>生产化的五块硬骨头可以压成一张表：<strong>prompt 要版本化、guardrails 要分层、streaming 要按事件解析而非拼字符串、成本要按 OpenTelemetry GenAI 约定记进 span、观测三信号（trace/metric/event）要在网关层统一打点</strong>。它们共同的失败模式是「上线后再补」——trace 没记、成本没归因、guardrail 决策没日志，出问题时什么都查不到（📰 Portkey 观测指南 / 📰 OpenObserve 监控最佳实践一致强调每请求必记日志）。</p>
+<hr />
+<h2 id="一prompt-管理">一、Prompt 管理</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1.1 为什么需要</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>prompt 一旦散落在代码里，就没有版本历史、回滚、A/B、按环境追踪（📰 LaunchDarkly prompt versioning）</li></ul></div>3
+<p>prompt 一旦散落在代码里，就没有版本历史、回滚、A/B、按环境追踪（📰 LaunchDarkly prompt versioning）。生产级 prompt 管理 = <strong>集中存储 + 版本化 + 分支实验 + 变更审批 + 每次变更自动跑评测 + 按版本追踪生产表现</strong>（📰 Confident AI 2026 工具对比）。</p>
+<h3 id="12-做法">1.2 做法</h3>3
+<table>
+<thead>
+<tr>
+<th>要素</th>
+<th>做法</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>版本标识</td>
+<td>SemVer 或内容 commit hash；LangSmith Hub 每次 push 自动生成 commit hash，<code>pull</code> 时带版本进代码</td>
+<td>📰 todatabeyond LangSmith 课程 / Latitude</td>
+</tr>
+<tr>
+<td>关注点分离</td>
+<td>prompt 工程师改 prompt 不动生产代码，开发者改逻辑不动 prompt</td>
+<td>📰 同上</td>
+</tr>
+<tr>
+<td>变更门禁</td>
+<td>每次 prompt 变更跑回归 eval（与 wiki/LLM评估体系-Evals-2026.md 第五节闭环衔接）</td>
+<td>📰 Confident AI / Arthur</td>
+</tr>
+<tr>
+<td>记录</td>
+<td>写清「改了什么、为什么」，支持回滚与按环境追踪当前版本</td>
+<td>📰 LaunchDarkly</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>工具盘：LangSmith Hub（带自动版本）、Portkey（gateway 内置，MIT）、Latitude、LaunchDarkly（FeatureFlag 侧）等（📰 Confident AI 对比文，2026）。</p>
+</blockquote>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">二、Guardrails（分层防御）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="21-为什么分层">2.1 为什么分层</h3>3
+<p>prompt injection、PII 泄漏、越狱、过度工具调用、检索投毒是<strong>不同的失败模式，需要不同防御</strong>，不存在一个总开关（📰 digitalapplied 2026 guardrails 参考）。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.2 三层组合（2026 社区主流形态）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（来源：📰 particula.tech 三者对比，2026；NeMo 版本口径 0.24.x 见 📰 medium 生产文，⚠️二手版本号）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>工具</th>
+<th>职责</th>
+<th>延迟</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>① 快速输入扫描</td>
+<td><strong>LLM Guard</strong>（MIT，15 输入 + 20 输出扫描器）</td>
+<td>模型跑之前先拦 prompt injection/越狱串/密钥/违禁词，fail fast</td>
+<td>低</td>
+</tr>
+<tr>
+<td>② 对话流控制</td>
+<td><strong>NeMo Guardrails</strong>（Colang DSL，input/dialog/retrieval/execution/output 五段 rails）</td>
+<td>保持在题内、工具使用策略、拦截越界请求；GPU 上单检查 &lt;50ms</td>
+<td>中</td>
+</tr>
+<tr>
+<td>③ 输出校验</td>
+<td><strong>Guardrails AI</strong>（Python validator 架构，Hub 50+ 预置 validator）</td>
+<td>输出结构合规、PII、毒性、JSON schema、SQL 安全</td>
+<td>50–200ms/validator</td>
+</tr>
+</tbody>
+</table>
+<p>（来源：📰 particula.tech 三者对比，2026；NeMo 版本口径 0.24.x 见 📰 medium 生产文，⚠️二手版本号）</p>
+<p>另有 <strong>OpenAI Guardrails</strong>（MIT、tripwire 机制、原生接 Agents SDK，OpenAI 栈优先）与 <strong>Llama Guard</strong>（模型式内容分类）（📰 appsecsanta / particula）。</p>
+<h3 id="23-fpr-成本意识-digitalapplied一手算式">2.3 FPR 成本意识（📰 digitalapplied，一手算式）</h3>3
+<p><strong>4% 误报率 = 每百万日活拦掉 40,000 条正常请求；15.2% = 152,000 条</strong> —— 选 guardrail 不能只看 F1/F 拦截率，要把「每百万请求误伤数」算出来给产品看。这与本库「错误台账按频次排优先级」是同一思路。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.4 OWASP LLM07:2025（系统 prompt 泄漏）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<p>防御 = prompt 模板加固（明令不透露 + 对抗测试）+ 输出侧过滤已知 system prompt 片段（📰 digitalapplied 引 OWASP）。</p>
+<h3 id="25-日志要求">2.5 日志要求</h3>3
+<p><strong>每次 guardrail 决策必须落日志</strong>：违规类型、严重度、动作（放行/改写/拦截）、耗时，可导出 SIEM（📰 getmaxim 平台对比）——否则合规审计拿不到证据链。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">三、Streaming（流式）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="31-协议选型">3.1 协议选型</h3>3
+<p><strong>SSE 是 token 传输的默认与主流</strong>（Anthropic/OpenAI/Google 均采用）；生产混合架构：<strong>SSE 做数据面（token 下发）+ WebSocket 做控制面（取消、用户插入反馈）</strong>，避免高流量路径背上 WebSocket 的状态成本（📰 Zylos 2026 架构研究）。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">3.2 最大的坑：把流当纯文本拼接</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>真实 provider 流是事件交错的：tool-call JSON、reasoning、usage、error 混在同一条流里</li><li>不解析事件类型 → 静默损坏 tool 参数、把 reasoning 渲染进答案、把 「event: error」 当正文显示（📰 metacto 生产流文章）</li></ul></div>3
+<p>真实 provider 流是<strong>事件交错</strong>的：tool-call JSON、reasoning、usage、error 混在同一条流里。不解析事件类型 → 静默损坏 tool 参数、把 reasoning 渲染进答案、把 <code>event: error</code> 当正文显示（📰 metacto 生产流文章）。<strong>必须按事件类型解析</strong>。</p>
+<h3 id="33-生产清单">3.3 生产清单</h3>3
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>要求</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>关缓冲</td>
+<td>每一跳（反代/CDN/框架）都要禁缓冲，否则 TTFT 报废</td>
+<td>📰 metacto</td>
+</tr>
+<tr>
+<td>错误二分</td>
+<td>首字节前失败 → HTTP 状态码 + JSON body；首字节后失败 → SSE error event；<strong>保留已渲染的部分文本并标记不完整，别清屏</strong></td>
+<td>📰 flaviocopes</td>
+</tr>
+<tr>
+<td>取消要端到端</td>
+<td>浏览器关页/点停止 → CDN 观察到关闭 → 应用服务器 context cancellation → 取消对 LLM provider 的上游调用，<strong>1 秒内传播</strong>，否则白烧 token</td>
+<td>📰 metacto</td>
+</tr>
+<tr>
+<td>重试</td>
+<td>429/5xx 指数退避 1s/2s/4s/8s，<strong>4xx 不重试</strong>；连续失败触发熔断直接切 fallback</td>
+<td>📰 Zylos</td>
+</tr>
+<tr>
+<td>不该流的别流</td>
+<td>分类、审核、路由、字段抽取这类短且要整体校验的输出，返回普通 JSON——流式意味着要付解析器、取消逻辑、半截答案 UI、第二条错误通道四份成本</td>
+<td>📰 flaviocopes</td>
+</tr>
+<tr>
+<td>监控指标</td>
+<td>TTFT、TPS、错误率三个为核心；TTFT 爬升通常是 API 延迟或 prompt 膨胀的早期信号</td>
+<td>📰 dev.to 流式指南</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">四、成本追踪</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="41-归一化原则">4.1 归一化原则</h3>3
+<p><strong>不要围着各家 provider 的原始字段建 dashboard</strong>——把 usage 读出来归一成自己控制的字段，或直接上 OpenTelemetry GenAI 语义约定，保持 vendor-neutral（📰 Honeycomb 指南）。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">4.2 OTel GenAI 标准属性（📄 opentelemetry.io 官方 GenAI 博客 + 📰 Braintrust/Honeycomb 汇总）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>配套指标（📄 OTel 官方）：「gen_ai.client.operation.duration」 直方图（按 model 过滤比延迟回归）、「gen_ai.client.token.usage」 直方图（按 「gen_ai.token.type」 分 input/output）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gen_ai.provider.name</code> / <code>gen_ai.request.model</code> / <code>gen_ai.response.model</code></td>
+<td>供应商与实际响应模型（二者可能不同）</td>
+</tr>
+<tr>
+<td><code>gen_ai.usage.input_tokens</code> / <code>gen_ai.usage.output_tokens</code></td>
+<td>输入/输出 token</td>
+</tr>
+<tr>
+<td><code>gen_ai.usage.cache_read.input_tokens</code> / <code>cache_creation.input_tokens</code></td>
+<td>缓存读/写 token（prompt 缓存折扣核算必需）</td>
+</tr>
+<tr>
+<td><code>gen_ai.usage.reasoning.output_tokens</code></td>
+<td>推理 token（单独计价的模型必需）</td>
+</tr>
+<tr>
+<td><code>gen_ai.response.finish_reasons</code></td>
+<td>stop / tool_calls / length——<strong>区分「正常结束」和「被截断」</strong></td>
+</tr>
+<tr>
+<td>自定义: <code>llm.request_cost_usd</code> / <code>gen_ai.usage.cost_usd</code></td>
+<td>算好的单次成本，进 span 后可按 feature/team 归因</td>
+</tr>
+<tr>
+<td>自定义: <code>app.feature</code> / <code>app.environment</code> / <code>user_id</code></td>
+<td>归因维度</td>
+</tr>
+</tbody>
+</table>
+<p>配套指标（📄 OTel 官方）：<code>gen_ai.client.operation.duration</code> 直方图（按 model 过滤比延迟回归）、<code>gen_ai.client.token.usage</code> 直方图（按 <code>gen_ai.token.type</code> 分 input/output）。</p>
+<h3 id="43-成本看板两问-openobserve">4.3 成本看板两问（📰 OpenObserve）</h3>3
+<ol>
+<li><strong>spend 归因</strong>：总成本、总输入 token、总输出 token、总调用数四个头图 + 按 feature/team/模型下钻</li>
+<li><strong>token 效率</strong>：每次成功任务的成本（cost per successful task）、prompt 长度趋势（prompt bloat 是成本失控的常见驱动）</li>
+</ol>
+<p>再配：按 user/tenant/feature 设硬预算与软告警、成本对话级追踪、FAQ 类缓存（📰 OpenObserve 监控最佳实践）。</p>
+<blockquote>
+<p>关联本库：<code>raw/fullstack/LLM成本优化-2026.md</code> 讲的是<strong>省钱杠杆</strong>（缓存/路由/Batch），本文讲的是<strong>把钱记清楚</strong>——两者互补。</p>
+</blockquote>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">五、观测日志 Schema</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="51-三信号模型-portkey-2026-观测指南">5.1 三信号模型（📰 Portkey 2026 观测指南）</h3>3
+<ul>
+<li><strong>Traces</strong>：请求跨 prompt/retrieval/tool/guardrail 的完整路径</li>
+<li><strong>Metrics</strong>：聚合的性能、成本、质量</li>
+<li><strong>Events</strong>：需要人工复核的安全/治理告警</li>
+</ul>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">5.2 一次请求的标准 span 链（Portkey 模型）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>User request → Gateway : user_id, workspace, prompt_hash, input_tokens</li><li>→ Input Guardrails : verdict(通过/拦截)</li><li>→ Model Provider : retrieval latency, docs count, model call duration</li></ul></div>3
+<pre><code>User request → Gateway          : user_id, workspace, prompt_hash, input_tokens
+           → Input Guardrails   : verdict(通过/拦截)
+           → Model Provider     : retrieval latency, docs count, model call duration
+           → Tools/MCP          : 每次调用 = 子span(tool name, latency, success)
+           → Output Guardrails  : moderation verdict + cost
+           → Client             : 全链路带 trace_id 返回
+</code></pre>
+<h3 id="53-span-结构建议-kunalganglani-otel-agent-实践">5.3 Span 结构建议（📰 kunalganglani OTel agent 实践）</h3>3
+<ul>
+<li><strong>一次 agent run = 一条 root trace</strong>，子 span 按 <code>llm.generate</code> / <code>retrieval.query</code> / <code>tool.call</code> / <code>retry</code> 分——这样延迟和花费能怪到正确的一步上。</li>
+<li>span 名<strong>保持无聊且一致</strong>（一致性比分类学完美更重要，dashboard 依赖它）。</li>
+<li><strong>最小自定义属性集</strong>：OTel GenAI 约定仍在 Development 阶段、名字可能变——先控制一小套自定义属性（<code>llm.ttft_ms</code> 等），将来再映射到稳定约定，吃 80% 价值只背 20% churn。</li>
+<li>⚠️ <strong>prompt/completion 内容采集默认关</strong>：OTel 官方警告模型内容可能含敏感数据，开启前要有脱敏/访问/留存策略（📄 OTel / 📰 Tsuga）。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5.4 每请求必记字段（📰 OpenObserve，可直接当 schema 底稿）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>request_id, trace_id, timestamp</li><li>model_name + model_version, provider</li><li>full_prompt(含 system/history, 按脱敏策略), full_response</li></ul></div>3
+<pre><code>request_id, trace_id, timestamp
+model_name + model_version, provider
+full_prompt(含 system/history, 按脱敏策略), full_response
+latency_ms, ttft_ms, input_tokens, output_tokens, cost_usd
+user_id/session_id(可匿名化), feature_flags, A/B variant
+retrieval_sources(RAG 命中文档), guardrail_verdicts
+finish_reason
+</code></pre>
+<h3 id="55-落地节奏openobserve-三阶段">5.5 落地节奏（OpenObserve 三阶段）</h3>3
+<ul>
+<li>Phase 1（1–2 周）：结构化日志 + 接入观测工具 + 核心性能指标</li>
+<li>Phase 2（3–6 周）：自动化评测管线 + guardrail 追踪 + 成本告警预算</li>
+<li>Phase 3：质量漂移监控、prompt/response drift</li>
+</ul>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">六、与本库现状对照</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>硬骨头</th>
+<th>本库/六员现状</th>
+<th>差距</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prompt 管理</td>
+<td>六员的 prompt 散在各自 config/skill 里，无版本门禁</td>
+<td>有 skill 化沉淀但无「变更→跑评测→记录版本」链路；本库改动已有「口径回写」纪律可复用为 prompt 版本纪律</td>
+</tr>
+<tr>
+<td>Guardrails</td>
+<td>知识库侧无生产 guardrail（本地 RAG 场景风险低）</td>
+<td>给客户交付时按 §2.2 三层起步，先算 §2.3 的误伤成本</td>
+</tr>
+<tr>
+<td>Streaming</td>
+<td>非本库场景（检索为主）</td>
+<td>交付聊天类应用时按 §3.3 清单验收</td>
+</tr>
+<tr>
+<td>成本追踪</td>
+<td><a href="../%E6%80%BB%E7%BD%91%E6%B5%81%E7%A8%8B/%E5%85%AD%E5%91%98%E9%85%8D%E7%BD%AE%E7%BB%88%E5%B1%80.html">六员协同终局</a> 管的是<strong>预算分配</strong>（模型路由 + token 三档）</td>
+<td>缺 OTel GenAI 式的<strong>逐 span 实测记账</strong>；可把 <code>gen_ai.usage.*</code> 属性接到六员的路由日志上</td>
+</tr>
+<tr>
+<td>观测 schema</td>
+<td>无</td>
+<td>本库是批处理管线，只需 Step 2「每请求必记」的精简版（query.py 的检索日志）</td>
+</tr>
+<tr>
+<td>评测联动</td>
+<td>run_eval.py 只测检索</td>
+<td>生产化后 guardrail verdict 与评测门禁要进同一 trace（§5.2）</td>
+</tr>
+</tbody>
+</table>
+<h2 id="来源清单">来源清单</h2>2
+<ol>
+<li>📄 OpenTelemetry GenAI 可观测性官方博客 — https://opentelemetry.io/blog/2026/genai-observability</li>
+<li>📄 Anthropic: Writing effective tools for AI agents — https://www.anthropic.com/engineering/writing-tools-for-agents</li>
+<li>📄 Anthropic: Advanced tool use (defer_loading/token 预算) — https://www.anthropic.com/engineering/advanced-tool-use</li>
+<li>📄 Anthropic: Commerce agents anatomy (prompt caching 实战) — https://claude.com/blog/the-anatomy-of-effective-commerce-agents</li>
+<li>📰 Portkey LLM 观测完整指南 — https://portkey.ai/blog/the-complete-guide-to-llm-observability</li>
+<li>📰 Honeycomb token 成本追踪 — https://www.honeycomb.io/resources/getting-started/how-to-track-token-cost-across-llm-workflows</li>
+<li>📰 Braintrust 2026 token 追踪 — https://www.braintrust.dev/articles/how-to-track-llm-token-usage-2026</li>
+<li>📰 OpenObserve LLM 监控最佳实践 — https://openobserve.ai/blog/llm-monitoring-best-practices</li>
+<li>📰 digitalapplied Guardrails 2026 参考 — https://www.digitalapplied.com/blog/llm-guardrails-production-safety-layers-reference-2026</li>
+<li>📰 particula.tech NeMo/Guardrails AI/Llama Guard 对比 — https://particula.tech/blog/ai-guardrails-compared-nemo-guardrails-ai-llama-guard</li>
+<li>📰 metacto / flaviocopes / Zylos streaming 生产文章 — metacto.com / flaviocopes.com / zylos.ai</li>
+<li>📰 LaunchDarkly / Confident AI prompt 版本管理 — launchdarkly.com / confident-ai.com</li>
+</ol>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">📚 推荐书籍</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>来自微信读书划线笔记，按主题归类挂到本节点下</li><li>大模型应用开发——深入理解30个可执行案例设计</li><li>大模型应用开发极简入门：基于GPT-4和ChatGPT（第2版）</li></ul></div>2
+<blockquote>
+<p>来自微信读书划线笔记，按主题归类挂到本节点下。</p>
+</blockquote>
+<ul>
+<li><a href="../../raw/weread/AI%E5%B7%A5%E7%A8%8B%EF%BC%9A%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%E5%AE%9E%E6%88%98.md">AI工程：大模型应用开发实战</a></li>
+<li><a href="../../raw/weread/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%E2%80%94%E2%80%94%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A330%E4%B8%AA%E5%8F%AF%E6%89%A7%E8%A1%8C%E6%A1%88%E4%BE%8B%E8%AE%BE%E8%AE%A1.md">大模型应用开发——深入理解30个可执行案例设计</a></li>
+<li><a href="../../raw/weread/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%E6%9E%81%E7%AE%80%E5%85%A5%E9%97%A8%EF%BC%9A%E5%9F%BA%E4%BA%8EGPT-4%E5%92%8CChatGPT%EF%BC%88%E7%AC%AC2%E7%89%88%EF%BC%89.md">大模型应用开发极简入门：基于GPT-4和ChatGPT（第2版）</a></li>
+<li><a href="../../raw/weread/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91.md">大模型应用开发</a></li>
+</ul>
+<h2 id="相关条目">相关条目</h2>2
+<ul>
+<li><a href="30%E4%B8%AA%E6%A1%88%E4%BE%8B%E9%87%8C%E6%9C%80%E6%9C%89%E4%BB%B7%E5%80%BC%E7%9A%845%E4%B8%AA%E6%A8%A1%E5%BC%8F.html">30个案例里最有价值的5个模式</a></li>
+<li><a href="L1-%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B-%E8%AF%BE%E4%BB%B6%E5%AE%9E%E6%93%8D.html">L1 软件工程 · FastAPI + Vue 前后端分离实操</a></li>
+</ul></div></details></div></body></html>

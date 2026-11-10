@@ -1,0 +1,114 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>多智能体共享记忆G-Memory</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/多智能体共享记忆G-Memory</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="g-memory">多智能体共享记忆 G-Memory</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="file:///C:/MyData/Documents/wuyafang-l/wiki_site/raw/agent-dev/Agent%E8%AE%B0%E5%BF%86%E8%AE%BA%E6%96%87-6%E7%AF%87-20260928.html">Agent记忆论文-6篇-20260928</a> · <a href="file:///C:/MyData/Documents/wuyafang-l/wiki_site/raw/agent-dev/Agent%E8%AE%B0%E5%BF%86%E8%AE%BA%E6%96%87-JevMem-GMem-BudgetMem-DMem-20260928.html">Agent记忆论文-JevMem-GMem-BudgetMem-DMem-20260928</a></p>
+<p><a href="../index.html">← 返回总入口</a>
+相关：<a href="Agent框架实操选型-2026.html">Agent框架选型</a> · <a href="Agent框架与协议进展-2026.html">Agent框架进展</a> · <a href="Agent记忆双进程范式.html">Agent记忆双进程</a> · <a href="多智能体协作流程.html">多智能体协作</a></p>
+<p>来源: 从 raw/Agent记忆论文-JevMem-GMem-BudgetMem-DMem-20260928.md 提炼
+关联论文: G-Memory(arXiv:2506.07398) / 代码 github.com/bingreeky/GMemory
+入库: 2026-09-28</p>
+</blockquote>
+<h2 id="_1">核心模型: 三层图记忆</h2>
+<p>G-Memory 把多 Agent 协作中的记忆按"抽象程度"分三层, 每层是一张图:</p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>存什么</th>
+<th>谁用</th>
+<th>成本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Insight Graph</strong> (泛化经验层)</td>
+<td>从多次任务里抽象出来的教训/模式/踩坑经验, 如"flaky 测试不要盲目重跑"</td>
+<td>编排层(Hermes)、其他 Agent 复用经验</td>
+<td>最低(短摘要)</td>
+</tr>
+<tr>
+<td><strong>Query Graph</strong> (任务指纹层)</td>
+<td>任务指纹 → 派给哪个 Agent → 结果如何, 可复用"这类任务该派谁"</td>
+<td>编排层(Hermes) 派单时查</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>Interaction Graph</strong> (原始轨迹层)</td>
+<td>完整的 Agent 交互原始记录/对话/代码 diff</td>
+<td>工程层(Claude/Codex) debug 时多跳追溯</td>
+<td>最高(长上下文)</td>
+</tr>
+</tbody>
+</table>
+<p>三层互相引用: Interaction 沉淀为 Query, Query 抽象为 Insight; 反向也能从 Insight 下钻到具体 Query 和原始 Interaction。</p>
+<h2 id="_2">多视图并行检索</h2>
+<p>同一张图上, 检索时并行走 4 种边类型:
+- <strong>semantic</strong>: 语义相似的记忆
+- <strong>temporal</strong>: 时间邻近(上周/昨天发生了什么)
+- <strong>causal</strong>: 因果链(A 导致 B)
+- <strong>entity</strong>: 共享实体(同一个项目/同一个错误码)</p>
+<p>双向链路: 召回时 insight 在前(先给经验), evidence 在后(再给原始证据支撑)。</p>
+<h2 id="_3">对六员的价值</h2>
+<ol>
+<li><strong>error-ledger 升级</strong>: 现在 error-ledger 只有"错误→修复"单层, 按 G-Memory 模型可拆成:</li>
+<li>Insight 层 = 泛化经验(~/shared-skills/insight-log.md, 六员共享)</li>
+<li>Query 层 = 任务指纹→派谁→结果</li>
+<li>Interaction 层 = 原始 trace 归档(state.db / cron output)</li>
+<li><strong>角色差异化检索深度</strong>: Hermes 编排只查 Insight(低成本), Claude/Codex 工程查全三层多跳——对应 BudgetMem 的 λ 参数化。</li>
+<li><strong>跨 Agent 经验复用</strong>: 一个 Agent 踩的坑沉到 Insight, 其他 Agent 直接召回, 不用重新踩(对应 error-ledger 台账铁律"同一坑不踩第二次")。</li>
+</ol>
+<h2 id="_4">反例</h2>
+<ul>
+<li>❌ 所有记忆都塞一层长上下文 = 没有分层, Insight 和原始轨迹混在一起, 编排层也被迫付高成本</li>
+<li>❌ 只有 Insight 没有原始轨迹 = 抽象过头, 工程 debug 时找不到具体证据</li>
+<li>❌ 只有原始轨迹没有 Insight = 每次都从零推理, 多 Agent 不复用经验</li>
+</ul>
+<h2 id="_5">相关术语</h2>
+<ul>
+<li>Insight Graph / Query Graph / Interaction Graph: 见 ontology/Agent记忆术语表.md</li>
+<li>预算分级路由: 见 ontology (BudgetMem 三档)</li>
+</ul></div></body></html>

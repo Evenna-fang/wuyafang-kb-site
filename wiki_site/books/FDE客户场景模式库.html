@@ -1,0 +1,112 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>FDE客户场景模式库</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ FDE客户场景模式库</span></div><div class="wrap"><h1 id="书章节重点-fde客户场景模式库智能客服文档问答rag代码助手">书章节重点 · FDE客户场景模式库（智能客服/文档问答RAG/代码助手）</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>这篇文档是FDE（Forward Deployed Engineer，前线部署工程师）在三类典型企业客户场景下的落地模式速查表，由三个脱敏合成教学案例与本地真实实战经验共同提炼而成</li><li>这一结论与本地真实智能客服案例的成本优化数据互相印证：先把检索做对、再用模型路由和语义缓存降本，比盲目堆模型能力重要得多</li><li>文档的核心价值不在于复述单个案例，而是把每类场景下最容易踩坑的"硬点"、必须遵守的架构红线、可直接套用的12周交付节奏、以及验收指标的黄金集比例，全部压缩成可以在接到客户需求时立刻对照的模式卡片</li></ul></div>2
+<p>这篇文档是FDE（Forward Deployed Engineer，前线部署工程师）在三类典型企业客户场景下的落地模式速查表，由三个脱敏合成教学案例与本地真实实战经验共同提炼而成。三类场景分别是智能客服坐席助手、企业知识库文档问答RAG、内部研发代码助手Copilot。文档的核心价值不在于复述单个案例，而是把每类场景下最容易踩坑的"硬点"、必须遵守的架构红线、可直接套用的12周交付节奏、以及验收指标的黄金集比例，全部压缩成可以在接到客户需求时立刻对照的模式卡片。</p>
+<p>整篇库的底层逻辑是"先助手后自动"——三个场景的起步形态全部是Human-in-the-Loop的人工确认模式，全自动对外发送是评审后的升级选项，绝不是第一期承诺。同时，权限治理被提升到Day 0的位置：知识库ACL必须在检索层强制过滤、代码库ACL必须与Git读权限实时同步、客服场景必须考虑数据出域约束，这三条是三个场景共同的硬门槛。任何场景的评测集都必须包含"应拒答、应升级、跨权限诱饵、密钥泄漏"这类负例，没有负例的黄金集等于没有门禁。</p>
+<p>文档还特别强调了"生效时间与版本"作为一等元数据的重要性：客服的活动规则有生效窗口、企业制度文档有版本号、代码注释会过时——这三类场景下80%以上的幻觉问题根源都不是模型本身，而是检索召回了过期内容。这一结论与本地真实智能客服案例的成本优化数据互相印证：先把检索做对、再用模型路由和语义缓存降本，比盲目堆模型能力重要得多。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">模式速查表总览</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>三类场景主模式定位：智能客服走RAG+影子/确认模式，默认不自动对外发送；文档问答走权限感知RAG+强制引用+无证据拒答；代码助手走仓库索引RAG+IDE/CLI入口，三者的共同特征都是"助手优先、人工兜底"，而非一开始就追求全自动替代</li><li>核心硬点一览：客服场景的活动规则版本与生效时间、答错引发的补偿退款风险、坐席不信任则零采用；知识库场景的文档级ACL必须在检索层强制、过期版本必须治理；代码助手场景的仓库级权限、提示与日志中的密钥扫描、幻觉API调用，这些硬点做错任何一个都会直接导致项目崩盘</li><li>主指标选择原则：统一使用业务语言指标——客服看FCR（首次解决率）、AHT（平均处理时长）、采纳率、CSAT（客户满意度）；知识库看自助解决率、专家升级次数、答后满意度；代码助手看首个有效PR时间、找代码耗时，坚决不使用"机器人回复条数"这类虚荣指标</li></ul></div>3
+<ul>
+<li><strong>三类场景主模式定位</strong>：智能客服走RAG+影子/确认模式，默认不自动对外发送；文档问答走权限感知RAG+强制引用+无证据拒答；代码助手走仓库索引RAG+IDE/CLI入口，三者的共同特征都是"助手优先、人工兜底"，而非一开始就追求全自动替代。</li>
+<li><strong>核心硬点一览</strong>：客服场景的活动规则版本与生效时间、答错引发的补偿退款风险、坐席不信任则零采用；知识库场景的文档级ACL必须在检索层强制、过期版本必须治理；代码助手场景的仓库级权限、提示与日志中的密钥扫描、幻觉API调用，这些硬点做错任何一个都会直接导致项目崩盘。</li>
+<li><strong>主指标选择原则</strong>：统一使用业务语言指标——客服看FCR（首次解决率）、AHT（平均处理时长）、采纳率、CSAT（客户满意度）；知识库看自助解决率、专家升级次数、答后满意度；代码助手看首个有效PR时间、找代码耗时，坚决不使用"机器人回复条数"这类虚荣指标。</li>
+<li><strong>常见约束共性</strong>：三类场景都存在"数据不能随便出域"的合规要求，对外自动发送需要法务、安全、业务三方书面批准，试点范围永远从小班组、小区域、少数服务起步，而非全公司铺开。</li>
+</ul>
+<h3 id="智能客服坐席助手落地模式">智能客服坐席助手落地模式</h3>3
+<ul>
+<li><strong>架构链路与意图分级</strong>：完整链路是工单上下文摘要/标签→身份鉴权→混合检索（政策库、FAQ、历史优质工单）→生成建议并强制引用→坐席一键采纳或编辑后发送。高危意图如退款、销户、投诉升级，必须路由到固定话术模板加人工确认清单，只有低危、高置信、模板类的场景才在第二阶段开放半自动。</li>
+<li><strong>影子模式渐进落地</strong>：默认全部人工发送起步，再进入影子模式（系统只给建议、不直接发送），最后分级开放自动发送。本地真实案例印证了这一结论：边界外的场景用代码硬编码为转人工，比让Agent自由发挥要便宜得多，也安全得多。</li>
+<li><strong>12周标准化节奏</strong>：1-2周Discover阶段必须书面否决"第一期全自动对外"的管理层诉求；3-4周做知识切片、生效窗口元数据、黄金集v0；5-6周出侧栏原型、接ACL、内部影子测试；7-8周两个班组试点；9-10周硬化高危意图路由、演练错误建议场景；11-12周Review后决定是否扩品类。</li>
+<li><strong>Eval验收硬指标</strong>：冻结150题黄金集，引用正确率≥85%，应拒答/应升级命中率≥95%，试点期建议采纳率≥30%。合成案例最终结果为采纳率41%，新人达标周期从6周压缩到4周，但曾因未做活动生效时间过滤，两次引用过期活动页导致错误建议，补上该过滤后问题才解决。</li>
+<li><strong>成本优化实证</strong>：月活1万的客服场景，全量大模型直连成本为9360元/月，模型路由后降至3700元/月，再加语义缓存后降至2400元/月，整体节省74%。省钱设计必须第一天就埋进架构，而不是上线后再回头补。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">文档问答RAG企业知识库模式</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>权限感知数据流红线：标准数据流为SSO身份→用户组/属性→连接器同步文档ACL标签→检索前过滤（用户不可见的文档永远不进入top-k）→生成阶段仅基于可见片段加引用→输出护栏（高危主题转人工）</li><li>试点范围限定为一个区域、"报销与差旅"制度子集、周期8周，通过120题分层eval后才能开门禁，其中权限相关用例必须100%通过</li><li>黄金集分层比例：可答有证据题占50%（测正确率与引用），应拒答无文档题占20%（测拒答率），跨权限诱饵题占20%（门禁必须100%通过），过期版本陷阱题占10%（测版本治理能力），这种分层设计保证了系统不会在"看起来能答"的场景里偷偷越权或引用旧制度</li></ul></div>3
+<ul>
+<li><strong>权限感知数据流红线</strong>：标准数据流为SSO身份→用户组/属性→连接器同步文档ACL标签→检索前过滤（用户不可见的文档永远不进入top-k）→生成阶段仅基于可见片段加引用→输出护栏（高危主题转人工）。文档明确指出：先向量化全库、再靠提示词"不要泄露"是不可接受的安全事故，必须"先权限后智能"。</li>
+<li><strong>索引元数据设计</strong>：必须包含acl_tags、doc_version、updated_at、owner四个字段，并配套"制度变更"工作流：制度发布后自动触发重建或增量索引，并向相关订阅用户推送通知。试点范围限定为一个区域、"报销与差旅"制度子集、周期8周，通过120题分层eval后才能开门禁，其中权限相关用例必须100%通过。</li>
+<li><strong>黄金集分层比例</strong>：可答有证据题占50%（测正确率与引用），应拒答无文档题占20%（测拒答率），跨权限诱饵题占20%（门禁必须100%通过），过期版本陷阱题占10%（测版本治理能力），这种分层设计保证了系统不会在"看起来能答"的场景里偷偷越权或引用旧制度。</li>
+<li><strong>常见坑处理方式</strong>：面对"先全库接上再慢慢补权限"的诉求必须直接拒绝，权限是Day 0而非后期补丁；面对"和现有企业搜索重复"的质疑，明确两者并存——比的是可溯源答案与自助率，不是替换品牌搜索；扫描件和旧PDF质量差要单列解析质量战役，差质量文档不进生产索引；处分、裁员、股权等高风险主题必须自动转人工专家队列，绝不允许AI直接作答。</li>
+</ul>
+<h3 id="代码助手内部研发copilot模式">代码助手内部研发Copilot模式</h3>3
+<ul>
+<li><strong>核心架构与权限</strong>：主模式是仓库索引RAG+代码补全/问答，可选测试草稿生成能力。模型必须使用企业版或私有网关，关闭训练选项，日志脱敏。权限按用户Git读权限同步可检索仓库集合，用户权限被移除后必须同步删除对应索引，索引范围严格等于用户可读仓库，绝不索引全公司所有repo。</li>
+<li><strong>引用与护栏要求</strong>：回答必须指向具体文件路径与符号，未知则明确说"仓库中未找到"——因为幻觉最常出现在引用过时注释的场景，路径引用是降低幻觉的关键手段。提交前必须做密钥正则扫描，禁止粘贴.env文件，密钥红队测试要进CI流水线。试点范围为2个中等复杂度服务、20名工程师、周期6周，用50个"如何改X"任务评测正确路径命中率，密钥泄漏红队用例必须为0。</li>
+<li><strong>文化口径与边界</strong>：明确"草稿≠可合并"，Copilot不能替代架构评审，文档债仍然要人工偿还。面对"用个人ChatGPT贴代码更快"的习惯，要强调企业入口可审计、合规风险低；面对"自动开PR自动合并"的期待，明确这不是目标，草稿加人工评审才是安全边界。</li>
+<li><strong>上线前安全检查表</strong>：必须逐项确认企业版/私有网关与训练关闭的书面确认、日志脱敏与保留期、索引ACL与Git读权限同步（含权限移除后的删除）、.env与密钥模式的输入输出扫描、客户定制分支隔离策略书面化、"禁止粘贴生产密钥"写进UX提示与培训材料，六项全部通过才能上线。</li>
+<li><strong>验证调试分诊扩展场景</strong>：如果痛点是海量测试失败分诊（如半导体验证场景），在安全底座上分三级落地：第一级只读失败日志、写调查结论/工单；第二级提出补丁并开PR（人工合并）；第三级在隔离环境跑复现和单测（无生产写权限），对应指标扩展为分诊平均时长、误导调查率、自动修复可合并率。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">三场景共性结论</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>先助手后自动的统一节奏：三个场景的原文模式全部是HITL助手起步，影子/确认模式→分级自动，"全自动"是Review后的升级选项，不是第一期对客户的承诺，这是FDE交付最容易被管理层施压违背的原则</li><li>Eval必须含负例与业务指标：应拒答、应升级、跨权限诱饵、密钥红队这些负例构成了真正的门禁；指标全部使用业务语言而非技术调用量，这两点是三个案例沉淀下来的通用评测原则</li><li>生效时间与版本是一等元数据：客服活动窗口、制度doc_version、代码过时注释，三个场景的幻觉都源于过期内容，元数据治理比模型参数调优对准确率的提升更直接</li></ul></div>3
+<ul>
+<li><strong>先助手后自动的统一节奏</strong>：三个场景的原文模式全部是HITL助手起步，影子/确认模式→分级自动，"全自动"是Review后的升级选项，不是第一期对客户的承诺，这是FDE交付最容易被管理层施压违背的原则。</li>
+<li><strong>权限作为Day 0硬门槛</strong>：知识库ACL在检索层强制、代码库ACL与Git权限同步、客服数据出域约束——三个场景的硬点清单里都包含权限，任何一个被放在项目中后期再处理，都会演变成安全事故或返工。</li>
+<li><strong>Eval必须含负例与业务指标</strong>：应拒答、应升级、跨权限诱饵、密钥红队这些负例构成了真正的门禁；指标全部使用业务语言而非技术调用量，这两点是三个案例沉淀下来的通用评测原则。</li>
+<li><strong>生效时间与版本是一等元数据</strong>：客服活动窗口、制度doc_version、代码过时注释，三个场景的幻觉都源于过期内容，元数据治理比模型参数调优对准确率的提升更直接。</li>
+<li><strong>案例来源可信度声明</strong>：三个VanGong1999/FDE案例均标注为合成教学案例（脱敏行业共性、非真实客户细节），模式可信但数字为示意值，正式对客户承诺前，必须用自己项目的实测数据替换示意数字。</li>
+</ul>
+<h2 id="适用场景标签">适用场景标签</h2>2
+<ul>
+<li>FDE交付模式参考</li>
+<li>智能客服坐席助手落地</li>
+<li>企业知识库RAG问答</li>
+<li>内部研发Copilot</li>
+<li>权限感知检索设计</li>
+<li>黄金集分层评测</li>
+<li>HITL人机协同设计</li>
+<li>生产级AI落地避坑</li>
+<li>活动生效元数据治理</li>
+<li>多Agent权限同步</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">关键决策对照表</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>面对"三个月降人工"的管理层诉求：书面否决第一期全自动对外，给替代叙事——先助手模式跑通采纳率，再评审分级自动，用12周节奏代替三个月承诺，把技术决策从情绪化诉求拉回可验证的里程碑</li><li>80%的幻觉根因是top-k里根本没有正确答案，或者召回了过期版本——加上生效时间过滤、版本标签、引用强制，幻觉率会直接下降一个数量级</li><li>面对"成本太高"的财务质疑：第一天就埋模型路由和语义缓存架构，把高频简单问题路由到小模型、把重复问答缓存下来，真实案例证明能省70%以上的大模型调用成本，而不是等上线后被财务质疑了再回头重构</li></ul></div>2
+<ul>
+<li><strong>面对"三个月降人工"的管理层诉求</strong>：书面否决第一期全自动对外，给替代叙事——先助手模式跑通采纳率，再评审分级自动，用12周节奏代替三个月承诺，把技术决策从情绪化诉求拉回可验证的里程碑。</li>
+<li><strong>面对"先全库向量化再补权限"的捷径</strong>：直接拒绝，权限是Day 0。可以用安全事故的历史案例说服——没有ACL的全库向量库等于把所有敏感文档做成了可被任意问答的泄露通道，事后补权限的成本是一开始就做的十倍。</li>
+<li><strong>面对"业务说坐席不信任AI"的问题</strong>：不是模型不够好，而是默认开启了自动发送让坐席觉得失控。切回影子模式，只给建议不替人做决定，坐席的信任会随着连续几次正确建议自然建立，而不是靠培训说服。</li>
+<li><strong>面对"幻觉太多"的投诉</strong>：先查检索召回率，不要先怪模型。80%的幻觉根因是top-k里根本没有正确答案，或者召回了过期版本——加上生效时间过滤、版本标签、引用强制，幻觉率会直接下降一个数量级。</li>
+<li><strong>面对"成本太高"的财务质疑</strong>：第一天就埋模型路由和语义缓存架构，把高频简单问题路由到小模型、把重复问答缓存下来，真实案例证明能省70%以上的大模型调用成本，而不是等上线后被财务质疑了再回头重构。</li>
+</ul>
+<h2 id="一句话推荐">一句话推荐</h2>2
+<p>接到智能客服、企业知识库、代码助手三类需求时，先翻这张模式卡对照硬点与节奏，比从零开始试错能省掉至少一半的返工。</p></div></details></div></body></html>

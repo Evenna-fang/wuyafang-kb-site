@@ -1,0 +1,199 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Prompt魔法：提示词工程与ChatGPT行业应用</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ Prompt魔法：提示词工程与ChatGPT行业应用</span></div><div class="wrap"><h1 id="书章节重点-prompt魔法提示词工程与chatgpt行业应用">书章节重点 · Prompt魔法：提示词工程与ChatGPT行业应用</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书系统阐述 AIGC 时代 Prompt（提示词）作为人与 AI 交互新范式的本质与方法论，并通过编程、设计、游戏、自媒体、营销、金融、教育、科研、咨询、家庭辅导等行业案例，展示如何把 ChatGPT 等 AI 工具转化为生产力</li><li>全书的核心不是背诵某一句“万能提示词”，而是学习如何把目标、背景、角色、约束、步骤、输出格式和评价标准说清楚，再通过上下文、思维链、自洽性和持续迭代提高结果质量</li><li>Prompt 能力被作者视为想象力、逻辑思考与语言表达的综合体现，最终目标是让人保留判断、创造和共情，把 AI 变成可协作的生产伙伴</li></ul></div>2
+<p>本书系统阐述 AIGC 时代 Prompt（提示词）作为人与 AI 交互新范式的本质与方法论，并通过编程、设计、游戏、自媒体、营销、金融、教育、科研、咨询、家庭辅导等行业案例，展示如何把 ChatGPT 等 AI 工具转化为生产力。全书的核心不是背诵某一句“万能提示词”，而是学习如何把目标、背景、角色、约束、步骤、输出格式和评价标准说清楚，再通过上下文、思维链、自洽性和持续迭代提高结果质量。Prompt 能力被作者视为想象力、逻辑思考与语言表达的综合体现，最终目标是让人保留判断、创造和共情，把 AI 变成可协作的生产伙伴。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 AI新纪元：社会分工与价值分配重塑</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：AIGC 到 AGI 被比作从“发现电”到“建设电网”的跨越</li><li>核心观点2：AI 会重新划定脑力劳动的边界</li><li>核心观点3：生产效率革命会带来社会分工和价值分配调整</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：AIGC 到 AGI 被比作从“发现电”到“建设电网”的跨越。单个工具带来局部效率，基础设施化的智能则会重新组织全社会的生产和协作方式。</li>
+<li><strong>核心观点2</strong>：AI 会重新划定脑力劳动的边界。书中提出，若某项工作可以被 AI 稳定取代，就应重新审视它的劳动性质；人不应只守护旧流程，而要向创造、判断和关系能力迁移。</li>
+<li><strong>核心观点3</strong>：生产效率革命会带来社会分工和价值分配调整。个体需要主动理解技术变化，把 AI 纳入工作、学习和生活，而不是等到岗位要求变化后被动补课。</li>
+<li><strong>核心观点4</strong>：创造力、想象力和共情能力被视为人类核心竞争力。AI 擅长快速生成与组合，人则要负责提出有价值的问题、选择方向、承担责任并理解人的处境。</li>
+<li><strong>核心观点5</strong>：技术进步既要拥抱也要审视。有效使用 AI 的前提是理解其边界、验证其输出，避免把生成速度误当成事实可靠性。<blockquote>
+<p>真正的脑力劳动者不会被AI所取代，因为界定是不是脑力劳动将以能不能被AI取代为标准。如果AI能取代某项工作，那么这项工作本质上是体力劳动。<br />
+核心竞争力是创造力、想象力、共情能力等。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第2章-人人都应该会用的ai生产力工具">第2章 人人都应该会用的AI生产力工具</h3>3
+<ul>
+<li><strong>核心观点1</strong>：书中建立了文本、知识增强和图像生成的工具矩阵：ChatGPT/GPT-4 适合对话与文本，文心一言强调知识增强，Midjourney、DALL·E 2 和 Stable Diffusion 侧重图像生成。</li>
+<li><strong>核心观点2</strong>：文心一言基于飞桨深度学习平台和文心知识增强大模型，具备知识增强、检索增强、对话增强三大技术特色。工具的价值在于匹配具体任务，而不是追逐名称。</li>
+<li><strong>核心观点3</strong>：图像工具的配置和使用包含提示词、风格、构图、迭代和结果筛选。用户应先明确用途、比例、主体和视觉限制，再决定使用在线服务还是可控性更强的本地方案。</li>
+<li><strong>核心观点4</strong>：工具选择要看任务类型、输出格式、知识来源、成本和学习门槛。文本总结、事实检索、视觉创作和批量生成的评价标准不同，不能用同一套提示词和验收方法。</li>
+<li><strong>核心观点5</strong>：AI 工具应形成组合，而不是孤立使用。例如先用对话模型拆解需求，再用图像模型生成素材，最后由人检查版权、事实、语气和品牌一致性。<blockquote>
+<p>文心一言基于飞桨深度学习平台和文心知识增强大模型，从海量数据和大规模知识中融合学习，具备知识增强、检索增强和对话增强的技术特色。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 Prompt魔法：人与AI交互的新范式</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：Prompt 是人与 AI 交互的新语言</li><li>核心观点2：Prompt 通常由文本、标点符号、关键词、语法和结构组成</li><li>核心观点3：提示词体现想象力、逻辑思考和语言表达三维能力</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：Prompt 是人与 AI 交互的新语言。把 AI 想象成拥有超能力的魔法伙伴，输入文本就是“魔法咒语”，但真正有效的咒语必须包含任务目标、必要背景和可检查的结果要求。</li>
+<li><strong>核心观点2</strong>：Prompt 通常由文本、标点符号、关键词、语法和结构组成。结构化表达能把模糊愿望转成可执行任务，减少模型猜测，从而提升输出的相关性和稳定性。</li>
+<li><strong>核心观点3</strong>：提示词体现想象力、逻辑思考和语言表达三维能力。想象力决定能否提出新场景，逻辑决定能否拆步骤和设约束，语言决定能否把意图准确传给模型。</li>
+<li><strong>核心观点4</strong>：Prompt 降低了 AI 创作门槛，使用户无需深厚专业技能也能获得初步成果；但初稿不等于成品，专业判断、事实核对和责任承担仍然在人。</li>
+<li><strong>核心观点5</strong>：提示词的质量要通过结果反推。若输出不稳定，应定位是目标不清、上下文不足、约束冲突、格式不明还是评价标准缺失，再针对性修改，而不是盲目加长提示。<blockquote>
+<p>具体来说，Prompt是一个人的三个维度能力的体现，即想象力、逻辑思考能力和语言表达能力。<br />
+Prompt的组成要素通常包括文本、标点符号、关键词、语法和结构等<br />
+如果我们把AI想象成一个具有各种超能力的魔法伙伴，那么你输入的文本就是魔法咒语，让这个伙伴帮你完成各种不可思议的创作<br />
+提示词的使用让人们能够轻松地掌握人工智能的创作能力，且不需要具备深厚的专业知识或技能</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第4章-程序设计与开发的prompt技巧和案例">第4章 程序设计与开发的Prompt技巧和案例</h3>3
+<ul>
+<li><strong>核心观点1</strong>：代码场景可以从“螺丝”到“火箭”分层：先让 AI 检查局部代码、补全函数和解释报错，再让它生成模块、设计架构或解决复杂问题，任务粒度要与验证能力匹配。</li>
+<li><strong>核心观点2</strong>：代码 Prompt 应提供语言、运行环境、输入输出、依赖、约束和现有代码，并要求模型说明假设。缺少环境信息时，生成的代码即使语法正确，也可能无法运行。</li>
+<li><strong>核心观点3</strong>：代码评审不应只问“有没有问题”，而应按正确性、安全性、性能、可维护性和测试覆盖逐项检查，再要求给出最小修改建议和回归用例。</li>
+<li><strong>核心观点4</strong>：迁移和架构任务要先描述旧系统、目标系统、兼容边界和不可改变的行为，再让 AI 分阶段输出方案、风险、改动顺序和验证方式，避免一次性生成不可执行的大改造。</li>
+<li><strong>核心观点5</strong>：用 Prompt 速通新技术时，学习闭环应包括概念地图、最小示例、常见错误、源码定位和小练习；只看摘要不能证明真正掌握。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 设计行业的Prompt技巧和案例</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：Prompt 可以用于绘画创作、灵感激发、壁纸和素材生成</li><li>核心观点2：设计工作可扩展到动图、视频、3D 作品和作品修改</li><li>核心观点3：获取素材时要按人物形象、游戏物品、背景、电商和室内设计等用途拆开描述，使素材能够服务具体版式，而不是只追求“好看”</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：Prompt 可以用于绘画创作、灵感激发、壁纸和素材生成。描述主体、构图、光线、材质、风格、情绪和画面比例，比堆叠抽象形容词更容易得到可控结果。</li>
+<li><strong>核心观点2</strong>：设计工作可扩展到动图、视频、3D 作品和作品修改。生成不是终点，设计者要反复筛选、局部修正并检查主体一致性、文字准确性和商业用途限制。</li>
+<li><strong>核心观点3</strong>：获取素材时要按人物形象、游戏物品、背景、电商和室内设计等用途拆开描述，使素材能够服务具体版式，而不是只追求“好看”。</li>
+<li><strong>核心观点4</strong>：动图或视频需要描述连续变化、生成过程和镜头关系；静态图像的好提示词不一定能直接控制时间维度，因此要额外说明动作前后状态。</li>
+<li><strong>核心观点5</strong>：亲子互动等非传统场景说明 Prompt 不只服务专业设计师，也能把创作过程变成可参与、可讨论的共同活动。</li>
+</ul>
+<h3 id="第6章-游戏行业的prompt技巧和案例">第6章 游戏行业的Prompt技巧和案例</h3>3
+<ul>
+<li><strong>核心观点1</strong>：Prompt 可驱动游戏对话系统，让角色拥有身份、目标、语气和记忆，并根据玩家输入生成回应。角色约束越明确，越能减少人物性格漂移。</li>
+<li><strong>核心观点2</strong>：故事情节和非线性剧情要先定义世界观、节点、条件和后果，再让 AI 生成分支。AI 适合提供变体和灵感，游戏设计者仍需控制节奏、因果和可玩性。</li>
+<li><strong>核心观点3</strong>：角色定义、玩家情感分析、智能提示和新手引导共同影响体验。模型输出应服务于难度、沉浸感和反馈，而不是为了展示生成能力而增加噪音。</li>
+<li><strong>核心观点4</strong>：自然语言翻译能扩大内容覆盖，游戏数据分析能帮助发现玩家行为，原画设计能加速素材探索；不同任务需要不同输入数据和验收指标。</li>
+<li><strong>核心观点5</strong>：游戏类应用尤其需要防止模型越过规则。提示词应明确不能改变的数值、剧情事实和安全边界，并由程序逻辑负责最终裁决。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 自媒体行业的Prompt技巧和案例</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：Prompt 覆盖自媒体内容生产全流程：找热点、做文本和数据分析、找对标内容、关键词优化、写文章、写短视频脚本、评论和客服建议</li><li>核心观点2：找热点不能只让模型罗列标题，而要要求说明受众、时效、争议点、可验证来源和适合的内容角度；热点越快，越要防止事实错误和跟风抄袭</li><li>核心观点3：活动策划可拆为主题、目标人群、传播渠道、内容日历和宣传方案</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：Prompt 覆盖自媒体内容生产全流程：找热点、做文本和数据分析、找对标内容、关键词优化、写文章、写短视频脚本、评论和客服建议。</li>
+<li><strong>核心观点2</strong>：找热点不能只让模型罗列标题，而要要求说明受众、时效、争议点、可验证来源和适合的内容角度；热点越快，越要防止事实错误和跟风抄袭。</li>
+<li><strong>核心观点3</strong>：活动策划可拆为主题、目标人群、传播渠道、内容日历和宣传方案。把目标和资源限制写进 Prompt，模型才可能给出能执行的活动方案。</li>
+<li><strong>核心观点4</strong>：文章和短视频脚本要分别处理阅读节奏、开头、转折、行动号召、镜头、口播和字幕。生成后还要检查是否符合账号定位与平台规则。</li>
+<li><strong>核心观点5</strong>：评论和客服回答建议必须保持真实语气，区分咨询、投诉和恶意内容，不能把 AI 草稿未经审核直接发布。<blockquote>
+<p>贴合场景和用户的应用将被广泛使用并改变领域的生产模式和效率。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第8章-营销行业的prompt技巧和案例">第8章 营销行业的Prompt技巧和案例</h3>3
+<ul>
+<li><strong>核心观点1</strong>：市场调研 Prompt 应要求模型拆分行业、用户、竞品、渠道和趋势，并把事实、推断与待验证问题分开，避免把一段生成文字误当成调研证据。</li>
+<li><strong>核心观点2</strong>：竞品分析和案例研究要统一维度，例如目标用户、价值主张、产品功能、价格、传播方式和优缺点，只有同口径比较才有决策价值。</li>
+<li><strong>核心观点3</strong>：品牌定位需要明确人群、场景、差异化、语气和不做什么。一个好的定位不仅说明“服务谁”，还说明“为什么相信你”。</li>
+<li><strong>核心观点4</strong>：营销计划可拆成营销日历、传播渠道、创意罗列和方案细化，再让模型按时间、资源、预算和指标输出可执行清单。</li>
+<li><strong>核心观点5</strong>：AI 适合扩大方案空间和整理信息，不应替代市场真实反馈。最终计划要通过用户访谈、数据和小规模实验校验。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第9章 互联网行业的Prompt技巧和案例</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：Prompt 能帮助精准定义产品，把用户、场景、痛点、功能、优先级和验收标准写成产品说明，减少产品人与技术人之间的沟通损耗</li><li>核心观点2：周报、简历、邮件和文档整理都适合先提供原始材料，再要求模型按受众和格式重组，不能让模型凭空补充没有发生过的成果</li><li>核心观点3：功能测试 Prompt 应包含前置条件、操作步骤、预期结果、异常分支和优先级，生成后由测试人员补充真实环境和边界数据</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：Prompt 能帮助精准定义产品，把用户、场景、痛点、功能、优先级和验收标准写成产品说明，减少产品人与技术人之间的沟通损耗。</li>
+<li><strong>核心观点2</strong>：周报、简历、邮件和文档整理都适合先提供原始材料，再要求模型按受众和格式重组，不能让模型凭空补充没有发生过的成果。</li>
+<li><strong>核心观点3</strong>：功能测试 Prompt 应包含前置条件、操作步骤、预期结果、异常分支和优先级，生成后由测试人员补充真实环境和边界数据。</li>
+<li><strong>核心观点4</strong>：运营文案、内容审核、数据分析和海外推广需要分别设置语气、规则、指标和语言要求。一个通用 Prompt 难以覆盖所有角色。</li>
+<li><strong>核心观点5</strong>：商业计划书的生成顺序应从问题、用户、方案、竞争、渠道、成本和风险开始，模型负责组织与质疑，人负责真实数据和最终判断。</li>
+</ul>
+<h3 id="第10章-金融行业的prompt技巧和案例">第10章 金融行业的Prompt技巧和案例</h3>3
+<ul>
+<li><strong>核心观点1</strong>：客户经理和智能客服可使用 Prompt 整理客户信息、生成沟通草稿和回答建议，但必须区分内部分析、对外承诺和需要人工审批的内容。</li>
+<li><strong>核心观点2</strong>：自媒体运营和品牌打造可以借助模型统一内容风格、规划主题和改写表达，但金融内容要明确风险提示，不能把生成文本当成投资建议。</li>
+<li><strong>核心观点3</strong>：风控部门可让 AI 按规则抽取异常、整理材料和提出待核查线索；风控结论需要可追溯依据，不能只因为模型给出高风险标签就直接处理客户。</li>
+<li><strong>核心观点4</strong>：贷款催收场景要关注合规、尊重和沟通边界，Prompt 应限制威胁性、歧视性和未经授权的个人信息使用。</li>
+<li><strong>核心观点5</strong>：量化交易属于专业场景，Prompt 可以辅助整理策略想法和代码，但策略必须经过历史数据、风险控制和真实环境验证，生成速度不能替代金融审慎。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第11章 教育与科研行业的Prompt技巧和案例</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：科研全流程可用 Prompt 辅助论文要点速览、金点子生成、论文写作和新方向调研</li><li>核心观点2：阅读论文时应要求模型区分研究问题、方法、数据、结果、局限和可复现实验，不能只生成摘要就认为完成了理解</li><li>核心观点3：审稿和答卷批改可以按评分标准逐项输出证据、扣分原因和改进建议，避免只给笼统评价；教师仍应掌握最终评分权</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：科研全流程可用 Prompt 辅助论文要点速览、金点子生成、论文写作和新方向调研。输入论文、问题和评价维度越具体，输出越容易复核。</li>
+<li><strong>核心观点2</strong>：阅读论文时应要求模型区分研究问题、方法、数据、结果、局限和可复现实验，不能只生成摘要就认为完成了理解。</li>
+<li><strong>核心观点3</strong>：审稿和答卷批改可以按评分标准逐项输出证据、扣分原因和改进建议，避免只给笼统评价；教师仍应掌握最终评分权。</li>
+<li><strong>核心观点4</strong>：双师教学中的助教和伴学应用适合回答常见问题、提示学习步骤、提供练习和鼓励反思，但不能替代教师对学生差异和情绪的观察。</li>
+<li><strong>核心观点5</strong>：教育 Prompt 要保护学生隐私，科研 Prompt 要防止虚构引用和结果。凡涉及事实、引文或评分，都需要回到原始材料核对。</li>
+</ul>
+<h3 id="第12章-咨询行业的prompt技巧和案例">第12章 咨询行业的Prompt技巧和案例</h3>3
+<ul>
+<li><strong>核心观点1</strong>：Prompt 可帮助快速建立行业认知，通过行业链条、参与者、商业模式、客户、竞争和风险搭建初步地图，缩短咨询调研的起步时间。</li>
+<li><strong>核心观点2</strong>：方案构思时要让模型提出多个假设，说明依据、收益、成本和风险，再按客户约束筛选，而不是直接接受第一个看似完整的答案。</li>
+<li><strong>核心观点3</strong>：PPT 制作可以先生成页面结构、标题、论据和图表建议，再由咨询人员补真实数据、案例和视觉层级。页面数量和受众决定表达颗粒度。</li>
+<li><strong>核心观点4</strong>：跨国沟通需要说明语言、文化、正式程度、专业术语和禁用表达；翻译的目标是保留意图和关系，而不仅是逐字替换。</li>
+<li><strong>核心观点5</strong>：数据分析和专业知识管理要求建立来源、版本和权限意识。模型可以帮助索引和总结，但不能掩盖知识过期或来源不明的问题。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第13章 家长辅导孩子功课的Prompt技巧和案例</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：语文辅导可覆盖作文、文言文和概念解释</li><li>核心观点2：英语辅导可用于语法纠错、作文辅导和词汇练习</li><li>核心观点3：思维训练和学习技巧应把任务拆成问题、线索、尝试、反馈和复盘，鼓励学生自己完成关键推理</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：语文辅导可覆盖作文、文言文和概念解释。家长应要求模型先提问学生年级、题目和已有思路，再给分层提示，避免直接代写答案。</li>
+<li><strong>核心观点2</strong>：英语辅导可用于语法纠错、作文辅导和词汇练习。输出应解释错误原因、给出修改版本和可迁移规则，让孩子真正学会，而不是只得到一篇正确文本。</li>
+<li><strong>核心观点3</strong>：思维训练和学习技巧应把任务拆成问题、线索、尝试、反馈和复盘，鼓励学生自己完成关键推理。</li>
+<li><strong>核心观点4</strong>：学校活动策划可让 AI 生成主题、流程、分工、物料和风险清单，再由家长和教师结合场地、年龄与安全要求修改。</li>
+<li><strong>核心观点5</strong>：家庭使用 AI 的边界是辅助理解而非替代学习。家长要关注孩子是否会解释过程、迁移方法和独立完成，而不只是作业是否完成。</li>
+</ul>
+<h3 id="第14章-ai时代的超级个体">第14章 AI时代的超级个体</h3>3
+<ul>
+<li><strong>核心观点1</strong>：书中用“随机鹦鹉”讨论人类与大语言模型的差异：模型通过学习文本统计规律产生输出，缺乏真正的理解和情感体验；人类仍拥有生活经验、价值判断和关系责任。</li>
+<li><strong>核心观点2</strong>：AlphaGo 之后人类棋手水平提升，说明 AI 不必只被理解为替代者，也可以成为训练、探索和扩展能力边界的伙伴。</li>
+<li><strong>核心观点3</strong>：主动拥抱 AGI 的变化意味着持续学习、尝试新工具、审视风险并尽早建立人机协作流程，而不是盲目追逐每个新名词。</li>
+<li><strong>核心观点4</strong>：AI 对工作、学习和生活的冲击会同时表现为效率提升、岗位重组、教育方式变化和关系模式变化。个人要把注意力放在可迁移能力和长期资产上。</li>
+<li><strong>核心观点5</strong>：超级个体是“人+AI”的协作系统。AI 负责生成、整理和放大，人负责目标、审美、判断、共情、责任和最终选择。<blockquote>
+<p>大语言模型则仅仅是通过学习文本数据中的统计规律来产生输出，缺乏真正的理解和情感体验。<br />
+拥抱技术进步，审视技术进步，并走到技术的前列，我们会发现，前方还有星辰大海。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">附录 Prompt大全</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：附录提供可直接复用的 Prompt 模板集合，覆盖全书各行业场景，适合把抽象方法转成任务起点</li><li>核心观点2：模板应按角色、目标、背景、输入、约束、步骤和输出格式拆解，使用者需要替换变量，而不是机械复制整段文字</li><li>核心观点4：每个模板都要配套验收标准和人工复核点，尤其是金融、教育、科研、客服等对事实、隐私或责任敏感的场景</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：附录提供可直接复用的 Prompt 模板集合，覆盖全书各行业场景，适合把抽象方法转成任务起点。</li>
+<li><strong>核心观点2</strong>：模板应按角色、目标、背景、输入、约束、步骤和输出格式拆解，使用者需要替换变量，而不是机械复制整段文字。</li>
+<li><strong>核心观点3</strong>：模板的复用价值来自迭代记录。保留任务版本、输入材料、输出质量和修改意见，才能知道哪些约束真正有效。</li>
+<li><strong>核心观点4</strong>：每个模板都要配套验收标准和人工复核点，尤其是金融、教育、科研、客服等对事实、隐私或责任敏感的场景。</li>
+<li><strong>核心观点5</strong>：Prompt 不是一次性咒语，而是可测试、可改进、可沉淀的工作资产；当场景变化时，应更新模板的背景和边界。</li>
+</ul>
+<h2 id="适用场景标签">适用场景标签</h2>2
+<ul>
+<li>提示词工程入门与进阶</li>
+<li>ChatGPT等AI工具实操</li>
+<li>行业AI应用落地（编程/设计/游戏/自媒体/营销/金融/教育/咨询）</li>
+<li>AIGC时代职业发展认知</li>
+<li>个人效率提升与超级个体打造</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">一句话推荐</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>掌握Prompt，成为人+AI超级个体</li></ul></div>2
+<p>掌握Prompt，成为人+AI超级个体。</p></div></details></div></body></html>

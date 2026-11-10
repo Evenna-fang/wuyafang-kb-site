@@ -1,0 +1,130 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>E5-RAG-Agentic化路线-20261026</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ E5-RAG-Agentic化路线-20261026</span></div><div class="wrap"><h1 id="e5rag-agentic-化路线2026-10">E5：RAG Agentic 化路线（2026-10）</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>近 30 天 RAG 工具链明显从"检索+生成"升级为agentic 检索/推理流程</li><li>RAGFlow v1.0.0-rc2 直接弃用 Low/High 思考档，改 Agentic mode——这不是小版本变更，是 RAG 工程范式的转向</li><li>本页登记一手情报 + 对本项目（Zilliz / 多模态 / Dify）的影响判断</li></ul></div>2
+<p>近 30 天 RAG 工具链明显从"检索+生成"升级为<strong>agentic 检索/推理流程</strong>。RAGFlow v1.0.0-rc2 直接弃用 Low/High 思考档，改 Agentic mode——这不是小版本变更，是 RAG 工程范式的转向。本页登记一手情报 + 对本项目（Zilliz / 多模态 / Dify）的影响判断。</p>
+<h2 id="what">WHAT</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">RAGFlow v1.0.0-rc2（2026-10-16）核心变更</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>不再用"思考深度"开关控制，改成 agent 化的检索/推理流程</li><li>含义：RAG 从"一次检索 + 一次生成"的静态 pipeline，变成 agent 自己决定"要不要再检索 / 要不要换 query / 要不要 rerank"的动态流程</li><li>多格式解析器（PDF / Word / 图片 OCR / 表格）统一挂到 pipeline 上</li></ul></div>3
+<ol>
+<li>
+<p><strong>chat 模式弃 Low/High 思考档，改 Agentic mode</strong><br />
+   - 不再用"思考深度"开关控制，改成 agent 化的检索/推理流程。<br />
+   - 含义：RAG 从"一次检索 + 一次生成"的静态 pipeline，变成 agent 自己决定"要不要再检索 / 要不要换 query / 要不要 rerank"的动态流程。</p>
+</li>
+<li>
+<p><strong>parser 统一为 Pipeline</strong><br />
+   - 多格式解析器（PDF / Word / 图片 OCR / 表格）统一挂到 pipeline 上。<br />
+   - 便于多模态接入，与我们已有的 MinerU OCR 路线呼应。</p>
+</li>
+<li>
+<p><strong>新增 MinerU 4 解析器</strong><br />
+   - 与本项目"图片多模态入库"的 MinerU OCR 路线直接对齐。</p>
+</li>
+</ol>
+<h3 id="依据">依据</h3>3
+<ul>
+<li>https://github.com/infiniflow/ragflow/releases/tag/v1.0.0-rc2</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">HOW（对本项目的影响判断）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="现状纯知识登记不动现有配置">现状（纯知识登记，不动现有配置）</h3>3
+<ul>
+<li><strong>Zilliz 向量库</strong>：RAGFlow 的 Agentic mode 是上层 agent 决策逻辑，底层向量库不冲突，无需改 schema。</li>
+<li><strong>多模态入库</strong>：MinerU 4 是 parser 层升级，我们现有 ingest_images_to_cloud.py 可以后续切换到 MinerU 4，属于可选优化不是紧急变更。</li>
+<li><strong>Dify 集成</strong>：如果未来接入 RAGFlow 作为 RAG 后端，chat 配置要按 Agentic mode 调整（不再用思考档开关）。</li>
+</ul>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">真接入时的 A/B 验证铁律</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>任何 RAG 管线改造（含 parser 升级 / Agentic mode 启用）必须先跑同 golden-q 尺子 A/B，Recall@k 不掉才上线</li><li>铁律 2：不凭"新版本更好"直接切，用同尺子前后对比</li></ul></div>3
+<ul>
+<li>任何 RAG 管线改造（含 parser 升级 / Agentic mode 启用）必须先跑同 golden-q 尺子 A/B，Recall@k 不掉才上线。</li>
+<li>铁律 2：<strong>不凭"新版本更好"直接切</strong>，用同尺子前后对比。</li>
+</ul>
+<h3 id="长期路线判断">长期路线判断</h3>3
+<ul>
+<li>RAG 的下一步 = Agentic RAG（路由 + rerank + rewrite 三步由 agent 自主决定），不是再加一层 chunk 优化。</li>
+<li>本项目现有 CRAG（Corrective RAG）是 Agentic RAG 的初级形态——已经有"检索不准时改写 query 重检索"的逻辑，下一步可以参考 RAGFlow 的 Agentic mode，把"路由 / rerank / rewrite"做成可配置的 agent 决策节点。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">启用 Agentic mode 前的四道护栏（一手源融合）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>RAGFlow 的 Agentic mode 是"路由 + rerank + rewrite 交给 agent"，等于直接跳到第 3–4 步，接入时按这四步对照，别整体切换</li></ul></div>3
+<ul>
+<li>据[一手源]：Agentic-RAG检索循环-外部调研-20261012（FDE 落地建议）：①<strong>别一上来就 agentic</strong>——简单 FAQ 用 naive RAG，多跳/跨文档/长文档分析才上 agentic（agentic 分支难题稳定胜出、易题反输）；②<strong>预算硬约束</strong>：<code>max_iterations ≤ 5</code>，faithfulness judge 必配；③<strong>trace 是刚需</strong>：任何 agentic RAG 必须接 LangSmith/OpenTelemetry，没有 trace 等于盲开；④<strong>渐进迁移</strong>：Naive RAG + query 改写 → 加 retriever tool → 加 critique judge → 加 subagent decomposition。RAGFlow 的 Agentic mode 是"路由 + rerank + rewrite 交给 agent"，等于直接跳到第 3–4 步，接入时按这四步对照，别整体切换。</li>
+<li>据[一手源]：Agentic-RAG检索循环-外部调研-20261012（最常见失败模式）：没有 critique 步，agent 只是把同一个检索无限循环刷一遍；Reflection 循环是 Retrieve → Read → Critique → Refine → Loop，直到置信度高或步数预算触顶。本库 CRAG 已有 grade + rewrite，缺的是"草稿后的独立 faithfulness judge"（futureagi 事故：法律 QA agent 用了 6/8 个 chunk，凭空捏造第 7 个事实，因没有 span 做 faithfulness 评分）。</li>
+<li>据[一手源]：Agentic-RAG-调研-20261012（Anthropic，Building effective agents）：agent 系统一步失败会让执行轨迹完全不同，prototype 到 production 的 gap 比传统软件大，所以 Agentic mode 的 A/B 不能只看最终答案——还要看"该检索时没检索 / 不该检索时检索了"的决策正确性，与上面的 golden-q A/B 铁律叠加使用。</li>
+</ul>
+<h2 id="本库真实落地">本库真实落地</h2>2
+<blockquote>
+<p>2026-11-04 源码核对：路径全部 <code>os.path.exists</code> 通过，代码块逐字摘自源文件。</p>
+</blockquote>
+<ul>
+<li><strong>本篇说「agent 决定要不要再检索」，本库已经有一份按这个思路写的实现：<code>rag/agentic_query.py</code>（295 行，LangGraph 图）</strong>，节点序列 <code>decide → retrieve → grade → (rewrite→retrieve 环) → generate / refuse</code>。</li>
+<li><strong>「要不要检索」这一步是显式决策节点，不是硬编码</strong>（<code>rag/agentic_query.py</code> L96）：<br />
+<code>python
+  def decide_node(state: AgenticState) -&gt; dict:
+      try:
+          out = _parse_json(chat(DECIDE_PROMPT.format(question=state["question"]), DECIDE_SYSTEM, timeout=30)) or {}
+      except Exception as e:
+          _log(f"decide 失败({e}), 默认检索")
+          out = {}</code><br />
+<code>except</code> 分支的行为是 <code>out = {}</code>，下面按「不命中 respond 即 retrieve」处理——<strong>决定失败的默认动作是检索</strong>（代码注释：「decide 失败(...), 默认检索」），这与上面的 prompt 取向一致：拿不准就检索。</li>
+<li><strong>翻页式多轮检索是它和主链路最大的区别</strong>（L109）：<br />
+<code>python
+  def retrieve_round(col, search_query: str, question: str, excluded: set) -&gt; dict:
+      """单轮检索: hybrid(dense+sparse RRF) → 去重 → 排除已判无关 → rerank top-k。"""</code><br />
+<code>excluded_ids</code> 让第二轮不会再捞到第一轮已经判死的片段，这是 RAGFlow「Agentic mode」里最实际的那条机制。</li>
+<li><strong>评分是二元判定且有明确失败语义</strong>（L147）：<em>"官方二元相关性判定, 批量对 top-k 逐条打分。LLM 两次失败则抛出(不静默放行)。"</em></li>
+<li><strong>预算硬编码</strong>：<code>DEFAULT_MAX_REWRITES = 3</code>（L31）。官方 Agentic 路线的风险正是「循环无界」，本库用固定轮数收口，且没有做成配置项——想调只能改代码，这是当前实现的一个粗糙点。</li>
+<li><strong>和本库主链路的关系</strong>：<code>rag/query.py</code> 的 <code>build_rag_graph()</code> 是生产链路（router→retrieve→grade→rerank→gate→generate），<code>agentic_query.py</code> 是并行的 Agentic 实验链路；<strong>两者共用 <code>query.retrieve_hybrid</code> / <code>query.rerank_node</code>，没有各写一套检索</strong>。</li>
+<li>
+<p><strong>RAGFlow 本身本库没有部署</strong>：全仓无 RAGFlow 容器/配置；本篇的 RAGFlow 结论是情报，不是本库运行事实。</p>
+</li>
+<li>
+<p><strong>本库暂无</strong>：agentic 链路没有接进 <code>rag/serve.py</code> 的对外端点，也没有进 golden 回归（56 条基准测的是生产图）；Parser Pipeline 统一化未落地，MinerU OCR 只有批处理脚本 <code>scripts/mineru_ocr_batch.py</code>，未接入 ingest 主流程。</p>
+</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">来源</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>raw/sources/20261026-前沿进化/E5-RAG-Agentic化.md</li><li>RAGFlow v1.0.0-rc2 release note（github.com/infiniflow/ragflow）</li><li>关联：[[Agentic-RAG检索循环-外部调研-20261012]]（wiki 已有对应蒸馏篇）</li></ul></div>2
+<ul>
+<li>raw/sources/20261026-前沿进化/E5-RAG-Agentic化.md</li>
+<li>RAGFlow v1.0.0-rc2 release note（github.com/infiniflow/ragflow）</li>
+<li>关联：[[Agentic-RAG检索循环-外部调研-20261012]]（wiki 已有对应蒸馏篇）</li>
+<li>关联：<a href="../L10-%E6%96%B9%E6%B3%95%E8%AE%BA%E5%B1%82/04-%E6%8A%80%E6%9C%AF%E9%80%89%E5%9E%8B%E5%86%B3%E7%AD%96%E6%A1%86%E6%9E%B6.html">技术选型决策框架</a>（将历史新闻线索转成来源核验、同尺子实验与重评条件；不以旧新闻直接证明当前产品状态）</li>
+</ul></div></details></div></body></html>

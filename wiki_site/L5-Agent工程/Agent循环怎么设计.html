@@ -1,0 +1,160 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent循环怎么设计</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/Agent循环怎么设计</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="agent-react-plan-and-execute-reflection">Agent 循环怎么设计：ReAct / Plan-and-Execute / Reflection 怎么选</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<h2 id="_1">这个问题的答案是什么</h2>
+<p><strong>一句话</strong>：三种循环不是"哪个更先进"，而是"任务复杂度"的分层——小任务用 ReAct 边想边走，大任务用 Plan-and-Execute 先规划再执行，要质量的任务叠一层 Reflection 做自我批评。</p>
+<table>
+<thead>
+<tr>
+<th>循环</th>
+<th>核心节奏</th>
+<th>适合的任务</th>
+<th>不适合</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ReAct</strong></td>
+<td>观察→思考→行动→再观察，循环到结束</td>
+<td>步骤 ≤ 5、路径不明确、需要边走边看</td>
+<td>步骤多、要全局最优、容易跑偏的长任务</td>
+</tr>
+<tr>
+<td><strong>Plan-and-Execute</strong></td>
+<td>先一次性拆解成 N 步计划，再逐步执行</td>
+<td>任务清晰、步骤 ≥ 5、可分解（库存调度、标书阅读）</td>
+<td>路径高度不确定、计划做了也白做</td>
+</tr>
+<tr>
+<td><strong>Reflection / Introspection</strong></td>
+<td>产出→自我批判→修订</td>
+<td>高质量要求（代码、文案、法律文书）</td>
+<td>低成本高并发任务（反思贵）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>判断口诀</strong>：默认先上 ReAct，跑偏了/超步数了加 Planner，产出质量不满意加 Reflection。三层可以叠加——Plan-and-Execute 的每一步内部是 ReAct，最终产出再过一遍 Reflection。</p>
+<h2 id="_2">详细内容</h2>
+<h3 id="react">一、ReAct：最经典的"边想边干"</h3>
+<p>《动手做 AI Agent》（黄佳）第 6 章直接拿 LangChain 的 <code>create_react_agent</code> 跑鲜花定价。ReAct 的设计哲学（原书引述）："在动态和不确定的环境中，有效的决策需要持续的学习和适应，以及快速将推理转化为行动的能力，即形成有效的观察—思考—行动—再观察的循环。"</p>
+<p>《大模型项目实战》（高强文）基于 AgentScope 的 ReAct Agent 也是同一套：<code>UserAgent</code> 接任务，<code>ReActAgent</code> 走 Reason-Acting 迭代。</p>
+<p><strong>ReAct 的坑</strong>：
+- 步数不可控——模型可能在第 10 步还在转圈。必须设 <code>max_iterations</code>。
+- 计划视野短——它不看全局，容易走偏。所以只适合"边走边看"的活。</p>
+<h3 id="plan-and-execute">二、Plan-and-Execute：先想清楚再动手</h3>
+<p>《动手做 AI Agent》第 7 章是 Plan-and-Execute 的标准样例：物流管理、库存调度。核心思路：
+1. <strong>Planner</strong> 一次性把任务拆成 N 步（LLM 生成结构化计划）。
+2. <strong>Executor</strong> 逐步执行，每一步是一个小的 ReAct。
+3. 可选 <strong>Replanner</strong>：执行完几步后回头看是否要调整剩余计划。</p>
+<p>《大模型项目实战》里 BabyAGI 是这个范式的极简原型——"根据先前任务的结果和预定义的目标创建任务"，用向量库存任务上下文。原书评价"代码量虽小，但方法论起了意想不到的效果"。</p>
+<p><strong>什么时候用</strong>：任务可分解、步骤多、路径可预期。发票识别、标书阅读、库存调度都是典型例子。</p>
+<p><strong>什么时候不用</strong>：任务本身就模糊（"帮我调研一下竞品"）——Planer 第一次拆的步骤就是错的，白规划。</p>
+<h3 id="reflection">三、Reflection：给自己挑毛病</h3>
+<p>《Building Agentic AI Systems》第 4 章专门讲 Reflection and Introspection。核心是：Agent 产出后，让另一个 LLM 调用对产出做批判（"这个定价合理吗？数据来源可靠吗？"），把批评喂回去让原 Agent 修订。</p>
+<p><strong>Reflection 的价值场景</strong>：
+- 代码生成——写完跑一下测试，过不了就反思。
+- 文案生成——写完让 Critic 打分。
+- 个性化推荐——《Building Agentic AI Systems》提到"反思型代理"用于营销推荐，通过识别"某些类型的推荐总是低分"调整策略。</p>
+<p><strong>Reflection 的坑</strong>：贵。每一步都反思 = token 翻倍。只在最终产出或关键节点用，不要每步都反思。</p>
+<h3 id="agent">四、组合拳：现实里的 Agent 长什么样</h3>
+<p>《Building Agentic AI Systems》第 6 章提出 Coordinator-Worker-Delegator 三层编排：
+- <strong>Coordinator</strong>：接收任务、做规划（相当于 Planer）。
+- <strong>Delegator</strong>：把子任务分派给 Worker。
+- <strong>Worker</strong>：具体执行，内部是 ReAct 循环。</p>
+<p>再叠加 Reflection 在关键节点，就是一个生产可用的 Agent 骨架。</p>
+<h2 id="_3">来自哪些书的哪些观点</h2>
+<ul>
+<li><strong>《动手做 AI Agent》（黄佳）</strong>：ReAct/Plan-and-Execute/AutoGen/MetaGPT 全是同一本书的章节，说明这三种循环是教材级标准件。</li>
+<li><strong>《大模型项目实战》（高强文）</strong>：BabyAGI = Plan-and-Execute 的极简版；CrewAI = 多角色版 Plan-and-Execute。</li>
+<li><strong>《Building Agentic AI Systems》</strong>：Reflection、Coordinator-Worker-Delegator 是企业级架构；高风险任务"投入更多计算资源做更深入推理"——自适应分配算力。</li>
+<li><strong>《零基础搭建》（徐洋）</strong>：低代码平台的"工作流节点"其实是 Plan-and-Execute 的可视化版本——每个节点是一步，连线是执行顺序。</li>
+</ul>
+<h2 id="_4">我们库当前的落地点（对照六员体系）</h2>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>循环形态</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Hermes 主对话</strong></td>
+<td>ReAct + 软 Reflection</td>
+<td>边想边调工具；<code>self-verification-blindspots</code> 技能是强制 Reflection</td>
+</tr>
+<tr>
+<td><strong>Claude Code</strong></td>
+<td>Plan（先写 plan）+ ReAct 执行 + Reflection（跑测试自验）</td>
+<td><code>writing-plans</code> / <code>verification-before-completion</code> 技能</td>
+</tr>
+<tr>
+<td><strong>Codex</strong></td>
+<td>类似 Claude Code</td>
+<td>OpenAI 官方 coding agent</td>
+</tr>
+<tr>
+<td><strong>OpenClaw</strong></td>
+<td>ReAct 为主</td>
+<td>工具调用循环，无显式 Planner</td>
+</tr>
+<tr>
+<td><strong>DSH</strong></td>
+<td>只做派发，不做循环</td>
+<td>任务路由层</td>
+</tr>
+<tr>
+<td><strong>QwenCode</strong></td>
+<td>ReAct</td>
+<td>通义系 coding agent</td>
+</tr>
+</tbody>
+</table>
+<p><strong>下一步动作</strong>：Hermes 的 <code>auto-iterate-goal</code> 技能是 Plan-and-Execute 的雏形（Persistent Goals 自己干到完成），可以借鉴 BabyAGI 的向量库任务上下文，让跨会话的长任务不丢状态。</p></div></body></html>

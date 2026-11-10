@@ -1,0 +1,393 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>procedural-edge-schema</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ procedural-edge-schema</span></div><div class="wrap"><h1 id="fde-程序性边型-schema-五段式链路">FDE 程序性边型 Schema · 五段式链路</h1>
+<blockquote>
+<p><strong>版本</strong>：v0.1-draft · 2026-10-30<br />
+<strong>设计参照</strong>：Palantir Foundry Ontology Action Types 官方文档；OC 调研报告 §3.2（FDE 程序性链路五段式）<br />
+<strong>用途</strong>：把 FDE 真实交付中的"问题→根因→处置→工具→验证"链路显式建模为图谱边，供 RAG 多跳推理与错误台账回流使用。<br />
+<strong>与现有 schema 关系</strong>：本文件定义<strong>程序性（procedural）边族</strong>，与 <code>edge-schema.json</code> 的<strong>结构性（structural）纵向谓词</strong>（IS_A / PART_OF / IMPLEMENTS / USES / HAS_MODULE）正交叠加；不替换、不重命名任何已有谓词。</p>
+</blockquote>
+<hr />
+<h2 id="一五段式链路总览">一、五段式链路总览</h2>2
+<p>一条完整的 FDE 程序性案例，必须能在图谱里走出如下五跳路径（缺一跳即视为"程序性不闭合"）：</p>
+<pre><code>SYMPTOM ──diagnosed_by──▶ ROOT_CAUSE ──fixed_by──▶ ACTION ──requires──▶ TOOL ──validated_by──▶ EVIDENCE
+  (问题症状)               (根因)                  (处置动作)             (工具/权限)          (验证凭据)
+</code></pre>
+<p>对应 Foundry Ontology Action 的语义：每一段都不是"知识陈述"，而是<strong>受控动作的输入-输出契约</strong>——从"看到症状"出发，经过"诊断→处置→准备→核验"四步动作，最终收敛到可复核的凭据。</p>
+<hr />
+<h2 id="二节点类型domain-range-前置约束">二、节点类型（domain / range 前置约束）</h2>2
+<p>五段式边型复用并扩展 <code>edge-schema.json</code> 的 entity_types。新增三类程序性节点（全部大写+下划线，与现有 <code>TECH_STACK / LAYER / FRAMEWORK / ...</code> 命名一致）：</p>
+<table>
+<thead>
+<tr>
+<th>节点类型</th>
+<th>中文释义</th>
+<th>典型实例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SYMPTOM</strong></td>
+<td>问题症状 / 客户可感知的异常</td>
+<td>"RAG 召回 top-5 命中率 &lt; 30%"、"客户内网模型推理 OOM"</td>
+</tr>
+<tr>
+<td><strong>ROOT_CAUSE</strong></td>
+<td>根因（经过 5 Why 收敛）</td>
+<td>"chunk 粒度 512 过小 + 缺全局语境"、"量化到 4bit 后 KV cache 爆显存"</td>
+</tr>
+<tr>
+<td><strong>ACTION</strong></td>
+<td>处置动作 / FDE 可执行动作</td>
+<td>"换 Contextual Retrieval + chunk 升到 1024"、"换 AWQ-GEMM 内核"</td>
+</tr>
+<tr>
+<td><strong>TOOL</strong></td>
+<td>工具 / 权限 / 资产</td>
+<td>"Anthropic Contextual Retrieval 模板"、"vLLM 0.6 FP8 启动参数"、"客户内网 sudo 权限"</td>
+</tr>
+<tr>
+<td><strong>EVIDENCE</strong></td>
+<td>验证凭据（可被复核的输出物）</td>
+<td>"复测 recall@5 = 78% 的 eval 报告"、"压测 P99 &lt; 2s 的 Grafana 截图"</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>存量节点类型（TECH_STACK / LAYER / FRAMEWORK / SUBSYSTEM / PROTOCOL / STRATEGY / IMPLEMENTATION）不动，只在五段式边的 <strong>TOOL 段</strong> 被引用（一个 TOOL 节点可以同时是 FRAMEWORK 或 IMPLEMENTATION）。</p>
+</blockquote>
+<hr />
+<h2 id="三五种边型字段定义">三、五种边型字段定义</h2>2
+<p>每种边型给出：<strong>名称 / 中文描述 / domain / range / 必填属性 / 示例三元组</strong>。所有边<strong>强制带</strong>两个公共属性：<br />
+- <code>strength</code> ∈ [0, 10]（沿用 <code>edge-schema.json</code> 的 relationship_strength 约定）<br />
+- <code>confidence</code> ∈ {confirmed, suspected, refuted}（默认 suspected；confirmed 必须有 EVIDENCE 段闭环）</p>
+<h3 id="31-diagnosed_by-症状-根因">3.1 <code>diagnosed_by</code> —— 症状 → 根因</h3>3
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>边名</td>
+<td><code>diagnosed_by</code></td>
+</tr>
+<tr>
+<td>中文描述</td>
+<td>该症状被诊断为某根因（诊断动作的输出）</td>
+</tr>
+<tr>
+<td>domain</td>
+<td>SYMPTOM</td>
+</tr>
+<tr>
+<td>range</td>
+<td>ROOT_CAUSE</td>
+</tr>
+<tr>
+<td>必备属性</td>
+<td><code>method</code>（诊断方法，如 5-Why / 分层排查 / A/B）、<code>diagnosed_by_agent</code>（谁做的诊断：DSH / Claude / 人工）、<code>timestamp</code></td>
+</tr>
+<tr>
+<td>反身 / 多对多</td>
+<td>一个 SYMPTOM 允许指向多个 ROOT_CAUSE（疑似并列根因），每个 ROOT_CAUSE 必须能被后续 <code>fixed_by</code> 接住</td>
+</tr>
+<tr>
+<td>示例</td>
+<td><code>RAG召回top-5&lt;30%</code> --diagnosed_by--&gt; <code>chunk=512 缺全局语境</code>，[S=8, confidence=confirmed, method=5-Why, diagnosed_by_agent=DSH]</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32-fixed_by-根因-处置动作">3.2 <code>fixed_by</code> —— 根因 → 处置动作</h3>3
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>边名</td>
+<td><code>fixed_by</code></td>
+</tr>
+<tr>
+<td>中文描述</td>
+<td>该根因由某个处置动作解决（处置动作的输入）</td>
+</tr>
+<tr>
+<td>domain</td>
+<td>ROOT_CAUSE</td>
+</tr>
+<tr>
+<td>range</td>
+<td>ACTION</td>
+</tr>
+<tr>
+<td>必备属性</td>
+<td><code>fix_strategy</code>（修复策略类别：code-change / config-tune / data-fix / infra-change / prompt-fix）、<code>applied_by_agent</code>、<code>rollback_available</code>（bool）</td>
+</tr>
+<tr>
+<td>约束</td>
+<td>ROOT_CAUSE 不允许悬空——必须至少有一条 <code>fixed_by</code>，否则图谱里会出现"诊断完没动作"的死链</td>
+</tr>
+<tr>
+<td>示例</td>
+<td><code>chunk=512 缺全局语境</code> --fixed_by--&gt; <code>切 Contextual Retrieval + chunk 升 1024</code>，[S=9, fix_strategy=config-tune, rollback_available=true]</td>
+</tr>
+</tbody>
+</table>
+<h3 id="33-requires-处置动作-工具权限">3.3 <code>requires</code> —— 处置动作 → 工具/权限</h3>3
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>边名</td>
+<td><code>requires</code></td>
+</tr>
+<tr>
+<td>中文描述</td>
+<td>执行该动作需要哪些工具、权限、资产（前置依赖）</td>
+</tr>
+<tr>
+<td>domain</td>
+<td>ACTION</td>
+</tr>
+<tr>
+<td>range</td>
+<td>TOOL（TOOL 节点可同时是 FRAMEWORK / IMPLEMENTATION / PROTOCOL / 权限实体）</td>
+</tr>
+<tr>
+<td>必备属性</td>
+<td><code>required_role</code>（如 dev / ops / customer-admin）、<code>est_cost_min</code>（人分估算）、<code>blocking</code>（bool：缺了能不能干）</td>
+</tr>
+<tr>
+<td>复用</td>
+<td>与现有 <code>USES</code>（structural）的区别：<code>USES</code> 是静态依赖关系（"LangGraph 用 MCP"），<code>requires</code> 是<strong>动作执行时</strong>的动态前置条件（"这次修复 requires 客户内网 sudo 权限"）</td>
+</tr>
+<tr>
+<td>示例</td>
+<td><code>切 Contextual Retrieval</code> --requires--&gt; <code>Anthropic Contextual-Retriever 模板</code>，[S=7, required_role=dev, blocking=true]</td>
+</tr>
+</tbody>
+</table>
+<h3 id="34-validated_by-工具动作-验证凭据">3.4 <code>validated_by</code> —— 工具/动作 → 验证凭据</h3>3
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>边名</td>
+<td><code>validated_by</code></td>
+</tr>
+<tr>
+<td>中文描述</td>
+<td>该动作/工具的效果被哪份凭据复核（验收闭环）</td>
+</tr>
+<tr>
+<td>domain</td>
+<td>ACTION（可放宽到 TOOL）</td>
+</tr>
+<tr>
+<td>range</td>
+<td>EVIDENCE</td>
+</tr>
+<tr>
+<td>必备属性</td>
+<td><code>validation_metric</code>（如 recall@5 / P99 / 客户签认）、<code>before_value</code>、<code>after_value</code>、<code>evidence_uri</code>（必须可定位：wiki 路径 / Grafana / eval json）</td>
+</tr>
+<tr>
+<td>约束</td>
+<td><strong>整条五段链 confidence=confirmed 的必要条件</strong>：链上每个 ROOT_CAUSE → ACTION → EVIDENCE 段都必须有 <code>validated_by</code>，且 EVIDENCE 节点本身必须带 <code>evidence_uri</code>（禁止"我觉得修好了"）</td>
+</tr>
+<tr>
+<td>示例</td>
+<td><code>切 Contextual Retrieval</code> --validated_by--&gt; <code>recall@5 基线复测报告</code>，[S=10, validation_metric=recall@5, before=0.28, after=0.78, evidence_uri=wiki/L4-RAG/eval-20261030.md]</td>
+</tr>
+</tbody>
+</table>
+<h3 id="35-公共反向边用于检索">3.5 公共反向边（用于检索）</h3>3
+<p>为了让 RAG 双向都能查到，每条正向边自动派生反向边（写入时由脚本生成，不手填）：</p>
+<table>
+<thead>
+<tr>
+<th>正向</th>
+<th>反向</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SYMPTOM --diagnosed_by--&gt; ROOT_CAUSE</td>
+<td>ROOT_CAUSE --explains--&gt; SYMPTOM</td>
+<td>从根因反查所有它能解释的症状</td>
+</tr>
+<tr>
+<td>ROOT_CAUSE --fixed_by--&gt; ACTION</td>
+<td>ACTION --fixes--&gt; ROOT_CAUSE</td>
+<td>从动作反查它治哪些根因</td>
+</tr>
+<tr>
+<td>ACTION --requires--&gt; TOOL</td>
+<td>TOOL --needed_for--&gt; ACTION</td>
+<td>从工具反查它支撑哪些动作</td>
+</tr>
+<tr>
+<td>ACTION --validated_by--&gt; EVIDENCE</td>
+<td>EVIDENCE --validates--&gt; ACTION</td>
+<td>从凭据反查它验收了哪些动作</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="四与-bfo-skos-谓词族的兼容关系">四、与 bfo / skos 谓词族的兼容关系</h2>2
+<p>本五段式边族<strong>不引入全新本体</strong>，每条边都能映射到 BFO（Basic Formal Ontology）上层或 SKOS 词汇表的既有语义：</p>
+<table>
+<thead>
+<tr>
+<th>本边</th>
+<th>BFO 映射</th>
+<th>SKOS / OWL 映射</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>diagnosed_by</code></td>
+<td>BFO:0000062 (<strong>diagnostic process</strong>) → BFO:0000040 (<strong>objective entity</strong> 作为根因)</td>
+<td><code>skos:relatedMatch</code> 弱关联升级为<strong>带过程属性</strong>的边</td>
+<td>不是纯陈述性 related，是"诊断过程"指向诊断结论</td>
+</tr>
+<tr>
+<td><code>fixed_by</code></td>
+<td>BFO:0000015 (<strong>intentional process</strong>) 由 agent 执行 → 改变 BFO:0000031 (<strong>disposition</strong>)</td>
+<td><code>dct:references</code> + <code>prov:wasGeneratedBy</code></td>
+<td>动作是带意图的过程，结果是 disposition 被修正</td>
+</tr>
+<tr>
+<td><code>requires</code></td>
+<td>BFO:0000130 (<strong>role</strong>) / BFO:0000129 (<strong>material entity</strong>) 作为前置</td>
+<td><code>owl:requires</code> / <code>dcat:required</code></td>
+<td>与现有 <code>USES</code>（structural）区别见 §3.3</td>
+</tr>
+<tr>
+<td><code>validated_by</code></td>
+<td>BFO:0000261 (<strong>evaluation process</strong>) 输出 BFO:0000179 (<strong>information content entity</strong> 作为凭据)</td>
+<td><code>prov:wasDerivedFrom</code> / <code>dct:conformsTo</code></td>
+<td>EVIDENCE 节点本身是 ICE（可被引用的信息实体）</td>
+</tr>
+<tr>
+<td>反向边</td>
+<td>一律走 <code>owl:inverseOf</code> 声明</td>
+<td>—</td>
+<td>不占独立命名空间</td>
+</tr>
+</tbody>
+</table>
+<p><strong>命名空间约定</strong>：五段式边全部使用命名空间 <code>proc:</code>（procedural），与现有结构性谓词 <code>str:</code>（structural，如 IS_A / PART_OF）横向谓词 <code>hor:</code>（legacy complementary / alternative / ...）三套并列：</p>
+<pre><code>@prefix str:  &lt;http://wuyafang-l.local/ontology/structural#&gt;
+@prefix hor:  &lt;http://wuyafang-l.local/ontology/horizontal#&gt;
+@prefix proc: &lt;http://wuyafang-l.local/ontology/procedural#&gt;
+
+proc:diagnosed_by  a owl:ObjectProperty ;
+    rdfs:domain  proc:SYMPTOM ;
+    rdfs:range   proc:ROOT_CAUSE ;
+    owl:inverseOf proc:explains ;
+    rdfs:subPropertyOf bfo:0000062 .
+</code></pre>
+<p><strong>不冲突声明</strong>：<br />
+- ✅ 不替换 <code>edge-schema.json</code> 的 5 个纵向谓词（IS_A / PART_OF / IMPLEMENTS / USES / HAS_MODULE）<br />
+- ✅ 不替换 <code>ontology-triples.csv</code> / <code>wiki-relations.csv</code> 已有的横向谓词（complementary / alternative / orthogonal / specialization / instantiates / depends-on / pairs-with / validates / escalates-to / part-of）<br />
+- ⚠️ <strong>注意</strong>：存量 <code>wiki-relations.csv</code> 里已有 <code>validates</code> 谓词（如 "Evals validates RAG"），语义偏向"评测体系给整个流程背书"；新 <code>validated_by</code> 偏向<strong>单次动作的验收</strong>。两者<strong>并存不合并</strong>，用命名空间区分（<code>hor:validates</code> vs <code>proc:validated_by</code>），抽取脚本时按上下文自动分流。</p>
+<hr />
+<h2 id="五合法边矩阵kg_validation_schema-风格">五、合法边矩阵（kg_validation_schema 风格）</h2>2
+<p>与 <code>edge-schema.json</code> 的 <code>valid_edges</code> 同款格式，供抽取脚本硬校验：</p>
+<pre><code class="language-json">{
+  &quot;procedural_valid_edges&quot;: {
+    &quot;SYMPTOM&quot;:      [&quot;diagnosed_by&quot;],
+    &quot;ROOT_CAUSE&quot;:    [&quot;fixed_by&quot;, &quot;explains&quot;],
+    &quot;ACTION&quot;:        [&quot;fixes&quot;, &quot;requires&quot;, &quot;validated_by&quot;],
+    &quot;TOOL&quot;:          [&quot;needed_for&quot;, &quot;PART_OF&quot;, &quot;USES&quot;, &quot;IS_A&quot;],
+    &quot;EVIDENCE&quot;:      [&quot;validates&quot;]
+  },
+  &quot;procedural_node_types&quot;: [&quot;SYMPTOM&quot;, &quot;ROOT_CAUSE&quot;, &quot;ACTION&quot;, &quot;TOOL&quot;, &quot;EVIDENCE&quot;],
+  &quot;closure_rule&quot;: &quot;confidence=confirmed 的五段链必须满足 SYMPTOM→ROOT_CAUSE→ACTION→EVIDENCE 全通；TOOL 段可省略（动作无外部依赖时）&quot;
+}
+</code></pre>
+<hr />
+<h2 id="六示例完整链可直接当-golden-case">六、示例完整链（可直接当 golden case）</h2>2
+<blockquote>
+<p>摘自 <code>wiki/L4-RAG工程/RAG检索不准怎么排查.md</code> 真实案例：</p>
+</blockquote>
+<pre><code>SYMPTOM:     &quot;RAG 检索 top-5 recall = 0.28（客户验收阈值 0.6）&quot;
+  └─diagnosed_by [method=5-Why, agent=DSH, S=8]──▶
+ROOT_CAUSE:  &quot;chunk=512 过短 + 缺全局语境补全&quot;
+  └─fixed_by [fix_strategy=config-tune, rollback=true, S=9]──▶
+ACTION:      &quot;切 Contextual Retrieval，chunk 升至 1024 + LLM 补全局句&quot;
+  ├─requires [blocking=true, role=dev]──▶ TOOL: &quot;Anthropic Contextual-Retriever 模板&quot;
+  └─validated_by [metric=recall@5, before=0.28, after=0.78, S=10]──▶
+EVIDENCE:    &quot;eval-20261030.json + wiki/L4-RAG/复测报告.md&quot;
+</code></pre>
+<p>这条链入图后，RAG 多跳查询（"上次 RAG 召回不准是怎么修好的？"）可以直接顺着 <code>diagnosed_by → fixed_by → validated_by</code> 一跳一跳取到答案，而不是在大段 markdown 里向量召回。</p>
+<hr />
+<h2 id="七迁移与落地建议">七、迁移与落地建议</h2>2
+<ol>
+<li><strong>不重建旧图</strong>：存量 <code>wiki-relations.csv</code> / <code>ontology-triples.csv</code> 不动，五段式边以<strong>新增表</strong> <code>ontology/procedural-edges.csv</code> 落地（列：source, predicate, target, strength, confidence, method, evidence_uri, wiki_ref）。</li>
+<li><strong>先打样后批量</strong>：先手工录入 5-10 条 golden 案例（如上节 RAG 案例），再交给 Codex 写的三元组抽取脚本在 wiki 全库跑批。</li>
+<li><strong>置信度门禁</strong>：抽取脚本默认写 <code>confidence=suspected</code>；只有 <code>evidence_uri</code> 可定位且 <code>before/after_value</code> 齐备时才升 <code>confirmed</code>——避免"我脑补了一条根因"污染图谱。</li>
+<li><strong>错误台账回流</strong>：<code>总网流程/错误台账机制.md</code> 里的高频已修复条目，按月批量转写为本五段式边，形成"踩坑→可复用程序性知识"的正循环。</li>
+</ol></div></body></html>

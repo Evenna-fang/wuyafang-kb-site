@@ -1,0 +1,570 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L0-数据可视化-3</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L0-数据可视化-3</span></div><div class="wrap"><h1 id="数据可视化体系三seaborn-七类核心能力">数据可视化体系（三）：Seaborn 七类核心能力</h1>
+<h2 id="why">WHY</h2>2
+<h3 id="1-为什么不能只记绘图函数">1. 为什么不能只记绘图函数</h3>3
+<p>Seaborn 建立在 Matplotlib 之上，主要解决统计图中的三个问题：把数据表的字段映射为视觉元素、按照类别自动分组计算统计量、为常见分析任务提供合理的视觉默认值。学习它不能只记住函数名，而应先明确观察单位、比较对象和统计口径。例如，订单金额的分布和每天订单均额的分布不是同一个问题；前者的每个观测值是一张订单，后者的每个观测值是一天。若在绘图前没有说明观察单位，漂亮的图也可能产生错误结论。</p>
+<p>如果跳过问题定义和统计口径直接绘图，常见后果包括：把已经聚合的数据再次聚合、用曲线高度比较业务规模、把置信区间误读成个体波动范围、把相关关系误写成因果关系，以及因坐标尺度和颜色范围不一致而做出错误的跨图比较。本篇的价值不只是让图更美观，而是让数据、统计表达与视觉编码保持一致，使读者能够复核图中结论。</p>
+<h3 id="2-为什么按七类能力组织学习路径">2. 为什么按七类能力组织学习路径</h3>3
+<p>本篇把功能组织为七组：分布、关系、分类、回归、热力图、矩阵图、风格控制。示例面向 Seaborn 0.13 系列、Pandas 与 Matplotlib，各段代码都自行导入依赖并生成本地数据，不需要联网下载演示数据。可先执行 <code>python -m pip install seaborn pandas matplotlib numpy</code> 准备环境；运行于服务器时，在导入 <code>pyplot</code> 之前设置 <code>matplotlib.use("Agg")</code>，并用 <code>savefig</code> 保存结果。</p>
+<p>这七组能力覆盖从单变量检查、组间比较到多变量筛查和统一交付的完整流程。学习时应先判断分析问题，再选择图形和接口，而不是先决定想画某种图，再反向拼凑数据。</p>
+<h2 id="what-whyt">WHAT / WHYT</h2>2
+<h3 id="1-核心概念从分析问题映射到统计图形">1. 核心概念：从分析问题映射到统计图形</h3>3
+<p>Seaborn 的核心不是七组彼此孤立的函数，而是「观察单位—统计口径—字段映射—视觉表达」这条链路。分布图描述取值形态，关系图描述变量共同变化，分类图比较组间差异，回归图探索平均趋势，热力图表达已经明确的二维矩阵，矩阵图筛查少量变量的两两关系，风格控制保证阅读一致性。它们不能相互随意替代，也不能替代数据清洗、实验设计和因果识别。</p>
+<pre><code class="language-mermaid">flowchart TD
+    A[明确问题与观察单位] --&gt; B{主要分析目标}
+    B --&gt;|单变量形态| C[histplot 与 kdeplot]
+    B --&gt;|变量关联| D[scatterplot 与 lineplot]
+    B --&gt;|类别差异| E[boxplot 与 violinplot]
+    B --&gt;|趋势拟合| F[regplot 与 lmplot]
+    B --&gt;|矩阵结构| G[heatmap 与 pairplot]
+    C --&gt; H[检查样本量与统计假设]
+    D --&gt; H
+    E --&gt; H
+    F --&gt; H
+    G --&gt; H
+</code></pre>
+<h3 id="2-理解两层接口">2. 理解两层接口</h3>3
+<p>轴级函数接收 <code>ax</code>，适合放进已有的 Matplotlib 子图，常见成员有 <code>histplot</code>、<code>scatterplot</code>、<code>boxplot</code>、<code>regplot</code> 和 <code>heatmap</code>。图级函数自行创建网格对象，适合按字段自动分面，主要有 <code>displot</code>、<code>relplot</code>、<code>catplot</code>、<code>lmplot</code> 和 <code>pairplot</code>。不要把图级函数当成普通的轴级函数塞进一个 <code>Axes</code>，否则很容易额外弹出画布，造成保存对象不匹配。</p>
+<pre><code class="language-mermaid">graph TD
+    A[Seaborn 数据映射] --&gt; B[轴级函数]
+    A --&gt; C[图级函数]
+    B --&gt; D[返回 Matplotlib Axes]
+    C --&gt; E[返回 FacetGrid 或 PairGrid]
+    D --&gt; F[fig 与 ax 管理布局]
+    E --&gt; G[row 和 col 管理分面]
+    F --&gt; H[保存指定 Figure]
+    G --&gt; H
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>接口层次</th>
+<th>适合任务</th>
+<th>布局控制</th>
+<th>保存方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>轴级接口</td>
+<td>仪表盘、自定义组合图</td>
+<td><code>plt.subplots</code> 与 <code>ax=</code></td>
+<td><code>fig.savefig(...)</code></td>
+</tr>
+<tr>
+<td>图级接口</td>
+<td>地区、渠道等多类别分面</td>
+<td><code>row</code>、<code>col</code>、<code>col_wrap</code></td>
+<td><code>grid.savefig(...)</code></td>
+</tr>
+<tr>
+<td>通用语义映射</td>
+<td>使用字段表示颜色和形状</td>
+<td><code>hue</code>、<code>style</code>、<code>size</code></td>
+<td>保留清楚的图例</td>
+</tr>
+</tbody>
+</table>
+<h3 id="3-适用边界何时用何时不用">3. 适用边界：何时用，何时不用</h3>3
+<p>需要快速进行统计探索、按字段分组或分面、在统一风格下组合常见图形时，适合使用 Seaborn；需要高度定制的非统计图形、复杂交互或精细控制每个绘图图元时，仍可能需要直接使用 Matplotlib 或专门工具。Seaborn 能完成部分默认汇总和区间估计，但不会自动判断订单过滤、汇率换算、抽样权重、重复测量等业务与统计前提。输入数据不满足图形所假设的数据类型、样本量或独立性时，应先修正数据和方法，而不是只调整外观。</p>
+<h2 id="how">HOW</h2>2
+<p>以下按「分布—关系—分类—回归—热力图—矩阵图—风格控制—组合交付—统计排错」的顺序操作。每段示例均可独立阅读；实际执行时先安装依赖，再根据分析目标选择对应段落，最后完成导出与统计口径核验。</p>
+<h3 id="1-分布图histplotkdeplot-与旧接口迁移">1. 分布图：histplot、kdeplot 与旧接口迁移</h3>3
+<h4 id="适用场景与统计含义">适用场景与统计含义</h4>
+<p>直方图适合回答金额是否右偏、等待时长是否集中、是否存在多个峰等问题。横轴表示数值区间，纵轴可以表示数量、概率、密度或占比。核密度曲线是对分布形态的平滑估计，并不是实际观察到的频数。对于非负金额，默认平滑可能延伸到零以下，因此应设置 <code>cut=0</code>，同时在解读时记住边界附近仍可能存在估计偏差。若数据只有少量不同取值，优先使用离散直方图或计数图，不要强行绘制连续密度曲线。</p>
+<p>旧代码常出现 <code>distplot</code>。该接口已经弃用，新文档不要继续依赖它：直方图叠加密度用 <code>histplot(kde=True)</code>，单独密度用 <code>kdeplot</code>，需要按类别分面则用 <code>displot</code>。迁移时还要核对纵轴含义，旧图与新图的归一化方式可能不同。</p>
+<pre><code class="language-python">import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(2026)
+data = pd.DataFrame({
+    &quot;amount&quot;: rng.lognormal(mean=4.0, sigma=0.55, size=360),
+    &quot;channel&quot;: np.repeat([&quot;Online&quot;, &quot;Store&quot;], 180),
+})
+fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+sns.histplot(data=data, x=&quot;amount&quot;, hue=&quot;channel&quot;, bins=24,
+             stat=&quot;density&quot;, common_norm=False, element=&quot;step&quot;,
+             alpha=0.25, ax=axes[0])
+sns.kdeplot(data=data, x=&quot;amount&quot;, hue=&quot;channel&quot;, cut=0,
+            bw_adjust=1.1, common_norm=False, ax=axes[1])
+axes[0].set_title(&quot;Amount density by channel&quot;)
+axes[1].set_title(&quot;Smoothed distribution&quot;)
+fig.tight_layout()
+plt.show()
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+<th>使用提醒</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bins</code> / <code>binwidth</code></td>
+<td>区间数量或宽度</td>
+<td>改变区间后检查结论是否稳定</td>
+</tr>
+<tr>
+<td><code>stat</code></td>
+<td>纵轴统计量</td>
+<td>数量不能直接用于样本规模差异很大的组间比较</td>
+</tr>
+<tr>
+<td><code>common_norm</code></td>
+<td>多组是否共享归一化</td>
+<td>比较组内形态时通常使用 <code>False</code></td>
+</tr>
+<tr>
+<td><code>bw_adjust</code></td>
+<td>密度平滑程度</td>
+<td>太小出现假峰，太大掩盖细节</td>
+</tr>
+<tr>
+<td><code>cut</code></td>
+<td>曲线超出样本边界的程度</td>
+<td>有自然下界时可设置为零</td>
+</tr>
+</tbody>
+</table>
+<p>解读分布时至少报告样本量、中位数和异常值比例。两个渠道的曲线高度接近，并不能证明它们的销售总额相同；归一化之后，图形表达的是形态，不再直接表达业务规模。</p>
+<h3 id="2-关系图relplotscatterplot-与-lineplot">2. 关系图：relplot、scatterplot 与 lineplot</h3>3
+<h4 id="适用场景与聚合规则">适用场景与聚合规则</h4>
+<p>散点图表达两个连续变量之间的关系，例如广告投入与销售额、客单价与复购率。<code>hue</code> 可以增加类别维度，<code>style</code> 可以通过形状提供冗余编码。折线图用于有顺序的横轴，尤其是时间序列，不适合把任意商品类别连接成一条暗示连续变化的线。</p>
+<p><code>lineplot</code> 在同一个横轴值对应多行数据时会进行统计汇总，默认估计均值并显示不确定性。若输入已经是业务聚合结果，应设置 <code>estimator=None</code>；若确实需要均值，但不展示区间，可用 <code>errorbar=None</code>。绘制时间序列前排序，可以避免数据乱序导致连线回折。</p>
+<pre><code class="language-python">import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(15)
+data = pd.DataFrame({
+    &quot;spend&quot;: rng.uniform(10, 100, 120),
+    &quot;channel&quot;: np.tile([&quot;Search&quot;, &quot;Social&quot;], 60),
+})
+data[&quot;revenue&quot;] = 5 * data[&quot;spend&quot;] + rng.normal(0, 45, len(data))
+fig, axis = plt.subplots(figsize=(7, 4))
+sns.scatterplot(data=data, x=&quot;spend&quot;, y=&quot;revenue&quot;, hue=&quot;channel&quot;,
+                style=&quot;channel&quot;, alpha=0.7, s=55, ax=axis)
+axis.set(xlabel=&quot;Advertising spend&quot;, ylabel=&quot;Revenue&quot;)
+fig.tight_layout()
+plt.show()
+
+daily = pd.DataFrame({
+    &quot;day&quot;: np.tile(pd.date_range(&quot;2026-01-01&quot;, periods=20), 2),
+    &quot;channel&quot;: np.repeat([&quot;Search&quot;, &quot;Social&quot;], 20),
+    &quot;revenue&quot;: rng.uniform(100, 220, 40),
+})
+grid = sns.relplot(data=daily.sort_values(&quot;day&quot;), x=&quot;day&quot;, y=&quot;revenue&quot;,
+                   col=&quot;channel&quot;, kind=&quot;line&quot;, estimator=None,
+                   height=3.5, aspect=1.25)
+grid.set_axis_labels(&quot;Day&quot;, &quot;Daily revenue&quot;)
+grid.figure.autofmt_xdate()
+plt.show()
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>含义</th>
+<th>推荐做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hue</code></td>
+<td>颜色所映射的字段</td>
+<td>同一字段在所有图中保持相同颜色</td>
+</tr>
+<tr>
+<td><code>style</code></td>
+<td>点形或线型映射</td>
+<td>便于黑白打印与色觉差异读者识别</td>
+</tr>
+<tr>
+<td><code>size</code></td>
+<td>点面积或线宽映射</td>
+<td>控制范围并保留尺寸图例</td>
+</tr>
+<tr>
+<td><code>col</code></td>
+<td>图级分面字段</td>
+<td>避免一个图例容纳过多类别</td>
+</tr>
+<tr>
+<td><code>estimator</code></td>
+<td>同一横坐标的聚合方式</td>
+<td>已聚合数据使用 <code>None</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="3-分类图catplot-与五种常用轴级图">3. 分类图：catplot 与五种常用轴级图</h3>3
+<h4 id="根据问题选择表达方式">根据问题选择表达方式</h4>
+<p>箱线图适合紧凑比较中位数、四分位距和离群候选点；小提琴图适合比较分布形态，但平滑曲线依赖样本量；蜂群图展示每一个观测值，适合中小样本；柱状图表达均值等估计量，必须说明汇总方式。<code>catplot</code> 是图级入口，通过 <code>kind</code> 切换统计表达，并按地区或产品自动分面。</p>
+<p>箱线图中超出须线的点不等于错误数据，也不必然是需要删除的异常。常见须线规则是四分位距的若干倍，该规则只是探索线索。小提琴图在每组只有几个点时会制造过强的分布暗示；蜂群图面对大量样本可能无法排布全部点，此时可以改用半透明散点、抽样展示或分位数摘要。</p>
+<pre><code class="language-python">import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(33)
+data = pd.DataFrame({
+    &quot;region&quot;: np.repeat([&quot;East&quot;, &quot;West&quot;, &quot;North&quot;], 45),
+    &quot;amount&quot;: np.concatenate([rng.normal(95, 15, 45),
+                              rng.normal(110, 24, 45),
+                              rng.normal(102, 18, 45)]),
+})
+fig, axes = plt.subplots(2, 2, figsize=(10, 7))
+sns.boxplot(data=data, x=&quot;region&quot;, y=&quot;amount&quot;, ax=axes[0, 0])
+sns.violinplot(data=data, x=&quot;region&quot;, y=&quot;amount&quot;, cut=0,
+               inner=&quot;quart&quot;, ax=axes[0, 1])
+sns.swarmplot(data=data, x=&quot;region&quot;, y=&quot;amount&quot;, size=3,
+              ax=axes[1, 0])
+sns.barplot(data=data, x=&quot;region&quot;, y=&quot;amount&quot;, estimator=&quot;mean&quot;,
+            errorbar=(&quot;ci&quot;, 95), n_boot=500, seed=33, ax=axes[1, 1])
+fig.tight_layout()
+plt.show()
+
+grid = sns.catplot(data=data, x=&quot;region&quot;, y=&quot;amount&quot;, kind=&quot;box&quot;,
+                   order=[&quot;East&quot;, &quot;West&quot;, &quot;North&quot;], height=4, aspect=1.5)
+grid.set_axis_labels(&quot;Region&quot;, &quot;Order amount&quot;)
+plt.show()
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>函数或参数</th>
+<th>表达对象</th>
+<th>重点注意</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>boxplot</code>、<code>whis</code></td>
+<td>位置与离散程度</td>
+<td>须线不是最小值和最大值的固定同义词</td>
+</tr>
+<tr>
+<td><code>violinplot</code>、<code>inner</code></td>
+<td>密度及内部摘要</td>
+<td>观察密度形态同时核对样本量</td>
+</tr>
+<tr>
+<td><code>swarmplot</code>、<code>size</code></td>
+<td>逐个观测值</td>
+<td>大样本容易拥挤</td>
+</tr>
+<tr>
+<td><code>barplot</code>、<code>errorbar</code></td>
+<td>估计值及区间</td>
+<td>区间不是原始值范围</td>
+</tr>
+<tr>
+<td><code>order</code> / <code>hue_order</code></td>
+<td>类别显示顺序</td>
+<td>使用业务顺序，避免自动字母序</td>
+</tr>
+</tbody>
+</table>
+<h3 id="4-回归图regplot-与-lmplot">4. 回归图：regplot 与 lmplot</h3>3
+<p>回归图适合探索两个变量的平均关系，例如折扣和销量是否一起变化。<code>regplot</code> 放入指定轴，<code>lmplot</code> 则按照分类字段分面或分色。曲线周围的区间通常针对均值关系，不应当解释为下一次观测值一定落入的预测范围。横轴之外的外推尤其危险，因为图中没有提供那部分数据的证据。</p>
+<pre><code class="language-python">import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(70)
+data = pd.DataFrame({&quot;discount&quot;: rng.uniform(0, 0.3, 140)})
+data[&quot;units&quot;] = 25 + 100 * data[&quot;discount&quot;] + rng.normal(0, 7, len(data))
+data[&quot;segment&quot;] = np.tile([&quot;A&quot;, &quot;B&quot;], 70)
+fig, axis = plt.subplots(figsize=(6, 4))
+sns.regplot(data=data, x=&quot;discount&quot;, y=&quot;units&quot;, ci=95, n_boot=500,
+            seed=70, scatter_kws={&quot;alpha&quot;: 0.5},
+            line_kws={&quot;color&quot;: &quot;#D55E00&quot;}, ax=axis)
+fig.tight_layout()
+plt.show()
+grid = sns.lmplot(data=data, x=&quot;discount&quot;, y=&quot;units&quot;, col=&quot;segment&quot;,
+                  ci=None, height=3.5, aspect=1.1)
+plt.show()
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+<th>风险提醒</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ci</code></td>
+<td>拟合区间置信水平</td>
+<td><code>None</code> 关闭区间，可减少计算开销</td>
+</tr>
+<tr>
+<td><code>order</code></td>
+<td>多项式阶数</td>
+<td>高阶曲线可能过拟合</td>
+</tr>
+<tr>
+<td><code>logistic</code></td>
+<td>逻辑回归拟合</td>
+<td>需要相应可选依赖和合适的二元响应</td>
+</tr>
+<tr>
+<td><code>scatter_kws</code></td>
+<td>散点绘制配置</td>
+<td>用透明度缓解重叠</td>
+</tr>
+<tr>
+<td><code>line_kws</code></td>
+<td>拟合线配置</td>
+<td>与观测点建立视觉区分</td>
+</tr>
+</tbody>
+</table>
+<p>业务分析不能把相关性直接写成因果关系。促销期间通常同时改变陈列、库存和投放，折扣与销量的相关性可能受到这些因素影响。需要因果结论时，应补充实验设计或合适的统计识别方法，而不是依靠一条拟合线。</p>
+<h3 id="5-热力图heatmap">5. 热力图：heatmap</h3>3
+<p>热力图适合比较二维网格中的大小，例如月份与地区的销售额、模型混淆矩阵、变量相关系数。绘图前必须先建立明确的矩阵，区分零和缺失：零代表已观测且数量为零，缺失表示没有足够信息。把缺失全部填零会制造看似精确的低值区域。</p>
+<pre><code class="language-python">import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(12)
+matrix = pd.DataFrame(rng.integers(80, 250, size=(4, 6)),
+                      index=[&quot;East&quot;, &quot;West&quot;, &quot;North&quot;, &quot;South&quot;],
+                      columns=[&quot;Jan&quot;, &quot;Feb&quot;, &quot;Mar&quot;, &quot;Apr&quot;, &quot;May&quot;, &quot;Jun&quot;])
+fig, axis = plt.subplots(figsize=(9, 4))
+sns.heatmap(matrix, annot=True, fmt=&quot;d&quot;, cmap=&quot;YlGnBu&quot;,
+            linewidths=0.5, cbar_kws={&quot;label&quot;: &quot;Revenue (thousand)&quot;},
+            ax=axis)
+axis.set(xlabel=&quot;Month&quot;, ylabel=&quot;Region&quot;, title=&quot;Regional revenue&quot;)
+fig.tight_layout()
+plt.show()
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>用途</th>
+<th>选择建议</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>annot</code>、<code>fmt</code></td>
+<td>单元格文字与格式</td>
+<td>大矩阵关闭注值，避免文字覆盖</td>
+</tr>
+<tr>
+<td><code>cmap</code></td>
+<td>色带</td>
+<td>非负规模选顺序色带，有正负偏差选发散色带</td>
+</tr>
+<tr>
+<td><code>vmin</code>、<code>vmax</code></td>
+<td>颜色范围</td>
+<td>多张对比图固定相同范围</td>
+</tr>
+<tr>
+<td><code>center</code></td>
+<td>发散中心</td>
+<td>相关系数或偏差图可设置为零</td>
+</tr>
+<tr>
+<td><code>mask</code></td>
+<td>隐藏指定单元格</td>
+<td>相关矩阵可只显示一个三角形</td>
+</tr>
+</tbody>
+</table>
+<h3 id="6-矩阵图pairplot">6. 矩阵图：pairplot</h3>3
+<p>矩阵图适合探索少量数值变量的两两关系，对角线上显示单变量分布，非对角线上显示散点关系。它适合分析前期筛查，例如快速发现客单价与利润相关、某个字段几乎为常量等线索。变量数量增加会导致子图数量近似平方增长，因此不能把几十个字段全部塞进去。</p>
+<pre><code class="language-python">import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(8)
+data = pd.DataFrame({
+    &quot;price&quot;: rng.uniform(20, 100, 100),
+    &quot;units&quot;: rng.integers(1, 10, 100),
+    &quot;segment&quot;: np.tile([&quot;Retail&quot;, &quot;Business&quot;], 50),
+})
+data[&quot;profit&quot;] = data[&quot;price&quot;] * data[&quot;units&quot;] * 0.3 + rng.normal(0, 10, 100)
+grid = sns.pairplot(data, vars=[&quot;price&quot;, &quot;units&quot;, &quot;profit&quot;],
+                    hue=&quot;segment&quot;, diag_kind=&quot;hist&quot;, corner=True,
+                    plot_kws={&quot;alpha&quot;: 0.6, &quot;s&quot;: 25})
+grid.figure.suptitle(&quot;Exploratory variable relationships&quot;, y=1.02)
+plt.show()
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>含义</th>
+<th>使用建议</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>vars</code></td>
+<td>参与比较的数值字段</td>
+<td>优先选有业务意义的三到五个字段</td>
+</tr>
+<tr>
+<td><code>diag_kind</code></td>
+<td>对角线分布形式</td>
+<td>小样本优先直方图</td>
+</tr>
+<tr>
+<td><code>corner</code></td>
+<td>仅显示下三角</td>
+<td>减少对称重复图形</td>
+</tr>
+<tr>
+<td><code>plot_kws</code></td>
+<td>非对角图配置</td>
+<td>调小散点并增加透明度</td>
+</tr>
+</tbody>
+</table>
+<p>筛查得到的线索需要回到原始数据核验。明显的斜线可能是两个字段共享计算公式，聚类可能来自不同计量单位，极端点可能是录入错误。矩阵图提供的是排查入口，不是自动发现业务规律的证明。</p>
+<h3 id="7-风格控制set_style-与-set_context">7. 风格控制：set_style 与 set_context</h3>3
+<p><code>set_style</code> 控制背景、网格与边框，<code>set_context</code> 控制字体、线宽和标记的整体尺度。背景样式可以按图形任务选择：柱状图通常只需要帮助读数的横向网格，散点图则应避免网格盖过点。展示环境决定字号，笔记本屏幕、会议投影和论文印刷的需求并不相同。</p>
+<pre><code class="language-python">import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+data = pd.DataFrame({&quot;quarter&quot;: [&quot;Q1&quot;, &quot;Q2&quot;, &quot;Q3&quot;, &quot;Q4&quot;],
+                     &quot;revenue&quot;: [120, 155, 149, 190]})
+with sns.axes_style(&quot;whitegrid&quot;), sns.plotting_context(&quot;notebook&quot;, font_scale=1.15):
+    fig, axis = plt.subplots(figsize=(7, 4))
+    sns.barplot(data=data, x=&quot;quarter&quot;, y=&quot;revenue&quot;, color=&quot;#0072B2&quot;,
+                errorbar=None, ax=axis)
+    axis.set(xlabel=&quot;Quarter&quot;, ylabel=&quot;Revenue (thousand)&quot;)
+    axis.grid(axis=&quot;x&quot;, visible=False)
+    sns.despine(ax=axis)
+    fig.tight_layout()
+    plt.show()
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>接口</th>
+<th>常用值</th>
+<th>应用说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sns.set_style</code></td>
+<td><code>whitegrid</code>、<code>white</code>、<code>ticks</code></td>
+<td>改变全局背景与网格</td>
+</tr>
+<tr>
+<td><code>sns.set_context</code></td>
+<td><code>paper</code>、<code>notebook</code>、<code>talk</code>、<code>poster</code></td>
+<td>适配阅读距离</td>
+</tr>
+<tr>
+<td><code>sns.set_theme</code></td>
+<td>组合风格、上下文与调色板</td>
+<td>项目入口统一设置</td>
+</tr>
+<tr>
+<td><code>sns.color_palette</code></td>
+<td><code>colorblind</code> 等</td>
+<td>为类别分配稳定颜色</td>
+</tr>
+<tr>
+<td>上下文管理器</td>
+<td><code>axes_style</code>、<code>plotting_context</code></td>
+<td>临时修改，退出后恢复</td>
+</tr>
+</tbody>
+</table>
+<p>中文显示需要系统存在可用中文字体，设置字体名称不会自动安装字体。项目应记录字体来源并在目标环境核验；不能仅凭本机显示正常就认为服务器导出正常。颜色也不能作为唯一通道，重要分类可同时使用线型、点形或直接标签。</p>
+<h4 id="通用绘图工作流">通用绘图工作流</h4>
+<pre><code class="language-mermaid">flowchart LR
+    A[读取原始表] --&gt; B[检查类型缺失重复]
+    B --&gt; C[声明观察单位和聚合口径]
+    C --&gt; D[选择轴级或图级接口]
+    D --&gt; E[映射字段与统计量]
+    E --&gt; F[添加单位样本量与图例]
+    F --&gt; G[核验数据与视觉是否一致]
+    G --&gt; H[保存并关闭画布]
+</code></pre>
+<h3 id="8-组合使用与交付检查">8. 组合使用与交付检查</h3>3
+<p>同一份报告可以先用直方图检查金额分布，再用箱线图比较渠道，再用折线图检查时间走势。不要让每个图都重新定义渠道颜色，也不要在一个图中使用原始订单金额，在另一个图中使用未注明的日均值。跨图一致性比单张图的装饰更重要，读者应该能够沿着同一业务口径阅读整套图。</p>
+<p>数据清洗发生在绘图前，统计汇总也应尽量显式完成。虽然 Seaborn 能自动按组聚合，但业务指标经常需要先过滤取消订单、排除税额、按不同汇率换算，单个 <code>estimator</code> 无法完整描述这些规则。建议把业务聚合写成清晰的数据处理步骤，绘图函数只负责表达结果。</p>
+<p>保存时指定实际创建的对象：轴级图使用 <code>fig.savefig</code>，分面图使用 <code>grid.savefig</code>。导出后应重新打开文件核验标题、图例、中文、透明背景和边缘裁切。对于长期运行的批处理任务，保存后执行 <code>plt.close(fig)</code> 或关闭网格对应的 <code>figure</code>，避免积累画布而消耗内存。</p>
+<h3 id="9-统计细节与常见误读">9. 统计细节与常见误读</h3>3
+<h4 id="分组比较前先检查样本结构">分组比较前先检查样本结构</h4>
+<p>分组图的可比性取决于样本构成。假设线上渠道主要销售高价产品，门店渠道主要销售低价产品，那么渠道之间的客单价差异可能来自产品组合，不能简单归因于渠道能力。可以先按产品类别分面，或在同一产品类别内部比较；若某些分面只有极少观测，应在图注标出样本量，避免把偶然波动当成稳定规律。多个子图使用共同纵轴能够帮助比较绝对水平，独立纵轴适合观察各组形态，但必须明确提醒读者尺度发生变化。</p>
+<p>绘制分布图时，还需要检查数据是否经过截断。例如，只保留已支付订单会排除未支付订单，只保留在职员工会产生生存者偏差。图形只能反映当前样本，不能自动代表更大的总体。对于抽样调查，应确认抽样权重和设计，不能把复杂抽样数据直接当作普通独立样本交给默认统计函数。</p>
+<h4 id="区间估计不等于波动范围">区间估计不等于波动范围</h4>
+<p>均值周围的置信区间表达均值估计的不确定性，原始样本的标准差表达个体观测的离散程度，两者回答不同的问题。样本量增加时，即使个体差异没有变小，均值置信区间也可能明显缩窄。如果想让读者看到订单金额的真实差异，应补充分布图或箱线图，而不是只展示一根带很窄区间的均值柱子。</p>
+<p>自助法通常通过重复抽样估计不确定性，但简单重采样默认观测之间可以合理交换。重复顾客产生多张订单、同一门店连续多天的销售、同一受试者多次测量，都可能违反简单独立抽样的解释前提。这类数据需要按顾客、门店或受试者等单位处理，必要时使用专门的统计模型，再把计算结果交给绘图层显示。</p>
+<h4 id="排错顺序与性能处理">排错顺序与性能处理</h4>
+<p>遇到图形异常，先打印字段类型、缺失数量和分组规模，再检查绘图参数。日期没有转换可能被当作普通类别，数字中夹杂字符串可能导致坐标轴顺序异常，空分组可能让某些类别从图中消失。应先把数据契约检查清楚，再调整外观。对于可预期但没有数据的类别，可以显式指定顺序，同时在图注说明缺失，而不能随意造零值补齐。</p>
+<p>绘制几十万散点时，问题既是性能，也是视觉重叠。可以采用稳定随机种子抽样，并明确写出抽样比例；也可以先按空间区间汇总，再使用二维直方图或六边形分箱表达密度。不要只保留最极端的点却把图标题写成全体分布。矩阵图则优先减少变量数量，因为每增加一个变量都会新增多张关系子图，图面和计算成本都会增加。</p>
+<p>团队维护教程时，建议记录版本并把弃用警告当作迁移信号。旧版常见的 <code>ci</code> 参数在部分统计图中已经由 <code>errorbar</code> 替代，但回归图仍有自己的 <code>ci</code> 接口，不能机械地全局替换。查阅函数所属层次和对应版本的官方说明，比复制未经核验的参数组合更可靠。</p>
+<h3 id="10-小结">10. 小结</h3>3
+<p>使用 Seaborn 的核心顺序是：先定义问题，再确定观察单位，随后选择统计表达，最后处理风格和导出。分布图回答数据是什么形态，关系图回答变量怎样共同变化，分类图回答组间差异，回归图提供趋势探索，热力图表达二维矩阵，矩阵图帮助筛查多变量关系，风格控制保证整套图一致可读。每一种图都依赖数据类型、样本量和统计假设，图形能够帮助判断，但不能替代业务口径和证据核验。</p>
+<p>参考官方文档：<a href="https://seaborn.pydata.org/tutorial.html">Seaborn 教程</a>、<a href="https://seaborn.pydata.org/api.html">API 参考</a>。维护日期：2026-10-29；升级依赖后重点复核弃用接口、误差区间参数及分类图默认行为。</p>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li><strong>[业1] 业内官方文档</strong>：<a href="https://seaborn.pydata.org/">Seaborn 官方文档</a>、<a href="https://seaborn.pydata.org/tutorial.html">Seaborn 教程</a>、<a href="https://seaborn.pydata.org/api.html">Seaborn API 参考</a>：用于七类统计图、轴级与图级接口、参数及弃用迁移的权威入口。</li>
+<li><strong>[业2] 业内官方文档</strong>：<a href="https://matplotlib.org/stable/">Matplotlib 官方文档</a>：用于 <code>Figure</code>、<code>Axes</code>、子图布局、非交互后端、保存与关闭画布等底层对象管理。</li>
+<li><strong>[业3] 业内官方文档</strong>：<a href="https://pandas.pydata.org/docs/">Pandas 官方文档</a>：用于示例中的 <code>DataFrame</code>、日期生成、排序和显式业务聚合等数据处理步骤。</li>
+<li><strong>[业4] 业内官方文档</strong>：<a href="https://numpy.org/doc/stable/">NumPy 官方文档</a>：用于示例中的随机数生成器、数值数组与本地合成数据构造。</li>
+</ul></div></body></html>

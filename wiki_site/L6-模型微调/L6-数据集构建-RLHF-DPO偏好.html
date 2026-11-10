@@ -1,0 +1,326 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L6-数据集构建-RLHF-DPO偏好</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L6-数据集构建-RLHF-DPO偏好</span></div><div class="wrap"><h1 id="dpo-偏好对齐数据训练监控与验收">DPO 偏好对齐：数据、训练、监控与验收</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+<p>前置：<a href="L6-%E6%95%B0%E6%8D%AE%E9%9B%86%E6%9E%84%E5%BB%BA-%E6%8C%87%E4%BB%A4%E7%9B%91%E7%9D%A3SFT.html">SFT 数据构建与训练</a>；原理衔接：<a href="L6-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83-2026.html">训练与微调总览</a>。</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>SFT 教会模型“怎样给出一个合格答案”，但同一问题常有多个都合格、质量却不同的回答</li><li>偏好对齐利用“同一上下文下 A 比 B 更符合目标”的比较信号，调整模型对回答风格、帮助性、安全边界、事实可靠性等维度的相对倾向</li><li>经典 RLHF 通常包含奖励模型训练和基于奖励的强化学习</li></ul></div>2
+<p>SFT 教会模型“怎样给出一个合格答案”，但同一问题常有多个都合格、质量却不同的回答。偏好对齐利用“同一上下文下 A 比 B 更符合目标”的比较信号，调整模型对回答风格、帮助性、安全边界、事实可靠性等维度的相对倾向。</p>
+<p>经典 RLHF 通常包含奖励模型训练和基于奖励的强化学习。DPO（Direct Preference Optimization）在特定假设下把偏好优化写成直接监督式目标，省去显式奖励模型与 PPO 在线采样管线，因此工程路径更短；它并没有取消偏好数据、参考策略、分布偏移、裁判偏差和独立评估。</p>
+<p>适合先做 DPO 的情形：</p>
+<ul>
+<li>已有可正常完成任务的 SFT 模型；</li>
+<li>主要错误表现为“两个回答中哪个更好”，而不是模型完全不会任务；</li>
+<li>能构造并审核同 prompt 的 chosen/rejected；</li>
+<li>有未参与构造数据的保留集，能比较 DPO 前后胜率、质量和副作用。</li>
+</ul>
+<p>若 chosen 本身错误、SFT 基座不会基本格式、或评估只看 DPO loss，继续训练往往只会放大错误。偏好维度也应有优先级：事实与安全不能被“更礼貌”“更长”抵消。</p>
+<h2 id="what">WHAT</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. DPO 在优化什么</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>对同一输入 \(x\)，偏好对为 \((y_w,y_l)\)，分别表示 chosen 与 rejected</li><li>它不是“越小越保守”，也不是跨模型可照搬的最优常数</li><li>变体改变优化目标，不能只替换名字后沿用原结论</li></ul></div>3
+<p>对同一输入 (x)，偏好对为 ((y_w,y_l))，分别表示 chosen 与 rejected。当前策略为 (\pi_\theta)，参考策略为 (\pi_{ref})。DPO 的典型 sigmoid 损失可写为：</p>
+<p>[<br />
+\mathcal{L}<em>{DPO}=-\mathbb{E}\left[\log\sigma\left(\beta\left(<br />
+\log\frac{\pi</em>\theta(y_w|x)}{\pi_{ref}(y_w|x)}<br />
+-\log\frac{\pi_\theta(y_l|x)}{\pi_{ref}(y_l|x)}<br />
+\right)\right)\right]<br />
+]</p>
+<p>直观上，它希望 chosen 相对 reference 的对数概率变化优于 rejected。<code>beta</code> 控制偏好信号与偏离 reference 的尺度；TRL 文档默认值为 <code>0.1</code>，且越大越限制偏离 reference。它不是“越小越保守”，也不是跨模型可照搬的最优常数。</p>
+<p>TRL 当前还支持 <code>ipo</code>、<code>robust</code>、<code>sigmoid_norm</code> 等损失变体，默认 <code>sigmoid</code>。变体改变优化目标，不能只替换名字后沿用原结论。</p>
+<h3 id="2-数据格式与语义边界">2. 数据格式与语义边界</h3>3
+<p>TRL 的 conversational 显式偏好格式：</p>
+<pre><code class="language-json">{&quot;prompt&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;用一句话解释过拟合。&quot;}],&quot;chosen&quot;:[{&quot;role&quot;:&quot;assistant&quot;,&quot;content&quot;:&quot;过拟合是模型记住训练集中的噪声，导致在新数据上表现变差。&quot;}],&quot;rejected&quot;:[{&quot;role&quot;:&quot;assistant&quot;,&quot;content&quot;:&quot;过拟合就是模型越复杂越好，所以训练集越准就越好。&quot;}]}
+</code></pre>
+<p>每个样本必须具备：</p>
+<ul>
+<li>完全相同的 prompt 前缀；</li>
+<li>非空且语义不同的 chosen/rejected；</li>
+<li>明确、可复核的偏好方向；</li>
+<li>与部署一致的 system、历史和 chat template；</li>
+<li>来源、裁判/标注、审核和版本元数据。</li>
+</ul>
+<p>多轮样本把公共历史放在 prompt，只让最后 assistant 回复分支。不要把 chosen 和 rejected 各自不同的历史拼成一对，否则模型会混淆上下文差异与回答质量差异。</p>
+<p>“偏好对差距很大就没有信息”不是普适结论。容易 pair 可能很快饱和，困难 pair 更可能提供持续学习信号，但也可能带来噪声；应通过 pair 来源、基线 margin、标注一致性和消融实验判断，而不是按主观分差机械删除。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 数据来源与裁判偏差</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 人工比较：适合高风险、安全、复杂业务和裁判校准</li><li>2. 当前模型多路采样 + 排序：rejected 更接近当前策略可能产生的错误</li><li>3. 强模型/规则提供 chosen：适合有可靠教师或可程序验证的任务</li></ul></div>3
+<p>常见生产方式：</p>
+<ol>
+<li><strong>人工比较</strong>：适合高风险、安全、复杂业务和裁判校准。</li>
+<li><strong>当前模型多路采样 + 排序</strong>：rejected 更接近当前策略可能产生的错误。</li>
+<li><strong>强模型/规则提供 chosen</strong>：适合有可靠教师或可程序验证的任务。</li>
+<li><strong>best-of-n/拒绝采样</strong>：代码用测试、数学用答案验证、结构化任务用 schema 和字段规则筛选。</li>
+</ol>
+<p>使用 LLM-as-judge 时至少处理：</p>
+<ul>
+<li><strong>位置偏差</strong>：随机交换 A/B，必要时双向复核；</li>
+<li><strong>长度偏差</strong>：rubric 明确“长不等于好”，并按长度分桶抽检；</li>
+<li><strong>自我/家族偏好</strong>：不要只依赖与候选生成器相同的裁判；</li>
+<li><strong>不可判定样本</strong>：允许弃标或送人工，不强迫所有 pair 都有方向；</li>
+<li><strong>提示注入</strong>：候选回答是不可信内容，裁判不能执行其中指令。</li>
+</ul>
+<p>一致性比例、Cohen's κ 或 Krippendorff's α 可用于审核流程，但阈值应依据任务风险和标注设计预先约定，不能套旧稿的单一通用分数线。</p>
+<h3 id="4-必须监控的训练信号">4. 必须监控的训练信号</h3>3
+<p>DPO loss 下降并不足以证明模型更好。TRL 文档列出的关键指标包括：</p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>含义</th>
+<th>异常提示</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>logps/chosen</code></td>
+<td>当前策略对chosen的log概率</td>
+<td>持续大幅下降可能说明偏好改善以压低chosen为代价</td>
+</tr>
+<tr>
+<td><code>logps/rejected</code></td>
+<td>当前策略对rejected的log概率</td>
+<td>只降rejected不一定带来更好生成</td>
+</tr>
+<tr>
+<td><code>rewards/margins</code></td>
+<td>chosen与rejected隐式奖励差</td>
+<td>应结合保留集胜率，而非单独追大</td>
+</tr>
+<tr>
+<td><code>rewards/accuracies</code></td>
+<td>训练对中chosen奖励高于rejected的比例</td>
+<td>高值也可能来自容易pair、记忆或过拟合</td>
+</tr>
+</tbody>
+</table>
+<p>还要记录输出长度、拒答率、格式正确率、事实/任务指标和通用回归。margin 增大但业务评估下降时，应停止，不得把 margin 当最终目标。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5. DPO 与 RM/PPO 的边界</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>两者都不是 SFT 的默认前置或必然后继</li><li>根据目标与证据选择，不以“流程更先进”作为理由</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>DPO</th>
+<th>显式RM + PPO</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>主要输入</td>
+<td>离线偏好对</td>
+<td>偏好训练RM，策略在线采样优化</td>
+</tr>
+<tr>
+<td>额外模型</td>
+<td>reference policy；不显式训练RM</td>
+<td>奖励模型、reference及RL所需组件</td>
+</tr>
+<tr>
+<td>工程链路</td>
+<td>较短</td>
+<td>较复杂，在线系统与稳定性要求高</td>
+</tr>
+<tr>
+<td>数据更新</td>
+<td>可离线迭代补充</td>
+<td>可在线探索，也需防奖励攻击与分布偏移</td>
+</tr>
+<tr>
+<td>适用判断</td>
+<td>已有明确偏好对，先建立对齐基线</td>
+<td>确有在线优化需求且具备评估与运维能力</td>
+</tr>
+</tbody>
+</table>
+<p>两者都不是 SFT 的默认前置或必然后继。根据目标与证据选择，不以“流程更先进”作为理由。</p>
+<h2 id="how">HOW</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 构造可审计偏好数据</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 从 SFT 保留集之外收集真实失败类型和代表性 prompt</li><li>2. 用相同上下文生成候选，记录生成模型、revision、温度与系统提示</li><li>3. 按 rubric 比较；正确性/安全性优先，格式与风格不得掩盖事实错误</li></ul></div>3
+<p>建议源数据 JSONL 保留元数据，训练前再投影成 TRL 字段：</p>
+<pre><code class="language-json">{&quot;id&quot;:&quot;pref-0001&quot;,&quot;prompt&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;把这段故障描述改写得更清楚。&quot;}],&quot;chosen&quot;:[{&quot;role&quot;:&quot;assistant&quot;,&quot;content&quot;:&quot;服务在写入磁盘时失败，原因是可用空间不足。&quot;}],&quot;rejected&quot;:[{&quot;role&quot;:&quot;assistant&quot;,&quot;content&quot;:&quot;服务出问题了，可能是很多原因，请全面检查。&quot;}],&quot;meta&quot;:{&quot;rubric&quot;:&quot;clarity-v2&quot;,&quot;judge&quot;:&quot;human-reviewed&quot;,&quot;group_id&quot;:&quot;incident-42&quot;}}
+</code></pre>
+<p>操作顺序：</p>
+<ol>
+<li>从 SFT 保留集之外收集真实失败类型和代表性 prompt。</li>
+<li>用相同上下文生成候选，记录生成模型、revision、温度与系统提示。</li>
+<li>按 rubric 比较；正确性/安全性优先，格式与风格不得掩盖事实错误。</li>
+<li>删除空答案、相同答案、方向不明或无法审核的 pair；保留弃标原因。</li>
+<li>按近重复簇或业务实体分组切分 train/calibration/test；test 不参与 prompt 设计、裁判调参和模型选择。</li>
+<li>分别统计 chosen/rejected 的长度、来源、裁判、主题与胜率，防止模型只学到“选长答案”或“选某模型风格”。</li>
+<li>冻结数据快照与 manifest，保存裁判提示和审核版本。</li>
+</ol>
+<p><strong>结构校验（示例，未实跑）</strong>：</p>
+<pre><code class="language-python">import json
+
+for line_no, line in enumerate(open(&quot;dpo-train.jsonl&quot;, encoding=&quot;utf-8&quot;), 1):
+    row = json.loads(line)
+    assert set((&quot;prompt&quot;, &quot;chosen&quot;, &quot;rejected&quot;)) &lt;= row.keys()
+    assert row[&quot;prompt&quot;] and row[&quot;chosen&quot;] and row[&quot;rejected&quot;]
+    assert row[&quot;chosen&quot;] != row[&quot;rejected&quot;], (line_no, &quot;相同回答&quot;)
+    assert row[&quot;chosen&quot;][-1][&quot;role&quot;] == &quot;assistant&quot;
+    assert row[&quot;rejected&quot;][-1][&quot;role&quot;] == &quot;assistant&quot;
+    assert row[&quot;meta&quot;][&quot;judge&quot;] == &quot;human-reviewed&quot;
+</code></pre>
+<p>脚本只检查结构，不能证明 chosen 更好。应对抽样 pair 做盲审，并检查同一 prompt 是否在 train/test 两侧出现。</p>
+<h3 id="2-固定-sft-起点并跑基线">2. 固定 SFT 起点并跑基线</h3>3
+<ol>
+<li>固定 SFT 模型、tokenizer/template、数据快照和依赖。</li>
+<li>在独立 test 上运行 SFT 模型，保存逐样本输出，不只保存平均分。</li>
+<li>记录长度、拒答、格式和关键错误类型，作为 DPO 副作用基线。</li>
+<li>先跑短训练验证保存、日志和评估，再决定训练规模。</li>
+</ol>
+<p>如果 chosen 与 SFT 输出来自不同聊天模板，先统一模板，否则 DPO 可能学到模板差异。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. TRL 最小训练主路径</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>以下采用官方当前显式偏好数据格式</li><li>代码为示例，未实跑，执行前锁定 TRL/Transformers/PEFT 版本并保存解析配置</li><li>trainer.save_model("runs/dpo-smoke/final")</li></ul></div>3
+<p>以下采用官方当前显式偏好数据格式。<code>ref_model=None</code> 时使用训练前初始 policy 作为参考；加载已有 adapter 时还应核对 PEFT 参考模型处理。代码为<strong>示例，未实跑</strong>，执行前锁定 TRL/Transformers/PEFT 版本并保存解析配置。</p>
+<pre><code class="language-python">from datasets import load_dataset
+from trl import DPOConfig, DPOTrainer
+
+SFT_MODEL = &quot;runs/sft/final&quot;
+train = load_dataset(&quot;json&quot;, data_files=&quot;dpo-train.jsonl&quot;, split=&quot;train&quot;)
+eval_pairs = load_dataset(&quot;json&quot;, data_files=&quot;dpo-calibration.jsonl&quot;, split=&quot;train&quot;)
+
+args = DPOConfig(
+    output_dir=&quot;runs/dpo-smoke&quot;,
+    beta=0.1,
+    report_to=[],
+)
+trainer = DPOTrainer(
+    model=SFT_MODEL,
+    ref_model=None,
+    args=args,
+    train_dataset=train,
+    eval_dataset=eval_pairs,
+)
+trainer.train()
+trainer.save_model(&quot;runs/dpo-smoke/final&quot;)
+</code></pre>
+<p><code>beta=0.1</code> 是文档默认值，不是本文推荐的最优超参。改变 beta、损失类型、参考模型或训练数据任一因素后，都应重新做对照。不要只看 loss 自动选 checkpoint；选择应结合校准集、独立任务评测和通用回归。</p>
+<h3 id="4-用盲评验收而不是用训练-pair-自证">4. 用盲评验收，而不是用训练 pair 自证</h3>3
+<p>至少保留四组结果：SFT 基线、DPO 候选、必要时上一线上版本、以及通用回归集。</p>
+<p>评估流程：</p>
+<ol>
+<li>使用相同 prompt、解码参数和生成预算分别生成回答。</li>
+<li>对输出匿名并随机左右位置，避免裁判知道模型身份。</li>
+<li>对可程序验证任务运行测试/schema/事实规则；开放任务使用预先固定的 rubric。</li>
+<li>报告总体和分主题胜率，同时报告平局、无法判定、长度、拒答和格式。</li>
+<li>抽检“DPO 胜”和“DPO 负”的样本，确认裁判没有只偏好更长或更模板化答案。</li>
+<li>若总体胜但高风险场景回退，按场景门禁拒绝上线，不用平均分抵消。</li>
+</ol>
+<p>通过标准应在训练前按业务风险设定。验收产物包括逐样本输出、裁判版本、统计表、失败案例、训练指标截图/日志、最终配置和回退模型。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5. 故障定位与回退</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>回退单位应是一个完整可复现版本：SFT 起点、DPO 权重、数据快照、依赖与评估报告，而不是只保留最后一个 checkpoint</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>优先定位</th>
+<th>处理方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>reward accuracy很高但盲评不变好</td>
+<td>pair过易、泄漏、裁判同源偏差</td>
+<td>换独立测试与裁判，重做困难样本和来源审计</td>
+</tr>
+<tr>
+<td>chosen logp与rejected一起下降</td>
+<td>策略整体退化、训练过强或数据问题</td>
+<td>早停/回退，检查beta、LR、数据与reference</td>
+</tr>
+<tr>
+<td>输出明显变长</td>
+<td>chosen长度偏置、裁判长度偏好</td>
+<td>长度分桶审计、重写rubric、重采样pair</td>
+</tr>
+<tr>
+<td>拒答增多</td>
+<td>chosen安全/拒答样本过集中</td>
+<td>按场景统计，补正常可回答样本并重训</td>
+</tr>
+<tr>
+<td>训练pair提升、真实请求变差</td>
+<td>prompt分布偏移、模板不一致</td>
+<td>对齐线上分布与模板，扩充真实失败类型</td>
+</tr>
+<tr>
+<td>margin持续增大但质量下降</td>
+<td>优化目标与业务目标错位</td>
+<td>停止追margin，按独立评估选早 checkpoint</td>
+</tr>
+<tr>
+<td>保存后行为不同</td>
+<td>reference/adapter/模板保存不完整</td>
+<td>另起进程加载，核对配置、权重与tokenizer</td>
+</tr>
+</tbody>
+</table>
+<p>回退单位应是一个完整可复现版本：SFT 起点、DPO 权重、数据快照、依赖与评估报告，而不是只保留最后一个 checkpoint。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>偏好/参考答案的形状在本库的真实版本：<code>ground_truth</code> 字段（<code>rag/eval_ragas.py</code> L28 <code>QA_SAMPLES</code>，grep 可验）</strong>：<br />
+<code>python
+  QA_SAMPLES = [
+      {
+          "question": "总地图工作流有哪六个节点，分别做什么？",
+          "ground_truth": "N1分诊(定A/B/C档)、N2规划(查RAG画全景图)、N3派单(dispatch-guard门禁)、"
+                          "N4执行(按派单卡执行)、N5验收(receipt凭据+E2E)、N6收口(四问+沉淀回流知识层)。",
+      },
+      {
+          "question": "声称任务完成前必须做什么？用什么命令产出凭据？",
+          "ground_truth": "必须用可执行命令产出凭据，不接受自证'我测过了'。命令是 "
+                          "python3 ~/.hermes/scripts/receipt.py declare --task ... --check &lt;命令&gt;，"
+                          "然后 receipt.py verify，全绿才允许说完成。verify 内置台账门禁：错误日志比台账新则判失败。",
+      },
+  ]</code><br />
+  （<code>ground_truth</code> 在源文件 L37-39 原样跨三行，此处未改一字。）<br />
+  注释写明"ground_truth 均取自知识库真实文档，人工核对"——这正是 DPO/RLHF 数据里"chosen 必须能溯源到真实材料"的前置纪律；本库没有偏好对的 chosen/rejected。</li>
+<li><strong>评测评委单点固定（<code>rag/eval_ragas.py</code> L79 <code>main()</code>）</strong>：<code>temperature=0.0</code>、<code>bypass_n=True</code>（小米端点不支持 n 参数）、<code>raise_exceptions=False</code> 但逐条打印 <code>[FAIL] ... 归因=LLM评分调用超时/失败</code>，<strong>失败样本显式归因而不是静默丢弃</strong>——与"偏好数据质量先于算法"同一条纪律。</li>
+<li><strong>和课件讲法的差异</strong>：课件用 <code>datasets</code> 载入 <code>Anthropic/hh-rlhf</code> 式 chosen/rejected 对 + TRL <code>DPOTrainer</code>；本库<strong>暂无 DPO/RLHF 训练实现</strong>，只有单侧参考（ground_truth）。若要构造偏好对，最省的方式是把"参考答案"与"模型实际输出"配成 pair，再人工/规则判定优劣。</li>
+</ul>
+<h2 id="来源与口径">来源与口径</h2>2
+<ol>
+<li>课件骨架：<code>raw/courseware/微调篇/day02微调之PEFT__课件__大模型微调-2-PEFT.md</code>（CPT/SFT/RLHF 数据类型与 DPO 偏好示例）；<code>raw/courseware/微调篇/day06微调之最佳实践__课件__大模型微调-6-最佳实践.md</code>（评估与部署闭环）。</li>
+<li>书摘线索：<code>raw/weread/大语言模型：原理、应用与优化.md</code>（目录/公开划线中的对齐、DPO 与分布式主题）；<code>raw/weread/从零构建大模型.md</code>（指令微调与评估主题）。本地文件不是完整原书，未用于支持具体样本量、成本或一致性阈值。</li>
+<li>原始论文：<a href="https://arxiv.org/abs/2305.18290">Direct Preference Optimization</a>，用于 DPO 目标、reference policy 与 beta 的原理；<a href="https://arxiv.org/abs/2203.02155">InstructGPT</a>，用于 SFT—RM—PPO 经典 RLHF 链路对照。</li>
+<li>官方接口：<a href="https://huggingface.co/docs/trl/dpo_trainer">TRL DPOTrainer</a>，于本任务资料核对时确认 conversational 数据格式、<code>beta</code> 默认 0.1、<code>ref_model=None</code>、损失变体及 <code>logps/*</code>、<code>rewards/margins</code>、<code>rewards/accuracies</code> 等指标。</li>
+<li>旧稿中“低于某数量不要训练”“成本固定为几分之一”“分差大没有信息”“固定 κ/α 阈值”等无统一条件结论已删除，改为数据审计和对照实验。</li>
+</ol></div></details></div></details></div></body></html>

@@ -1,0 +1,519 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>04-A2A协议</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 04-A2A协议</span></div><div class="wrap"><h1 id="a2a-协议agent-card任务生命周期与可靠协作实战">A2A 协议：Agent Card、任务生命周期与可靠协作实战</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关新篇：<a href="03-MCP%E5%8D%8F%E8%AE%AE%E5%AE%9E%E6%88%98.html">MCP 协议实战：从能力连接到 FastMCP 与 FastAPI 落地</a></p>
+</blockquote>
+<p>A2A（Agent2Agent）面向的是另一个问题：当一个 Agent 把一项可能耗时、需要补充输入、产生多个结果的任务交给另一个独立 Agent 时，双方怎样发现能力、交换消息、追踪状态、取消任务并验收产物。它不把对端的规划器、记忆、工具或提示词暴露出来，而是用协议对象定义协作边界。</p>
+<p><strong>版本口径。</strong> 2026-11-03 的业内完整扫描记录 A2A 官方仓库 release 为 <strong>v1.0.1，发布于 2026-05-28</strong>。该发布说明包含 HTTP binding 优先使用 <code>application/a2a+json</code> 等修订；当前规范目录包含 Agent Card 签名、缓存、authenticated extended card 和任务级授权作用域。2025 年 Google 发布背景和旧资料中的 <code>/.well-known/agent.json</code> 仅用于理解历史，不应当作当前唯一发现路径。本文以官方 v1.0.1 与目标规范为主要协议依据，但本次没有实现客户端或服务端，具体字段仍须用目标版本 Schema 和 SDK 校验。</p>
+<h2 id="why">WHY</h2>2
+<h3 id="1-多-agent-真正难的是任务边界不是多发几条消息">1. 多 Agent 真正难的是任务边界，不是多发几条消息</h3>3
+<p>在同一个进程里调用函数，调用方通常知道函数是否返回、异常是否抛出、结果是什么类型。跨 Agent 委派则不同：执行者可能运行很久，中途需要用户补资料或重新授权；网络断开后，调用方不知道任务是没收到、仍在执行，还是已经完成但响应丢失；结果也可能不是一段文本，而是报告、表格、文件和引用的组合。如果只把任务塞进自然语言 prompt，再用“最后回复成功”判断完成，系统很快会出现重复执行、状态丢失、越权读取和无法审计。</p>
+<p>A2A 的价值是把这些问题拆成标准对象和抽象操作。Agent Card 回答“对方是谁、宣称能做什么、通过什么接口交互”；Message 与 Part 回答“这一轮交流传递了什么”；Task 回答“工作处于什么状态”；Artifact 回答“产出了哪些可独立验收的结果”；streaming 与 push 回答“长任务如何报告进展”；取消、错误和授权状态回答“不能继续时如何安全停下”。</p>
+<p>这套协议不要求双方使用同一种模型或框架。一个 LangGraph Agent 可以把审查任务交给用其他框架实现的 Agent，只要双方对同一 Canonical Data Model 和抽象操作达成一致。协议绑定可以不同，但任务语义不应随 JSON、HTTP 或其他绑定随意改变。</p>
+<h3 id="2-a2a-不是多-agent-框架的替代品">2. A2A 不是多 Agent 框架的替代品</h3>3
+<p>LangGraph、CrewAI、AutoGen 或其他框架解决的是内部编排：如何分解任务、维护图状态、选择下一个节点、保存检查点、组织模型循环。A2A 解决的是独立 Agent 之间的互操作边界。它不会替你做任务规划，不规定 supervisor 必须存在，不提供共识算法，也不会自动解决死锁、重复工具调用、模型幻觉或结果质量评估。</p>
+<p>因此可以有两种合理架构：单进程内部继续用框架的状态图和 handoff，只有跨团队、跨机器或跨信任域的边界使用 A2A；或者内部框架本身把一个 Agent 包装成 A2A Server，对外仍只暴露标准任务接口。反之，给本机每个函数都架一个 A2A 服务，通常只会增加部署与排障成本。业内工程资料的共同建议是先证明单 Agent 与工具不足，再增加 Agent 和协议复杂度。</p>
+<h3 id="3-发现认证授权可信是四道不同门">3. 发现、认证、授权、可信是四道不同门</h3>3
+<p>Agent Card 是能力声明，不是能力证明，更不是访问授权。任何站点都可以发布一张写着“我能退款、我能审查生产配置”的卡片。即使卡片带有可验证签名，也只能帮助验证卡片来源与完整性，不能证明该 Agent 的业务结果正确，更不能证明当前调用者有权发起任意任务。</p>
+<p>完整判断应依次回答：卡片是否来自预期发行方，接口地址是否属于预期服务，调用者身份是否认证，任务所需 scope 是否被授予，租户与资源是否匹配，具体动作是否需要人审。authenticated extended card 可以给已认证调用者展示更多能力，但公开卡与扩展卡的分层本身也不能替代服务端授权。</p>
+<p>这一区分对产物同样重要。远端 Agent 返回的文本、结构化数据、文件链接和状态说明都是外部输入。<code>completed</code> 只表示对端声称任务进入完成状态，不表示业务验收通过；仍需检查 Artifact 类型、来源、内容、引用和实际副作用。</p>
+<h2 id="whatwhyt">WHAT（WHYT）</h2>2
+<h3 id="1-协议三层与当前-http-绑定口径">1. 协议三层与当前 HTTP 绑定口径</h3>3
+<p>A2A 规范可理解为三层：<strong>Canonical Data Model</strong> 定义 Task、Message、Part、Artifact 等核心语义；<strong>Abstract Operations</strong> 定义发送消息、查询任务、取消、订阅等操作；<strong>Protocol Bindings</strong> 把这些语义映射到具体传输。三层分离的意义是避免某个 SDK 的函数名或某种传输细节反过来改变任务语义。</p>
+<p>v1.0.1 的 HTTP binding 修订优先使用 <code>application/a2a+json</code>。实现不能把所有响应都笼统当成 <code>application/json</code>，也不能把旧 JSON-RPC 教程、REST 教程和新 HTTP 绑定混成一个请求。Client 与 Server 应明确协商协议版本、绑定和媒体类型，检查 Content-Type 与 Accept，对不支持媒体类型和版本给出可诊断错误。</p>
+<p>官方 release、规范版本、语言 SDK 包版本是三个相关但不同的坐标。部署清单要分别记录，不能只写“使用 A2A 1.0”就假设所有语言实现行为完全一致。本次未做跨 SDK 互通，字段示例均以目标规范复核为前提。</p>
+<h3 id="2-agent-card机器可读的能力入口">2. Agent Card：机器可读的能力入口</h3>3
+<p>一张 Agent Card 通常描述以下信息：</p>
+<ul>
+<li>身份与维护信息：名称、说明、提供方、实现版本、文档入口。</li>
+<li>接口信息：服务地址、协议版本或绑定偏好，以及可能的其他接口。</li>
+<li>交互能力：是否支持 streaming、push notification、状态历史等。</li>
+<li>默认输入输出模态：文本、结构化 JSON、文件或其他媒体类型。</li>
+<li>Skills：稳定标识、用途说明、典型输入输出与示例，帮助路由方判断是否匹配。</li>
+<li>安全要求：认证方案和安全引用；需要时声明是否支持认证后的扩展卡。</li>
+<li>完整性信息：需要时对卡片签名，供接收方验证来源与篡改情况。</li>
+</ul>
+<p>当前发现方式不应只背一个旧路径。官方资料列出 well-known URI、企业或策展注册表、直接配置交换等策略；当前常见 well-known 路径为 <code>/.well-known/agent-card.json</code>。旧资料中的 <code>/.well-known/agent.json</code> 可作为历史兼容线索，但新实现必须以目标版本为准。企业内部往往优先使用受控注册表和显式地址，避免模型根据不可信输入任意发现并发网请求。</p>
+<p>Card 缓存要服从目标规范和 HTTP 缓存策略，记录获取时间、来源、版本和内容哈希。卡片更新可能意味着工具或权限面扩大，不能永久沿用首次审批。签名验证应检查受信密钥或证书链、算法、签名覆盖内容和有效期，并防止把卡片里的任意密钥地址当成自动信任根。签名有效后仍需做网络出口、身份和业务授权检查。</p>
+<h3 id="3-messagepartartifact三种对象各管一层">3. Message、Part、Artifact：三种对象各管一层</h3>3
+<p><strong>Message</strong> 是一次协作消息，通常具有角色、消息标识以及可选的 task、context 关联。它可以表示用户补充要求，也可以表示 Agent 的解释或状态相关消息。Message 不等于整个任务，也不必然是最终交付物。</p>
+<p><strong>Part</strong> 是 Message 或 Artifact 的内容组成。文本 Part 适合说明，Data Part 适合结构化数据，File Part 适合文件内容或受控引用。多 Part 允许同一个结果同时带人读摘要与机读数据，但每个 Part 都应带正确媒体类型，不能把 JSON 字符串伪装成已校验对象。</p>
+<p><strong>Artifact</strong> 是任务产生的可交付结果，具有独立标识和若干 Part。例如“审查报告”Artifact 可以包含 Markdown 摘要、结构化问题清单和签名后的证据文件。Artifact 与 Task 状态分离：任务处于 working 时可能已经产生中间产物，任务 completed 时也可能有多个最终产物。客户端不能仅取最后一段文本就丢掉其余产物。</p>
+<p><code>contextId</code> 类关联用于把同一协作上下文中的多次交互联系起来，<code>taskId</code> 则定位具体工作单元。两者不能混用为全局会话，也不能跨租户猜测。Message、Task、Artifact 的 ID 都要进入去重、审计和访问控制设计。</p>
+<h3 id="4-task-生命周期与状态边界">4. Task 生命周期与状态边界</h3>3
+<p>常见核心状态包括 <code>submitted</code>、<code>working</code>、<code>input-required</code>、<code>auth-required</code>、<code>completed</code>、<code>failed</code>、<code>canceled</code>、<code>rejected</code>；某些模型还提供 <code>unknown</code> 等用于无法确定状态的场景。实现时应以目标版本的 TaskState 枚举为准，不自定义同义字符串分散在代码中。</p>
+<ul>
+<li><code>submitted</code>：任务已被接收或登记，尚未进入实质执行。它不表示副作用已发生。</li>
+<li><code>working</code>：执行方正在处理，可伴随进度消息或中间 Artifact。</li>
+<li><code>input-required</code>：缺少继续所需的信息，任务暂停在等待输入的边界。补充输入必须关联原任务并重新鉴权，不能把等待状态当失败重试。</li>
+<li><code>auth-required</code>：需要额外认证或授权才能继续。它不是普通参数缺失，客户端不能通过反复提交同一请求绕过，也不能自行把低 scope 令牌换成高 scope。</li>
+<li><code>completed</code>：执行方声明完成，客户端继续验收 Artifact 与业务结果。</li>
+<li><code>failed</code>：执行无法完成，应保留稳定错误类别、可重试性和安全诊断。</li>
+<li><code>canceled</code>：取消语义已经生效；它与“客户端停止等待”不同。</li>
+<li><code>rejected</code>：任务在接受阶段因契约、策略或能力不匹配被拒绝，不应假装进入 working。</li>
+<li><code>unknown</code>：若目标绑定用于表达未知状态，客户端应进入对账流程，而不是猜测成功。</li>
+</ul>
+<p><code>input-required</code> 与 <code>auth-required</code> 是可恢复的中断边界，不是终态。<code>completed</code>、<code>failed</code>、<code>canceled</code>、<code>rejected</code> 通常按终态处理，不应为了让 UI “重新转起来”直接改回 working。业务重试可新建 attempt 或新 Task，并通过父任务、幂等键和原因关联。</p>
+<h3 id="5-异步streaming-与-push三种等待方式">5. 异步、streaming 与 push：三种等待方式</h3>3
+<p><strong>轮询</strong>最容易实现和排障：提交任务后按 deadline 查询，看到终态或中断状态就处理。缺点是请求多、进度不及时，必须指数退避、抖动和服务端限流，不能 tight loop。</p>
+<p><strong>streaming</strong>适合持续状态、消息和 Artifact 增量。客户端要处理重复事件、乱序、断流、游标恢复和最终对账。收到流不等于任务一定完成，连接正常关闭也不必然等于 completed；仍要读取最终 Task 状态。每个事件最好结合任务状态版本或事件标识去重，避免重连后重复追加 Artifact。</p>
+<p><strong>push notification</strong>适合调用方无法保持长连接的场景。回调配置必须绑定任务与租户，回调端点要防止 SSRF、伪造、重放和凭据泄漏。通知最好只作为“有变化”的信号，接收方再通过已认证通道拉取任务，而不是信任回调正文中的全部结果。轮换回调地址或认证配置时也要防止旧配置继续接收敏感事件。</p>
+<p>选择可以组合：普通任务轮询，交互任务流式，超长任务 push 加查询对账。无论选哪种，都需要统一的状态持久化和幂等处理，不能让三种入口各自维护一套真相。</p>
+<h3 id="6-a2a-与-mcp-的分工">6. A2A 与 MCP 的分工</h3>3
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>A2A</th>
+<th>MCP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>对端</td>
+<td>另一个具有任务执行能力的 Agent</td>
+<td>工具、资源或提示模板提供方</td>
+</tr>
+<tr>
+<td>主要对象</td>
+<td>Agent Card、Task、Message、Part、Artifact</td>
+<td>Tools、Resources、Prompts 及能力描述</td>
+</tr>
+<tr>
+<td>时间模型</td>
+<td>长任务、异步、中断恢复、取消</td>
+<td>常为一次能力调用，也有自身生命周期与传输规则</td>
+</tr>
+<tr>
+<td>发现</td>
+<td>Agent Card 与注册、直接配置等机制</td>
+<td>协议能力与工具、资源、Prompt 清单</td>
+</tr>
+<tr>
+<td>内部实现</td>
+<td>不暴露对端记忆、规划和工具细节</td>
+<td>Server 封装业务系统，Host 控制模型可见范围</td>
+</tr>
+</tbody>
+</table>
+<p>典型组合是：<strong>Agent 对外通过 A2A 接任务，对内通过 MCP 调工具。</strong> 例如审查 Agent 收到 A2A Task 后，内部用 MCP 读取代码、查询规范和生成报告，再把报告作为 A2A Artifact 返回。A2A 调用方不需要知道这些 MCP Server 的存在，也不应自动继承它们的凭据。</p>
+<p>《一本书讲透MCP》的章节笔记把这一关系概括为工具层与 Agent 层互补。书籍能帮助建立分层心智模型，但不能替代 A2A 官方规范中的字段、状态、授权与绑定细节。</p>
+<h3 id="7-取消失败重试与幂等必须一起设计">7. 取消、失败、重试与幂等必须一起设计</h3>3
+<p>远程调用超时时，请求可能根本没到，也可能已经执行完成。直接重试有副作用的任务会造成重复付款、重复发帖或重复写入。客户端应给提交操作稳定幂等键，服务端保存“租户＋幂等键＋任务”的映射；相同键与相同载荷返回原任务，相同键但载荷不同则拒绝。</p>
+<p>取消也应是幂等操作：重复取消同一任务返回一致的当前状态，终态任务不能被取消回退。取消被接受不等于副作用已经回滚，必要时需要补偿任务和人工核查。失败后是否重试取决于错误类别：网络暂时中断可在退避后查询或重试，契约错误与权限拒绝不应自动重试，input/auth 中断要补齐对应条件后恢复。</p>
+<p>恢复不能仅保存最后状态字符串。至少要持久化任务 ID、上下文 ID、幂等键、状态版本、截止时间、attempt、已处理事件游标、Artifact 校验结果和外部副作用关联 ID。这样才能在进程重启后继续对账，而不是从头再跑一次。</p>
+<h2 id="how">HOW</h2>2
+<h3 id="1-普通-agent-card-json-示例">1. 普通 Agent Card JSON 示例</h3>3
+<p>下面展示常用字段子集，用于解释结构，<strong>不是声称可未经校验直接投入所有 v1.0.1 SDK</strong>。实际字段名、安全方案表达、接口声明和必填项必须用目标版本 JSON Schema 验证。</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;policy-research-agent&quot;,
+  &quot;description&quot;: &quot;检索经授权的制度材料并生成带引用的研究报告&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;protocolVersion&quot;: &quot;1.0&quot;,
+  &quot;url&quot;: &quot;https://agents.example.com/research/a2a&quot;,
+  &quot;preferredTransport&quot;: &quot;HTTP+JSON&quot;,
+  &quot;provider&quot;: {
+    &quot;organization&quot;: &quot;Example Research Group&quot;,
+    &quot;url&quot;: &quot;https://example.com&quot;
+  },
+  &quot;capabilities&quot;: {
+    &quot;streaming&quot;: true,
+    &quot;pushNotifications&quot;: true,
+    &quot;stateTransitionHistory&quot;: true
+  },
+  &quot;defaultInputModes&quot;: [&quot;text/plain&quot;, &quot;application/json&quot;],
+  &quot;defaultOutputModes&quot;: [&quot;text/markdown&quot;, &quot;application/json&quot;],
+  &quot;securitySchemes&quot;: {
+    &quot;bearerAuth&quot;: {
+      &quot;type&quot;: &quot;http&quot;,
+      &quot;scheme&quot;: &quot;bearer&quot;,
+      &quot;bearerFormat&quot;: &quot;JWT&quot;
+    }
+  },
+  &quot;security&quot;: [{&quot;bearerAuth&quot;: []}],
+  &quot;supportsAuthenticatedExtendedCard&quot;: true,
+  &quot;skills&quot;: [
+    {
+      &quot;id&quot;: &quot;policy-review&quot;,
+      &quot;name&quot;: &quot;制度审查&quot;,
+      &quot;description&quot;: &quot;只对调用者有权访问的制度进行差异审查&quot;,
+      &quot;tags&quot;: [&quot;policy&quot;, &quot;review&quot;],
+      &quot;examples&quot;: [&quot;比较两版报销制度并列出冲突&quot;],
+      &quot;inputModes&quot;: [&quot;application/json&quot;],
+      &quot;outputModes&quot;: [&quot;application/json&quot;, &quot;text/markdown&quot;]
+    }
+  ]
+}
+</code></pre>
+<p><code>security</code> 表达进入服务所需要求，不应把具体令牌、密钥或客户凭据放进卡片。Skill 的 examples 也不能包含私有数据。公开卡只放可公开信息，敏感 Skill 和内部端点通过认证扩展卡或企业注册表按权限提供。</p>
+<h3 id="2-signed-agent-card-示意不伪造真实签名">2. Signed Agent Card 示意：不伪造真实签名</h3>3
+<p>下列签名值是明确的占位符，不是有效 JWS，也不能通过验证。真实系统应由受控密钥和合规 JOSE 库在发布时生成，验证方按目标规范处理受保护头、签名覆盖内容与密钥链。</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;policy-research-agent&quot;,
+  &quot;description&quot;: &quot;签名卡片结构示意，其余业务字段应按目标 Schema 补齐&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;protocolVersion&quot;: &quot;1.0&quot;,
+  &quot;url&quot;: &quot;https://agents.example.com/research/a2a&quot;,
+  &quot;signatures&quot;: [
+    {
+      &quot;protected&quot;: &quot;&lt;base64url-jose-protected-header&gt;&quot;,
+      &quot;signature&quot;: &quot;&lt;generated-by-real-signing-process&gt;&quot;
+    }
+  ]
+}
+</code></pre>
+<p>禁止把随机 base64 字符串当成“测试签名”再宣称验签通过。负例测试应覆盖签名被篡改、算法不被允许、密钥来源不可信、卡片 URL 被替换和签名有效但 scope 不足。卡片签名解决的是完整性与来源问题，不解决任务授权、结果质量和业务许可。</p>
+<h3 id="3-六员渐进任务-envelope本地契约不等于官方-task">3. 六员渐进任务 envelope：本地契约不等于官方 Task</h3>3
+<p>在尚未跨机器部署完整 A2A 前，可以先让六员使用结构化任务信封。以下 Pydantic 模型是<strong>本地渐进契约</strong>，借用 Task、Part、Artifact 思想，不冒充官方 A2A Schema。它强调禁止未声明字段、状态版本、租户、截止时间和幂等键。</p>
+<pre><code class="language-python">from datetime import datetime, timezone
+from enum import StrEnum
+from typing import Any, Literal
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+class TaskState(StrEnum):
+    SUBMITTED = &quot;submitted&quot;
+    WORKING = &quot;working&quot;
+    INPUT_REQUIRED = &quot;input-required&quot;
+    AUTH_REQUIRED = &quot;auth-required&quot;
+    COMPLETED = &quot;completed&quot;
+    FAILED = &quot;failed&quot;
+    CANCELED = &quot;canceled&quot;
+    REJECTED = &quot;rejected&quot;
+
+
+class TaskPart(BaseModel):
+    model_config = ConfigDict(extra=&quot;forbid&quot;)
+
+    kind: Literal[&quot;text&quot;, &quot;data&quot;, &quot;file_ref&quot;]
+    media_type: str
+    text: str | None = None
+    data: dict[str, Any] | None = None
+    file_ref: str | None = None
+
+
+class Artifact(BaseModel):
+    model_config = ConfigDict(extra=&quot;forbid&quot;)
+
+    artifact_id: UUID
+    name: str
+    parts: list[TaskPart]
+    sha256: str | None = Field(default=None, pattern=r&quot;^[0-9a-f]{64}$&quot;)
+
+
+class TaskEnvelope(BaseModel):
+    model_config = ConfigDict(extra=&quot;forbid&quot;)
+
+    schema_version: Literal[&quot;local-task-envelope/1&quot;]
+    task_id: UUID
+    context_id: UUID
+    tenant_id: str
+    idempotency_key: str = Field(min_length=8, max_length=128)
+    state: TaskState
+    state_version: int = Field(ge=0)
+    objective: str
+    input_parts: list[TaskPart]
+    expected_output: str
+    artifacts: list[Artifact] = []
+    deadline_at: datetime
+    attempt: int = Field(default=0, ge=0)
+    trace_id: str
+
+    @field_validator(&quot;deadline_at&quot;)
+    @classmethod
+    def require_utc(cls, value: datetime) -&gt; datetime:
+        # 禁止朴素时间，避免跨机器时区歧义
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError(&quot;deadline_at 必须带时区&quot;)
+        return value.astimezone(timezone.utc)
+</code></pre>
+<p>生产代码还应给 <code>TaskPart</code> 增加“恰好一种内容字段非空”的校验，为 <code>data</code> 指定各 Skill 的 JSON Schema，并把 <code>file_ref</code> 限制为受控存储句柄而非任意 URL。默认列表在 Pydantic v2 会安全复制，但若追求更清晰可写成 <code>Field(default_factory=list)</code>。</p>
+<h3 id="4-保守状态机合法迁移表">4. 保守状态机合法迁移表</h3>3
+<p>下表是应用侧建议的保守子集，用来阻止明显倒退；若目标规范对某个事件有更严格条件，应以规范为准。迁移由服务端验证，客户端不能只改本地字符串。</p>
+<table>
+<thead>
+<tr>
+<th>当前状态</th>
+<th>允许的目标状态</th>
+<th>触发与约束</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>submitted</td>
+<td>working</td>
+<td>契约、能力和初始授权检查通过，开始执行</td>
+</tr>
+<tr>
+<td>submitted</td>
+<td>rejected</td>
+<td>请求不合法、能力不匹配或策略拒绝</td>
+</tr>
+<tr>
+<td>submitted</td>
+<td>canceled</td>
+<td>尚未执行或执行方可安全取消</td>
+</tr>
+<tr>
+<td>submitted</td>
+<td>failed</td>
+<td>接收后发生不可恢复的内部失败</td>
+</tr>
+<tr>
+<td>working</td>
+<td>working</td>
+<td>仅进度更新，state_version 单调增加</td>
+</tr>
+<tr>
+<td>working</td>
+<td>input-required</td>
+<td>缺少必要业务输入，保存等待原因</td>
+</tr>
+<tr>
+<td>working</td>
+<td>auth-required</td>
+<td>需要额外授权，不执行越权降级</td>
+</tr>
+<tr>
+<td>working</td>
+<td>completed</td>
+<td>所需 Artifact 与状态说明已持久化</td>
+</tr>
+<tr>
+<td>working</td>
+<td>failed</td>
+<td>不可恢复失败，记录可重试性</td>
+</tr>
+<tr>
+<td>working</td>
+<td>canceled</td>
+<td>取消生效并记录未完成副作用</td>
+</tr>
+<tr>
+<td>input-required</td>
+<td>working</td>
+<td>收到关联原任务的合法补充输入并重新授权</td>
+</tr>
+<tr>
+<td>input-required</td>
+<td>canceled / failed</td>
+<td>等待期间取消或发生不可恢复失败</td>
+</tr>
+<tr>
+<td>auth-required</td>
+<td>working</td>
+<td>完成所需授权流程，服务端重新检查 scope</td>
+</tr>
+<tr>
+<td>auth-required</td>
+<td>canceled / failed</td>
+<td>放弃授权、授权失败或任务终止</td>
+</tr>
+<tr>
+<td>completed / failed / canceled / rejected</td>
+<td>无</td>
+<td>终态不可倒退；新工作创建新 attempt 或 Task</td>
+</tr>
+</tbody>
+</table>
+<p>所有迁移都应比较并递增 <code>state_version</code>，使用数据库条件更新防止两个 Worker 同时把同一任务写成不同终态。状态、事件与 Artifact 写入要尽量处于同一事务或可恢复日志中，避免“状态已完成但产物丢失”。</p>
+<h3 id="5-客户端轮询与流式伪代码">5. 客户端轮询与流式伪代码</h3>3
+<pre><code class="language-python">import asyncio
+import random
+
+TERMINAL = {&quot;completed&quot;, &quot;failed&quot;, &quot;canceled&quot;, &quot;rejected&quot;}
+
+
+async def wait_task(client, task_id: str, deadline_s: float = 60.0):
+    delay = 0.5
+    async with asyncio.timeout(deadline_s):
+        while True:
+            task = await client.get_task(task_id)  # 每次携带调用者与租户上下文
+
+            if task.state in TERMINAL:
+                return task
+            if task.state == &quot;input-required&quot;:
+                # 交给上层收集输入；不要盲目重复提交
+                return task
+            if task.state == &quot;auth-required&quot;:
+                # 交给授权流程；不在循环中自动扩权
+                return task
+
+            await asyncio.sleep(delay + random.uniform(0, delay * 0.2))
+            delay = min(delay * 2, 8.0)
+
+
+async def consume_stream(client, task_id: str, cursor: str | None):
+    seen_events = set()
+    async for event in client.stream_task(task_id, cursor=cursor):
+        if event.event_id in seen_events:
+            continue  # 重连后的重复事件不重复应用
+        seen_events.add(event.event_id)
+        await apply_event_atomically(event)       # 同事务保存事件与游标
+        cursor = event.event_id
+        if event.is_final:
+            break
+
+    # 流结束后再对账，连接关闭不等于任务完成
+    return await client.get_task(task_id)
+</code></pre>
+<p>真实客户端需要持久化 <code>seen_events</code> 或使用事件游标，而不是只用内存集合；服务端也可以只保证有限重放窗口，所以游标失效时要全量拉取 Task 与 Artifact。<code>asyncio.timeout</code> 只停止本地等待，接下来是否取消远端任务要按业务语义显式决定。</p>
+<h3 id="6-超时取消与恢复流程">6. 超时、取消与恢复流程</h3>3
+<p>一个安全流程是：提交前生成幂等键并设置总 deadline；超时后先查询一次任务，不立刻重试提交；若业务要求停止，则发送取消；随后持续查询直到 canceled 或确认已进入其他终态；若外部写入结果不明，进入人工或自动对账，不宣称“已回滚”。</p>
+<p>恢复时先读取持久任务，不重新生成任务 ID。working 任务从最近检查点继续，input-required 等合法输入，auth-required 等重新授权，流式任务从持久游标重连，completed 任务只补做 Artifact 验收。恢复逻辑必须识别已经执行的副作用，不能因进程重启重复发送邮件或创建工单。</p>
+<p>重试使用指数退避与抖动，区分连接超时、限流、服务暂不可用、永久契约错误和授权拒绝。对不幂等操作，优先“查询原任务”而不是“再次提交”。熔断与并发隔舱用于防止一个远端 Agent 失效拖垮全部调用者。</p>
+<h3 id="7-artifact-校验完成状态之后还有一道验收">7. Artifact 校验：完成状态之后还有一道验收</h3>3
+<pre><code class="language-python">import hashlib
+from pathlib import PurePath
+
+ALLOWED_MEDIA = {&quot;application/json&quot;, &quot;text/markdown&quot;, &quot;text/plain&quot;}
+
+
+def validate_file_artifact(
+    *, filename: str, media_type: str, content: bytes,
+    expected_sha256: str, max_bytes: int = 2_000_000,
+) -&gt; None:
+    if media_type not in ALLOWED_MEDIA:
+        raise ValueError(&quot;不允许的产物媒体类型&quot;)
+    if len(content) &gt; max_bytes:
+        raise ValueError(&quot;产物超过大小限制&quot;)
+
+    path = PurePath(filename)
+    if path.is_absolute() or &quot;..&quot; in path.parts or path.name != filename:
+        raise ValueError(&quot;非法产物文件名&quot;)
+
+    actual = hashlib.sha256(content).hexdigest()
+    if actual != expected_sha256:
+        raise ValueError(&quot;产物摘要不匹配&quot;)
+
+
+def validate_artifact(
+    artifact, *, task, skill_id: str, tenant_id: str, schema_registry,
+) -&gt; None:
+    # Skill 与租户来自已认证任务上下文，不伪造为 Artifact 的标准字段
+    if tenant_id != task.tenant_id:
+        raise ValueError(&quot;租户上下文不匹配&quot;)
+    if artifact.artifact_id not in {item.artifact_id for item in task.artifacts}:
+        raise ValueError(&quot;Artifact 不属于当前 Task&quot;)
+
+    # Artifact 内每个 Part 独立校验，不能因一个是文本就跳过其余数据
+    for part in artifact.parts:
+        if part.kind == &quot;data&quot;:
+            schema = schema_registry.for_skill(skill_id, part.media_type)
+            schema.validate(part.data)
+        elif part.kind == &quot;file_ref&quot;:
+            # 不自动抓取任意 URL，只允许受控存储引用并检查租户归属
+            validate_controlled_reference(part.file_ref, tenant_id)
+</code></pre>
+<p>还应验证 Artifact 是否属于当前 Task、是否满足 expected output、引用是否真实支持结论、生成者与时间是否可追踪。Markdown 中的链接、图片和 HTML 按不可信内容渲染，防止脚本与跟踪外链。结构化结果 Schema 合法也只表示形状正确，关键结论仍需业务规则、第二数据源或独立审查。</p>
+<h3 id="8-本批论文怎么用把删除与撤回扩展到派生产物">8. 本批论文怎么用：把删除与撤回扩展到派生产物</h3>3
+<p><a href="../../raw/sources/arxiv-daily/2026-10-22-2610.31366.md">arXiv:2610.31366</a> 的 AfterDeleteBench 说明：删除原始记忆记录，并不必然删除由它派生的摘要和状态；即使完整秘密字符串已不存在，分散保存的组件在公开组合规则下仍可能被重建。论文还区分了重建、重新写回和新会话召回，并用带 provenance 的闭包消除了其测试正基线中的恢复现象。该实验针对固定权重 Agent 与合成秘密，<strong>不是 A2A 协议测试</strong>，但直接暴露跨 Agent Artifact 的治理盲点。</p>
+<p>我们怎么用：在本地 envelope 与 Artifact 元数据中保存 <code>derived_from</code>、来源任务、租户和保留策略，形成“原始输入→摘要/记忆→A2A Artifact→下游副本”的派生闭包；删除或撤回时沿闭包传播 tombstone，并阻止下游继续把已撤回内容写回。验收不能只查源表记录消失，还要在全新会话中询问、要求组合碎片、检查已有 Artifact 和重新写回路径，期望行为均为不可恢复或明确拒绝。<code>completed</code> 不代表删除完成，<code>canceled</code> 也不等于 Artifact 已擦除；这些属于应用层数据治理，不能冒充 A2A 标准自动提供的能力。</p>
+<h3 id="9-版本媒体类型多租户与鉴权检查清单">9. 版本、媒体类型、多租户与鉴权检查清单</h3>3
+<p><strong>版本与互通</strong></p>
+<ul>
+<li>分别锁定 A2A 规范、官方 release、语言 SDK 和模型 Schema 版本，保存兼容矩阵。</li>
+<li>v1.0.1 HTTP binding 优先核对 <code>application/a2a+json</code>，同时验证 Content-Type、Accept、错误媒体类型和不支持版本响应。</li>
+<li>不把旧 <code>/.well-known/agent.json</code> 当当前唯一入口；按目标规范使用 <code>agent-card.json</code>、注册表或直接配置。</li>
+<li>用至少两个独立实现做发现、提交、查询、流式、取消、授权中断和 Artifact 互通，不能只测同源 SDK。</li>
+</ul>
+<p><strong>多租户与授权</strong></p>
+<ul>
+<li>每次 submit、get、cancel、stream、push 配置和 Artifact 下载都检查调用者、租户和任务归属，不能只校验 task ID 是否存在。</li>
+<li>使用任务级授权作用域，按 Skill 和动作授予最小 scope；校验发行方、受众、过期、签名和授权上下文，禁止跨服务透传令牌。</li>
+<li>authenticated extended card 在认证与授权后生成，响应不缓存到公开层；公开卡与扩展卡不得泄露其他租户能力。</li>
+<li>Agent Card 声明和签名不等于业务授权；高风险任务仍需策略检查、人审与审计。</li>
+<li>push 回调验证来源、任务关联、时间窗与重放标识，限制回调目标网络范围；通知正文尽量不携带敏感全量产物。</li>
+</ul>
+<p><strong>缓存与供应链</strong></p>
+<ul>
+<li>缓存 Card 时记录来源、版本、哈希和重新验证时间，遵循目标缓存规则；签名或接口变化触发重新信任评估。</li>
+<li>注册表条目与真实部署状态同步，Skill 下线后不能继续路由；能力描述变化要可审计。</li>
+<li>对端实现升级前跑契约、负例、取消和恢复测试；发现服务地址不可信时禁止自动跟随重定向到内网或其他租户。</li>
+</ul>
+<h3 id="10-六员体系的渐进落地顺序">10. 六员体系的渐进落地顺序</h3>3
+<p>第一阶段不急着让所有角色变成远程 A2A Server。先为 Hermes、DSH、Claude Code、Codex、OpenClaw、QwenCode 编写各自的 <code>agent_card.md</code>，说明能力边界、输入契约、输出契约、典型任务、权限限制和不能承担的工作。路由按能力选择，而不是只记角色名。</p>
+<p>第二阶段统一 task envelope，把任务 ID、上下文、状态、状态版本、输入 Parts、期望输出、Artifacts、截止时间、租户和幂等键结构化。Hermes 的派单、OpenClaw 的审查结果、Claude Code 的工程产物都走同一状态语义；本机 CLI 和文件仍可作为传输，避免为了协议增加无收益网络跳数。</p>
+<p>第三阶段补持久化状态机、事件日志、超时取消和 Artifact 校验，让本机协作先具备可恢复与可验收能力。第四阶段只有出现真实跨机器、跨团队或跨信任域需求时，再选择官方 SDK 实现完整 A2A，并做双实现互通和安全测试。这样既保留协议思维，也避免把六员协作一次性重写为难以运维的分布式系统。</p>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li><strong>[课1] 课件原文：</strong><a href="../../raw/courseware/Agent%E7%AF%87/code/day10__04-autogen%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93.py">day10 多智能体</a>、<a href="../../raw/courseware/Agent%E7%AF%87/code/day16__02-%E4%BD%BF%E7%94%A8%E5%B7%A5%E5%85%B7%E4%BA%A4%E6%8E%A5.py">day16 工具交接</a>、<a href="../../raw/courseware/Agent%E7%AF%87/code/day17__01-first_mcp_server.py">day17 MCP Server</a>。落点是 WHY 的“内部编排不等于外部协议”和 WHAT 的 A2A/MCP 分工；课件没有充当 A2A 字段规范。</li>
+<li><strong>[书1] 书籍目录与公开划线摘录：</strong><a href="../../raw/weread/Building%20Agentic%20AI%20Systems.md">Building Agentic AI Systems</a>、<a href="../../raw/weread/%E4%B8%80%E6%9C%AC%E4%B9%A6%E8%AE%B2%E9%80%8FMCP%EF%BC%9AAI%20Agent%E4%BA%92%E8%81%94%E7%BD%91%E6%96%B0%E7%BA%AA%E5%85%83.md">一本书讲透MCP</a>。前者第 5—9 章用于任务、协调、状态与安全边界，后者第 2、11 章用于工具层/Agent 层互补。只使用目录与热门划线，<strong>不声称阅读书籍全文，也不用书籍证明 A2A 协议字段</strong>。</li>
+<li><strong>[业1] 官方规范：</strong><a href="https://a2a-protocol.org/latest/specification/">A2A Specification</a>、<a href="https://a2a-protocol.org/latest/topics/agent-discovery/">Agent Discovery</a>、<a href="https://a2a-protocol.org/latest/topics/key-concepts/">Key Concepts</a>、<a href="https://api.github.com/repos/a2aproject/A2A/releases/latest">官方 Release API</a>。<a href="../../raw/sources/%E4%B8%9A%E5%86%85%E6%8A%80%E6%9C%AF%E6%A0%88%E6%89%AB%E6%8F%8F-20261103.md">业内技术栈扫描</a>记录这些方向的一手页面 <strong>GET 200：2026-11-03</strong>，本次未复跑请求。Agent Card、Task、Artifact、异步状态与授权由此进入 WHAT 和 HOW；旧<a href="../../raw/sources/A2A%E5%8D%8F%E8%AE%AE%E8%B0%83%E7%A0%94-20260928.md"> A2A 调研</a>只保留历史线索。</li>
+<li><strong>[业2] 工程调研：</strong><a href="../../raw/sources/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E5%8D%8F%E4%BD%9C%E4%B8%9A%E5%86%85%E6%A0%87%E5%87%86%E8%B0%83%E7%A0%94-20261103.md">多智能体协作业内标准调研</a>提供任务契约、幂等、取消恢复与验收的一手源索引；落点是本地 envelope 不冒充官方 Task、超时不等于未执行、完成仍需 Artifact 验收。</li>
+<li><strong>[业3] 本批论文：</strong><a href="../../raw/sources/arxiv-daily/2026-10-22-2610.31366.md">arXiv:2610.31366</a> 落入 HOW 第 8 节，转化为 Artifact 派生闭包、撤回传播和新会话行为审计；明确它是记忆删除研究，不是 A2A 标准能力或互通结果。</li>
+<li><strong>[业4] 旧总述融合：</strong>《L5-Agent工程-最佳答案》的 Agent Card、Task 生命周期与“A2A 管 Agent、MCP 管工具”已在本篇扩展；旧稿的简短状态序列已补全输入/授权中断、终态、取消、恢复和产物验收。</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>远程工具调用在本库的对应物：OpenAI 兼容 HTTP 服务（<code>rag/serve.py</code>，grep 可验）</strong>：<br />
+<code>python
+  app = FastAPI(
+      title="wuyafang RAG OpenAI-compatible API",
+      description="本地知识库 (rag/index, wuyafang_kb) 检索增强问答, 供 OpenWebUI 智能提问调用",
+  )
+  @app.get("/health")                                        # L299 健康探针
+  @app.post("/v1/chat/completions")                          # L321 主入口
+  @app.post("/chat/completions")                             # L322 OpenWebUI 兼容路径
+  def chat_completions(req: ChatCompletionRequest):          # L281 pydantic 入参校验
+      question = last_user_text([m.model_dump() for m in req.messages])</code><br />
+<strong>这是 A2A 的 "agent card / 能力协商" 的最小替代</strong>：<code>/health</code> 报 <code>collection/embeddings/gen_model/dist_threshold</code>（对端据此判断能否干活），<code>/v1/models</code> 报能力清单，响应里带非标准 <code>"rag": {sources, chunks, best_dist, rerank_used, citations}</code> 扩展字段做溯源——对端能读到证据而不只是文本。</li>
+<li><strong>和课件讲法的差异</strong>：课件 A2A 走 <code>AgentCard</code> + JSON-RPC 2.0 + <code>tasks/send</code> 的任务态；本库<strong>没有实现 A2A 协议</strong>，用 OpenAI 兼容 HTTP 充当"能力对等体"，理由是现有六员客户端（OpenWebUI/Ollama 生态）都认 <code>/v1/chat/completions</code>，接 A2A 要额外写 SDK 而收益只在多厂商 agent 互调场景。</li>
+<li><strong>本库暂无</strong>：A2A 的任务生命周期（submitted/working/completed 流式事件）与 artifact 协商均未做；需要跨厂商 agent 互通时按课件补，当前自研 agent 间同步走 <code>~/.hermes/cache/scratch/inflight.json</code> 落盘状态（见 <code>L5-Agent工程/02</code> 小节）。</li>
+</ul>
+<h2 id="证据边界与未验证项">证据边界与未验证项</h2>2
+<ol>
+<li>本次仅整合指定本地资料及其一手官方入口，没有联网补查；版本事实以 2026-11-03 业内完整扫描为准，latest 页面后续可能变化。</li>
+<li>本次未逐条生成或校验官方 v1.0.1 全部 JSON Schema。Agent Card、Signed Card 和 envelope 是教学示例；Signed Card 的签名是明确占位符，不能用于验签或部署，envelope 更不是官方 Task 的替代品。</li>
+<li>所有轮询、流式、状态机、Artifact 校验、取消与恢复代码均为伪代码或示例，<strong>本次未实跑、未启动 A2A Server、未做跨 SDK 或跨版本协议互通</strong>。</li>
+<li>两本书只使用章节重点笔记，本次未通读原书；书籍对 A2A 的覆盖有限，因此没有用书籍笔记证明具体协议字段、媒体类型或授权条款。</li>
+<li>状态迁移表是保守工程子集，不替代目标版本规范；具体事件条件、扩展状态、流式恢复和 push 细节须在实施时对照官方 Schema、SDK 与绑定文档。</li>
+<li>Agent Card 签名、缓存、认证扩展卡、多租户隔离、任务级 scope 和 Artifact 业务正确性都需要独立实测。发现成功、认证成功、验签成功和任务 completed 均不等于业务已授权或验收通过。</li>
+</ol></div></body></html>

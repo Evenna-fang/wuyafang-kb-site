@@ -1,0 +1,272 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RAG和微调到底选哪个</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ RAG和微调到底选哪个</span></div><div class="wrap"><h1 id="rag和微调到底选哪个决策矩阵与组合策略">RAG和微调到底选哪个：决策矩阵与组合策略</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/weread/RAG-Driven%20Generative%20AI.md">RAG-Driven Generative AI</a></p>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E6%90%AD%E5%BB%BA%E5%85%A8%E6%B5%81%E7%A8%8B.html">企业级RAG搭建全流程</a> · <a href="Embedding%E6%A8%A1%E5%9E%8B%E9%80%89%E5%9E%8B%E5%AF%B9%E6%AF%94.html">Embedding模型选型对比</a></p>
+</blockquote>
+<h2 id="why">WHY</h2>2
+<h3 id="核心论点">核心论点</h3>3
+<p><strong>RAG 和微调不是竞争关系而是分层关系：RAG 管"知识外置、可随时更新"，微调管"行为/风格/领域术语内化"，两者解决的是不同问题。</strong> 7 本书（Denis 第 1 章直接对比）的共识是：知识频繁变动、需要引用溯源、要控制幻觉 → RAG；要改输出格式/语气/领域能力、且知识相对稳定 → 微调；而"RAG + 微调"的组合（先 RAG 补知识、再微调对齐行为）才是生产常见终态。判断顺序永远是"先试 RAG，不够再叠加微调"，因为 RAG 可回退可审计，微调改动不可逆。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">为什么会有"选 RAG 还是微调"这个问题（动机与代价）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>动机（WHY）：LLM 的知识固化在权重里，截止训练日期后的新知识、企业私有文档它天然不知道</li><li>判断顺序永远是"先试 RAG（可回退可审计），不够再叠加微调"——因为微调错了没法撤，RAG 错了改文档就行</li></ul></div>3
+<ul>
+<li><strong>动机（WHY）</strong>：LLM 的知识固化在权重里，截止训练日期后的新知识、企业私有文档它天然不知道。解决"模型缺知识"有两条路：把知识外挂成知识库运行时检索（RAG），或把知识训进权重（微调）——两条路的成本结构、更新方式、可审计性完全不同，所以"先做哪个、要不要做另一个"必须先想清，否则会出现"花几天微调了 LLM，其实改两份文档就能解决"的错配。</li>
+<li><strong>代价与权衡</strong>：RAG 的代价是每次回答多一轮检索延迟 + 需要维护知识库（入库/去重/保鲜），收益是知识分钟级可更新、答案带来源可追溯；微调的代价是训练小时-天级、改动不可逆（回滚=重新训练）、需要 1k-10k 条高质量标注，收益是行为/格式/风格稳定内化、推理无检索延迟。判断顺序永远是"先试 RAG（可回退可审计），不够再叠加微调"——因为微调错了没法撤，RAG 错了改文档就行。</li>
+</ul>
+<h2 id="what">WHAT</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">这个问题的答案是什么</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>一句话版本：知识用 RAG，风格用微调，语义用微调 embedding</li><li>生产环境 80% 场景应该是 RAG 为主 + 微调为辅（微调 embedding 而非 LLM）</li></ul></div>3
+<p><strong>不是二选一，而是分层用。</strong> 7 本书（尤其 Denis Rothman 第 1 章直接对比 RAG vs fine-tuning）的共识是：</p>
+<table>
+<thead>
+<tr>
+<th>需求</th>
+<th>选 RAG</th>
+<th>选微调</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>知识频繁更新（新闻、政策、产品文档）</td>
+<td>✅ 改文档即可</td>
+<td>❌ 每次更新都要重训</td>
+</tr>
+<tr>
+<td>需要引用来源、可追溯</td>
+<td>✅ 天然带来源</td>
+<td>❌ 模型不知道从哪来</td>
+</tr>
+<tr>
+<td>领域术语密集、语义理解差</td>
+<td>❌ 通用 embedding 召回差</td>
+<td>✅ 微调 embedding 或 LLM</td>
+</tr>
+<tr>
+<td>固定输出格式 / 风格（如 JSON、法律文书腔）</td>
+<td>❌ prompt 难以稳定控制</td>
+<td>✅ 微调后格式稳定</td>
+</tr>
+<tr>
+<td>数据量 &lt; 1000 条</td>
+<td>❌ 微调数据不够</td>
+<td>✅ few-shot 微调有效</td>
+</tr>
+<tr>
+<td>需要降低推理成本（小模型跑大活）</td>
+<td>❌ 检索延迟高</td>
+<td>✅ 微调小模型替代大模型</td>
+</tr>
+<tr>
+<td>幻觉问题严重</td>
+<td>✅ 有 ground truth 约束</td>
+<td>❌ 微调反而加剧幻觉</td>
+</tr>
+</tbody>
+</table>
+<p><strong>一句话版本</strong>：<strong>知识用 RAG，风格用微调，语义用微调 embedding</strong>。生产环境 80% 场景应该是 RAG 为主 + 微调为辅（微调 embedding 而非 LLM）。</p>
+<hr />
+<h3 id="是什么定义与边界">是什么（定义与边界）</h3>3
+<p><strong>定义</strong>：RAG = 运行时从外部知识库检索相关片段拼进 prompt 再生成（知识外置）；微调（Fine-tuning）= 用标注数据继续训练模型权重，把知识/行为固化进参数（知识内化）。两者不是同一层的替代品：RAG 管"知识从哪来"，微调管"行为/风格/格式长什么样"。</p>
+<p><strong>边界</strong>：<br />
+- ✅ RAG 管：知识时效性（新闻/政策/产品文档）、引用溯源、幻觉约束（有 ground truth）。<br />
+- ✅ 微调管：输出格式稳定（JSON/法律文书腔）、领域对话风格、小模型替代大模型降本。<br />
+- ⚠️ "微调 embedding"是第三条路（只调编码器提升召回，不动生成模型），归在 <a href="Embedding%E6%A8%A1%E5%9E%8B%E9%80%89%E5%9E%8B%E5%AF%B9%E6%AF%94.html">Embedding模型选型对比</a>，不算"微调 LLM"。<br />
+- ⚠️ 两者可组合（"黄金组合"= RAG 补知识 + 微调对齐行为），不是二选一的终局。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">详细对比</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<h4 id="一本质区别">一、本质区别</h4>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>RAG</th>
+<th>微调（Fine-tuning）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>知识来源</td>
+<td>外部知识库，运行时检索</td>
+<td>权重中，训练时固化</td>
+</tr>
+<tr>
+<td>更新成本</td>
+<td>改文档/重建索引（分钟级）</td>
+<td>重新训练（小时-天级）</td>
+</tr>
+<tr>
+<td>可解释性</td>
+<td>天然带来源引用</td>
+<td>黑盒</td>
+</tr>
+<tr>
+<td>数据需求</td>
+<td>文档量越大越好</td>
+<td>高质量标注数据（1k-10k 条）</td>
+</tr>
+<tr>
+<td>推理成本</td>
+<td>检索 + 长上下文 LLM，延迟高</td>
+<td>一次推理，无检索延迟</td>
+</tr>
+<tr>
+<td>擅长</td>
+<td>"什么是X"（事实型）</td>
+<td>"像X一样说话"（风格型）</td>
+</tr>
+<tr>
+<td>幻觉</td>
+<td>低（有 ground truth）</td>
+<td>高（模型可能"编造"）</td>
+</tr>
+</tbody>
+</table>
+<h4 id="二什么时候必须微调-llm不是微调-embedding">二、什么时候必须微调 LLM（不是微调 embedding）</h4>
+<p>只有以下 3 种场景值得直接微调 LLM：<br />
+1. <strong>输出格式高度稳定</strong>：如医疗报告、法律判决书格式，prompt 怎么调都不稳定<br />
+2. <strong>领域对话风格</strong>：如客服需要像真人一样寒暄、委婉拒绝，prompt 控制不了语气<br />
+3. <strong>小模型替代大模型降本</strong>：用 7B 微调后达到 GPT-4 80% 的效果，API 成本降 10 倍</p>
+<p>其他所有场景，先优化 RAG（chunking、embedding、rerank、prompt），不够再微调 embedding 模型。</p>
+<p><strong>优化顺序口诀</strong>（前移微调之前的每一步都有一手数据）：<br />
+- 据[一手源]：RAG优化-外部调研-20260929（StackAI fix-order playbook）：召回差先调 chunking + metadata → 再 hybrid → 再 candidate size → <strong>最后才换 embedding 模型</strong>；换 embedding（含微调）排在最末，说明前几步没做满就微调是错配。同源 arXiv 2604.01733 实测 hybrid+rerank Recall@5 = 0.816，比 dense-only（0.587）高 39%，这笔收益不需要动任何模型权重。<br />
+- 据[一手源]：RAG优化-外部调研-20260929（方向 2，MIT 数据）：95% 的企业 AI pilot 没有可测回报，差异不在模型，在于"工作流逻辑、guardrails、retrieval architecture、monitoring &amp; audit layer"有没有固化进系统——"训模型"通常不是瓶颈。<br />
+- 据[一手源]：RAG进阶调研-6方向-Top3落地方案-20260928：连换 embedding 都建议"先用自建 query eval set 对比，不急着换"（Qwen3-Embedding 对 bge-m3）；bge-m3 自带 sparse + ColBERT 能力本库还没吃满，属免费升级空间，先吃满再谈微调。<br />
+- 据[一手源]：Agentic-RAG-调研-20261012：需求是"多步推理 + 检索"时，Anthropic 的建议仍是"从最简单的方案开始，只在灵活性收益大于延迟和成本时才增加复杂度"，先单 agent + tool use，不是靠训练解决。</p>
+<h4 id="三黄金组合rag-微调-embedding">三、黄金组合：RAG + 微调 embedding</h4>
+<p>这是 7 本书的最强共识——黄佳《RAG实战课》§3.7、Denis《RAG-Driven AI》第 9 章、宁星星《RAG权威指南》第 3 章都提到：</p>
+<p><strong>做法</strong>：拿 RAG 系统在生产中遇到的 bad case（query → 正确文档对），用 contrastive learning 微调 bge-base 模型。效果：<br />
+- 不需要动 LLM<br />
+- 只需要 1000-5000 条标注对<br />
+- 召回率提升 10-20%<br />
+- 推理时还是原来的 bge-m3，成本不变</p>
+<h4 id="四什么时候选-agentic-rag-而不是微调">四、什么时候选 Agentic RAG 而不是微调</h4>
+<p>如果需求是"多步推理 + 检索"（如"比较产品 A 和 B 的价格并做表"），不是微调能解决的，需要 Agentic RAG（郑天民第 7-8 章）——让 LLM 自己决定何时检索、检索几次、如何组合。</p>
+<hr />
+<h3 id="我们库当前的落地点">我们库当前的落地点</h3>3
+<p>我们的 bge-m3 + Chroma + rerank 管线，当前阶段完全不需要微调 LLM。</p>
+<p><strong>优先级排序</strong>：<br />
+1. ✅ 已做：基础 hybrid 检索 + rerank<br />
+2. 🔜 下一步：建评测集跑基线（RAG评估怎么跑.md）<br />
+3. 🔜 下一步：query 改写 / 扩展（解决词汇鸿沟）<br />
+4. 🔜 如果召回差：微调 bge-base 用我们的领域数据（不是微调 LLM）<br />
+5. ⏸️ 远期：如果需要输出严格格式（如 JSON 报告），再考虑微调小 LLM</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">相关条目</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>L6 模型微调（Fine-tuning）— 2026</li></ul></div>3
+<ul>
+<li><a href="../L6-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83/L6-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83-2026.html">L6 模型微调（Fine-tuning）— 2026</a></li>
+</ul>
+<h2 id="how">HOW</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">怎么用（源码框架与技术栈）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<p>决策落地为"先量化差距、再动模型"，本库的真实判据链（<code>rag/</code> 现状）：</p>
+<table>
+<thead>
+<tr>
+<th>优先级</th>
+<th>动作</th>
+<th>真实入口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. 先证明检索没修好（不是模型问题）</td>
+<td>召回评测</td>
+<td><code>rag/eval/eval_recall_fast.py --no-sparse</code>（Recall@1/@5）、<code>rag/eval/_e2e_eval.py</code>（生产保真）</td>
+</tr>
+<tr>
+<td>2. 解决词汇鸿沟（RAG 侧，不碰模型）</td>
+<td>CRAG 查询重写</td>
+<td><code>rag/query.py::rewrite_query_crag()</code>（<code>crag.min_relevant_docs: 2</code> 触发、<code>crag.max_rewrite_retries: 2</code>、<code>crag.rewrite_daily_limit: 100</code> 计数在 <code>data/rewrite_counter.json</code>）</td>
+</tr>
+<tr>
+<td>3. 召回差才微调 embedding（不是 LLM）</td>
+<td>换/微调 bge-m3</td>
+<td>见 <a href="Embedding%E6%A8%A1%E5%9E%8B%E9%80%89%E5%9E%8B%E5%AF%B9%E6%AF%94.html">Embedding模型选型对比</a> 的 <code>rebuild_sparse.py</code> + <code>--rebuild</code> 流程</td>
+</tr>
+<tr>
+<td>4. 远期：输出严格格式才微调小 LLM</td>
+<td>生成层</td>
+<td>当前 <code>ollama_chat()</code>（<code>generation.model = "doubao-seed-2.1-lite"</code> @ 火山 ark，<code>temperature=0.0</code>）+ <code>_validate_citations()</code> 句级引用校验已够用</td>
+</tr>
+</tbody>
+</table>
+<p><strong>判断"该不该走到第 3 步"的可执行命令</strong>：</p>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l/rag/eval
+python3 eval_recall_fast.py --check-golden          # 尺子先绿（exit=0）
+python3 eval_recall_fast.py --mode dense --no-sparse --json-out dense.json
+python3 eval_recall_fast.py --no-sparse --json-out hybrid.json
+# dense-only 与 hybrid 差距 &lt; 5 个点 → 问题在语料/分块/元数据，不在 embedding；
+# hybrid 也上不去 → 才考虑微调 embedding（先攒 20 条 bad case：rag/eval/badcase.jsonl）
+</code></pre>
+<p>CRAG 重写的消融开关：<code>python rag/query.py "&lt;问题&gt;" --no-gen --no-crag</code>（关重写）对照 <code>--no-gen</code>（开重写），看 <code>[crag] 相关片段</code> 与 <code>[rewrite] 重写</code> 行。</p>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">来自哪些书的哪些观点</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Denis Rothman《RAG-Driven Generative AI》：第 1 章直接设了 "RAG versus fine-tuning" 专节，核心结论：RAG 解决"知识时效性"，微调解决"风格和领域适配"，两者互补不互斥</li><li>第 9 章给出了 fine-tune RAG embedding 的完整代码</li><li>黄佳《RAG实战课》：第 3.7 节专门讲"微调嵌入模型"，1438 人划线——先优化 RAG pipeline 的每一环，最后才考虑微调 LLM</li></ul></div>3
+<ul>
+<li><strong>Denis Rothman《RAG-Driven Generative AI》</strong>：第 1 章直接设了 "RAG versus fine-tuning" 专节，核心结论：<strong>RAG 解决"知识时效性"，微调解决"风格和领域适配"，两者互补不互斥</strong>。第 9 章给出了 fine-tune RAG embedding 的完整代码。</li>
+<li><strong>黄佳《RAG实战课》</strong>：第 3.7 节专门讲"微调嵌入模型"，1438 人划线——<strong>先优化 RAG pipeline 的每一环，最后才考虑微调 LLM</strong>。</li>
+<li><strong>宁星星《RAG实践权威指南》</strong>：第 3 章"高阶RAG技术"——检索与生成的融合优于纯微调，因为"微调成本高且更新困难"。</li>
+<li><strong>李多多《企业级RAG系统》</strong>：第 10 章展望——"长上下文模型会改变 RAG 和微调的边界，但不会替代两者"。</li>
+<li><strong>郑天民《从零实现RAG与Agent》</strong>：CRAG / 自适应 RAG 观点——<strong>用检索质量评估组件动态决定是否需要 fallback，比盲目微调更灵活</strong>。</li>
+</ul>
+<p><strong>冲突点</strong>：Denis 偏"微调是 RAG 的进阶优化"，黄佳偏"先把 RAG pipeline 每一环拉满再说"。两者其实一致：微调是最后一步，不是第一步。</p>
+<hr />
+<h3 id="三源融合清单">三源融合清单</h3>3
+<ul>
+<li>[书1] 书籍：<a href="../../raw/weread/RAG-Driven%20Generative%20AI.md">RAG-Driven Generative AI</a>——RAG 与微调分工、embedding 微调。</li>
+<li>[书2] 书籍：<a href="../../raw/weread/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%20RAG%E5%AE%9E%E6%88%98%E8%AF%BE.md">大模型应用开发 RAG实战课</a>——先优化 RAG pipeline，再考虑微调。</li>
+<li>[书3] 书籍：<a href="../../raw/weread/RAG%E5%AE%9E%E8%B7%B5%E6%9D%83%E5%A8%81%E6%8C%87%E5%8D%97%EF%BC%9A%E6%9E%84%E5%BB%BA%E7%B2%BE%E5%87%86%E3%80%81%E9%AB%98%E6%95%88%E5%A4%A7%E6%A8%A1%E5%9E%8B%E4%B9%8B%E9%81%93.md">RAG实践权威指南</a>——检索与生成融合及微调成本边界。</li>
+<li>[书4] 书籍：<a href="../../raw/weread/%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E6%9E%84%E5%BB%BA%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E7%B3%BB%E7%BB%9F.md">从零开始构建企业级RAG系统</a>——长上下文与 RAG/微调的边界。</li>
+<li>[书5] 书籍：<a href="../../raw/weread/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%AE%9E%E6%88%98%EF%BC%9A%E4%BB%8E%E9%9B%B6%E5%AE%9E%E7%8E%B0RAG%E4%B8%8EAgent%E7%B3%BB%E7%BB%9F.md">大模型实战：从零实现RAG与Agent系统</a>——CRAG、自适应 RAG 与 Agentic 路线。</li>
+<li>[业1] 业内：<a href="../../raw/sources/RAG%E4%BC%98%E5%8C%96-%E5%A4%96%E9%83%A8%E8%B0%83%E7%A0%94-20260929.md">RAG优化外部调研</a>——fix-order；文内转引 arXiv:2604.01733。</li>
+<li>[业2] 业内：<a href="../../raw/rag-arch/RAG%E8%BF%9B%E9%98%B6%E8%B0%83%E7%A0%94-6%E6%96%B9%E5%90%91-Top3%E8%90%BD%E5%9C%B0%E6%96%B9%E6%A1%88-20260928.md">RAG进阶调研</a> 与 <a href="../../raw/sources/Agentic-RAG-%E8%B0%83%E7%A0%94-20261012.md">Agentic RAG 调研</a>。</li>
+<li>说明：原文未列具体课件路径，本次不补造。</li>
+</ul>
+</div></details><h2 id="本库真实落地">本库真实落地</h2>2
+<blockquote>
+<p>本节 2026-11-05 补写，逐条核验路径与函数名（可 grep 复核），不复述正文。</p>
+</blockquote>
+<ul>
+<li><strong>本库的选择是"先 RAG 拉满、暂不微调"，有源码为证</strong>：全库检索链路集中在 <code>rag/query.py</code>（<code>retrieve_hybrid()</code> L867 → <code>rrf_fuse()</code> L428 → <code>rerank()</code> L890 → <code>gate_node()</code> L2245），且 CRAG 改写 <code>rewrite_query_crag()</code>（L1027）明确把"改写查询"当召回率杠杆——正文"微调是最后一步"的判断在这条链路上是实际执行的。</li>
+<li><strong>本库暂无任何微调训练代码</strong>（本次 <code>find</code> 未命中 train/finetune/lora 相关 <code>.py</code>）；模型侧只有推理与降级：<code>rag/serve.py</code> <code>gen_with_fallback()</code>（L136，本地 Ollama → 云端豆包两档兜底）。若未来做"embedding 微调"，本库的切分与评测基建可直接复用：<code>rag/eval/eval_recall_fast.py</code> <code>check_golden()</code>（L70）保证尺子不烂，<code>rag/eval/_e2e_eval.py</code> <code>append_badcase()</code>（L30）收集失败题当训练/评测样本。</li>
+<li><strong>和课件讲法的差异</strong>：书与课件多给"RAG vs 微调"决策树；本库把决策树压成了一个事实——<strong>先把检索链路每一环（切分/融合/重排/门禁）拉满并留评测，再谈微调</strong>，与黄佳"先拉满 pipeline"路线一致。</li>
+</ul></div></body></html>

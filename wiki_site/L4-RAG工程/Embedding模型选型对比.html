@@ -1,0 +1,321 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Embedding模型选型对比</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ Embedding模型选型对比</span></div><div class="wrap"><h1 id="embedding模型选型对比bge-m3-openai-cohere-怎么选">Embedding模型选型对比：bge-m3 / OpenAI / Cohere 怎么选</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构</a> · <a href="RAG%E6%A3%80%E7%B4%A2%E4%B8%8D%E5%87%86%E6%80%8E%E4%B9%88%E6%8E%92%E6%9F%A5.html">RAG检索不准怎么排查</a></p>
+</blockquote>
+<h2 id="why">WHY</h2>2
+<h3 id="核心论点">核心论点</h3>3
+<p><strong>通用语料上的 benchmark 排名对生产选型只有参考价值，真正的决策变量是"你的场景 × 部署约束 × 语言"三者的交集。</strong> 中文为主、要私有化、要 dense+sparse 一体输出时 bge-m3 是无需争论的默认解；英文极致质量才轮到 OpenAI 3-large，窄领域必须用 (query, relevant_doc) badcase 微调而非换通用模型。比选型本身更硬的规则是三条工程约束：换模型必须重建索引（向量空间不兼容）、维度不是越高越好（3072 维成本 3 倍收益约 3%）、改 embedding 前先用 100 条领域 query 实测 Recall@5 而不是看 MTEB 榜。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">为什么要选型（动机与代价）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>动机（WHY）：embedding 模型决定"文本→向量"这一步的语义保真度，是 RAG 检索质量的地基——模型在你的语言/领域上理解力不够，后面 chunk 切得再好、rerank 再强也救不回第一轮召不回正确文档的损失</li><li>所以选型的本质是"你的场景 × 部署约束 × 语言"三者的交集匹配，不是"哪个分高"</li><li>所以"选错的代价"是一次全库重灌 + 数天评测验证，不是一行配置的切换成本——这也是为什么"先用 100 条领域 query 实测 Recall@5，再决定"是硬规则而非建议</li></ul></div>3
+<ul>
+<li><strong>动机（WHY）</strong>：embedding 模型决定"文本→向量"这一步的语义保真度，是 RAG 检索质量的地基——模型在你的语言/领域上理解力不够，后面 chunk 切得再好、rerank 再强也救不回第一轮召不回正确文档的损失。但选型不是追 benchmark：MTEB 榜测的是通用语料，而生产语料是"中文为主？英文为主？法律/医疗术语密集？"——榜单第一的模型在你的领域可能反而差（例：all-MiniLM 英文榜不错，中文召回率掉一半）。所以选型的本质是<strong>"你的场景 × 部署约束 × 语言"三者的交集匹配</strong>，不是"哪个分高"。</li>
+<li><strong>代价与权衡</strong>：换 embedding 模型必须<strong>全量重建索引</strong>（不同模型向量空间不兼容，旧向量直接作废）；维度不是越高越好（3072 维存储/计算成本 3 倍于 1024 维，质量收益约 3%）；私有化 vs API 影响成本与数据出境。所以"选错的代价"是一次全库重灌 + 数天评测验证，不是一行配置的切换成本——这也是为什么"先用 100 条领域 query 实测 Recall@5，再决定"是硬规则而非建议。</li>
+</ul>
+<h2 id="what">WHAT</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">这个问题的答案是什么</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>没有万能的 embedding 模型，只有"场景匹配"</li><li>一句话版本：中文生产环境直接上 bge-m3 不踩坑；英文生产上 OpenAI；窄领域必须微调</li></ul></div>3
+<p><strong>没有万能的 embedding 模型，只有"场景匹配"。</strong> 7 本书 + 生产实践交叉验证下来：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>推荐</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>中文为主 + 开源可控 + 多语言</strong></td>
+<td><strong>bge-m3</strong>（我们的选择）</td>
+<td>中英文双语最强开源、dense+sparse 一体、8K 上下文、免费</td>
+</tr>
+<tr>
+<td><strong>英文为主 + 追求极致质量</strong></td>
+<td><strong>OpenAI text-embedding-3-large</strong></td>
+<td>MTEB 英文榜 Top、API 稳定、省心</td>
+</tr>
+<tr>
+<td><strong>法律/医疗等窄领域</strong></td>
+<td><strong>领域微调后的 bge-base</strong></td>
+<td>通用模型在术语密度高的领域召回率掉 20-30%</td>
+</tr>
+<tr>
+<td><strong>极致成本敏感（&lt; $0.02/1M token）</strong></td>
+<td><strong>bge-small / all-MiniLM-L6-v2</strong></td>
+<td>质量降一档但便宜 100 倍</td>
+</tr>
+</tbody>
+</table>
+<p><strong>一句话版本</strong>：中文生产环境直接上 bge-m3 不踩坑；英文生产上 OpenAI；窄领域必须微调。</p>
+<hr />
+<h3 id="是什么定义与边界">是什么（定义与边界）</h3>3
+<p><strong>定义</strong>：embedding 模型 = 把文本映射为定长向量、使语义相近的文本在向量空间中距离相近的编码器；RAG 用它把 query 和 chunk 编码到同一空间做相似度检索。选型维度：语言覆盖、维度、最大上下文、dense/sparse 是否一体输出、开源 vs API、价格。</p>
+<p><strong>边界</strong>：<br />
+- ✅ 管：检索第一轮的召回质量（"能不能把正确文档召回来"）。<br />
+- ❌ 不管：排序精度（cross-encoder rerank 的活）、生成质量（LLM 的活）、语料覆盖（知识库内容的活）。<br />
+- ⚠️ "微调 embedding"与"微调 LLM"是两回事：本文的微调指用 (query, relevant_doc) badcase 对微调编码器（提升召回 10-20%），不涉及生成模型——见 <a href="RAG%E5%92%8C%E5%BE%AE%E8%B0%83%E5%88%B0%E5%BA%95%E9%80%89%E5%93%AA%E4%B8%AA.html">RAG和微调到底选哪个</a>。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">详细对比</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<h4 id="一主流模型横评">一、主流模型横评</h4>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>维度</th>
+<th>最大长度</th>
+<th>语言</th>
+<th>价格</th>
+<th>MTEB 中文</th>
+<th>MTEB 英文</th>
+<th>开源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>bge-m3</strong></td>
+<td>1024</td>
+<td>8192</td>
+<td>100+</td>
+<td>免费</td>
+<td>75+</td>
+<td>64+</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>bge-large-zh-v1.5</strong></td>
+<td>1024</td>
+<td>512</td>
+<td>中</td>
+<td>免费</td>
+<td>71</td>
+<td>50</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>OpenAI text-embedding-3-large</strong></td>
+<td>3072</td>
+<td>8191</td>
+<td>多</td>
+<td>$0.13/1M</td>
+<td>72</td>
+<td>60+</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>OpenAI text-embedding-3-small</strong></td>
+<td>1536</td>
+<td>8191</td>
+<td>多</td>
+<td>$0.02/1M</td>
+<td>65</td>
+<td>55</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>Cohere embed v3</strong></td>
+<td>1024</td>
+<td>512</td>
+<td>多</td>
+<td>$0.10/1M</td>
+<td>70</td>
+<td>63</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>Jina v3</strong></td>
+<td>1024</td>
+<td>8192</td>
+<td>多</td>
+<td>$0.02/1M</td>
+<td>68</td>
+<td>58</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Voyage voyage-2</strong></td>
+<td>1024</td>
+<td>4096</td>
+<td>多</td>
+<td>$0.12/1M</td>
+<td>69</td>
+<td>67</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>all-MiniLM-L6-v2</strong></td>
+<td>384</td>
+<td>256</td>
+<td>英</td>
+<td>免费</td>
+<td>40</td>
+<td>56</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<h4 id="二选型决策树">二、选型决策树</h4>
+<pre><code>你的场景？
+├─ 中文为主？
+│  ├─ 需要开源/私有部署？ → bge-m3 ✅
+│  └─ 可以用付费 API？ → OpenAI text-embedding-3-large（中文质量略高于 bge-m3）
+├─ 英文为主？
+│  ├─ 追求极致质量？ → OpenAI voyage-2
+│  └─ 成本优先？ → text-embedding-3-small
+├─ 法律/医疗/金融窄领域？
+│  └─ 通用模型召回差 → 用 bge-base 做领域微调（黄佳 §3.7）
+└─ 多语言混合？
+   └─ bge-m3 或 Cohere embed v3
+</code></pre>
+<h4 id="三关键陷阱">三、关键陷阱</h4>
+<ol>
+<li><strong>不要用只在英文上训练的模型跑中文</strong>：all-MiniLM 在中文上召回率会掉一半</li>
+<li><strong>向量维度不是越高越好</strong>：3072 维存储和计算成本是 1024 维的 3 倍，质量提升可能只有 3%</li>
+<li><strong>换 embedding 模型必须重建索引</strong>：不同模型的向量空间不兼容，不能混用</li>
+<li><strong>bge-m3 的 sparse 输出要单独启用</strong>：默认只输出 dense，用 <code>return_sparse=True</code> 才能拿到 BM25 风格的稀疏向量</li>
+<li><strong>微调 embedding 比换生成模型收益更大</strong>：黄佳《RAG实战课》第 3.7 节专门讲微调 embedding，1438 人划线——领域内微调通常能把 Recall@5 提升 10-20%</li>
+<li>据[一手源]：RAG优化-外部调研-20260929（StackAI fix-order playbook）：召回差时换 embedding 排在<strong>最后一位</strong>——顺序是 chunking + metadata → hybrid → candidate size → 才换模型；换模型前先证明前三步已做满。</li>
+<li>据[一手源]：RAG进阶调研-6方向-Top3落地方案-20260928（2026 开源横评，tier2）：Qwen3-Embedding-8B（2026 初）MTEB v2 开源第一，约 75%；BGE-M3 仍是 HF 下载量第一（568M 参数、1024 维、100+ 语言、8192 context），且<strong>单模型同时输出 dense / sparse / ColBERT multi-vector 三种</strong>；BEIR 上三模式混合比单模式 nDCG@10 高 2–5 点。本库 bge-m3 目前只用 dense + sparse，ColBERT multi-vector 能力未启用，是"免费的升级空间"。长文档（&gt; 2048 token）子集可备 Qwen3-Embedding-0.6B/4B（32K context）；8GB 笔记本本地跑 BGE-M3 或 Nomic v2。中文场景 BGE-M3 与 Qwen3 谁更好，必须在自建 query eval set 上实测，不凭榜单直接切。</li>
+<li>据[一手源]：多模态RAG图片处理两路线-飞书-20261020：图片进 RAG 时 embedding 有两种选法——路线一用<strong>多模态 Embedding</strong>（图片直接转向量，查询时每次要调多模态模型，需与文本向量双路融合）；路线二用 <strong>VLM 生成描述 + 文本 Embedding</strong>（沿用本篇的文本模型如 bge-m3，产出直接并入现有 dense+sparse 检索）。本库图片多为课件截图，沿用文本 embedding 的路线二不用换模型。</li>
+</ol>
+<hr />
+<h3 id="我们库当前的落地点">我们库当前的落地点</h3>3
+<p>我们已经选了 <strong>bge-m3</strong>——这是中文开源场景的最优解，理由：<br />
+- dense (1024维) + sparse 一体输出，天然支持 hybrid 检索，不需要单独跑 BM25<br />
+- 8K 上下文窗口，能吃下整个段落<br />
+- 免费开源，私有化部署无 API 成本</p>
+<p><strong>下一步优化</strong>：<br />
+1. 在我们自己的 100 条 query 上跑 Recall@5 基线，确认 bge-m3 在我们的文档域上表现是否达标<br />
+2. 如果某些领域（如法律合同）召回差，用领域数据微调 bge-base<br />
+3. 考虑加 Cohere Rerank（cross-encoder 精排），这一步的收益通常比换 embedding 模型更大</p>
+</div></details><h2 id="how">HOW</h2>2
+<h3 id="怎么用源码框架与技术栈">怎么用（源码框架与技术栈）</h3>3
+<p>换 embedding 模型 = 改 <code>rag/config.yaml</code> 的 <code>embedding.model</code> / <code>embedding.bge_m3_local_path</code> 两个键 + 重灌，本库当前真实落地：</p>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>真实函数/配置</th>
+<th>当前值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>查询侧统一加载</td>
+<td><code>rag/query.py::_get_m3_model()</code>（<code>BGEM3FlagModel(path, use_fp16=False)</code>，dense+sparse 单实例）</td>
+<td>snapshot <code>5617a9f61b028005a4858fdac845db406aefb181</code></td>
+</tr>
+<tr>
+<td>入库侧编码</td>
+<td><code>rag/ingest.py::encode_with_sparse()</code>（<code>model.encode(..., return_dense=True, return_sparse=True, batch_size=RAG_EMBED_BATCH)</code>，<code>RAG_EMBED_BATCH = int(os.environ.get("RAG_EMBED_BATCH", "4"))</code>，按长度升序编码）</td>
+<td>bge-m3 dense 1024 维 + lexical_weights</td>
+</tr>
+<tr>
+<td>sparse 开关</td>
+<td><code>config.yaml</code> → <code>embedding.sparse_disabled</code>（<code>query_sparse()</code> 里判空）</td>
+<td>未禁用</td>
+</tr>
+<tr>
+<td>精排对照</td>
+<td><code>rag/query.py::get_reranker()</code>（<code>FlagReranker</code>，bge-reranker-v2-m3，snapshot <code>953dc6f6...</code>）</td>
+<td>与 embedding 独立，收益常大于换 embedding</td>
+</tr>
+</tbody>
+</table>
+<p><strong>换模型的标准动作</strong>：</p>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+# 1) 改 config.yaml 的 embedding.bge_m3_local_path / embedding.model（或环境变量 RAG_BGE_M3_PATH / RAG_EMBED_MODEL）
+# 2) 全量重灌（向量空间变了，旧向量必须重建）
+python rag/ingest.py --rebuild          # 危险：先备份 rag/index 与 rag/data/registry.json
+# 3) sparse 必须重建（换模型后 sparse 头不对齐会全库命中噪声）
+python rag/rebuild_sparse.py            # 支持 --offset/--limit/--dry-run
+</code></pre>
+<p><strong>选型验收</strong>（同尺子同口径，别用感觉）：</p>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l/rag/eval
+python3 eval_recall_fast.py --check-golden &amp;&amp; python3 eval_recall_fast.py --no-sparse --json-out after.json
+</code></pre>
+<p>与换模型前的 <code>before.json</code> 对比 Recall@5。注意：bge-m3 本地 snapshot 缺 <code>sparse_linear.pt</code> 时会用随机头算 sparse（全库命中 ≈93% 无区分度），换模型后先跑 <code>rebuild_sparse.py</code> 再评测。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库选的是 bge-m3，理由是「一个模型同时出 dense 和 sparse」——本次实跑验证了这一点（<code>rag/.venv</code>，2026-11-04）</strong>：<br />
+<code>[m3] bge-m3统一模型已加载(dense+sparse共用): /home/wuyafang/models/bge-m3
+  [m3] sparse 头来源(非随机初始化): /home/wuyafang/models/bge-m3/sparse_linear.pt (3516B sha256=45c93804d2142b8f)
+  local_dense dim=1024 head=[-0.0071, 0.0166, -0.0302, -0.0003] load+encode=224.7s
+  sparse tokens=15 head=[('19071', 0.11032017320394516), ('30094', 0.2633190155029297), ...] enc=0.3s</code></li>
+<li><strong>选型里最容易被忽略的一条：同一个模型名不等于同样输出（<code>rag/config.yaml</code> L17-19，本次读源码）</strong>：<br />
+<code>yaml
+  # [2026-10-14 澄清] eval_mode=true 仅让 *dense* 编码走 Ollama(省内存),
+  # 不再影响 sparse —— query_sparse() 已改为独立加载本地模型(_get_sparse_model)。
+  # Ollama 的 bge-m3 只输出 dense 1024 维, 没有 lexical_weights, 无法提供 sparse。</code><br />
+<strong>Ollama 里的 bge-m3 只能给 dense</strong>，要 sparse 必须本地 <code>FlagEmbedding</code> 加载带 <code>sparse_linear.pt</code> 的权重——混用会得到「dense 变了、sparse 没变」而不报错。</li>
+<li><strong>加载器还有一道自检</strong>：<code>_get_m3_model()</code>（L256）在加载前检查 sparse 头文件，不可用就<strong>拒绝加载</strong>（<code>拒绝加载(避免随机初始化)</code>），而不是带病运行。随机初始化的 sparse 头会让检索结果看起来「能用」但毫无意义。</li>
+<li><strong>和课件讲法的差异</strong>：课件对比 embedding 多比 MTEB 分数与维度；本库的决策变量是「<strong>能否同时提供 dense+sparse、能否本地离线跑、加载耗时</strong>」。224.7 秒的冷加载是真实成本，选型时必须计入。</li>
+<li><strong>本库暂无</strong>：没有对本库语料做的 embedding 横向评测（bge-m3 vs 其他模型在同一套 golden 问题上的 R@k），选型依据来自通用榜单 + 本地可跑性。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本次实测 bge-m3 单模型同时出 dense 1024 维与 sparse 15-token 权重，加载耗时 224.7s（首次加载本机 bge-m3 权重）、之后单句编码 0.3s；本库归档/查询必须在同一个 <code>BGEM3FlagModel</code> 实例上出向量（<code>rag/query.py</code> L256 <code>_get_m3_model</code>）。</li>
+<li><strong>读源码</strong>：选型维度；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<h3 id="来自哪些书的哪些观点">来自哪些书的哪些观点</h3>3
+<ul>
+<li><strong>黄佳《RAG实战课》</strong>：第 3 章完整对比 OpenAI / Jina / Cohere / Voyage，明确推荐"根据任务选模型，不要盲目追最大"。重点：<strong>稀疏嵌入、密集嵌入和 BM25 是三种不同的编码范式</strong>（§3.4），不是越新越好。</li>
+<li><strong>郑天民《从零实现RAG与Agent系统》</strong>：强调 embedding 是 RAG 的"基础设施"，1052 人划线——"Embeddings 模型可将文本信息转化为数字表示形式，便于进行语义搜索"。</li>
+<li><strong>凌峰《构建智能生成系统》</strong>：242 人划线——"向量检索利用嵌入模型将文本语义信息保存在向量中，从而能够匹配语义上相关的内容，而不仅仅是字面相似的内容"。</li>
+<li><strong>Denis Rothman《RAG-Driven Generative AI》</strong>：第 9 章专门讲 fine-tuning RAG embedding 数据——把检索到的 bad case 做成 (query, relevant_doc) 对来微调 embedding 模型。</li>
+</ul>
+<p><strong>冲突点</strong>：黄佳建议多模型对比测评（MTEB + 自己的领域数据），Denis 建议直接微调。两者结合：先用 MTEB 选 2-3 个候选，在自己的 100 条 domain query 上实测，不行再微调。</p>
+<hr />
+<h3 id="三源融合清单">三源融合清单</h3>3
+<ul>
+<li>[书1] 书籍：<a href="../../raw/weread/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%20RAG%E5%AE%9E%E6%88%98%E8%AF%BE.md">大模型应用开发 RAG实战课</a>——模型对比、稀疏/密集嵌入与微调 embedding。</li>
+<li>[书2] 书籍：<a href="../../raw/weread/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%AE%9E%E6%88%98%EF%BC%9A%E4%BB%8E%E9%9B%B6%E5%AE%9E%E7%8E%B0RAG%E4%B8%8EAgent%E7%B3%BB%E7%BB%9F.md">大模型实战：从零实现RAG与Agent系统</a>——embedding 作为 RAG 基础设施。</li>
+<li>[书3] 书籍：<a href="../../raw/weread/%E5%A4%A7%E6%A8%A1%E5%9E%8BRAG%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%EF%BC%9A%E6%9E%84%E5%BB%BA%E6%99%BA%E8%83%BD%E7%94%9F%E6%88%90%E7%B3%BB%E7%BB%9F.md">大模型RAG应用开发：构建智能生成系统</a>——向量检索的语义匹配作用。</li>
+<li>[书4] 书籍：<a href="../../raw/weread/RAG-Driven%20Generative%20AI.md">RAG-Driven Generative AI</a>——以 bad case 构造检索对并微调 embedding。</li>
+<li>[业1] 业内：<a href="../../raw/sources/RAG%E4%BC%98%E5%8C%96-%E5%A4%96%E9%83%A8%E8%B0%83%E7%A0%94-20260929.md">RAG优化外部调研</a>——StackAI fix-order；文内转引 arXiv:2604.01733。</li>
+<li>[业2] 业内：<a href="../../raw/rag-arch/RAG%E8%BF%9B%E9%98%B6%E8%B0%83%E7%A0%94-6%E6%96%B9%E5%90%91-Top3%E8%90%BD%E5%9C%B0%E6%96%B9%E6%A1%88-20260928.md">RAG进阶调研</a> 与 <a href="../../raw/rag-arch/%E5%A4%9A%E6%A8%A1%E6%80%81RAG%E5%9B%BE%E7%89%87%E5%A4%84%E7%90%86%E4%B8%A4%E8%B7%AF%E7%BA%BF-%E9%A3%9E%E4%B9%A6-20261020.md">多模态RAG图片处理两路线</a>。</li>
+<li>说明：原文未列具体课件路径，本次不补造。</li>
+</ul></div></body></html>

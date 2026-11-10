@@ -1,0 +1,640 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L0-Python异步-2-事件循环与实战进阶</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L0-Python异步-2-事件循环与实战进阶</span></div><div class="wrap"><h1 id="python-异步编程二事件循环与实战进阶">Python 异步编程（二）：事件循环与实战进阶</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">概述</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>承接文档一的协程、「async/await」 和基本并发，本篇解决“代码能跑，但任务为什么卡住、失败后谁来收尾、请求变多后怎样保持稳定”的问题</li><li>学习目标是把一组协程组织成有生命周期、有并发上限、有取消与超时边界的程序，而不只是把函数声明改成 「async def」</li><li>事件循环内部机制、取消和调试语义按 Python 标准库补全</li></ul></div>2
+<p>承接文档一的协程、<code>async/await</code> 和基本并发，本篇解决“代码能跑，但任务为什么卡住、失败后谁来收尾、请求变多后怎样保持稳定”的问题。学习目标是把一组协程组织成有生命周期、有并发上限、有取消与超时边界的程序，而不只是把函数声明改成 <code>async def</code>。</p>
+<p>本文主要提炼《源码资料汇总》的素材 A（学生手册第五部分）和素材 B（asyncio 生态），沿用数据源查询、异步计时器、模拟数据库连接池、批量抓取与生产者消费者等教学情境；FastAPI 部分结合素材 C 的接口并发概念和素材 D 的流式响应组织方式。事件循环内部机制、取消和调试语义按 Python 标准库补全。FastAPI 整合代码是基于这些模式改写的最小教学示例，不是课件原文，也不代表已经部署的业务案例。</p>
+<p><strong>运行约定</strong>：统一使用 Python 3.11+。普通 Python 代码块各自完整，可以分别保存为脚本执行；错误函数只供对照，默认入口运行正确路径。FastAPI 示例另需安装依赖。Notebook 的顶层 <code>await</code> 属于交互环境语法，不要直接复制进普通脚本。</p>
+<p><strong>知识属性</strong>：L0 基础教程；来源为课件消化提炼；核验日期 2026-10-30；TTL 180 天，复查时重点检查 Python 版本与框架生命周期接口。</p>
+<h2 id="1-是什么事件循环是协程的调度引擎">1. 是什么：事件循环是协程的调度引擎</h2>2
+<p>事件循环可以理解成一位持续接收通知、安排下一步工作的调度员。协程运行到真正需要等待的异步操作时暂停，循环便执行其他就绪工作；当网络可读、定时器到期或等待的结果准备好时，再安排相关协程恢复。它不会替普通 Python 代码自动插入切换点，也不会让同一线程同时执行两段 Python 函数体。</p>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>在程序中承担的职责</th>
+<th>初学者要记住的边界</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>协程对象</td>
+<td>描述可以暂停和恢复的执行过程</td>
+<td>调用异步函数不等于已经执行它</td>
+</tr>
+<tr>
+<td>Task / Future</td>
+<td>Task 驱动协程，Future 表示未来结果；Task 是 Future 的子类</td>
+<td>业务代码通常创建 Task，不直接操作 Future</td>
+</tr>
+<tr>
+<td>就绪队列</td>
+<td>保存准备运行的回调以及任务恢复动作</td>
+<td>回调执行太久会影响排在后面的工作</td>
+</tr>
+<tr>
+<td>定时回调</td>
+<td>到指定时间后进入可执行状态</td>
+<td>到期意味着可以调度，不保证精确按时执行</td>
+</tr>
+<tr>
+<td>I/O 通知</td>
+<td>告诉循环某个异步等待可以继续</td>
+<td>底层实现随平台而异，不必手工轮询</td>
+</tr>
+<tr>
+<td><code>asyncio.run</code></td>
+<td>为一次顶层调用创建、运行并关闭事件循环</td>
+<td>返回前处理剩余任务取消、异步生成器和执行器收尾</td>
+</tr>
+</tbody>
+</table>
+<p>从 CPython 的常见实现看，循环会结合就绪回调、定时器和底层 I/O 等待推进工作；这是一种理解模型，不应把内部私有队列当成公共接口。<code>asyncio.run(main())</code> 是脚本推荐入口，业务协程里用 <code>get_running_loop()</code> 取得正在运行的循环。不要把某次运行创建的客户端、锁或任务随意带到另一个已经重建的循环中复用。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">2. 为什么：理解调度边界才能解释性能和故障</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="21-单线程协作式调度不会抢救阻塞代码">2.1 单线程协作式调度不会抢救阻塞代码</h3>3
+<p>协作式调度依赖正在执行的任务主动让出控制权。<code>await</code> 是等待语法，但不是“这一行必定让出线程”的保证：如果等待对象已经完成，或者被调用的协程没有真正挂起，它可能立即继续。连续执行大量这种操作，仍可能长时间占用循环。理解这一点后，就不会把所有延迟都归因于网络慢。</p>
+<p>常说“阻塞一个 await 拖垮整个 loop”，准确含义是：被 await 的协程如果执行了同步阻塞操作，它占住的仍是事件循环线程。<code>await bad_fetch()</code> 无法把 <code>bad_fetch</code> 内部的 <code>requests.get</code> 变成异步请求。反过来，一个正常挂起、等待异步网络响应的任务不会拖住整个循环，其他任务仍可推进。诊断时必须区分“当前请求在等待”和“所有请求都无法被调度”。</p>
+<p>素材 C 的咖啡店比喻说明等待可以重叠；落实到服务端，收益来自多个请求的 I/O 等待互相交错，而不是协程提高了单个 CPU 核心的计算能力。如果响应前还要做大段压缩、解析或模型计算，循环仍会被计算占用。同步 I/O 可用线程桥接；纯 Python CPU 密集工作一般应考虑进程或独立服务，不能指望加一个 <code>await</code> 就获得并行计算。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.2 并发能力越强，越需要限制下游压力</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>假设每个入口请求并发访问三个下游，入口同时有一百个请求，就可能产生三百个正在等待的下游调用</li><li>若每次都新建连接、无限创建任务，数据库连接池、文件描述符和对端限额会先耗尽</li><li>此时总吞吐未必增加，排队、超时和重试反而会放大压力</li></ul></div>3
+<p>假设每个入口请求并发访问三个下游，入口同时有一百个请求，就可能产生三百个正在等待的下游调用。若每次都新建连接、无限创建任务，数据库连接池、文件描述符和对端限额会先耗尽。此时总吞吐未必增加，排队、超时和重试反而会放大压力。</p>
+<p>信号量限制“正在执行的调用数”，连接池限制“可用连接数”，有界队列限制“积压工作数”，三者解决不同问题。只给一百万个 Task 外面套信号量，虽然限制了网络并发，却仍要为一百万个任务对象分配内存。素材 A 的小批量抓取适合演示信号量；素材 B 的生产者消费者更适合解释大量输入时的背压。</p>
+<h3 id="23-失败与退出也是并发程序的一部分">2.3 失败与退出也是并发程序的一部分</h3>3
+<p>并发调用的难点往往在正常返回之外：一个下游失败后，其他调用是否继续？请求超时以后，后台任务是否还在占资源？服务退出时，连接和生成器由谁关闭？这些问题都与任务的所有者有关。结构化并发把任务放进明确作用域，取消语义让停止请求有机会执行清理，超时则为等待设定边界。</p>
+<p>因此，最常见的性能事故“async 里塞同步代码”需要从调用链定位；最常见的资源事故“创建后没人等待”需要从生命周期定位。下面按入口、任务、资源、接口、排错的顺序建立可直接使用的做法。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">3. 怎么做：控制事件循环与任务生命周期</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="31-用回调排队观察循环行为">3.1 用回调排队观察循环行为</h3>3
+<p><code>call_soon</code> 登记下一轮可执行的普通回调，同一线程按登记顺序调用；<code>call_later</code> 接收相对延迟，<code>call_at</code> 接收循环单调时钟的绝对时间。不要把 <code>time.time()</code> 的日历时间传给 <code>call_at</code>。回调必须是短小的同步函数，不能直接传异步函数并期待循环自动 await。</p>
+<pre><code class="language-python">import asyncio
+
+async def worker():
+    # 只有进入正在执行的 Task 后，current_task 才有业务意义。
+    print(&quot;当前任务：&quot;, asyncio.current_task().get_name())
+    await asyncio.sleep(0.01)
+    return &quot;完成&quot;
+
+async def main():
+    loop = asyncio.get_running_loop()
+    loop.call_soon(print, &quot;回调一&quot;)
+    loop.call_soon(print, &quot;回调二&quot;)  # 与回调一保持登记顺序
+    removed = loop.call_later(1, print, &quot;这条已取消&quot;)
+    removed.cancel()
+    loop.call_later(0.02, print, &quot;相对定时回调&quot;)
+    loop.call_at(loop.time() + 0.03, print, &quot;绝对定时回调&quot;)
+    task = loop.create_task(worker(), name=&quot;查询任务&quot;)
+    print(&quot;主协程先执行到这里&quot;)
+    print(await task)  # 等待时允许已登记的回调与任务运行
+    await asyncio.sleep(0.05)  # 给本例定时回调留出执行时间
+
+asyncio.run(main())
+</code></pre>
+<p>默认任务工厂下，创建任务意味着将其安排执行，不意味着创建语句返回时它已经完成；如果应用显式启用了立即执行任务的工厂，启动时机可能不同。上例依赖的关键保证是回调登记顺序和显式等待，不应扩展推断所有定时回调的精确输出顺序。</p>
+<p>在普通协程里，<code>asyncio.create_task()</code> 通常比先取 loop 更简洁。只有需要定时回调或底层接口时才取循环。创建任务后保存引用，并决定在哪里等待、在哪里取消；不能把“程序马上退出时 run 会帮忙取消”当成正常业务收尾策略。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">3.2 用 TaskGroup 管理同一批数据源查询</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>以下改写素材 A 的数据库、API、缓存查询示例</li><li>「TaskGroup」 退出时等待组内任务结束；正常退出后可读取结果</li><li>如果某个任务出现非取消异常，组会取消其余任务、等待清理，再抛出异常组</li></ul></div>3
+<p>以下改写素材 A 的数据库、API、缓存查询示例。<code>TaskGroup</code> 退出时等待组内任务结束；正常退出后可读取结果。如果某个任务出现非取消异常，组会取消其余任务、等待清理，再抛出异常组。只有在成功路径才能直接对每个任务调用 <code>result()</code>。</p>
+<pre><code class="language-python">import asyncio
+
+async def fetch_data(source, delay):
+    await asyncio.sleep(delay)  # 模拟课件中的数据源 I/O
+    return {&quot;source&quot;: source, &quot;data&quot;: [1, 2, 3]}
+
+async def main():
+    async with asyncio.TaskGroup() as group:
+        tasks = [
+            group.create_task(fetch_data(name, delay), name=name)
+            for name, delay in [(&quot;数据库&quot;, 0.05), (&quot;API&quot;, 0.1), (&quot;缓存&quot;, 0.02)]
+        ]
+    print([task.result() for task in tasks])  # 列表保留创建顺序
+
+asyncio.run(main())
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>选择</th>
+<th>一个子任务失败时的默认行为</th>
+<th>适用判断</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TaskGroup</code></td>
+<td>取消同组剩余任务，等待退出，汇总非取消异常</td>
+<td>一组调用必须共同成功，失败后应尽快收尾</td>
+</tr>
+<tr>
+<td><code>gather</code></td>
+<td>首个异常向调用者传播，其他任务通常继续</td>
+<td>需要按输入顺序聚合，并已设计失败收尾</td>
+</tr>
+<tr>
+<td><code>gather(return_exceptions=True)</code></td>
+<td>等待全部结束，把异常作为结果项返回</td>
+<td>每个任务独立，允许部分成功</td>
+</tr>
+</tbody>
+</table>
+<p>TaskGroup 不会回滚已经提交的数据库写入或已经完成的外部操作；它管理的是任务生命周期。取消信号也不是瞬间强制杀死代码。若业务需要事务或补偿，必须另行设计，不能把“其他任务被取消”理解成“前面什么也没发生”。</p>
+<h3 id="33-取消请求处理清理再传播取消">3.3 取消请求、处理清理，再传播取消</h3>3
+<p><code>task.cancel()</code> 发出取消请求，通常在任务下一次可以恢复的挂起点注入 <code>CancelledError</code>。它不等于任务已经结束。调用者还应 await 该任务，确认退出和清理都发生了。<code>CancelledError</code> 继承自 <code>BaseException</code>，普通 <code>except Exception</code> 捕获不到它；不要为了方便改成吞掉所有异常。</p>
+<pre><code class="language-python">import asyncio
+
+async def fetch_data():
+    try:
+        print(&quot;开始查询&quot;)
+        await asyncio.sleep(10)
+    except asyncio.CancelledError:
+        print(&quot;收到取消，记录查询已停止&quot;)
+        raise  # 保留取消语义，让所有者知道任务没有成功
+    finally:
+        print(&quot;释放模拟连接&quot;)  # 实际资源应配合 async with 管理
+
+async def main():
+    task = asyncio.create_task(fetch_data(), name=&quot;可取消查询&quot;)
+    await asyncio.sleep(0.01)
+    task.cancel()
+    try:
+        await task  # 请求取消以后，等待它真正结束
+    except asyncio.CancelledError:
+        print(&quot;调用者确认取消：&quot;, task.cancelled())
+
+asyncio.run(main())
+</code></pre>
+<p>清理应尽量短小、明确。若清理本身还需要异步 I/O，要考虑再次取消和关闭超时，不应无边界等待。压住取消不再抛出，可能破坏 TaskGroup 和 timeout 的内部协作；入门阶段应坚持“清理后重新抛出”。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.4 shield 保护被等待任务，但不保护外层调用者</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「shield」 让外层等待被取消时，不把这次取消继续传播给内部任务</li><li>下面只是数据源查询的取消机制演示，不是在推荐所有请求断开以后仍继续工作</li><li>它不会阻止内部任务被其他代码直接取消，也不会让任务跨越事件循环关闭继续生存</li></ul></div>3
+<p><code>shield</code> 让外层等待被取消时，不把这次取消继续传播给内部任务。它不会阻止内部任务被其他代码直接取消，也不会让任务跨越事件循环关闭继续生存。下面只是数据源查询的取消机制演示，不是在推荐所有请求断开以后仍继续工作。</p>
+<pre><code class="language-python">import asyncio
+
+async def fetch_data():
+    await asyncio.sleep(0.05)
+    return &quot;查询完成&quot;
+
+async def main():
+    task = asyncio.create_task(fetch_data())  # 保持强引用
+    try:
+        async with asyncio.timeout(0.01):
+            await asyncio.shield(task)
+    except TimeoutError:
+        print(&quot;外层等待超时，内部取消状态：&quot;, task.cancelled())
+    print(await task)  # 所有者仍负责等待并处理内部结果
+
+asyncio.run(main())
+</code></pre>
+<p>这里超时上下文取消了当前等待者，shield 隔离了向内部查询的取消传播；退出上下文后由所有者继续等待查询。若内部任务最终抛异常，也必须读取并处理。盲目 shield 所有下游请求会让已经失去业务意义的请求继续消耗资源，所以必须先明确保护理由和最终回收位置。</p>
+<h2 id="4-怎么做用异步协议管理资源与数据流">4. 怎么做：用异步协议管理资源与数据流</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.1 异步上下文管理器负责进入和退出</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「async with」 会等待 「__aenter__」 获取资源，并在离开时等待 「__aexit__」 释放资源</li><li>以下保留素材 B 模拟连接池的教学方式，列表只是资源状态标志，不能当作真正数据库连接池使用</li><li>返回 「False」 表示不吞掉业务异常；省略返回值的效果也一样</li></ul></div>3
+<p><code>async with</code> 会等待 <code>__aenter__</code> 获取资源，并在离开时等待 <code>__aexit__</code> 释放资源。以下保留素材 B 模拟连接池的教学方式，列表只是资源状态标志，不能当作真正数据库连接池使用。返回 <code>False</code> 表示不吞掉业务异常；省略返回值的效果也一样。</p>
+<pre><code class="language-python">import asyncio
+
+class AsyncDatabasePool:
+    async def __aenter__(self):
+        await asyncio.sleep(0.01)  # 模拟建立连接
+        self.pool = []
+        print(&quot;连接池已创建&quot;)
+        return self
+
+    async def execute(self, query):
+        await asyncio.sleep(0.01)
+        return f&quot;Result of: {query}&quot;
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        await asyncio.sleep(0.01)  # 模拟关闭连接
+        self.pool = None
+        print(&quot;连接池已关闭&quot;)
+        return False  # 业务异常继续向外传播
+
+async def main():
+    async with AsyncDatabasePool() as pool:
+        print(await pool.execute(&quot;SELECT * FROM users&quot;))
+
+asyncio.run(main())
+</code></pre>
+<p>如果 <code>__aenter__</code> 获取到一半就失败，Python 不会再为这次进入调用 <code>__aexit__</code>，因此进入方法内部也要负责释放已获取的部分资源。真实项目优先使用库已经提供的异步上下文接口，避免手写一套容易遗漏异常分支的开关逻辑。</p>
+<h3 id="42-异步生成器逐项产出async-for-逐项等待">4.2 异步生成器逐项产出，async for 逐项等待</h3>3
+<p>素材 A 的 <code>AsyncTimer</code> 与 <code>async_range</code> 可以组合观察逐项消费。异步生成器同时包含 <code>async def</code> 和 <code>yield</code>；调用它得到异步迭代对象，不能直接 <code>await async_range(...)</code>。每次迭代等待下一项，不意味着所有数据预先并发获取。</p>
+<pre><code class="language-python">import asyncio
+import time
+from contextlib import aclosing
+
+class AsyncTimer:
+    async def __aenter__(self):
+        self.start = time.perf_counter()
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        print(f&quot;耗时：{time.perf_counter() - self.start:.3f} 秒&quot;)
+        return False
+
+async def async_range(n):
+    try:
+        for i in range(n):
+            await asyncio.sleep(0.01)  # 模拟等待下一项
+            yield i
+    finally:
+        print(&quot;生成器已关闭&quot;)
+
+async def main():
+    async with AsyncTimer():
+        # 提前 break 时，aclosing 也会及时关闭生成器。
+        async with aclosing(async_range(5)) as numbers:
+            async for number in numbers:
+                print(number)
+                if number == 2:
+                    break
+
+asyncio.run(main())
+</code></pre>
+<p>异步生成器适合课件中的逐块响应，但前提是读取下一块时也使用非阻塞接口。素材 D 在异步生成器内部写了普通 <code>for chunk in stream</code>，如果底层同步迭代会等待网络，仍会阻塞循环。应优先选择 SDK 的异步流并使用 <code>async for</code>；不能只把外层函数改成 async 就认定改造完成。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">5. 怎么做：FastAPI 并发调用下游并返回流式响应</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>下面把素材 A 的多数据源查询和素材 D 的 SSE 封装方式组合成一个最小服务</li><li>为便于本机复现，下游也定义在同一应用内，通过 HTTPX 访问本机接口；这是教学安排，生产中应改为受控的真实下游地址</li><li>URL 固定，示例不会把客户端任意传入的地址当作请求目标</li></ul></div>2
+<p>下面把素材 A 的多数据源查询和素材 D 的 SSE 封装方式组合成一个最小服务。为便于本机复现，下游也定义在同一应用内，通过 HTTPX 访问本机接口；这是教学安排，生产中应改为受控的真实下游地址。URL 固定，示例不会把客户端任意传入的地址当作请求目标。</p>
+<p>先执行 <code>pip install fastapi uvicorn httpx</code>，将代码保存为 <code>app.py</code>，然后执行 <code>uvicorn app:app --host 127.0.0.1 --port 8000</code>。浏览器访问 <code>http://127.0.0.1:8000/aggregate</code> 可查看并发汇总，运行 <code>curl -N http://127.0.0.1:8000/stream</code> 可观察 SSE。若更换端口，代码内下游端口也需要一起修改。</p>
+<pre><code class="language-python"># 依赖：pip install fastapi uvicorn httpx
+import asyncio
+import json
+from contextlib import asynccontextmanager
+
+import httpx
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import StreamingResponse
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 按应用生命周期复用连接池，而不是每个请求重新创建客户端。
+    app.state.limit = asyncio.Semaphore(8)
+    async with httpx.AsyncClient(
+        timeout=httpx.Timeout(2.0),
+        limits=httpx.Limits(max_connections=8, max_keepalive_connections=8),
+    ) as client:
+        app.state.client = client
+        yield
+
+app = FastAPI(lifespan=lifespan)
+
+@app.get(&quot;/downstream/{source}&quot;)
+async def downstream(source: str):
+    await asyncio.sleep(0.05)  # 本机模拟下游 I/O
+    return {&quot;source&quot;: source, &quot;data&quot;: [1, 2, 3]}
+
+async def fetch_source(request: Request, source: str):
+    async with request.app.state.limit:
+        response = await request.app.state.client.get(
+            f&quot;http://127.0.0.1:8000/downstream/{source}&quot;
+        )
+        response.raise_for_status()
+        return response.json()
+
+@app.get(&quot;/aggregate&quot;)
+async def aggregate(request: Request):
+    try:
+        async with asyncio.timeout(3):  # 包括排队等待的整体预算
+            async with asyncio.TaskGroup() as group:
+                tasks = [
+                    group.create_task(fetch_source(request, name))
+                    for name in (&quot;database&quot;, &quot;api&quot;, &quot;cache&quot;)
+                ]
+        return {&quot;results&quot;: [task.result() for task in tasks]}
+    except TimeoutError:
+        raise HTTPException(status_code=504, detail=&quot;汇总等待超时&quot;) from None
+    except ExceptionGroup:
+        # 本例任务体仅做下游调用；实际项目应细分异常并记录内部原因。
+        raise HTTPException(status_code=502, detail=&quot;下游调用失败&quot;) from None
+
+@app.get(&quot;/stream&quot;)
+async def stream(request: Request):
+    async def events():
+        # 流已经发送响应头后，错误应按流协议表达。
+        try:
+            async with asyncio.timeout(3):
+                async with asyncio.TaskGroup() as group:
+                    tasks = [
+                        group.create_task(fetch_source(request, name))
+                        for name in (&quot;database&quot;, &quot;api&quot;, &quot;cache&quot;)
+                    ]
+                    for completed in asyncio.as_completed(tasks):
+                        data = await completed
+                        yield &quot;data: &quot; + json.dumps(
+                            {&quot;content&quot;: data, &quot;done&quot;: False}, ensure_ascii=False
+                        ) + &quot;\n\n&quot;
+            yield 'data: {&quot;done&quot;: true}\n\n'
+        except (TimeoutError, ExceptionGroup):
+            yield 'data: {&quot;error&quot;: &quot;下游响应失败&quot;, &quot;done&quot;: true}\n\n'
+        # 不捕获 CancelledError，让断开连接引发的取消继续向任务组传播。
+
+    return StreamingResponse(events(), media_type=&quot;text/event-stream&quot;)
+</code></pre>
+<p>这个示例的 <code>/aggregate</code> 会在同一请求内并发查询三个数据源，再按创建顺序汇总；<code>/stream</code> 则按完成顺序输出每个下游的完整 JSON。它演示的是“多个结果逐个返回”，不是把某个下游 HTTP 响应体逐字节透传。若需要透传，使用 HTTPX 的流式上下文与 <code>aiter_bytes()</code> 或 <code>aiter_lines()</code>，并让上下文覆盖生成器消费的整个阶段。</p>
+<p>信号量放在应用生命周期内，因此同一进程里的多个入口请求共享并发预算；如果放在接口函数内部，它只约束单个请求。启动多个 worker 后，每个进程有独立预算，八个名额不会自动变成全局八个。对外服务还需要入口限流，因为信号量只控制执行，不限制有多少入口请求正在排队。</p>
+<p>HTTPX 的超时覆盖连接、读取、写入和池等待等阶段，整体 timeout 再约束这次业务的总等待。连接池复用减少重复握手，但并不代替业务限流。不要在 FastAPI 已经运行的循环里再次调用 <code>asyncio.run</code>，也不要自己关闭框架提供的循环。断开连接后的取消行为依赖服务端及框架版本，部署时应验证流消费者退出后子任务是否清理。</p>
+<h2 id="6-常见坑专章阻塞异常与死锁">6. 常见坑专章：阻塞、异常与死锁</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">6.1 time.sleep 阻塞整个循环</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>❌ 错误写法是把同步暂停放在异步函数里；✅ 正确写法使用 「asyncio.sleep」</li><li>下面把错误函数保留为对照，入口只运行正确函数</li><li>观察两次等待能重叠，不要把毫秒级耗时当成严格性能基准</li></ul></div>3
+<p>❌ 错误写法是把同步暂停放在异步函数里；✅ 正确写法使用 <code>asyncio.sleep</code>。下面把错误函数保留为对照，入口只运行正确函数。观察两次等待能重叠，不要把毫秒级耗时当成严格性能基准。</p>
+<pre><code class="language-python">import asyncio
+import time
+
+async def wrong():
+    time.sleep(0.1)  # ❌ 这段时间事件循环无法调度其他任务
+
+async def correct():
+    await asyncio.sleep(0.1)  # ✅ 暂停当前任务，允许其他任务运行
+
+async def main():
+    start = time.perf_counter()
+    await asyncio.gather(correct(), correct())
+    print(f&quot;两次等待总耗时约 {time.perf_counter() - start:.2f} 秒&quot;)
+
+asyncio.run(main())
+</code></pre>
+<h3 id="62-requests-等同步库塞进-async">6.2 requests 等同步库塞进 async</h3>3
+<p>❌ <code>requests.get</code> 即便写在 async 函数里，网络等待仍是同步的；✅ 首选原生异步客户端，已经采用 HTTPX 的程序可直接参照上一节。无法替换同步库时，用 <code>to_thread</code> 桥接。以下通过同步标准库 HTTP 客户端访问本机临时服务，展示同类阻塞边界，不依赖 requests，也不访问外网。</p>
+<pre><code class="language-python">import asyncio
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.request import urlopen
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b&quot;ok&quot;)
+
+    def log_message(self, *args):
+        pass  # 保持教学输出简洁
+
+def sync_get(url):
+    with urlopen(url, timeout=1) as response:
+        return response.read().decode()
+
+async def wrong(url):
+    return sync_get(url)  # ❌ 等价风险：在这里直接调用 requests.get
+
+async def correct(url):
+    return await asyncio.to_thread(sync_get, url)  # ✅ 在线程里等待同步 I/O
+
+async def main(url):
+    print(await asyncio.gather(correct(url), correct(url)))
+
+if __name__ == &quot;__main__&quot;:
+    server = ThreadingHTTPServer((&quot;127.0.0.1&quot;, 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        asyncio.run(main(f&quot;http://127.0.0.1:{server.server_port}/&quot;))
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()  # 关闭本例创建的服务线程
+</code></pre>
+<p>取消 <code>to_thread</code> 的等待者通常不会终止已经运行的线程，所以同步函数自身仍要设置网络超时。线程池也有容量；如果输入无界，必须在提交线程工作之前施加背压。桥接适合迁移同步 I/O，不应成为无限堆积阻塞调用的借口。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.3 忘记 await：协程对象创建了，却没被执行</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>❌ 只调用异步函数然后丢弃结果，常在垃圾回收时出现 「coroutine was never awaited」；✅ 需要结果就 await，需要并发就创建并等待 Task</li><li>告警出现位置可能晚于真正创建位置，调试模式能帮助追溯来源</li><li>await asyncio.sleep(0.01)</li></ul></div>3
+<p>❌ 只调用异步函数然后丢弃结果，常在垃圾回收时出现 <code>coroutine was never awaited</code>；✅ 需要结果就 await，需要并发就创建并等待 Task。告警出现位置可能晚于真正创建位置，调试模式能帮助追溯来源。</p>
+<pre><code class="language-python">import asyncio
+
+async def fetch_data():
+    await asyncio.sleep(0.01)
+    return &quot;数据&quot;
+
+async def wrong():
+    fetch_data()  # ❌ 创建后丢弃；调用此函数会触发未等待告警
+
+async def main():
+    print(await fetch_data())  # ✅ 直接等待
+    task = asyncio.create_task(fetch_data())  # ✅ 并发任务有明确所有者
+    print(await task)
+
+asyncio.run(main())
+</code></pre>
+<h3 id="64-gather-一个任务抛异常不能假定其余任务已停止">6.4 gather 一个任务抛异常，不能假定其余任务已停止</h3>3
+<p>❌ 捕获 gather 的异常以后立刻关闭共享客户端，可能使仍在运行的兄弟任务访问已关闭资源。✅ 可以选择 TaskGroup 的整体失败策略，或像下面一样显式取消剩余任务并等待。默认 gather 传播异常后可能已经完成，再调用它的 <code>cancel()</code> 未必能取消尚在运行的子任务，因此要保留子任务引用。</p>
+<pre><code class="language-python">import asyncio
+
+async def fetch_data(name, fail=False):
+    await asyncio.sleep(0.01 if fail else 0.05)
+    if fail:
+        raise ValueError(f&quot;{name} 查询失败&quot;)
+    return name
+
+async def wrong():
+    try:
+        await asyncio.gather(fetch_data(&quot;API&quot;, True), fetch_data(&quot;缓存&quot;))
+    except ValueError:
+        print(&quot;❌ 假定所有调用已经停止，立即关闭资源&quot;)
+
+async def main():
+    tasks = [asyncio.create_task(fetch_data(&quot;API&quot;, True)),
+             asyncio.create_task(fetch_data(&quot;缓存&quot;))]
+    try:
+        print(await asyncio.gather(*tasks))
+    except ValueError as error:
+        print(error)
+    finally:
+        for task in tasks:
+            if not task.done():
+                task.cancel()  # ✅ 取消仍在进行的兄弟任务
+        await asyncio.gather(*tasks, return_exceptions=True)  # 等待清理
+    print(&quot;现在可以关闭共享资源&quot;)
+
+asyncio.run(main())
+</code></pre>
+<p>使用 <code>return_exceptions=True</code> 汇总独立任务时，应逐项判断结果是否为异常，不能直接把异常对象当成成功数据继续处理。单个子任务被取消不会自动让 gather 取消其他子任务；反过来，gather 自身被取消时会向未完成子任务传播取消。区分这两种方向，才能写对超时与主动停止逻辑。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.5 asyncio.Lock 与跨任务死锁</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>单线程不代表没有竞争：只要读取与写入之间存在挂起点，别的任务就可能修改共享状态</li><li>另一个容易漏掉的坑是在同一个任务中重复进入同一把 asyncio 锁，同样会等待自己释放锁</li><li>「asyncio.Lock」 可以保护同一循环内的协程临界区，但它不是可重入锁，也不是线程锁</li></ul></div>3
+<p>单线程不代表没有竞争：只要读取与写入之间存在挂起点，别的任务就可能修改共享状态。<code>asyncio.Lock</code> 可以保护同一循环内的协程临界区，但它不是可重入锁，也不是线程锁。持锁等待一个必须获取同一把锁才能结束的子任务，会形成跨任务等待环。</p>
+<p>❌ 下面的 parent 持锁等待 child，而 child 等锁；✅ 在等待子任务前退出锁作用域。对多个锁，也应约定一致的获取顺序，并缩小持锁范围；不要把长时间网络等待随意放进临界区。</p>
+<pre><code class="language-python">import asyncio
+
+async def child(lock):
+    async with lock:
+        print(&quot;子任务完成共享状态操作&quot;)
+
+async def wrong(lock):
+    async with lock:
+        task = asyncio.create_task(child(lock))
+        await task  # ❌ parent 等 child，child 等 parent 释放锁
+
+async def correct(lock):
+    async with lock:
+        print(&quot;父任务完成共享状态操作&quot;)
+    await child(lock)  # ✅ 等待时已经释放锁
+
+async def main():
+    # 用超时有界演示错误路径，避免示例永久挂起。
+    try:
+        async with asyncio.timeout(0.03):
+            await wrong(asyncio.Lock())
+    except TimeoutError:
+        print(&quot;检测到等待环，超时后取消并释放锁&quot;)
+    await correct(asyncio.Lock())
+
+asyncio.run(main())
+</code></pre>
+<p>超时只是把卡住的程序拉回来，不是死锁的根治方案。修复仍需画出谁持有什么、谁在等谁，并打破等待环。另一个容易漏掉的坑是在同一个任务中重复进入同一把 asyncio 锁，同样会等待自己释放锁。</p>
+<h3 id="66-无限创建-task不回收也不背压">6.6 无限创建 Task，不回收也不背压</h3>3
+<p>❌ 无限循环里 <code>create_task</code>，既不限制数量也不读取结果，会使待处理工作持续增长；如果又把完成任务永久存进列表，还会保留结果和异常引用。✅ 使用固定数量消费者和有界队列，让生产者在队列满时暂停。下面是素材 B 生产者消费者模式的缩小版，终止标记也必须对应 <code>task_done()</code>。</p>
+<pre><code class="language-python">import asyncio
+
+async def fetch_data(item):
+    await asyncio.sleep(0.01)
+    return item
+
+async def wrong():
+    item = 0
+    while True:
+        asyncio.create_task(fetch_data(item))  # ❌ 创建无上限且无人收结果
+        item += 1
+        await asyncio.sleep(0)  # 即使让出循环，也没有背压
+
+async def main():
+    queue = asyncio.Queue(maxsize=4)  # ✅ 输入积压有上限
+
+    async def consume():
+        while True:
+            item = await queue.get()
+            try:
+                if item is None:
+                    return
+                print(await fetch_data(item))  # 及时消费结果，不无限缓存
+            finally:
+                queue.task_done()
+
+    async with asyncio.TaskGroup() as group:
+        for _ in range(2):
+            group.create_task(consume())  # 固定两个消费者
+        for item in range(10):
+            await queue.put(item)  # 满时挂起生产者，形成背压
+        for _ in range(2):
+            await queue.put(None)
+        await queue.join()
+
+asyncio.run(main())
+</code></pre>
+<p>这里同时存在的任务数量基本固定，而不是与输入规模一起增长。若消费者异常，TaskGroup 会取消生产者所在的主体，避免无限等待 <code>join()</code>。后台任务并非天然泄漏：真正的问题是没有所有者、没有并发上限、没有结果与异常回收，以及没有停机策略。小批量数据可以 gather，大批量或持续输入应优先用队列。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">6.7 Jupyter 中再次 asyncio.run</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Notebook 通常已经在当前线程运行事件循环</li><li>❌ 在单元格里再次 「asyncio.run(main())」 会抛出运行中循环的错误，传入的协程还可能留下未等待告警</li><li>✅ 在支持顶层 await 的 IPython/Jupyter 单元格里直接写 「await main()」</li></ul></div>3
+<p>Notebook 通常已经在当前线程运行事件循环。❌ 在单元格里再次 <code>asyncio.run(main())</code> 会抛出运行中循环的错误，传入的协程还可能留下未等待告警。✅ 在支持顶层 await 的 IPython/Jupyter 单元格里直接写 <code>await main()</code>。</p>
+<p>为保持 Python 代码块可作为脚本运行，下面用外层 run 模拟已有循环，并展示内部用 await 的对应做法；在 Notebook 中只需定义 <code>main</code> 后执行顶层 <code>await main()</code>，不执行最后一行脚本入口。</p>
+<pre><code class="language-python">import asyncio
+
+async def main():
+    await asyncio.sleep(0.01)
+    print(&quot;沿用当前事件循环&quot;)
+
+async def wrong():
+    asyncio.run(main())  # ❌ 如果在已有循环内执行，会抛 RuntimeError
+
+async def notebook_cell_equivalent():
+    await main()  # ✅ Notebook 单元格可直接使用这一句
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(notebook_cell_equivalent())  # 普通脚本只在最外层启动循环
+</code></pre>
+<p><code>nest_asyncio</code> 可以通过补丁支持部分嵌套场景，适用于某些无法改写入口的交互工具，但会改变循环行为，也不适用于所有循环实现。优先用顶层 await；Web 服务和正式脚本不要为了掩盖生命周期错误而默认打补丁。</p>
+<h2 id="7-调试与自查看见任务建立等待预算">7. 调试与自查：看见任务，建立等待预算</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7.1 开启调试并观察未完成任务</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>配合日志后，可发现慢回调、部分线程使用错误以及未读取的异常</li><li>调试会增加开销，输出没有告警也不等于程序不存在死锁或资源泄漏</li><li>「asyncio.all_tasks()」 返回当前循环中尚未完成的 Task，包含正在检查的当前任务</li></ul></div>3
+<p>脚本可以用 <code>PYTHONASYNCIODEBUG=1 python demo.py</code> 启动调试；跨平台也可传 <code>asyncio.run(main(), debug=True)</code>。配合日志后，可发现慢回调、部分线程使用错误以及未读取的异常。调试会增加开销，输出没有告警也不等于程序不存在死锁或资源泄漏。</p>
+<p><code>asyncio.all_tasks()</code> 返回当前循环中尚未完成的 Task，包含正在检查的当前任务。任务命名能让排障更直接；<code>print_stack()</code> 可查看挂起位置。不要因此遍历打印业务参数、请求正文或凭据，尤其不要把生产栈信息直接返回给接口调用者。</p>
+<pre><code class="language-python">import asyncio
+import logging
+
+async def fetch_data():
+    await asyncio.sleep(0.05)
+    return &quot;完成&quot;
+
+async def main():
+    loop = asyncio.get_running_loop()
+    loop.slow_callback_duration = 0.05  # 超过阈值的执行片段值得检查
+    task = asyncio.create_task(fetch_data(), name=&quot;待排查查询&quot;)
+    await asyncio.sleep(0)  # 让查询进入挂起状态
+    for pending in asyncio.all_tasks():
+        print(pending.get_name(), &quot;是否当前任务：&quot;, pending is asyncio.current_task())
+        if pending is task:
+            pending.print_stack(limit=1)
+    print(await task)
+
+logging.basicConfig(level=logging.DEBUG)
+asyncio.run(main(), debug=True)
+</code></pre>
+<p><code>all_tasks()</code> 是诊断快照，不是资源管理器；任务完成后便不会继续列在其中。要排查“Task exception was never retrieved”，仍需找到任务创建者并建立 await 或结果处理。排查卡顿时先看全局心跳是否也暂停，再检查同步网络库、同步磁盘操作和长 CPU 段，最后分析锁与依赖关系。</p>
+<h3 id="72-timeout-与-wait_for-的取消对象不同">7.2 timeout 与 wait_for 的取消对象不同</h3>3
+<p><code>asyncio.timeout</code> 在 Python 3.11+ 提供异步上下文，可覆盖多步等待，超时会取消当前任务，并在上下文外把它转换成 <code>TimeoutError</code>；应在上下文外捕获。<code>wait_for</code> 直接等待一个 awaitable，超时通常取消被等待任务，并等待其取消完成，因此实际耗时可能超过所写秒数。</p>
+<pre><code class="language-python">import asyncio
+
+async def fetch_data():
+    try:
+        await asyncio.sleep(1)
+        return &quot;结果&quot;
+    finally:
+        print(&quot;查询清理完成&quot;)
+
+async def main():
+    try:
+        async with asyncio.timeout(0.02):
+            await fetch_data()  # 也可以在此放入多次相关 await
+    except TimeoutError:
+        print(&quot;timeout：整个操作预算用尽&quot;)
+
+    task = asyncio.create_task(fetch_data())
+    try:
+        await asyncio.wait_for(task, timeout=0.02)
+    except TimeoutError:
+        print(&quot;wait_for：被等待任务已取消：&quot;, task.cancelled())
+
+asyncio.run(main())
+</code></pre>
+<p>两者都依赖协作式取消，不能及时打断当前线程中的 <code>time.sleep</code> 或无限 CPU 循环。等待已完成后再检查超时不等于拥有实时抢占能力。将超时与 shield 组合会改变取消传播，只有确认需要让内部任务继续并能够回收它时才这样做。</p>
+<p>自查时沿一次请求的路径逐项核对：入口是否复用框架循环；每个同步调用是否已替换或转移到线程；每个 Task 是否有所有者；并发数与队列长度是否分别有上限；异常路径是否等待兄弟任务退出；取消是否清理后重抛；客户端与生成器是否按作用域关闭；超时是否覆盖排队和处理全过程。检查这些边界，通常比增加更多 create_task 更能改善稳定性。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">8. 小结与练习</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>事件循环管理可执行工作，协程负责在等待时合作让出控制权；TaskGroup、异步上下文和有界队列分别明确任务、资源和输入的边界</li><li>记录每个任务的开始、异常、finally 与结束，解释为什么外层收到异常时兄弟任务未必已经停止</li><li>随后让一个下游返回错误，检查其他任务是否收尾，说明为什么流发送响应头后不能再靠普通 HTTP 状态码表达后续失败</li></ul></div>2
+<p>事件循环管理可执行工作，协程负责在等待时合作让出控制权；TaskGroup、异步上下文和有界队列分别明确任务、资源和输入的边界。选择 gather 还是 TaskGroup 前先定义失败策略，使用 shield 前先定义继续执行的所有者，设置超时前先确认调用链没有同步阻塞。课件中的模拟等待适合验证控制流；真实网络性能还要结合连接池、限流和下游承载能力测量。</p>
+<ol>
+<li><strong>观察调度与取消</strong>：改写数据源查询，让一个源失败、一个源较慢，分别用 gather 和 TaskGroup 运行。记录每个任务的开始、异常、finally 与结束，解释为什么外层收到异常时兄弟任务未必已经停止。验收要求是所有创建的任务都有结果或明确取消状态，不留下未读取异常。</li>
+<li><strong>实现有界批量处理</strong>：沿用素材 A 的模拟 URL 抓取，把输入扩大为一千项，使用素材 B 的队列模式，设置队列容量十、消费者五。统计当前执行数及峰值，确认峰值不超过五，并在某项失败时验证能退出，不永远等待 join。不要用一千个任务外套信号量来替代固定消费者。</li>
+<li><strong>验证接口失败边界</strong>：运行 FastAPI 示例，将模拟下游延迟提高到超过总预算，观察 <code>/aggregate</code> 的状态码和 <code>/stream</code> 的结束事件，再恢复正常。随后让一个下游返回错误，检查其他任务是否收尾，说明为什么流发送响应头后不能再靠普通 HTTP 状态码表达后续失败。测试只访问本机模拟下游。</li>
+</ol>
+<h2 id="参考资料与复查入口">参考资料与复查入口</h2>2
+<ul>
+<li>本任务数据源：<code>源码资料汇总.md</code>，素材 A/B 为示例主体，素材 C/D 为 FastAPI 与流式响应参考。</li>
+<li>原始课件：<code>raw/courseware/python/Python从入门到大神-学生手册（完整版）.md</code> 第五部分；<code>raw/courseware/python/part5-mastery.md</code> 第 13.4 节。</li>
+<li>框架课件：<code>raw/courseware/飞书新空间/FastAPI.md</code>；<code>raw/courseware/python/大模型应用开发实战指南.md</code>。</li>
+<li><a href="https://docs.python.org/zh-cn/3.11/library/asyncio-task.html">Python：协程与任务</a>，核对 TaskGroup、取消、shield 与超时语义。</li>
+<li><a href="https://docs.python.org/zh-cn/3.11/library/asyncio-eventloop.html">Python：事件循环</a>，核对回调与单调时钟接口。</li>
+<li><a href="https://docs.python.org/zh-cn/3.11/library/asyncio-dev.html">Python：使用 asyncio 开发</a>，核对调试模式和阻塞调用建议。</li>
+</ul></div></details></div></body></html>

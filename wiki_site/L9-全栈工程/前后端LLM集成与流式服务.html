@@ -1,0 +1,250 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>前后端LLM集成与流式服务</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 前后端LLM集成与流式服务</span></div><div class="wrap"><h1 id="前后端-llm-集成与流式服务">前后端 LLM 集成与流式服务</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/fullstack/%E5%89%8D%E7%AB%AFLLM%E9%9B%86%E6%88%90-2026.md">前端LLM集成-2026</a> · <a href="../../raw/fullstack/%E5%90%8E%E7%AB%AFLLM%E6%9C%8D%E5%8A%A1-2026.md">后端LLM服务-2026</a></p>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="L9-%E5%85%A8%E6%A0%88%E5%B7%A5%E7%A8%8B-2026.html">全栈工程主线</a> · <a href="../L1-%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B/LLM%E7%94%9F%E4%BA%A7%E5%8C%96%E5%AE%9E%E6%88%98-2026.html">LLM 生产化实战</a> · <a href="LLM%E5%BA%94%E7%94%A8%E5%AE%89%E5%85%A8%E4%B8%8E%E6%88%90%E6%9C%AC%E5%BB%BA%E6%A8%A1.html">LLM 应用安全与成本建模</a></p>
+</blockquote>
+<h2 id="why为什么流式取消与并发治理是生产基线">WHY：为什么流式、取消与并发治理是生产基线</h2>2
+<p>流式不是"优化项"而是基线：LLM 逐 token 生成，等完整响应再渲染要面对 3–10 秒死等，把每个 chunk 立刻追加能把感知延迟（time-to-first-token）从几秒压到几百毫秒；2025–2026 主流前端 AI 产品（ChatGPT / Claude / Cursor / Vercel AI Playground）全部默认 streaming，不流式已被视为反模式。前端只有一条正确路线——<code>fetch()</code> + <code>response.body.getReader()</code> + <code>TextDecoder</code> 手动解析 SSE 帧，因为浏览器原生 <code>EventSource</code> <strong>只支持 GET</strong>，而 LLM 的 prompt 往往要放 POST body（长度、鉴权、隐私）。框架层直接用 Vercel AI SDK 把约 50 行手写 SSE 压到约 2 行：<code>useChat()</code> 管 messages/status，服务端 <code>streamText()</code> 一行切 provider。后端的关键不是"能返回"，而是"能把上游流原样转发"：FastAPI 用 <strong>async generator + <code>StreamingResponse</code></strong>，绝不能用同步 <code>def</code> 堵死 uvicorn worker；再叠一层 <code>asyncio.Semaphore</code> 并发闸（示例 64）、按上游 RPM/TPM 限额的 70–80% 设闸值、超时退避重试、客户端断开即时 cancel 上游。三条最硬：EventSource 不要用于聊天；后端满闸宁可 503 快速失败、也不要无限排队把内存打爆；用户关掉标签页后继续烧 token 是 2026 年被反复强调的浪费来源。</p>
+<h2 id="what-whyt传输路线框架抽象与适用边界">WHAT / WHYT：传输路线、框架抽象与适用边界</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">一、传输层：两条路线怎么选</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>method: 'POST',</li><li>signal: controller.signal, // 打断</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>EventSource（原生 SSE）</th>
+<th>fetch + ReadableStream</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>请求方法</td>
+<td>只支持 GET</td>
+<td><strong>支持 POST（可带 JSON body）</strong></td>
+</tr>
+<tr>
+<td>实现复杂度</td>
+<td>极低（一行 <code>new EventSource</code>）</td>
+<td>需手动解码 chunk、处理边界</td>
+</tr>
+<tr>
+<td>取消</td>
+<td>内置 <code>close()</code></td>
+<td>配合 <code>AbortController</code></td>
+</tr>
+<tr>
+<td>适用</td>
+<td>简单通知流</td>
+<td><strong>LLM 聊天（推荐）</strong></td>
+</tr>
+</tbody>
+</table>
+<p>生产一律 <code>fetch</code> + <code>ReadableStream</code>，服务端以 <code>Content-Type: text/event-stream</code> 推送：</p>
+<pre><code class="language-js">const res = await fetch('/api/chat', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ messages }),
+  signal: controller.signal,          // 打断
+});
+const reader = res.body.getReader();
+const decoder = new TextDecoder();
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  for (const line of decoder.decode(value).split('\n')) {
+    if (line.startsWith('data: ')) appendToUI(line.slice(6));
+  }
+}
+</code></pre>
+<h3 id="二框架层vercel-ai-sdk-是事实标准">二、框架层：Vercel AI SDK 是事实标准</h3>3
+<p>手写上面那套（解析 SSE、管 message state、provider 切换、错误处理、工具调用）约 50 行起，AI SDK 压到约 2 行，是 2025–2026 React/Svelte/Vue/Angular 接 LLM 的事实标准。</p>
+<table>
+<thead>
+<tr>
+<th>抽象</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>useChat()</code>（<code>@ai-sdk/react</code>）</td>
+<td>自动管理 messages / sendMessage / status（<code>'streaming'</code>、<code>'ready'</code>、<code>'error'</code>），自动把服务端 stream 追加到 UI</td>
+</tr>
+<tr>
+<td><code>streamText()</code> / <code>generateText()</code></td>
+<td>一行切 provider（OpenAI / Anthropic / Google / 本地 Ollama 统一接口）</td>
+</tr>
+<tr>
+<td><code>generateObject</code> + Zod</td>
+<td>结构化输出（provider 差异在框架层抹平）</td>
+</tr>
+<tr>
+<td>parts 模型（v4/v5 起）</td>
+<td><code>message.parts</code> 区分 <code>{type:'text'}</code> 与 <code>{type:'tool-...'}</code>，前端分别渲染文本块与工具块</td>
+</tr>
+<tr>
+<td>AI Elements / Streamdown</td>
+<td>预封装流式 chat UI 组件 + 为流式 markdown 优化的渲染器（边打字边渲染代码块/公式/表格不闪烁）</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>对比直调 OpenAI SDK</strong>：streaming 搭建约 50 行 vs 2 行；换 provider 全量重写 vs 一行；tool calling 手写 JSON 解析 vs 原生 Zod 支持。</li>
+<li><strong>OpenAI SDK 前端直连</strong>（<code>new OpenAI({ dangerouslyAllowBrowser: true })</code>）<strong>仅限内部/演示</strong>；生产必须前端 POST 到自家 <code>/api/chat</code>，由服务端持有 key、注入 system prompt、做鉴权限流，再把 provider 的 stream 原样 relay（SSE 透传）——key 不出服务器，也能统一计费。</li>
+<li><strong>Vue 侧</strong>：AI SDK v5 已官方支持 <code>@ai-sdk/vue</code> 的 <code>useChat</code> 与 Angular；无专属库时自己包一层 <code>fetch + ReadableStream</code> 的 composable 也很快，模式与 React 一致。</li>
+</ul>
+</div></details><h2 id="how流式-ui异步转发并发闸与模型路由">HOW：流式 UI、异步转发、并发闸与模型路由</h2>2
+<h3 id="三流式-ui-的四个要点">三、流式 UI 的四个要点</h3>3
+<ol>
+<li><strong>打字机效果要批处理</strong>：不要每个 token 都 setState（React 会狂渲染）。用 <code>useSyncExternalStore</code> 或 buffer 合并——攒 16ms 内的 chunk 批量 flush；流式 markdown 渲染器要容忍"半截代码块"。</li>
+<li><strong>打断必须接 <code>AbortController</code></strong>：用户点"停止"就 abort 请求、终止 reader，后端收到断开要停止向 LLM 发请求。进阶是 <strong>resumable stream</strong>——刷新/关标签页后能续接（producer 写日志、reader 从 offset 回放），Vercel <code>resumable-stream</code> 与 Upstash Redis Streams 模式都为此设计。</li>
+<li><strong>工具调用分块渲染</strong>：用 parts 模型区分文本与工具块——工具进行中显示"正在搜索资料…"旋转卡片，完成后折叠成引用，而不是把 function_call 的 JSON 直接打给用户。</li>
+<li><strong>错误态优雅收尾</strong>：上游 429/500 要在流中途收尾并给"生成中断，点击重试"，别白屏；<strong>别把 provider 原始错误体透给浏览器</strong>（会泄漏请求细节）。</li>
+</ol>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">四、后端：StreamingResponse + async 是底线</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>后端接 LLM 第一件事不是"能返回结果"，而是"能把上游流原样转发"</li><li>@router.post("/api/chat")</li><li>yield "data: [DONE]\n\n"</li></ul></div>3
+<p>后端接 LLM 第一件事不是"能返回结果"，而是"能把上游流原样转发"。FastAPI 用 <code>StreamingResponse</code> + async generator，把 <code>.stream()</code> 逐个 yield 成 SSE 帧（末尾 <code>data: [DONE]</code>）：</p>
+<pre><code class="language-python">@router.post(&quot;/api/chat&quot;)
+async def chat(req: ChatRequest):
+    async def gen():
+        stream = await openai.chat.completions.create(
+            model=&quot;gpt-4o&quot;, stream=True,
+            messages=[m.model_dump() for m in req.messages])
+        async for chunk in stream:
+            delta = chunk.choices[0].delta.content
+            if delta:
+                yield f&quot;data: {delta}\n\n&quot;
+        yield &quot;data: [DONE]\n\n&quot;
+    return StreamingResponse(gen(), media_type=&quot;text/event-stream&quot;)
+</code></pre>
+<ul>
+<li><strong>必须用 async 而非同步 <code>def</code></strong>：LLM 调用是 IO 密集，同步会把 uvicorn worker 整个堵死。</li>
+<li>不要 <code>await</code> 完整响应再返回；逐 token yield 才能降感知延迟。</li>
+</ul>
+<h3 id="五并发闸与可靠性别被压垮">五、并发闸与可靠性：别被压垮</h3>3
+<p>LLM 后端被压垮的典型方式：几十上百并发同时打上游 → 429，或自己进程被占满。</p>
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>做法（含具体口径）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>并发闸</td>
+<td><code>asyncio.Semaphore(64)</code> 限制在途调用；满了宁可<strong>快速失败（503 + 前端退避重试）</strong>，不要无限排队打爆内存；闸值按上游 RPM/TPM 限额的 <strong>70–80%</strong> 设，留缓冲</td>
+</tr>
+<tr>
+<td>超时</td>
+<td>上游必须设 timeout（总超时 60–120s，首 token 超时更短），LLM 卡住时不能让连接一直挂着</td>
+</tr>
+<tr>
+<td>重试</td>
+<td>只重试<strong>幂等可重试</strong>错误：429（带 <code>Retry-After</code>）、5xx、网络抖动；<strong>400 绝不重试</strong>；指数退避 + jitter（用 <code>tenacity</code> 或 SDK 自带 <code>max_retries</code>）；流式断到一半<strong>不要盲目重发</strong>（会重复计费），给"重新生成"按钮或走 resumable</td>
+</tr>
+<tr>
+<td>断开止损</td>
+<td>检测 <code>request.is_disconnected()</code> 就 cancel 上游 stream，别在用户关标签页后继续烧 token</td>
+</tr>
+<tr>
+<td>限流</td>
+<td>按用户/API key 用 token bucket（Redis + <code>slowapi</code>/<code>limits</code>）；还要估算本次输入+输出 token 按 <strong>TPM</strong> 排队；超闸请求进有上限、有超时的队列而非立刻 503</td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">六、多模型路由与 Node 侧</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>return "gpt-4o-mini" 小模型，便宜快</li><li>return "o4-mini" 推理模型</li><li>return "claude-haiku" 免费档走便宜模型</li></ul></div>3
+<p>生产后端几乎都不接单一模型，而是按请求类型路由：</p>
+<pre><code class="language-python">def route(req):
+    if req.task in (&quot;classification&quot;, &quot;extract&quot;):
+        return &quot;gpt-4o-mini&quot;          # 小模型，便宜快
+    if req.task == &quot;reasoning&quot; and req.needs_quality:
+        return &quot;o4-mini&quot;              # 推理模型
+    if req.stream and req.user_tier == &quot;free&quot;:
+        return &quot;claude-haiku&quot;         # 免费档走便宜模型
+    return &quot;claude-sonnet&quot;            # 默认主力
+</code></pre>
+<ul>
+<li><strong>路由层与调用层解耦</strong>：统一封装 <code>call_model(model, messages, stream)</code>，内部按 model 名分发到 OpenAI/Anthropic/本地 Ollama 的 client。</li>
+<li><strong>fallback 链</strong>：主模型 429/超时自动降级到备用模型；用 Zod/Pydantic 定义 schema 抹平各 provider 结构化输出差异。</li>
+<li>纯路由一个 if/else + 字典足够，<strong>别为简单路由引入重型框架</strong>；带工具、带检索的复杂编排才用 LangChain/LangGraph。</li>
+<li><strong>Node/Express 侧模式一致</strong>：用 <code>Readable</code>/<code>Transform</code> 把 async iterator 转成 <code>text/event-stream</code>，用 <code>p-limit</code>/<code>bottleneck</code> 限流，<code>AbortController</code> 透传上游；Vercel AI SDK 的 <code>streamText</code> 在 Node/Edge 运行时直接产出标准 Response，是最省事的 Node 后端方案。</li>
+</ul>
+<h2 id="相关术语">相关术语</h2>2
+<ul>
+<li>Step-level Model Routing（步级模型路由）：ontology/术语表-模型部署.md</li>
+<li>说明：SSE 传输、Resumable Stream、<code>asyncio</code> 并发闸在本 ontology 术语表<strong>暂无</strong>专条。</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库的「流式」是声明了但没实现——这是最容易误导客户端的地方（<code>rag/serve.py</code> L288 / L323，本次读源码）</strong>：<br />
+<code>python
+  class ChatCompletionRequest(BaseModel):
+      model: str = MODEL_ID
+      messages: list[ChatMessage]
+      temperature: float | None = None
+      max_tokens: int | None = None
+      top_p: float | None = None
+      stream: bool = False</code><br />
+<code>stream</code> 字段只是声明，<code>chat_completions()</code> 里没有任何 <code>stream=True</code> 分支，始终返回完整的 <code>chat.completion</code> 对象。<strong>客户端传 <code>stream: true</code> 不会报错，只是没有增量输出</strong>——这类「静默降级」比直接 400 更难查。</li>
+<li><strong>真正的流式实现样本在 <code>projects/agent-service-toolkit</code></strong>：<code>src/service/service.py</code> 顶部 import 了 <code>from collections.abc import AsyncGenerator</code> 与 <code>from fastapi.responses import StreamingResponse</code>，用 <code>async def</code> + 生成器逐 token 推送。</li>
+<li><strong>同步服务也不是没好处</strong>：本库单问题耗时约 3 分钟（本次实测），用户等的是「一个完整答案」；流式会把「检索+重排+门禁」这段静默等待暴露成「首字延迟很高」。<strong>先想清楚等待发生在哪，再决定要不要流式</strong>。</li>
+<li><strong>和课件讲法的差异</strong>：课件讲流式几乎都是「SSE 逐 token」。本库的教训是：<strong>在 RAG 里，首 token 之前的检索链才是等待主体</strong>，应当流式推送「正在检索/正在重排」这类阶段事件，而不只是 token。</li>
+<li><strong>本库暂无</strong>：没有 SSE 阶段事件、没有取消语义（客户端断开后后端仍跑完），<code>/v1/completions</code> 同样是整段返回。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本库前端/客户端接入面只有一处：<code>rag/serve.py</code> 的 OpenAI 兼容端点，<code>stream</code> 字段被接受但<strong>不实现流式</strong>（L288 <code>stream: bool = False</code> 仅声明；L323 处理函数同步返回完整 <code>chat.completion</code>）；真正流式在 <code>projects/agent-service-toolkit</code>（<code>StreamingResponse</code> + <code>async def</code>）。</li>
+<li><strong>读源码</strong>：前后端集成路径；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+</div></details><h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] <strong>课件</strong>：原文未引用课件，本次仅重排结构，不新增来源。</li>
+<li>[书1] <strong>书籍</strong>：原文未引用书籍，本次仅重排结构，不新增来源。</li>
+<li>[业1] <strong>业内前端实践</strong>：<code>raw/fullstack/前端LLM集成-2026.md</code>，落在 fetch + ReadableStream、Vercel AI SDK、流式 UI 与取消。</li>
+<li>[业2] <strong>业内后端实践</strong>：<code>raw/fullstack/后端LLM服务-2026.md</code>，落在 FastAPI StreamingResponse、并发闸、可靠性、多模型路由与 Node 侧实现。</li>
+</ul></div></body></html>

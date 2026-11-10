@@ -1,0 +1,486 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>整本书与整套课件怎么入库</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 整本书与整套课件怎么入库</span></div><div class="wrap"><h1 id="整本书与整套课件怎么入库双层去重与章节级组织">整本书与整套课件怎么入库：双层去重与章节级组织</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/rag-arch/%E6%95%B4%E6%9C%AC%E4%B9%A6%E5%85%A5%E5%BA%93%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-20261014.md">整本书入库最佳实践-20261014</a></p>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="Chunk%E5%A4%A7%E5%B0%8F%E6%80%8E%E4%B9%88%E9%80%89.html">Chunk大小怎么选</a> · <a href="Contextual-Retrieval%E5%AE%98%E6%96%B9%E6%96%B9%E6%B3%95-20261009.html">Contextual-Retrieval官方方法</a> · <a href="%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E6%90%AD%E5%BB%BA%E5%85%A8%E6%B5%81%E7%A8%8B.html">企业级RAG搭建全流程</a></p>
+</blockquote>
+<h1 id="why把整套材料变成不重复可追溯的独立证据">WHY：把整套材料变成不重复、可追溯的独立证据</h1>
+<h2 id="为什么文件都灌进去不等于知识完整">为什么“文件都灌进去”不等于知识完整</h2>2
+<p>业务目标是既能找准一个段落，又能还原整章语境，并避免同一课多期副本占满 top-k。不治理的后果不只是存储贵：多个近重复旧版本会把新事实淹没，整本超长块会稀释定位信号，激进去重又会吞掉独有代码与演进差异。</p>
+<p>本篇 sources 的<a href="../../raw/rag-arch/%E6%95%B4%E6%9C%AC%E4%B9%A6%E5%85%A5%E5%BA%93%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-20261014.md">整本书调研</a>与<a href="../../raw/rag-arch/%E5%90%84%E7%B1%BB%E6%A0%BC%E5%BC%8F%E8%BF%9BRAG%E5%A4%84%E7%90%86%E6%96%B9%E6%A1%88-20261021.md">格式处理方案</a>支持“先判断知识载体，再解析组织，再建索引”。适用于有章节/文档边界、需要多期追溯的书籍与课件；损坏 PDF、扫描图缺 OCR、纯构建产物不应靠后续去重补救。验收是独有信息不丢、来源可回溯、重复不挤占候选，不是文件数降得越多越好。</p>
+<p>原文“不合并、打标、取最新”与来源中的“归并同知识点”代表不同组织政策：保留原件追溯，与检索只给一个融合表示可以同时成立。本轮仅保留并标清这些选项，不擅自合并材料、删除版本或更改入库排除策略。遇到技术事实冲突，应在融合稿标来源与条件，而非用更新时间盲选胜者。</p>
+<h2 id="核心论点">核心论点</h2>2
+<p><strong>整本书/多期课件入库的难点是语料组织而不是切分技术——重复内容互相打架才是质量杀手。</strong> 同一本书多版本、同一课件多期各存一份，会让 RAG 检索到互相矛盾的旧版本答案；解法是双层去重（文件级 sha256 + chunk 级正文指纹）加章节级组织（按知识域而不是按来源文件挂载）。操作顺序有硬性依赖：先清重复、再归类挂图谱、再提炼成"这个问题最好的答案"式知识点文档，最后才 ingest——跳过提炼直接灌库，RAG 只能查到书摘碎片。合并多期材料时保留各期增量与硬数字、冲突标判断，旧原件用 RAG_EXCLUDE_PREFIX 排除而不是删文件。</p>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">为什么要做双层去重（动机与代价）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>动机（WHY）：整本书/多期课件是"同一主题多个版本"的语料：同一本书的修订版、同一课件的 2025/2026 多期版本，各自入库后检索时会互相打架——召回同一问题的多个版本答案，LLM 可能引用旧版本（旧价格、旧接口名）输出矛盾信息</li><li>这不是切分参数问题（384/800 token 已在业内推荐区间），而是语料组织问题：重复内容互相打架才是质量杀手</li><li>双层去重的动机是"入库前让候选集干净 + 检索时不给 LLM 同一观点的 N 个版本"</li></ul></div>2
+<ul>
+<li><strong>动机（WHY）</strong>：整本书/多期课件是"同一主题多个版本"的语料：同一本书的修订版、同一课件的 2025/2026 多期版本，各自入库后检索时会互相打架——召回同一问题的多个版本答案，LLM 可能引用旧版本（旧价格、旧接口名）输出矛盾信息。这不是切分参数问题（384/800 token 已在业内推荐区间），而是<strong>语料组织问题</strong>：重复内容互相打架才是质量杀手。双层去重的动机是"入库前让候选集干净 + 检索时不给 LLM 同一观点的 N 个版本"。</li>
+<li><strong>代价与权衡</strong>：文件级 sha256 去重便宜（零损失），chunk 级正文指纹去重要小心"删掉了不同期的独有内容"——所以多期课件不合并而是打标（<code>course_tier</code>/<code>updated_at</code>），保留演进信息、检索时只留最新期。检索时 near-dup 过滤（cosine ≈ 0.95）会牺牲少量召回换答案一致性，阈值太低会误杀真不同的内容——两层都不能省，但阈值要实测。</li>
+</ul>
+<h1 id="whyt解析父子分块去重与版本组织怎样协同">WHYT：解析、父子分块、去重与版本组织怎样协同</h1>
+<h2 id="分层数据契约与选型依据">分层数据契约与选型依据</h2>2
+<pre><code class="language-text">源文/版本 → 格式解析 → 标题与表格保护 → child 检索表示
+                    └─────────────→ parent 完整语境
+文档 hash / chunk 指纹 → 精确去重 → 来源优先级 → registry/索引
+查询 → 候选融合/精排 → 近重复与版本治理 → 引用原段落
+</code></pre>
+<p>契约至少包含 source、heading_path、文件版本/hash、parent 关联与内容粒度。字节精确匹配应以 hash/逐字一致判断；原文把 MinHash-LSH/SimHash 放在 byte-exact 一行是概念混用，它们用于近似相似候选，不证明字节相等。当前正文指纹去重也不等于已做 embedding 聚类，更不等于所有来源的语义去重。</p>
+<p>参数要以真实实现解释：本库 384/80 与 800/100 默认按字符，不是 token；legacy Markdown 的 800/100 细切独立于普通 <code>RAG_CHUNK_SIZE</code>。表格可能为完整性保留长块；仅改环境参数而源文 hash 不变时，registry 可能跳过文件，所以参数实验需要完整且独立的索引版本，不是重复跑增量就一定重切。</p>
+<p>业内对标沿用源文：固定/递归作为基线，父子索引负责定位与语境解耦，RAPTOR 服务跨章摘要，Contextual 解决块脱离上下文。不同来源里的 49/67% 是特定 top-20 失败率降幅，不能借给本库规则前缀；原有 599/47、29547/15000 等为历史台账或估算，不是本轮实际规模。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">这个问题的答案是什么</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>整本书、整套多期课件入库，难点不在"切多大"，而在"怎么组织一套语料而不互相打架"</li><li>切片 token 参数本身（本库 384/800）已落在业内推荐区间（child 256–512 / parent 512–1024），不是主要矛盾</li></ul></div>2
+<p><strong>整本书、整套多期课件入库，难点不在"切多大"，而在"怎么组织一套语料而不互相打架"。</strong> 一句话方法：</p>
+<ol>
+<li><strong>结构用「章节级 parent + 段落级 child」两层</strong>——child（256–512 token）负责精确检索，parent（≤1024 token）负责给 LLM 完整上下文；句子级不单独入库。</li>
+<li><strong>去重做双层</strong>——入库前做 byte 级 + semantic 级去重（让候选集干净），检索时再做 near-dup 过滤（阈值 cosine ≈ 0.95，让 LLM 不收到同一观点的 N 个版本）。两层都不能省。</li>
+<li><strong>多期课件不合并、要打标</strong>——v1/v2/v3 全部保留（保留演进信息），但给 chunk 打 <code>course_tier</code> / <code>updated_at</code>，同主题召回时只留最新期或最高分那一条。</li>
+<li><strong>技术选型看场景</strong>——横向对比型课件库首选 Contextual Retrieval + Parent-Child + 去重；Late Chunking / RAPTOR 对"几百篇横评"场景不是 P0。</li>
+</ol>
+<blockquote>
+<p>切片 token 参数本身（本库 384/800）已落在业内推荐区间（child 256–512 / parent 512–1024），不是主要矛盾。真正的差距在<strong>上下文富集</strong>和<strong>多期去重</strong>。</p>
+</blockquote>
+<hr />
+<h2 id="是什么定义与边界">是什么（定义与边界）</h2>2
+<p><strong>定义</strong>：本文解决"整本书/整套多期课件入库"的语料组织问题，核心方法 = 「章节级 parent + 段落级 child」两层粒度 + 双层去重（入库前 byte/semantic 级 + 检索时 near-dup 过滤）+ 多期课件打标不合并。</p>
+<p><strong>边界</strong>：<br />
+- ✅ 管：语料入库时的组织结构、去重、多期版本处理。<br />
+- ❌ 不管：切分 token 参数本身的选优（<a href="Chunk%E5%A4%A7%E5%B0%8F%E6%80%8E%E4%B9%88%E9%80%89.html">Chunk大小怎么选</a>）、检索算法（<a href="RRF%E8%9E%8D%E5%90%88%E5%8A%A0%E9%87%8D%E6%8E%92%E8%A7%A3%E5%86%B3%E6%A3%80%E7%B4%A2%E7%9F%AD%E6%9D%BF-%E6%B7%B7%E5%90%88%E6%A3%80%E7%B4%A2%E6%B5%81%E6%B0%B4%E7%BA%BF.html">RRF融合加重排</a>）、内容保鲜（<a href="%E7%9F%A5%E8%AF%86%E5%BA%93%E4%BF%9D%E9%B2%9C%E4%B8%8ETTL%E6%B2%BB%E7%90%86.html">知识库保鲜与TTL治理</a>）。<br />
+- ⚠️ 「多期课件不合并、打标取最新」与"跨期取并集合成完整版"是两种口径——本文保留多版本打标路线；若要合并各期独有内容，走语义比对合成流程（见 ragged-knowledge-pipeline 技能），两者择一，勿混用。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">一、粒度决策：章节级 parent + 段落级 child</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Vecta/FloTorch 2026 benchmark（50 篇论文、90 万 token）：recursive 512-token 端到端准确率 69% 排第一；semantic chunking 平均切成 43 token，准确率只有 54%——切太碎，LLM 拿不到完整上下文</li><li>对整套书/课件的含义：先用 「MarkdownHeaderTextSplitter」 定章节边界，再对章节正文做递归细切，child 命中后回查 parent 喂给 LLM</li><li>这套组合就是 Chunk大小怎么选 讲的 small-to-big，本篇不重复，重点讲它没覆盖的整库去重与多期组织</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>粒度</th>
+<th>业内定位</th>
+<th>典型 token</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>章节级（Chapter）</td>
+<td>不直接检索，作为 parent / 元数据锚点</td>
+<td>2000–5000</td>
+</tr>
+<tr>
+<td>小节/段落级（Section/Paragraph）</td>
+<td><strong>child 主检索单元</strong></td>
+<td>256–512</td>
+</tr>
+<tr>
+<td>句子级（Sentence）</td>
+<td>只作为 child 拆分边界，不单独入库</td>
+<td>43–128</td>
+</tr>
+<tr>
+<td>固定 page-level</td>
+<td>10K+ 文档量时的简单兜底</td>
+<td>~1000</td>
+</tr>
+</tbody>
+</table>
+<p><strong>两条反直觉的实测证据（用来反驳"语义切块一定更好"）：</strong></p>
+<ul>
+<li>Vecta/FloTorch 2026 benchmark（50 篇论文、90 万 token）：<strong>recursive 512-token 端到端准确率 69% 排第一</strong>；semantic chunking 平均切成 43 token，准确率只有 54%——切太碎，LLM 拿不到完整上下文。</li>
+<li>Vectara NAACL 2025 同行评审（25 配置 × 48 模型）：fixed-size 在三个评估任务上都赢了 semantic chunking，"更贵的方法更好"是幻觉。</li>
+</ul>
+<p>据[一手源]：整本书入库最佳实践-20261014.md —— 业内推荐参数区间与本库（384/800）逐项对照：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>业内推荐</th>
+<th>本库</th>
+<th>判断</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>child</td>
+<td>256–512 token（Vecta 2026 / NVIDIA）</td>
+<td>384</td>
+<td>区间内偏下限，合理</td>
+</tr>
+<tr>
+<td>parent</td>
+<td>512–1024 token</td>
+<td>800</td>
+<td>区间内，合理</td>
+</tr>
+<tr>
+<td>child overlap</td>
+<td>10–20%（512 token 配 50–100）</td>
+<td>未显式配</td>
+<td>建议显式写 38 token（10%）</td>
+</tr>
+<tr>
+<td>parent:child 比</td>
+<td>3:1 ~ 4:1（child 越小越精确）</td>
+<td>约 2:1</td>
+<td>略偏平，可选优化为 256 child / 1024 parent</td>
+</tr>
+</tbody>
+</table>
+<p>同一来源补一条粒度证据：NVIDIA 2024 七策略对比里 page-level 固定切分准确率 0.648 排第一，所以"文档量到 10K+ 时用 ~1000 token 的固定页级切分兜底"是有实测依据的简单选项，不是将就。</p>
+<p><strong>对整套书/课件的含义</strong>：先用 <code>MarkdownHeaderTextSplitter</code> 定章节边界，再对章节正文做递归细切，child 命中后回查 parent 喂给 LLM。这套组合就是 <a href="Chunk%E5%A4%A7%E5%B0%8F%E6%80%8E%E4%B9%88%E9%80%89.html">Chunk大小怎么选</a> 讲的 small-to-big，本篇不重复，重点讲它没覆盖的<strong>整库去重与多期组织</strong>。</p>
+<hr />
+<h2 id="二双层去重整套课件的核心动作">二、双层去重（整套课件的核心动作）</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第一层：入库前 dedup（offline，越彻底越好）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. Byte-exact 去重：MinHash-LSH / SimHash，毫秒级去完全相同的 chunk；Milvus 2025 原生支持 MinHash-LSH 索引</li><li>2. Semantic 去重：embedding 聚类（NVIDIA NeMo Curator 用 k-means + 簇内代表性保留），识别"换个说法讲同一件事"</li><li>3. 文档级 + chunk 级两层都做：先文档级砍整篇近重复（简单但漏局部），再 chunk 级清内部冗余（彻底但贵）</li></ul></div>3
+<ol>
+<li><strong>Byte-exact 去重</strong>：MinHash-LSH / SimHash，毫秒级去完全相同的 chunk；Milvus 2025 原生支持 MinHash-LSH 索引。</li>
+<li><strong>Semantic 去重</strong>：embedding 聚类（NVIDIA NeMo Curator 用 k-means + 簇内代表性保留），识别"换个说法讲同一件事"。</li>
+<li><strong>文档级 + chunk 级两层都做</strong>：先文档级砍整篇近重复（简单但漏局部），再 chunk 级清内部冗余（彻底但贵）。</li>
+</ol>
+<p>据[一手源]：整本书入库最佳实践-20261014.md —— 入库前去重的收益与代价（源文估算，未实施前不当实测）：599 篇课件里独立信息可能只有约 200 篇；chunk 总数预计从 29547 降到约 15000，raw 层噪音减半，wiki/ontology 提炼层不再被淹没。工作量：检索时 near-dup 过滤约 2 小时，入库前 semantic 聚类约 2 天（CPU 上跑 bge-m3 编码慢，要放后台任务）。</p>
+<p>据[一手源]：各类格式进RAG处理方案-20261021.md —— <strong>去重之前先判"该不该进"</strong>。进库口径：真知识（有人写的、可被引用的教程/笔记/方法论/案例/规范/调研）进；构建产物（向量存储、rerank 缓存、registry）、纯数据集、测试桩、依赖清单、纯链接跳转、重复副本不进。该源在课件库 234 个 txt 里实测出的重复组：小说章节 12 份、DeepSeek 介绍 6 份、公司规章制度 6 份，各留 1 份即可（sha256 或正文相似度去重）；docx 与 pdf 版规章同内容，也只留一份。</p>
+<h3 id="第二层检索时-near-dup-过滤query-time2-小时就能上线">第二层：检索时 near-dup 过滤（query-time，2 小时就能上线）</h3>3
+<p>top-K（如 top-30）召回后，按 cosine 相似度把 near-dup 折叠成一条，只留最高分。阈值经验：</p>
+<table>
+<thead>
+<tr>
+<th>阈值</th>
+<th>行为</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.99</td>
+<td>只去几乎相同的</td>
+<td>多样化知识库</td>
+</tr>
+<tr>
+<td><strong>0.95</strong></td>
+<td><strong>默认</strong></td>
+<td><strong>多期课件场景</strong></td>
+</tr>
+<tr>
+<td>0.85</td>
+<td>激进</td>
+<td>高度重叠文档集</td>
+</tr>
+<tr>
+<td>0.70</td>
+<td>最狠</td>
+<td>极度重复语料</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么必须做</strong>：多期同主题课件全部原样入库时，一个问题会召回 3 个讲同一件事、版本略有出入的 chunk，LLM 拿到的是"3 个版本的加权平均"而不是 3 个独立证据——这是错误来源，也是 raw 层淹没提炼层的直接原因。业内共识：<strong>80% 的生产 RAG 准确性问题来自重复/矛盾源</strong>，不做去重，加 rerank、加 query 改写都是治标。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">三、多期课件怎么处理（不合并、打标、取最新）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>不要把 v1/v2/v3 合并成 1 篇（会丢掉技术演进）</li><li>1. 入库时给每个 chunk 打 「course_tier」（v1/v2/v3）和 「updated_at」，从路径/文件名解析期数</li><li>2. 检索时同主题 near-dup 只保留最新期或最高分那一条</li></ul></div>2
+<p><strong>不要把 v1/v2/v3 合并成 1 篇</strong>（会丢掉技术演进）。正确做法：</p>
+<ol>
+<li>入库时给每个 chunk 打 <code>course_tier</code>（v1/v2/v3）和 <code>updated_at</code>，从路径/文件名解析期数。</li>
+<li>检索时同主题 near-dup 只保留最新期或最高分那一条。</li>
+<li>演进信息放到提炼层（wiki/ontology）显式做"演进对比"，而不是让 raw 多期版本在召回阶段互相打架。</li>
+</ol>
+<p>生成本地（可选）：给 LLM 的 prompt 显式标注"以下 N 条来自不同年份的同一主题课件"，让模型做时间加权（新的优先）而不是平均。</p>
+<hr />
+<h2 id="四四种高级技术的场景适配别盲目上">四、四种高级技术的场景适配（别盲目上）</h2>2
+<table>
+<thead>
+<tr>
+<th>技术</th>
+<th>核心做法</th>
+<th>适用</th>
+<th>对横评型课件库</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Contextual Retrieval</strong>（Anthropic 2024.09）</td>
+<td>每个 chunk 前用 LLM 生成 50–100 token 文档级上下文前缀再编码</td>
+<td>通用，单 chunk 脱离上下文就看不懂的场景</td>
+<td><strong>★★★★★ 首选</strong>：失败率 ↓49%，加 rerank ↓67%，不换模型</td>
+</tr>
+<tr>
+<td><strong>Parent-Child</strong></td>
+<td>小 chunk 检索、大 chunk 生成</td>
+<td>结构化文档</td>
+<td><strong>★★★★ 已实现</strong></td>
+</tr>
+<tr>
+<td><strong>Late Chunking</strong>（Jina 2024.08）</td>
+<td>8K 长上下文模型先通读再 token 级 pooling 切块</td>
+<td>长文档、跨段指代多</td>
+<td><strong>★★ 暂不做</strong>：要换 embedding（bge-m3 没暴露 token-level pooling API），改造大</td>
+</tr>
+<tr>
+<td><strong>RAPTOR</strong>（Stanford ICLR 2024）</td>
+<td>递归聚类生成摘要树</td>
+<td><strong>单本长文档</strong>多步推理 QA</td>
+<td><strong>★ 不适合</strong>：本库是几百篇横向对比，不是"一本书从绪论检索到结论"；只对最厚的单本书可单独建一棵</td>
+</tr>
+<tr>
+<td><strong>GraphRAG</strong>（Microsoft）</td>
+<td>实体关系图 + 社区摘要</td>
+<td>跨文档全局问题</td>
+<td><strong>★★ 后期增强</strong>：本库 wiki/ontology 已在做类似的事（见 <a href="GraphRAG%E6%9C%80%E5%B0%8F%E7%A4%BA%E4%BE%8B.html">GraphRAG最小示例</a>）</td>
+</tr>
+</tbody>
+</table>
+<p>据[一手源]：RAG入库一手源细节-20261009.md —— Contextual Retrieval 的 49%/67% 要精确读，三档必须叠加才拿得到（Anthropic 官方称 "all these benefits stack"）：</p>
+<table>
+<thead>
+<tr>
+<th>配置（评测指标 1−recall@20，4 个域，top-20）</th>
+<th>失败率</th>
+<th>相对基线降幅</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>基线：纯 embedding</td>
+<td>5.7%</td>
+<td>—</td>
+</tr>
+<tr>
+<td>+ Contextual Embeddings（每 chunk 前拼 50–100 token 的 Claude 上下文）</td>
+<td>3.7%</td>
+<td>35%</td>
+</tr>
+<tr>
+<td>+ Contextual BM25（BM25 也建在带上下文的 chunk 上，即 hybrid）</td>
+<td>2.9%</td>
+<td>49%</td>
+</tr>
+<tr>
+<td>hybrid + Cohere Reranker（初检 top-150 → rerank → top-20 给 LLM）</td>
+<td>1.9%</td>
+<td>67%</td>
+</tr>
+</tbody>
+</table>
+<p>成本口径：800-token chunk、8k-token 文档、100-token 上下文，开 prompt caching 后一次性约 $1.02 / 百万文档 token（不开缓存要高一个量级）。<strong>选型口诀</strong>：Anthropic 原话称"给 chunk 加通用文档摘要"实验收益 very limited、summary-based indexing 表现差，原因是每个 chunk 拿到的上下文雷同、区分度差；要拿这三档数字，必须用 LLM <strong>逐 chunk</strong> 生成它在文档里的定位，规则拼接标题/路径前缀不能直接套用这三档数字，只能以本库自己的 A/B 为准。</p>
+<p>据[一手源]：整本书入库最佳实践-20261014.md —— 三处补充：①Late Chunking 与 Contextual Retrieval 的 2025 对比论文（arXiv 2504.19754）结论：contextual retrieval 语义保持更好但计算贵，late chunking 高效但相关性略有牺牲；②RAPTOR 只对"最厚的单本书、用户常跨章提问"单独建一棵摘要树才划算（例：50 章的 RAG 教程），整库上不划算；③不能把整本书直接塞进 prompt 省掉切分，该源引 Chroma 的 context rot 研究作为"为什么不能整本塞 prompt"的依据（https://research.trychroma.com/context-rot）。</p>
+<hr />
+<h1 id="how从源文盘点到受控增量入库与同尺验收">HOW：从源文盘点到受控增量入库与同尺验收</h1>
+</div></details><h2 id="从只读盘点到受控写入">从只读盘点到受控写入</h2>2
+<ol>
+<li>先确认入库边界与真实分割入口，不覆盖 <code>SOURCE_DIRS</code>：</li>
+</ol>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+rg --files raw/courseware wiki/books | head -30
+rg -n 'RAG_INCLUDE_PREFIX|RAG_EXCLUDE_PREFIX|SCOPED|CHUNK_MODE|_md_fine_splitter|dedup_dropped|bge_version' rag/ingest.py
+env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --check-golden
+</code></pre>
+<p>验收：能列出样本文档、重复组和独有增量，尺子退出 0。<code>head -30</code> 仅抽样，不是全库数量核算；不因找到重复就删除原件。</p>
+<ol start="2">
+<li>获得写库授权并有完整快照后，才采用仓库已有前缀过滤做 scoped 增量；下面命令会写真实索引，不在本次文档任务里执行：</li>
+</ol>
+<pre><code class="language-bash">RAG_INCLUDE_PREFIX='wiki/,ontology/' env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/ingest.py
+</code></pre>
+<p>验收：日志确认 scoped 范围和公共 ingest 锁，没有把范围外文档当 stale 清理；新内容既写 registry，也能在索引中查到。命令用于提炼层，不宣称它会顺带导入全部 <code>raw/courseware/</code>。如需实验存储可用 <code>RAG_INDEX_DIR/RAG_DATA_DIR</code>，但查询/评测也须核实读取该隔离版本，不能只改写入端。</p>
+<ol start="3">
+<li>入库后先查目标证据，再跑同题回归：</li>
+</ol>
+<pre><code class="language-bash">env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/query.py &quot;整套课件入库为什么要区分正文指纹和语义去重？&quot; --no-gen --scope structured
+env -u PYTHONPATH -u PYTHONHOME /home/wuyafang/ai-stack/bin/python rag/eval/eval_recall_fast.py --mode hybrid --json-out /tmp/l4-ingest-recall.json
+</code></pre>
+<p>验收：返回目标文件与具体段落，不是泛相关材料；重复不挤占独有证据，旧题检索不降，并另验引用和生成。<code>--no-gen</code> 不承诺无外部模型调用。下面原有灌库命令完整保留，其中改变排除策略、重切和生产写库均须独立授权；本轮只改这篇文档，不运行 ingest 或 <code>--rebuild</code>。</p>
+<h2 id="五本库落地现状2026-10-15-对照代码核对">五、本库落地现状（2026-10-15 对照代码核对）</h2>2
+<table>
+<thead>
+<tr>
+<th>方法项</th>
+<th>状态</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>章节级 parent + 段落级 child（384/800）</td>
+<td>✅ 已实现</td>
+<td><code>rag/ingest.py</code> 的 <code>split_file()</code> / <code>split_parent_chunks()</code></td>
+</tr>
+<tr>
+<td>课件 byte-identical 去重</td>
+<td>✅ 已做</td>
+<td>599 个原始 md 去重后保留 47 篇课件正文（见《课件知识图谱》建库台账）</td>
+</tr>
+<tr>
+<td>chunk 级正文指纹去重</td>
+<td>✅ 已实现</td>
+<td>编码前正文指纹去重，wiki 优先（<code>dedup_dropped</code>）</td>
+</tr>
+<tr>
+<td>入库前 semantic 聚类去重</td>
+<td>⚠️ 未做</td>
+<td>目前只做了字节级/指纹级，未做 embedding 聚类</td>
+</tr>
+<tr>
+<td>检索时 near-dup 过滤（cosine 0.95）</td>
+<td>❌ 未做（P0）</td>
+<td>top-K 直接喂 LLM，约 2 小时可上线</td>
+</tr>
+<tr>
+<td>chunk 文档级上下文前缀（Contextual）</td>
+<td>❌ 未做（P0）</td>
+<td>方法见 <a href="Contextual-Retrieval%E5%AE%98%E6%96%B9%E6%96%B9%E6%B3%95-20261009.html">Contextual-Retrieval官方方法</a></td>
+</tr>
+<tr>
+<td><code>course_tier</code> / <code>updated_at</code> 元数据</td>
+<td>❌ 未做（P1）</td>
+<td>多期取最新依赖它</td>
+</tr>
+<tr>
+<td>提炼层（wiki/ontology）检索加权</td>
+<td>⚠️ 半做</td>
+<td><code>config.yaml</code> 有 <code>tier_weight</code>（wiki 6.0 / raw 1.0），但实测 top1 仍常命中 raw，权重待标定</td>
+</tr>
+<tr>
+<td>显式 child overlap</td>
+<td>⚠️ 部分</td>
+<td>非 md 用 384/80（约 20%），md 用 800/100，未统一显式配置</td>
+</tr>
+</tbody>
+</table>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">推荐落地顺序（90 天）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 第 1 周：检索时 near-dup 过滤（最简单、立即见效）</li><li>2. 第 2–3 周：Contextual Retrieval 批量加前缀（云端 LLM + prompt cache 省约 90% 成本）</li><li>3. 第 4–5 周：wiki/ontology 层加权标定，重跑同一套 golden-q 对比，不盲调</li></ul></div>3
+<ol>
+<li>第 1 周：检索时 near-dup 过滤（最简单、立即见效）。</li>
+<li>第 2–3 周：Contextual Retrieval 批量加前缀（云端 LLM + prompt cache 省约 90% 成本）。</li>
+<li>第 4–5 周：wiki/ontology 层加权标定，重跑同一套 golden-q 对比，不盲调。</li>
+<li>第 6–7 周：入库前 semantic 聚类去重，预计 chunk 数再降一半。</li>
+<li>第 8 周：补 <code>course_tier</code> 元数据、统一 overlap 配置。</li>
+<li>第 9–12 周：视 baseline 表现再决定是否上 Late Chunking / RAPTOR / GraphRAG。</li>
+</ol>
+<hr />
+<h2 id="来源">来源</h2>2
+<ul>
+<li>📚 内部调研：<code>raw/rag-arch/整本书入库最佳实践-20261014.md</code>（OpenClaw 2026-10-14 只读调研，五问对照 + 一手源）</li>
+<li>📄 Anthropic Contextual Retrieval（官方，失败率降 49%）— https://www.anthropic.com/engineering/contextual-retrieval</li>
+<li>📄 Vecta/FloTorch 2026 chunking benchmark（recursive 512 69% vs semantic 43-token 54%）— https://www.runvecta.com/blog/we-benchmarked-7-chunking-strategies-most-advice-was-wrong</li>
+<li>📄 Vectara NAACL 2025 同行评审（25 配置 × 48 模型）— https://arxiv.org/abs/2410.13070</li>
+<li>📄 Jina Late Chunking — https://arxiv.org/abs/2409.04701</li>
+<li>📄 RAPTOR（Stanford ICLR 2024）— https://arxiv.org/abs/2401.18059</li>
+<li>🛠️ 检索时语义去重开源实现（cosine 阈值过滤）— https://github.com/dakshjain-1616/RAG-with-Retrieval-Time-Semantic-Deduplication</li>
+<li>🛠️ NVIDIA NeMo Curator semantic dedup — https://docs.nvidia.com/nemo/curator/curate-text/process-data/deduplication/semdedup</li>
+<li>📚 内部调研：<code>raw/rag-arch/RAG入库一手源细节-20261009.md</code>（Contextual Retrieval 三档实测数字与成本口径、Microsoft/Google 入库管线）</li>
+<li>📚 内部调研：<code>raw/rag-arch/各类格式进RAG处理方案-20261021.md</code>（txt/pdf/docx/json/csv/html 该不该进库的本地实测分类）</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">相关条目</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Chunk大小怎么选：单文档切分粒度的完整对比，本篇讲"整套语料"，那篇讲"单个 chunk"</li><li>Contextual-Retrieval官方方法-20261009：文档级上下文前缀的官方方法与 prompt</li><li>企业级RAG搭建全流程：端到端阶段框架（清洗预处理在第 1 步）</li></ul></div>2
+<ul>
+<li><a href="Chunk%E5%A4%A7%E5%B0%8F%E6%80%8E%E4%B9%88%E9%80%89.html">Chunk大小怎么选</a>：单文档切分粒度的完整对比，本篇讲"整套语料"，那篇讲"单个 chunk"</li>
+<li><a href="Contextual-Retrieval%E5%AE%98%E6%96%B9%E6%96%B9%E6%B3%95-20261009.html">Contextual-Retrieval官方方法-20261009</a>：文档级上下文前缀的官方方法与 prompt</li>
+<li><a href="%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E6%90%AD%E5%BB%BA%E5%85%A8%E6%B5%81%E7%A8%8B.html">企业级RAG搭建全流程</a>：端到端阶段框架（清洗预处理在第 1 步）</li>
+<li><a href="RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践-2026</a>：生产化标准与索引层卫生</li>
+<li><a href="GraphRAG%E6%9C%80%E5%B0%8F%E7%A4%BA%E4%BE%8B.html">GraphRAG最小示例</a>：跨文档全局问题的后期增强方向</li>
+</ul>
+<h2 id="相关术语">相关术语</h2>2
+<ul>
+<li>[[Parent-Child]]（small-to-big / hierarchical chunking）</li>
+<li>[[语义去重]]（semantic dedup / near-duplicate filtering）</li>
+<li>[[Contextual Retrieval]]</li>
+<li>[[RAPTOR]] / [[Late Chunking]]</li>
+<li>[[MinHash-LSH]]</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">怎么用（源码框架与技术栈）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<p>整套课件/书籍入库 = <code>rag/ingest.py</code> 的分层优先级 + 双层去重，全部已实现，命令如下：</p>
+<table>
+<thead>
+<tr>
+<th>环节</th>
+<th>真实函数（<code>rag/ingest.py</code>）</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>层级优先级（防重复占用指纹）</td>
+<td><code>_file_priority()</code>：wiki→0、ontology→1、raw/practice→2、raw 其它→3、raw/courseware→4</td>
+<td>wiki/ontology 先处理"占有"内容指纹，课件重复批次让位</td>
+</tr>
+<tr>
+<td>入库前去重</td>
+<td><code>chunk_fingerprint()</code>（去代码围栏+空白标点只留实义字符）+ <code>DEDUP_ENABLED = os.environ.get("RAG_DEDUP", "1") != "0"</code>、<code>DEDUP_MIN_CHARS = int(os.environ.get("RAG_DEDUP_MIN_CHARS", "40"))</code></td>
+<td>编码前丢重复正文 chunk，日志 <code>dedup &lt;name&gt;: 剔除 N 个重复正文chunk</code></td>
+</tr>
+<tr>
+<td>脏向量过滤</td>
+<td><code>is_noisy_vector_chunk(text, noisy_ratio=0.80)</code></td>
+<td>课件 dump 的向量数组不入库</td>
+</tr>
+<tr>
+<td>检索时 near-dup 过滤</td>
+<td><code>rag/query.py::_dedup_by_content()</code>（与 ingest 同口径 <code>_content_fingerprint</code>，<code>min_chars=40</code>）+ <code>_dedup_by_source(max_per_source=3)</code></td>
+<td>query-time 过滤，已在 <code>retrieve_node</code> 生效</td>
+</tr>
+<tr>
+<td>章节级 parent + 段落级 child</td>
+<td><code>split_file()</code>（H1–H3）+ <code>split_parent_chunks()</code>（800/100）</td>
+<td><code>parent_text</code> 截 1500 字符存 metadata</td>
+</tr>
+<tr>
+<td>多期课件"取最新"</td>
+<td><code>extract_date(text, filename)</code>（frontmatter <code>date:</code> → 文件名 8 位 → 正文日期）+ metadata <code>date</code>/<code>captured_at</code></td>
+<td><code>course_tier</code>/<code>updated_at</code> 仍是缺口</td>
+</tr>
+</tbody>
+</table>
+<p><strong>可执行命令</strong>：</p>
+<pre><code class="language-bash">cd /mnt/c/MyData/Documents/wuyafang-l
+# 整套灌库（增量，registry sha256+bge_version 双条件 skip）
+python rag/ingest.py
+# 只灌课件外的 raw（排除多期课件）：
+RAG_INCLUDE_PREFIX=&quot;raw/&quot; RAG_EXCLUDE_PREFIX=&quot;raw/courseware/&quot; python rag/ingest.py
+# 只灌 wiki+ontology 提炼层：
+RAG_INCLUDE_PREFIX=&quot;wiki/,ontology/&quot; python rag/ingest.py
+# 灌后自动验证（3 条 query 纯检索）记录到 notes/processes/ingest验证记录-&lt;日期&gt;.md（run_verify()）
+</code></pre>
+<p><strong>验收</strong>：日志尾部 <code>dedup_dropped=N stale_sources=M</code> + <code>[verify] 结论: OK=3</code>；<code>python rag/eval/eval_recall_fast.py --check-golden</code> exit=0。</p>
+<blockquote>
+<p>三段结构补齐 2026-11-03</p>
+</blockquote>
+<h2 id="本库真实落地">本库真实落地</h2>2
+<blockquote>
+<p>本节 2026-11-05 补写，逐条核验路径与函数名（可 grep 复核），不复述正文命令。</p>
+</blockquote>
+<ul>
+<li><strong>整套入库的真入口是 <code>rag/ingest.py</code> <code>main()</code>（L1100）</strong>：增量靠 registry 双条件 skip（<code>load_registry()</code> L359 记 sha256+mtime+size，<code>save_registry()</code> L370 原子写）；<code>RAG_INCLUDE_PREFIX</code>/<code>RAG_EXCLUDE_PREFIX</code> 环境变量控制范围（正文命令即此）。</li>
+<li><strong>"整本书"的切分关键在父子两层</strong>：<code>split_file()</code>（L587，<code>.md</code> 标题原子切 + 低信息片段过滤 <code>_is_low_info</code>）与 <code>split_parent_chunks()</code>（L645，<code>PARENT_CHUNK_SIZE=800</code>）分工——子块进检索、父块进生成。</li>
+<li><strong>灌后验证是入库的一部分不是可选项</strong>：<code>run_verify()</code>（L993）复用 <code>query.retrieve</code> 纯检索 3 条 query，top1 命中源在本次入库文件内才算 OK，结果追加写 <code>notes/processes/ingest验证记录-&lt;日期&gt;.md</code>；再加 <code>rag/eval/eval_recall_fast.py --check-golden</code> 兜底（正文验收口径）。</li>
+<li><strong>和课件讲法的差异</strong>：课件整库灌注常用 LlamaIndex 一次性 ingest；本库是"registry 增量 + 灌后自动验证 + golden 守卫"三段，强调幂等与可回放，而非一次性跑通。</li>
+</ul></div></details></div></body></html>

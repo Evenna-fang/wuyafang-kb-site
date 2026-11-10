@@ -1,0 +1,193 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L0-学习路径导航</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L0-学习路径导航</span></div><div class="wrap"><h1 id="l0-学习路径导航小白从零到能跑-l4-rag-的最短路径图">L0 学习路径导航：小白从零到能跑 L4-RAG 的最短路径图</h1>
+<blockquote>
+<p><strong>TL;DR</strong>：给「完全没基础、目标是自己搭一个能跑的 RAG 知识库」的学习者一条最短路径：环境 → Python → 数学 → AI 通识 → 提示词 → RAG 入门，每步指向本库里真实存在的具体文档。本文只做导航，不重写内容；每步给出「学到什么程度算过关」和「常见卡点」。</p>
+<p><strong>金标证据</strong>：gold_tier=experience_extract ｜ 产出声明=经验提炼（基于本库 wiki/L0 与 L2/L4 各层真实文档清单与「最佳答案」的分工，整理出的最短学习路径，每步指向已核实存在的文件）｜ 排他性证据=路径中每一步的目标文档都是本知识图谱特有的组织产物（如 L0-数据工程.md 用课件里的 pymysql 建表代码做骨架、L0-AI通识.md 融合多期课件并标注来源期），外部搜不到这套按 L0-L10 分层的知识图谱结构 ｜ 抽查入口=wiki/L0-基础层/ 目录实测清单（ls 为准）、wiki/L4-RAG工程/L4-RAG工程-最佳答案.md 第 0 节「目录实测清单」</p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">1. 这张路径图解决什么问题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>「我要从零开始学 AI，最后能自己搭一个 RAG 知识库，该按什么顺序学</li><li>网上的路线图要么太泛（「学机器学习、深度学习、NLP」），要么跳步（上来就讲 Transformer 数学推导）</li><li>这张图按真实文档排路径：每一步都指向本库里已经写好的文档，学完一步就知道下一步去哪，不需要自己拼路线</li></ul></div>2
+<p>「我要从零开始学 AI，最后能自己搭一个 RAG 知识库，该按什么顺序学？」这是本库被问最多的问题之一。网上的路线图要么太泛（「学机器学习、深度学习、NLP」），要么跳步（上来就讲 Transformer 数学推导）。这张图按<strong>真实文档</strong>排路径：每一步都指向本库里已经写好的文档，学完一步就知道下一步去哪，不需要自己拼路线。</p>
+<p><strong>适用场景</strong>：零基础或近零基础（会用电脑但没写过代码）；目标明确是「搭一个能检索自己文档、能问答的 RAG 系统」；时间有限，想走最短路径不绕路。</p>
+<p><strong>前置条件</strong>：一台能上网的电脑（Windows/macOS/Linux 都行）；每天能挤出 1~2 小时。</p>
+<hr />
+<h2 id="2-最短路径总览">2. 最短路径总览</h2>2
+<pre><code>① 环境搭建  →  ② Python 基础  →  ③ 数学最小集  →  ④ AI 通识  →  ⑤ 提示词  →  ⑥ RAG 入门  →  (达标：能跑 L4-RAG)
+   (1-2天)       (5-7天)          (3-5天)          (2-3天)       (2-3天)        (5-7天)
+</code></pre>
+<p>总计约 3~5 周（按每天 1~2 小时算）。每一步的产出都是「能跑通的代码或能讲清的概念」，不是「读完了」。<strong>跑不通不往下走</strong>——这是最省时间的纪律，跳步会在后面加倍还回来。</p>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">3. 六步详解</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="①-环境搭建1-2-天">① 环境搭建（1-2 天）</h3>3
+<p><strong>目标文档</strong>：<a href="L0-%E7%8E%AF%E5%A2%83%E4%B8%8E%E5%B7%A5%E5%85%B7%E9%93%BE.html">L0-环境与工具链</a></p>
+<p><strong>学什么</strong>：装 Python 3.12+、建虚拟环境、配 pip 镜像、装编辑器（VS Code 或 PyCharm）、跑通验证脚本。文档里有 <code>verify_env.py</code> 检查脚本，跑完核心检查全 PASS 才算过关。</p>
+<p><strong>学到什么程度算过关</strong>：能在终端跑 <code>python --version</code> 看到 3.12+；能创建并激活 <code>.venv</code>；能 <code>pip install requests</code> 装上包；能用编辑器跑一个 <code>print("hello")</code>。</p>
+<p><strong>常见卡点</strong>：Windows 忘勾「Add python.exe to PATH」导致 <code>python</code> 不是内部或外部命令；PowerShell 报「禁止运行脚本」；WSL 里 <code>python</code> 调用了 Windows 的 <code>python.exe</code>。这些翻车现场文档第 8.3 节都列了排查和修复方法，别自己瞎试。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">② Python 基础（5-7 天）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>目标文档：L0-Python基础语法，配套 L0-Python数据结构</li><li>学到什么程度算过关：能写一个读 JSON 文件、处理嵌套字典、输出指定格式的脚本；能把一段文本按规则切分成列表（这直接对应 RAG 的 chunk 切分）；能看懂报错并自己修（这是核心技能，不是附加项）</li><li>学什么：变量与基本类型、列表与字典（重点，AI API 的数据结构就是字典嵌套）、条件循环函数、文件与 JSON、异常处理</li></ul></div>3
+<p><strong>目标文档</strong>：<a href="L0-Python%E5%9F%BA%E7%A1%80%E8%AF%AD%E6%B3%95.html">L0-Python基础语法</a>，配套 <a href="L0-Python%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84.html">L0-Python数据结构</a></p>
+<p><strong>学什么</strong>：变量与基本类型、列表与字典（重点，AI API 的数据结构就是字典嵌套）、条件循环函数、文件与 JSON、异常处理。RAG 项目里天天用的是字典、列表、字符串处理、<code>json.loads()</code> 解析模型返回。</p>
+<p><strong>学到什么程度算过关</strong>：能写一个读 JSON 文件、处理嵌套字典、输出指定格式的脚本；能把一段文本按规则切分成列表（这直接对应 RAG 的 chunk 切分）；能看懂报错并自己修（这是核心技能，不是附加项）。</p>
+<p><strong>常见卡点</strong>：字典嵌套取值报 <code>KeyError</code>；中文文件读写乱码（记得 <code>encoding='utf-8'</code>）；异常处理不会用 try/except 导致程序直接崩。文档里每章有「常见错误」和「过关标准」，按过关标准打勾再走。</p>
+<h3 id="③-数学最小集3-5-天">③ 数学最小集（3-5 天）</h3>3
+<p><strong>目标文档</strong>：<a href="L0-%E6%95%B0%E5%AD%A6%E6%9C%80%E5%B0%8F%E9%9B%86-%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0%E7%99%BD%E8%AF%9D.html">L0-数学最小集-线性代数白话</a>、<a href="L0-%E6%95%B0%E5%AD%A6%E6%9C%80%E5%B0%8F%E9%9B%86-%E6%A6%82%E7%8E%87%E7%BB%9F%E8%AE%A1%E7%99%BD%E8%AF%9D.html">L0-数学最小集-概率统计白话</a>、<a href="L0-%E7%BB%9F%E8%AE%A1%E7%9B%B4%E8%A7%89.html">L0-统计直觉</a></p>
+<p><strong>学什么</strong>：向量（Embedding 就是向量）、矩阵乘法（神经网络前向传播的底层数学）、距离与相似度（余弦相似度是 RAG 检索的核心）、概率与统计直觉（模型输出是概率分布）。<strong>只需要最小集</strong>，不需要完整微积分和线性代数课程——RAG 用到的是「向量算相似度」这一件事。</p>
+<p><strong>学到什么程度算过关</strong>：能用 numpy 算两个向量的余弦相似度；能解释「为什么向量距离近就是语义相似」；能看懂 Softmax 把一堆数变成概率分布。</p>
+<p><strong>常见卡点</strong>：想把数学学全导致卡死在推导上。记住目标是「能用」不是「能证」，看不懂的证明先跳过，回到 RAG 场景反推理解。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">④ AI 通识（2-3 天）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>目标文档：L0-AI通识（融合稿，含概念/Token/API Key/模型分类/Vibe Coding），配套 L0-AI通识导航 看方向</li><li>学什么：图灵测试与符号主义/连接主义、感知机与反向传播、Transformer 与自注意力、Token 与 Embedding、预训练→SFT→RLHF、Prompt 与提示工程、模型分类（基座模型 vs 对话产品 vs 微调模型）、Vibe Coding</li><li>学到什么程度算过关：能解释 Token 为什么影响费用；能说清 RAG 解决「模型不知道你的知识」、微调解决「模型行为/风格要改」；能判断一个场景该用 Prompt、RAG 还是微调</li></ul></div>3
+<p><strong>目标文档</strong>：<a href="L0-AI%E9%80%9A%E8%AF%86.html">L0-AI通识</a>（融合稿，含概念/Token/API Key/模型分类/Vibe Coding），配套 <a href="L0-AI%E9%80%9A%E8%AF%86%E5%AF%BC%E8%88%AA.html">L0-AI通识导航</a> 看方向</p>
+<p><strong>学什么</strong>：图灵测试与符号主义/连接主义、感知机与反向传播、Transformer 与自注意力、Token 与 Embedding、预训练→SFT→RLHF、Prompt 与提示工程、模型分类（基座模型 vs 对话产品 vs 微调模型）、Vibe Coding。重点搞懂 Token（影响成本和上下文窗口）和「RAG vs 微调」的分工。</p>
+<p><strong>学到什么程度算过关</strong>：能解释 Token 为什么影响费用；能说清 RAG 解决「模型不知道你的知识」、微调解决「模型行为/风格要改」；能判断一个场景该用 Prompt、RAG 还是微调。</p>
+<p><strong>常见卡点</strong>：被 Transformer 数学细节卡住。AI 通识的目的是建立判断力，不是复现论文，数学细节留给 L6 训练域。</p>
+<h3 id="⑤-提示词工程2-3-天">⑤ 提示词工程（2-3 天）</h3>3
+<p><strong>目标文档</strong>：<a href="../L2-%E5%A4%A7%E6%A8%A1%E5%9E%8B%E4%BA%A4%E4%BA%92/L2-%E5%A4%A7%E6%A8%A1%E5%9E%8B%E4%BA%A4%E4%BA%92-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L2-大模型交互-最佳答案</a>（域总纲），细读 <a href="../L2-%E5%A4%A7%E6%A8%A1%E5%9E%8B%E4%BA%A4%E4%BA%92/System%20Prompt%E6%80%8E%E4%B9%88%E5%86%99%E6%89%8D%E5%A5%BD.html">System Prompt 怎么写才好</a>、<a href="../L2-%E5%A4%A7%E6%A8%A1%E5%9E%8B%E4%BA%A4%E4%BA%92/Few-shot%E5%92%8CZero-shot%E6%80%8E%E4%B9%88%E9%80%89.html">Few-shot 和 Zero-shot 怎么选</a></p>
+<p><strong>学什么</strong>：Prompt 六要素（角色+任务+背景+输入+约束+输出格式）、System/User/Assistant 角色分工、Few-shot 示例、思维链 CoT、结构化输出（让模型返回 JSON）。RAG 的生成质量很大程度取决于 Prompt 怎么写——检索到的内容要通过 Prompt 组装进上下文。</p>
+<p><strong>学到什么程度算过关</strong>：能写出带角色、约束、输出格式的 Prompt 并稳定得到 JSON 结构输出；能解释为什么「模型不知道公司规章」要加外部知识而不是改 Prompt。</p>
+<p><strong>常见卡点</strong>：输出格式不稳定（JSON 解析失败）。约束句要明确「只输出 JSON，不要任何解释」，并用代码解析校验而不是靠模型自觉。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">⑥ RAG 入门（5-7 天）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>目标文档：L4-RAG工程-最佳答案（域总纲，18 篇文档清单），入门先看 企业级RAG搭建全流程 与 Chunk大小怎么选</li><li>目标是跑通一个「上传 PDF → 提问 → 带引用回答」的最小 RAG</li><li>学到什么程度算过关：能用代码把一个真实 PDF 切块、向量化、存进 Chroma；能检索 Top-K 并组装 Prompt 让模型回答；能标注「答案出自第几页」</li></ul></div>3
+<p><strong>目标文档</strong>：<a href="../L4-RAG%E5%B7%A5%E7%A8%8B/L4-RAG%E5%B7%A5%E7%A8%8B-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L4-RAG工程-最佳答案</a>（域总纲，18 篇文档清单），入门先看 <a href="../L4-RAG%E5%B7%A5%E7%A8%8B/%E4%BC%81%E4%B8%9A%E7%BA%A7RAG%E6%90%AD%E5%BB%BA%E5%85%A8%E6%B5%81%E7%A8%8B.html">企业级RAG搭建全流程</a> 与 <a href="../L4-RAG%E5%B7%A5%E7%A8%8B/Chunk%E5%A4%A7%E5%B0%8F%E6%80%8E%E4%B9%88%E9%80%89.html">Chunk大小怎么选</a></p>
+<p><strong>学什么</strong>：RAG 三步流程（索引化→检索→生成）、文档解析与 chunk 切分、Embedding 向量化、向量库存储与检索（Chroma 入门）、Prompt 组装上下文、带引用的回答。目标是跑通一个「上传 PDF → 提问 → 带引用回答」的最小 RAG。</p>
+<p><strong>学到什么程度算过关</strong>：能用代码把一个真实 PDF 切块、向量化、存进 Chroma；能检索 Top-K 并组装 Prompt 让模型回答；能标注「答案出自第几页」。跑不通就回到上一步补 Python 或数据工程。</p>
+<p><strong>常见卡点</strong>：chunk 太大检索不准、太小上下文断裂（经验值中文 300~600 字/块、重叠 50~100 字，必须用自己的数据实验）；检索到了但答案还是错（Prompt 没约束「只依据已知信息回答」）；中文乱码（入库前统一 UTF-8）。</p>
+<hr />
+<h2 id="4-辅助路径什么时候需要补这些">4. 辅助路径：什么时候需要补这些</h2>2
+<ul>
+<li><strong>数据存取</strong>（RAG 元数据层要用）：<a href="L0-%E6%95%B0%E6%8D%AE%E5%B7%A5%E7%A8%8B.html">L0-数据工程</a>——学 Python 时可顺带看 MySQL/SQLite 部分，做 RAG 时看「让数据库服务 AI 应用」章节。</li>
+<li><strong>软件工程基础</strong>（想做生产级应用）：<a href="../L1-%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B/L1-%E8%BD%AF%E4%BB%B6%E5%B7%A5%E7%A8%8B-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L1-软件工程-最佳答案</a>——学完 RAG 后再看，避免过早陷入工程细节。</li>
+<li><strong>AI 协同编程</strong>（想用 AI 工具加速学习）：<a href="../L3-AI%E5%8D%8F%E5%90%8C%E7%BC%96%E7%A8%8B/L3-AI%E5%8D%8F%E5%90%8C%E7%BC%96%E7%A8%8B-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L3-AI协同编程-最佳答案</a>——Vibe Coding 能加速写代码，但审查和测试不能省。</li>
+</ul>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">5. 术语表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>全称</th>
+<th>一句话解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>最短路径</td>
+<td>Shortest Path</td>
+<td>在满足目标的前提下，步骤最少、不绕路的学习序列</td>
+</tr>
+<tr>
+<td>过关标准</td>
+<td>Pass Criteria</td>
+<td>每个学习阶段的验收条件，满足才能进入下一阶段</td>
+</tr>
+<tr>
+<td>虚拟环境</td>
+<td>Virtual Environment</td>
+<td>隔离项目依赖的 Python 环境，避免包版本冲突</td>
+</tr>
+<tr>
+<td>chunk</td>
+<td>—</td>
+<td>文档切分后的小片段，RAG 检索的最小单位</td>
+</tr>
+<tr>
+<td>Embedding</td>
+<td>Word Embedding</td>
+<td>把文本映射成向量的技术，语义相近的文本向量距离近</td>
+</tr>
+<tr>
+<td>Top-K</td>
+<td>Top-K Retrieval</td>
+<td>检索时返回相似度最高的 K 个片段</td>
+</tr>
+<tr>
+<td>余弦相似度</td>
+<td>Cosine Similarity</td>
+<td>用两个向量夹角的余弦值衡量语义相似度</td>
+</tr>
+<tr>
+<td>引用</td>
+<td>Citation</td>
+<td>RAG 回答时标注答案依据的来源文档和页码</td>
+</tr>
+<tr>
+<td>卡点</td>
+<td>Blocker</td>
+<td>学习过程中卡住、无法继续的关键障碍</td>
+</tr>
+<tr>
+<td>绕路</td>
+<td>Detour</td>
+<td>偏离最短路径、暂时不需要的额外学习内容</td>
+</tr>
+<tr>
+<td>可复现</td>
+<td>Reproducible</td>
+<td>同样的步骤在别的机器上也能跑出同样结果</td>
+</tr>
+<tr>
+<td>元知识</td>
+<td>Meta-knowledge</td>
+<td>关于「怎么学、学什么」的知识，如本导航文档</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-速查清单每步过关自检">6. 速查清单：每步过关自检</h2>2
+<pre><code class="language-text">① 环境   □ python --version 是 3.12+   □ 能激活 .venv   □ 能 pip install
+② Python □ 能读写 JSON   □ 能处理嵌套字典   □ 能看报错自己修
+③ 数学   □ 能用 numpy 算余弦相似度   □ 能解释向量距离=语义相似
+④ 通识   □ 能说清 Token 影响成本   □ 能区分 RAG 和微调的分工
+⑤ 提示词 □ 能写六要素 Prompt   □ 能稳定拿到 JSON 输出
+⑥ RAG    □ 能跑通 PDF→切块→向量化→检索→带引用回答
+</code></pre>
+<pre><code class="language-bash"># 快速核对目标文档是否存在（在仓库根目录运行）
+ls wiki/L0-基础层/L0-环境与工具链.md \
+    wiki/L0-基础层/L0-Python基础语法.md \
+    wiki/L0-基础层/L0-数学最小集-线性代数白话.md \
+    wiki/L0-基础层/L0-数学最小集-概率统计白话.md \
+    wiki/L0-基础层/L0-AI通识.md \
+    wiki/L0-基础层/L0-数据工程.md \
+    wiki/L2-大模型交互/L2-大模型交互-最佳答案.md \
+    wiki/L4-RAG工程/L4-RAG工程-最佳答案.md
+</code></pre>
+<p><strong>纪律</strong>：每步过关标准全打勾再进下一步；卡住超过 1 天就回头补上一步，不要硬扛；路径图上的文档如果不存在，说明该文档还没写，按缺口清单登记，不要找替代品硬凑。</p></div></details></div></body></html>

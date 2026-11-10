@@ -1,0 +1,737 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L0-数据工程</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L0-数据工程</span></div><div class="wrap"><h1 id="l0-数据工程mysqlsql-与-python-操作数据库">L0 数据工程：MySQL、SQL 与 Python 操作数据库</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/courseware/%E5%9F%BA%E7%A1%80%E7%AF%87/day11__%E8%B5%84%E6%96%99__mysql%E5%AE%89%E8%A3%85__msyql%E5%AE%89%E8%A3%85.md">day11__资料__mysql安装__msyql安装</a> · <a href="../../raw/courseware/Agent%E7%AF%87/day11__%E8%AF%BE%E4%BB%B6__%E5%9F%BA%E7%A1%80%E7%88%AC%E8%99%AB%E8%AF%BE%E4%BB%B6__04-%E6%95%B0%E6%8D%AE%E5%AD%98%E5%82%A8.md">day11__课件__基础爬虫课件__04-数据存储</a> · <a href="../../raw/courseware/_converted/%E6%95%99%E7%A8%8B_MySQL%E5%AE%89%E8%A3%85%E6%B5%81%E7%A8%8B.md">教程_MySQL安装流程</a> · <a href="../../raw/courseware/python/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%BA%94%E7%94%A8%E5%BC%80%E5%8F%91%E5%AE%9E%E6%88%98%E8%AE%B2%E4%B9%89-%E6%95%B4%E5%90%88%E7%89%88-20261009.md">大模型应用开发实战讲义-整合版-20261009</a> · <a href="../../raw/courseware/%E9%A3%9E%E4%B9%A6%E6%96%B0%E7%A9%BA%E9%97%B4/RAG%E5%9F%BA%E7%A1%80.md">RAG基础</a></p>
+<p><strong>TL;DR</strong>：把「数据」这件事拆成三层——先用 MySQL/SQLite 把数据存对（DDL 建表、DML 增删改、DQL 查），再用 Python 连库把读写自动化（pymysql / sqlite3），最后让这些数据服务于 AI 应用（会话历史入库、RAG 元数据层）。本文用课件里真实的安装步骤、建表语句和 Python 代码做骨架，补上 MySQL 官方文档的语法与字符集细节，结尾给出「什么场景用、什么场景别用、翻车长什么样」三问。</p>
+<p><strong>金标证据</strong>：gold_tier=input_digest ｜ 产出声明=消化提炼（融合 5 份课件的安装/建表/连接代码与实战讲义的 SQLite 会话表设计，再以 MySQL 8.4 官方文档补齐语法与字符集细节，非原创调研）｜ 排他性证据=保留了课件中独有的「先 <code>mysqld --initialize-insecure</code> 再 <code>mysqld -install</code>」「<code>CREATE DATABASE spiders DEFAULT CHARACTER SET utf8</code>」等上课实操顺序，以及实战讲义里 AI 应用专属的 <code>messages</code> 表 <code>tokens</code> 字段设计，这些细节只在本库 raw/courseware 一手课件里出现 ｜ 抽查入口=raw/courseware/Agent篇/day11__课件__基础爬虫课件__04-数据存储.md「四、MySQL存储」小节、raw/courseware/python/大模型应用开发实战讲义-整合版-20261009.md 第 37 章「数据库：SQLite → PostgreSQL」</p>
+</blockquote>
+<hr />
+<h2 id="why">WHY</h2>2
+<p>数据工程先解决「为什么必须持久化、为什么要控制质量」，再谈工具。没有这一层，AI 应用重启即失忆、重复数据挤占检索名额、业务统计失去一致口径；装好数据库也不等于数据已经可用。</p>
+<h3 id="1-这篇文档解决什么问题">1. 这篇文档解决什么问题</h3>3
+<p>AI 应用不是「会调模型」就够了，真正决定能不能落地的是<strong>数据从哪来、存哪里、怎么查、怎么被模型用</strong>。这篇文档面向刚接触数据工程的学习者，把以下问题一次讲清楚：</p>
+<ol>
+<li>MySQL 装在哪、怎么装、装完怎么验证（Windows 下最常见的一条路径）。</li>
+<li>SQL 的四类语句各干什么：DDL 定义结构、DML 改数据、DQL 查数据、DCL 管权限。</li>
+<li>Python 怎么连 MySQL（pymysql）和 SQLite（sqlite3），把增删改查写成可复用函数。</li>
+<li>AI 应用里数据库到底存什么——对话历史、文档元数据、评测日志。</li>
+</ol>
+<p><strong>适用场景</strong>：要做一个「能记住用户之前说过什么」的 AI 应用；要把爬虫/业务数据入库再给 RAG 当知识源；要接手别人的数据库但不知道表怎么设计。</p>
+<p><strong>前置条件</strong>：装好 Python 3.10+（见 <a href="L0-%E7%8E%AF%E5%A2%83%E4%B8%8E%E5%B7%A5%E5%85%B7%E9%93%BE.html">L0-环境与工具链</a>）；有 Windows 管理员权限或 Linux/macOS 终端；知道 <code>pip install</code> 怎么用。</p>
+<h3 id="2-让数据库服务-ai-应用">2. 让数据库服务 AI 应用</h3>3
+<p>数据库在 AI 应用里不是主角，但缺了它，「AI 有记忆」就是空话。实战讲义的判断很直接：「所谓『AI 有记忆』，真相是：你的程序保存信息 → 下次请求时取出来 → 重新塞进 Context」。所以数据库的职责是<strong>持久化 + 可查</strong>，真正的记忆拼装发生在应用层。</p>
+<p>三条落地建议：</p>
+<ol>
+<li><strong>会话历史入库，重启不丢</strong>：用下面的 <code>messages</code> 表，<code>save_message</code> 写、<code>load_history</code> 读，历史超过窗口就裁剪（保留 system + 最近 N 条）。</li>
+<li><strong>文档元数据与正文分离</strong>：<code>documents</code> 表存文件名、页码、来源路径；正文切块后进向量库。这样 RAG 回答时能标注「出自第几页」，可追溯。</li>
+<li><strong>调用日志单独一张表</strong>：每次模型调用记时间、模型名、token 用量、耗时、是否成功。出问题时按 <code>logs</code> 查，比翻聊天记录快。</li>
+</ol>
+<p><strong>数据库管数据，向量库管语义</strong>——RAG 项目里两者分工见 <a href="../L4-RAG%E5%B7%A5%E7%A8%8B/L4-RAG%E5%B7%A5%E7%A8%8B-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L4-RAG工程</a> 与课件《RAG基础》「向量数据库」小节。</p>
+<h3 id="3-数据质量与去重为什么先去重再入库">3. 数据质量与去重：为什么先去重再入库</h3>3
+<p>数据库只是容器，容器里的数据质量决定 AI 应用的上限。课件《数据存储》把「数据去重」列为独立一节（第七个学习目标），说明它在数据管道里和存储同等重要。</p>
+<p>RAG 项目里重复数据的代价被放大：同一段文本入库多次，检索时它会霸占 Top-K 的多个坑位，把真正多样的上下文挤出去，答案质量直接下降。业务库里的重复则导致统计口径错乱（订单算两次）。所以数据工程的标准流水线是：<strong>采集 → 清洗 → 去重 → 入库 → 校验</strong>，去重在入库之前。</p>
+<hr />
+<h2 id="what-whyt">WHAT / WHYT</h2>2
+<p>这一部分建立存储选型与关系模型的概念边界：文件、关系库、文档库、缓存和向量库不是互相替代的「同级工具」，SQL 也不只是查询语句。先按数据形态、访问方式、一致性和并发需求选容器，再进入 HOW 照命令实操。</p>
+<h3 id="1-数据存储的全景文件关系库向量库各管什么">1. 数据存储的全景：文件、关系库、向量库各管什么</h3>3
+<p>课件《数据存储》开篇把存储分成两大类：<strong>文本文件存储</strong>（TXT、JSON、CSV）和<strong>数据库存储</strong>（MySQL、MongoDB、Redis）。三类各有边界：</p>
+<ul>
+<li><strong>文件</strong>（TXT/JSON/CSV）：零配置、好调试，适合小批量中间结果、配置、日志。缺点是不利检索、并发写会互相覆盖。</li>
+<li><strong>关系型数据库</strong>（MySQL / PostgreSQL / SQLite）：表结构 + 主外键 + 事务，适合「有明确字段、要多表关联、要精确查询」的业务数据。RAG 项目里存用户、会话、文档元数据、调用日志，基本都用它。</li>
+<li><strong>向量数据库</strong>（Chroma / Milvus / pgvector）：存 Embedding 向量、支持相似度检索。RAG 检索层靠它，但<strong>它不适合当业务库</strong>——课件原话：「我们这个向量的数据存在哪里，存 mysql MongoDB？这种数据库我们可以做查询语句，但是我们没有办法做空间的计算」。所以真实项目里常见「关系库存业务数据 + 向量库存语义检索」双库并存。</li>
+</ul>
+<p><strong>什么时候选什么</strong>：数据是表格化的、字段固定、要 JOIN → MySQL；数据是半结构化文档、字段可变 → MongoDB；要按语义相似找片段 → 向量库；只是缓存或去重集合 → Redis。AI 应用里这四样常常同时出现，别指望一个库通吃。</p>
+<h3 id="2-sql-语句四大家族">2. SQL 语句四大家族</h3>3
+<p>SQL（Structured Query Language）按用途分四类，面试和实战都围绕这四类转。</p>
+<table>
+<thead>
+<tr>
+<th>家族</th>
+<th>全称</th>
+<th>干什么</th>
+<th>代表语句</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DDL</td>
+<td>Data Definition Language</td>
+<td>定义/修改表结构</td>
+<td><code>CREATE TABLE</code> / <code>ALTER TABLE</code> / <code>DROP TABLE</code></td>
+</tr>
+<tr>
+<td>DML</td>
+<td>Data Manipulation Language</td>
+<td>增删改数据行</td>
+<td><code>INSERT</code> / <code>UPDATE</code> / <code>DELETE</code></td>
+</tr>
+<tr>
+<td>DQL</td>
+<td>Data Query Language</td>
+<td>查询数据</td>
+<td><code>SELECT</code>（含 <code>WHERE</code> / <code>JOIN</code> / <code>GROUP BY</code>）</td>
+</tr>
+<tr>
+<td>DCL</td>
+<td>Data Control Language</td>
+<td>权限控制</td>
+<td><code>GRANT</code> / <code>REVOKE</code></td>
+</tr>
+</tbody>
+</table>
+<p>官方语法索引：<a href="https://dev.mysql.com/doc/refman/8.4/en/sql-data-definition-statements.html">https://dev.mysql.com/doc/refman/8.4/en/sql-data-definition-statements.html</a>（DDL）、<a href="https://dev.mysql.com/doc/refman/8.4/en/select.html">https://dev.mysql.com/doc/refman/8.4/en/select.html</a>（SELECT）。</p>
+<h3 id="3-关系型数据库的原理底座为什么是二维表">3. 关系型数据库的原理底座：为什么是「二维表」</h3>3
+<p>课件《数据存储》在进入 MySQL 之前先讲清了关系模型的本质，这段判断标准值得记住：</p>
+<blockquote>
+<p>关系型数据库是基于关系模型的数据库，而关系模型是通过二维表来保存的，所以它的存储方式就是行列组成的表，每一列是一个字段，每一行是一条记录。表可以看作某个实体的集合，而实体之间存在联系，这就需要表与表之间的关联关系来体现，如主键外键的关联关系。多个表组成一个数据库，也就是关系型数据库。</p>
+</blockquote>
+<p>这句话拆开是三层含义：</p>
+<ol>
+<li><strong>表 = 实体的集合</strong>。一张 <code>students</code> 表装所有学生，一行一个学生，一列一个属性。</li>
+<li><strong>行 = 记录，列 = 字段</strong>。字段有类型约束（<code>INT</code> / <code>VARCHAR</code> / <code>TEXT</code>），这是「数据完整性」的来源——数据库替你挡住「年龄写成字符串」这种低级错误。</li>
+<li><strong>表间联系靠主外键</strong>。<code>enrollments</code> 表用 <code>student_id</code> 指向 <code>students.id</code>，把「谁选了什么课」这个事实单独建模，而不是把课程名冗余地塞进学生表。</li>
+</ol>
+<p>关系型数据库有多种，课件列了 SQLite、MySQL、Oracle、SQL Server、DB2。对初学者的建议路径是：<strong>SQLite 入门（零配置）→ MySQL 上生产（多用户、要权限）→ PostgreSQL 要高级特性（pgvector、JSONB）</strong>。</p>
+<h4 id="31-索引让查询从全表扫描变点查">3.1 索引：让查询从全表扫描变点查</h4>
+<p>课件没展开索引，但它是 SQL 性能的第一杠杆。索引就像书的目录：没索引时 <code>WHERE name='柏汌'</code> 要逐行比对（全表扫描），有索引时直接定位。代价是写入变慢（每次 INSERT/UPDATE 都要维护索引）且占空间。给 <code>WHERE</code>、<code>JOIN</code>、<code>ORDER BY</code> 常用的字段加索引，给高频写的表少加索引。<strong>主键自带索引</strong>，所以 <code>WHERE id='00001'</code> 永远最快。</p>
+<h4 id="32-事务与-acid">3.2 事务与 ACID</h4>
+<p>事务（Transaction）保证一组操作「要么全成功、要么全失败」，ACID 是四个特性：原子性（Atomicity，全做或全不做）、一致性（Consistency，状态合法）、隔离性（Isolation，并发互不干扰）、持久性（Durability，提交后不丢）。AI 应用里典型场景：扣用户额度 + 写调用日志，两件事必须同生共死，否则会出现「扣了钱没记录」。Python 侧 <code>db.commit()</code> / <code>db.rollback()</code> 就是事务边界。</p>
+<h3 id="4-非关系型存储对照mongodb-与-redis-在数据管道里的位置">4. 非关系型存储对照：MongoDB 与 Redis 在数据管道里的位置</h3>3
+<p>MySQL 只是数据工程的一块拼图。课件《数据存储》在讲完 MySQL 之后紧接着讲 MongoDB 与 Redis，这两个在 AI 数据管道里也有固定位置，提前知道边界能少走弯路。</p>
+<h4 id="41-mongodb字段不固定的半结构化文档">4.1 MongoDB：字段不固定的半结构化文档</h4>
+<p>MongoDB 是 C++ 编写的非关系型数据库，存储形式类似 JSON 对象，字段值可以包含其他文档、数组及文档数组，非常灵活。</p>
+<p><strong>什么时候选 MongoDB</strong>：爬虫抓回来的原始 JSON、字段每页都不一样的网页数据、原型期还没想清楚 schema 的日志。<strong>什么时候别用</strong>：需要跨表 JOIN、强事务、唯一约束的业务数据——那是 MySQL 的地盘。翻车形态：把 MongoDB 当主业务库，上线后要加唯一索引才发现同一批数据已重复入库，得先写脚本去重再补索引。</p>
+<h4 id="42-redis去重与缓存的持久化容器">4.2 Redis：去重与缓存的持久化容器</h4>
+<p>课件把去重分成两个概念，判断逻辑很清楚：</p>
+<blockquote>
+<p>根据给定的判断依据和给定的去重容器，将原始数据逐一进行判断，判断去重容器中是否有该数据，如果没有那就把该数据对应的判断依据添加去重容器中，同时标记该数据是不重复数据，如果有就不添加，同时标记该数据是重复数据。</p>
+</blockquote>
+<p>去重容器分两种：<strong>临时容器</strong>（list、set 等内存结构，程序一关就没了，优点是简单，缺点是无法共享、无法持久化）和<strong>持久化容器</strong>（redis、mysql 等数据库，优点是持久化、共享，缺点是实现复杂些）。爬虫场景下推荐持久化容器，否则重启后重复抓一遍全站。</p>
+<p>特征值计算的三种常见做法（课件原文）：信息摘要 hash 算法（指纹）、SimHash 算法（模糊文本）、布隆过滤器（上亿级别数据去重）。</p>
+<p><strong>什么时候用 Redis</strong>：去重、限流计数、会话缓存、排行榜这类「快、可丢、要共享」的数据。<strong>什么时候别用</strong>：把它当主存储——Redis 是内存数据库，配置不当重启就丢数据，业务主数据必须落 MySQL/PostgreSQL。</p>
+<h3 id="5-文件层存储txt-json-csv-什么时候够用">5. 文件层存储：TXT / JSON / CSV 什么时候够用</h3>3
+<p>在把数据塞进数据库之前，先想清楚是不是真的需要数据库。课件《数据存储》前三节讲的就是文件层三种格式，它们在 AI 项目里出镜率不低。</p>
+<h4 id="51-txt最简单最不利检索">5.1 TXT：最简单，最不利检索</h4>
+<p>TXT 几乎兼容任何平台，操作最简单，课件的评价是「它有个缺点，那就是不利于检索」。适合存爬虫的原始抓取结果、临时日志。打开模式课件列了 11 种（<code>r</code> / <code>rb</code> / <code>r+</code> / <code>w</code> / <code>a</code> 等），最常用的是 <code>r</code>（只读）、<code>w</code>（覆盖写）、<code>a</code>（追加）。写中文记得 <code>encoding='utf-8'</code>，否则 Windows 默认 GBK 会出乱码。</p>
+<h4 id="52-json结构化交换的主力">5.2 JSON：结构化交换的主力</h4>
+<p>JSON（JavaScript Object Notation）用对象（<code>{}</code> 键值对）和数组（<code>[]</code>）自由组合表示数据，可无限嵌套。Python 的 json 模块四个方法要分清：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>json.dumps()</code></td>
+<td>把 Python 对象转换成 JSON 字符串</td>
+</tr>
+<tr>
+<td><code>json.dump()</code></td>
+<td>把 dict 转成字符串并写入 json 文件</td>
+</tr>
+<tr>
+<td><code>json.loads()</code></td>
+<td>把 JSON 字符串解码成 Python 对象</td>
+</tr>
+<tr>
+<td><code>json.load()</code></td>
+<td>从 json 文件读取数据</td>
+</tr>
+</tbody>
+</table>
+<p>AI 应用里 JSON 是 Prompt 与结构化输出的通用载体——模型返回的 JSON 用 <code>json.loads()</code> 解析，解析失败要有兜底（实战讲义第 18 章专门讲 Structured Output 的三种方案）。</p>
+<h4 id="53-csv表格数据的纯文本形态">5.3 CSV：表格数据的纯文本形态</h4>
+<p>CSV（Comma-Separated Values）以纯文本存表格数据，比 Excel 简洁（不含公式、格式），适合导出给人看、给 pandas 读。</p>
+<h3 id="6-三类特征值计算的适用边界">6. 三类特征值计算的适用边界</h3>3
+<ul>
+<li><strong>信息摘要 hash（MD5/SHA1 指纹）</strong>：把整条数据压成一个定长字符串，比对快。适合「完全相同的重复」。翻车点：字段顺序或空白差异会导致指纹不同，同一内容判成两条不同数据。</li>
+<li><strong>SimHash（模糊文本）</strong>：给相似文本算相近的指纹，适合「几乎相同的重复」（如转载文章改了标点）。翻车点：阈值不好调，太松会误杀、太严漏判。</li>
+<li><strong>布隆过滤器</strong>：用极小内存判断「一定不存在 / 可能存在」，适合上亿级别去重。翻车点：有误判率（把不存在判成存在），且不支持删除。</li>
+</ul>
+<p>选型一句话：完全重复用 hash，近似重复用 SimHash，海量粗筛用布隆过滤器。</p>
+<h3 id="7-常见误区新手最容易搞混的几对概念">7. 常见误区：新手最容易搞混的几对概念</h3>3
+<ol>
+<li><strong>「存进数据库」≠「数据安全」</strong>：数据库只保证不丢、可查，不保证数据正确。校验要在入库前做。</li>
+<li><strong>「MySQL 里建了表」≠「设计好了 schema」</strong>：字段类型乱用（全 <code>VARCHAR</code>）、没有主键、没有索引，都是隐形债。表结构要按业务实体建模，不是按爬虫返回的 JSON 原样倒进去。</li>
+<li><strong>「SQL 能查」≠「适合给模型用」</strong>：模型吃的是文本片段，数据库存的是结构化行。中间要有「行 → 文本」的序列化层，这是 RAG 元数据到正文的桥。</li>
+<li><strong>「用了 ORM 就不用懂 SQL」</strong>：ORM 只是翻译层，慢查询、N+1、事务边界还是得靠 SQL 知识排查。实战讲义的原话：换库时「用 SQLAlchemy 做 ORM，SQL 基本不用改」——前提是你的 SQL 本身写得规范。</li>
+<li><strong>「向量库能替代关系库」</strong>：向量库擅长语义检索，不擅长精确条件查询、聚合统计、事务。两者是互补关系。</li>
+</ol>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">8. 术语表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>全称</th>
+<th>一句话解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SQL</td>
+<td>Structured Query Language</td>
+<td>操作关系型数据库的标准语言</td>
+</tr>
+<tr>
+<td>DDL</td>
+<td>Data Definition Language</td>
+<td>定义表结构的语句族（CREATE/ALTER/DROP）</td>
+</tr>
+<tr>
+<td>DML</td>
+<td>Data Manipulation Language</td>
+<td>增删改数据行的语句族（INSERT/UPDATE/DELETE）</td>
+</tr>
+<tr>
+<td>DQL</td>
+<td>Data Query Language</td>
+<td>查询数据的语句（SELECT 及其子句）</td>
+</tr>
+<tr>
+<td>DCL</td>
+<td>Data Control Language</td>
+<td>权限控制语句（GRANT/REVOKE）</td>
+</tr>
+<tr>
+<td>RDBMS</td>
+<td>Relational DBMS</td>
+<td>关系型数据库管理系统（MySQL/PostgreSQL/SQLite）</td>
+</tr>
+<tr>
+<td>主键</td>
+<td>Primary Key</td>
+<td>唯一标识一行的字段，不能重复也不能为空</td>
+</tr>
+<tr>
+<td>外键</td>
+<td>Foreign Key</td>
+<td>指向另一张表主键的字段，用于建立表间关联</td>
+</tr>
+<tr>
+<td>事务</td>
+<td>Transaction</td>
+<td>一组要么全成功要么全回滚的操作（ACID）</td>
+</tr>
+<tr>
+<td>ORM</td>
+<td>Object-Relational Mapping</td>
+<td>用 Python 类映射表结构的中间层（如 SQLAlchemy）</td>
+</tr>
+<tr>
+<td>utf8mb4</td>
+<td>UTF-8 (4-byte)</td>
+<td>MySQL 里真正完整的 UTF-8，支持 emoji</td>
+</tr>
+<tr>
+<td>SQL 注入</td>
+<td>SQL Injection</td>
+<td>通过拼接恶意字符串篡改 SQL 的攻击方式</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="how">HOW</h2>2
+<p>下面按可执行顺序组织：先装 MySQL，再用 SQL 和 Python 完成增删改查，随后扩展到 MongoDB、Redis 与文件存储，最后串起数据管道、安全、连接管理、表设计、RAG 元数据、排错和交付自检。示例中的账号密码仅用于本地学习，真实环境应改为最小权限账号与外部密钥配置。</p>
+</div></details><h3 id="1-mysql-安装windows-主路径">1. MySQL 安装：Windows 主路径</h3>3
+<p>素材里有两份安装教程（<code>基础篇/day11__资料__mysql安装__msyql安装.md</code> 与 <code>_converted/教程_MySQL安装流程.md</code>），步骤几乎一致，合并成一条主路径。</p>
+<h4 id="11-下载与解压">1.1 下载与解压</h4>
+<ol>
+<li>官方下载：<a href="https://dev.mysql.com/downloads/mysql/">https://dev.mysql.com/downloads/mysql/</a>（课件提示：可跳过 Oracle 账号注册直接下载）。</li>
+<li>国内镜像（课件提供，下载慢时用）：<a href="http://mirrors.sohu.com/mysql/MySQL-8.0/">http://mirrors.sohu.com/mysql/MySQL-8.0/</a>。<strong>注意镜像只覆盖 8.0 系列</strong>，要装 8.4 LTS 请走官方（MySQL 版本分为 Innovation 与 LTS 两类，见官方 <a href="https://dev.mysql.com/doc/refman/8.4/en/mysql-releases.html">https://dev.mysql.com/doc/refman/8.4/en/mysql-releases.html</a>）。</li>
+<li>解压到<strong>全英文、无空格</strong>的路径，例如 <code>D:\MySQL\mysql-8.4.x-winx64</code>。<code>教程_MySQL安装流程.md</code> 特别强调：路径里出现中文或空格，后面命令容易翻车。</li>
+</ol>
+<h4 id="12-配置环境变量">1.2 配置环境变量</h4>
+<p>把解压目录下的 <code>bin</code>（例如 <code>D:\MySQL\mysql-8.4.x-winx64\bin</code>）加进系统变量 <code>Path</code>。这样任意目录下都能敲 <code>mysql</code>、<code>mysqld</code>。</p>
+<h4 id="13-初始化-注册服务-启动管理员-cmd">1.3 初始化 + 注册服务 + 启动（管理员 cmd）</h4>
+<pre><code class="language-bat">:: 在 bin 目录下，管理员身份运行 cmd
+mysqld --initialize-insecure --user=mysql
+:: 备注：-insecure 表示 root 初始密码为空；若用 mysqld --initialize 则生成随机初始密码
+mysqld -install
+net start mysql
+</code></pre>
+<p>顺序不要颠倒。课件《教程_MySQL安装流程.md》的经验：<code>mysqld -install</code> 回车后出现 <code>Service successfully installed</code> 才算成功；出现 <code>Install of the Service Denied</code> 就是没用管理员身份开 cmd。两份素材对 initialize 与 install 的先后顺序略有出入，<strong>只要两者都做、且都在 <code>net start</code> 之前</strong>即可。</p>
+<h4 id="14-登录并改密码">1.4 登录并改密码</h4>
+<pre><code class="language-bat">mysql -u root -p
+:: 初始密码为空（--initialize-insecure），直接回车
+</code></pre>
+<p>进入 <code>mysql&gt;</code> 后立刻改密码：</p>
+<pre><code class="language-sql">ALTER USER 'root'@'localhost' IDENTIFIED BY '你的新密码';
+</code></pre>
+<p>课件里还留了一条老写法 <code>ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '...'</code>。<strong>MySQL 8.x 默认认证插件是 <code>caching_sha2_password</code></strong>，除非客户端不支持新插件才需要显式指定 <code>mysql_native_password</code>（该插件在 8.4 里已是遗留选项）。新项目直接 <code>IDENTIFIED BY '...'</code> 即可。</p>
+<h4 id="15-卸载留作备份知识">1.5 卸载（留作备份知识）</h4>
+<pre><code class="language-bat">net stop mysql
+mysqld -remove mysql
+</code></pre>
+<h3 id="2-sql-实操ddldmldql-与-dcl">2. SQL 实操：DDL、DML、DQL 与 DCL</h3>3
+<h4 id="21-ddl建库建表">2.1 DDL：建库建表</h4>
+<p>课件《数据存储》里的原汁原味建表语句（spiders 库 students 表）：</p>
+<pre><code class="language-sql">CREATE DATABASE spiders DEFAULT CHARACTER SET utf8;
+
+CREATE TABLE IF NOT EXISTS students (
+    id   VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    age  INT NOT NULL,
+    PRIMARY KEY (id)
+);
+</code></pre>
+<p>官方 CREATE TABLE 语法：<a href="https://dev.mysql.com/doc/refman/8.4/en/create-table.html">https://dev.mysql.com/doc/refman/8.4/en/create-table.html</a>。常用字段类型速查：</p>
+<ul>
+<li><code>INT</code>：整数。自增主键写 <code>INT AUTO_INCREMENT PRIMARY KEY</code>（课件里爬虫入库的 <code>ali</code> 表就是 <code>id int primary key auto_increment not null</code>）。</li>
+<li><code>VARCHAR(n)</code>：变长字符串，最多 n 个字符。<strong>n 不是越大越好</strong>，索引和内存都受影响。</li>
+<li><code>TEXT</code>：长文本（职位描述 <code>requirement TEXT</code> 就是这个）。</li>
+<li><code>DATETIME</code> / <code>TIMESTAMP</code>：时间。AI 应用存消息时间戳用 <code>TIMESTAMP DEFAULT CURRENT_TIMESTAMP</code>。</li>
+</ul>
+<p>字符集一栏：<code>DEFAULT CHARACTER SET utf8</code> 在 MySQL 8.x 里等价于 <code>utf8mb3</code>（最多 3 字节，存不下 emoji）。要存 emoji、特殊符号，写 <strong><code>utf8mb4</code></strong>。官方字符集文档：<a href="https://dev.mysql.com/doc/refman/8.4/en/charset.html">https://dev.mysql.com/doc/refman/8.4/en/charset.html</a>。这是新手最常见的中文乱码根因。</p>
+<h4 id="22-dml增删改">2.2 DML：增删改</h4>
+<pre><code class="language-sql">INSERT INTO students(id, name, age) VALUES ('00001', '柏汌', 19);
+
+UPDATE students SET age = 20 WHERE id = '00001';
+
+DELETE FROM students WHERE id = '00001';
+</code></pre>
+<p><strong>UPDATE / DELETE 不带 WHERE 就是全表操作</strong>，生产第一条铁律：先写 <code>WHERE</code>，确认影响行数再提交。事务（<code>BEGIN</code> / <code>COMMIT</code> / <code>ROLLBACK</code>）能在写错时反悔，Python 侧对应 <code>db.commit()</code> / <code>db.rollback()</code>。</p>
+<h4 id="23-dql查询">2.3 DQL：查询</h4>
+<pre><code class="language-sql">SELECT id, name, age
+FROM students
+WHERE age &gt;= 18
+ORDER BY age DESC
+LIMIT 10;
+
+-- 多表关联（官方 JOIN 语法：https://dev.mysql.com/doc/refman/8.4/en/join.html）
+SELECT s.name, c.course
+FROM students s
+JOIN enrollments e ON s.id = e.student_id
+JOIN courses c     ON e.course_id = c.id;
+</code></pre>
+<p><code>SELECT</code> 的执行顺序是 <code>FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT</code>，理解这个顺序，写聚合查询就不会把别名用错地方。</p>
+<h4 id="24-dcl权限">2.4 DCL：权限</h4>
+<pre><code class="language-sql">CREATE USER 'app'@'%' IDENTIFIED BY 'strong_password';
+GRANT SELECT, INSERT ON spiders.* TO 'app'@'%';
+FLUSH PRIVILEGES;
+</code></pre>
+<p>AI 应用连库时<strong>不要用 root</strong>，建一个只有必要权限的账号，泄漏时损失可控。</p>
+<h3 id="3-python-操作数据库">3. Python 操作数据库</h3>3
+<h4 id="31-用-pymysql-连-mysql">3.1 用 pymysql 连 MySQL</h4>
+<p>课件《数据存储》「2.连接数据库」的原始代码，注释保留：</p>
+<pre><code class="language-python">import pymysql
+
+def db_connect():
+    # 打开数据库连接
+    db = pymysql.connect(host=&quot;localhost&quot;, user=&quot;root&quot;, password=&quot;root&quot;)
+    # 使用cursor()方法创建一个游标对象cursor
+    cursor = db.cursor()
+    # 使用execute()方法执行SQL查询
+    cursor.execute(&quot;SELECT VERSION()&quot;)
+    # 使用 fetchone() 方法获取单条数据
+    data = cursor.fetchone()
+    # data返回值为一个元组
+    print(data)
+    # 创建数据库
+    cursor.execute(&quot;CREATE DATABASE spiders DEFAULT CHARACTER SET utf8&quot;)
+    # 关闭数据库连接
+    db.close()
+
+if __name__ == &quot;__main__&quot;:
+    db_connect()
+</code></pre>
+<p>安装：<code>pip install pymysql</code>（PyPI：<a href="https://pypi.org/project/pymysql/">https://pypi.org/project/pymysql/</a>）。这段代码<strong>可直接运行</strong>（需本地 MySQL 已启动、root 密码为 root；若密码不同请改 <code>password=</code>）。</p>
+<p>建表 + 插入的完整函数（课件「3.创建数据表」「4.插入数据」）：</p>
+<pre><code class="language-python">import pymysql
+
+def create_table():
+    db = pymysql.connect(host=&quot;localhost&quot;, user=&quot;root&quot;, password=&quot;root&quot;, db=&quot;spiders&quot;)
+    cursor = db.cursor()
+    sql = '''
+    CREATE TABLE IF NOT EXISTS students (
+        id VARCHAR(255) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        age INT NOT NULL,
+        PRIMARY KEY (id))
+    '''
+    try:
+        cursor.execute(sql)
+        print(&quot;CREATE TABLE SUCCESS.&quot;)
+    except Exception as ex:
+        print(f&quot;CREATE TABLE FAILED,CASE:{ex}&quot;)
+    finally:
+        db.close()
+
+def insert_record(id_, user, age):
+    db = pymysql.connect(host='localhost', user='root', password='root', db='spiders')
+    cursor = db.cursor()
+    sql = 'INSERT INTO students(id, name, age) values(%s, %s, %s)'
+    try:
+        cursor.execute(sql, (id_, user, age))
+        db.commit()
+        print('数据插入成功...')
+    except Exception as e:
+        print(f'数据插入失败: {e}')
+        db.rollback()
+    finally:
+        db.close()
+
+if __name__ == '__main__':
+    create_table()
+    insert_record('00001', '柏汌', 18)
+</code></pre>
+<p><strong>关键点</strong>：<code>cursor.execute(sql, (参数...))</code> 用 <code>%s</code> 占位符，<strong>绝不要用 f-string 拼 SQL</strong>——那是 SQL 注入的经典入口。<code>db.commit()</code> 不写，插入不会真正落库。</p>
+<h4 id="32-用-sqlite3-做零配置存储">3.2 用 sqlite3 做零配置存储</h4>
+<p>AI 应用早期最省事的选择是 SQLite（Python 自带，无服务进程）。实战讲义第 37 章给出的会话表设计：</p>
+<pre><code class="language-python">import sqlite3
+
+conn = sqlite3.connect(&quot;app.db&quot;)
+conn.execute(&quot;&quot;&quot;
+CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversation_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    tokens INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)&quot;&quot;&quot;)
+conn.commit()
+
+def save_message(conv_id, role, content, tokens=0):
+    conn.execute(
+        &quot;INSERT INTO messages (conversation_id, role, content, tokens) VALUES (?,?,?,?)&quot;,
+        (conv_id, role, content, tokens))     # ← 必须用参数占位符，防 SQL 注入
+    conn.commit()
+
+def load_history(conv_id, limit=20):
+    rows = conn.execute(
+        &quot;SELECT role, content FROM messages WHERE conversation_id=? &quot;
+        &quot;ORDER BY id DESC LIMIT ?&quot;, (conv_id, limit)).fetchall()
+    return [{&quot;role&quot;: r, &quot;content&quot;: c} for r, c in reversed(rows)]
+</code></pre>
+<p><strong>AI 应用典型表清单</strong>（实战讲义原表）：<code>users</code>（用户）、<code>conversations</code>（会话）、<code>messages</code>（每条消息，含 token 数、模型名）、<code>documents</code>（上传文档）、<code>knowledge_bases</code>（知识库）、<code>logs</code>（调用日志）。<code>tokens</code> 字段存每次调用的用量，是后续做成本核算和限流的原始数据。</p>
+<p>SQLite → PostgreSQL 的换库时机（实战讲义原话）：多用户并发、数据量大、需要 <code>pgvector</code> 把向量和业务数据放一起时。换的时候用 SQLAlchemy 做 ORM，SQL 基本不用改。</p>
+<h3 id="4-mongodb-与-redis-操作">4. MongoDB 与 Redis 操作</h3>3
+<h4 id="41-mongodb-命令与-pymongo-写入">4.1 MongoDB 命令与 PyMongo 写入</h4>
+<p>课件给出的常用命令很短：</p>
+<pre><code class="language-text">show dbs                     # 查询数据库
+use 库名                     # 使用数据库
+show tables/show collections # 查看集合
+db.集合名.find()              # 查询表数据
+db.集合名.drop()              # 删除表
+</code></pre>
+<p>Python 侧用 PyMongo 连接，第一个参数是 host，第二个是 port（默认 27017）：</p>
+<pre><code class="language-python">import pymongo  # 如果是云服务的数据库 用公网IP连接
+client = pymongo.MongoClient(host='localhost', port=27017)
+collection = client['students']['stu']
+
+# 插入单条数据
+student = {'id': '20170101', 'name': 'Jordan', 'age': 20, 'gender': 'male'}
+result = collection.insert_one(student)
+print(result)
+
+# 插入多条数据
+student1 = {'id': '20170101', 'name': 'Jordan', 'age': 20, 'gender': 'male'}
+student2 = {'id': '20170202', 'name': 'Mike', 'age': 21, 'gender': 'male'}
+collection.insert_many([student1, student2])
+</code></pre>
+<h4 id="42-redis-命令与-md5-指纹去重">4.2 Redis 命令与 MD5 指纹去重</h4>
+<p>课件里的 Redis 命令速查：</p>
+<pre><code class="language-text">redis-cli            # 进入数据库
+select 下标           # 切换数据库
+keys *               # 查看所有键
+sadd 键 值            # 插入集合数据
+SMEMBERS 键           # 查询集合数据
+del 键                # 删除键
+</code></pre>
+<p>课件里的实战代码把 MD5 指纹塞进 Redis 集合做去重：</p>
+<pre><code class="language-python">import hashlib
+
+def get_md5(val):
+    &quot;&quot;&quot;把目标数据进行哈希，用哈希值去重更快&quot;&quot;&quot;
+    md5 = hashlib.md5()
+    md5.update(str(val).encode('utf-8'))
+    return md5.hexdigest()
+
+def save_data(item):
+    value = get_md5(item)
+    res = self.red.sadd('mg:filter', value)
+    if res:
+        self.collection.insert_one(item)
+        print('插入成功!!!!')
+    else:
+        print('数据重复!!!!')
+</code></pre>
+<h3 id="5-txt-json-csv-操作">5. TXT / JSON / CSV 操作</h3>3
+<h4 id="51-txt-读写要点">5.1 TXT 读写要点</h4>
+<p>最常用打开模式是 <code>r</code>（只读）、<code>w</code>（覆盖写）、<code>a</code>（追加）；写中文时使用 <code>encoding='utf-8'</code>，避免 Windows 默认编码造成乱码。</p>
+<h4 id="52-json-写入保留中文">5.2 JSON 写入：保留中文</h4>
+<p>课件里有个高频坑：<code>json.dumps(data_list)</code> 输出的中文会变成 <code>\uXXXX</code> 转义。解决办法是指定 <code>ensure_ascii=False</code> 并规定文件编码：</p>
+<pre><code class="language-python">with open('data.json', 'w', encoding='utf-8') as file:
+    file.write(json.dumps(data_list, indent=2, ensure_ascii=False))
+</code></pre>
+<h4 id="53-csv-三种写法">5.3 CSV 三种写法</h4>
+<p>课件的三种写法：</p>
+<pre><code class="language-python">import csv
+# 1. 逐行写
+with open('data.csv', 'w', encoding='utf-8', newline='') as csvfile:
+    writer = csv.writer(csvfile)
+    writer.writerow(['id', 'name', 'age'])
+    writer.writerow(['10001', 'Mike', 20])
+
+# 2. 多行一次写（二维列表）
+    writer.writerows([['10002', 'Bob', 22], ['10003', 'Jordan', 21]])
+
+# 3. 字典写入（字段名对齐更安全）
+    fieldnames = ['id', 'name', 'age']
+    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    writer.writeheader()
+    writer.writerow({'id': '10004', 'name': 'Selina', 'age': 21})
+</code></pre>
+<p><strong>注意 <code>newline=''</code></strong>：Windows 下不加会多出空行。CSV 的翻车点是「字段里本身有逗号或换行」，此时要用 <code>csv</code> 模块而不是手工拼字符串；想改分隔符传 <code>delimiter=' '</code>。</p>
+<h3 id="6-数据入库的完整流程从爬虫到-rag-元数据">6. 数据入库的完整流程：从爬虫到 RAG 元数据</h3>3
+<p>把前面所有零件串起来，看一个数据从「网页」到「能被 AI 用」的完整旅程。这条流水线在课件《数据存储》里是分节讲的，实际项目里它是一条连续管道。</p>
+<h4 id="61-标准流水线">6.1 标准流水线</h4>
+<pre><code>采集(请求/解析) → 清洗(去噪/规范化) → 去重(hash/指纹) → 入库(文件或数据库) → 校验(抽样对账) → 服务(AI/RAG消费)
+</code></pre>
+<p>每一步的产物都是下一步的输入：</p>
+<ol>
+<li><strong>采集</strong>：<code>requests</code> 拿原始 HTML/JSON，<code>BeautifulSoup</code> / <code>lxml</code> / 正则提取字段。产物是 Python 的 dict/list。</li>
+<li><strong>清洗</strong>：去 HTML 标签、统一编码为 UTF-8、字段类型规范化（字符串转数字、时间格式统一）、空值兜底。产物是「干净的 dict」。</li>
+<li><strong>去重</strong>：用 MD5/SimHash 算指纹，Redis 集合或数据库唯一索引判重（见 WHAT 的「三类特征值计算的适用边界」）。产物是「不重复的 dict」。</li>
+<li><strong>入库</strong>：小批量、临时结果用文件（JSON/CSV）；要查询、要并发、要持久用数据库（MySQL/SQLite/MongoDB）。</li>
+<li><strong>校验</strong>：抽样几条和原网页对账，确认字段没串位、编码没乱、条数对得上。这一步跳过，后面 RAG 检索出错会极难排查。</li>
+<li><strong>服务</strong>：业务数据供应用查询；文档正文切块、向量化后进向量库供 RAG 检索，元数据（source、page）留在关系库/向量库 metadata 里做引用。</li>
+</ol>
+<h4 id="62-向量库一条记录长什么样">6.2 向量库一条记录长什么样</h4>
+<p>实战讲义第 24 章给出的向量库记录结构非常清楚：</p>
+<pre><code>向量 + 原文 + source + page + 其他 metadata
+</code></pre>
+<p>metadata 的用处是<strong>过滤</strong>——比如只在「2024 年的财务文档」里搜。这解释了为什么 WHY 的「让数据库服务 AI 应用」说「文档元数据与正文分离」：<code>source</code> 和 <code>page</code> 既存进关系库的 <code>documents</code> 表，也冗余进向量库的 metadata，两边都能按它过滤和引用。</p>
+<h4 id="63-三问对这条流水线的追问">6.3 三问对这条流水线的追问</h4>
+<ul>
+<li><strong>什么情况下用</strong>：任何「外部数据 → AI 消费」的场景都走这条流水线，尤其 RAG 知识库建设、爬虫数据中台、用户上传文档入库。</li>
+<li><strong>什么情况下别用</strong>：数据只有几条、一次性用完、不需要追溯——直接写死在 Prompt 里更省事，别为 3 条数据建库。</li>
+<li><strong>翻车长什么样</strong>：跳过校验直接入库，RAG 检索出来说「文档里写了 X」但翻原文根本没有；或者去重用了内容 hash 但网页有时间戳参数，每次刷新指纹都不一样，去重形同虚设。排查信号：向量库里同内容 chunk 出现多条、检索 Top-K 被同一段话霸占。改：清洗时剥掉时间戳等易变字段再算指纹；入库后抽样比对。</li>
+</ul>
+<h3 id="7-安全与合规数据库层面的三条底线">7. 安全与合规：数据库层面的三条底线</h3>3
+<p>数据工程不只管「存得下」，还要管「不泄漏、不被篡改、能追责」。三条底线在 AI 应用里尤其敏感，因为数据库里往往有用户隐私和企业文档。</p>
+<ol>
+<li><strong>最小权限 + 密钥不进代码</strong>：应用连库用受限账号（见「DCL：权限」），密码放 <code>.env</code> 或密钥管理服务，绝不写进代码提交到 Git。实战讲义的提醒很直白：把 <code>.env</code> 提交到 GitHub 导致 Key 泄漏被盗刷，发生了要立刻吊销重新生成。</li>
+<li><strong>SQL 注入防线</strong>：所有动态条件走参数占位符。<code>cursor.execute(sql, (参数,))</code> 是底线，字符串拼接是禁区。输入侧再做长度/类型校验，双保险。</li>
+<li><strong>审计与备份</strong>：<code>logs</code> 表记录谁在什么时候改了什么；数据库定期备份，备份要能恢复（没验证过恢复的备份等于没有）。AI 应用里「删库跑路」的常见变体是「误操作全表 UPDATE」，事务 + 备份是最后防线。</li>
+</ol>
+<p>课件里 <code>skip-grant-tables</code> 那种救急后门用完必须关掉，同理：任何「临时放开权限」的操作都要有回收动作，否则临时变永久。</p>
+<h3 id="8-连接数据库的工程化写法别把连接代码散落各处">8. 连接数据库的工程化写法：别把连接代码散落各处</h3>3
+<p>课件里的 <code>pymysql.connect(...)</code> 是教学写法——每次调用都新建连接、用完关掉。真实项目里这样写会在高并发下耗尽连接数（MySQL 默认 <code>max_connections</code> 151，超过就报 <code>Too many connections</code>）。工程化改法是<strong>连接池</strong>：启动时建一批连接，用的时候借、用完还。Python 常用 SQLAlchemy 的 <code>create_engine</code> 或 <code>DBUtils</code> 的连接池。下面给一个不引第三方库的最小连接管理写法（思路借鉴实战讲义的封装风格）：</p>
+<pre><code class="language-python">import pymysql
+from contextlib import contextmanager
+
+DB_CONFIG = {
+    &quot;host&quot;: &quot;localhost&quot;,
+    &quot;user&quot;: &quot;app&quot;,              # 不要用 root，见「DCL：权限」
+    &quot;password&quot;: &quot;strong_password&quot;,
+    &quot;db&quot;: &quot;spiders&quot;,
+    &quot;charset&quot;: &quot;utf8mb4&quot;,       # 防中文乱码，见「DDL：建库建表」
+    &quot;cursorclass&quot;: pymysql.cursors.DictCursor,  # 查询结果返回字典，比元组好用
+}
+
+@contextmanager
+def get_conn():
+    &quot;&quot;&quot;借连接：with get_conn() as conn: ... 用完自动 close&quot;&quot;&quot;
+    conn = pymysql.connect(**DB_CONFIG)
+    try:
+        yield conn
+        conn.commit()           # 正常退出提交事务
+    except Exception:
+        conn.rollback()         # 异常退出回滚
+        raise
+    finally:
+        conn.close()
+
+def query_users(min_age: int) -&gt; list[dict]:
+    with get_conn() as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                &quot;SELECT id, name, age FROM students WHERE age &gt;= %s&quot;, (min_age,))
+            return cursor.fetchall()
+</code></pre>
+<p>这个写法的价值：参数化 SQL（防注入）+ 自动 commit/rollback（防忘写）+ 自动 close（防连接泄漏）+ 结果是字典（<code>row["name"]</code> 而不是 <code>row[1]</code>）。三件事一次解决，是「教学代码」到「能上线代码」的最小跨越。</p>
+<h3 id="9-查询进阶聚合分页与批量写">9. 查询进阶：聚合、分页与批量写</h3>3
+<p>SQL 真正的威力在查询层。三个高频场景的写法：</p>
+<p><strong>聚合统计</strong>（每天调用多少次、平均 token 用量）：</p>
+<pre><code class="language-sql">SELECT DATE(created_at) AS day,
+       COUNT(*)         AS calls,
+       AVG(tokens)      AS avg_tokens
+FROM messages
+WHERE created_at &gt;= '2026-10-01'
+GROUP BY DATE(created_at)
+ORDER BY day DESC;
+</code></pre>
+<p><strong>分页查询</strong>（列表页展示）：</p>
+<pre><code class="language-sql">SELECT id, name, age FROM students
+ORDER BY id
+LIMIT 20 OFFSET 40;   -- 第 3 页，每页 20 条
+</code></pre>
+<p><code>LIMIT n OFFSET m</code> 的翻车点：数据频繁增删时会漏行或重复。要稳定分页用「游标分页」（<code>WHERE id &gt; 上一页最后一条的 id ORDER BY id LIMIT 20</code>）。</p>
+<p><strong>批量写</strong>（爬虫抓 1000 条一次性入库）：</p>
+<pre><code class="language-python">def batch_insert(rows: list[tuple]):
+    sql = 'INSERT INTO students(id, name, age) values(%s, %s, %s)'
+    with get_conn() as conn:
+        with conn.cursor() as cursor:
+            cursor.executemany(sql, rows)   # executemany 比循环 execute 快一个量级
+</code></pre>
+<p><code>executemany</code> 在 pymysql 里会自动拼成多值 <code>INSERT</code> 或用批量协议，1000 条数据比循环 1000 次 <code>execute</code> 快 10 倍以上。翻车点：批量里有一条数据类型错，整批回滚——所以入库前的清洗校验（见「数据入库的完整流程」）更重要。</p>
+<h3 id="10-表设计从爬虫字段到规范化-schema">10. 表设计：从爬虫字段到规范化 schema</h3>3
+<p>课件里的 <code>students</code> 表（id/name/age）是教学最小例子，真实项目里表设计要考虑「以后会怎么查」。三个实用原则：</p>
+<p><strong>原则一：先问查询，再定字段</strong>。不要照抄爬虫返回的 JSON 原样建表（字段全是 <code>VARCHAR</code>、没有主键、没有索引）。先列出最常见的 3~5 个查询（按时间查、按分类查、按关键词查），再反推字段和索引。</p>
+<p><strong>原则二：把「会变的」和「不变的」分开</strong>。文档的原文（正文）不变，但它的解析状态、向量 ID、更新时间会变。分开建表能减少锁竞争和误更新。RAG 项目常见三张表：</p>
+<pre><code class="language-sql">-- 文档元数据（相对稳定）
+CREATE TABLE documents (
+    doc_id      BIGINT PRIMARY KEY AUTOINCREMENT,
+    file_name   VARCHAR(255) NOT NULL,
+    source_path VARCHAR(500) NOT NULL,
+    file_hash   CHAR(32) NOT NULL,          -- MD5，用于去重和变更检测
+    page_count  INT DEFAULT 0,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_file_hash (file_hash)     -- 同一文件不重复入库
+);
+
+-- 文档切块（正文进向量库，这里只存映射）
+CREATE TABLE chunks (
+    chunk_id   VARCHAR(64) PRIMARY KEY,     -- 如 &quot;doc12-p3-2&quot;
+    doc_id     BIGINT NOT NULL,
+    page_no    INT NOT NULL,
+    chunk_text TEXT NOT NULL,
+    token_count INT DEFAULT 0,
+    FOREIGN KEY (doc_id) REFERENCES documents(doc_id) ON DELETE CASCADE
+);
+
+-- 调用日志（只增不改）
+CREATE TABLE call_logs (
+    log_id      BIGINT PRIMARY KEY AUTOINCREMENT,
+    model_name  VARCHAR(100),
+    prompt_tokens INT DEFAULT 0,
+    completion_tokens INT DEFAULT 0,
+    latency_ms  INT DEFAULT 0,
+    success     TINYINT(1) DEFAULT 1,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+</code></pre>
+<p><strong>原则三：主键用什么</strong>。自增整数（<code>BIGINT AUTO_INCREMENT</code>）简单高效，适合内部表；分布式或多来源合并时用 UUID/雪花 ID，避免冲突。<strong>别用业务字段（如邮箱、文件名）当主键</strong>——业务字段会变，主键不能变。课件里 <code>students</code> 表用 <code>VARCHAR(255)</code> 的 <code>id</code> 当主键是教学妥协，真实项目优先用自增整数 + 业务字段建唯一索引。</p>
+<h3 id="11-rag-元数据层数据工程怎么支撑检索">11. RAG 元数据层：数据工程怎么支撑检索</h3>3
+<p>前面 WHY 的「让数据库服务 AI 应用」说了「数据库管数据，向量库管语义」，这里把接缝讲清楚。RAG 的离线建库流程（实战讲义第 20 章的总结）：</p>
+<pre><code>文档 → 解析 → 切分 → Embedding → 存入向量库
+</code></pre>
+<p>数据工程在其中负责「解析后的落地」和「元数据的可查」：</p>
+<ol>
+<li><strong>解析阶段</strong>：用 <code>pypdf</code> / <code>python-docx</code> / <code>pdfminer</code> 抽文本，<strong>从第一步就带上 source 和 page</strong>，否则后面做不出引用（实战讲义的原话）。抽出来的文本常有乱码/多余空行，要清洗。</li>
+<li><strong>切分阶段</strong>：按长度切块带重叠（中文 300~600 字/块、重叠 50~100 字），优先在句号处断开。每个 chunk 生成唯一 <code>chunk_id</code>（如 <code>source-p页码-序号</code>），去重、引用、调试都要用它。</li>
+<li><strong>入库阶段</strong>：正文和向量进向量库（Chroma/Milvus），元数据（doc_id、page_no、source）同时写进关系库和向量库的 metadata。两边用 <code>chunk_id</code> 关联。</li>
+<li><strong>查询阶段</strong>：问题向量化后检索 Top-K chunk，同时能按 metadata 过滤（如「只在 2024 年的财务文档里搜」），命中后把 chunk 文本 + 来源信息组装进 Prompt，让模型带引用回答。</li>
+</ol>
+<p><strong>关键认知</strong>：RAG 的检索质量很大程度上取决于「入库时数据工程做得好不好」——chunk 切得好不好、元数据全不全、去重做得对不对。检索算法（余弦相似度、混合检索、精排）是锦上添花，数据质量是雪中送炭。翻车现场：花了两周调检索算法，结果发现入库时 source 全是 <code>undefined</code>，引用功能根本没法做，得回头重灌一遍库。</p>
+<h3 id="12-三问什么情况用-什么情况别用-翻车长什么样">12. 三问：什么情况用 / 什么情况别用 / 翻车长什么样</h3>3
+<h4 id="121-什么情况下用适用场景-前置条件">12.1 什么情况下用（适用场景 + 前置条件）</h4>
+<ul>
+<li><strong>业务数据要多表关联、精确查询</strong>：订单、用户、权限、库存——MySQL 是标准答案。前置：有运维能维护实例；数据量预计百万级以上。</li>
+<li><strong>单机小项目 / 快速原型 / 本地 AI 应用</strong>：SQLite 起步，零配置、一个文件就是库。前置：并发写需求低（SQLite 写锁是库级）。</li>
+<li><strong>AI 应用的会话、文档、日志</strong>：任何要「重启后还在」的数据都该入库，SQLite / MySQL 都行。</li>
+<li><strong>RAG 的元数据层</strong>：文档路径、页码、更新时间放关系库，和向量库一一对应，方便做引用与保鲜。</li>
+</ul>
+<h4 id="122-什么情况下别用反例-替代方案">12.2 什么情况下别用（反例 + 替代方案）</h4>
+<ul>
+<li><strong>别用 MySQL 存 Embedding 向量做相似度检索</strong>（除非上 pgvector 扩展）：关系库没有空间索引，算余弦相似度要全表扫描。替代：Chroma / Milvus / pgvector，见 <a href="../L4-RAG%E5%B7%A5%E7%A8%8B/Embedding%E6%A8%A1%E5%9E%8B%E9%80%89%E5%9E%8B%E5%AF%B9%E6%AF%94.html">L4-RAG工程</a>。</li>
+<li><strong>别把大段原始文档塞进 MySQL <code>TEXT</code> 当知识库</strong>：检索不精准、更新痛苦。替代：正文进向量库，关系库只存元数据。</li>
+<li><strong>别用 root 账号从应用连库</strong>：泄漏即全库失守。替代：建最小权限账号（见「DCL：权限」）。</li>
+<li><strong>别用 f-string 拼 SQL</strong>：SQL 注入高危。替代：参数占位符 <code>%s</code>（pymysql）或 <code>?</code>（sqlite3）。</li>
+<li><strong>别在 SQLite 上跑高并发写</strong>：库级写锁会让请求排队。替代：换 MySQL / PostgreSQL。</li>
+</ul>
+<h4 id="123-翻车长什么样真实失败形态-排查信号-怎么改">12.3 翻车长什么样（真实失败形态 → 排查信号 → 怎么改）</h4>
+<ol>
+<li><strong>中文写入变乱码/问号</strong>：建库用了 <code>utf8</code>（mb3）存不下 emoji，或连接没指定编码。排查：<code>SHOW CREATE TABLE</code> 看字符集、<code>SHOW VARIABLES LIKE 'character_set%';</code>。改：建库用 <code>utf8mb4</code>，连接加 <code>charset='utf8mb4'</code>。</li>
+<li><strong><code>Access denied for user 'root'@'localhost'</code></strong>：密码不对或没改初始密码。排查：<code>mysql -u root -p</code> 手工登录试。改：走「登录并改密码」的 <code>ALTER USER</code> 改密码；课件里 <code>skip-grant-tables</code> 是救急后门，用完必须从 <code>my.ini</code> 删掉再重启服务。</li>
+<li><strong><code>Install of the Service Denied</code></strong>：cmd 没用管理员身份。改：管理员重开 cmd 再 <code>mysqld -install</code>。</li>
+<li><strong>Python 报 <code>ModuleNotFoundError: No module named 'pymysql'</code></strong>：装到了别的解释器。排查：<code>which python &amp;&amp; python -m pip list | grep -i mysql</code>。改：<code>python -m pip install pymysql</code>（见 <a href="L0-%E7%8E%AF%E5%A2%83%E4%B8%8E%E5%B7%A5%E5%85%B7%E9%93%BE.html">L0-环境与工具链</a>）。</li>
+<li><strong>插入成功但查不到</strong>：忘了 <code>db.commit()</code>。排查：<code>SELECT COUNT(*) FROM ...</code>。改：DML 后 commit；异常分支 rollback。</li>
+<li><strong><code>UPDATE</code> 把全表改了</strong>：没写 <code>WHERE</code>。排查：<code>SELECT * FROM 表 LIMIT 20</code> 对账。改：永远先写 <code>WHERE</code>，事务里先 <code>SELECT</code> 确认再 <code>UPDATE</code>。</li>
+<li><strong>AI 应用重启后「失忆」</strong>：对话只存内存 list。排查：查 <code>messages</code> 表有没有数据。改：用 <code>save_message</code> 落库，启动时 <code>load_history</code> 恢复。</li>
+<li><strong>中文路径下初始化 MySQL 失败</strong>：解压路径含中文/空格。排查：<code>mysqld --initialize</code> 报错看路径。改：挪到全英文路径重来（课件《教程_MySQL安装流程.md》第 1 条）。</li>
+</ol>
+<h3 id="13-数据工程的自检清单交库之前逐条核对">13. 数据工程的自检清单：交库之前逐条核对</h3>3
+<p>在把数据库交给下游（应用、RAG、报表）之前，用这张清单自查。每条都能用一条 SQL 或脚本验证，不要凭感觉说「应该没问题」。</p>
+<pre><code class="language-text">□ 表结构    主键存在且唯一；字段类型不是清一色 VARCHAR；常用查询字段有索引
+□ 字符集    全库 utf8mb4；中文/emoji 写入读出无乱码
+□ 权限      应用账号非 root；只有 SELECT/INSERT/UPDATE 必要权限
+□ SQL 安全  全部参数化；无字符串拼接 SQL；有 SQL 注入测试用例
+□ 事务      写操作有 commit/rollback；异常路径不吞异常
+□ 数据质量  入库前去重；抽样 10 条和源数据对账一致；条数和源数据对得上
+□ 元数据    RAG 场景下 source/page 齐全；chunk_id 唯一可追溯
+□ 备份      有备份策略；至少验证过一次恢复流程
+□ 日志      关键操作有审计记录；错误日志能定位到具体行
+□ 性能      慢查询日志开启；Top 3 查询有执行计划（EXPLAIN）验证
+</code></pre>
+<p>这十项里最容易被跳过的是「抽样对账」和「恢复验证」——前者决定数据对不对，后者决定出事能不能救。其他项工具能查，这两项必须人工做。</p>
+<p>数据工程的长期价值在于<strong>可复现和可维护</strong>：别人拿到你的库，能看懂表结构、能重建环境、能查出问题。如果只有你自己能维护，那不算交付，算黑箱。这也是为什么本库把数据工程放在 L0 基础层——它是所有上层应用（RAG、Agent、全栈）共用的地基，地基歪了上面全歪。</p>
+<p>学完本篇你应该能做到三件事：独立装好 MySQL/SQLite 并建出规范的表；用 Python 把增删改查写成可复用、防注入的函数；为一个 RAG 项目设计出带元数据、可追溯的数据层。做不到的回到对应小节补，做得到就进 <a href="L0-%E5%AD%A6%E4%B9%A0%E8%B7%AF%E5%BE%84%E5%AF%BC%E8%88%AA.html">L0-学习路径导航</a> 看下一步。</p>
+<p>动手练习建议：把课件里的 <code>students</code> 表扩展成一个「AI 对话记录」库（users / conversations / messages 三张表），用 pymysql 写出增删改查四个函数，再用 SQLite 重写一遍对比两者的差异。这个练习能一次覆盖建表、事务、参数化 SQL、Python 封装四个核心点。</p>
+<h3 id="14-速查清单">14. 速查清单</h3>3
+<ol>
+<li>Windows 装 MySQL：解压到全英文路径 → <code>bin</code> 进 <code>Path</code> → 管理员 cmd 跑 <code>mysqld --initialize-insecure</code> + <code>mysqld -install</code> + <code>net start mysql</code> → 登录改密码。</li>
+<li>建库建表用 <code>utf8mb4</code>，别用 <code>utf8</code>。</li>
+<li>pymysql 连库：<code>pymysql.connect(host, user, password, db)</code> → <code>cursor.execute(sql, 参数)</code> → <code>commit/rollback</code>。</li>
+<li>SQLite 存 AI 会话：<code>messages(conversation_id, role, content, tokens, created_at)</code>。</li>
+<li>永远参数化 SQL，永远写 <code>WHERE</code>，DML 后 <code>commit</code>。</li>
+<li>向量别塞 MySQL，业务数据别塞向量库——双库并存是常态。</li>
+</ol>
+<hr />
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li><strong>[课1] 课件</strong>：<a href="../../raw/courseware/_converted/%E6%95%99%E7%A8%8B_MySQL%E5%AE%89%E8%A3%85%E6%B5%81%E7%A8%8B.md">教程_MySQL安装流程</a>：提供 Windows 解压路径、环境变量、管理员 cmd、初始化与服务安装的主路径；本文保留课件实操顺序，并补充版本与认证插件边界。</li>
+<li><strong>[课2] 课件</strong>：<a href="../../raw/courseware/%E5%9F%BA%E7%A1%80%E7%AF%87/day11__%E8%B5%84%E6%96%99__mysql%E5%AE%89%E8%A3%85__msyql%E5%AE%89%E8%A3%85.md">day11 MySQL 安装资料</a>：提供 MySQL 下载、镜像、安装与登录改密步骤，与课1交叉核对安装流程。</li>
+<li><strong>[业1] 业内官方文档</strong>：<a href="https://dev.mysql.com/doc/">MySQL Documentation</a>：用于 SQL 语法、版本、字符集、认证与权限等概念的权威入口。</li>
+<li><strong>[业2] 业内官方文档</strong>：<a href="https://pymysql.readthedocs.io/">PyMySQL Documentation</a>：用于 Python 连接 MySQL、游标、参数化执行与事务接口的官方说明。</li>
+<li><strong>[业3] 业内官方文档</strong>：<a href="https://docs.python.org/3/library/sqlite3.html">Python sqlite3 Documentation</a>：用于 SQLite 连接、参数占位、查询与提交行为的官方说明。</li>
+<li><strong>[业4] 业内官方文档</strong>：<a href="https://www.mongodb.com/docs/">MongoDB Documentation</a>：用于文档模型、集合与数据库操作的官方入口。</li>
+<li><strong>[业5] 业内官方文档</strong>：<a href="https://redis.io/docs/">Redis Documentation</a>：用于 Redis 数据类型、集合去重、缓存与持久化边界的官方入口。</li>
+</ul></div></body></html>

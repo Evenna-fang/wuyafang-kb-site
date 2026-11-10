@@ -1,0 +1,162 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>01_Routing模块</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../../index.html">🏠 总入口</a><a href="../../graph.html">🕸 关联图谱</a><a href="../../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/OpenClaw模块协同/01_Routing模块</span></div><div class="wrap"><blockquote><p><a href="../../index.html">← 返回总入口</a></p></blockquote><h1 id="openclaw-routing">OpenClaw 核心模块 —— Routing（任务路由）</h1>
+<h2 id="_1">背景与定位</h2>
+<p>OpenClaw 作为多智能体协同平台的核心组件之一，承担 <strong>任务分发</strong> 与 <strong>路由调度</strong> 的职责。它位于用户请求入口与具体执行子代理（Agent）之间，负责将高层业务需求划分为可由各子代理执行的子任务，并根据策略将这些子任务路由到合适的执行环境（本地进程、容器、远程服务等）。</p>
+<h2 id="_2">设计目标</h2>
+<ol>
+<li><strong>高可用</strong>：路由层必须在 Gateway 异常、子代理崩溃时仍能提供降级路径；</li>
+<li><strong>可扩展</strong>：支持插件化的路由策略，能够随时接入新型调度器（如 K8s 调度、云函数等）；</li>
+<li><strong>可观测</strong>：提供完整的路由日志与监控指标，便于运维排障。</li>
+</ol>
+<h2 id="_3">关键概念</h2>
+<ul>
+<li><strong>Task（任务）</strong>：用户通过 OpenClaw CLI 或 API 发送的原始请求。</li>
+<li><strong>Job（作业）</strong>：Task 在内部拆解后的最小执行单元，包含 <code>job_id、payload、deadline、priority</code> 等字段。</li>
+<li><strong>Router（路由器）</strong>：实现 <code>route(job) -&gt; target</code> 接口的组件。默认实现为 <code>RoundRobinRouter</code>，可通过 <code>router.custom</code> 配置自定义实现。</li>
+<li><strong>Target（目标）</strong>：具体的执行环境描述，例如 <code>{type:"local", runtime:"codex"}</code>、<code>{type:"container", image:"openclaw/agent:2026.9"}</code>。</li>
+</ul>
+<h2 id="_4">路由流程（伪代码）</h2>
+<pre><code class="language-go">func Dispatch(task Task) []Job {
+    // 1️⃣ 将原始任务拆分
+    jobs := splitTask(task)
+    // 2️⃣ 为每个 Job 选择目标
+    for i, job := range jobs {
+        target := router.Route(job)
+        jobs[i].Target = target
+    }
+    // 3️⃣ 将 Job 写入调度队列
+    queue.Enqueue(jobs)
+    return jobs
+}
+</code></pre>
+<p><strong>图：Routing 模块架构（拆分，路由，入队）</strong></p>
+<pre><code class="language-mermaid">flowchart LR
+    T[&quot;Task 原始请求&quot;] --&gt; SP{&quot;拆分策略&quot;}
+    SP --&gt;|&quot;命令式&quot;| S1[&quot;正则或关键词拆分&quot;]
+    SP --&gt;|&quot;结构化&quot;| S2[&quot;JSON 或 YAML 直接映射&quot;]
+    SP --&gt;|&quot;AI 辅助&quot;| S3[&quot;调用内部 Agent 解析意图&quot;]
+    S1 --&gt; J[&quot;Job 列表&quot;]
+    S2 --&gt; J
+    S3 --&gt; J
+    J --&gt; R{&quot;Router.route&quot;}
+    R --&gt;|&quot;roundRobin&quot;| TG1[&quot;Target 本地 Runtime&quot;]
+    R --&gt;|&quot;priority&quot;| TG2[&quot;Target 容器&quot;]
+    R --&gt;|&quot;k8s 插件&quot;| TG3[&quot;Target 远程集群&quot;]
+    TG1 --&gt; Q[&quot;调度队列 Enqueue&quot;]
+    TG2 --&gt; Q
+    TG3 --&gt; Q
+    Q --&gt; MET[&quot;Prometheus 指标与 JSON 日志&quot;]
+</code></pre>
+<h3 id="_5">拆分策略</h3>
+<ul>
+<li><strong>命令式拆分</strong>：基于正则或关键词匹配，将复合指令拆成多个子指令；</li>
+<li><strong>结构化拆分</strong>：如果 Task 中提供了 JSON/YAML 结构，则直接映射为多个 <code>Job</code>；</li>
+<li><strong>AI 辅助拆分</strong>：当任务含有自然语言描述时，OpenClaw 会调用内部 <code>Agent</code>（如 Claude）进行意图解析并返回拆分方案。</li>
+</ul>
+<h2 id="openclawjson">可配置项（<code>openclaw.json</code> 示例）</h2>
+<pre><code class="language-json5">{
+  &quot;routing&quot;: {
+    &quot;defaultRouter&quot;: &quot;roundRobin&quot;,
+    &quot;routers&quot;: {
+      &quot;roundRobin&quot;: {
+        &quot;type&quot;: &quot;builtin&quot;,
+        &quot;maxConcurrency&quot;: 32
+      },
+      &quot;priority&quot;: {
+        &quot;type&quot;: &quot;builtin&quot;,
+        &quot;policy&quot;: &quot;priorityQueue&quot;,
+        &quot;preemptive&quot;: true
+      },
+      &quot;k8s&quot;: {
+        &quot;type&quot;: &quot;plugin&quot;,
+        &quot;pluginPath&quot;: &quot;~/openclaw/plugins/k8s-router.so&quot;,
+        &quot;namespace&quot;: &quot;openclaw&quot;,
+        &quot;maxPods&quot;: 64
+      }
+    }
+  }
+}
+</code></pre>
+<ul>
+<li><code>defaultRouter</code> 决定默认使用的路由器；</li>
+<li><code>maxConcurrency</code> 控制同一目标的并发上限，防止资源争用。</li>
+</ul>
+<h2 id="_6">监控与日志</h2>
+<p>OpenClaw 将路由相关的指标注入到 <strong>Prometheus</strong>，主要指标包括：
+- <code>openclaw_router_jobs_total{router="roundRobin"}</code> – 已调度的作业总数；
+- <code>openclaw_router_job_latency_seconds{router="priority"}</code> – 作业路由延迟；
+- <code>openclaw_router_target_active{target="local"}</code> – 当前活跃目标数量。</p>
+<p>日志格式（JSON）示例：</p>
+<pre><code class="language-json">{&quot;time&quot;:&quot;2026-10-30T12:34:56Z&quot;,&quot;level&quot;:&quot;INFO&quot;,&quot;msg&quot;:&quot;job routed&quot;,&quot;job_id&quot;:&quot;c7f9a1&quot;,&quot;router&quot;:&quot;priority&quot;,&quot;target&quot;:&quot;container&quot;,&quot;latency_ms&quot;:12}
+</code></pre>
+<h2 id="_7">故障恢复机制</h2>
+<ol>
+<li><strong>目标不可用</strong>：路由器在发现 <code>target.health==false</code> 时，会自动降级至 <code>fallbackTarget</code>（默认本地 Runtime）。</li>
+<li><strong>作业超时</strong>：若 <code>job.deadline</code> 超过 <code>target.timeout</code>，调度器会重新分配至 <code>backupTarget</code> 并记录 <code>retryCount</code>。</li>
+<li><strong>幂等保证</strong>：所有 Job 必须实现幂等 ID（<code>job_id</code>），路由层在重复投递时会检测已有记录并直接返回成功响应，避免业务层面重复执行。</li>
+</ol>
+<p><strong>图：Routing 故障恢复流程（幂等，降级，改派）</strong></p>
+<pre><code class="language-mermaid">flowchart TD
+    J[&quot;Job 到达路由层&quot;] --&gt; DUP{&quot;job_id 已存在&quot;}
+    DUP --&gt;|&quot;是&quot;| RET[&quot;直接返回已有结果 幂等&quot;]
+    DUP --&gt;|&quot;否&quot;| H{&quot;target.health&quot;}
+    H --&gt;|&quot;异常&quot;| FB[&quot;降级到 fallbackTarget 默认本地 Runtime&quot;]
+    H --&gt;|&quot;正常&quot;| EXE[&quot;投递执行&quot;]
+    FB --&gt; EXE
+    EXE --&gt; TO{&quot;deadline 超过 target.timeout&quot;}
+    TO --&gt;|&quot;是&quot;| BK[&quot;改派 backupTarget 并记录 retryCount&quot;]
+    TO --&gt;|&quot;否&quot;| OK[&quot;完成&quot;]
+    BK --&gt; EXE
+</code></pre>
+<h2 id="_8">常见坑点</h2>
+<ul>
+<li><strong>插件路径错误</strong>：<code>router.k8s.pluginPath</code> 必须是绝对路径且文件可执行，否则路由器启动失败，Gateway 会报 <code>Plugin load error</code>；</li>
+<li><strong>并发阈值过低</strong>：默认 <code>maxConcurrency=32</code> 在高负载场景会成为瓶颈，需要根据业务峰值调高；</li>
+<li><strong>日志噪声</strong>：开启 <code>debug</code> 模式会产生大量 <code>job routed</code> 日志，建议在生产环境关闭 <code>debug</code>。</li>
+</ul>
+<h2 id="_9">小结</h2>
+<p>Routing 模块是 OpenClaw 能够高效调度多子代理的基石。通过灵活的插件化路由器、可配置的拆分策略以及完善的监控体系，开发者能够在保证系统可靠性的前提下，快速实现业务需求的横向扩展与纵向压测。后续章节会结合 <strong>Memory RAG</strong>、<strong>Sandbox</strong> 与 <strong>Subagent</strong>，展示完整的端到端任务流转图。</p></div></body></html>

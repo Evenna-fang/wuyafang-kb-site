@@ -1,0 +1,161 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>大模型实战：微调、优化与私有化部署</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 大模型实战：微调、优化与私有化部署</span></div><div class="wrap"><h1 id="书章节重点-大模型实战微调优化与私有化部署">书章节重点 · 大模型实战：微调、优化与私有化部署</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书以GLM-4为实战载体，系统覆盖大模型私有化部署、Transformer原理、高效微调（PEFT/LoRA系列）、提示工程、LangChain中间件及垂直领域RAG应用，帮助读者从理论到代码完整掌握大模型落地能力</li><li>全书的主线不是孤立介绍名词，而是把“准备环境—理解模型—选择训练方式—组织提示—编排应用—接入领域知识”串成一条工程路径</li><li>读者可以先用部署章节跑通模型，再用理论章节理解性能来源，最后根据数据、显存和业务目标决定是使用提示、检索增强还是参数高效微调</li></ul></div>2
+<p>本书以GLM-4为实战载体，系统覆盖大模型私有化部署、Transformer原理、高效微调（PEFT/LoRA系列）、提示工程、LangChain中间件及垂直领域RAG应用，帮助读者从理论到代码完整掌握大模型落地能力。全书的主线不是孤立介绍名词，而是把“准备环境—理解模型—选择训练方式—组织提示—编排应用—接入领域知识”串成一条工程路径。读者可以先用部署章节跑通模型，再用理论章节理解性能来源，最后根据数据、显存和业务目标决定是使用提示、检索增强还是参数高效微调。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 从零开始大模型之旅</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：从对话机器人发展历程切入，建立人工智能与大模型技术的整体认知框架，理解从规则系统、统计模型到生成式模型的演进关系</li><li>核心观点2：大模型应用的价值不只在生成文本，还在于把自然语言作为统一入口，连接知识、工具和业务流程</li><li>核心观点3：学习路线应先建立概念地图，再进入部署、训练和应用代码；否则容易只会调用接口，却无法解释效果和故障</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：从对话机器人发展历程切入，建立人工智能与大模型技术的整体认知框架，理解从规则系统、统计模型到生成式模型的演进关系。</li>
+<li><strong>核心观点2</strong>：大模型应用的价值不只在生成文本，还在于把自然语言作为统一入口，连接知识、工具和业务流程。</li>
+<li><strong>核心观点3</strong>：学习路线应先建立概念地图，再进入部署、训练和应用代码；否则容易只会调用接口，却无法解释效果和故障。</li>
+<li><strong>核心观点4</strong>：本章为后续私有化部署与技术细节学习奠定概念基础，也提醒读者区分模型能力、数据能力与工程系统能力。</li>
+</ul>
+<h3 id="第2章-大模型私有化部署">第2章 大模型私有化部署</h3>3
+<ul>
+<li><strong>核心观点1</strong>：深度学习环境准备是私有化部署的前置条件，需完成依赖与硬件配置，并确认显卡驱动、CUDA、cuDNN、PyTorch之间的兼容关系。</li>
+<li><strong>核心观点2</strong>：以GLM-3/GLM-4为对象，完整演示虚拟环境、项目文件、依赖包和模型权重的准备流程，部署时应把环境问题与模型问题分开排查。以GLM-3/GLM-4为对象，完整演示私有化部署流程及多种运行方式。</li>
+<li><strong>核心观点3</strong>：运行方式包括命令行交互、Gradio Web端对话和OpenAI风格API调用；不同方式分别适合验证模型、展示应用和接入业务系统。</li>
+<li><strong>核心观点4</strong>：模型量化可以降低显存占用，但要在资源节约、推理速度与回答质量之间做取舍，不能把量化当作无成本优化。</li>
+<li><strong>核心观点5</strong>：私有化部署的验收应包含模型能启动、输入能生成、API能调用和并发场景可观测四个层面，而不是只看进程是否存在。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 大模型理论基础</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：语言模型经历从统计方法到神经网络的演进，Transformer是当前大模型的核心架构，关键在于用可并行的注意力机制处理序列关系</li><li>核心观点2：注意力机制使模型能够动态、有选择性地聚焦输入中最相关的部分，提升序列处理效率；它通过查询、键和值之间的关联计算权重</li><li>核心观点3：位置编码补充序列顺序信息，使模型不仅知道哪些词相关，也能区分词语在句子中的位置</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：语言模型经历从统计方法到神经网络的演进，Transformer是当前大模型的核心架构，关键在于用可并行的注意力机制处理序列关系。</li>
+<li><strong>核心观点2</strong>：注意力机制使模型能够动态、有选择性地聚焦输入中最相关的部分，提升序列处理效率；它通过查询、键和值之间的关联计算权重。</li>
+<li><strong>核心观点3</strong>：位置编码补充序列顺序信息，使模型不仅知道哪些词相关，也能区分词语在句子中的位置。</li>
+<li><strong>核心观点4</strong>：解码器每层通过残差连接与层归一化相连，促进梯度流动并保持输出稳定性；多层堆叠后逐步形成上下文表示与生成能力。<blockquote>
+<p>这一过程使得模型能够动态、有选择性地集中处理输入信息中最相关的部分，从而提高处理序列数据的效率。<br />
+和编码器一样，解码器的每层之间也通过跨层方法，如残差连接和层归一化相连，以促进梯度流动并保持输出的稳定性。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第4章-大模型开发工具">第4章 大模型开发工具</h3>3
+<ul>
+<li><strong>核心观点1</strong>：Transformers库通过<code>from_pretrained</code>统一管理并加载预训练分词器，确保模型正确处理特定语言数据并维持兼容性。</li>
+<li><strong>核心观点2</strong>：分词器把自然语言转换为模型可计算的整数序列，词表、特殊标记和最大长度都会影响输入是否能被正确处理。</li>
+<li><strong>核心观点3</strong>：嵌入技术以较低维度捕捉文本核心语义，超越One-hot编码的局限，适合用于相似度计算、分类和检索。</li>
+<li><strong>核心观点4</strong>：全量微调通过目标函数与损失函数量化模型表现，训练前必须按神经网络维度要求预处理数据。</li>
+<li><strong>核心观点5</strong>：训练数据的格式、标签和批处理方式会直接影响损失计算，不能只关注模型代码而忽略数据管道。<blockquote>
+<p>通过from_pretrained统一管理并加载预训练的分词器，是确保模型能够正确处理特定语言数据、维持高度专业性和兼容性的关键所在。<br />
+嵌入技术，实质上是一种高级的编码艺术，它超越了早期朴素的One-hot编码局限，旨在以相对较低的维度捕捉文本中最为核心的语义精髓。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 高效微调方法</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：PEFT库提供多种参数高效微调方案，大幅降低训练资源需求，适合在基础模型保持不变的情况下学习任务特定能力</li><li>核心观点2：Prefix Tuning把可学习的前缀加入输入表示，计算与时间成本远低于传统Fine Tuning，资源节约显著</li><li>核心观点3：Prompt Tuning、P-Tuning及P-Tuning V2逐步演进，P-Tuning V2在资源有限场景下兼顾高效率与高性能</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：PEFT库提供多种参数高效微调方案，大幅降低训练资源需求，适合在基础模型保持不变的情况下学习任务特定能力。</li>
+<li><strong>核心观点2</strong>：Prefix Tuning把可学习的前缀加入输入表示，计算与时间成本远低于传统Fine Tuning，资源节约显著。</li>
+<li><strong>核心观点3</strong>：Prompt Tuning、P-Tuning及P-Tuning V2逐步演进，P-Tuning V2在资源有限场景下兼顾高效率与高性能。</li>
+<li><strong>核心观点4</strong>：高效微调的关键不是“训练更多参数”，而是选择可训练参数的位置、规模和注入方式，并用验证集检查是否过拟合。</li>
+<li><strong>核心观点5</strong>：微调完成后仅需保存高效微调部分的权重供推理使用，无需改动模型其余部分，便于多任务适配和版本管理。<blockquote>
+<p>相较于传统的Fine Tuning方法，Prefix Tuning在资源消耗方面展现出了极大的节约。<br />
+这一特性极大拓宽了该技术的应用场景，使其在资源有限的场景下也能发挥巨大潜力。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第6章-lora微调glm-4实战">第6章 LoRA微调GLM-4实战</h3>3
+<ul>
+<li><strong>核心观点1</strong>：LoRA通过低秩矩阵近似权重更新，把训练参数集中到旁路矩阵，降低显存和存储压力，同时保留基础模型能力。</li>
+<li><strong>核心观点2</strong>：AdaLoRA借助SVD思想进行降维与参数分配，可灵活适配不同模型；资源应更多分配给真正重要的层。</li>
+<li><strong>核心观点3</strong>：QLoRA结合量化技术进一步压缩显存需求，使大模型微调在有限硬件上可行，但需要关注量化误差和训练稳定性。</li>
+<li><strong>核心观点4</strong>：秩、学习率、批大小、梯度累积和最大序列长度共同决定训练预算，应先根据硬件设定可运行配置，再比较效果。LoRA中秩r的变化对结果影响不大，某些基准上全局最优r甚至为1。</li>
+<li><strong>核心观点5</strong>：评估时不能只看训练损失，还要用真实任务样例检查格式遵循、领域知识、泛化能力以及原有能力是否退化。<blockquote>
+<p>单纯调整r时，r的变化对结果的影响其实不大，甚至于在某些基准测试上，r的全局最优值反而是1。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 提示工程入门与实践</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：思维链最基础的实现是在提示结尾添加“Let's think step by step”，可显著提升推理能力</li><li>核心观点2：Least-to-Most Prompting将复杂问题分解为子问题逐步求解，适合先解决基础事实、再组合为复杂结论的任务</li><li>核心观点3：有效提示通常要明确角色、目标、输入、约束、输出格式和评价标准，减少模型对任务边界的猜测</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：思维链最基础的实现是在提示结尾添加“Let's think step by step”，可显著提升推理能力。</li>
+<li><strong>核心观点2</strong>：Least-to-Most Prompting将复杂问题分解为子问题逐步求解，适合先解决基础事实、再组合为复杂结论的任务。</li>
+<li><strong>核心观点3</strong>：有效提示通常要明确角色、目标、输入、约束、输出格式和评价标准，减少模型对任务边界的猜测。</li>
+<li><strong>核心观点4</strong>：少样本示例能把抽象要求变成可模仿的模式，但示例必须覆盖正常输入、边界输入和错误输入。</li>
+<li><strong>核心观点5</strong>：掌握提示技巧可将模型变为高效“全能下属”，省却繁琐重复性工作；不过关键业务仍需人工复核和事实校验。<blockquote>
+<p>最基础的思维链实现方法是在提示的结尾添加一句“Let’s think step by step”，这可以显著提高模型的推理能力。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第8章-大模型与中间件">第8章 大模型与中间件</h3>3
+<ul>
+<li><strong>核心观点1</strong>：大模型对话模式涵盖单角色与多角色对话，多角色模式可支撑复杂协作场景，但角色边界和消息顺序必须清晰。</li>
+<li><strong>核心观点2</strong>：Function Calling使模型能够调用外部函数，实现多函数协同与Bing搜索嵌入LLM，把语言理解转化为可执行动作。</li>
+<li><strong>核心观点3</strong>：工具调用应定义函数名称、参数结构、类型约束和错误返回，模型只负责选择工具，真正的权限控制仍由应用侧完成。</li>
+<li><strong>核心观点4</strong>：中间件的价值在于连接模型与外部系统，工程上要记录调用链、输入输出和失败原因，便于调试与审计。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第9章 LangChain理论与实战</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：LangChain以Model I/O、Chain、Memory、Agents四大组件构建大模型应用骨架，分别对应模型交互、流程组合、状态保存和自主行动</li><li>核心观点2：链在接收用户输入后、执行核心逻辑前，会从Memory读取并追加用户输入，因此记忆内容会直接影响后续提示和回答</li><li>核心观点3：LangChain可统一实现Function Calling，简化工具调用编排；但工具数量过多会增加选择困难，需按任务路由或分组</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：LangChain以Model I/O、Chain、Memory、Agents四大组件构建大模型应用骨架，分别对应模型交互、流程组合、状态保存和自主行动。</li>
+<li><strong>核心观点2</strong>：链在接收用户输入后、执行核心逻辑前，会从Memory读取并追加用户输入，因此记忆内容会直接影响后续提示和回答。</li>
+<li><strong>核心观点3</strong>：LangChain可统一实现Function Calling，简化工具调用编排；但工具数量过多会增加选择困难，需按任务路由或分组。</li>
+<li><strong>核心观点4</strong>：链适合固定流程，Agent适合需要动态选择工具的流程；选择架构时应先判断任务是否稳定、可预测和可测试。</li>
+<li><strong>核心观点5</strong>：应用上线前应为每个链路设置输入校验、超时、重试、日志和结果解析，避免把框架默认行为直接当成生产方案。<blockquote>
+<p>在接收到初始用户输入之后且在执行核心逻辑之前，链将从其Memory中读取并增加用户输入。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第10章-实战垂直领域大模型">第10章 实战：垂直领域大模型</h3>3
+<ul>
+<li><strong>核心观点1</strong>：大模型接入数据库可实现信息“持久化”存储，但参数微调途径门槛高、算力消耗大且有知识遗忘风险。</li>
+<li><strong>核心观点2</strong>：LangChain重写查询与RAG检索增强是垂直领域落地的关键技术路径，应先把动态知识放在外部数据源，再考虑改变模型参数。</li>
+<li><strong>核心观点3</strong>：领域数据集需按类型构建——名词解析类增强术语理解，问答类提升对话与任务解决能力；微调前须依据硬件资源设置关键超参数。</li>
+<li><strong>核心观点4</strong>：数据库问答要先抽取字段、表结构和视图说明，再把自然语言意图转换成可校验的查询，执行前应限制权限和范围。</li>
+<li><strong>核心观点5</strong>：垂直领域系统的验收不应只看回答是否流畅，还要检查引用依据、数据时效、拒答边界和错误查询的安全性。</li>
+<li><strong>核心观点6</strong>：落地时应按“先提示、再检索、后微调”的成本顺序做实验，用小规模验证集比较方案，避免在问题尚未定位时盲目训练。工程团队还应保留基础模型、适配器和数据版本，才能在效果退化时定位原因并快速回滚。<blockquote>
+<p>二是参数微调以实现信息“持久化”存储，此途径虽有潜力，但具有高技术门槛、庞大的计算资源消耗，并有引起模型原知识遗忘的风险。</p>
+</blockquote>
+</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">适用场景标签</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>高效微调（LoRA/PEFT）</li></ul></div>2
+<ul>
+<li>大模型私有化部署</li>
+<li>高效微调（LoRA/PEFT）</li>
+<li>提示工程</li>
+<li>LangChain应用开发</li>
+<li>RAG垂直领域落地</li>
+</ul>
+<h2 id="一句话推荐">一句话推荐</h2>2
+<p>从部署到微调再到RAG落地的全栈实战指南。</p></div></details></div></body></html>

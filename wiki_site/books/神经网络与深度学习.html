@@ -1,0 +1,178 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>神经网络与深度学习</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 神经网络与深度学习</span></div><div class="wrap"><h1 id="书章节重点-神经网络与深度学习">书章节重点 · 神经网络与深度学习</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书系统梳理了从机器学习基础到深度学习进阶模型的完整知识体系，涵盖线性模型、前馈网络、卷积网络、循环网络、优化正则、注意力机制、生成模型与强化学习等核心内容</li><li>全书可以沿着一条主线阅读：先理解学习问题和泛化边界，再理解线性模型如何表达决策，随后学习神经网络怎样自动获得表示，最后比较卷积、循环、注意力、生成和强化学习在不同数据结构与任务目标上的取舍</li><li>其价值在于将神经网络的数学原理、模型结构与学习算法统一在一个连贯框架下，帮助读者建立从“表示学习”视角理解深度学习的完整认知</li></ul></div>2
+<p>本书系统梳理了从机器学习基础到深度学习进阶模型的完整知识体系，涵盖线性模型、前馈网络、卷积网络、循环网络、优化正则、注意力机制、生成模型与强化学习等核心内容。其价值在于将神经网络的数学原理、模型结构与学习算法统一在一个连贯框架下，帮助读者建立从“表示学习”视角理解深度学习的完整认知。全书可以沿着一条主线阅读：先理解学习问题和泛化边界，再理解线性模型如何表达决策，随后学习神经网络怎样自动获得表示，最后比较卷积、循环、注意力、生成和强化学习在不同数据结构与任务目标上的取舍。数学公式服务于机制解释，模型结构则必须回到数据、损失、优化和评价指标中理解。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 绪论</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：深度学习本质上是机器学习的一个分支，目标是从有限样例中总结一般性规律并泛化到未知数据</li><li>核心观点2：“深度”指原始数据经过非线性特征转换的次数，可视为表示学习系统有向图中输入到输出的最长路径长度</li><li>核心观点3：表示学习的核心是用低维分布式表示替代高维局部表示，通过嵌入缓解底层特征与高层语义之间的“语义鸿沟”</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：深度学习本质上是机器学习的一个分支，目标是从有限样例中总结一般性规律并泛化到未知数据。训练集上的拟合只是起点，真正需要关注的是模型在分布变化、噪声和新样本上的表现。</li>
+<li><strong>核心观点2</strong>：“深度”指原始数据经过非线性特征转换的次数，可视为表示学习系统有向图中输入到输出的最长路径长度。层数增加使模型能够逐级组合低层模式和高层语义，但也带来优化、计算和泛化挑战。</li>
+<li><strong>核心观点3</strong>：表示学习的核心是用低维分布式表示替代高维局部表示，通过嵌入缓解底层特征与高层语义之间的“语义鸿沟”。好的表示应让相关对象在表示空间中更容易比较、聚类和预测。</li>
+<li><strong>核心观点4</strong>：人工神经网络是通用函数逼近器，两层网络即可逼近任意函数，因而可作为可学习的函数应用于机器学习。通用逼近不等于自动得到好模型，数据、结构、优化和正则化共同决定实际效果。</li>
+<li><strong>核心观点5</strong>：深度学习适合从复杂数据中自动学习多层表示，但并非脱离任务和数据的万能方法，解释性、鲁棒性、资源消耗和分布外泛化仍需单独评估。<blockquote>
+<p>“深度学习还不是一种可以解决一系列复杂问题的通用智能技术，而是可以解决单个问题的一系列技术。”</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第2章-机器学习概述">第2章 机器学习概述</h3>3
+<ul>
+<li><strong>核心观点1</strong>：机器学习三要素为模型、学习准则与优化算法；目标是找到近似真实映射函数或真实条件概率分布的模型。模型规定可表达的函数族，准则规定什么叫好，优化算法负责在参数空间中寻找解。</li>
+<li><strong>核心观点2</strong>：经验风险最小化容易导致过拟合——训练集错误率低但未知数据错误率高，需通过正则化等手段控制泛化误差。训练集、验证集和测试集的职责不同，测试集不能被反复用于调参。</li>
+<li><strong>核心观点3</strong>：偏差-方差分解揭示了模型误差的来源，PAC学习、没有免费午餐定理、奥卡姆剃刀与归纳偏置共同构成机器学习的理论边界与设计原则。不存在对所有任务都最优的算法，模型必须与数据假设匹配。</li>
+<li><strong>核心观点4</strong>：传统特征学习依赖人工干预与领域经验，深度学习方法则将特征学习与预测模型学习统一为端到端过程。端到端减少手工特征，但不意味着不需要数据清洗、标签设计和领域知识。</li>
+<li><strong>核心观点5</strong>：评价机器学习系统要同时看任务指标、校准、稳定性、资源和错误分布；平均准确率可能掩盖少数类、长尾样本或关键场景上的严重问题。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 线性模型</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：线性判别函数以决策边界划分类别，二分类与多分类均可统一在该框架下理解</li><li>核心观点2：Logistic回归与Softmax回归将线性模型推广到概率输出，通过最大似然/交叉熵准则学习参数</li><li>核心观点3：感知器是最早的线性分类器，具有收敛性保证，参数平均感知器可提升稳定性并扩展到多分类</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：线性判别函数以决策边界划分类别，二分类与多分类均可统一在该框架下理解。模型参数决定超平面的方向和位置，特征缩放与共线性会影响优化过程和参数解释。</li>
+<li><strong>核心观点2</strong>：Logistic回归与Softmax回归将线性模型推广到概率输出，通过最大似然/交叉熵准则学习参数。概率输出便于排序、阈值调整和风险决策，但仍依赖线性可分性或特征变换的适当性。</li>
+<li><strong>核心观点3</strong>：感知器是最早的线性分类器，具有收敛性保证，参数平均感知器可提升稳定性并扩展到多分类。其局限是只能处理线性边界，无法直接表达复杂的非线性关系。</li>
+<li><strong>核心观点4</strong>：支持向量机通过最大化间隔学习参数，核函数实现非线性扩展，软间隔处理不可分数据；不同损失函数（hinge、交叉熵等）的选择直接影响模型行为。间隔、惩罚系数和核参数要通过验证数据选择。</li>
+<li><strong>核心观点5</strong>：线性模型虽然简单，却是理解损失函数、概率解释、正则化和决策边界的基线；复杂网络的收益应与这个基线比较，而不能只报告绝对分数。<blockquote>
+<p>“正确的判断来自于经验，而经验来自于错误的判断。”——弗雷德里克·布鲁克斯</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第4章-前馈神经网络">第4章 前馈神经网络</h3>3
+<ul>
+<li><strong>核心观点1</strong>：神经元激活函数从Sigmoid、ReLU到Swish、GELU、Maxout的演进，反映了对梯度传播与表达能力的持续优化。激活函数改变网络的非线性和梯度特性，选择要结合深度、初始化和任务。</li>
+<li><strong>核心观点2</strong>：前馈网络基于通用近似定理具备强大表达能力，通过反向传播算法与自动微分实现高效参数学习。反向传播不是新的损失函数，而是高效计算复合函数梯度的链式法则实现。</li>
+<li><strong>核心观点3</strong>：神经网络优化面临非凸优化与梯度消失两大核心困难，是后续优化技术（第7章）的出发点。深度增加后，初始化、归一化、激活和学习率相互作用，必须通过曲线和梯度诊断训练状态。</li>
+<li><strong>核心观点4</strong>：网络结构可分为前馈网络、记忆网络与图网络三大类，分别对应无记忆、时序记忆与结构关系建模。结构选择应由数据拓扑和依赖关系决定，而不是只追随模型名称。</li>
+<li><strong>核心观点5</strong>：前馈网络的层宽、层深、残差连接和输出头共同决定表示能力；训练时应区分模型容量不足、优化失败与数据标签问题。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 卷积神经网络</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：卷积以局部连接与权重共享替代全连接，大幅减少参数并引入平移等变性，是处理图像等网格数据的核心结构</li><li>核心观点2：卷积网络由卷积层、汇聚层交替堆叠构成整体结构，反向传播算法可高效训练卷积参数</li><li>核心观点3：LeNet-5、AlexNet、Inception、残差网络代表了CNN架构演进的关键节点，残差连接有效缓解深层网络退化问题</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：卷积以局部连接与权重共享替代全连接，大幅减少参数并引入平移等变性，是处理图像等网格数据的核心结构。局部感受野让模型先学习邻域模式，再逐层组合为更大范围的结构。</li>
+<li><strong>核心观点2</strong>：卷积网络由卷积层、汇聚层交替堆叠构成整体结构，反向传播算法可高效训练卷积参数。步幅、填充、通道数和池化方式共同影响特征图尺寸、计算量和信息保留。</li>
+<li><strong>核心观点3</strong>：LeNet-5、AlexNet、Inception、残差网络代表了CNN架构演进的关键节点，残差连接有效缓解深层网络退化问题。架构演进体现了计算资源、数据规模、模块化设计和优化方法的共同作用。</li>
+<li><strong>核心观点4</strong>：转置卷积与空洞卷积扩展了卷积的适用场景，分别用于上采样与增大感受野。上采样可能产生棋盘格等伪影，空洞率选择不当也会造成采样栅格问题。</li>
+<li><strong>核心观点5</strong>：CNN的优势依赖网格局部性和空间共享假设；面对长距离关系或非网格结构时，需结合注意力、图网络或其他结构。</li>
+</ul>
+<h3 id="第6章-循环神经网络">第6章 循环神经网络</h3>3
+<ul>
+<li><strong>核心观点1</strong>：RNN通过隐状态引入记忆能力，可建模序列数据，支持序列到类别、同步序列到序列、异步序列到序列三种应用模式。隐状态是历史输入的压缩表示，因此容量和更新方式影响长期信息保留。</li>
+<li><strong>核心观点2</strong>：随时间反向传播（BPTT）是RNN参数学习的核心算法，但长程依赖问题导致梯度消失/爆炸。时间步越长，重复的雅可比变换越可能让梯度衰减或放大。</li>
+<li><strong>核心观点3</strong>：LSTM与GRU通过门控机制选择性记忆与遗忘，是缓解长程依赖问题的主流方案。门控制信息进入、保留和输出，但仍需要适当的序列长度、初始化和正则化。</li>
+<li><strong>核心观点4</strong>：深层RNN可通过堆叠与双向结构增强表达能力，并可扩展到递归神经网络与图神经网络处理树/图结构数据。双向结构适合离线任务，不一定适合严格因果的在线预测。</li>
+<li><strong>核心观点5</strong>：序列任务还要明确填充、掩码、截断和时间顺序，避免把无效位置当成真实信号或因随机切分造成未来信息泄漏。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 网络优化与正则化</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：神经网络优化面临结构多样性、高维非凸、梯度消失等挑战，需从优化算法、初始化、归一化等多层面协同改善</li><li>核心观点2：小批量梯度下降是基础优化方式，批量大小、学习率调整策略与梯度估计修正（动量等）共同决定优化效率</li><li>核心观点3：参数初始化（固定方差、方差缩放、正交初始化）与逐层归一化（BN、LN、WN、LRN）对训练稳定性至关重要</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：神经网络优化面临结构多样性、高维非凸、梯度消失等挑战，需从优化算法、初始化、归一化等多层面协同改善。训练失败时应先区分数据、损失、梯度、学习率和容量问题。</li>
+<li><strong>核心观点2</strong>：小批量梯度下降是基础优化方式，批量大小、学习率调整策略与梯度估计修正（动量等）共同决定优化效率。批量变大通常提高并行效率，但也会改变噪声水平、泛化和内存需求。</li>
+<li><strong>核心观点3</strong>：参数初始化（固定方差、方差缩放、正交初始化）与逐层归一化（BN、LN、WN、LRN）对训练稳定性至关重要。归一化并非无条件提升，需结合批量大小、序列结构和训练推理模式。</li>
+<li><strong>核心观点4</strong>：正则化手段包括ℓ1/ℓ2正则、权重衰减、提前停止、丢弃法、数据增强与标签平滑，核心目标是控制过拟合、提升泛化。不同正则化改变模型偏好，应通过验证集比较而不是机械叠加。</li>
+<li><strong>核心观点5</strong>：超参数优化从网格搜索、随机搜索发展到贝叶斯优化与神经架构搜索，体现自动化调参的趋势。自动搜索仍受评价集、预算、搜索空间和数据泄漏约束。</li>
+</ul>
+<h3 id="第8章-注意力机制与外部记忆">第8章 注意力机制与外部记忆</h3>3
+<ul>
+<li><strong>核心观点1</strong>：注意力机制借鉴认知神经学，通过动态权重聚焦相关信息，其变体覆盖多种打分与聚合方式。查询、键和值分别承担选择、匹配和信息汇聚作用。</li>
+<li><strong>核心观点2</strong>：自注意力模型使序列内部元素相互关联，是Transformer等现代架构的基础。它能直接建立远距离依赖，但计算和内存通常随序列长度增加，需要稀疏、分块或近似方法应对长序列。</li>
+<li><strong>核心观点3</strong>：记忆增强神经网络（端到端记忆网络、神经图灵机）为网络引入可读写的外部记忆，扩展模型容量。外部记忆的寻址、读写规则和训练稳定性决定其实际价值。</li>
+<li><strong>核心观点4</strong>：Hopfield网络等基于神经动力学的联想记忆为增加网络容量提供了另一条路径。联想记忆适合从部分线索恢复整体模式，但要注意容量、噪声和收敛状态。</li>
+<li><strong>核心观点5</strong>：注意力权重可以提供一定的关联线索，但不能简单等同于完整因果解释；解释仍需结合输入扰动、反事实或任务级证据。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第9章 无监督学习</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：无监督特征学习通过PCA、稀疏编码、自编码器等手段从无标签数据中学习有效表示</li><li>核心观点2：自编码器及其变体（稀疏、堆叠、降噪）构成无监督表示学习的重要家族，堆叠自编码器可逐层预训练深层网络</li><li>核心观点3：概率密度估计分为参数与非参数方法，是无监督学习中生成建模的基础</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：无监督特征学习通过PCA、稀疏编码、自编码器等手段从无标签数据中学习有效表示。目标可以是保留主要变化、重构输入、发现潜在因素或提高下游任务可分性。</li>
+<li><strong>核心观点2</strong>：自编码器及其变体（稀疏、堆叠、降噪）构成无监督表示学习的重要家族，堆叠自编码器可逐层预训练深层网络。重构得好不一定意味着语义表示好，仍需用下游任务和扰动测试验证。</li>
+<li><strong>核心观点3</strong>：概率密度估计分为参数与非参数方法，是无监督学习中生成建模的基础。密度估计需要处理高维空间、样本稀疏和计算复杂度问题。</li>
+<li><strong>核心观点4</strong>：无监督表示的评价应结合聚类、检索、可视化和下游预测，避免仅凭低维图形或重构误差作结论。</li>
+</ul>
+<h3 id="第10章-模型独立的学习方式">第10章 模型独立的学习方式</h3>3
+<ul>
+<li><strong>核心观点1</strong>：集成学习通过组合多个模型提升性能，AdaBoost是代表性算法。组合的收益来自不同模型的互补错误，若基学习器高度相关，集成提升会受到限制。</li>
+<li><strong>核心观点2</strong>：自训练与协同训练利用未标注数据，多任务学习与迁移学习实现知识跨任务/跨领域复用。伪标签错误会自我放大，因此需要置信度筛选、教师更新策略和分布检查。</li>
+<li><strong>核心观点3</strong>：终身学习追求持续积累知识，元学习（基于优化器与模型无关两类）让模型“学会学习”。持续学习的核心难题包括灾难性遗忘、任务边界和新旧知识冲突。</li>
+<li><strong>核心观点4</strong>：迁移学习并非总能带来收益，源域与目标域差异过大时可能出现负迁移；应比较冻结层、微调范围、数据量和目标域验证结果。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第11章 概率图模型</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：概率图模型用有向图或无向图表示变量间的条件独立关系，常见模型包括贝叶斯网络与马尔可夫随机场</li><li>核心观点2：含隐变量时参数估计需借助EM等算法，推断分为精确推断与近似推断两大类</li><li>EM交替进行隐变量期望估计和参数最大化，但可能陷入局部最优并依赖初始化</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：概率图模型用有向图或无向图表示变量间的条件独立关系，常见模型包括贝叶斯网络与马尔可夫随机场。图结构把联合分布分解为局部因子，便于表达依赖和推断。</li>
+<li><strong>核心观点2</strong>：含隐变量时参数估计需借助EM等算法，推断分为精确推断与近似推断两大类。EM交替进行隐变量期望估计和参数最大化，但可能陷入局部最优并依赖初始化。</li>
+<li><strong>核心观点3</strong>：变分推断与采样法（拒绝采样、重要性采样、MCMC）是近似推断的两条主要技术路线。前者把难解分布转为优化问题，后者通过样本逼近目标分布，二者各有计算和收敛代价。</li>
+<li><strong>核心观点4</strong>：概率图模型的优势在于不确定性表达和结构化推断，应用时要区分相关、条件独立和因果假设，不能只根据图形外观宣称因果关系。</li>
+</ul>
+<h3 id="第12章-深度信念网络">第12章 深度信念网络</h3>3
+<ul>
+<li><strong>核心观点1</strong>：玻尔兹曼机是基于能量的生成模型，通过能量最小化与模拟退火进行学习。能量函数把配置映射为标量，概率分布由能量差异决定。</li>
+<li><strong>核心观点2</strong>：受限玻尔兹曼机（RBM）通过限制层内无连接简化学习，是深度信念网络的构建模块。可见层和隐层之间的二部结构让条件分布更易处理。</li>
+<li><strong>核心观点3</strong>：深度信念网络采用逐层预训练方式学习生成模型，是早期深度学习的标志性成果。逐层训练能够提供较好的初始化，但之后仍需结合监督目标整体微调。</li>
+<li><strong>核心观点4</strong>：这一章体现了生成式建模、能量函数和表示学习之间的联系，也说明模型流行与否取决于任务需求、训练稳定性和后续架构的比较优势。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第13章 深度生成模型</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：概率生成模型的核心任务是密度估计与生成样本，并可辅助监督学习</li><li>核心观点2：变分自编码器（VAE）通过推断网络与生成网络联合训练，再参数化技巧使梯度可回传</li><li>核心观点3：生成对抗网络（GAN）通过生成器与判别器的对抗训练学习数据分布，DCGAN是其经典实现，后续改进模型持续提升训练稳定性与生成质量</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：概率生成模型的核心任务是密度估计与生成样本，并可辅助监督学习。生成模型要刻画数据分布或其可采样近似，而不是只记住训练样本。</li>
+<li><strong>核心观点2</strong>：变分自编码器（VAE）通过推断网络与生成网络联合训练，再参数化技巧使梯度可回传。其目标在重构质量与潜变量分布约束之间平衡，潜空间连续性是重要特征。</li>
+<li><strong>核心观点3</strong>：生成对抗网络（GAN）通过生成器与判别器的对抗训练学习数据分布，DCGAN是其经典实现，后续改进模型持续提升训练稳定性与生成质量。对抗训练可能出现模式崩溃、梯度不稳定和评价困难。</li>
+<li><strong>核心观点4</strong>：生成结果评价不能只看视觉或表面质量，还要检查多样性、条件一致性、事实性、偏差和安全边界；不同生成任务应使用对应评价协议。</li>
+</ul>
+<h3 id="第14章-深度强化学习">第14章 深度强化学习</h3>3
+<ul>
+<li><strong>核心观点1</strong>：强化学习以马尔可夫决策过程为框架，通过值函数与目标函数刻画序贯决策问题。状态、动作、转移、奖励和折扣共同定义环境中的长期收益。</li>
+<li><strong>核心观点2</strong>：基于值函数的方法从动态规划、蒙特卡罗、时序差分发展到深度Q网络（DQN）。DQN用神经网络近似动作价值，但经验回放和目标网络等机制用于缓解相关样本与训练不稳定。</li>
+<li><strong>核心观点3</strong>：基于策略的方法（REINFORCE及带基准线版本）直接优化策略，演员-评论员算法结合两者优势。策略梯度适合连续决策，但方差、探索和奖励稀疏仍是关键难题。</li>
+<li><strong>核心观点4</strong>：强化学习评价应关注累计回报、样本效率、探索风险和策略稳定性；在真实系统中还要设置安全约束、仿真验证和可回退策略。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第15章 序列生成模型</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：序列生成从N元统计模型发展到深度序列模型，困惑度、BLEU、ROUGE是主要评价指标</li><li>核心观点2：序列生成面临曝光偏差、训练目标不一致与计算效率三大学习问题</li><li>核心观点3：序列到序列模型从基于RNN、基于注意力演进到基于自注意力，体现了注意力机制对序列建模的深刻影响</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：序列生成从N元统计模型发展到深度序列模型，困惑度、BLEU、ROUGE是主要评价指标。指标分别从概率建模和词面重合等角度衡量质量，不能替代人工或任务效果评估。</li>
+<li><strong>核心观点2</strong>：序列生成面临曝光偏差、训练目标不一致与计算效率三大学习问题。训练时使用真实历史，推理时却使用自身输出，错误可能逐步累积。</li>
+<li><strong>核心观点3</strong>：序列到序列模型从基于RNN、基于注意力演进到基于自注意力，体现了注意力机制对序列建模的深刻影响。编码器和解码器之间的信息交互方式决定了长距离依赖和并行效率。</li>
+<li><strong>核心观点4</strong>：生成系统需要处理停止条件、重复、长度偏置、采样温度和束搜索等解码问题；解码策略是模型能力之外影响输出行为的重要环节。</li>
+</ul>
+<h2 id="适用场景标签">适用场景标签</h2>2
+<ul>
+<li>深度学习系统入门与知识框架搭建</li>
+<li>机器学习/神经网络课程配套参考</li>
+<li>算法工程师查漏补缺与原理复习</li>
+<li>考研/面试知识点梳理</li>
+<li>从传统机器学习向深度学习进阶</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">一句话推荐</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>一本书打通深度学习知识脉络</li></ul></div>2
+<p>一本书打通深度学习知识脉络。</p></div></details></div></body></html>

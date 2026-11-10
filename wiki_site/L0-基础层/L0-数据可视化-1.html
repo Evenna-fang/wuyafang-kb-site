@@ -1,0 +1,541 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L0-数据可视化-1</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L0-数据可视化-1</span></div><div class="wrap"><h1 id="数据可视化体系一matplotlib-基础">数据可视化体系（一）：Matplotlib 基础</h1>
+<h2 id="why">WHY</h2>2
+<h3 id="1-为什么需要数据可视化与-matplotlib">1. 为什么需要数据可视化与 Matplotlib</h3>3
+<p>Matplotlib 是 Python 科学计算生态中常用的绘图库，适合探索数据、制作实验报告以及构建静态分析图表。本篇围绕十种常见图型建立基本操作体系：折线图、柱状图、散点图、直方图、饼图、箱线图、热力图、面积图、极坐标图和子图布局。学习时应先明确分析问题，再确定数据类型，最后选择视觉编码。图形中的位置和长度容易比较，面积和角度较难精确比较，因此不应仅凭外观决定图型。</p>
+<p>表格适合保存和核对精确数值，却不总能让人迅速发现趋势、离群点、分布形态与变量关系。可视化把这些结构转换为可比较的视觉信号，帮助分析者提出假设、检查数据质量并向读者解释结论。Matplotlib 提供从数据数组到图元、坐标尺度与导出文件的完整控制，使绘图能够进入脚本和自动化流程，而不是依赖一次性手工操作。</p>
+<p>如果缺少这一层能力，常见问题不只是“图不好看”，还包括用折线连接无序类别、用截断坐标夸大差异、把相关解释为因果、把候选异常直接删除，以及图片虽然生成却无法回答业务问题。学习 Matplotlib 的目标因此不是背诵函数，而是建立“问题—数据—图型—验证”的闭环。</p>
+<h2 id="what-whyt">WHAT / WHYT</h2>2
+<h3 id="2-绘图对象与基本约定">2. 绘图对象与基本约定</h3>3
+<p>Figure 是整体画布，一个 Figure 可以包含多个 Axes；Axes 是承载横纵坐标、数据图元、标题和刻度的绘图区。Axis 对象负责刻度与坐标尺度，Artist 则是图中各种可见对象的共同基础。日常分析优先使用 <code>fig, ax = plt.subplots()</code>，再调用 <code>ax.plot()</code> 等方法。相比持续依赖全局当前坐标轴，这种写法更适合函数、循环和复杂布局。</p>
+<p>绘图前应确认数组等长、缺失值处理方式、时间顺序和类别编码。折线图必须按横轴排序，柱状图应确认每类是否已聚合，相关图要避免把类别编号误当连续变量。数值单位要写在轴标签中，日期范围和样本量可以写在标题或说明里。默认颜色只是起点，必须保证同一个颜色在整份报告中表达相同含义。</p>
+<table>
+<thead>
+<tr>
+<th>对象或方法</th>
+<th>含义</th>
+<th>常用操作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Figure</td>
+<td>整体画布</td>
+<td>控制尺寸与保存文件</td>
+</tr>
+<tr>
+<td>Axes</td>
+<td>独立绘图区</td>
+<td>绘图、设置标题和标签</td>
+</tr>
+<tr>
+<td>Axis</td>
+<td>坐标轴与刻度</td>
+<td>控制位置、格式和比例</td>
+</tr>
+<tr>
+<td>图元</td>
+<td>曲线、柱、点等对象</td>
+<td>修改颜色、线宽、透明度</td>
+</tr>
+<tr>
+<td><code>tight_layout</code></td>
+<td>自动整理间距</td>
+<td>减少文字与子图重叠</td>
+</tr>
+</tbody>
+</table>
+<h3 id="3-图型选型的总体边界">3. 图型选型的总体边界</h3>3
+<p>图型由分析问题和数据结构共同决定，而不是由默认模板决定。下面的流程先区分趋势、类别差异、变量关系、分布、构成、矩阵和方向周期，再考虑是否需要以子图组合多个视角。</p>
+<pre><code class="language-mermaid">flowchart TD
+    A[分析目标] --&gt; B{看什么}
+    B --&gt;|趋势| C[折线或面积]
+    B --&gt;|类别差异| D[柱状或箱线]
+    B --&gt;|变量关系| E[散点]
+    B --&gt;|单变量分布| F[直方]
+    B --&gt;|整体构成| G[饼图]
+    B --&gt;|矩阵强度| H[热力]
+    B --&gt;|方向周期| I[极坐标]
+    C --&gt; J[需要多视角时组合子图]
+    D --&gt; J
+    E --&gt; J
+</code></pre>
+<h3 id="4-折线图观察连续趋势">4. 折线图：观察连续趋势</h3>3
+<p>折线图适合时间、距离、迭代次数等有自然顺序的横轴，常用于观察销售趋势、实验收敛和设备温度。线段暗示相邻观测之间存在连续变化，不能把没有顺序的类别随意连起来。采样不均匀时应保留真实横轴间隔；缺测点不要随意补零，因为零是一个真实观测值。</p>
+<p>多条线需要共享单位；如果曲线太多，应拆成子图，避免读者反复寻找图例。平滑曲线会隐藏短期波动，除非明确说明平滑窗口，否则应保留原始观测点。</p>
+<h3 id="5-柱状图比较分类数值">5. 柱状图：比较分类数值</h3>3
+<p>柱状图适合比较产品销量、部门预算和地区订单数，柱子的长度表达数值大小。纵轴通常从零开始，因为读者比较的是长度而非端点位置。类别名称很长时使用横向条形图，排名任务则按数值排序；如果类别有业务顺序，如季度或等级，应保留该顺序。</p>
+<p>分组柱状图比较同类下的不同群体，堆叠柱状图比较总量和组成。若关心细微差异，应选择并排布局，因为堆叠后的中间部分缺少共同基线。</p>
+<h3 id="6-散点图探索两个变量的关系">6. 散点图：探索两个变量的关系</h3>3
+<p>散点图将两个数值变量编码为横纵位置，适合查看学习时长与成绩、广告投入与销售额、身高与体重等关系。第三个数值可以映射到点面积或颜色，但不能同时堆积过多编码。相关趋势不等于因果关系，业务解释还需要控制潜在混杂因素。</p>
+<p><code>s</code> 表示面积而不是半径，使用气泡图时必须明确大小含义；<code>alpha</code> 控制透明度，重叠严重时可调低；<code>cmap</code> 是颜色映射，连续变量适合连续色带。不要为没有数量顺序的类别使用渐变色，否则会制造不存在的大小关系。极端离群点可能压缩主体数据，应检查数据质量并考虑辅助放大图。</p>
+<h3 id="7-直方图理解单变量分布">7. 直方图：理解单变量分布</h3>3
+<p>直方图把连续数值分成区间，展示频数或概率密度，适合检查订单金额、响应延迟、考试成绩的偏态和尾部。区间数过少会隐藏结构，过多会放大随机波动。比较多个群体时应固定相同区间边界，否则柱高没有直接可比性。</p>
+<p>密度的纵轴值不是概率，某个区间的概率约等于柱高乘区间宽度。长尾分布可以考虑对数横轴，但应说明对数变换及零值处理方式。</p>
+<h3 id="8-饼图表达整体构成">8. 饼图：表达整体构成</h3>3
+<p>饼图适合少量类别组成同一整体，例如预算分配和流量来源。所有部分必须使用相同口径，数值应为非负，且整体定义明确。类别过多或占比接近时，条形图更便于比较。不要把同比增长率放进饼图，因为增长率之间没有可相加的整体。</p>
+<p><code>autopct</code> 控制百分比文字格式，<code>startangle</code> 决定起始方向，<code>pctdistance</code> 调整百分比距离，<code>explode</code> 可以突出一个类别但不宜滥用。默认归一化会把输入总和转换为百分比，报告中仍应交代原始总量。三维饼图会扭曲面积，基础分析应使用平面图。</p>
+<h3 id="9-箱线图比较群体分布">9. 箱线图：比较群体分布</h3>3
+<p>箱线图通过中位数、上下四分位数和须总结分布，适合比较多个门店客单价、班级成绩或服务器响应时间。箱体覆盖中间一半数据，箱内横线通常表示中位数。默认须延伸到距四分位数不超过一又二分之一倍四分位距的观测值，须外点是规则识别的候选异常，不能直接认定为错误数据。</p>
+<p><code>patch_artist=True</code> 允许填充箱体，<code>showmeans=True</code> 显示均值，<code>whis</code> 改变须的定义，<code>showfliers=False</code> 隐藏离群点。隐藏时必须披露，因为读者可能误判尾部风险。箱线图不能直接展示多峰结构，必要时配合直方图或小提琴图，样本量很小时可以叠加原始散点。</p>
+<h3 id="10-热力图展示二维矩阵">10. 热力图：展示二维矩阵</h3>3
+<p>热力图将矩阵单元格数值映射为颜色，适合星期与时段的订单数、变量相关矩阵和实验条件网格。色条必须说明数值单位；多个热力图并排比较时，应固定颜色范围。单调数量使用顺序色带，正负偏差使用以零为中心的发散色带。</p>
+<p><code>imshow</code> 负责绘制矩阵，<code>aspect="auto"</code> 使格子适应画布，<code>vmin</code> 和 <code>vmax</code> 控制颜色端点。相关系数应固定为负一到一，而不能每张图自动缩放。矩阵较大时不要标注所有数字，应保留关键位置并提供原始表格供核对。</p>
+<h3 id="11-面积图呈现规模和组成变化">11. 面积图：呈现规模和组成变化</h3>3
+<p>面积图通过曲线下方的填充强调规模，堆叠面积图进一步展示各部分对总量的贡献。适合不同渠道活跃用户或能源来源随时间变化。所有层必须使用相同单位且可相加；负值会让堆叠含义复杂，应谨慎处理。中间层缺乏稳定基线，不适合精确比较其变化幅度。</p>
+<p><code>stackplot</code> 的每个序列是一层，输入次序决定堆叠次序；<code>labels</code> 对应图例，<code>alpha</code> 调整透明度。单条曲线填充可使用 <code>fill_between</code>，还可以用上下界数组表达置信区间。置信区间与累计面积的含义不同，必须在说明中明确。</p>
+<h3 id="12-极坐标图表达方向与周期">12. 极坐标图：表达方向与周期</h3>3
+<p>极坐标以角度和半径定位点，适合方向强度、日内周期和雷达扫描。角度单位默认是弧度，常见错误是把角度制直接传入。若制作雷达图，指标必须具有可比较尺度，且排列顺序会改变形状，不应仅凭多边形面积评价综合能力。</p>
+<p><code>projection="polar"</code> 创建极坐标，<code>set_theta_zero_location</code> 设置零度方向，<code>set_theta_direction(-1)</code> 表示顺时针。首尾重复点使多边形闭合；半径下限应保持为零。方向类别应标注真实含义，而不能让读者猜测每个角度代表什么。</p>
+<h3 id="13-子图布局对照多个分析视角">13. 子图布局：对照多个分析视角</h3>3
+<p>子图是布局能力，能把同一指标的趋势、分布和异常放在一个画布中。适合探索报告、诊断面板和实验比较。共享横轴适用于相同时间范围，共享纵轴适用于相同单位；如果各子图尺度不同，应让刻度清楚可见，避免错误比较。</p>
+<p>不规则布局可以进一步学习 GridSpec 和 subplot_mosaic。布局之前先确定各面板承担的问题，避免把十张互不相关的图拼成难以阅读的大图。</p>
+<h2 id="how">HOW</h2>2
+<h3 id="14-示例运行约定与绘图流程">14. 示例运行约定与绘图流程</h3>3
+<p>所有 Python 示例均可独立运行，不需要下载数据。运行环境需要安装 Matplotlib 和 NumPy；示例使用 Agg 后端并保存图片，适合普通电脑、服务器和自动化任务。中文能否正常显示取决于本机字体；字体缺失只影响文字显示，不影响数据绘制。每次运行会在当前工作目录生成对应图片，交付时应根据项目约定归档。本文代码采用面向对象接口，显式持有画布和坐标轴，便于后续叠加图层、设置格式以及排查状态错误。</p>
+<pre><code class="language-mermaid">flowchart LR
+    A[明确业务问题] --&gt; B[检查数据类型与单位]
+    B --&gt; C[创建画布和坐标轴]
+    C --&gt; D[绘制数据图元]
+    D --&gt; E[设置标题刻度图例]
+    E --&gt; F[检查并导出]
+</code></pre>
+<h3 id="15-折线图实操">15. 折线图实操</h3>3
+<pre><code class="language-python">import matplotlib
+matplotlib.use(&quot;Agg&quot;)
+import matplotlib.pyplot as plt
+import numpy as np
+
+days = np.arange(1, 8)
+sales = np.array([18, 22, 20, 27, 31, 29, 35])
+fig, ax = plt.subplots(figsize=(7, 4))
+ax.plot(days, sales, marker=&quot;o&quot;, linewidth=2, color=&quot;#2563eb&quot;, label=&quot;Sales&quot;)
+ax.set(title=&quot;Weekly sales&quot;, xlabel=&quot;Day&quot;, ylabel=&quot;Sales (10k CNY)&quot;)
+ax.set_xticks(days)
+ax.grid(alpha=0.25)
+ax.legend()
+fig.tight_layout()
+fig.savefig(&quot;line_basic.png&quot;, dpi=150)
+plt.close(fig)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+<th>使用建议</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>marker</code></td>
+<td>数据点形状</td>
+<td>少量观测时突出实测位置</td>
+</tr>
+<tr>
+<td><code>linewidth</code></td>
+<td>线宽</td>
+<td>主线可设为二，辅助线更细</td>
+</tr>
+<tr>
+<td><code>linestyle</code></td>
+<td>线型</td>
+<td>虚线可表示预测或基准</td>
+</tr>
+<tr>
+<td><code>label</code></td>
+<td>图例名称</td>
+<td>用业务名称说明指标</td>
+</tr>
+</tbody>
+</table>
+<h3 id="16-柱状图实操">16. 柱状图实操</h3>3
+<pre><code class="language-python">import matplotlib
+matplotlib.use(&quot;Agg&quot;)
+import matplotlib.pyplot as plt
+
+products = [&quot;Keyboard&quot;, &quot;Mouse&quot;, &quot;Headset&quot;, &quot;Monitor&quot;]
+amounts = [120, 185, 150, 92]
+fig, ax = plt.subplots(figsize=(7, 4))
+bars = ax.bar(products, amounts, width=0.65, color=&quot;#3b82f6&quot;)
+ax.bar_label(bars, fmt=&quot;%d&quot;, padding=3)
+ax.set(title=&quot;Sales by product&quot;, xlabel=&quot;Product&quot;, ylabel=&quot;Units&quot;)
+ax.set_ylim(0, 220)
+ax.grid(axis=&quot;y&quot;, alpha=0.25)
+ax.set_axisbelow(True)
+fig.tight_layout()
+fig.savefig(&quot;bar_basic.png&quot;, dpi=150)
+plt.close(fig)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+<th>注意事项</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>width</code></td>
+<td>柱宽</td>
+<td>柱间留白有助于区分类别</td>
+</tr>
+<tr>
+<td><code>bottom</code></td>
+<td>柱底位置</td>
+<td>常用于堆叠，但须说明总量</td>
+</tr>
+<tr>
+<td><code>color</code></td>
+<td>柱颜色</td>
+<td>无分组语义时可以统一颜色</td>
+</tr>
+<tr>
+<td><code>bar_label</code></td>
+<td>添加柱顶标签</td>
+<td>小类别数时提供精确数值</td>
+</tr>
+</tbody>
+</table>
+<h3 id="17-散点图实操">17. 散点图实操</h3>3
+<pre><code class="language-python">import matplotlib
+matplotlib.use(&quot;Agg&quot;)
+import matplotlib.pyplot as plt
+import numpy as np
+
+rng = np.random.default_rng(7)
+hours = rng.uniform(1, 10, 80)
+scores = 40 + hours * 4 + rng.normal(0, 6, 80)
+focus = rng.uniform(20, 100, 80)
+fig, ax = plt.subplots(figsize=(7, 4))
+points = ax.scatter(hours, scores, c=focus, s=50, cmap=&quot;viridis&quot;,
+                    alpha=0.7, edgecolors=&quot;white&quot;)
+ax.set(title=&quot;Study hours and scores&quot;, xlabel=&quot;Study hours&quot;, ylabel=&quot;Score&quot;)
+fig.colorbar(points, ax=ax, label=&quot;Focus index&quot;)
+fig.tight_layout()
+fig.savefig(&quot;scatter_basic.png&quot;, dpi=150)
+plt.close(fig)
+</code></pre>
+<h3 id="18-直方图实操">18. 直方图实操</h3>3
+<pre><code class="language-python">import matplotlib
+matplotlib.use(&quot;Agg&quot;)
+import matplotlib.pyplot as plt
+import numpy as np
+
+rng = np.random.default_rng(3)
+latency = rng.gamma(shape=3, scale=20, size=500)
+fig, ax = plt.subplots(figsize=(7, 4))
+ax.hist(latency, bins=20, density=True, color=&quot;#818cf8&quot;, edgecolor=&quot;white&quot;)
+ax.axvline(latency.mean(), color=&quot;#dc2626&quot;, linestyle=&quot;--&quot;, label=&quot;Mean&quot;)
+ax.set(title=&quot;Request latency&quot;, xlabel=&quot;Latency (ms)&quot;, ylabel=&quot;Density&quot;)
+ax.legend()
+fig.tight_layout()
+fig.savefig(&quot;hist_basic.png&quot;, dpi=150)
+plt.close(fig)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bins</code></td>
+<td>区间数或边界数组</td>
+<td>可先自动分箱再按单位调整</td>
+</tr>
+<tr>
+<td><code>density</code></td>
+<td>是否显示密度</td>
+<td>真值使直方图总面积为一</td>
+</tr>
+<tr>
+<td><code>range</code></td>
+<td>分箱范围</td>
+<td>使用时披露范围外样本</td>
+</tr>
+<tr>
+<td><code>edgecolor</code></td>
+<td>边缘颜色</td>
+<td>浅色边缘有助于辨认区间</td>
+</tr>
+</tbody>
+</table>
+<h3 id="19-饼图实操">19. 饼图实操</h3>3
+<pre><code class="language-python">import matplotlib
+matplotlib.use(&quot;Agg&quot;)
+import matplotlib.pyplot as plt
+
+labels = [&quot;Search&quot;, &quot;Recommendation&quot;, &quot;Direct&quot;, &quot;Referral&quot;]
+values = [42, 28, 18, 12]
+fig, ax = plt.subplots(figsize=(6, 6))
+ax.pie(values, labels=labels, autopct=&quot;%.1f%%&quot;, startangle=90,
+       colors=[&quot;#2563eb&quot;, &quot;#10b981&quot;, &quot;#f59e0b&quot;, &quot;#ef4444&quot;],
+       wedgeprops={&quot;linewidth&quot;: 1, &quot;edgecolor&quot;: &quot;white&quot;})
+ax.set_title(&quot;Traffic sources&quot;)
+ax.axis(&quot;equal&quot;)
+fig.tight_layout()
+fig.savefig(&quot;pie_basic.png&quot;, dpi=150)
+plt.close(fig)
+</code></pre>
+<h3 id="20-箱线图实操">20. 箱线图实操</h3>3
+<pre><code class="language-python">import matplotlib
+matplotlib.use(&quot;Agg&quot;)
+import matplotlib.pyplot as plt
+import numpy as np
+
+rng = np.random.default_rng(11)
+groups = [rng.normal(70, 8, 80), rng.normal(76, 5, 80),
+          rng.normal(68, 12, 80)]
+fig, ax = plt.subplots(figsize=(7, 4))
+result = ax.boxplot(groups, patch_artist=True, showmeans=True)
+ax.set_xticks([1, 2, 3], [&quot;Class A&quot;, &quot;Class B&quot;, &quot;Class C&quot;])
+for patch, color in zip(result[&quot;boxes&quot;], [&quot;#93c5fd&quot;, &quot;#86efac&quot;, &quot;#fde68a&quot;]):
+    patch.set_facecolor(color)
+ax.set(title=&quot;Score distribution&quot;, ylabel=&quot;Score&quot;)
+ax.grid(axis=&quot;y&quot;, alpha=0.25)
+fig.tight_layout()
+fig.savefig(&quot;box_basic.png&quot;, dpi=150)
+plt.close(fig)
+</code></pre>
+<h3 id="21-热力图实操">21. 热力图实操</h3>3
+<pre><code class="language-python">import matplotlib
+matplotlib.use(&quot;Agg&quot;)
+import matplotlib.pyplot as plt
+import numpy as np
+
+matrix = np.array([[12, 18, 22, 16], [9, 15, 25, 20], [7, 11, 19, 28]])
+fig, ax = plt.subplots(figsize=(7, 3.5))
+image = ax.imshow(matrix, cmap=&quot;YlOrRd&quot;, aspect=&quot;auto&quot;, vmin=0, vmax=30)
+ax.set_xticks(range(4), [&quot;Morning&quot;, &quot;Noon&quot;, &quot;Afternoon&quot;, &quot;Night&quot;])
+ax.set_yticks(range(3), [&quot;Monday&quot;, &quot;Tuesday&quot;, &quot;Wednesday&quot;])
+for row in range(matrix.shape[0]):
+    for col in range(matrix.shape[1]):
+        ax.text(col, row, matrix[row, col], ha=&quot;center&quot;, va=&quot;center&quot;)
+fig.colorbar(image, ax=ax, label=&quot;Orders&quot;)
+ax.set_title(&quot;Orders by weekday and period&quot;)
+fig.tight_layout()
+fig.savefig(&quot;heatmap_basic.png&quot;, dpi=150)
+plt.close(fig)
+</code></pre>
+<h3 id="22-面积图实操">22. 面积图实操</h3>3
+<pre><code class="language-python">import matplotlib
+matplotlib.use(&quot;Agg&quot;)
+import matplotlib.pyplot as plt
+import numpy as np
+
+months = np.arange(1, 7)
+mobile = [30, 34, 39, 43, 48, 52]
+desktop = [26, 25, 24, 23, 22, 21]
+tablet = [8, 9, 10, 11, 12, 13]
+fig, ax = plt.subplots(figsize=(7, 4))
+ax.stackplot(months, mobile, desktop, tablet,
+             labels=[&quot;Mobile&quot;, &quot;Desktop&quot;, &quot;Tablet&quot;],
+             colors=[&quot;#2563eb&quot;, &quot;#10b981&quot;, &quot;#f59e0b&quot;], alpha=0.85)
+ax.set(title=&quot;Active users by device&quot;, xlabel=&quot;Month&quot;, ylabel=&quot;Users (thousand)&quot;)
+ax.set_xticks(months)
+ax.legend(loc=&quot;upper left&quot;)
+fig.tight_layout()
+fig.savefig(&quot;area_basic.png&quot;, dpi=150)
+plt.close(fig)
+</code></pre>
+<h3 id="23-极坐标图实操">23. 极坐标图实操</h3>3
+<pre><code class="language-python">import matplotlib
+matplotlib.use(&quot;Agg&quot;)
+import matplotlib.pyplot as plt
+import numpy as np
+
+angles = np.linspace(0, 2 * np.pi, 8, endpoint=False)
+values = np.array([62, 74, 68, 80, 71, 55, 60, 77])
+closed_angles = np.r_[angles, angles[0]]
+closed_values = np.r_[values, values[0]]
+fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={&quot;projection&quot;: &quot;polar&quot;})
+ax.plot(closed_angles, closed_values, color=&quot;#7c3aed&quot;, linewidth=2)
+ax.fill(closed_angles, closed_values, color=&quot;#a78bfa&quot;, alpha=0.35)
+ax.set_theta_zero_location(&quot;N&quot;)
+ax.set_theta_direction(-1)
+ax.set_ylim(0, 100)
+ax.set_title(&quot;Directional satisfaction&quot;, pad=20)
+fig.tight_layout()
+fig.savefig(&quot;polar_basic.png&quot;, dpi=150)
+plt.close(fig)
+</code></pre>
+<h3 id="24-子图布局实操">24. 子图布局实操</h3>3
+<pre><code class="language-python">import matplotlib
+matplotlib.use(&quot;Agg&quot;)
+import matplotlib.pyplot as plt
+import numpy as np
+
+rng = np.random.default_rng(4)
+months = np.arange(1, 13)
+values = 50 + 8 * np.sin(months / 2) + rng.normal(0, 2, 12)
+fig, axes = plt.subplots(2, 2, figsize=(9, 6))
+axes[0, 0].plot(months, values, marker=&quot;o&quot;)
+axes[0, 0].set(title=&quot;Trend&quot;, xlabel=&quot;Month&quot;, ylabel=&quot;Value&quot;)
+axes[0, 1].bar(months, values, color=&quot;#34d399&quot;)
+axes[0, 1].set(title=&quot;Monthly comparison&quot;, xlabel=&quot;Month&quot;, ylabel=&quot;Value&quot;)
+axes[1, 0].hist(values, bins=6, color=&quot;#fbbf24&quot;, edgecolor=&quot;white&quot;)
+axes[1, 0].set(title=&quot;Distribution&quot;, xlabel=&quot;Value&quot;, ylabel=&quot;Count&quot;)
+axes[1, 1].boxplot(values, vert=False)
+axes[1, 1].set(title=&quot;Summary&quot;, xlabel=&quot;Value&quot;)
+for ax in axes.flat:
+    ax.grid(alpha=0.2)
+fig.suptitle(&quot;Four views of one metric&quot;)
+fig.tight_layout(rect=[0, 0, 1, 0.95])
+fig.savefig(&quot;subplots_basic.png&quot;, dpi=150)
+plt.close(fig)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>布局参数</th>
+<th>含义</th>
+<th>使用建议</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>nrows, ncols</code></td>
+<td>行列数量</td>
+<td>用少量子图表达完整问题</td>
+</tr>
+<tr>
+<td><code>figsize</code></td>
+<td>画布尺寸，单位英寸</td>
+<td>文字多时增加宽度</td>
+</tr>
+<tr>
+<td><code>sharex, sharey</code></td>
+<td>共享坐标尺度</td>
+<td>仅在量纲一致时使用</td>
+</tr>
+<tr>
+<td><code>rect</code></td>
+<td>布局保留区域</td>
+<td>为总标题预留顶部空间</td>
+</tr>
+</tbody>
+</table>
+<h3 id="25-共同参数与交付检查">25. 共同参数与交付检查</h3>3
+<p>图表标题应表达主要问题，例如“第三季度各产品销量”，避免只有“分析图”这种泛称。横纵轴必须写单位，色条必须有含义，图例只承担识别任务，不要重复标题。网格线应低对比，避免盖过数据。不要给所有点都加文字，只有异常、拐点和关键业务事件值得直接标注。</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>检查问题</th>
+<th>改进方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据</td>
+<td>缺失值和重复值是否处理</td>
+<td>记录筛选口径与样本量</td>
+</tr>
+<tr>
+<td>尺度</td>
+<td>是否截断或使用对数</td>
+<td>在轴标签或说明披露</td>
+</tr>
+<tr>
+<td>排序</td>
+<td>类别是否按业务或数值排序</td>
+<td>统一顺序便于比较</td>
+</tr>
+<tr>
+<td>颜色</td>
+<td>是否有明确语义</td>
+<td>采用少量稳定颜色</td>
+</tr>
+<tr>
+<td>文字</td>
+<td>标签是否遮挡</td>
+<td>调整尺寸、旋转或缩短</td>
+</tr>
+<tr>
+<td>导出</td>
+<td>是否满足使用场景</td>
+<td>位图用合适分辨率，印刷优先矢量</td>
+</tr>
+</tbody>
+</table>
+<p>PNG 适合网页和普通报告，SVG 适合放大和编辑，PDF 适合打印。保存时使用明确文件名并考虑 <code>bbox_inches="tight"</code>；先保存再关闭画布，防止空白输出。长循环中应调用 <code>plt.close(fig)</code> 释放内存。对于大量数据，绘图速度和文件体积也属于可用性的一部分，可以减少无意义的标记、合理抽样或栅格化密集散点。</p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant A as 分析者
+    participant P as 绘图脚本
+    participant X as 坐标轴
+    participant O as 输出文件
+    A-&gt;&gt;P: 提供清洗数据和口径
+    P-&gt;&gt;X: 创建图元并设置尺度
+    P-&gt;&gt;X: 添加单位图例和注释
+    X--&gt;&gt;A: 检查视觉表达
+    A-&gt;&gt;P: 确认内容后保存
+    P-&gt;&gt;O: 导出并关闭画布
+</code></pre>
+<h3 id="26-常见问题与排错">26. 常见问题与排错</h3>3
+<p>中文显示方块通常是字体缺失，可从系统字体中选择已安装的中文字体，再设置 Matplotlib 的字体参数。不要假设每台电脑都有同一种字体；跨平台交付应写清字体要求。负号显示异常可检查 <code>axes.unicode_minus</code>，但不要为修复字体而改动数据。示例使用英文图中文字，便于在基础环境验证真实绘制过程。</p>
+<p>数组长度不一致时检查横纵坐标是否使用了同一筛选条件；颜色数组长度也必须与点数一致。出现全空白图时检查保存对象是否正确、数据是否为空以及是否提前关闭。图例没有显示时检查是否设置了有效 label，并在绘图之后调用 legend。色条与主图不匹配时，应直接把 scatter 或 imshow 返回的图元传给 colorbar。</p>
+<p>直方图“高度异常”可能来自密度单位，而不是计算错误。饼图百分比总和略偏离百分之百可能来自标签四舍五入。箱线图的离群点不能自动删除；应回查业务记录。折线出现异常长连接时检查时间排序、时区和缺测间隔。热力图视觉差异过大时先检查各图是否使用了不同的颜色范围。这些排查都应回到数据和视觉编码，而不能仅通过美化掩盖问题。</p>
+<h3 id="27-练习任务与验收方法">27. 练习任务与验收方法</h3>3
+<p>建议用同一份小型销售数据练习十种表达，而不是每次更换完全不同的数据集。先以日期、产品、销量和销售额构造明细表，按日期聚合后绘制折线，按产品聚合后绘制柱状，按单笔金额绘制直方与箱线。这样能够直观看到聚合层级改变后，图形回答的问题也随之变化。切勿把明细中的多笔记录直接当作每日汇总，否则同一天出现多个点时，折线会产生误导。</p>
+<p>对每张图设定一个可检验的问题。例如折线图必须能指出高峰发生日期，柱状图必须能比较销量最高的类别，热力图必须能定位最繁忙的时段。验证时先计算原始数值，再检查图中位置和颜色是否对应计算结果；不能仅凭“图片生成了”认定正确。若业务数据包含退款，构成图应明确使用销售毛额还是净额，面积图还应确认负值对累计意义的影响。</p>
+<p>检查样本覆盖也很重要。某家门店没有记录可能表示停业、数据缺失或真实零订单，这三种状态不能混用。固定类别顺序后，缺失类别可以显式留空或标记未知；只有确认真实为零时才填零。不同月份天数不同时，比较总量和日均量回答的是不同问题，应根据分析目标选择并写明口径。</p>
+<p>最后进行一次脱离背景的阅读测试：让不熟悉数据的人仅凭标题、轴标签、图例和说明描述图中结论。若对方误解颜色、单位或时间范围，优先修改表达；若对方无法精确区分接近的扇区，考虑改成条形图。可视化交付不仅是程序执行结果，也是一份需要独立解释的数据证据。</p>
+<h3 id="28-小结与进阶练习">28. 小结与进阶练习</h3>3
+<p>Matplotlib 基础能力可以归纳为明确问题、选择图型、建立对象、完善解释和检查输出五步。折线看趋势，柱状看类别差异，散点看关系，直方和箱线看分布，饼图看少量构成，热力图看矩阵，面积图看累计贡献，极坐标看周期方向，子图布局把这些视角组织到同一画布。每种图都有表达边界，专业绘图的关键是让图型、数据和结论一致。</p>
+<p>练习时可以先替换示例中的数据，再改变参数观察影响：调整直方图分箱、散点透明度、箱线须规则和热力图颜色范围。每次变化都应解释“为什么这样更容易回答问题”。完成一张图后，脱离代码独立阅读，检查读者能否看懂数据来源、单位、时间范围和主要结论。基础阶段建立这种检查习惯，比记住更多函数名称更有价值。</p>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li><strong>[业1] 业内官方文档</strong>：<a href="https://matplotlib.org/stable/users/explain/quick_start.html">Matplotlib Quick start guide</a>：用于 Figure、Axes 等绘图对象模型与面向对象绘图方式。</li>
+<li><strong>[业2] 业内官方文档</strong>：<a href="https://matplotlib.org/stable/tutorials/pyplot.html">Pyplot tutorial</a>：用于 pyplot 与 Axes 的基础绘图接口和实操组织。</li>
+<li><strong>[业3] 业内官方文档</strong>：<a href="https://numpy.org/doc/stable/">NumPy 官方文档</a>：用于示例中的数组、随机数、序列生成与数值计算。</li>
+<li><strong>[业4] 业内官方文档</strong>：<a href="https://matplotlib.org/stable/users/index.html">Matplotlib 官方使用指南</a>与<a href="https://matplotlib.org/stable/gallery/index.html">官方图集</a>：用于进一步查询稳定接口和图型示例。本文使用稳定的 pyplot 与 Axes 接口，升级版本后应关注参数弃用提示并重新执行示例。</li>
+</ul></div></body></html>

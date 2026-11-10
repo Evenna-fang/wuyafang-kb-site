@@ -1,0 +1,151 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>大模型项目实战：Agent开发与应用</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 大模型项目实战：Agent开发与应用</span></div><div class="wrap"><h1 id="书章节重点-大模型项目实战agent开发与应用">书章节重点 · 大模型项目实战：Agent开发与应用</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书以"基础—应用—开发"三篇递进结构，系统讲解AI Agent的定义原理、8类开源Agent工具的部署使用，以及基于7大主流开发框架（GLM-4/AgentScope/LangChain/LangGraph/AutoGen/LlamaIndex/CrewAI/Qwen-Agent/CogVLM2）的10个实战开发案例</li><li>帮助初中级读者从理解Agent概念到独立完成多框架多场景的Agent应用开发</li></ul></div>2
+<p>本书以"基础—应用—开发"三篇递进结构，系统讲解AI Agent的定义原理、8类开源Agent工具的部署使用，以及基于7大主流开发框架（GLM-4/AgentScope/LangChain/LangGraph/AutoGen/LlamaIndex/CrewAI/Qwen-Agent/CogVLM2）的10个实战开发案例。帮助初中级读者从理解Agent概念到独立完成多框架多场景的Agent应用开发。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第2章 Agent应用与开发环境搭建</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：Agent开发需先完成基础环境搭建，包括Python虚拟环境创建与依赖库安装</li><li>核心观点2：开发环境是后续所有应用与开发案例的运行基础，需按requirements.txt规范配置</li><li>核心观点3：Agent应用与LLM服务可采用同机部署或异机部署两种方式</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：Agent开发需先完成基础环境搭建，包括Python虚拟环境创建与依赖库安装。不同框架依赖不同版本的LangChain/PyTorch等库，虚拟环境是避免版本冲突的标准做法。</li>
+<li><strong>核心观点2</strong>：开发环境是后续所有应用与开发案例的运行基础，需按requirements.txt规范配置。文档中每个案例都配套了依赖清单，读者可按图索骥搭建对应环境。</li>
+<li><strong>核心观点3</strong>：Agent应用与LLM服务可采用同机部署或异机部署两种方式。同机部署适合开发调试（资源集中），异机部署适合生产环境（LLM服务独立扩展），需根据资源条件和性能需求选择。</li>
+</ul>
+<h3 id="第4章-任务驱动型agent应用">第4章 任务驱动型Agent应用</h3>3
+<ul>
+<li><strong>核心观点1</strong>：BabyAGI以"目标—任务创建—优先级排序—执行"循环为核心方法论，代码量小但精巧通用。它使用OpenAI的NLP功能根据目标创建新任务，用Chroma/Weaviate存储和检索任务结果上下文，实现任务解析、任务分拆、问题解决的自动化循环。</li>
+<li><strong>核心观点2</strong>：BabyAGI的方法论虽简单但影响深远——"根据先前任务的结果和预定义的目标创建新任务"这一思想，是后续所有任务驱动型Agent（Camel/AutoGen等）的基础范式。</li>
+<li><strong>核心观点3</strong>：可通过Ollama将模型服务名改为gpt-3.5-turbo，在不修改Camel代码的情况下实现本地LLM调用。这是一个实用技巧——很多开源Agent框架默认调用OpenAI，通过修改Ollama的服务名映射，可以无缝切换到本地开源模型。</li>
+</ul>
+<blockquote>
+<p>BabyAGI的代码量虽小，但其简单、精巧、通用的方法论起到了意想不到的效果。</p>
+</blockquote>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 辅助开发型Agent应用</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：辅助开发型Agent借助浏览器测试库Playwright在后台实现Web浏览、信息收集及与Web元素交互</li><li>核心观点2：此类Agent定位为开发者的辅助工具，侧重自动化完成开发过程中的重复性操作——如自动测试、数据采集、跨系统数据搬运等，而非替代开发者的核心判断</li><li>这类Agent能自动完成"打开网页→查找信息→填写表单→提取结果"的浏览器操作链，替代人工重复性Web操作</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：辅助开发型Agent借助浏览器测试库Playwright在后台实现Web浏览、信息收集及与Web元素交互。这类Agent能自动完成"打开网页→查找信息→填写表单→提取结果"的浏览器操作链，替代人工重复性Web操作。</li>
+<li><strong>核心观点2</strong>：此类Agent定位为开发者的辅助工具，侧重自动化完成开发过程中的重复性操作——如自动测试、数据采集、跨系统数据搬运等，而非替代开发者的核心判断。</li>
+</ul>
+<h3 id="第6章-检索增强型agent应用">第6章 检索增强型Agent应用</h3>3
+<ul>
+<li><strong>核心观点1</strong>：文本切分将文件分成语义完整、长度适中的文本块，是向量化与向量检索的前提。切分质量直接影响检索精度——切太大导致噪声混入，切太小导致语义不完整。</li>
+<li><strong>核心观点2</strong>：QAnything在Linux下运行，移植Windows可通过提取启动脚本中最终Python命令的方式变通实现。这种"读脚本→提取核心命令→手动执行"的方法，是跨平台部署时的实用变通手段。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第8章 基于GLM-4的Function-calling应用开发</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：Function-calling让开发者编写函数描述与实现，模型智能输出含参数的JSON对象来调用外部函数</li><li>这是将大模型与外部工具、API可靠连接的关键方法——比让模型"自由生成代码"更安全、更可控</li><li>核心观点2：Function-calling的可靠性在于：模型只输出"调用哪个函数、传什么参数"的结构化JSON，实际函数执行由应用层完成</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：Function-calling让开发者编写函数描述与实现，模型智能输出含参数的JSON对象来调用外部函数。这是将大模型与外部工具、API可靠连接的关键方法——比让模型"自由生成代码"更安全、更可控。</li>
+<li><strong>核心观点2</strong>：Function-calling的可靠性在于：模型只输出"调用哪个函数、传什么参数"的结构化JSON，实际函数执行由应用层完成。这样既利用了模型的语义理解能力，又避免了模型直接执行操作的风险。</li>
+<li><strong>核心观点3</strong>：应用部署可选择Agent应用与LLM服务同机或异机部署。Function-calling场景下，Agent应用需要频繁与LLM服务交互，网络延迟和稳定性是部署方案的重要考量。</li>
+</ul>
+<h3 id="第9章-基于agentscope的react-agent应用开发">第9章 基于AgentScope的ReAct Agent应用开发</h3>3
+<ul>
+<li><strong>核心观点1</strong>：Agent处理的任务不止于文本生成、搜索、总结，还包括在工具支持下无需人类干预地修改文件内容、执行Python代码等实质性操作。这标志着Agent从"信息检索助手"升级为"自主执行代理"。</li>
+<li><strong>核心观点2</strong>：UserAgent接收人类输入的任务并转交ReActAgent执行，ReActAgent通过配置的大模型服务和定制服务工具，经过数轮Reason-Acting（推理-行动）迭代完成UserAgent委派的任务。这种"人类下指令→Agent自主推理行动"的模式是ReAct框架的核心。</li>
+<li><strong>核心观点3</strong>：ReActAgent依赖配置的大模型服务与定制服务工具协同工作——大模型负责"想"（推理下一步该做什么），工具负责"做"（执行实际操作），两者的配合质量决定Agent的任务完成能力。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第10章 基于LangChain的任务驱动Agent应用开发</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：目标文本经模板格式化，既让大模型更顺畅专业地生成计划，也为后续的工具执行打好基础</li><li>核心观点2：开发前需建立Python虚拟环境并按requirements.txt安装依赖库</li><li>LangChain生态依赖众多（模型接口、向量库、工具集成），版本兼容性是常见坑点</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：目标文本经模板格式化，既让大模型更顺畅专业地生成计划，也为后续的工具执行打好基础。Prompt模板的结构化设计（明确角色、任务、输出格式）是LangChain Agent可靠运行的前提。</li>
+<li><strong>核心观点2</strong>：开发前需建立Python虚拟环境并按requirements.txt安装依赖库。LangChain生态依赖众多（模型接口、向量库、工具集成），版本兼容性是常见坑点。</li>
+</ul>
+<h3 id="第11章-基于langgraph的工作流agent应用开发">第11章 基于LangGraph的工作流Agent应用开发</h3>3
+<ul>
+<li><strong>核心观点1</strong>：LangGraph以节点构建工作流，Agent节点在消息流转至此时调用LLM推理生成Function-calling类型的文本或普通文本。相比LangChain的线性Chain，LangGraph的图结构支持分支、循环、条件跳转等复杂工作流。</li>
+<li><strong>核心观点2</strong>：工作流式编排适合需要多节点协同的复杂Agent任务——如"先检索→再分析→再生成→再审核"的多阶段流程，每个节点是独立的可复用单元。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第12章 基于AutoGen的辅助编程Agent应用开发</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：AutoGen样例代码由依赖库导入、LLM配置、Agent初始化、Chat方法及用户UI几部分组成</li><li>AutoGen的核心抽象是"可对话的Agent"——多个Agent之间通过消息对话协作完成任务</li><li>核心观点2：辅助编程Agent通过多Agent对话协作完成编程相关任务——如一个Agent写代码、一个Agent测试、一个Agent审查，类似软件开发团队的角色分工</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：AutoGen样例代码由依赖库导入、LLM配置、Agent初始化、Chat方法及用户UI几部分组成。AutoGen的核心抽象是"可对话的Agent"——多个Agent之间通过消息对话协作完成任务。</li>
+<li><strong>核心观点2</strong>：辅助编程Agent通过多Agent对话协作完成编程相关任务——如一个Agent写代码、一个Agent测试、一个Agent审查，类似软件开发团队的角色分工。</li>
+</ul>
+<h3 id="第13章-基于llamaindex的rag-agent综合应用开发">第13章 基于LlamaIndex的RAG Agent综合应用开发</h3>3
+<ul>
+<li><strong>核心观点1</strong>：RAG Agent综合运用检索增强技术，将外部知识检索与大模型生成结合。LlamaIndex为RAG场景提供数据索引与检索的框架支撑——包括文档加载、切分、嵌入、索引、查询的完整链路。</li>
+<li><strong>核心观点2</strong>：RAG Agent的关键挑战在于：检索结果如何注入Agent的推理循环、检索不到相关内容时如何处理、以及多轮对话中如何维护检索上下文。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第14章 基于CrewAI的多角色Agent应用开发</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：大语言模型服务是CrewAI应用的文本生成底座，针对各Agent执行的具体Task推理生成目标文本</li><li>核心观点2：Gradio回调线程若直接调用Crew的kickoff并等待返回会阻塞UI，需新起异步线程处理</li><li>这是一个典型的工程坑——Agent执行是长时间任务，如果在UI线程同步等待，用户界面会失去响应</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：大语言模型服务是CrewAI应用的文本生成底座，针对各Agent执行的具体Task推理生成目标文本。CrewAI的特色是"角色扮演"——每个Agent有明确的角色定位（如研究员、写手、审稿人），协同完成复杂任务。</li>
+<li><strong>核心观点2</strong>：Gradio回调线程若直接调用Crew的kickoff并等待返回会阻塞UI，需新起异步线程处理。这是一个典型的工程坑——Agent执行是长时间任务，如果在UI线程同步等待，用户界面会失去响应。</li>
+<li><strong>核心观点3</strong>：采用异步Crew线程+队列回传数据的方式，可避免用户界面失去响应。这种"后台执行+异步回调"的模式在所有Agent应用的Web UI开发中都是通用最佳实践。</li>
+</ul>
+<h3 id="第15章-基于qwen-agent的多智体图像应用开发">第15章 基于Qwen-Agent的多智体图像应用开发</h3>3
+<ul>
+<li><strong>核心观点1</strong>：多智体架构通过多个Agent分工协作处理图像相关应用任务。不同Agent分别负责图像理解、图像描述生成、图像检索等子任务，协同完成复杂的图像应用场景。</li>
+<li><strong>核心观点2</strong>：Qwen-Agent框架为多智体应用提供开发支撑——特别是在中文场景下，通义千问的多模态能力（图文理解）有较好的表现。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第16章 基于CogVLM2的多模态Agent应用开发</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：检索关键词经向量化转换后，从向量库召回相关性得分靠前的若干条记录</li><li>核心观点2：CogVLM2支撑多模态Agent应用，实现文本与图像的联合处理</li><li>多模态Agent的检索不仅限于文本——图像也可以被编码为向量参与检索</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：检索关键词经向量化转换后，从向量库召回相关性得分靠前的若干条记录。多模态Agent的检索不仅限于文本——图像也可以被编码为向量参与检索。</li>
+<li><strong>核心观点2</strong>：CogVLM2支撑多模态Agent应用，实现文本与图像的联合处理。多模态Agent的挑战在于：如何对齐文本和图像的语义空间、如何处理跨模态的查询和生成。</li>
+</ul>
+<h3 id="补充章节-agent开发的框架选型建议">补充章节 Agent开发的框架选型建议</h3>3
+<ul>
+<li><strong>核心观点1</strong>：没有"最好的框架"，只有"最适合当前场景的框架"。LangChain生态最丰富但抽象层多、调试难；LangGraph适合复杂工作流但学习曲线陡；AutoGen多Agent对话自然但可控性弱；CrewAI角色分工清晰但灵活性有限。选型原则：先明确要做什么类型的Agent（单工具调用/多步工作流/多Agent协作），再选对应的框架，而不是"学了某个框架再找项目做"。</li>
+<li><strong>核心观点2</strong>：本地模型（Ollama）+ Agent框架的组合适合开发调试和隐私敏感场景。很多开源Agent框架默认调用OpenAI API，但通过修改Ollama的服务名映射（如把模型名改成gpt-3.5-turbo），可以无缝切换到本地开源模型。这种方式开发阶段成本为零，且数据不出本机——适合企业内部应用的原型开发。</li>
+<li><strong>核心观点3</strong>：Agent应用的UI层是容易被忽视的工程难点。很多人把精力花在Agent逻辑上，最后用命令行或简单的Gradio界面交付——但如果终端用户是非技术人员，UI体验直接决定系统能否被接受。建议从第一天就考虑UI：用Gradio/Streamlit快速做原型，生产环境再换成专业前端。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">核心要点总结</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>观点回顾：Agent开发的学习路径是"基础概念→应用工具部署→框架实战开发"</li><li>关键工程坑：Gradio回调线程直接调用长任务会阻塞UI——必须新起异步线程处理</li><li>这是所有Agent Web应用的通用坑</li></ul></div>3
+<ul>
+<li><strong>观点回顾</strong>：Agent开发的学习路径是"基础概念→应用工具部署→框架实战开发"。7大框架各有特色：LangChain（生态丰富）、LangGraph（工作流）、AutoGen（多Agent对话）、CrewAI（角色分工）、LlamaIndex（RAG）、AgentScope（ReAct）、Qwen-Agent（多模态）。</li>
+<li><strong>实践建议</strong>：先明确要做什么类型的Agent再选框架（不要"学了框架再找项目"）；开发阶段用Ollama本地模型降成本；UI层从第一天就重视（非技术用户的体验决定系统能否被接受）。</li>
+<li><strong>常见错误</strong>：框架选型跟风（学了最热的但不适合当前项目）、UI层被忽视（命令行交付没人用）、Agent执行阻塞UI（没用异步线程）。</li>
+<li><strong>关键工程坑</strong>：Gradio回调线程直接调用长任务会阻塞UI——必须新起异步线程处理。这是所有Agent Web应用的通用坑。</li>
+</ul>
+<h3 id="补充说明-多框架对比与选型建议">补充说明 多框架对比与选型建议</h3>3
+<ul>
+<li><strong>核心观点1</strong>：7大框架的定位差异很大。LangChain适合快速原型和通用场景，生态最丰富但抽象层多调试难；LangGraph适合需要分支和循环的复杂工作流；AutoGen适合多Agent对话协作（模拟团队讨论）；CrewAI适合角色分工明确的任务流水线；LlamaIndex专注RAG场景的数据索引和检索。</li>
+<li><strong>核心观点2</strong>：选型建议从"任务类型"出发而非"框架热度"出发。单工具调用选LangChain最简单；多步骤工作流选LangGraph；多角色协作选CrewAI；多Agent对话选AutoGen；RAG为主选LlamaIndex。</li>
+<li><strong>核心观点3</strong>：实际项目中常组合使用多个框架——比如用LangChain做基础链路、用LangGraph编排工作流、用LlamaIndex做RAG索引。不要被"一个框架解决所有问题"的想法限制。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">适用场景标签</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>AI Agent入门学习</li></ul></div>2
+<ul>
+<li>AI Agent入门学习</li>
+<li>Agent开发框架选型</li>
+<li>开源Agent工具部署</li>
+<li>RAG与多模态应用开发</li>
+<li>Function-calling实战</li>
+</ul>
+<h2 id="一句话推荐">一句话推荐</h2>2
+<p>Agent开发从入门到实战的进阶指南。</p></div></details></div></body></html>

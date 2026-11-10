@@ -1,0 +1,468 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>llm-wiki-karpathy</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="index.html">🏠 总入口</a><a href="graph.html">🕸 关联图谱</a><a href="ontology/index.html">📖 术语表</a><span class="cur">/ llm-wiki-karpathy</span></div><div class="wrap"><h1 id="移植自技能-researchllm-wiki-karpathy">移植自技能 research/llm-wiki-karpathy</h1>
+<h1 id="karpathys-llm-wiki">Karpathy's LLM Wiki</h1>
+<p>Build and maintain a persistent, compounding knowledge base as interlinked markdown files.<br />
+Based on <a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f">Andrej Karpathy's LLM Wiki pattern</a>.</p>
+<p>Unlike traditional RAG (which rediscovers knowledge from scratch per query), the wiki<br />
+compiles knowledge once and keeps it current. Cross-references are already there.<br />
+Contradictions have already been flagged. Synthesis reflects everything ingested.</p>
+<p><strong>Division of labor:</strong> The human curates sources and directs analysis. The agent<br />
+summarizes, cross-references, files, and maintains consistency.</p>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">When This Skill Activates</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Asks to create, build, or start a wiki or knowledge base</li><li>Asks to ingest, add, or process a source into their wiki</li><li>Asks a question and an existing wiki is present at the configured path</li></ul></div>2
+<p>Use this skill when the user:<br />
+- Asks to create, build, or start a wiki or knowledge base<br />
+- Asks to ingest, add, or process a source into their wiki<br />
+- Asks a question and an existing wiki is present at the configured path<br />
+- Asks to lint, audit, or health-check their wiki<br />
+- References their wiki, knowledge base, or "notes" in a research context</p>
+<h2 id="wiki-location">Wiki Location</h2>2
+<p><strong>Location:</strong> Set via <code>WIKI_PATH</code> environment variable (e.g. in <code>${HERMES_HOME:-~/.hermes}/.env</code>).</p>
+<p>If unset, defaults to <code>~/wiki</code>.</p>
+<pre><code class="language-bash">WIKI=&quot;${WIKI_PATH:-$HOME/wiki}&quot;
+</code></pre>
+<p>The wiki is just a directory of markdown files — open it in Obsidian, VS Code, or<br />
+any editor. No database, no special tooling required.</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">Architecture: Three Layers</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>├── SCHEMA.md Conventions, structure rules, domain config</li><li>├── index.md Sectioned content catalog with one-line summaries</li><li>├── log.md Chronological action log (append-only, rotated yearly)</li></ul></div>2
+<pre><code>wiki/
+├── SCHEMA.md           # Conventions, structure rules, domain config
+├── index.md            # Sectioned content catalog with one-line summaries
+├── log.md              # Chronological action log (append-only, rotated yearly)
+├── raw/                # Layer 1: Immutable source material
+│   ├── articles/       # Web articles, clippings
+│   ├── papers/         # PDFs, arxiv papers
+│   ├── transcripts/    # Meeting notes, interviews
+│   └── assets/         # Images, diagrams referenced by sources
+├── entities/           # Layer 2: Entity pages (people, orgs, products, models)
+├── concepts/           # Layer 2: Concept/topic pages
+├── comparisons/        # Layer 2: Side-by-side analyses
+└── queries/            # Layer 2: Filed query results worth keeping
+</code></pre>
+<p><strong>Layer 1 — Raw Sources:</strong> Immutable. The agent reads but never modifies these.<br />
+<strong>Layer 2 — The Wiki:</strong> Agent-owned markdown files. Created, updated, and<br />
+cross-referenced by the agent.<br />
+<strong>Layer 3 — The Schema:</strong> <code>SCHEMA.md</code> defines structure, conventions, and tag taxonomy.</p>
+<h2 id="resuming-an-existing-wiki-critical-do-this-every-session">Resuming an Existing Wiki (CRITICAL — do this every session)</h2>2
+<p>When the user has an existing wiki, <strong>always orient yourself before doing anything</strong>:</p>
+<p>① <strong>Read <code>SCHEMA.md</code></strong> — understand the domain, conventions, and tag taxonomy.<br />
+② <strong>Read <code>index.md</code></strong> — learn what pages exist and their summaries.<br />
+③ <strong>Scan recent <code>log.md</code></strong> — read the last 20-30 entries to understand recent activity.</p>
+<pre><code class="language-bash">WIKI=&quot;${WIKI_PATH:-$HOME/wiki}&quot;
+# Orientation reads at session start
+read_file &quot;$WIKI/SCHEMA.md&quot;
+read_file &quot;$WIKI/index.md&quot;
+read_file &quot;$WIKI/log.md&quot; offset=&lt;last 30 lines&gt;
+</code></pre>
+<p>Only after orientation should you ingest, query, or lint. This prevents:<br />
+- Creating duplicate pages for entities that already exist<br />
+- Missing cross-references to existing content<br />
+- Contradicting the schema's conventions<br />
+- Repeating work already logged</p>
+<p>For large wikis (100+ pages), also run a quick <code>search_files</code> for the topic<br />
+at hand before creating anything new.</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">Initializing a New Wiki</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<p>When the user asks to create or start a wiki:</p>
+<ol>
+<li>Determine the wiki path (from <code>$WIKI_PATH</code> env var, or ask the user; default <code>~/wiki</code>)</li>
+<li>Create the directory structure above</li>
+<li>Ask the user what domain the wiki covers — be specific</li>
+<li>Write <code>SCHEMA.md</code> customized to the domain (see template below)</li>
+<li>Write initial <code>index.md</code> with sectioned header</li>
+<li>Write initial <code>log.md</code> with creation entry</li>
+<li>Confirm the wiki is ready and suggest first sources to ingest</li>
+</ol>
+<h3 id="schemamd-template">SCHEMA.md Template</h3>3
+<p>Adapt to the user's domain. The schema constrains agent behavior and ensures consistency:</p>
+<pre><code class="language-markdown"># Wiki Schema
+
+## Domain
+[What this wiki covers — e.g., &quot;AI/ML research&quot;, &quot;personal health&quot;, &quot;startup intelligence&quot;]
+
+## Conventions
+- File names: lowercase, hyphens, no spaces (e.g., `transformer-architecture.md`)
+- Every wiki page starts with YAML frontmatter (see below)
+- Use `[[wikilinks]]` to link between pages (minimum 2 outbound links per page)
+- When updating a page, always bump the `updated` date
+- Every new page must be added to `index.md` under the correct section
+- Every action must be appended to `log.md`
+- **Provenance markers:** On pages that synthesize 3+ sources, append `^[raw/articles/source-file.md]`
+  at the end of paragraphs whose claims come from a specific source. This lets a reader trace each
+  claim back without re-reading the whole raw file. Optional on single-source pages where the
+  `sources:` frontmatter is enough.
+
+## Frontmatter
+  ```yaml
+  ---
+  title: Page Title
+  created: YYYY-MM-DD
+  updated: YYYY-MM-DD
+  type: entity | concept | comparison | query | summary
+  tags: [from taxonomy below]
+  sources: [raw/articles/source-name.md]
+  # Optional quality signals:
+  confidence: high | medium | low        # how well-supported the claims are
+  contested: true                        # set when the page has unresolved contradictions
+  contradictions: [other-page-slug]      # pages this one conflicts with
+  ---
+  ```
+
+`confidence` and `contested` are optional but recommended for opinion-heavy or fast-moving
+topics. Lint surfaces `contested: true` and `confidence: low` pages for review so weak claims
+don't silently harden into accepted wiki fact.
+
+### raw/ Frontmatter
+
+Raw sources ALSO get a small frontmatter block so re-ingests can detect drift:
+
+```yaml
+---
+source_url: https://example.com/article   # original URL, if applicable
+ingested: YYYY-MM-DD
+sha256: &lt;hex digest of the raw content below the frontmatter&gt;
+---
+</code></pre>
+<p>The <code>sha256:</code> lets a future re-ingest of the same URL skip processing when content is unchanged,<br />
+and flag drift when it has changed. Compute over the body only (everything after the closing<br />
+<code>---</code>), not the frontmatter itself.</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">Tag Taxonomy</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>[Define 10-20 top-level tags for the domain. Add new tags here BEFORE using them.]</li><li>Models: model, architecture, benchmark, training</li><li>People/Orgs: person, company, lab, open-source</li></ul></div>2
+<p>[Define 10-20 top-level tags for the domain. Add new tags here BEFORE using them.]</p>
+<p>Example for AI/ML:<br />
+- Models: model, architecture, benchmark, training<br />
+- People/Orgs: person, company, lab, open-source<br />
+- Techniques: optimization, fine-tuning, inference, alignment, data<br />
+- Meta: comparison, timeline, controversy, prediction</p>
+<p>Rule: every tag on a page must appear in this taxonomy. If a new tag is needed,<br />
+add it here first, then use it. This prevents tag sprawl.</p>
+<h2 id="page-thresholds">Page Thresholds</h2>2
+<ul>
+<li><strong>Create a page</strong> when an entity/concept appears in 2+ sources OR is central to one source</li>
+<li><strong>Add to existing page</strong> when a source mentions something already covered</li>
+<li><strong>DON'T create a page</strong> for passing mentions, minor details, or things outside the domain</li>
+<li><strong>Split a page</strong> when it exceeds ~200 lines — break into sub-topics with cross-links</li>
+<li><strong>Archive a page</strong> when its content is fully superseded — move to <code>_archive/</code>, remove from index</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">Entity Pages</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Overview / what it is</li><li>Relationships to other entities ([[wikilinks]])</li></ul></div>2
+<p>One page per notable entity. Include:<br />
+- Overview / what it is<br />
+- Key facts and dates<br />
+- Relationships to other entities ([[wikilinks]])<br />
+- Source references</p>
+<h2 id="concept-pages">Concept Pages</h2>2
+<p>One page per concept or topic. Include:<br />
+- Definition / explanation<br />
+- Current state of knowledge<br />
+- Open questions or debates<br />
+- Related concepts ([[wikilinks]])</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">Comparison Pages</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>What is being compared and why</li><li>Dimensions of comparison (table format preferred)</li><li>Verdict or synthesis</li></ul></div>2
+<p>Side-by-side analyses. Include:<br />
+- What is being compared and why<br />
+- Dimensions of comparison (table format preferred)<br />
+- Verdict or synthesis<br />
+- Sources</p>
+<h2 id="update-policy">Update Policy</h2>2
+<p>When new information conflicts with existing content:<br />
+1. Check the dates — newer sources generally supersede older ones<br />
+2. If genuinely contradictory, note both positions with dates and sources<br />
+3. Mark the contradiction in frontmatter: <code>contradictions: [page-name]</code><br />
+4. Flag for user review in the lint report</p>
+<pre><code>
+### index.md Template
+
+The index is sectioned by type. Each entry is one line: wikilink + summary.
+
+```markdown
+# Wiki Index
+
+&gt; Content catalog. Every wiki page listed under its type with a one-line summary.
+&gt; Read this first to find relevant pages for any query.
+&gt; Last updated: YYYY-MM-DD | Total pages: N
+
+## Entities
+&lt;!-- Alphabetical within section --&gt;
+
+## Concepts
+
+## Comparisons
+
+## Queries
+</code></pre>
+<p><strong>Scaling rule:</strong> When any section exceeds 50 entries, split it into sub-sections<br />
+by first letter or sub-domain. When the index exceeds 200 entries total, create<br />
+a <code>_meta/topic-map.md</code> that groups pages by theme for faster navigation.</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">log.md Template</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-markdown"># Wiki Log
+
+&gt; Chronological record of all wiki actions. Append-only.
+&gt; Format: `## [YYYY-MM-DD] action | subject`
+&gt; Actions: ingest, update, query, lint, create, archive, delete
+&gt; When this file exceeds 500 entries, rotate: rename to log-YYYY.md, start fresh.
+
+## [YYYY-MM-DD] create | Wiki initialized
+- Domain: [domain]
+- Structure created with SCHEMA.md, index.md, log.md
+</code></pre>
+<h2 id="core-operations">Core Operations</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1. Ingest</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>URL → use 「web_extract」 to get markdown, save to 「raw/articles/」</li><li>PDF → use 「web_extract」 (handles PDFs), save to 「raw/papers/」</li><li>Pasted text → save to appropriate 「raw/」 subdirectory</li></ul></div>3
+<p>When the user provides a source (URL, file, paste), integrate it into the wiki:</p>
+<p>① <strong>Capture the raw source:</strong><br />
+   - URL → use <code>web_extract</code> to get markdown, save to <code>raw/articles/</code><br />
+   - PDF → use <code>web_extract</code> (handles PDFs), save to <code>raw/papers/</code><br />
+   - Pasted text → save to appropriate <code>raw/</code> subdirectory<br />
+   - Name the file descriptively: <code>raw/articles/karpathy-llm-wiki-2026.md</code><br />
+   - <strong>Add raw frontmatter</strong> (<code>source_url</code>, <code>ingested</code>, <code>sha256</code> of the body).<br />
+     On re-ingest of the same URL: recompute the sha256, compare to the stored value —<br />
+     skip if identical, flag drift and update if different. This is cheap enough to<br />
+     do on every re-ingest and catches silent source changes.</p>
+<p>② <strong>Discuss takeaways</strong> with the user — what's interesting, what matters for<br />
+   the domain. (Skip this in automated/cron contexts — proceed directly.)</p>
+<p>③ <strong>Check what already exists</strong> — search index.md and use <code>search_files</code> to find<br />
+   existing pages for mentioned entities/concepts. This is the difference between<br />
+   a growing wiki and a pile of duplicates.</p>
+<p>④ <strong>Write or update wiki pages:</strong><br />
+   - <strong>New entities/concepts:</strong> Create pages only if they meet the Page Thresholds<br />
+     in SCHEMA.md (2+ source mentions, or central to one source)<br />
+   - <strong>Existing pages:</strong> Add new information, update facts, bump <code>updated</code> date.<br />
+     When new info contradicts existing content, follow the Update Policy.<br />
+   - <strong>Cross-reference:</strong> Every new or updated page must link to at least 2 other<br />
+     pages via <code>[[wikilinks]]</code>. Check that existing pages link back.<br />
+   - <strong>Tags:</strong> Only use tags from the taxonomy in SCHEMA.md<br />
+   - <strong>Provenance:</strong> On pages synthesizing 3+ sources, append <code>^[raw/articles/source.md]</code><br />
+     markers to paragraphs whose claims trace to a specific source.<br />
+   - <strong>Confidence:</strong> For opinion-heavy, fast-moving, or single-source claims, set<br />
+<code>confidence: medium</code> or <code>low</code> in frontmatter. Don't mark <code>high</code> unless the<br />
+     claim is well-supported across multiple sources.</p>
+<p>⑤ <strong>Update navigation:</strong><br />
+   - Add new pages to <code>index.md</code> under the correct section, alphabetically<br />
+   - Update the "Total pages" count and "Last updated" date in index header<br />
+   - Append to <code>log.md</code>: <code>## [YYYY-MM-DD] ingest | Source Title</code><br />
+   - List every file created or updated in the log entry</p>
+<p>⑥ <strong>Report what changed</strong> — list every file created or updated to the user.</p>
+<p>A single source can trigger updates across 5-15 wiki pages. This is normal<br />
+and desired — it's the compounding effect.</p>
+<h3 id="2-query">2. Query</h3>3
+<p>When the user asks a question about the wiki's domain:</p>
+<p>① <strong>Read <code>index.md</code></strong> to identify relevant pages.<br />
+② <strong>For wikis with 100+ pages</strong>, also <code>search_files</code> across all <code>.md</code> files<br />
+   for key terms — the index alone may miss relevant content.<br />
+③ <strong>Read the relevant pages</strong> using <code>read_file</code>.<br />
+④ <strong>Synthesize an answer</strong> from the compiled knowledge. Cite the wiki pages<br />
+   you drew from: "Based on [[page-a]] and [[page-b]]..."<br />
+⑤ <strong>File valuable answers back</strong> — if the answer is a substantial comparison,<br />
+   deep dive, or novel synthesis, create a page in <code>queries/</code> or <code>comparisons/</code>.<br />
+   Don't file trivial lookups — only answers that would be painful to re-derive.<br />
+⑥ <strong>Update log.md</strong> with the query and whether it was filed.</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. Lint</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>① Orphan pages: Find pages with no inbound 「[[wikilinks]]」 from other pages.</li></ul></div>3
+<p>When the user asks to lint, health-check, or audit the wiki:</p>
+<p>① <strong>Orphan pages:</strong> Find pages with no inbound <code>[[wikilinks]]</code> from other pages.</p>
+<pre><code class="language-python"># Use execute_code for this — programmatic scan across all wiki pages
+import os, re
+from collections import defaultdict
+wiki = &quot;&lt;WIKI_PATH&gt;&quot;
+# Scan all .md files in entities/, concepts/, comparisons/, queries/
+# Extract all [[wikilinks]] — build inbound link map
+# Pages with zero inbound links are orphans
+</code></pre>
+<p>② <strong>Broken wikilinks:</strong> Find <code>[[links]]</code> that point to pages that don't exist.</p>
+<p>③ <strong>Index completeness:</strong> Every wiki page should appear in <code>index.md</code>. Compare<br />
+   the filesystem against index entries.</p>
+<p>④ <strong>Frontmatter validation:</strong> Every wiki page must have all required fields<br />
+   (title, created, updated, type, tags, sources). Tags must be in the taxonomy.</p>
+<p>⑤ <strong>Stale content:</strong> Pages whose <code>updated</code> date is &gt;90 days older than the most<br />
+   recent source that mentions the same entities.</p>
+<p>⑥ <strong>Contradictions:</strong> Pages on the same topic with conflicting claims. Look for<br />
+   pages that share tags/entities but state different facts. Surface all pages<br />
+   with <code>contested: true</code> or <code>contradictions:</code> frontmatter for user review.</p>
+<p>⑦ <strong>Quality signals:</strong> List pages with <code>confidence: low</code> and any page that cites<br />
+   only a single source but has no confidence field set — these are candidates<br />
+   for either finding corroboration or demoting to <code>confidence: medium</code>.</p>
+<p>⑧ <strong>Source drift:</strong> For each file in <code>raw/</code> with a <code>sha256:</code> frontmatter, recompute<br />
+   the hash and flag mismatches. Mismatches indicate the raw file was edited<br />
+   (shouldn't happen — raw/ is immutable) or ingested from a URL that has since<br />
+   changed. Not a hard error, but worth reporting.</p>
+<p>⑨ <strong>Page size:</strong> Flag pages over 200 lines — candidates for splitting.</p>
+<p>⑩ <strong>Tag audit:</strong> List all tags in use, flag any not in the SCHEMA.md taxonomy.</p>
+<p>⑪ <strong>Log rotation:</strong> If log.md exceeds 500 entries, rotate it.</p>
+<p>⑫ <strong>Report findings</strong> with specific file paths and suggested actions, grouped by<br />
+   severity (broken links &gt; orphans &gt; source drift &gt; contested pages &gt; stale content &gt; style issues).</p>
+<p>⑬ <strong>Append to log.md:</strong> <code>## [YYYY-MM-DD] lint | N issues found</code></p>
+<h2 id="working-with-the-wiki">Working with the Wiki</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">Searching</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-bash"># Find pages by content
+search_files &quot;transformer&quot; path=&quot;$WIKI&quot; file_glob=&quot;*.md&quot;
+
+# Find pages by filename
+search_files &quot;*.md&quot; target=&quot;files&quot; path=&quot;$WIKI&quot;
+
+# Find pages by tag
+search_files &quot;tags:.*alignment&quot; path=&quot;$WIKI&quot; file_glob=&quot;*.md&quot;
+
+# Recent activity
+read_file &quot;$WIKI/log.md&quot; offset=&lt;last 20 lines&gt;
+</code></pre>
+<h3 id="bulk-ingest">Bulk Ingest</h3>3
+<p>When ingesting multiple sources at once, batch the updates:<br />
+1. Read all sources first<br />
+2. Identify all entities and concepts across all sources<br />
+3. Check existing pages for all of them (one search pass, not N)<br />
+4. Create/update pages in one pass (avoids redundant updates)<br />
+5. Update index.md once at the end<br />
+6. Write a single log entry covering the batch</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">Archiving</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<p>When content is fully superseded or the domain scope changes:<br />
+1. Create <code>_archive/</code> directory if it doesn't exist<br />
+2. Move the page to <code>_archive/</code> with its original path (e.g., <code>_archive/entities/old-page.md</code>)<br />
+3. Remove from <code>index.md</code><br />
+4. Update any pages that linked to it — replace wikilink with plain text + "(archived)"<br />
+5. Log the archive action</p>
+<h3 id="obsidian-integration">Obsidian Integration</h3>3
+<p>The wiki directory works as an Obsidian vault out of the box:<br />
+- <code>[[wikilinks]]</code> render as clickable links<br />
+- Graph View visualizes the knowledge network<br />
+- YAML frontmatter powers Dataview queries<br />
+- The <code>raw/assets/</code> folder holds images referenced via <code>![[image.png]]</code></p>
+<p>For best results:<br />
+- Set Obsidian's attachment folder to <code>raw/assets/</code><br />
+- Enable "Wikilinks" in Obsidian settings (usually on by default)<br />
+- Install Dataview plugin for queries like <code>TABLE tags FROM "entities" WHERE contains(tags, "company")</code></p>
+<p>If using the Obsidian skill alongside this one, set <code>OBSIDIAN_VAULT_PATH</code> to the<br />
+same directory as the wiki path.</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">Obsidian Headless (servers and headless machines)</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>On machines without a display, use 「obsidian-headless」 instead of the desktop app.</li><li>It syncs vaults via Obsidian Sync without a GUI — perfect for agents running on</li><li>servers that write to the wiki while Obsidian desktop reads it on another device.</li></ul></div>3
+<p>On machines without a display, use <code>obsidian-headless</code> instead of the desktop app.<br />
+It syncs vaults via Obsidian Sync without a GUI — perfect for agents running on<br />
+servers that write to the wiki while Obsidian desktop reads it on another device.</p>
+<p><strong>Setup:</strong></p>
+<pre><code class="language-bash"># Requires Node.js 22+
+npm install -g obsidian-headless
+
+# Login (requires Obsidian account with Sync subscription)
+ob login --email &lt;email&gt; --password '&lt;password&gt;'
+
+# Create a remote vault for the wiki
+ob sync-create-remote --name &quot;LLM Wiki&quot;
+
+# Connect the wiki directory to the vault
+cd ~/wiki
+ob sync-setup --vault &quot;&lt;vault-id&gt;&quot;
+
+# Initial sync
+ob sync
+
+# Continuous sync (foreground — use systemd for background)
+ob sync --continuous
+</code></pre>
+<p><strong>Continuous background sync via systemd:</strong></p>
+<pre><code class="language-ini"># ~/.config/systemd/user/obsidian-wiki-sync.service
+[Unit]
+Description=Obsidian LLM Wiki Sync
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/path/to/ob sync --continuous
+WorkingDirectory=%h/wiki
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
+</code></pre>
+<pre><code class="language-bash">systemctl --user daemon-reload
+systemctl --user enable --now obsidian-wiki-sync
+# Enable linger so sync survives logout:
+sudo loginctl enable-linger $USER
+</code></pre>
+<p>This lets the agent write to <code>~/wiki</code> on a server while you browse the same<br />
+vault in Obsidian on your laptop/phone — changes appear within seconds.</p>
+<h2 id="pitfalls">Pitfalls</h2>2
+<ul>
+<li><strong>Never modify files in <code>raw/</code></strong> — sources are immutable. Corrections go in wiki pages.</li>
+<li><strong>Always orient first</strong> — read SCHEMA + index + recent log before any operation in a new session.<br />
+  Skipping this causes duplicates and missed cross-references.</li>
+<li><strong>Always update index.md and log.md</strong> — skipping this makes the wiki degrade. These are the<br />
+  navigational backbone.</li>
+<li><strong>Don't create pages for passing mentions</strong> — follow the Page Thresholds in SCHEMA.md. A name<br />
+  appearing once in a footnote doesn't warrant an entity page.</li>
+<li><strong>Don't create pages without cross-references</strong> — isolated pages are invisible. Every page must<br />
+  link to at least 2 other pages.</li>
+<li><strong>Frontmatter is required</strong> — it enables search, filtering, and staleness detection.</li>
+<li><strong>Tags must come from the taxonomy</strong> — freeform tags decay into noise. Add new tags to SCHEMA.md<br />
+  first, then use them.</li>
+<li><strong>Keep pages scannable</strong> — a wiki page should be readable in 30 seconds. Split pages over<br />
+  200 lines. Move detailed analysis to dedicated deep-dive pages.</li>
+<li><strong>Ask before mass-updating</strong> — if an ingest would touch 10+ existing pages, confirm<br />
+  the scope with the user first.</li>
+<li><strong>Rotate the log</strong> — when log.md exceeds 500 entries, rename it <code>log-YYYY.md</code> and start fresh.<br />
+  The agent should check log size during lint.</li>
+<li><strong>Handle contradictions explicitly</strong> — don't silently overwrite. Note both claims with dates,<br />
+  mark in frontmatter, flag for user review.</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">Related Tools</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>llm-wiki-compiler is a Node.js CLI that</li><li>use llmwiki when you want batch compile of a source directory.</li></ul></div>2
+<p><a href="https://github.com/atomicmemory/llm-wiki-compiler">llm-wiki-compiler</a> is a Node.js CLI that<br />
+compiles sources into a concept wiki with the same Karpathy inspiration. It's Obsidian-compatible,<br />
+so users who want a scheduled/CLI-driven compile pipeline can point it at the same vault this<br />
+skill maintains. Trade-offs: it owns page generation (replaces the agent's judgment on page<br />
+creation) and is tuned for small corpora. Use this skill when you want agent-in-the-loop curation;<br />
+use llmwiki when you want batch compile of a source directory.</p>
+<hr />
+<h2 id="质量门禁">质量门禁</h2>2
+<ul>
+<li>[ ] 所有步骤已执行完毕，无跳过项</li>
+<li>[ ] 关键输出已产出（文件/命令结果/报告）</li>
+<li>[ ] 无未处理的报错或警告</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">失败回退</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>步骤失败 → 先读报错信息，查 error-ledger 是否有已知解法</li><li>两次重试仍失败 → 停止，整理已知信息报给用户，不硬闯</li><li>输出不符合预期 → 检查输入是否正确，再检查执行环境</li></ul></div>2
+<ul>
+<li>步骤失败 → 先读报错信息，查 error-ledger 是否有已知解法</li>
+<li>两次重试仍失败 → 停止，整理已知信息报给用户，不硬闯</li>
+<li>输出不符合预期 → 检查输入是否正确，再检查执行环境</li>
+</ul>
+<h2 id="自优化">自优化</h2>2
+<p>使用后记录到 <code>~/.hermes/skills/_usage/llm-wiki.md</code>：<br />
+- 触发场景：用户实际说了什么触发了它<br />
+- 执行偏差：哪一步走不通/走偏了<br />
+- 改进建议：下次该怎么改</p>
+<p>下次触发本技能时，先读 <code>_usage/llm-wiki.md</code>（如果存在），把教训融入执行。<br />
+连续3次无改进的技能 → 标记为「需重构」并提醒用户。</p></div></details></div></body></html>

@@ -1,0 +1,272 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>全栈交付参考架构-Nextjs-Supabase-Vercel</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 全栈交付参考架构-Nextjs-Supabase-Vercel</span></div><div class="wrap"><h1 id="全栈交付参考架构nextjs-supabasepgvector-vercel">全栈交付参考架构（Next.js + Supabase/pgvector + Vercel）</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/fullstack/2026%E5%85%A8%E6%A0%88%E4%BA%A4%E4%BB%98%E6%A1%88%E4%BE%8B-Nextjs-Supabase-Vercel.md">2026全栈交付案例-Nextjs-Supabase-Vercel</a></p>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="L9-%E5%85%A8%E6%A0%88%E5%B7%A5%E7%A8%8B-2026.html">全栈工程主线</a> · <a href="%E5%90%91%E9%87%8F%E5%BA%93%E9%80%89%E5%9E%8B%E4%B8%8E%E8%B0%83%E4%BC%98.html">向量库选型与调优</a> · <a href="%E5%89%8D%E5%90%8E%E7%AB%AFLLM%E9%9B%86%E6%88%90%E4%B8%8E%E6%B5%81%E5%BC%8F%E6%9C%8D%E5%8A%A1.html">前后端 LLM 集成与流式服务</a> · <a href="LLM%E7%94%9F%E4%BA%A7%E7%9B%91%E6%8E%A7%E4%B8%8EEval%E8%A7%82%E6%B5%8B.html">LLM 生产监控与 Eval 观测</a></p>
+</blockquote>
+<h2 id="why为什么两周交付需要一套收敛的默认栈">WHY：为什么两周交付需要一套收敛的默认栈</h2>2
+<p>2026 年"两周给客户交付一个带 RAG 与引用来源的 AI 应用"已有一套收敛的默认栈：<strong>Next.js App Router + Vercel AI SDK <code>useChat</code> + Vercel Functions（Fluid compute）+ 同区域向量库（Supabase Postgres/pgvector）+ 按用户权限过滤检索</strong>（Vercel 官方 KB 的生产 RAG 三层）。三个选型判断最值得记住：其一，<strong>语言分工已定型</strong>——Python 管训练/研究/数据管线，TypeScript 管生产应用与 UI，Vercel AI SDK 是这套栈的事实默认（GitHub 约 <strong>23.6k stars、614+ 贡献者</strong>）；其二，<strong>向量层用 pgvector 而不是专用向量库</strong>——已在 Postgres 上就别引入新组件，Supabase 把 Postgres + pgvector + Auth + Storage 打包，交付现场少装三个组件；其三，<strong>结构化输出一律 Zod <code>inputSchema</code>，不用 JSON mode</strong>。真正的坑在版本与检索细节：AI SDK <strong>v7 于 2026-06-25 发布、要求 Node 22+ 与 ESM</strong>，v4→v5→v7 每一跳都有破坏性变更（v5 改了 <code>inputSchema</code>/<code>stopWhen</code> 词汇，useChat 不再管理输入状态），所以客户项目必须<strong>先钉版本再抄文档</strong>；向量侧 100k+ 行就必须建 HNSW 索引，且带过滤的向量查询在 pgvector 0.8.0 起有 iterative scan 的延迟代价，<strong>开之前先测</strong>。</p>
+<h2 id="what-whyt架构分层选型理由与版本边界">WHAT / WHYT：架构分层、选型理由与版本边界</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">一、分层选型表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>选型</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UI</td>
+<td>Next.js App Router + <code>useChat</code></td>
+<td>流式消息渲染、<code>source-url</code> parts 渲染成引用链接</td>
+</tr>
+<tr>
+<td>API</td>
+<td>route handler + <code>streamText</code> + <code>toUIMessageStreamResponse()</code></td>
+<td>长答案占住连接流式返回；Fluid compute 上 <code>maxDuration</code> 默认 300s、Pro 800s（1800s beta）</td>
+</tr>
+<tr>
+<td>向量库</td>
+<td>Supabase Postgres + pgvector</td>
+<td>单组件搞定存储 + 向量 + 权限（RLS）</td>
+</tr>
+<tr>
+<td>ORM</td>
+<td>Drizzle</td>
+<td>类型安全 schema</td>
+</tr>
+<tr>
+<td>模型接入</td>
+<td>Vercel AI SDK provider 抽象（或 AI Gateway）</td>
+<td>换 provider 一行；Gateway 单 key、无 markup、自动 fallback</td>
+</tr>
+<tr>
+<td>检索</td>
+<td>pgvector 语义检索起步，升级 hybrid（FTS + RRF）</td>
+<td>与本库 hybrid+rerank 结论同向</td>
+</tr>
+<tr>
+<td>结构化输出</td>
+<td>Zod + tool <code>inputSchema</code></td>
+<td>别用 JSON mode 做生产</td>
+</tr>
+</tbody>
+</table>
+<h3 id="二版本口径踩坑点2026-09-核对">二、版本口径（踩坑点，2026-09 核对）</h3>3
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>版本口径</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vercel AI SDK</td>
+<td>主流教程写 v4/v5；v5 改词汇：<code>inputSchema</code>（原 parameters）、<code>stopWhen</code>（原 maxSteps）、<code>convertToModelMessages</code>、<code>useChat</code> 不再管理输入状态（自己 <code>useState</code>）、消息由 <strong>parts</strong> 组成；<strong>AI SDK 7 于 2026-06-25 发布</strong>，要求 Node 22+ 与 ESM</td>
+<td>客户项目<strong>先钉版本再抄文档</strong>，v4→v5→v7 每一跳都有破坏性变更</td>
+</tr>
+<tr>
+<td>Next.js</td>
+<td>教程混用 14/15/16</td>
+<td>以模板锁定的版本为准</td>
+</tr>
+<tr>
+<td>pgvector</td>
+<td>0.8.x（0.8.0 引入 iterative index scans）</td>
+<td>见 §三 过滤坑</td>
+</tr>
+</tbody>
+</table>
+</div></details><h2 id="how建库检索流式生成与交付验收">HOW：建库、检索、流式生成与交付验收</h2>2
+<h3 id="三可跑代码骨架官方-cookbook-形态">三、可跑代码骨架（官方 cookbook 形态）</h3>3
+<p><strong>建表与索引</strong>（<code>100k+</code> 行就必须建索引）：</p>
+<pre><code class="language-sql">create extension vector;
+create table embeddings (
+  id bigserial primary key,
+  content text,                 -- 文本 chunk
+  embedding vector(1536)        -- 与所选 embedding 模型维度一致
+);
+create index on embeddings using hnsw (embedding vector_cosine_ops);
+</code></pre>
+<p><strong>切块 + 批量 embedding</strong>（官方 <code>embedMany</code>；示例按句切块，生产要换成 token 级/分层切块）：</p>
+<pre><code class="language-ts">import { embedMany } from 'ai';
+const embeddingModel = 'openai/text-embedding-ada-002';   // 示例；生产换成你的模型
+const generateChunks = (input: string): string[] =&gt;
+  input.trim().split('.').filter(i =&gt; i !== '');
+export const generateEmbeddings = async (value: string) =&gt; {
+  const chunks = generateChunks(value);
+  const { embeddings } = await embedMany({ model: embeddingModel, values: chunks });
+  return embeddings.map((e, i) =&gt; ({ content: chunks[i], embedding: e }));
+};
+</code></pre>
+<p><strong>检索</strong>（Drizzle 写法，<code>1 - cosineDistance</code> 即相似度，阈值 0.5 是示例值）：</p>
+<pre><code class="language-ts">import { cosineDistance, desc, gt, sql } from 'drizzle-orm';
+const similarity = sql&lt;number&gt;`1 - (${cosineDistance(embeddings.embedding, userQueryEmbedded)})`;
+const results = await db.select({ name: embeddings.content, similarity })
+  .from(embeddings)
+  .where(gt(similarity, 0.5))
+  .orderBy(t =&gt; desc(t.similarity))
+  .limit(4);
+</code></pre>
+<p>Supabase 侧等价物（官方 <code>match_documents</code> SQL 函数）：</p>
+<pre><code class="language-sql">select * from documents
+where documents.embedding &lt;=&gt; query_embedding &lt; 1 - match_threshold
+order by documents.embedding &lt;=&gt; query_embedding asc
+limit least(match_count, 200);
+</code></pre>
+<p><strong>流式生成 route handler</strong>：</p>
+<pre><code class="language-ts">// app/api/chat/route.ts
+import { streamText, tool } from 'ai';
+import { z } from 'zod';
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+  const result = streamText({
+    model: /* provider model */,
+    system: '仅根据提供的上下文回答。',
+    messages,
+    tools: {
+      getInformation: tool({
+        description: '从知识库检索相关信息',
+        inputSchema: z.object({ query: z.string() }),   // v5+ 用 inputSchema
+        execute: async ({ query }) =&gt; findRelevantContent(query),
+      }),
+    },
+    stopWhen: ({ stepCountIs }) =&gt; stepCountIs(5),       // v5+：控制 agent 循环上限
+  });
+  return result.toUIMessageStreamResponse();
+}
+</code></pre>
+<p><strong>Hybrid 检索升级</strong>（Supabase 官方 <code>hybrid_search</code>：FTS(GIN) + 语义(HNSW) 两路 → RRF 融合，<code>rrf_k</code> 默认 50）：</p>
+<pre><code class="language-sql">create or replace function hybrid_search(
+  query_text text, query_embedding vector, match_count int,
+  full_text_weight float = 1, semantic_weight float = 1, rrf_k int = 50
+) returns setof documents language sql as $$
+  with full_text as ( ... ts_rank_cd ... ),          -- 关键词 CTE（GIN 索引 on fts）
+       semantic as ( ... embedding &lt;=&gt; ... limit ... ) -- 语义 CTE（HNSW 索引）
+  select ... 1.0 / (rrf_k + rank) 融合 ...
+$$;
+create index on documents using gin(fts);
+create index on documents using hnsw (embedding vector_ip_ops);
+</code></pre>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">四、生产检查清单（交付验收用）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>建 HNSW 索引（生产默认；IVFFlat 只在 build 内存受限/静态数据时选）</li><li>「maxDuration」 按最长答案配（Fluid 默认 300s / Pro 800s），长天花板必须配上游 abort，否则卡住的 provider 流会占住请求</li><li>混合检索：FTS(GIN) + 语义(HNSW) → RRF，权重可调</li></ul></div>3
+<p><strong>检索质量</strong><br />
+- 建 HNSW 索引（生产默认；IVFFlat 只在 build 内存受限/静态数据时选）。<br />
+- <strong>过滤 + HNSW 的坑</strong>：选择性 filter 会让 HNSW 返回不足 <code>match_count</code> 条——pgvector 0.8.0 起开 iterative index scan（<code>hnsw.iterative_scan</code> 取 <code>strict_order</code> 或 <code>relaxed_order</code>，<code>hnsw.max_scan_tuples</code> 默认 20,000）；<code>strict_order</code> 保序但更慢（AWS 实测：过滤查询从 20ms → <strong>197ms</strong>，<strong>开之前先测延迟</strong>）。<br />
+- 混合检索：FTS(GIN) + 语义(HNSW) → RRF，权重可调。<br />
+- <strong>检索权限隔离</strong>：按请求者权限 scoping，别让用户拿到他打不开的文档引用。</p>
+<p><strong>流式与超时</strong><br />
+- 每一跳（反代/CDN）关缓冲。<br />
+- <code>maxDuration</code> 按最长答案配（Fluid 默认 300s / Pro 800s），<strong>长天花板必须配上游 abort</strong>，否则卡住的 provider 流会占住请求。<br />
+- 首字节前错误走 HTTP 状态码，首字节后错误走 stream error event，保留部分文本。</p>
+<p><strong>结构化与工具</strong><br />
+- Zod <code>inputSchema</code> 做结构化输出与工具入参校验，不用 JSON mode。<br />
+- <code>stopWhen</code> 给 agent 循环设硬上限防 runaway（v5+；v6 默认 <code>stepCountIs(20)</code>）。</p>
+<p><strong>模型接入与账单</strong><br />
+- AI Gateway：单 key、按列表价无 markup、BYOK 同价、<strong>自动 fallback（故障转移到同模型的另一 provider）</strong>。<br />
+- 成本归因按 <code>gen_ai.*</code> span 属性记。</p>
+<p><strong>评测门禁</strong><br />
+- golden set 50+ 条，检索侧 Recall@k 与生成侧 faithfulness <strong>分别 gate</strong>。</p>
+<h3 id="五与本库chroma-bge-m3现状对照">五、与本库（Chroma + bge-m3）现状对照</h3>3
+<table>
+<thead>
+<tr>
+<th>栈环节</th>
+<th>本库对应</th>
+<th>异同</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>向量存储</td>
+<td>Chroma（<code>rag/index/chroma.sqlite3</code>，bge-m3 1024 维 dense+sparse）</td>
+<td>交付栈用 Postgres/pgvector：多租户权限（RLS）、事务、SQL 生态是 Chroma 没有的；本库单机单用户场景 Chroma 够用</td>
+</tr>
+<tr>
+<td>检索</td>
+<td>Python 侧 dense(20)+sparse(20) → RRF → bge-reranker(阈值 0.45)</td>
+<td>Supabase <code>hybrid_search</code> 是 SQL 侧 FTS+语义 → RRF(k=50)，<strong>同构可对照</strong>；本库多了 rerank 一步（交付栈可用 pgvector + 外部 rerank 补齐）</td>
+</tr>
+<tr>
+<td>切块</td>
+<td>384/80 分层（parent/child）+ contextual 前缀</td>
+<td>官方 cookbook 示例是按句切块（示例级）；<strong>交付时要上本库的分层方案</strong></td>
+</tr>
+<tr>
+<td>前端/流式</td>
+<td>无（本库是离线管线 + <code>query.py</code> CLI）</td>
+<td>交付栈补齐 UI 层；<code>useChat</code> parts + <code>source-url</code> 引用是交付演示的加分项</td>
+</tr>
+<tr>
+<td>成本</td>
+<td>模型路由/步级档位（省 Token 三件套）</td>
+<td>交付栈侧对应 AI Gateway 统一账单 + OTel span 记账</td>
+</tr>
+<tr>
+<td>评测</td>
+<td>golden-q 26 条只测检索</td>
+<td>交付验收需要双侧门禁——<strong>当前本库还没有生成侧评测</strong></td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">相关术语</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Hybrid Retrieval（混合检索）：ontology/术语表-RAG架构.md</li><li>RRF (Reciprocal Rank Fusion)：ontology/术语表-RAG架构.md</li><li>Hierarchical Chunking（分层分块）：ontology/术语表-RAG架构.md</li></ul></div>2
+<ul>
+<li>Hybrid Retrieval（混合检索）：ontology/术语表-RAG架构.md</li>
+<li>RRF (Reciprocal Rank Fusion)：ontology/术语表-RAG架构.md</li>
+<li>Hierarchical Chunking（分层分块）：ontology/术语表-RAG架构.md</li>
+<li>说明：Vercel AI Gateway / Fluid compute / RLS 在本 ontology 术语表<strong>暂无</strong>专条。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] <strong>课件</strong>：原文未引用课件，本次仅重排结构，不新增来源。</li>
+<li>[书1] <strong>书籍</strong>：原文未引用书籍，本次仅重排结构，不新增来源。</li>
+<li>[业1] <strong>业内官方案例</strong>：<code>raw/fullstack/2026全栈交付案例-Nextjs-Supabase-Vercel.md</code>，落在 Next.js/Vercel AI SDK/Supabase pgvector 的默认栈、官方 cookbook 代码骨架、版本边界与生产检查清单。</li>
+</ul></div></details></div></body></html>

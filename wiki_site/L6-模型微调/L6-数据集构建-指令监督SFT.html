@@ -1,0 +1,292 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L6-数据集构建-指令监督SFT</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L6-数据集构建-指令监督SFT</span></div><div class="wrap"><h1 id="sft-数据构建与训练从原始样本到可验收模型">SFT 数据构建与训练：从原始样本到可验收模型</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+<p>链路位置：<a href="L6-%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83-2026.html">训练与微调总览</a> → 本文 → <a href="LoRA%E5%BE%AE%E8%B0%83%E5%AE%8C%E6%95%B4pipeline.html">LoRA/QLoRA</a> 或 <a href="L6-%E6%95%B0%E6%8D%AE%E9%9B%86%E6%9E%84%E5%BB%BA-RLHF-DPO%E5%81%8F%E5%A5%BD.html">DPO</a>。</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>SFT（Supervised Fine-Tuning，监督微调）用人工编写、规则生成或模型生成并审核的“输入—目标输出”样本，让预训练模型学习任务格式、对话行为、领域表达和工具调用方式</li><li>它仍然做 next-token prediction，但训练目标从“预测通用文本”收窄为“在给定上下文中生成期望回答”</li><li>1. 行为不稳定：输出结构、语气、拒答边界或多轮跟随不符合要求</li></ul></div>2
+<p>SFT（Supervised Fine-Tuning，监督微调）用人工编写、规则生成或模型生成并审核的“输入—目标输出”样本，让预训练模型学习任务格式、对话行为、领域表达和工具调用方式。它仍然做 next-token prediction，但训练目标从“预测通用文本”收窄为“在给定上下文中生成期望回答”。</p>
+<p>SFT 适合解决三类问题：</p>
+<ol>
+<li><strong>行为不稳定</strong>：输出结构、语气、拒答边界或多轮跟随不符合要求。</li>
+<li><strong>任务有明确示范</strong>：抽取、改写、分类、工具参数生成等有可审核目标答案。</li>
+<li><strong>领域表达方式不足</strong>：模型已有基础能力，但不会按业务术语和流程组织回答。</li>
+</ol>
+<p>SFT 不是知识数据库。需要频繁更新、可追溯引用的知识，优先检索增强；只有少量 bad case 时，先检查提示词、解码参数和检索，而不是设一个“满多少条才能微调”的门槛。是否值得训练，应由固定评测集上的基线、错误类型和训练小实验共同决定。</p>
+<p>SFT 最常见的失败不是模型太小，而是数据与目标错位：答案错误、模板泄漏、评测集污染、chat template 不一致，或把用户输入也计入损失。数据版本、模板版本和模型版本必须一起管理。</p>
+<h2 id="what">WHAT</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 数据在训练链路中的位置</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>预训练/CPT输入连续文本，目标主要是语言与知识建模；见预训练与继续预训练语料</li><li>SFT输入指令、上下文和期望回答，目标是按示范完成任务</li><li>DPO/RLHF输入偏好或奖励信号，目标是在多个可行回答中调整相对倾向；不能拿 DPO 替代基础任务示范</li></ul></div>3
+<ul>
+<li><strong>预训练/CPT</strong>输入连续文本，目标主要是语言与知识建模；见<a href="L6-%E6%95%B0%E6%8D%AE%E9%9B%86%E6%9E%84%E5%BB%BA-%E9%A2%84%E8%AE%AD%E7%BB%83%E8%AF%AD%E6%96%99.html">预训练与继续预训练语料</a>。</li>
+<li><strong>SFT</strong>输入指令、上下文和期望回答，目标是按示范完成任务。</li>
+<li><strong>DPO/RLHF</strong>输入偏好或奖励信号，目标是在多个可行回答中调整相对倾向；不能拿 DPO 替代基础任务示范。</li>
+</ul>
+<h3 id="2-统一源格式messages">2. 统一源格式：messages</h3>3
+<p>建议把人工审核后的源数据保存为 JSONL，每行一个样本；框架所需 alpaca/sharegpt 格式由转换层生成，而不是维护多份手工副本。</p>
+<pre><code class="language-json">{&quot;id&quot;:&quot;case-0001&quot;,&quot;source&quot;:&quot;human-reviewed-v3&quot;,&quot;messages&quot;:[{&quot;role&quot;:&quot;system&quot;,&quot;content&quot;:&quot;你是严谨的运维助手。&quot;},{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;把“磁盘写满导致任务失败”改写成一句告警。&quot;},{&quot;role&quot;:&quot;assistant&quot;,&quot;content&quot;:&quot;磁盘空间耗尽，任务写入失败；请清理空间并检查写入权限。&quot;}],&quot;meta&quot;:{&quot;topic&quot;:&quot;rewrite&quot;,&quot;review&quot;:&quot;passed&quot;}}
+</code></pre>
+<p>字段约定：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>必要性</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>必需</td>
+<td>去重、回流、审计与删除请求定位</td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td>必需</td>
+<td>记录来源批次、许可与审核版本</td>
+</tr>
+<tr>
+<td><code>messages</code></td>
+<td>必需</td>
+<td>保留 system/user/assistant 等角色及顺序</td>
+</tr>
+<tr>
+<td><code>meta</code></td>
+<td>建议</td>
+<td>主题、难度、审核状态等，不默认送进模型</td>
+</tr>
+</tbody>
+</table>
+<p>工具调用样本需要按目标模型官方模板表示工具声明、调用和工具返回。<strong>工具返回不是 assistant 答案</strong>，不能用普通文本拼接后让模型学习伪造返回。</p>
+<p>TRL 还接受 <code>text</code>、<code>prompt/completion</code> 等形式。单轮且边界清晰时，<code>prompt/completion</code> 很容易正确设置 completion-only loss；多轮对话优先使用模型自带 chat template，而不是自行猜特殊 token。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. loss mask：决定模型学什么</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>因果语言模型通常用交叉熵训练</li><li>labels 为 「-100」 的位置被 PyTorch 交叉熵默认忽略</li><li>language modeling：整段文本计算损失，适合连续语料，不等于 assistant-only SFT</li></ul></div>3
+<p>因果语言模型通常用交叉熵训练。labels 为 <code>-100</code> 的位置被 PyTorch 交叉熵默认忽略。SFT 常见目标设置：</p>
+<ul>
+<li><strong>language modeling</strong>：整段文本计算损失，适合连续语料，不等于 assistant-only SFT。</li>
+<li><strong>prompt-completion</strong>：只让 completion 参与损失；TRL 对该格式默认采用 completion-only loss。</li>
+<li><strong>多轮 messages</strong>：只让 assistant 生成段参与损失，system、user、工具返回被 mask。</li>
+</ul>
+<p><code>assistant_only_loss=True</code> 不是无条件开关：TRL 要求 chat template 含 <code>{% generation %}</code> 标记，才能识别 assistant 生成范围；部分已知模板由 TRL 自动处理。模板不支持时，应改用 prompt-completion、转换模板或使用框架支持的掩码方案，不能忽略警告继续跑。</p>
+<p>还要区分：</p>
+<ul>
+<li><strong>assistant-only</strong>：每轮 assistant 都可能成为监督目标。</li>
+<li><strong>最后一轮-only</strong>：只监督最后回答，会丢弃前面 assistant 段的监督。</li>
+<li><strong>packing</strong>：把多样本拼进定长序列提高利用率，不等于改变 mask；拼接后仍须验证样本边界和标签。</li>
+</ul>
+<h3 id="4-数据生产与质量控制">4. 数据生产与质量控制</h3>3
+<p>来源可以是人工精标、历史业务记录、规则转换、强模型蒸馏或 Self-Instruct/Evol-Instruct 类扩展。来源没有固定“性价比排行榜”，取决于任务可验证性、许可和审核成本。</p>
+<p>一条可审计流水线是：</p>
+<pre><code class="language-text">需求与错误分类 → 许可/隐私检查 → 样本生成 → 规则过滤
+→ 去重与近重复聚类 → 人工/程序审核 → 独立切分
+→ 模板渲染与标签检查 → 数据快照 → 小实验 → bad case 回流
+</code></pre>
+<p>关键原则：</p>
+<ul>
+<li><strong>正确性先于数量</strong>：代码可跑测试、抽取可对字段、数学可验答案；开放写作用明确 rubric 和抽检。</li>
+<li><strong>保留必要多样性</strong>：精确去重之外，还要检查近重复是否让某个模板或主题占满训练集。</li>
+<li><strong>独立评测</strong>：先按业务场景建立保留集，再做训练数据增强；同主题变体按组切分，不能随机散落到 train/eval 两边。</li>
+<li><strong>防止污染</strong>：比较训练与评测的规范化文本、n-gram 和近重复簇；发现重叠应移除训练侧并记录。</li>
+<li><strong>合规可撤回</strong>：保留来源、许可、审核和删除状态，不把真实密钥、个人信息或无权使用内容写入样本。</li>
+</ul>
+<p>不存在适用于所有模型的数据配比和扩量阈值。先用覆盖主要错误类型的小规模高质量快照训练，只有当保留集证明某类能力不足且该分类有足够好样本时再扩量。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5. 训练与评估产物</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>├── data-manifest.json 数据快照、样本数、哈希、许可与切分规则</li><li>├── resolved-config.yaml 完整训练参数与依赖版本</li><li>├── template-preview.txt 渲染文本、特殊token、标签边界抽查</li></ul></div>3
+<p>一次可复现 SFT 至少保存：</p>
+<pre><code class="language-text">run-id/
+├── data-manifest.json       # 数据快照、样本数、哈希、许可与切分规则
+├── resolved-config.yaml     # 完整训练参数与依赖版本
+├── template-preview.txt     # 渲染文本、特殊token、标签边界抽查
+├── checkpoint-*/
+├── adapter-or-model/        # 最终权重及tokenizer/config
+├── metrics.json             # train/eval loss与业务指标
+└── eval-report.md           # 基座对照、分场景结果、失败样本与回退建议
+</code></pre>
+<h2 id="how">HOW</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 先建立基线与不可变数据快照</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 固定基座模型 revision、tokenizer/chat template、解码参数和评测脚本</li><li>2. 用未训练基座跑保留集，按正确性、格式、遗漏、幻觉、拒答等错误类型分桶</li><li>3. 仅纳入有来源和审核记录的数据；规范化空白后检查空消息、非法 role、重复 「id」、相同对话和近重复</li></ul></div>3
+<ol>
+<li>固定基座模型 revision、tokenizer/chat template、解码参数和评测脚本。</li>
+<li>用未训练基座跑保留集，按正确性、格式、遗漏、幻觉、拒答等错误类型分桶。</li>
+<li>仅纳入有来源和审核记录的数据；规范化空白后检查空消息、非法 role、重复 <code>id</code>、相同对话和近重复。</li>
+<li>按 <code>group_id</code> 或近重复簇切分 train/eval；同组只能在一侧。</li>
+<li>保存只读数据快照和 manifest，后续训练不得原地修改。</li>
+</ol>
+<p><strong>最小校验脚本（示例，未实跑）</strong>：</p>
+<pre><code class="language-python">import json
+from collections import Counter
+from pathlib import Path
+
+path = Path(&quot;train.jsonl&quot;)
+ids = []
+for line_no, line in enumerate(path.open(encoding=&quot;utf-8&quot;), 1):
+    row = json.loads(line)
+    assert row[&quot;id&quot;] and row[&quot;source&quot;], (line_no, &quot;缺少id/source&quot;)
+    assert row[&quot;meta&quot;][&quot;review&quot;] == &quot;passed&quot;, (line_no, &quot;未审核&quot;)
+    messages = row[&quot;messages&quot;]
+    assert messages and messages[-1][&quot;role&quot;] == &quot;assistant&quot;, (line_no, &quot;缺少目标回答&quot;)
+    assert all(m.get(&quot;content&quot;, &quot;&quot;).strip() for m in messages), (line_no, &quot;空消息&quot;)
+    assert all(m[&quot;role&quot;] in {&quot;system&quot;, &quot;user&quot;, &quot;assistant&quot;, &quot;tool&quot;} for m in messages)
+    ids.append(row[&quot;id&quot;])
+assert not [x for x, n in Counter(ids).items() if n &gt; 1], &quot;id重复&quot;
+print(f&quot;schema ok: {len(ids)} rows; 仍需另做语义正确性、去重与污染审核&quot;)
+</code></pre>
+<p>这段脚本只验证结构，<strong>不代表答案正确、无泄漏或可安全使用</strong>。</p>
+<h3 id="2-渲染一条样本并检查标签">2. 渲染一条样本并检查标签</h3>3
+<p>在启动完整训练前，输出以下内容：</p>
+<ul>
+<li>完全渲染后的文本和特殊 token；</li>
+<li>input_ids/attention_mask/labels 的长度与对齐；</li>
+<li>将 labels 中 <code>-100</code> 剔除后解码，确认只留下目标 assistant 内容；</li>
+<li>最长样本和截断比例，确认回答末尾/EOS 没被意外截掉。</li>
+</ul>
+<p>如果使用 <code>assistant_only_loss=True</code>，先检查模板是否支持 <code>{% generation %}</code>；若框架自动补丁模板，则保存补丁后的版本。不要只凭“loss 有下降”判断 mask 正确。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 用当前 TRL 接口跑小规模主路径</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>旧稿中将 「max_seq_length」 直接传给 「SFTTrainer」 的写法不要照搬</li><li>安装时锁定 TRL、Transformers、PEFT、PyTorch 版本并保存解析后的配置</li><li>trainer.save_model("runs/sft-smoke/final")</li></ul></div>3
+<p>以下使用文档当前接口 <code>SFTConfig(max_length=...)</code>。旧稿中将 <code>max_seq_length</code> 直接传给 <code>SFTTrainer</code> 的写法不要照搬。安装时锁定 TRL、Transformers、PEFT、PyTorch 版本并保存解析后的配置。</p>
+<p><strong>训练代码（示例，未实跑）</strong>：</p>
+<pre><code class="language-python">from datasets import load_dataset
+from trl import SFTConfig, SFTTrainer
+
+MODEL = &quot;Qwen/Qwen3-0.6B&quot;  # 示例标识；正式实验固定revision并核对许可
+train = load_dataset(&quot;json&quot;, data_files=&quot;train.jsonl&quot;, split=&quot;train&quot;)
+eval_set = load_dataset(&quot;json&quot;, data_files=&quot;eval.jsonl&quot;, split=&quot;train&quot;)
+
+args = SFTConfig(
+    output_dir=&quot;runs/sft-smoke&quot;,
+    max_length=1024,
+    packing=False,
+    assistant_only_loss=True,  # 前提是模板支持generation标记
+    report_to=[],
+)
+trainer = SFTTrainer(
+    model=MODEL,
+    args=args,
+    train_dataset=train,
+    eval_dataset=eval_set,
+)
+trainer.train()
+trainer.save_model(&quot;runs/sft-smoke/final&quot;)
+</code></pre>
+<p>先用少量 batch 做 smoke test，确认数据、模板、显存、保存和恢复链路，再扩大步数。<code>max_length</code>、batch、学习率和 epoch 不是通用常数，应结合样本长度、有效 batch、验证曲线与任务指标做小实验。</p>
+<h3 id="4-验收而不是只看训练-loss">4. 验收而不是只看训练 loss</h3>3
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>检查</th>
+<th>通过依据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据</td>
+<td>schema、来源、去重、污染、切分</td>
+<td>有报告与可复查样本，不是仅有脚本退出码</td>
+</tr>
+<tr>
+<td>标签</td>
+<td>assistant-only 边界、EOS、截断</td>
+<td>解码 labels 与目标段一致</td>
+</tr>
+<tr>
+<td>优化</td>
+<td>train/eval loss、梯度、NaN</td>
+<td>曲线可解释，无未处理异常</td>
+</tr>
+<tr>
+<td>任务</td>
+<td>固定保留集与基座对照</td>
+<td>主要错误类型改善，其他场景未不可接受回退</td>
+</tr>
+<tr>
+<td>产物</td>
+<td>重新加载、固定输入推理</td>
+<td>config/tokenizer/权重齐全，结果可复现</td>
+</tr>
+<tr>
+<td>回退</td>
+<td>保留上一版及数据/配置</td>
+<td>能明确回滚到哪个模型和数据快照</td>
+</tr>
+</tbody>
+</table>
+<p>如果业务指标下降而 eval loss 变好，先相信任务评估，再检查评测是否与训练分布过于相似、模板是否一致以及数据是否优化错了目标。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5. 常见坑与有序回退</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>模型复述用户问题：解码 labels；若 user/system/tool 段未置 「-100」，修复 mask 后重跑</li><li>输出突然截断：检查长度分布、「max_length」、EOS/PAD 和生成参数；不要先加 epoch</li><li>训练集很好、真实请求很差：查近重复泄漏、主题分布偏移和线上模板差异</li></ul></div>3
+<ul>
+<li><strong>模型复述用户问题</strong>：解码 labels；若 user/system/tool 段未置 <code>-100</code>，修复 mask 后重跑。</li>
+<li><strong>assistant-only 报模板错误</strong>：检查 <code>{% generation %}</code> 和 TRL 版本；改 prompt-completion 或采用受支持模板，不强行忽略。</li>
+<li><strong>输出突然截断</strong>：检查长度分布、<code>max_length</code>、EOS/PAD 和生成参数；不要先加 epoch。</li>
+<li><strong>训练集很好、真实请求很差</strong>：查近重复泄漏、主题分布偏移和线上模板差异。</li>
+<li><strong>通用能力回退</strong>：缩小训练强度、重做数据配比，加入经审核的通用回放样本，并同时保留领域与通用评估。</li>
+<li><strong>扩量后无收益</strong>：停止继续堆量，回到错误分桶，检查答案质量、任务覆盖和训练/评测是否错位。</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>"指令数据清洗"在本库的真实版本：入库前的低信息/噪声过滤（<code>rag/ingest.py</code> L539 <code>_is_low_info()</code>，grep 可验）</strong>：<br />
+<code>python
+  def _is_low_info(chunk: str) -&gt; bool:
+      raw = (chunk or "").strip()
+      t = re.sub(r"\s+", "", raw)
+      if not t:
+          return True
+      if t in LOW_INFO_EXACT:
+          return True
+      # 纯标点/符号（无任何中英文）
+      if not re.search(r"[\u4e00-\u9fa5A-Za-z]", t):
+          return True
+      # 极短：含数字（限额/版本/价格等关键事实）则保留，否则判为低信息
+      if len(t) &lt; MIN_CHUNK_CHARS:
+          return not bool(re.search(r"\d", t))</code><br />
+  对应 SFT 数据清洗四条中的"占位/空样本剔除"，且加了"极短但含数字则保留"的例外——限额/版本号这类短事实不该因短被丢。</li>
+<li><strong>长度与结构约束（<code>rag/ingest.py</code> L613 <code>split_parent_chunks</code> + L128 <code>SEPARATORS</code>）</strong>：父块 800 字符/重叠 100，子块按中文句读切（<code>["\n\n", "\n", "。", "；", "！", "？", ". ", " ", ""]</code>）——指令样本"按语义边界截断"的同一思路。</li>
+<li><strong>和课件讲法的差异</strong>：课件用 <code>datasets.load_dataset("json")</code> + <code>apply_chat_template(tokenize=True, max_length=2048)</code> + <code>DataCollatorForSeq2Seq(label_pad_token_id=-100)</code>；本库没有对话模板和 label mask，因为语料是"知识文本"不是"指令-回答对"。<strong>本库暂无 SFT 数据集构造代码</strong>，上述两步可直接套课件写法。</li>
+</ul>
+<h2 id="来源与口径">来源与口径</h2>2
+<ol>
+<li>课件骨架：<code>raw/courseware/微调篇/day01微调101__课件__大模型微调-1-101-250815.md</code>（微调/RAG 边界、数据核心地位）；<code>raw/courseware/微调篇/day02微调之PEFT__课件__大模型微调-2-PEFT.md</code>（SFT 在训练链路中的位置）；<code>raw/courseware/微调篇/day06微调之最佳实践__课件__大模型微调-6-最佳实践.md</code>（基座、部署、评估与合规）。</li>
+<li>书摘线索：<code>raw/weread/从零构建大模型.md</code>、<code>raw/weread/Happy-LLM：从零开始构建大模型.md</code>、<code>raw/weread/大语言模型：原理、应用与优化.md</code>。本地文件是目录与公开热门划线，不是完整原书；本文仅据此确认预训练、指令微调、评估等主题线索，不宣称引用原书具体实验。</li>
+<li>实战材料：<code>raw/fullstack/微调实战-2026.md</code> 用于 before/after 评估、数据质量与 bad case 回流思路；未沿用其中宣传性排名和无统一条件的数字。</li>
+<li>官方接口：<a href="https://huggingface.co/docs/trl/sft_trainer">TRL SFTTrainer</a>，于 2026-11-03 前核对页面当前内容；数据格式、<code>assistant_only_loss</code>、prompt-completion、<code>packing</code>、<code>max_length</code> 以此为准，实际执行仍须锁定版本。</li>
+<li>对齐背景：<a href="https://arxiv.org/abs/2203.02155">InstructGPT 论文</a>，用于说明 SFT 在更大对齐流程中的位置，不用于推导本地样本量阈值。</li>
+</ol></div></details></div></details></div></body></html>

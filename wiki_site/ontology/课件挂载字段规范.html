@@ -1,0 +1,98 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>课件挂载字段规范</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 课件挂载字段规范</span></div><div class="wrap"><h1 id="课件挂载字段规范wikicourseware-关联">课件挂载字段规范（wiki→courseware 关联）</h1>
+<blockquote>
+<p>来源: 2026-10-20 对标调研 Q2（RepoGraph/CodexGraph 双图分立 + tree-sitter AST 分块）<br />
+用途: raw/courseware 25809 个源码文件挂到 wiki 知识节点时, metadata 统一字段命名。</p>
+</blockquote>
+<h2 id="字段表">字段表</h2>2
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>file_path</td>
+<td>课件/源码相对路径（相对 raw/courseware/）</td>
+<td>L2-Python/第3章装饰器/demo.py</td>
+</tr>
+<tr>
+<td>symbol_name</td>
+<td>主要符号名（函数/类, tree-sitter 提取）</td>
+<td>memoize_cache</td>
+</tr>
+<tr>
+<td>symbol_type</td>
+<td>symbol 分类</td>
+<td>function / class / module</td>
+</tr>
+<tr>
+<td>dep_versions</td>
+<td>依赖+版本（requirements/package 声明的子集）</td>
+<td>{"langchain":"0.1.0"}</td>
+</tr>
+<tr>
+<td>tech_stack</td>
+<td>所属技术栈（对齐 ontology edge-schema 实体类型）</td>
+<td>FRAMEWORK / PROTOCOL / ...</td>
+</tr>
+<tr>
+<td>wiki_ref</td>
+<td>知识节点路径（wiki/ 相对路径）</td>
+<td>wiki/L1-RAG基础/RAG基础架构.md</td>
+</tr>
+</tbody>
+</table>
+<h2 id="规则">规则</h2>2
+<ol>
+<li>双图分立: 知识节点只放引用（file_path+symbol_name），不复制源码内容（RepoGraph 模式）。</li>
+<li>分块粒度: 按 tree-sitter 函数/类节点切（不整文件/不固定 token）。</li>
+<li>对齐 edge-schema.json: tech_stack 字段取值必须命中 edge-schema 实体类型, 保持图谱类型一致。</li>
+</ol></div></body></html>

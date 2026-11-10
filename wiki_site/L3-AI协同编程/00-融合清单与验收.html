@@ -1,0 +1,389 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>00-融合清单与验收</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 00-融合清单与验收</span></div><div class="wrap"><h1 id="l3-三源融合主题收敛替换与验收记录">L3 三源融合：主题收敛、替换与验收记录</h1>
+<p>本文件为维护清单，不是第六篇主题正文。25 篇旧文收敛为 5 篇；5 个现有路径重写，20 个散篇删除。<br />
+三源为本地 Agent 课件、书籍目录与划线摘录、公开官方文档及业内作者原文。未把摘录声称为书籍全文。<br />
+核验日期采用UTC：2026-11-03；对应America/Los_Angeles仍为2026-11-02。<br />
+只写 L3-AI协同编程；未修改 raw、ontology、其他层、全局入口、RAG 索引或 HTML 产物。</p>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">主题收敛与字数</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>汉字数：去掉 frontmatter 和 fenced code 后，统计 Unicode U+4E00—U+9FFF；非空白字符：全文含元数据、代码、标点</li></ul></div>2
+<p>汉字数：去掉 frontmatter 和 fenced code 后，统计 Unicode U+4E00—U+9FFF；非空白字符：全文含元数据、代码、标点。</p>
+<table>
+<thead>
+<tr>
+<th>主题</th>
+<th>唯一正文</th>
+<th style="text-align: right;">合并旧篇数</th>
+<th style="text-align: right;">正文汉字数</th>
+<th style="text-align: right;">全文非空白字符</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Harness基础与工程闭环</td>
+<td><a href="L3-AI%E5%8D%8F%E5%90%8C%E7%BC%96%E7%A8%8B-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L3-AI协同编程-最佳答案.md</a></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">2111</td>
+<td style="text-align: right;">5632</td>
+</tr>
+<tr>
+<td>Claude Code与Vibe Coding</td>
+<td><a href="L3-ClaudeCode%E4%B8%8EVibeCoding-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-ClaudeCode与VibeCoding-深挖整合.md</a></td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">2268</td>
+<td style="text-align: right;">5840</td>
+</tr>
+<tr>
+<td>六员协作与Codex</td>
+<td><a href="L3-%E5%85%AD%E5%91%98%E5%8D%8F%E5%90%8C%E4%B8%8E%E5%B7%A5%E5%85%B7%E9%80%89%E5%9E%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-六员协同与工具选型-深挖整合.md</a></td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">2468</td>
+<td style="text-align: right;">5667</td>
+</tr>
+<tr>
+<td>Token延迟与成本</td>
+<td><a href="L3-Harness%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-Harness性能调优-深挖整合.md</a></td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">2791</td>
+<td style="text-align: right;">6353</td>
+</tr>
+<tr>
+<td>案例与框架选型</td>
+<td><a href="L3-Harness%E6%A1%88%E4%BE%8B%E4%B8%8E%E4%B8%9A%E7%95%8C%E5%AF%B9%E6%AF%94-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-Harness案例与业界对比-深挖整合.md</a></td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">2708</td>
+<td style="text-align: right;">6493</td>
+</tr>
+</tbody>
+</table>
+<h2 id="25-篇逐项去向与删除清单">25 篇逐项去向与删除清单</h2>2
+<table>
+<thead>
+<tr>
+<th>原文件</th>
+<th>处理</th>
+<th>唯一去向</th>
+<th>原始 SHA-256</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Harness工程到底是什么.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-AI%E5%8D%8F%E5%90%8C%E7%BC%96%E7%A8%8B-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L3-AI协同编程-最佳答案.md</a></td>
+<td><code>5ee606de2befb9bcacc67faac7155174117ee280c0526498c66cd802ac7beb19</code></td>
+</tr>
+<tr>
+<td>L3-Harness配置模板-五组件完整配置.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-AI%E5%8D%8F%E5%90%8C%E7%BC%96%E7%A8%8B-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L3-AI协同编程-最佳答案.md</a></td>
+<td><code>826315a5bf32a120815802d13b30a39c8e2c5e7e9c0b4a590373596088122e63</code></td>
+</tr>
+<tr>
+<td>L3-Harness概念与配置-深挖整合.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-AI%E5%8D%8F%E5%90%8C%E7%BC%96%E7%A8%8B-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L3-AI协同编程-最佳答案.md</a></td>
+<td><code>1d9c5a2c37654daa89df6218417a6a4ed9311553f8e8f32b7f46b97ac01dc13f</code></td>
+</tr>
+<tr>
+<td>L3-AI协同编程-最佳答案.md</td>
+<td>原路径融合重写</td>
+<td><a href="L3-AI%E5%8D%8F%E5%90%8C%E7%BC%96%E7%A8%8B-%E6%9C%80%E4%BD%B3%E7%AD%94%E6%A1%88.html">L3-AI协同编程-最佳答案.md</a></td>
+<td><code>8d53f45c250126e837799f020068b71c7eab87f7354c01b63e3730929ced2d56</code></td>
+</tr>
+<tr>
+<td>AI辅助编程实战-Copilot与VibeCoding.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-ClaudeCode%E4%B8%8EVibeCoding-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-ClaudeCode与VibeCoding-深挖整合.md</a></td>
+<td><code>86e86b67250b639d1481cd8c141428bbc8839379d838e96d9e6fd988c196f4f7</code></td>
+</tr>
+<tr>
+<td>Claude Code怎么用才高效.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-ClaudeCode%E4%B8%8EVibeCoding-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-ClaudeCode与VibeCoding-深挖整合.md</a></td>
+<td><code>663b0478397877b9ead3a7b5d851ef1ea93209bf5e033ae378289524fdcc191e</code></td>
+</tr>
+<tr>
+<td>Claude Code工程重构岗怎么用.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-ClaudeCode%E4%B8%8EVibeCoding-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-ClaudeCode与VibeCoding-深挖整合.md</a></td>
+<td><code>61455764941305b2358e0d67f0c27396789364f0446b393db5e2fa86658e9a76</code></td>
+</tr>
+<tr>
+<td>L3-ClaudeCode与VibeCoding-深挖整合.md</td>
+<td>原路径融合重写</td>
+<td><a href="L3-ClaudeCode%E4%B8%8EVibeCoding-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-ClaudeCode与VibeCoding-深挖整合.md</a></td>
+<td><code>403b037a9d786ac201c12d6b4cd6537b96035b515883c915a6781f8157fa1f73</code></td>
+</tr>
+<tr>
+<td>Codex怎么用才高效.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-%E5%85%AD%E5%91%98%E5%8D%8F%E5%90%8C%E4%B8%8E%E5%B7%A5%E5%85%B7%E9%80%89%E5%9E%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-六员协同与工具选型-深挖整合.md</a></td>
+<td><code>669b44c78bc9b6611900af8848d26a927815bb54e2b0af76d651d6c0b8da09d1</code></td>
+</tr>
+<tr>
+<td>DSH怎么用才高效.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-%E5%85%AD%E5%91%98%E5%8D%8F%E5%90%8C%E4%B8%8E%E5%B7%A5%E5%85%B7%E9%80%89%E5%9E%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-六员协同与工具选型-深挖整合.md</a></td>
+<td><code>9f44023cc032f151bdb877a69de9610cb81f78dfe50abc7e7049e16309a9e399</code></td>
+</tr>
+<tr>
+<td>Hermes怎么用才高效.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-%E5%85%AD%E5%91%98%E5%8D%8F%E5%90%8C%E4%B8%8E%E5%B7%A5%E5%85%B7%E9%80%89%E5%9E%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-六员协同与工具选型-深挖整合.md</a></td>
+<td><code>00f2ac305ce1bab3fab37410093f7d7a0f2923c7033978e55cea8c2450304e67</code></td>
+</tr>
+<tr>
+<td>OpenClaw怎么用才高效.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-%E5%85%AD%E5%91%98%E5%8D%8F%E5%90%8C%E4%B8%8E%E5%B7%A5%E5%85%B7%E9%80%89%E5%9E%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-六员协同与工具选型-深挖整合.md</a></td>
+<td><code>9c5bc99d311484f8a0ced05602b207924e5c639eeed564221a3809f26fc1e3fd</code></td>
+</tr>
+<tr>
+<td>QwenCode怎么用才高效.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-%E5%85%AD%E5%91%98%E5%8D%8F%E5%90%8C%E4%B8%8E%E5%B7%A5%E5%85%B7%E9%80%89%E5%9E%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-六员协同与工具选型-深挖整合.md</a></td>
+<td><code>72ad7fd47f53db6e9375659643e4c5a78f086bcb0e21870367f61687dd4c137c</code></td>
+</tr>
+<tr>
+<td>E4-模型渠道情报台账-202610.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-%E5%85%AD%E5%91%98%E5%8D%8F%E5%90%8C%E4%B8%8E%E5%B7%A5%E5%85%B7%E9%80%89%E5%9E%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-六员协同与工具选型-深挖整合.md</a></td>
+<td><code>441ca5cc54ed1280d8247a292f539ef6d78de37242177cca8a0a72a5f20eb744</code></td>
+</tr>
+<tr>
+<td>L3-六员协同与工具选型-深挖整合.md</td>
+<td>原路径融合重写</td>
+<td><a href="L3-%E5%85%AD%E5%91%98%E5%8D%8F%E5%90%8C%E4%B8%8E%E5%B7%A5%E5%85%B7%E9%80%89%E5%9E%8B-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-六员协同与工具选型-深挖整合.md</a></td>
+<td><code>84b8e7384a93d321c31c3140c14d5069d9eb9cc402c0dc0da6af59f52c050b47</code></td>
+</tr>
+<tr>
+<td>L3-Harness性能调优-Token优化.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-Harness%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-Harness性能调优-深挖整合.md</a></td>
+<td><code>22c11a48b6509a196c771174a6bf8aecc0df667bb7c6ded51d3fd9c681ec63f4</code></td>
+</tr>
+<tr>
+<td>L3-Harness性能调优-延迟优化.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-Harness%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-Harness性能调优-深挖整合.md</a></td>
+<td><code>630806ffacbd11938b58d3072e6f71028fc2ca7c0d41f321447390c2e1fbf0af</code></td>
+</tr>
+<tr>
+<td>L3-Harness性能调优-成本控制.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-Harness%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-Harness性能调优-深挖整合.md</a></td>
+<td><code>532a49afdb7bc44e5f4e606abe2bf534ebd057cef3d455b7bc34b9bef4932692</code></td>
+</tr>
+<tr>
+<td>L3-Harness性能调优-深挖整合.md</td>
+<td>原路径融合重写</td>
+<td><a href="L3-Harness%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-Harness性能调优-深挖整合.md</a></td>
+<td><code>737e4012ffafbeddd99f12dca15bc95085d296523c79810aacb33b48372d8075</code></td>
+</tr>
+<tr>
+<td>六员token预算三档路由.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-Harness%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-Harness性能调优-深挖整合.md</a></td>
+<td><code>e462246493d018ee883b901fbe49e75dd700874f3601abf3c66d4701c1d219f2</code></td>
+</tr>
+<tr>
+<td>模型路由与步级档位.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-Harness%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-Harness性能调优-深挖整合.md</a></td>
+<td><code>b31bae99814b235d9e3edd7ffd78253794799cc7324f5fb46b937be0d6578572</code></td>
+</tr>
+<tr>
+<td>省Token三件套.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-Harness%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-Harness性能调优-深挖整合.md</a></td>
+<td><code>e728aac13fd4bb9373c2a55bf1f3f9c9b9ede4986088e2f587c3df58f06bbd58</code></td>
+</tr>
+<tr>
+<td>L3-Harness案例拆解-橙皮书7案例.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-Harness%E6%A1%88%E4%BE%8B%E4%B8%8E%E4%B8%9A%E7%95%8C%E5%AF%B9%E6%AF%94-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-Harness案例与业界对比-深挖整合.md</a></td>
+<td><code>b477941f906b6a3e4059b65237a711d6b37c659995521c9a9e9d878b0944a015</code></td>
+</tr>
+<tr>
+<td>L3-Harness业界对比-LangChain-CrewAI-AutoGen.md</td>
+<td>删除旧散篇</td>
+<td><a href="L3-Harness%E6%A1%88%E4%BE%8B%E4%B8%8E%E4%B8%9A%E7%95%8C%E5%AF%B9%E6%AF%94-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-Harness案例与业界对比-深挖整合.md</a></td>
+<td><code>b772aea28cda01053d57252f56ca2720a4ab58901ed888bb1e110b90b93f73f0</code></td>
+</tr>
+<tr>
+<td>L3-Harness案例与业界对比-深挖整合.md</td>
+<td>原路径融合重写</td>
+<td><a href="L3-Harness%E6%A1%88%E4%BE%8B%E4%B8%8E%E4%B8%9A%E7%95%8C%E5%AF%B9%E6%AF%94-%E6%B7%B1%E6%8C%96%E6%95%B4%E5%90%88.html">L3-Harness案例与业界对比-深挖整合.md</a></td>
+<td><code>56cd520831e76f783f6be64a05bea9da1a2ac5ee615d4d585a1cf9d9f698bd15</code></td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">内容纠偏与证据边界</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>旧稿 45291→2315 chars 实际减少约 94.89%；无法据此证明 token 或账单节省，撤下95.4%实测断言</li><li>七案例保留书籍摘录可见内容；未见原文的失败原因、收益推断和永久免疫结论撤下</li><li>撤下未经验证的5—10倍效率、固定缓存折扣、固定模型价格/延迟/AFP能力等级和所有框架能力绝对排名</li></ul></div>2
+<ul>
+<li>旧稿 45291→2315 chars 实际减少约 94.89%；无法据此证明 token 或账单节省，撤下95.4%实测断言。</li>
+<li>撤下未经验证的5—10倍效率、固定缓存折扣、固定模型价格/延迟/AFP能力等级和所有框架能力绝对排名。</li>
+<li>五组件是教学框架，不是通用配置 schema；旧 YAML/JSON 示意不再当作产品原生配置。</li>
+<li>Qwen必须YOLO、配置写明文密钥、关闭沙箱等旧建议不再作为默认操作。</li>
+<li>七案例保留书籍摘录可见内容；未见原文的失败原因、收益推断和永久免疫结论撤下。</li>
+<li>E4的GPT-6上架GCP、Kimi K3.1参数/发布日期、TPU扩容、DeepSeek融资四条为未复核历史线索；不作为事实或切换依据。</li>
+<li>Claude文档站 best-practices/hooks 请求403，改用官方CHANGELOG固定提交964d69565952a176ac1975ed218362991db71433。</li>
+<li>官方GET成功源：Codex CLI/AGENTS.md、OpenAI Prompt caching、Claude Code CHANGELOG、Deep Agents overview、CrewAI Flows、AutoGen README；Simon Willison文章提供vibe coding术语来源。</li>
+<li>AutoGen当前归档状态由官方README直接支持；迁移指引仅给入口，未读正文，不声称验证迁移API。</li>
+</ul>
+<h2 id="预埋-check-与原始验证输出">预埋 check 与原始验证输出</h2>2
+<ul>
+<li>25个旧文件映射完整且不重复；5个主题各有唯一正文。</li>
+<li>5/5含独立WHY、WHAT / WHYT、HOW章节；5/5含课件、书籍、业内来源及引用落点。</li>
+<li>7个Python代码块语法通过；正向程序与故障注入结果如下。</li>
+<li>独立只读复审：25→5映射、三源边界、HOW与删除策略无阻塞问题；已采纳计费类别标题、UTC日期和引用页分类建议。复审者未另行联网核验。</li>
+<li>所有最终正文的本地Markdown目标逐一检查存在；代码围栏配对。</li>
+<li>模型CLI、真实浏览器应用、框架持久化与外部API付费实验未执行；正文已分别标注验证边界。</li>
+<li>内容采用substantial级别，不声称每篇达到8000汉字的tutorial标准。</li>
+</ul>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">normalize_tags behavior</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>顺序突变测试的非零退出为预期拦截</li><li>Ran 5 tests in 0.001s</li><li>test_empty (test_tags.TagTests.test_empty) ... ok</li></ul></div>3
+<p>退出码：0。顺序突变测试的非零退出为预期拦截。</p>
+<pre><code class="language-text">test_empty (test_tags.TagTests.test_empty) ... ok
+test_input_unchanged (test_tags.TagTests.test_input_unchanged) ... ok
+test_non_string (test_tags.TagTests.test_non_string) ... ok
+test_normalize (test_tags.TagTests.test_normalize) ... ok
+test_order_and_dedup (test_tags.TagTests.test_order_and_dedup) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.001s
+
+OK
+</code></pre>
+<h3 id="mutation-reversed-order-must-fail">mutation: reversed order must fail</h3>3
+<p>退出码：1。顺序突变测试的非零退出为预期拦截。</p>
+<pre><code class="language-text">...FF
+======================================================================
+FAIL: test_normalize (test_tags.TagTests.test_normalize)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File &quot;/mnt/c/MyData/Documents/wuyafang-l/wiki/L3-AI协同编程/.fusion-work/offline-tests/test_tags.py&quot;, line 6, in test_normalize
+    self.assertEqual(normalize_tags([&quot; AI &quot;, &quot;Python&quot;]), [&quot;ai&quot;, &quot;python&quot;])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['python', 'ai'] != ['ai', 'python']
+
+First differing element 0:
+'python'
+'ai'
+
+- ['python', 'ai']
++ ['ai', 'python']
+
+======================================================================
+FAIL: test_order_and_dedup (test_tags.TagTests.test_order_and_dedup)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File &quot;/mnt/c/MyData/Documents/wuyafang-l/wiki/L3-AI协同编程/.fusion-work/offline-tests/test_tags.py&quot;, line 8, in test_order_and_dedup
+    self.assertEqual(normalize_tags([&quot;B&quot;, &quot;a&quot;, &quot;b&quot;]), [&quot;b&quot;, &quot;a&quot;])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['a', 'b'] != ['b', 'a']
+
+First differing element 0:
+'a'
+'b'
+
+- ['a', 'b']
++ ['b', 'a']
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.009s
+
+FAILED (failures=2)
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">02-0.py</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>顺序突变测试的非零退出为预期拦截</li><li>scope: 4 checks passed</li></ul></div>3
+<p>退出码：0。顺序突变测试的非零退出为预期拦截。</p>
+<pre><code class="language-text">scope: 4 checks passed
+</code></pre>
+<h3 id="03-0py">03-0.py</h3>3
+<p>退出码：0。顺序突变测试的非零退出为预期拦截。</p>
+<pre><code class="language-text">handoff: 6 checks passed
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">04-0.py</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>顺序突变测试的非零退出为预期拦截</li></ul></div>3
+<p>退出码：0。顺序突变测试的非零退出为预期拦截。</p>
+<pre><code class="language-text">cost: 3 checks passed; synthetic cost=0.0116
+</code></pre>
+<h3 id="04-1py">04-1.py</h3>3
+<p>退出码：0。顺序突变测试的非零退出为预期拦截。</p>
+<pre><code class="language-text">cache-key: 4 checks passed
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">05-0.py</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>顺序突变测试的非零退出为预期拦截</li><li>workflow: 5 checks passed</li></ul></div>3
+<p>退出码：0。顺序突变测试的非零退出为预期拦截。</p>
+<pre><code class="language-text">workflow: 5 checks passed
+</code></pre>
+<h2 id="目录外引用影响">目录外引用影响</h2>2
+<p>只读扫描wiki目录，21个目录外Markdown文件含被删除文件名引用。此项属于已知残留，不计为全库链接通过。<br />
+其中现役页面9个，隐藏备份目录页面12个；该统计是文件名引用检出，不是全站渲染链接测试。<br />
+遵守本单边界不修改这些文件，也不保留重定向散篇；需要全库同步时可按本表去向映射修复。生成入口、RAG和图谱未重建。</p>
+<ul>
+<li><code>wiki/00-知识库总入口.md</code>：AI辅助编程实战-Copilot与VibeCoding.md、Claude Code工程重构岗怎么用.md、Claude Code怎么用才高效.md、Codex怎么用才高效.md、DSH怎么用才高效.md、E4-模型渠道情报台账-202610.md、Harness工程到底是什么.md、Hermes怎么用才高效.md、L3-Harness业界对比-LangChain-CrewAI-AutoGen.md、L3-Harness性能调优-Token优化.md、L3-Harness性能调优-延迟优化.md、L3-Harness性能调优-成本控制.md、L3-Harness案例拆解-橙皮书7案例.md、L3-Harness配置模板-五组件完整配置.md、OpenClaw怎么用才高效.md、QwenCode怎么用才高效.md、六员token预算三档路由.md、模型路由与步级档位.md、省Token三件套.md</li>
+<li><code>wiki/AI应用工程师能力知识图谱-终版-20261014.md</code>：Claude Code怎么用才高效.md、Harness工程到底是什么.md</li>
+<li><code>wiki/L0-基础层/L0-AI通识导航.md</code>：Claude Code怎么用才高效.md、Codex怎么用才高效.md、Hermes怎么用才高效.md、模型路由与步级档位.md、省Token三件套.md</li>
+<li><code>wiki/L2-大模型交互/上下文工程-Context-Engineering.md</code>：Claude Code怎么用才高效.md、Harness工程到底是什么.md</li>
+<li><code>wiki/L4-RAG工程/RAG检索不准怎么排查.md</code>：模型路由与步级档位.md、省Token三件套.md</li>
+<li><code>wiki/总网流程/OC审查Gap门禁.md</code>：六员token预算三档路由.md</li>
+<li><code>wiki/总网流程/六员配置终局.md</code>：六员token预算三档路由.md</li>
+<li><code>wiki/总网流程/子代理驱动开发与技能编写.md</code>：Harness工程到底是什么.md</li>
+<li><code>wiki/总网流程/探测纪律G1-G5.md</code>：六员token预算三档路由.md</li>
+<li><code>wiki/.bak-linksources-20261030/L3-AI协同编程/Claude Code工程重构岗怎么用.md</code>：Claude Code怎么用才高效.md、Hermes怎么用才高效.md、六员token预算三档路由.md</li>
+<li><code>wiki/.bak-linksources-20261030/L3-AI协同编程/Codex怎么用才高效.md</code>：Claude Code工程重构岗怎么用.md、Hermes怎么用才高效.md、六员token预算三档路由.md</li>
+<li><code>wiki/.bak-linksources-20261030/L3-AI协同编程/DSH怎么用才高效.md</code>：Hermes怎么用才高效.md、六员token预算三档路由.md</li>
+<li><code>wiki/.bak-linksources-20261030/L3-AI协同编程/Harness工程到底是什么.md</code>：Claude Code怎么用才高效.md</li>
+<li><code>wiki/.bak-linksources-20261030/L3-AI协同编程/Hermes怎么用才高效.md</code>：Claude Code怎么用才高效.md、六员token预算三档路由.md</li>
+<li><code>wiki/.bak-linksources-20261030/L3-AI协同编程/L3-Harness性能调优-Token优化.md</code>：Codex怎么用才高效.md、Harness工程到底是什么.md、六员token预算三档路由.md、模型路由与步级档位.md、省Token三件套.md</li>
+<li><code>wiki/.bak-linksources-20261030/L3-AI协同编程/L3-Harness性能调优-延迟优化.md</code>：Harness工程到底是什么.md、L3-Harness性能调优-Token优化.md、模型路由与步级档位.md</li>
+<li><code>wiki/.bak-linksources-20261030/L3-AI协同编程/L3-Harness性能调优-成本控制.md</code>：L3-Harness性能调优-Token优化.md、L3-Harness性能调优-延迟优化.md、六员token预算三档路由.md、模型路由与步级档位.md、省Token三件套.md</li>
+<li><code>wiki/.bak-linksources-20261030/L3-AI协同编程/L3-Harness配置模板-五组件完整配置.md</code>：Claude Code怎么用才高效.md、Codex怎么用才高效.md、Harness工程到底是什么.md</li>
+<li><code>wiki/.bak-linksources-20261030/L3-AI协同编程/OpenClaw怎么用才高效.md</code>：Hermes怎么用才高效.md、六员token预算三档路由.md</li>
+<li><code>wiki/.bak-linksources-20261030/L3-AI协同编程/QwenCode怎么用才高效.md</code>：Hermes怎么用才高效.md、六员token预算三档路由.md</li>
+<li><code>wiki/.bak-linksources-20261030/总网流程/子代理驱动开发与技能编写.md</code>：Harness工程到底是什么.md</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">收口</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>最终落盘复核：5篇主题正文、1篇维护清单；20篇旧散篇不存在；32个正文内本地Markdown链接目标存在；5/5三段齐全；27项离线行为检查通过，顺序突变被拒绝；临时工作目录已删除</li><li>临时快照用于本次覆盖前并发校验；收口删除.fusion-work，包括25篇临时副本与测试文件</li><li>原有「.claude/logs/tool_audit.log」不属于本次文稿，未作清理</li></ul></div>2
+<p>最终落盘复核：5篇主题正文、1篇维护清单；20篇旧散篇不存在；32个正文内本地Markdown链接目标存在；5/5三段齐全；27项离线行为检查通过，顺序突变被拒绝；临时工作目录已删除。原有<code>.claude/logs/tool_audit.log</code>不属于本次文稿，未作清理。</p>
+<p>临时快照用于本次覆盖前并发校验；收口删除.fusion-work，包括25篇临时副本与测试文件。原稿哈希留在上表供来源追溯，不保留第二份主题正文。<br />
+未创建付费模型任务、未读取凭据、未上传本地内容；公开取证仅使用GET。</p></div></details></div></body></html>

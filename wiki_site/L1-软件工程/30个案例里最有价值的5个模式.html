@@ -1,0 +1,149 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>30个案例里最有价值的5个模式</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 30个案例里最有价值的5个模式</span></div><div class="wrap"><h1 id="30个案例里最有价值的5个模式">30个案例里最有价值的5个模式</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">这个问题的答案是什么</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>《30个可执行案例设计》覆盖了美食推荐、语言学习、小说创作、情绪分析、图书馆检索、文献阅读、法律咨询等30个应用场景</li><li>但如果把30个案例拆开看代码，真正反复出现、跨场景可复用的架构模式只有5个：RAG检索增强、Prompt模板工程、多轮对话状态管理、结构化输出解析、外部工具调用</li><li>这5个模式不是30个案例各自的"业务功能"，而是所有案例共用的骨架——剩下的差异只是"喂什么数据、问什么问题、展示什么结果"</li></ul></div>2
+<p>《30个可执行案例设计》覆盖了美食推荐、语言学习、小说创作、情绪分析、图书馆检索、文献阅读、法律咨询等30个应用场景。但如果把30个案例拆开看代码，真正反复出现、跨场景可复用的架构模式只有5个：<strong>RAG检索增强、Prompt模板工程、多轮对话状态管理、结构化输出解析、外部工具调用</strong>。这5个模式不是30个案例各自的"业务功能"，而是所有案例共用的骨架——剩下的差异只是"喂什么数据、问什么问题、展示什么结果"。</p>
+<h2 id="详细内容">详细内容</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">模式一：RAG检索增强——让模型"查过再答"</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>在30个案例中的出现位置：项目14（图书馆检索）、项目28（文献阅读）、项目29（法律咨询）、项目13（足球资讯）</li><li>关键细节：《30个案例》中项目6（职业匹配）其实也是RAG的雏形——先抓取LinkedIn职位信息，再把提取的职位名称、公司、地点存入「info_dict」，最后作为上下文喂给GPT</li><li>核心做法：先把领域文档切块、向量化存入检索库，用户提问时先检索相关片段，再把片段拼进prompt让模型基于检索结果回答</li></ul></div>3
+<p><strong>在30个案例中的出现位置</strong>：项目14（图书馆检索）、项目28（文献阅读）、项目29（法律咨询）、项目13（足球资讯）。</p>
+<p><strong>核心做法</strong>：先把领域文档切块、向量化存入检索库，用户提问时先检索相关片段，再把片段拼进prompt让模型基于检索结果回答。《极简入门》中划线人数最多的观点之一就是："如果问题出在内容上，那么可以将RAG作为下一步的选择。"——这说明RAG不是炫技，而是解决"模型不知道"问题的标准下一步。</p>
+<p><strong>为什么复用价值最高</strong>：法律咨询、文献阅读、图书馆检索三个案例的业务域完全不同，但底层都是"领域知识+用户提问→检索→生成回答"。任何需要接入私有/最新/领域知识的场景都适用。</p>
+<p><strong>关键细节</strong>：《30个案例》中项目6（职业匹配）其实也是RAG的雏形——先抓取LinkedIn职位信息，再把提取的职位名称、公司、地点存入<code>info_dict</code>，最后作为上下文喂给GPT。</p>
+<h3 id="模式二prompt模板工程用模板而非硬编码引导输出">模式二：Prompt模板工程——用模板而非硬编码引导输出</h3>3
+<p><strong>在30个案例中的出现位置</strong>：几乎所有30个案例。</p>
+<p>《30个案例》明确写道："为了更好地引导GPT获得准确答复，代码中使用多种不同的模板，构建与语言模型的交互，通过生成合适的提示引导模型生成所需的输出。"还特别指出一个实战细节："由于ChatGPT的'母语'是英文，并且LinkedIn上很多职位也是英文介绍，所以需要使用英文作为Prompt的语言。"</p>
+<p><strong>核心做法</strong>：把prompt从代码字符串中抽出来，做成模板变量（<code>{user_input}</code>、<code>{context}</code>、<code>{format_instructions}</code>），同一任务准备多套模板做对比。这与传统软件工程中的"配置与代码分离"异曲同工，但迭代速度更快——改模板不需要重启服务。</p>
+<p><strong>为什么复用价值高</strong>：无论是美食推荐（"推荐3道适合{口味}的菜"）、生成简历（"根据以下经历{experience}生成简历"）还是情绪分析（"判断以下文本的情感倾向：{text}"），都靠模板控制输出方向。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">模式三：多轮对话状态管理——模型是无状态的，你管历史</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>在30个案例中的出现位置：项目2（语言学习）、项目9（水浒穿越交互式小说）、项目18（宠物帮手）、项目26（职场助手）</li><li>为什么复用价值高：任何聊天类应用都必须做这件事</li><li>关键坑点是：上下文窗口有限，不能无限追加，必须设计截断/摘要策略——这正是《AI工程》提到的"虽然增加上下文长度会影响模型的内存占用，但不会影响模型参数的总数量"的实战含义</li></ul></div>3
+<p><strong>在30个案例中的出现位置</strong>：项目2（语言学习）、项目9（水浒穿越交互式小说）、项目18（宠物帮手）、项目26（职场助手）。</p>
+<p>《极简入门》的高划线观点："OpenAI语言模型默认是无状态的，这意味着它们不会记住先前的对话，通常需要开发者自己管理历史记录。"</p>
+<p>《30个案例》项目9（水浒穿越）的实现方式是："构建消息字典将Role设为Assistant，将Content设为回复结果，这个消息字典添加到mess_dict中的Messages列表中，表示机器人发送了一条消息。"——这就是最朴素的对话状态管理：把每一轮的user/assistant消息追加进列表，每次请求时把完整历史发给模型。</p>
+<p><strong>为什么复用价值高</strong>：任何聊天类应用都必须做这件事。30个案例里至少有6个是聊天机器人形态。关键坑点是：上下文窗口有限，不能无限追加，必须设计截断/摘要策略——这正是《AI工程》提到的"虽然增加上下文长度会影响模型的内存占用，但不会影响模型参数的总数量"的实战含义。</p>
+<h3 id="模式四结构化输出解析从自然语言中提取字段">模式四：结构化输出解析——从自然语言中提取字段</h3>3
+<p><strong>在30个案例中的出现位置</strong>：项目6（职业匹配）、项目11（情绪分析）、项目19（用户评价）、项目23（文字纠错）。</p>
+<p>《30个案例》项目6的做法："在解析后，代码提取职位名称、公司名称、工作地点、发布时间和工作描述等重要信息，并将这些信息存储在info_dict中。"</p>
+<p><strong>核心做法</strong>：在prompt中要求模型以JSON/固定格式返回，然后用代码解析成字典/对象。情绪分析要求返回<code>{"sentiment": "positive/negative/neutral", "confidence": 0.8}</code>；职业匹配要求返回结构化的职位字段。</p>
+<p><strong>为什么复用价值高</strong>：大模型最常见的集成痛点就是"模型说了一大段话，我只想要几个字段"。这个模式在推荐系统（提取推荐理由）、评价分析（提取情感标签）、简历生成（提取经历段落）中反复出现。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">模式五：外部工具调用——让模型决定何时调用API</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>在30个案例中的出现位置：项目5（图像处理）、项目12（文字转图像）、项目15（音色转换）、项目16（智能换脸）、项目27（手绘图像识别）</li><li>为什么复用价值高：RAG解决"知识"问题，工具调用解决"行动"问题</li><li>《AI工程》提到的"规划最好与执行解耦"——先让模型生成计划，验证后再执行——本质上就是工具调用的安全版</li></ul></div>3
+<p><strong>在30个案例中的出现位置</strong>：项目5（图像处理）、项目12（文字转图像）、项目15（音色转换）、项目16（智能换脸）、项目27（手绘图像识别）。</p>
+<p>《极简入门》的高划线观点："GPT便能根据用户查询决定是否调用插件API，并结合API返回的数据生成回答。"还有："Assistants API提供了一系列服务，简化了管理流程，从而让开发者能够更轻松地创建AI工具。"</p>
+<p>《30个案例》中这些多模态/工具类项目的共性是：模型不直接生成最终结果，而是先判断用户意图，再调用对应的外部API（图像生成、语音转换、人脸识别），最后把API返回的结果组织成回答。</p>
+<p><strong>为什么复用价值高</strong>：RAG解决"知识"问题，工具调用解决"行动"问题。当模型自身能力不够（比如要算数学题、要查实时天气、要生成图片），就必须走工具调用。《AI工程》提到的"规划最好与执行解耦"——先让模型生成计划，验证后再执行——本质上就是工具调用的安全版。</p>
+<h2 id="来自哪些书的哪些观点标注来源">来自哪些书的哪些观点（标注来源）</h2>2
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>引用观点</th>
+<th>来源书</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RAG检索增强</td>
+<td>"如果问题出在内容上，那么可以将RAG作为下一步的选择"</td>
+<td>《大模型应用开发极简入门》</td>
+</tr>
+<tr>
+<td>RAG检索增强</td>
+<td>项目6：抓取职位信息→提取字段存入info_dict→喂给GPT</td>
+<td>《30个可执行案例设计》</td>
+</tr>
+<tr>
+<td>Prompt模板工程</td>
+<td>"使用多种不同的模板，构建与语言模型的交互"</td>
+<td>《30个可执行案例设计》</td>
+</tr>
+<tr>
+<td>Prompt模板工程</td>
+<td>"ChatGPT的'母语'是英文，需要使用英文作为Prompt"</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>多轮对话状态管理</td>
+<td>"OpenAI模型默认无状态，需开发者管理历史记录"</td>
+<td>《极简入门》</td>
+</tr>
+<tr>
+<td>多轮对话状态管理</td>
+<td>项目9：消息字典追加到Messages列表</td>
+<td>《30个可执行案例设计》</td>
+</tr>
+<tr>
+<td>结构化输出解析</td>
+<td>项目6：提取职位名称/公司/地点存入info_dict</td>
+<td>《30个可执行案例设计》</td>
+</tr>
+<tr>
+<td>外部工具调用</td>
+<td>"GPT根据用户查询决定是否调用插件API"</td>
+<td>《极简入门》</td>
+</tr>
+<tr>
+<td>外部工具调用</td>
+<td>"Assistants API简化管理流程，更轻松创建AI工具"</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>外部工具调用</td>
+<td>"规划最好与执行解耦"</td>
+<td>《AI工程：大模型应用开发实战》</td>
+</tr>
+<tr>
+<td>幻觉抑制（底层动机）</td>
+<td>"AI幻觉指模型以自信语气提供错误回答，必须核实"</td>
+<td>《极简入门》</td>
+</tr>
+<tr>
+<td>评估闭环（底层动机）</td>
+<td>"评估是AI工程中最困难的挑战之一"</td>
+<td>《AI工程：大模型应用开发实战》</td>
+</tr>
+</tbody>
+</table></div></details></div></details></div></body></html>

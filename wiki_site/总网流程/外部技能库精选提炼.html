@@ -1,0 +1,258 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>外部技能库精选提炼</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 外部技能库精选提炼</span></div><div class="wrap"><h1 id="外部技能库精选提炼可直接套用的角色技能包">外部技能库精选提炼（可直接套用的角色技能包）</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/practice/skills-%E7%B2%BE%E9%80%89/ext-JohnnyTHK_claude-skills-rag-architect.md">ext-JohnnyTHK_claude-skills-rag-architect</a> · <a href="../../raw/practice/skills-%E7%B2%BE%E9%80%89/ext-JohnnyTHK_claude-skills-agent-protocol.md">ext-JohnnyTHK_claude-skills-agent-protocol</a> · <a href="../../raw/practice/skills-%E7%B2%BE%E9%80%89/ext-obra_superpowers-systematic-debugging.md">ext-obra_superpowers-systematic-debugging</a> · <a href="../../raw/practice/skills-%E7%B2%BE%E9%80%89/ext-JohnnyTHK_claude-skills-senior-prompt-engineer.md">ext-JohnnyTHK_claude-skills-senior-prompt-engineer</a> · <a href="../../raw/practice/skills-%E7%B2%BE%E9%80%89/ext-JohnnyTHK_claude-skills-agent-designer.md">ext-JohnnyTHK_claude-skills-agent-designer</a></p>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="%E5%AD%90%E4%BB%A3%E7%90%86%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91%E4%B8%8E%E6%8A%80%E8%83%BD%E7%BC%96%E5%86%99.html">子代理驱动开发与技能编写</a>（SDD 与 skill-authoring 两个"怎么写技能"的元方法已在彼处提炼；本条目只讲<strong>各技能包的内容本身</strong>）</p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">一句话定位</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>「raw/practice/skills-精选/」 下沉淀了三批外部作者的 Claude Code 角色技能包（JohnnyTHK 14 个、obra 5 个、其他 3 个 + FutureJJ 全栈系列 7 个）</li><li>每个文件就是一份"领域专家上岗手册"：遇到对应场景不用从零思考，打开文件按清单套用</li></ul></div>2
+<p><code>raw/practice/skills-精选/</code> 下沉淀了三批外部作者的 Claude Code 角色技能包（JohnnyTHK 14 个、obra 5 个、其他 3 个 + FutureJJ 全栈系列 7 个）。每个文件就是一份"领域专家上岗手册"：<strong>遇到对应场景不用从零思考，打开文件按清单套用</strong>。价值密度两极分化——协议/流程类（agent-protocol、systematic-debugging、verification-before-completion）规则具体到可直接抄进自己的体系；领域专家类（rag-architect、senior-* 系列）是选型速查手册；脚手架类（saas-scaffolder、mcp-server-builder）价值取决于是否正好用那套技术栈。</p>
+<h2 id="精选速查表">精选速查表</h2>2
+<table>
+<thead>
+<tr>
+<th>技能（作者）</th>
+<th>一句话用途</th>
+<th>适用场景</th>
+<th>套用要点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>rag-architect（JohnnyTHK）</td>
+<td>RAG 全链路设计与排错手册</td>
+<td>建/优化 RAG 管线</td>
+<td>按十大模块逐项核对；见下文展开</td>
+</tr>
+<tr>
+<td>agent-protocol（JohnnyTHK）</td>
+<td>代理间通信协议：防环、隔离、固定输出格式</td>
+<td>多角色协同、董事会式会议</td>
+<td>四条防环硬规则 + 三层质检环；见下文展开</td>
+</tr>
+<tr>
+<td>agent-designer（JohnnyTHK）</td>
+<td>多 Agent 系统架构模式选型</td>
+<td>从零设计多 Agent 系统</td>
+<td>五种架构模式对号入座；见下文展开</td>
+</tr>
+<tr>
+<td>senior-prompt-engineer（JohnnyTHK）</td>
+<td>提示词优化 + RAG 评估 + Agent 编排三件套</td>
+<td>提示词调优、输出不可控时</td>
+<td>问题→模式对照表直接查；见下文展开</td>
+</tr>
+<tr>
+<td>systematic-debugging（obra）</td>
+<td>四阶段系统化调试流程</td>
+<td>任何 bug/测试失败/性能问题</td>
+<td>铁律：未查根因禁止修复；见下文展开</td>
+</tr>
+<tr>
+<td>verification-before-completion（obra）</td>
+<td>宣称"完成"前必须拿到新鲜验证证据</td>
+<td>提交/PR/汇报产出前</td>
+<td>跑命令→读输出→才许下结论；"应该没问题"=说谎</td>
+</tr>
+<tr>
+<td>dispatching-parallel-agents（obra）</td>
+<td>独立故障域并行派发子代理</td>
+<td>3+ 个互不相关的失败同时出现</td>
+<td>先判独立性，再一域一代理同轮并发派发</td>
+</tr>
+<tr>
+<td>writing-plans（obra）</td>
+<td>写"零上下文工程师"也能执行的实施计划</td>
+<td>有规格、动代码之前</td>
+<td>任务切到 2-5 分钟一步，每步带验证与提交</td>
+</tr>
+<tr>
+<td>subagent-driven-development（obra）</td>
+<td>每任务一个全新子代理 + 双验收</td>
+<td>同会话推进计划</td>
+<td>已提炼于<a href="%E5%AD%90%E4%BB%A3%E7%90%86%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91%E4%B8%8E%E6%8A%80%E8%83%BD%E7%BC%96%E5%86%99.html">子代理驱动开发与技能编写</a></td>
+</tr>
+<tr>
+<td>agent-workflow-designer（JohnnyTHK）</td>
+<td>工作流模式选型 + 脚手架</td>
+<td>单 prompt 撑不住的多步流程</td>
+<td>五模式：sequential/parallel/router/orchestrator/evaluator；从最小可行模式起步</td>
+</tr>
+<tr>
+<td>eval（JohnnyTHK）</td>
+<td>多代理产出排名（指标 or LLM 裁判）</td>
+<td>并行跑完多个代理后选优</td>
+<td>指标先排，差距 &lt;10% 用 LLM 裁判破平局</td>
+</tr>
+<tr>
+<td>mcp-server-builder（JohnnyTHK）</td>
+<td>OpenAPI → MCP 工具清单 + 严格校验</td>
+<td>把 REST API 暴露给 Agent</td>
+<td>工具名动词开头、一工具一意图、破坏性操作带确认参数、CI 里跑 strict 校验</td>
+</tr>
+<tr>
+<td>prompt-engineer-toolkit（JohnnyTHK）</td>
+<td>提示词 A/B 测试 + 版本管理</td>
+<td>提示词要上生产、多人共改</td>
+<td>测试用例含 expected/forbidden/regex 三层断言；只升不降分且零违例才可晋级</td>
+</tr>
+<tr>
+<td>research-summarizer（JohnnyTHK）</td>
+<td>结构化研究摘要/多源对比/引用提取</td>
+<td>读论文、报告、白皮书</td>
+<td>按体裁选骨架（论文用 IMRAD、文章用论点-证据-启示）；输出固定格式简报</td>
+</tr>
+<tr>
+<td>saas-scaffolder（JohnnyTHK)</td>
+<td>Next.js 14 SaaS 全栈脚手架（auth/DB/Stripe）</td>
+<td>起 SaaS 新项目</td>
+<td>填五行输入表即出完整文件树；技术栈绑定 Next.js + Drizzle + shadcn</td>
+</tr>
+<tr>
+<td>senior-data-engineer（JohnnyTHK）</td>
+<td>ETL/流式/数据质量框架</td>
+<td>数据管线设计与排错</td>
+<td>触发词驱动，按 workflow 走</td>
+</tr>
+<tr>
+<td>senior-data-scientist（JohnnyTHK）</td>
+<td>A/B 实验设计/因果推断/建模评估</td>
+<td>实验、观测数据归因</td>
+<td>实验前三件事：定唯一主指标、先算样本量、按用户级随机</td>
+</tr>
+<tr>
+<td>senior-ml-engineer（JohnnyTHK）</td>
+<td>模型部署/MLOps/LLM 集成</td>
+<td>模型上生产</td>
+<td>金丝雀 5% 流量 + p95&lt;100ms、错误率&lt;0.1% 才放量</td>
+</tr>
+<tr>
+<td>senior-computer-vision（JohnnyTHK）</td>
+<td>检测/分割/推理优化</td>
+<td>CV 系统建设</td>
+<td>部署走 ONNX/TensorRT；技术栈表速查</td>
+</tr>
+<tr>
+<td>karpathy-guidelines</td>
+<td>防 LLM 坏习惯的四条行为准则</td>
+<td>写码/改码/评审时</td>
+<td>假设要显式、最小实现、外科手术式改动、目标可验证</td>
+</tr>
+<tr>
+<td>image-gen（sinedied）</td>
+<td>OpenAI 图像生成零依赖 CLI</td>
+<td>生成/编辑图片</td>
+<td>参数表速查（size/quality/背景透明）</td>
+</tr>
+<tr>
+<td>skill-authoring（abhattacherjee）</td>
+<td>怎么写 SKILL.md 的完整方法论</td>
+<td>写自己的技能</td>
+<td>已提炼于<a href="%E5%AD%90%E4%BB%A3%E7%90%86%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91%E4%B8%8E%E6%8A%80%E8%83%BD%E7%BC%96%E5%86%99.html">子代理驱动开发与技能编写</a></td>
+</tr>
+<tr>
+<td>FutureJJ 全栈系列（7 个）</td>
+<td>fastapi-pro / nextjs-architect / react-mastery / nodejs-backend / python-expert / websocket-realtime / microservices-patterns</td>
+<td>对应技术栈开发时</td>
+<td>常规框架最佳实践包，用到哪栈翻哪个，无独特方法论</td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">重点展开一：rag-architect 的 RAG 架构检查清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 切块：固定尺寸（加 10-20% 重叠）/句子/段落/语义/递归/文档感知六种策略，按体裁选——叙事文用句子级、技术文档用段落级、混合内容用递归</li><li>4. 检索：稠密（语义）+ 稀疏（BM25 关键词）混合检索（RRF 融合），再上重排序（cross-encoder）提精度</li><li>总原则：从最简单方案起步，靠评估数据决定何时加复杂度</li></ul></div>2
+<p>把生产级 RAG 拆成十个必查模块，建系统时逐项过一遍：</p>
+<ol>
+<li><strong>切块</strong>：固定尺寸（加 10-20% 重叠）/句子/段落/语义/递归/文档感知六种策略，按体裁选——叙事文用句子级、技术文档用段落级、混合内容用递归。最常见的病就是"句子中间切断"，解法是边界感知 + 重叠。</li>
+<li><strong>嵌入模型</strong>：按维度分层——384 维快查、768 维均衡、1536 维高质量；代码用 CodeBERT、中文多语用 multilingual-e5。</li>
+<li><strong>向量库</strong>：原型用 Chroma、已有 PG 用 pgvector、高性能用 Qdrant、要托管用 Pinecone。</li>
+<li><strong>检索</strong>：稠密（语义）+ 稀疏（BM25 关键词）混合检索（RRF 融合），再上重排序（cross-encoder）提精度。</li>
+<li><strong>查询变换</strong>：查询与文档风格不一致用 HyDE（先生成假想答案再嵌入它）；召回不足用 Multi-Query（生成 3-5 个变体去重合并）；具体问题缺背景用 Step-Back（先泛化再检索）。</li>
+<li><strong>上下文组装</strong>：相关度优先排序、去冗余、摘要先行，硬管 token 预算。</li>
+<li><strong>评估</strong>：生产门槛量化——忠实度 &gt;90%、上下文相关 &gt;0.8、答案相关 &gt;0.85，指标用 Precision@K / Recall@K / MRR / RAGAS。</li>
+<li><strong>生产模式</strong>：查询级/语义级缓存、流式检索、失败降级（缓存兜底 + 备用库）。</li>
+<li><strong>成本</strong>：批量嵌入、只重嵌变更文档、量化压缩索引、简单查询路由到便宜通道。</li>
+<li><strong>护栏</strong>：注入防护、PII 过滤、幻觉检测、答案必须带出处。</li>
+</ol>
+<p><strong>排错速查</strong>：检索不相关 → 换嵌入模型 + 加重排 + 调阈值；延迟高 → 优化索引 + 缓存 + 换快模型；质量不稳 → 先把评估体系建起来再调参。总原则：<strong>从最简单方案起步，靠评估数据决定何时加复杂度</strong>。</p>
+<h2 id="重点展开二agent-protocol-的协议设计要点">重点展开二：agent-protocol 的协议设计要点</h2>2
+<p>这是给"C 套高管代理团队"定的通信协议，四块设计可直接迁移到任何多角色体系：</p>
+<ul>
+<li><strong>调用语法</strong>：<code>[INVOKE:role|question]</code> 发问，被调方用固定四段式回答——<strong>一句话结论 + 3 条支撑数据 + 置信度（高/中/低） + 一行 caveat</strong>。回答模板本身就是质量约束。</li>
+<li><strong>防环四硬规则</strong>（无条件执行）：① 禁自调用；② 链深上限 = 2（A→B→C 即止）；③ 同链禁回环（B 不能回调 A）；④ 每次调用携带 <code>[CHAIN: a→b→c]</code> 供下游自查。被阻断时必须<strong>显式声明所依赖的假设</strong>（<code>[ASSUMPTION: ...]</code>）而不是含糊带过。</li>
+<li><strong>何时调用 vs 何时假设</strong>：需要域内数据且错了会实质影响结论 → 调用；方向已明确精度不关键、或已在深度 2 → 假设并声明。<strong>两个代理结论冲突时禁止悄悄二选一</strong>，必须 <code>[CONFLICT: ...]</code> 上浮给用户，并给出保守/概率/升级三种处置。</li>
+<li><strong>按赌注分级质检</strong>：低赌注只做自查（来源标注、假设审计、置信打分、"So What"测试）；中赌注加<strong>跨域互检</strong>（涉及钱的 CFO 核、涉及可行性的 CTO 核）；高赌注/不可逆决策加<strong>批评者预审</strong>（最弱点/盲区/量化代价/放行结论）。对人的输出永远<strong>结论先行</strong>：每节最多 5 条、行动必须带负责人和期限、"我们或许应该"被明令禁止、没内容可报就保持沉默。</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">重点展开三：systematic-debugging 的四阶段调试流程</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>铁律只有一句：没完成根因调查，不许提出任何修复——症状修复即失败</li><li>作者还配了一张"借口 vs 现实"对照表专治合理化："紧急没时间走流程"→系统化比乱试更快；"我看出问题了直接修"→看到症状 ≠ 懂根因；95% 的"查无根因"其实是查得不彻底</li><li>1. 根因调查：逐字读报错（常含答案）→ 稳定复现 → 查最近变更（git diff）→ 多组件系统先在各组件边界记录进出数据，定位坏在哪层再深入 → 沿调用栈向上追坏值源头</li></ul></div>2
+<p>铁律只有一句：<strong>没完成根因调查，不许提出任何修复</strong>——症状修复即失败。四阶段强制串行：</p>
+<ol>
+<li><strong>根因调查</strong>：逐字读报错（常含答案）→ 稳定复现 → 查最近变更（git diff）→ 多组件系统先在<strong>各组件边界记录进出数据</strong>，定位坏在哪层再深入 → 沿调用栈向上追坏值源头。</li>
+<li><strong>模式比对</strong>：找同库正常工作的相似代码，逐条列差异（不许预设"这个不可能有影响"），参照实现要<strong>整篇读完</strong>而不是扫一眼。</li>
+<li><strong>假设与最小验证</strong>：一次只提出一个具体假设，做<strong>最小改动</strong>验证，一次只动一个变量；没效就换新假设，不许往上再叠修复。</li>
+<li><strong>实施</strong>：先写最简失败测试用例 → 只修根因一处（禁止"顺手优化"）→ 验证测试转绿且无回归。</li>
+</ol>
+<p><strong>止损机制</strong>：失败修复 ≥3 次 = 架构问题的信号，必须停下质疑架构本身（"是不是仅凭惯性在硬撑？"），与人讨论后决定重构还是继续。作者还配了一张"借口 vs 现实"对照表专治合理化："紧急没时间走流程"→系统化比乱试更快；"我看出问题了直接修"→看到症状 ≠ 懂根因；95% 的"查无根因"其实是查得不彻底。</p>
+<h2 id="重点展开四senior-prompt-engineer-的提示词工程要点">重点展开四：senior-prompt-engineer 的提示词工程要点</h2>2
+<ul>
+<li><strong>问题→模式对照表</strong>：输出含糊 → 加显式格式规范；太啰嗦 → 抽成 few-shot 示例；结果不稳定 → 加角色框架；缺边界情况 → 加约束边界。</li>
+<li><strong>Few-shot 设计</strong>：选 3-5 个<strong>多样化</strong>示例——简单例、边界例、复杂例、<strong>反例（什么不该输出）</strong>，格式前后一致，最后用保留用例验证泛化。</li>
+<li><strong>结构化输出四步</strong>：定 JSON schema → schema 写进 prompt → 加硬性格式指令（"只回 JSON，以 { 开头 } 结尾"）→ 机器校验输出。</li>
+<li><strong>五大模式速查</strong>：zero-shot（简单任务）/ few-shot（要格式一致）/ CoT（推理多步）/ 角色扮演（要专业视角）/ 结构化输出（要可解析）。</li>
+<li>配套三脚本：prompt_optimizer（token 清点 + 清晰度打分 + 冗余定位）、rag_evaluator（忠实度/覆盖率报告）、agent_orchestrator（YAML 定义校验 + 流程图可视化 + token 估算）。</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">与库主六员体系的关系</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>高度同构、可对表互鉴：agent-protocol 的批评者预审 ↔ 魔鬼代言人机制；其 Phase 2 独立分析期禁互相调用（防锚定/群体思维）↔ Debate 脑暴的显式归并规则；其"宣称前先验证" ↔ OC 审查 Gap 门禁；其"链深上限 + 假设显式声明" ↔ 派单纪律三条</li><li>真正互补的部分：领域专家包是六员体系没有的资源——RAG/CV/数据工程/ML 工程这些"外聘专家"，遇到对应技术任务时按需召唤一个（把对应技能文件塞给执行代理当角色卡），不必常驻</li></ul></div>2
+<ul>
+<li><strong>高度同构、可对表互鉴</strong>：agent-protocol 的批评者预审 ↔ 魔鬼代言人机制；其 Phase 2 独立分析期禁互相调用（防锚定/群体思维）↔ Debate 脑暴的显式归并规则；其"宣称前先验证" ↔ OC 审查 Gap 门禁；其"链深上限 + 假设显式声明" ↔ 派单纪律三条。JohnnyTHK 侧的优势是<strong>规则量化到可执行</strong>（深度=2、假设占比 &gt;50% 即降置信、每节 5 条上限），可作为六员协议细化时的参考样本。</li>
+<li><strong>已覆盖、不重复</strong>：多代理派发/验收的元方法（SDD、skill-authoring）已提炼于<a href="%E5%AD%90%E4%BB%A3%E7%90%86%E9%A9%B1%E5%8A%A8%E5%BC%80%E5%8F%91%E4%B8%8E%E6%8A%80%E8%83%BD%E7%BC%96%E5%86%99.html">子代理驱动开发与技能编写</a>；obra 的 dispatching-parallel-agents 与库主的并行调度经验（多智能体/六员高阶玩法）重叠较多，取其"先判独立性再并发"的判据即可。</li>
+<li><strong>真正互补的部分</strong>：<strong>领域专家包</strong>是六员体系没有的资源——RAG/CV/数据工程/ML 工程这些"外聘专家"，遇到对应技术任务时按需召唤一个（把对应技能文件塞给执行代理当角色卡），不必常驻。</li>
+<li><strong>明确不吸收的</strong>：C 套高管角色设定（CEO/CFO 等）本身与六员通道不匹配，只借其协议规则；saas-scaffolder 等技术栈绑定的脚手架，除非正好用 Next.js + Stripe 否则价值有限。</li>
+</ul>
+<h2 id="使用方式">使用方式</h2>2
+<ul>
+<li><strong>文件位置</strong>：<code>raw/practice/skills-精选/</code>，共 29 个文件。每个文件即一个 SKILL.md（带 frontmatter 触发词），可整包拷入 Claude Code 的 skills 目录或按需改造后入库。</li>
+<li><strong>按需取用</strong>：动手前先问"这个场景有没有现成手册"——建 RAG 翻 rag-architect、调 bug 翻 systematic-debugging、要宣称完成翻 verification-before-completion、多角色定协议翻 agent-protocol、写提示词翻 senior-prompt-engineer。<strong>翻的目的是套清单和阈值，不是通读</strong>。</li>
+<li><strong>喂给子代理</strong>：把对应技能文件全文作为角色卡发给执行代理，是最省上下文的用法（文件平均 2-15KB，一个代理一份）。</li>
+<li><strong>保鲜提醒</strong>：文件抓取于 2026-09，rag-architect 里的模型/价格信息已有时效性，套用时用当下选型替换，方法论部分仍有效。</li>
+</ul></div></details></div></body></html>

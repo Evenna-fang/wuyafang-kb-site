@@ -1,0 +1,588 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L12-AWQ量化实操</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L12-AWQ量化实操</span></div><div class="wrap"><h1 id="l12-awq-量化实操激活感知缩放以及-autoawq-退役之后怎么做">L12 AWQ 量化实操：激活感知缩放，以及 AutoAWQ 退役之后怎么做</h1>
+<blockquote>
+<p><strong>TL;DR</strong>：AWQ 不做误差补偿，也不反向传播。它只做一件事：按激活幅值给权重通道乘一个缩放因子 s，再量化，使"重要通道"的相对量化误差变小。论文（MLSys 2024 最佳论文）报告 Llama-2 的 INT4-g128 困惑度与 FP16 只差 0.09–0.13，校准数据只需 16 条序列，对校准集的分布变化比 GPTQ 稳。<strong>但 2025-05-11 起 AutoAWQ 已归档弃用</strong>，新项目用 llm-compressor（面向 vLLM）或 GPTQModel（多后端）。本篇给出：算法拆解、本机实跑的玩具 AWQ（验证"按激活选通道"和"α 搜索"）、工具链迁移路径、GPTQ/AWQ 选型证据。</p>
+<p><strong>验证边界</strong>：算法部分的数字来自本机 numpy 实跑；论文数字引自一手源；各库命令引自官方文档，<strong>本机无 GPU，这些命令未实跑</strong>，文中逐处标注。</p>
+<p><strong>金标证据</strong>：gold_tier=original_research ｜ 产出声明=本篇给出"AWQ 论文 Table 1/Table 2 的同构玩具复现 + α 搜索曲线 + 校准域偏移对照"的实跑记录 ｜ 排他性证据=§3 的四组实跑（按激活选 1% 通道层误差 1.1202，按权重选 4.3506，随机选 4.3391，RTN 5.2824；α=0.30 时 2.2275；换域后 AWQ 层误差变化 1.00–1.04 倍而 GPTQ 变化 3.11–3.97 倍）为本篇脚本产出 ｜ 抽查入口=§3 代码块仅依赖 numpy，可直接运行；论文数字抽查入口 https://arxiv.org/abs/2306.00978</p>
+</blockquote>
+<hr />
+<h1 id="whyawq-量化要解决的问题与边界">WHY：AWQ 量化要解决的问题与边界</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">0. 三问</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>你要把 FP16 模型压到 4bit，但没有、或不想依赖训练数据与反向传播，且希望换业务数据后量化结果仍然稳定</li><li>本篇回答：AWQ 为什么只缩放就有效、怎么搜缩放、2026 年用什么工具做、怎么和 GPTQ 取舍</li><li>不给"某模型 AWQ 后掉几个点"的通用结论</li></ul></div>2
+<p><strong>第一问：解决什么？</strong> 你要把 FP16 模型压到 4bit，但没有、或不想依赖训练数据与反向传播，且希望换业务数据后量化结果仍然稳定。本篇回答：AWQ 为什么只缩放就有效、怎么搜缩放、2026 年用什么工具做、怎么和 GPTQ 取舍。</p>
+<p><strong>第二问：不解决什么？</strong> 不重复《L12-模型量化-GPTQ-AWQ-GGUF》已有的位宽手算与 GGUF 内容。不讲 GPTQ 的 Hessian 补偿（见《L12-GPTQ量化实操》）。不给"某模型 AWQ 后掉几个点"的通用结论。</p>
+<p><strong>第三问：怎么用？</strong> §1–§2 看懂算法，§3 跑玩具实验，§4 对照论文数字，§5 看 GPTQ/AWQ 选型证据，§6 看工具链现状，§7 照着做，§8 部署，§9 排错，§10 清单。</p>
+<hr />
+<h1 id="whyt激活感知量化的观察与算法">WHYT：激活感知量化的观察与算法</h1>
+<h2 id="1-一个反直觉的起点重要的是激活不是权重">1. 一个反直觉的起点：重要的是激活，不是权重</h2>2
+<p>量化会引入误差。AWQ 的第一个观察是：<strong>权重通道的重要性由对应的输入激活幅值决定</strong>，而不是权重自己的大小。道理很直接：输出 y = Σ wᵢ·xᵢ，通道 i 的激活 xᵢ 很大时，wᵢ 的任何微小误差都会被放大成输出误差。</p>
+<p>论文（arXiv:2306.00978）在 OPT-6.7B、INT3-g128 上做了一个对照：保留一小部分通道为 FP16，其余 RTN 量化，看选哪些通道最有效。结果（WikiText 困惑度，FP16 基线 10.86，纯 RTN 23.54）：</p>
+<table>
+<thead>
+<tr>
+<th>选哪些通道保留 FP16</th>
+<th>0.1%</th>
+<th>1%</th>
+<th>3%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>按激活幅值选</td>
+<td>11.58</td>
+<td><strong>11.39</strong></td>
+<td>11.36</td>
+</tr>
+<tr>
+<td>按权重范数选</td>
+<td>23.41</td>
+<td>22.37</td>
+<td>22.45</td>
+</tr>
+<tr>
+<td>随机选</td>
+<td>约 23.5–24.2（抽取结果的列对应不清，仅作量级参考）</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>只保留 1% 的通道，按激活选的困惑度从 23.54 降到 11.39（增量从 +12.68 降到 +0.53），按权重选几乎没有改善（+11.51），随机选等同于没做。论文据此提出：<strong>约 0.1%–1% 的通道是"显著通道"，要按激活而不是按权重来识别</strong>。</p>
+<p>但"保留 1% 为 FP16"在硬件上不友好（混合精度，访存不规整）。AWQ 的第二步是找一个不需要混精度的等价办法。</p>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">2. 算法拆解：缩放、搜索、裁剪</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="21-缩放的数学">2.1 缩放的数学</h3>3
+<p>量化一个权重 w：Q(w) = Δ·Round(w/Δ)，Δ = max|w| / 2^(N−1)。给 w 乘 s &gt; 1，再让激活除以 s，乘积不变：</p>
+<pre><code>y = w·x = (w·s) · (x/s)
+量化后：Q(w·s) · (x/s)
+</code></pre>
+<p>当 s &gt; 1 且这个通道没有改变该组的 max|w| 时，Δ 基本不变，而 w·s 变大，<strong>相对误差变成原来的 1/s</strong>。论文的 Table 2（同一模型）验证了这一点：</p>
+<table>
+<thead>
+<tr>
+<th>方案（OPT-6.7B，INT3-g128）</th>
+<th>困惑度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RTN</td>
+<td>23.54</td>
+</tr>
+<tr>
+<td>显著通道保留 FP16</td>
+<td>11.39</td>
+</tr>
+<tr>
+<td>显著通道乘 s=2 再量化</td>
+<td>11.92</td>
+</tr>
+<tr>
+<td>AWQ（搜索得到的 s）</td>
+<td>11.39</td>
+</tr>
+</tbody>
+</table>
+<p>s=2 的"只缩放"就把 23.54 降到 11.92，不需要任何混合精度。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.2 s 不能无限大</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>放大一个通道会改变整个 group 的取值范围</li><li>s 太大时，这个通道的权重成了组内最大值，Δ 变大，其余通道的误差被放大</li><li>α 在 [0, 1] 上做 20 格网格搜索（论文原话：grid size of 20）</li></ul></div>3
+<p>放大一个通道会改变整个 group 的取值范围。s 太大时，这个通道的权重成了组内最大值，Δ 变大，<strong>其余通道的误差被放大</strong>。所以 s 要取折中。论文的做法：</p>
+<pre><code>s = s_X ^ α        （s_X：校准数据上每个通道的平均激活幅值）
+α* = argmin_α  ‖ Q(W·diag(s))·diag(s)⁻¹·X − W·X ‖
+</code></pre>
+<p>α 在 [0, 1] 上做 <strong>20 格网格搜索</strong>（论文原话：grid size of 20）。α=0 表示不缩放（等价 RTN），α=1 表示完全按激活幅值缩放。<strong>没有反向传播、没有逐列补偿</strong>，只有前向与量化，这就是 AWQ 快且对校准集不敏感的原因。</p>
+<h3 id="23-权重裁剪">2.3 权重裁剪</h3>3
+<p>缩放之后，论文还对每个 group 做一次权重裁剪的搜索（最小化量化后输出误差），进一步减小 Δ。这一步在多数库里是默认开启的，参数名各库不同，见 §7。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.4 校准数据</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>论文用 Pile 数据集的子集，16 条序列；对比 GPTQ 用 192 条</li><li>论文把数据量小列为 AWQ 的优势之一，理由是 AWQ 只需要估计"每个通道的平均激活幅值"这一阶统计量，而 GPTQ 要估计整个协方差矩阵</li></ul></div>3
+<p>论文用 Pile 数据集的子集，<strong>16 条序列</strong>；对比 GPTQ 用 192 条。论文把数据量小列为 AWQ 的优势之一，理由是 AWQ 只需要估计"每个通道的平均激活幅值"这一阶统计量，而 GPTQ 要估计整个协方差矩阵。</p>
+<hr />
+<h1 id="how玩具验证工具链实操与部署验收">HOW：玩具验证、工具链实操与部署验收</h1>
+<h2 id="3-本机实跑玩具-awq">3. 本机实跑：玩具 AWQ</h2>2
+<p>和《L12-GPTQ量化实操》§3 同一套思路：用合成数据验证机理方向，<strong>不换算成真实模型的掉点幅度</strong>。设置：d_out=256、d_in=512，激活里有 1% 的通道（5 个）幅值是其余的 20 倍，权重是高斯随机数，量化为 4bit、g128 对称 RTN。</p>
+<pre><code class="language-python">import numpy as np
+
+def rtn_sym(W, bits=4, group=128):                 # 对称 RTN：Δ = max|w| / (2^(N-1)-1)
+    qm = 2 ** (bits - 1) - 1
+    out = np.empty_like(W)
+    for g in range(0, W.shape[1], group):
+        b = W[:, g:g + group]
+        d = np.abs(b).max(axis=1, keepdims=True) / qm
+        d[d == 0] = 1.0
+        out[:, g:g + group] = np.clip(np.round(b / d), -qm - 1, qm) * d
+    return out
+
+def awq_search(W, X, err, bits=4, group=128, grid=20):
+    sx = np.abs(X).mean(axis=1)                     # s_X：每通道平均激活幅值
+    best = (None, np.inf, None)
+    for k in range(grid):                           # α 取 0, 0.05, ..., 0.95
+        a = k / grid
+        s = sx ** a
+        s = s / np.sqrt(s.max() * s.min())          # 归一化
+        Wq = rtn_sym(W * s[None, :], bits, group) / s[None, :]   # Q(W·diag(s))·diag(s)^-1
+        e = err(W, Wq, X)                           # err = ‖(W−Wq)X‖²/n
+        if e &lt; best[1]:
+            best = (a, e, s)
+    return best
+</code></pre>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.1 实验一：选哪 1% 通道（对应论文 Table 1）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>读数：按激活选 1% 通道保留 FP16，层误差降到 RTN 的 21%（1.1202 / 5.2824）；按权重选和随机选只降到 82%–83%，两者几乎没有区别（4.3506 vs 4.3391）</li><li>为什么按权重选也有一点点改善：保留任意 1% 通道为 FP16，总会少掉一部分误差，但没有针对性</li><li>AWQ 的缩放（不用混精度）把误差降到 RTN 的 42%，介于"全保留"与"完全不处理"之间</li></ul></div>3
+<pre><code>RTN                      层误差=5.2824e+00
+1% FP16 (按激活选)        层误差=1.1202e+00
+1% FP16 (按权重幅值选)    层误差=4.3506e+00
+1% FP16 (随机选)          层误差=4.3391e+00
+AWQ 缩放 (搜到 alpha=0.30)  层误差=2.2275e+00   相对 RTN 降低 57.8%
+</code></pre>
+<p><strong>读数</strong>：按激活选 1% 通道保留 FP16，层误差降到 RTN 的 21%（1.1202 / 5.2824）；按权重选和随机选只降到 82%–83%，两者几乎没有区别（4.3506 vs 4.3391）。这和论文 Table 1 的方向一致。AWQ 的缩放（不用混精度）把误差降到 RTN 的 42%，介于"全保留"与"完全不处理"之间。</p>
+<p><strong>为什么按权重选也有一点点改善</strong>：保留任意 1% 通道为 FP16，总会少掉一部分误差，但没有针对性。这个玩具里随机选和按权重选各降了 17%–18%，我没有在多个种子上重复，所以不要读出"按权重选略好于随机"之类的细节。</p>
+<h3 id="32-实验二放大倍数-s-的取舍对应论文-table-2">3.2 实验二：放大倍数 s 的取舍（对应论文 Table 2）</h3>3
+<p>只放大显著通道（按激活选的 5 个），倍数取不同值：</p>
+<pre><code>s=1.0   层误差=5.2824e+00
+s=1.25  层误差=3.9696e+00
+s=1.5   层误差=3.0528e+00
+s=2.0   层误差=2.4079e+00
+s=4.0   层误差=3.4330e+00
+s=8.0   层误差=1.0155e+01
+</code></pre>
+<p><strong>读数</strong>：呈 U 形。s=2.0 最优（2.4079，比 RTN 降 54%），s≥4 开始回升，s=8 时（10.155）比不缩放还差一倍。机理就是 §2.2 讲的：通道放大到成为组内最大值后，Δ 被撑大，其余通道的误差上升。所以 s 必须搜索，不能拍脑袋"越大越好"。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.3 实验三：α 搜索曲线</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>最优点 0.30 在 20 格网格里被找到</li><li>真实模型每一层的最优 α 不同，库里是逐层搜索</li></ul></div>3
+<pre><code>alpha=0.00 层误差=5.2824e+00
+alpha=0.15 层误差=2.8677e+00
+alpha=0.30 层误差=2.2275e+00
+alpha=0.45 层误差=3.1414e+00
+alpha=0.60 层误差=6.1845e+00
+alpha=0.75 层误差=1.2853e+01
+alpha=0.90 层误差=2.3389e+01
+</code></pre>
+<p><strong>读数</strong>：α=0 时等于 RTN；α 从 0 增到 0.30 误差持续下降；超过 0.45 开始回升，α≥0.6 比 RTN 还差。最优点 0.30 在 20 格网格里被找到。曲线形状（有明确最低点、两端更差）说明 20 格网格足以定位最优，也说明<strong>不搜索而固定取 α=1 会适得其反</strong>。真实模型每一层的最优 α 不同，库里是逐层搜索。</p>
+<h3 id="34-实验四校准分布偏移awq-vs-gptq">3.4 实验四：校准分布偏移（AWQ vs GPTQ）</h3>3
+<p>设置：A 域校准、B 域评估。两个域的"离群通道幅值"相同，但通道之间的相关结构不同（相当于相同模型换了文本领域）。三个随机种子：</p>
+<pre><code>seed=0  同域: AWQ=2.359e+00 GPTQ=1.642e+00 | 换域(B): AWQ=2.365e+00 GPTQ=6.279e+00 RTN=5.924e+00 | AWQ换域/同域=1.00x GPTQ换域/同域=3.82x
+seed=1  同域: AWQ=2.069e+00 GPTQ=1.842e+00 | 换域(B): AWQ=2.157e+00 GPTQ=5.724e+00 RTN=5.725e+00 | AWQ换域/同域=1.04x GPTQ换域/同域=3.11x
+seed=2  同域: AWQ=2.295e+00 GPTQ=1.544e+00 | 换域(B): AWQ=2.314e+00 GPTQ=6.131e+00 RTN=6.165e+00 | AWQ换域/同域=1.01x GPTQ换域/同域=3.97x
+</code></pre>
+<p><strong>读数</strong>：①同域内，GPTQ 的层误差更低（1.54–1.84 vs 2.07–2.36），因为 GPTQ 用了更多信息。②换域后，AWQ 的误差几乎不变（1.00–1.04 倍），GPTQ 放大到 3.11–3.97 倍，<strong>几乎退化到和 RTN 一样</strong>（5.72–6.28 vs 5.72–6.17）。③原因：AWQ 只依赖"每通道平均激活幅值"，而这个量在两个域里一致；GPTQ 依赖通道之间的协方差，两个域不同。</p>
+<p><strong>限制</strong>：这是构造出来的最有利于这个结论的场景（幅值不变、相关结构全变）。真实换域时幅值也会变，AWQ 也会退化，只是幅度更小。论文给出的真实数字见 §4.3。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">4. 论文数字（一手源）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>以下来自 arXiv:2306.00978，经 ar5iv 页面抽取（抽取经过网页摘要工具，写进汇报前请对照原表）</li><li>出处：MLSys 2024，Best Paper Award</li></ul></div>2
+<p>以下来自 arXiv:2306.00978，经 ar5iv 页面抽取（<strong>抽取经过网页摘要工具，写进汇报前请对照原表</strong>）。出处：MLSys 2024，Best Paper Award。</p>
+<h3 id="41-llama-2-wikitext2-困惑度越低越好">4.1 Llama-2 WikiText2 困惑度（越低越好）</h3>3
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>INT3-g128（7B / 13B / 70B）</th>
+<th>INT4-g128（7B / 13B / 70B）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FP16</td>
+<td>5.47 / 4.88 / 3.32</td>
+<td>同左</td>
+</tr>
+<tr>
+<td>RTN</td>
+<td>6.66 / 5.52 / 3.98</td>
+<td>5.73 / 4.98 / 3.46</td>
+</tr>
+<tr>
+<td>GPTQ</td>
+<td>6.43 / 5.48 / 3.88</td>
+<td>5.69 / 4.98 / 3.42</td>
+</tr>
+<tr>
+<td>GPTQ-R（act-order）</td>
+<td>6.42 / 5.41 / 3.86</td>
+<td>5.63 / 4.99 / 3.43</td>
+</tr>
+<tr>
+<td>AWQ</td>
+<td>6.24 / 5.32 / 3.74</td>
+<td>5.60 / 4.97 / 3.41</td>
+</tr>
+</tbody>
+</table>
+<p><strong>按"相对 FP16 的困惑度增量"重算（我算的）：</strong></p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>INT4-g128 增量（7B / 13B / 70B）</th>
+<th>INT3-g128 增量（7B / 13B / 70B）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RTN</td>
+<td>+0.26 / +0.10 / +0.14</td>
+<td>+1.19 / +0.64 / +0.66</td>
+</tr>
+<tr>
+<td>GPTQ</td>
+<td>+0.22 / +0.10 / +0.10</td>
+<td>+0.96 / +0.60 / +0.56</td>
+</tr>
+<tr>
+<td>AWQ</td>
+<td><strong>+0.13 / +0.09 / +0.09</strong></td>
+<td><strong>+0.77 / +0.44 / +0.42</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>读法</strong>：①INT4-g128 下三种方法都已接近 FP16，13B 上 RTN、GPTQ、AWQ 的差距只有 0.01，<strong>4bit 的区分度很小</strong>。②INT3 下差距拉开：70B 上 AWQ 的增量 0.42 比 GPTQ 的 0.56 少 25%，比 RTN 的 0.66 少 36%。③这是 AWQ 作者自己的论文，对手方法由作者复现；<strong>结论需要独立复现佐证</strong>，§5 会给出可交叉验证的点。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">4.2 速度</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>论文的推理系统 TinyChat：相对 Huggingface FP16 实现，摘要称"超过 3×"，引言与结论称平均 3.2–3.3×；4090 桌面卡上最高 3.9×，Jetson Orin 上 3.5×</li><li>这些数字是 TinyChat 自带 kernel 的结果，不是 vLLM 里的速度</li></ul></div>3
+<p>论文的推理系统 TinyChat：相对 Huggingface FP16 实现，摘要称"超过 3×"，引言与结论称平均 3.2–3.3×；4090 桌面卡上最高 3.9×，Jetson Orin 上 3.5×。这些数字是 TinyChat 自带 kernel 的结果，<strong>不是 vLLM 里的速度</strong>。</p>
+<h3 id="43-校准集稳健性">4.3 校准集稳健性</h3>3
+<p>论文文字：校准集与评测集来自不同领域时（PubMed 与 Enron 互换），"AWQ 的困惑度只上升 0.5–0.6，而 GPTQ 上升 2.3–4.9"。数据量：AWQ 16 条序列，GPTQ 192 条。论文正文没给逐对数值，只有这个区间。这与 §3.4 的玩具实验方向一致，但<strong>两者互相不能当作彼此的证明</strong>：玩具实验验证机理成立，论文数字说明真实模型上量级。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">5. GPTQ 还是 AWQ：证据、边界和我的结论</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 没有特别理由时，4bit 用哪个都行</li><li>论文数字里 4bit-g128 的 GPTQ 与 AWQ 差 0.00–0.09 PPL，7B 上 AWQ 比 GPTQ 低 0.09（约 1.6%），13B 上只差 0.01（约 0.2%）</li><li>《L12-模型量化》里"AWQ 比 GPTQ 好 1–3%"的说法（该篇已标注为二手）与论文只在 7B 附近吻合，其他规模偏乐观，建议在该篇里改成上表的来源与数值（我未改动，见交付说明）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>GPTQ</th>
+<th>AWQ</th>
+<th>依据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>核心操作</td>
+<td>Hessian 二阶补偿</td>
+<td>激活感知缩放 + 裁剪</td>
+<td>两篇论文</td>
+</tr>
+<tr>
+<td>校准数据量</td>
+<td>论文 128×2048 token；llm-compressor 示例 512 条</td>
+<td>论文 16 条序列</td>
+<td>论文、文档</td>
+</tr>
+<tr>
+<td>校准集偏移敏感性</td>
+<td>高（论文：+2.3–4.9 PPL）</td>
+<td>低（论文：+0.5–0.6 PPL）</td>
+<td>AWQ 论文</td>
+</tr>
+<tr>
+<td>4bit-g128 精度</td>
+<td>接近 FP16</td>
+<td>接近 FP16，略优</td>
+<td>§4.1：差距 0.00–0.09 PPL</td>
+</tr>
+<tr>
+<td>3bit 精度</td>
+<td>较差</td>
+<td>更好</td>
+<td>§4.1：70B 上 0.56 vs 0.42</td>
+</tr>
+<tr>
+<td>同域内层误差（玩具）</td>
+<td>更低</td>
+<td>略高</td>
+<td>§3.4</td>
+</tr>
+<tr>
+<td>量化耗时</td>
+<td>8B 约 12 分钟量级（据论文每十亿参数分钟数估算）</td>
+<td>AutoAWQ README：7B 约 10–15 分钟，70B 约 1 小时</td>
+<td>论文、README</td>
+</tr>
+<tr>
+<td>工具链现状</td>
+<td>GPTQModel、llm-compressor 活跃</td>
+<td>AutoAWQ 已弃用；llm-compressor、GPTQModel 活跃</td>
+<td>各仓库</td>
+</tr>
+<tr>
+<td>推理 kernel</td>
+<td>Marlin、Machete 等</td>
+<td>AWQ_MARLIN、AWQ_MACHETE 等</td>
+<td>GPTQModel README</td>
+</tr>
+</tbody>
+</table>
+<p><strong>怎么选（我的判断，不是官方结论）：</strong></p>
+<ol>
+<li><strong>没有特别理由时，4bit 用哪个都行</strong>。论文数字里 4bit-g128 的 GPTQ 与 AWQ 差 0.00–0.09 PPL，7B 上 AWQ 比 GPTQ 低 0.09（约 1.6%），13B 上只差 0.01（约 0.2%）。《L12-模型量化》里"AWQ 比 GPTQ 好 1–3%"的说法（该篇已标注为二手）与论文只在 7B 附近吻合，其他规模偏乐观，<strong>建议在该篇里改成上表的来源与数值</strong>（我未改动，见交付说明）。</li>
+<li><strong>校准数据拿不到业务代表样本，或业务领域多变</strong> → 优先 AWQ。</li>
+<li><strong>有业务代表性校准集，且追求同域极致精度</strong> → GPTQ（可用 act-order）有机会更好，但要自己测。</li>
+<li><strong>要压到 3bit</strong> → AWQ 论文证据更好，但必须完整回归。</li>
+<li><strong>别忽略引擎支持</strong>：不是所有引擎都支持两种格式的所有 kernel。先看目标引擎，再选方法。vLLM 页面表格我没法可靠抽取，请直接查 https://docs.vllm.ai/en/stable/features/quantization/ 。</li>
+<li><strong>不要用单一指标定论</strong>：困惑度、任务指标、业务回归集三者都要看（《L12-GPTQ量化实操》§9）。同一模型在不同来源里的 FP16 困惑度不同（AWQ 论文 Llama-2-7B 为 5.47，Marlin README 为 5.12），说明评测口径（如上下文长度）不一致，<strong>不同来源的困惑度绝对值不能直接比较</strong>。</li>
+</ol>
+<hr />
+<h2 id="6-2026-年的-awq-工具链谁还活着">6. 2026 年的 AWQ 工具链：谁还活着</h2>2
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>状态</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AutoAWQ</strong></td>
+<td><strong>已归档</strong>。README：2025-05-11 被所有者归档，只读；"officially deprecated and will no longer be maintained"。最后测试配置 Torch 2.6.0、Transformers 4.51.3</td>
+<td>网上大量 AWQ 教程基于它。读得懂、能解析旧产物，<strong>但不要用于新项目</strong></td>
+</tr>
+<tr>
+<td><strong>llm-compressor</strong></td>
+<td>活跃（vLLM 项目）。AutoAWQ README 与 vLLM 文档都指它为继任者</td>
+<td>面向 vLLM 的首选</td>
+</tr>
+<tr>
+<td><strong>GPTQModel</strong></td>
+<td>活跃。README 称支持 GPTQ、AWQ、ParoQuant、QQQ、GGUF、FP8、EXL3 等</td>
+<td>需要多后端（含 CPU、AMD 等）时选</td>
+</tr>
+<tr>
+<td>mlx-lm</td>
+<td>AutoAWQ README 指出 mlx-lm 已支持 AWQ（Mac）</td>
+<td>Apple 芯片</td>
+</tr>
+<tr>
+<td>llm-awq（MIT HAN Lab）</td>
+<td>论文官方实现；transformers 文档称其产物可被加载</td>
+<td>读源码、复现论文</td>
+</tr>
+<tr>
+<td>transformers</td>
+<td>只支持<strong>加载</strong>AWQ 模型（llm-awq、autoawq 产物）</td>
+<td>不负责量化</td>
+</tr>
+</tbody>
+</table>
+<p>两个<strong>现实风险</strong>：</p>
+<ul>
+<li><strong>vLLM 文档自己也警告</strong>："The AutoAWQ library is deprecated"，并建议转用 llm-compressor 的 AWQ 示例。</li>
+<li><strong>transformers 文档警告</strong>：安装 autoawq 会把 transformers 降级到 4.47.1，推理时可能需要重装 transformers。所以老教程里的 <code>pip install autoawq</code> 会破坏你现有环境。</li>
+</ul>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">7. 实操：三条路径（命令来自官方文档，本机无 GPU 未实跑）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="71-路径-allm-compressor-awq推荐面向-vllm">7.1 路径 A：llm-compressor AWQ（推荐，面向 vLLM）</h3>3
+<p>官方 AWQ 示例的配方（<code>examples/awq/README.md</code>，本次复核确认的部分）：</p>
+<pre><code class="language-python">recipe = [
+    AWQModifier(),
+    QuantizationModifier(
+        ignore=[&quot;lm_head&quot;],
+        scheme=&quot;W4A16_ASYM&quot;,       # 4bit 权重、16bit 激活、非对称
+        targets=[&quot;Linear&quot;],
+    ),
+]
+</code></pre>
+<p>README 同时说明：<code>AWQModifier</code> 决定哪些层被"平滑"（也就是做缩放），<code>QuantizationModifier</code> 的 <code>targets</code> 与 <code>ignore</code> 决定哪些层被量化。需要自定义时，通过 <code>mappings</code> 参数传入 <code>AWQMapping</code>，例如 <code>AWQMapping("re:.*v_proj", ["re:.*o_proj"])</code> 表示 v_proj 的输出缩放需要吸收进 o_proj。<strong>mappings 的核心约束</strong>：缩放因子必须能被相邻层吸收（如前一层的 LayerNorm 或线性层），否则等价变换不成立；标准的 Llama 类结构库里有内置映射，一般不用自己写。</p>
+<p>完整脚本的流程与 GPTQ 版相同（《L12-GPTQ量化实操》§6.3）：加载模型 → 准备校准数据 → <code>oneshot(model=..., dataset=..., recipe=recipe, ...)</code> → <code>model.save_pretrained(dir, save_compressed=True)</code>。我此前抽取到的示例脚本使用 256 条校准样本、序列长度 512、<code>duo_scaling="both"</code>，<strong>本次复核 README 页面没有重现这些值</strong>，请以仓库里 <code>examples/awq/</code> 下的脚本为准。</p>
+<p>量化与推理建议分环境，原因同《L12-GPTQ量化实操》§10.5。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">7.2 路径 B：GPTQModel 里的 AWQ 格式</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>这是旧脚本迁移时最容易写反的地方</li></ul></div>3
+<p>GPTQModel README 的矩阵列出了 AWQ 的格式（<code>FORMAT.GEMM</code>、<code>GEMV</code>、<code>GEMV_FAST</code>、<code>LLM_AWQ</code>、<code>MARLIN</code>、<code>BITBLAS</code>）和后端（<code>AWQ_TORCH_ATEN</code>、<code>AWQ_MACHETE</code>、<code>AWQ_MARLIN</code>、<code>AWQ_EXLLAMA_V2</code>、<code>AWQ_GEMM</code>、<code>AWQ_GEMM_TRITON</code>、<code>AWQ_TORCH_FUSED</code> 等）。迁移说明里与 AutoAWQ 相关的两条：<strong><code>version</code> 属性现在叫 <code>format</code>；<code>zero_point</code> 现在叫 <code>sym</code>，<code>sym=True</code> 等价于 <code>zero_point=False</code></strong>。这是旧脚本迁移时最容易写反的地方。具体量化入口以所装版本的 README 为准，本次抽取只确认了 GPTQ 路线的 <code>GPTQConfig(bits=4, group_size=128)</code>，<strong>没有确认 AWQ 路线的完整调用代码，本篇不编造</strong>。</p>
+<h3 id="73-路径-cautoawq仅为读懂旧教程不建议新项目">7.3 路径 C：AutoAWQ（仅为读懂旧教程，不建议新项目）</h3>3
+<p>vLLM 文档保留的旧写法，可帮助你读懂网上的老教程：</p>
+<pre><code class="language-python">from awq import AutoAWQForCausalLM
+from transformers import AutoTokenizer
+
+quant_config = {&quot;zero_point&quot;: True, &quot;q_group_size&quot;: 128, &quot;w_bit&quot;: 4, &quot;version&quot;: &quot;GEMM&quot;}
+# ... 加载 model、tokenizer 后：
+model.quantize(tokenizer, quant_config=quant_config)
+</code></pre>
+<p><code>version</code> 的两个取值（来自 AutoAWQ README）：</p>
+<ul>
+<li><strong>GEMM</strong>：batch size 小于 8 时比 FP16 快很多，长上下文友好。</li>
+<li><strong>GEMV</strong>：只适用 batch size 为 1，比 GEMM 快约 20%，但长上下文表现不好。</li>
+</ul>
+<p>AutoAWQ 的 <code>fuse_layers=True</code> 启用融合模块，加速主要来自 FasterTransformer，<strong>仅 Linux</strong>。README 还写明：NVIDIA 需要算力 7.5（Turing）以上、CUDA 11.8 以上。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">7.4 在 transformers 里使用已有的 AWQ 模型</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>识别一个模型是否 AWQ：看 config.json 的 「quantization_config.quant_method」 是否为 「"awq"」，并带 「bits」、「group_size」、「zero_point」、「version」</li></ul></div>3
+<p>识别一个模型是否 AWQ：看 config.json 的 <code>quantization_config.quant_method</code> 是否为 <code>"awq"</code>，并带 <code>bits</code>、<code>group_size</code>、<code>zero_point</code>、<code>version</code>。加载与普通模型一样：</p>
+<pre><code class="language-python">model = AutoModelForCausalLM.from_pretrained(&quot;TheBloke/zephyr-7B-alpha-AWQ&quot;, device_map=&quot;auto&quot;)
+</code></pre>
+<p>融合模块（<code>AwqConfig(bits=4, fuse_max_seq_len=512, do_fuse=True)</code>）对 Llama、Mistral 开箱支持，其他结构要写 <code>modules_to_fuse</code>。文档给出 Mistral-7B-OpenOrca-AWQ 在 batch size 1 下的对比：<strong>解码速度（tokens/s）未融合 31.6–38.5，融合后 80.3–106.3</strong>，显存也略降（序列 32 时 4.50 GB → 4.00 GB）。同时有两个限制：①<code>fuse_max_seq_len</code> 必须覆盖"上下文长度 + 预期生成长度"，设小了会出错，设大了浪费显存；②<strong>融合模块不能与 FlashAttention-2 同时使用</strong>。另可用 <code>AwqConfig(version="exllama")</code> 启用 ExLlamaV2 kernel，AMD GPU 也支持。</p>
+<hr />
+<h2 id="8-部署vllm-加载">8. 部署：vLLM 加载</h2>2
+<p>vLLM 文档对 AutoAWQ 产物的旧写法是：</p>
+<pre><code class="language-python">llm = LLM(model=&quot;TheBloke/Llama-2-7b-Chat-AWQ&quot;, quantization=&quot;auto_awq&quot;)
+</code></pre>
+<p>注意这里参数值是 <code>"auto_awq"</code>。同一个文档页给出了弃用警告。llm-compressor 产物是 compressed-tensors 格式，加载方式与《L12-GPTQ量化实操》§8.1 相同，一般不用显式传 <code>quantization</code>。<strong>参数取值名随 vLLM 版本变化</strong>，到新环境先看 <code>vllm serve --help</code> 与启动日志里识别到的量化方法。</p>
+<p>GPTQModel README 的后端矩阵里有 <code>AWQ_MARLIN</code>、<code>AWQ_MACHETE</code>，说明 AWQ 权重也可以走 Marlin 一类 kernel。是否实际走了、速度多少，<strong>必须在你的 GPU 上压测</strong>，并对照 FP16 基线，不要直接引用论文的 3× 数字。</p>
+<p>评测方式与 GPTQ 版相同：<code>lm_eval --model vllm --model_args pretrained=...,add_bos_token=true --tasks ...</code>，量化模型对 BOS 敏感。</p>
+<hr />
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">9. 翻车排查（AWQ 特有）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>9.1 照着旧教程装 autoawq，环境被降级</li><li>9.7 把"论文里 4bit 几乎无损"当成结论</li><li>现象：transformers、torch 被改动，其他项目起不来</li></ul></div>2
+<p><strong>9.1 照着旧教程装 autoawq，环境被降级。</strong> 现象：transformers、torch 被改动，其他项目起不来。依据：transformers 文档警告 autoawq 会把 transformers 降到 4.47.1。改法：新建 venv；或改用 llm-compressor。</p>
+<p><strong>9.2 版本命名对不上。</strong> 现象：旧配置里 <code>zero_point=True</code>、<code>version="GEMM"</code>，新库里找不到这两个键。依据：GPTQModel 迁移说明（<code>version</code>→<code>format</code>，<code>zero_point</code>→<code>sym</code>，二者含义取反关系见 §7.2）。改法：逐项对照，别凭感觉改。</p>
+<p><strong>9.3 融合模块出错或显存不降。</strong> 现象：打开 <code>do_fuse</code> 后生成中途报错，或同时开了 FlashAttention-2。依据：transformers 文档（融合不能与 FlashAttention2 合用；<code>fuse_max_seq_len</code> 要包含上下文与生成长度）。改法：二选一；<code>fuse_max_seq_len</code> 取"最大上下文 + 最大生成"并留余量。</p>
+<p><strong>9.4 GEMV 版本在多并发下很慢。</strong> 依据：AutoAWQ README：GEMV 只适合 batch 1。改法：服务场景用 GEMM 或 Marlin 类 kernel。</p>
+<p><strong>9.5 缩放不被吸收的结构。</strong> 现象：自定义结构的模型 AWQ 后输出明显变差。机理：§7.1 的映射约束，缩放因子没有被相邻层正确吸收就不再等价。改法：先在小样本上对比量化前后同一批 prompt 的输出，再看完整评测；自写 <code>AWQMapping</code> 时优先从官方 Llama 示例改。</p>
+<p><strong>9.6 评测口径混用。</strong> 现象：把博客里的困惑度和自己的对比，得出"我的量化更差"。依据：§5 第 6 点。改法：只比较同一脚本、同一数据、同一上下文长度下的 FP16 与量化。</p>
+<p><strong>9.7 把"论文里 4bit 几乎无损"当成结论。</strong> 论文数字来自 WikiText2 困惑度，指标本身对长尾能力（推理、代码、多语言）不敏感。改法：任务级评测 + 业务回归集。</p>
+<hr />
+<h2 id="10-上线前检查清单">10. 上线前检查清单</h2>2
+<ol>
+<li>工具：不用 AutoAWQ 做新量化；记录 llm-compressor 或 GPTQModel 的版本号。</li>
+<li>环境：量化与服务分 venv；确认没有被降级的 transformers。</li>
+<li>校准：样本要覆盖业务领域；对话模型套模板且不重复加 BOS。</li>
+<li>配置：目标 4bit、g128；<code>lm_head</code> 排除；确认 <code>sym</code> / <code>zero_point</code> 与目标 kernel 兼容。</li>
+<li>产物：保存成目标引擎可识别的格式；检查 config.json 里的 <code>quantization_config</code>。</li>
+<li>加载：vLLM 能起；日志里确认量化方法与 kernel 路径。</li>
+<li>质量：任务级评测（含 <code>add_bos_token=true</code>）+ 业务回归集，对照 FP16 基线。</li>
+<li>性能：压测 TTFT 与吞吐；多并发场景特别要测。</li>
+<li>回滚：保留 FP16 原始权重、量化脚本与校准数据版本。</li>
+</ol>
+<hr />
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">11. 术语表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>一句话定义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>显著通道</td>
+<td>对应激活幅值大、对输出误差贡献大的权重通道，约占 0.1%–1%</td>
+</tr>
+<tr>
+<td>s_X</td>
+<td>校准数据上每个输入通道的平均激活幅值</td>
+</tr>
+<tr>
+<td>α</td>
+<td>缩放指数，s = s_X^α，在 [0,1] 上网格搜索</td>
+</tr>
+<tr>
+<td>等价变换</td>
+<td>权重乘 s、激活除 s，乘积不变</td>
+</tr>
+<tr>
+<td>权重裁剪</td>
+<td>缩小每组的量化范围，降低步长 Δ</td>
+</tr>
+<tr>
+<td>GEMM / GEMV</td>
+<td>AWQ 的两种 kernel：矩阵乘 / 矩阵向量乘，前者适合 batch 大于 1</td>
+</tr>
+<tr>
+<td>融合模块（fused modules）</td>
+<td>把 QKV、MLP 等合并成一个算子以加速解码</td>
+</tr>
+<tr>
+<td>compressed-tensors</td>
+<td>llm-compressor 的保存格式，vLLM 可直接读</td>
+</tr>
+<tr>
+<td>W4A16_ASYM</td>
+<td>权重 4bit 非对称、激活 16bit</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="12-上线验收补强从量化产物到压测报告2026-11-03">12. 上线验收补强：从量化产物到压测报告（2026-11-03）</h2>2
+<p>第 10 节的检查清单是"勾选项"，本节把它落成<strong>可执行的验收顺序</strong>：先质量、再性能、最后成本，任何一步不过就不进入下一步（性能压测对质量失败没有意义）。压测命令来自 vLLM 官方 benchmarking 用法；判读口径与成本算式为本文编写。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">12.1 第一步：质量回归（不过就停）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<pre><code class="language-bash"># 用同一套任务回归集，对 FP16 基线与 AWQ 产物各跑一遍，比较任务指标而非只看 perplexity
+# （回归集与对比器写法见《L12-模型量化-GPTQ-AWQ-GGUF》5.1 节）
+</code></pre>
+<p>通过线建议：主任务指标降幅 ≤ 1 个百分点，且 badcase 人工抽查无系统性劣化（如 JSON 格式崩、多轮指令丢失）。AWQ 特有的失败模式是校准分布偏移（3.4 节实验四）：回归集必须覆盖你的真实业务分布，只用通用 benchmark 会漏掉这一类。</p>
+<h3 id="122-第二步性能压测官方-cli三档输入长度">12.2 第二步：性能压测（官方 CLI，三档输入长度）</h3>3
+<pre><code class="language-bash"># vLLM 起服务后（第 8 节命令），用官方 bench 压测；输入长度按业务 P50/P95 各压一轮
+vllm bench serve --model &lt;你的AWQ模型&gt; --request-rate inf --max-concurrency 32
+# 记录三指标：Output token throughput / P99 TTFT / TPOT
+</code></pre>
+<p>判读：① 吞吐与原精度基线对比，确认第 4.2 节的加速在你的硬件上真的兑现（论文数字是 A100 等数据中心卡，消费级卡未必复现）；② P99 TTFT 超业务 SLA 时先查 prefill 长度与并发，不要急着调量化参数；③ 压测流量要接近真实分布（输入输出长度比），固定短输入压出来的吞吐对 RAG/Agent 场景没有参考价值。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">12.3 第三步：成本核算（把压测数字换成钱）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>示例占位：AWQ 后实测输出吞吐较 FP16 提升 40%，同卡时价不变，则每百万 token 成本降为原来的 1/1.4 ≈ 71%；若因此少开一张卡，成本直接减半</li><li>完整推导与"换小模型"对照见 L12 GPTQ 量化实操 第 13 节——两节共用同一套成本模型，此处不重复展开</li></ul></div>3
+<pre><code>每百万输出token成本 = GPU时价 / (实测输出吞吐 × 3600 × 目标利用率 / 1e6)
+回本月数 = 量化一次性成本(校准+回归GPU时) / 月节省
+</code></pre>
+<p>示例占位：AWQ 后实测输出吞吐较 FP16 提升 40%，同卡时价不变，则每百万 token 成本降为原来的 1/1.4 ≈ 71%；若因此少开一张卡，成本直接减半。完整推导与"换小模型"对照见 <a href="L12-GPTQ%E9%87%8F%E5%8C%96%E5%AE%9E%E6%93%8D.html">L12 GPTQ 量化实操</a> 第 13 节——两节共用同一套成本模型，此处不重复展开。</p>
+<h3 id="124-验收记录模板">12.4 验收记录模板</h3>3
+<p>每次量化上线留一行记录（进 git 或运维台账）：<code>模型版本 | 量化工具+版本 | 校准集 | 回归指标(基线→量化) | 吞吐(基线→量化) | 每百万token成本 | 验收人+日期</code>。没有这条记录，三个月后没人能回答"现在线上跑的是哪一版、当时为什么敢上"。</p>
+<hr />
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>本库暂无 AWQ 量化实现，但有"量化后服务怎么保命"的真实样本（<code>rag/query.py</code> L890 <code>rerank()</code> 熔断，grep 可验）</strong>：<br />
+<code>python
+  def rerank(query, docs, timeout=None):
+      """rerank: 返回scores列表或None(熔断)"""
+      timeout = timeout or CONFIG["rerank"]["timeout"]
+      ...
+          if elapsed &gt; timeout:
+              print(f"[rerank] timeout({elapsed:.1f}s&gt;{timeout}s), 熔断", file=sys.stderr)
+              return None
+      except Exception as e:
+          print(f"[rerank] error: {e}, 熔断回退", file=sys.stderr)
+          return None</code><br />
+  量化模型（AWQ/GPTQ）第一类故障是"变慢、偶发 OOM、返回半截"——<strong>超时即熔断、异常即回退</strong>，绝不把慢当成正常。量化精度掉点可以通过 <code>/home/wuyafang/.hermes/scripts/eval_smoke.py</code> 的准确率对比看出来，而不是靠肉眼。</li>
+<li><strong>配置可一键回退是量化上线的硬要求（<code>rag/config.yaml</code> L132-137）</strong>：<br />
+<code>yaml
+  generation:
+    # [2026-10-21] 切回火山豆包(实测200/2.2s通)。回退小米: 改回下面注释三行
+    model: "doubao-seed-2.1-lite"
+    api_url: "https://ark.cn-beijing.volces.com/api/plan/v3/chat/completions"
+    api_key_env: "VOLCENGINE_ARK_PLAN_KEY"</code><br />
+  "回退方案写在配置的注释里"——量化版本出问题时，改一行就回到上一版，不用回滚代码。</li>
+<li><strong>和课件讲法的差异</strong>：课件用 <code>llm-compressor</code>/<code>autoawq</code> 做 W4A16 量化，用 <code>lm_eval</code> 看掉点；本库<strong>没有任何量化代码、没有 GPU 环境、没有本地大模型推理服务</strong>。本库的"部署"是索引 + 云端/本地 embedding + API 生成，量化这一层不在本库栈内。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">13. 来源与核验</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本篇自己的产出： §3 的四组实验在 「/home/wuyafang/.venv-hermes/bin/python」（Python 3.14.4，numpy 2.4.3）上实跑，随机种子固定</li><li>本篇的选型结论（§5）已按此降低了置信度，并保留了"4bit 区分度很小"的读法</li><li>§4.1 的增量、§5 的百分比为我对一手数字的二次计算</li></ul></div>2
+<p><strong>一手源（2026-11-02 访问）：</strong></p>
+<ul>
+<li>AWQ 论文：https://arxiv.org/abs/2306.00978 （Ji Lin 等，MLSys 2024 最佳论文）。数字经 https://ar5iv.labs.arxiv.org/html/2306.00978 抽取。</li>
+<li>AutoAWQ：https://github.com/casper-hansen/AutoAWQ （归档与弃用声明、<code>quant_config</code>、GEMM/GEMV、耗时、GPU 要求）。</li>
+<li>llm-compressor：https://github.com/vllm-project/llm-compressor ，AWQ 示例 https://github.com/vllm-project/llm-compressor/blob/main/examples/awq/README.md 。</li>
+<li>vLLM AutoAWQ 页面：https://docs.vllm.ai/en/stable/features/quantization/auto_awq/ 。</li>
+<li>transformers AWQ 文档：https://huggingface.co/docs/transformers/quantization/awq 。</li>
+<li>GPTQModel：https://github.com/ModelCloud/GPTQModel （AWQ 格式/后端矩阵、迁移说明）。</li>
+</ul>
+<p><strong>本篇自己的产出：</strong> §3 的四组实验在 <code>/home/wuyafang/.venv-hermes/bin/python</code>（Python 3.14.4，numpy 2.4.3）上实跑，随机种子固定。§4.1 的增量、§5 的百分比为我对一手数字的二次计算。</p>
+<p><strong>核验局限（必读）：</strong></p>
+<ol>
+<li>一手页面经网页抽取工具读取并摘要，<strong>表格数字可能有抽取误差</strong>，§1 的随机选行就有列对应不清的问题，已在文中注明。</li>
+<li><strong>AWQ 论文是作者自己的评测</strong>，GPTQ 作为对手方法的数值由作者复现。本篇的选型结论（§5）已按此降低了置信度，并保留了"4bit 区分度很小"的读法。</li>
+<li><strong>本机无 GPU，未安装 llmcompressor / gptqmodel / autoawq，§7、§8 的命令均未实跑。</strong> 其中 GPTQModel 的 AWQ 量化入口、llm-compressor 的完整脚本参数（样本数、序列长度、<code>duo_scaling</code>）本次抽取未能确认，文中已逐处说明，没有编造。</li>
+<li>玩具实验只验证机理方向，不代表真实模型的掉点幅度；§3.1 只用单个种子，§3.4 用三个种子。</li>
+<li>vLLM 官方硬件支持矩阵的抽取结果错位，本篇没有引用逐格支持情况，请查看 https://docs.vllm.ai/en/stable/features/quantization/ 。</li>
+</ol>
+<p><strong>相关篇目：</strong> 《L12-模型量化-GPTQ-AWQ-GGUF》（原理与选型）、《L12-GPTQ量化实操》（GPTQ 路线与评测方法）、《L12-vLLM推理加速》（服务参数与压测）、《L12-Ollama本地部署》（GGUF 路线）。</p>
+<blockquote>
+<p>来源：L12-模型量化-GPTQ-AWQ-GGUF.md；AWQ 论文（arXiv:2306.00978）；工具文档与实跑记录详见第 13 节“来源与核验”。</p>
+</blockquote></div></details></div></body></html>

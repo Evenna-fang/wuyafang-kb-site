@@ -1,0 +1,183 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LLM应用安全与成本建模</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ LLM应用安全与成本建模</span></div><div class="wrap"><h1 id="llm-应用安全与成本建模">LLM 应用安全与成本建模</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/sources/LLM%E5%BA%94%E7%94%A8%E5%AE%89%E5%85%A8-%E5%A4%96%E9%83%A8%E8%B0%83%E7%A0%94-20261012.md">LLM应用安全-外部调研-20261012</a> · <a href="../../raw/sources/LLM%E6%88%90%E6%9C%AC%E5%BB%BA%E6%A8%A1-%E8%B0%83%E7%A0%94-20261012.md">LLM成本建模-调研-20261012</a> · <a href="../../raw/sources/%E7%A0%B4%E5%9D%8F%E6%80%A7%E5%8F%98%E6%9B%B4%E6%BA%90%E4%B8%8E%E5%90%88%E8%A7%84-20260930.md">破坏性变更源与合规-20260930</a></p>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="../L5-Agent%E5%B7%A5%E7%A8%8B/06-Agent%E7%94%9F%E4%BA%A7%E7%BA%A7%E9%83%A8%E7%BD%B2.html">Agent 生产级部署</a> · <a href="../L5-Agent%E5%B7%A5%E7%A8%8B/03-MCP%E5%8D%8F%E8%AE%AE%E5%AE%9E%E6%88%98.html">MCP 协议实战</a> · <a href="../L4-RAG%E5%B7%A5%E7%A8%8B/RAG%E7%94%9F%E4%BA%A7%E7%BA%A7%E6%9E%B6%E6%9E%84%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5-2026.html">RAG生产级架构最佳实践</a> · <a href="../L4-RAG%E5%B7%A5%E7%A8%8B/RAG%E7%94%9F%E4%BA%A7%E9%83%A8%E7%BD%B2%E8%B8%A9%E5%9D%91.html">RAG生产部署踩坑</a></p>
+</blockquote>
+<h2 id="why安全成本与合规为什么是交付红线">WHY：安全、成本与合规为什么是交付红线</h2>2
+<ol>
+<li><strong>安全与成本是全栈工程的两条红线，且都由同一个变量驱动——Agent 的"动作集"</strong>：给 agent 加一个工具，既是新攻击面，也是新的 token 消耗点。Anthropic Opus 4.6 system card 的实测最能说明问题：同一模型在某环境 0% 攻击成功率、另一环境 78.6%，差异只在可用动作，不在模型本身。</li>
+<li><strong>Prompt 注入是"攻防游戏"而非一次性 fix</strong>：所有 delimiter/前缀类防御都被官方判定不可靠（LangChain 明示"No prompt or delimiter strategy fully prevents indirect prompt injection"），真正可靠的是架构层的最小权限 + 隔离 + 把检索内容当 data 而非 instruction。</li>
+<li><strong>成本的大头在 LLM 推理</strong>：RAG 系统 LLM 推理成本占总账单 60–75%，而最易失控的配置项是检索 chunk 数 k——k 从 3 涨到 8，单 query 输入成本约翻倍。</li>
+<li><strong>模型分层路由 + 缓存命中是两个数量级的杠杆</strong>：80% 查询用 flash 级模型即可，仅 20% 复杂推理需 pro 级；配合 prefix caching，输入费可再省约 60%。同规模负载从旗舰换到极低价模型，成本可差 33 倍。</li>
+<li><strong>合规是"到日历日就坏"的变更源</strong>：备案/登记/法规生效这类变更无法用技术 workaround 绕过，必须进周/月扫描节奏，而非"需要时再查"。</li>
+</ol>
+<h2 id="what-whyt攻击面成本杠杆与合规边界">WHAT / WHYT：攻击面、成本杠杆与合规边界</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">LLM 应用安全</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>注意区分 OWASP Web 应用 Top 10 2025 与面向 LLM 的 GenAI Top 10 2026，是两套清单</li></ul></div>3
+<p>2026 攻防真实数据（一手 System Card / 官方报告）：</p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>数值</th>
+<th>出处</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GUI agent 单次注入成功率（无防护）</td>
+<td>17.8%</td>
+<td>Anthropic Claude Opus 4.6 System Card（2026-02）</td>
+</tr>
+<tr>
+<td>第 200 次尝试击穿率</td>
+<td>78.6%</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>复杂攻击者仅 10 次尝试绕过最强防御</td>
+<td>约 50% 时间</td>
+<td>International AI Safety Report 2026</td>
+</tr>
+<tr>
+<td>恶意间接注入内容相对增长</td>
+<td>+32%（2025-11→2026-02）</td>
+<td>Google Security Blog</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>OWASP 动向</strong>：GenAI Security Project 2026 版 Top 10 for LLM Applications 已发布，同期发布 <strong>Agent Control Standard</strong>（专治 agentic AI），社区规模超 3 万人；新项目 <code>OWASP/www-project-agent-memory-guard</code> 直接把"agent memory"定义为攻击面。注意区分 OWASP Web 应用 Top 10 2025 与面向 LLM 的 GenAI Top 10 2026，是两套清单。</li>
+<li><strong>真实 CVE/事故</strong>：Anthropic 自家 Git MCP server 的 <code>CVE-2025-68143/68144/68145</code>（2026-01 披露），攻破点只是让 AI 读到恶意 README 或被投毒的 issue；<code>claude-code-action</code> critical flaw（2026-01）：授权绕过 + 间接注入 + 环境变量外泄，从公开 issue 起步最终把恶意代码推入主分支；<code>Clinejection</code>（2026-02 披露、2/17 野外利用）：一个构造的 GitHub issue → 4 步攻击链 → 推送到 action repo → 传播到所有下游依赖，属供应链级风险。</li>
+<li><strong>防御分层（2026 共识）</strong>：架构层 = 最小权限（工具白名单）+ 隔离（VM/container，不让 agent 跑在客户 primary OS）+ 数据分级；运行时层 = 输入/输出监控 + 异常动作检测（agent 突然调 unusual tool）+ faithfulness/citation check；治理层 = 高风险动作 HITL 人工审批 + 全量审计日志 + 模型红队评估。</li>
+<li><strong>MCP 带来的新攻击面</strong>：MCP 已被 Microsoft/OpenAI/Google/Amazon 共同支持，让模型可调 terminal/database/filesystem，直接把注入的影响从"说错话"升级到"执行命令"；<code>MCPTox</code> benchmark 专测真实 MCP server 上的 tool poisoning。</li>
+<li><strong>FDE 交付 red line</strong>：任何 delimiter 策略都不可靠；同一模型不同 action 集 = 不同安全等级；GUI/浏览器/文件系统权限必须隔离；注入是持续攻防，要有 roundup 机制；MCP 集成必须做 tool-level audit，每个可调用 tool 都列攻击场景。</li>
+</ul>
+<h3 id="llm-成本建模">LLM 成本建模</h3>3
+<p><strong>成本公式</strong>：</p>
+<pre><code>单 query 成本 = (k × chunk_size + system_prompt_tokens + query_tokens) × input_price
+             + answer_tokens × output_price
+月度成本 = 单 query 成本 × 月查询数
+</code></pre>
+<p>2026 定价分层（每百万 token，美元；RAG 系统 LLM 推理占总账单 60–75%）：</p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>代表模型</th>
+<th>Input</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>极致低价</td>
+<td>DeepSeek V4-Flash / 小米 MiMo V2 Flash / qwen-turbo</td>
+<td>$0.14 / ~$0.10 / ≈$0.04</td>
+<td>$0.28 / ~$0.40 / ≈$0.08</td>
+</tr>
+<tr>
+<td>中端旗舰</td>
+<td>Claude Sonnet 5.5 / GPT-5.4 / Gemini 3.8 Flash（促销）</td>
+<td>$2.00 / $5.00 / $0.75*</td>
+<td>$10.00 / $8.75 / $3.75*</td>
+</tr>
+<tr>
+<td>最贵旗舰</td>
+<td>Claude Opus 5</td>
+<td>$5.00</td>
+<td>$25.00</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>* Gemini 3.8 Flash 为促销价，2027 年 1 月翻倍。DeepSeek 缓存命中价低至 $0.0028/M（约 miss 价的 1/50）。</p>
+</blockquote>
+<ul>
+<li><strong>分层路由 80/20</strong>：约 60% 简单事实问答/摘要/翻译走 flash 级，30% 中等推理走 Haiku/Flash/qwen-plus，10% 复杂推理/代码/数学才上 pro 级；先让 flash 答、置信度低或追问时再升级。整体成本可降 5–15 倍。</li>
+<li><strong>控 k 值</strong>：默认 k=3 而非 k=10；实测 k 从 3→8，context token 从 1500→4000，单 query 输入成本约翻倍。更省的做法是用 reranker 先取 k=20 再精排到 top-3。</li>
+<li><strong>开缓存</strong>：system prompt 不变时开 prefix caching；3000 token 上下文里若 2500 是重复内容、命中率 80%，输入费可省约 60%。</li>
+<li><strong>量级示例</strong>（15 万查询/月，context=2000、answer=400）：GPT-5.4 约 $1,950，Claude Sonnet 5.5 约 $1,050，DeepSeek V4-Flash 约 $59，qwen-turbo 约 $17——换模型相差 33 倍。</li>
+<li>别忘 embedding 成本（text-embedding-3-small $0.02/M，bge-m3 本地免费），占比小但要有总量。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">合规与变更源（与全栈交付强相关）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>为什么单列：备案/登记/法规生效是唯一"坏了无法技术绕过"的变更——到期未整改直接下线</li><li>国内三轨（beian.cac.gov.cn，实测 200）：算法备案（算法推荐/深度合成，国家网信办，上线前）、大模型备案（自研生成式 AI 服务，国家网信办，上线前）、AI 应用登记（调用已备案模型的应用，属地网信办，上线前）；已上线应用须显著位置公示模型名称 + 备案号/上线编号</li><li>变更源必须进周扫描，因为坏了最先体现在生产（运行时 401/404/行为漂移/法务叫停），而不是文档先报错</li></ul></div>3
+<ul>
+<li><strong>为什么单列</strong>：备案/登记/法规生效是唯一"坏了无法技术绕过"的变更——到期未整改直接下线。变更源必须进周扫描，因为坏了最先体现在生产（运行时 401/404/行为漂移/法务叫停），而不是文档先报错。</li>
+<li><strong>国内三轨</strong>（beian.cac.gov.cn，实测 200）：算法备案（算法推荐/深度合成，国家网信办，上线前）、大模型备案（自研生成式 AI 服务，国家网信办，上线前）、AI 应用登记（调用已备案模型的应用，属地网信办，上线前）；已上线应用须显著位置公示模型名称 + 备案号/上线编号。</li>
+<li><strong>已生效时间轴（多方一手一致）</strong>：新《网络安全法》2026-01-01 施行（含第二十条 AI 专条）；《人工智能拟人化互动服务管理暂行办法》2026-04-10 公布、2026-07-15 施行（AI 伴侣/情感陪伴首部专门立法）；十部门《人工智能科技伦理审查与服务办法（试行）》2026-03-20 印发即施行。</li>
+<li><strong>待核实项</strong>：AI 应用登记"2026-09-30 节点"（界面新闻等二手一致，但未见 cac.gov.cn 一手通知，须标 ❓）；"2026-03-17 配套细则"同样存疑。</li>
+<li><strong>License 红线（已实测）</strong>：GLM-5.3 由 MIT 换为定制 License，条款原文规定"任意连续 12 个月集团合并收入 &gt; 100 亿美元且经营 Model as a Service"须过 Z.AI 安全审查——中小团队不受影响，但"引入模型先读 LICENSE 全文"应成硬流程。</li>
+</ul>
+<h2 id="how从工具审计到成本与合规复盘">HOW：从工具审计到成本与合规复盘</h2>2
+<ol>
+<li><strong>先审计动作集</strong>：列出 agent 可调用的每个工具及权限，按最小权限配置白名单；GUI、浏览器、文件系统与 terminal 能力必须隔离，并为每个 MCP tool 写明攻击场景。</li>
+<li><strong>把注入防御落到架构层</strong>：检索内容只作为 data，不作为 instruction；叠加运行时输入/输出监控、异常工具调用检测、高风险动作人工审批和全量审计日志，不依赖 delimiter 做一次性修复。</li>
+<li><strong>先算成本再调参</strong>：把月查询数、k、chunk 大小、输入/输出 token 与模型单价代入上式，分别测算当前方案和候选方案；embedding 费用也计入总量。</li>
+<li><strong>按三个杠杆实施降本</strong>：默认小 k，并用大候选召回后 rerank 到少量上下文；固定 system prompt 前缀并开启 prefix caching；简单请求走低价模型，仅低置信度、追问或复杂推理升级高价模型。</li>
+<li><strong>持续复盘而非一次上线</strong>：按月跟踪 cache 命中率、平均上下文 token 和各模型档位的流量比例；把备案、法规生效和 LICENSE 变更纳入周/月扫描，发现合规红线时停止上线或下线整改。</li>
+</ol>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">相关术语</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>MCP (Model Context Protocol)（术语表-Agent框架）：本篇"新攻击面"一节即围绕它展开，工具白名单/tool-level audit 是其安全侧补充</li><li>Step-level Model Routing（步级模型路由）（术语表-模型部署）：与成本建模的"分层路由 80/20"直接呼应——按步选档位</li><li>Safety Cases（前沿 AI 训练安全论证）（术语表-模型与Agent动态）：合规交付/客户安全审查的上层框架</li></ul></div>2
+<p>对应 <code>ontology/</code> 术语表：</p>
+<ul>
+<li><strong>MCP (Model Context Protocol)</strong>（术语表-Agent框架）：本篇"新攻击面"一节即围绕它展开，工具白名单/tool-level audit 是其安全侧补充。</li>
+<li><strong>Step-level Model Routing（步级模型路由）</strong>（术语表-模型部署）：与成本建模的"分层路由 80/20"直接呼应——按步选档位。</li>
+<li><strong>Safety Cases（前沿 AI 训练安全论证）</strong>（术语表-模型与Agent动态）：合规交付/客户安全审查的上层框架。</li>
+<li>说明：LLM 安全攻击面（prompt 注入/数据泄露）、Token 成本结构在本 ontology 术语表<strong>暂无</strong>专条。</li>
+</ul>
+<h2 id="相关条目">相关条目</h2>2
+<ul>
+<li><a href="%E5%AE%B9%E9%87%8F%E5%8E%8B%E6%B5%8B%E4%B8%8E%E6%88%90%E6%9C%AC%E6%B5%8B%E7%AE%97.html">容量压测与成本测算</a></li>
+</ul>
+</div></details><h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li>[课1] <strong>课件</strong>：原文未引用课件，本次仅重排结构，不新增来源。</li>
+<li>[书1] <strong>书籍</strong>：原文未引用书籍，本次仅重排结构，不新增来源。</li>
+<li>[业1] <strong>业内调研</strong>：<code>raw/sources/LLM应用安全-外部调研-20261012.md</code>（OWASP GenAI、Anthropic Opus 4.6 System Card 数据、CVE-2025-68143/4/5、MCPTox、Five Eyes 指南），落在攻击面、分层防御与工具审计。</li>
+<li>[业2] <strong>业内调研</strong>：<code>raw/sources/LLM成本建模-调研-20261012.md</code>（Spheron/Coworker/阿里云百炼/Spendark 定价与 RAG 成本），落在成本公式、定价分层与三项降本杠杆。</li>
+<li>[业3] <strong>业内调研</strong>：<code>raw/sources/破坏性变更源与合规-20260930.md</code>（MCP 2026-07-28 规范、国内三轨、GLM-5.3 LICENSE、变更源扫描节奏），落在合规时间轴与变更扫描。</li>
+</ul></div></body></html>

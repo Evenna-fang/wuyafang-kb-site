@@ -1,0 +1,281 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>02-环境与工具链</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ 02-环境与工具链</span></div><div class="wrap"><h1 id="环境与工具链解释器依赖隔离网络探测与可复现重建">环境与工具链：解释器、依赖隔离、网络探测与可复现重建</h1>
+<p>本文合并原「环境与工具链」和「国内镜像与可达性速查」。主线是：先确认正在运行哪个解释器，再隔离项目依赖，随后锁定与验证，最后才处理网络可达性。镜像是条件性工具，不是环境搭建的第一步，更不是永久事实。</p>
+<blockquote>
+<p>验证边界：标准库环境检查脚本已在本机以隔离模式实跑；Windows/macOS 安装、虚拟环境重建和第三方包安装命令<strong>未实跑</strong>。旧稿 2026-09-28 的镜像结果仅保留为历史记录，本文只把 2026-11-04 明确复核的 GET 结果写成当前证据。</p>
+</blockquote>
+<h2 id="why">WHY</h2>2
+<h3 id="1-环境问题为什么常被误诊为代码问题">1. 环境问题为什么常被误诊为代码问题</h3>3
+<p>同一段 <code>import pandas</code> 在一台机器成功、另一台失败，可能不是代码不同，而是 <code>python</code>、<code>pip</code> 和编辑器分别指向三个环境。直接执行 <code>pip install</code> 后运行 <code>python app.py</code>，若二者不对应，就会出现「刚装完仍 ModuleNotFoundError」。全局安装还会让项目 A 的升级破坏项目 B，最终只能靠删除重装碰运气。</p>
+<p>可复现环境解决四个痛点：</p>
+<ul>
+<li><strong>入口不清</strong>：不知道脚本由哪个解释器执行。</li>
+<li><strong>依赖漂移</strong>：只写包名不写版本，今天与下月安装结果不同。</li>
+<li><strong>路径串台</strong>：Windows、WSL、macOS/Linux 的命令名和文件系统不同，把 Windows 的 <code>python.exe</code> 当作 WSL 包管理目标。</li>
+<li><strong>网络误判</strong>：DNS、TLS、代理、镜像失效和包不存在被统一描述成「网不好」，随后盲目更换更多镜像。</li>
+</ul>
+<p>不做这些基础约束，后续 Python、数据分析、RAG 的报错都无法稳定复现；别人拿到代码也无法回答「该在什么环境跑」。</p>
+<h3 id="2-为什么不能把镜像清单当永久配置">2. 为什么不能把镜像清单当永久配置</h3>3
+<p>旧速查的价值在于保存了 2026-09-28 的一次探测，并提醒 <code>ghproxy.com</code> 等老域名已经变化；其局限是把当时可达扩展成「必须配置」「国内优先」的一般结论。可达不等于内容可信，更不等于供应链安全。第三方 GitHub 代理会经手代码下载，镜像也可能改变证书、重定向、文件完整性或可用版本。</p>
+<p>正确顺序是：<strong>官方源先试 → 记录完整错误 → 分层探测 → 确有需要再选镜像 → 校验版本和哈希 → 定期复测</strong>。不全局固化来历不明的代理，不把凭据放进镜像 URL，不用 <code>http</code> 明文下载包。</p>
+<h2 id="what-whyt">WHAT / WHYT</h2>2
+<h3 id="3-五个对象必须分清">3. 五个对象必须分清</h3>3
+<table>
+<thead>
+<tr>
+<th>对象</th>
+<th>负责什么</th>
+<th>不负责什么</th>
+<th>常见误判</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Python 解释器</td>
+<td>执行代码、决定标准库与语言版本</td>
+<td>不自动隔离第三方依赖</td>
+<td>看见 <code>python --version</code> 就以为项目环境正确</td>
+</tr>
+<tr>
+<td>虚拟环境 <code>.venv</code></td>
+<td>为项目提供独立解释器入口与 site-packages</td>
+<td>不锁定依赖、不打包系统动态库</td>
+<td>把 <code>.venv</code> 提交仓库或复制到另一台机器</td>
+</tr>
+<tr>
+<td>pip</td>
+<td>从索引下载并安装 Python 包</td>
+<td>不保证所有包与当前解释器兼容</td>
+<td><code>pip</code> 与 <code>python</code> 分属不同环境</td>
+</tr>
+<tr>
+<td><code>requirements*.txt</code> / lock</td>
+<td>记录直接依赖或完整解析结果</td>
+<td>不替代虚拟环境，也不保证系统依赖存在</td>
+<td>只有 <code>requests</code> 一行就声称完全可复现</td>
+</tr>
+<tr>
+<td>包索引/镜像</td>
+<td>提供包与元数据下载</td>
+<td>不解决本地 PATH、编译器和系统库问题</td>
+<td>所有安装失败都换镜像</td>
+</tr>
+</tbody>
+</table>
+<p>虚拟环境回答「包安装到哪里」，锁定文件回答「这次具体安装哪些版本」，容器/系统镜像回答「操作系统与系统库是什么」。三者可以组合，但互不替代。<code>.venv</code> 通常由命令重建，不作为源码分发。</p>
+<h3 id="4-版本选择兼容性与支持状态优先">4. 版本选择：兼容性与支持状态优先</h3>3
+<p>课件建议 Python 3.12/3.13 的教学意图是选稳定版本，但其「3.13 活跃开发、3.14 实验性」具有时间性，不能永久照抄。版本状态应以 <a href="https://devguide.python.org/versions/">Python 官方版本页</a>为准；项目还要检查 NumPy、数据库驱动、部署平台等依赖是否提供对应 wheel。</p>
+<p>实用策略：</p>
+<ol>
+<li>新项目选择仍在支持期、核心依赖已支持的版本，而非机械追求最大号。</li>
+<li>复现旧项目先读其 lock、容器文件和 CI 版本，不擅自升级解释器。</li>
+<li>同时装多个版本时，用明确命令创建环境，例如 <code>python3.12 -m venv .venv</code>，创建后统一使用 <code>.venv</code> 内入口。</li>
+<li>记录 <code>sys.version</code> 与平台；不要用「Python 3」作为可复现版本描述。</li>
+</ol>
+<h3 id="5-windowswsl-与-macoslinux-的边界">5. Windows、WSL 与 macOS/Linux 的边界</h3>3
+<p>Windows PowerShell、CMD 与 WSL 是不同运行环境。WSL 中通常用 <code>python3</code>，Windows 常见 <code>python</code> 或 <code>py</code>；PowerShell 的激活脚本与 POSIX shell 不同。WSL 可以访问 <code>/mnt/c</code>，但把环境直接建在 Windows 项目树中可能遇到权限、文件监听与性能差异；不要假设一个 <code>.venv</code> 可以跨 OS 共用。</p>
+<p>排错先看 <code>sys.executable</code>，再看 <code>pip</code> 实际位置，不凭终端标题猜。当前用户全局规则中另有本机 shim 等环境事实，那些属于特定机器配置，不能写成所有学习者的标准安装步骤。</p>
+<h3 id="6-论文怎么说我们怎么用">6. 论文怎么说，我们怎么用</h3>3
+<p>SquashFS 数据集研究（<strong>arXiv:2610.20578</strong>）关注大量小文件给 HPC 并行文件系统元数据服务器带来的压力，比较 11 种把只读数据集制成 SquashFS 镜像的工作流，并按下载形态、构建位置和压缩线程给出建议。它不是 Python 虚拟环境教程，也不证明「所有 AI 数据都应压缩成镜像」。</p>
+<p>我们的落点是「环境包含数据布局与系统依赖，且优化必须测量」：当项目从几十个文本扩展到数百万小文件时，仅靠 requirements 无法描述读取瓶颈；应记录文件数量、存储位置、是否只读与基准结果，再决定是否采用镜像或打包。入门项目不为追求论文方案增加复杂度。</p>
+<h2 id="how">HOW</h2>2
+<h3 id="7-建立隔离环境同一解释器贯穿创建安装与运行">7. 建立隔离环境：同一解释器贯穿创建、安装与运行</h3>3
+<p>以下 POSIX/WSL 命令是标准做法，<strong>本次未实跑</strong>；在新建练习目录中执行：</p>
+<pre><code class="language-bash"># 按项目兼容性选择明确版本；没有 python3.12 时先安装，不要跳过检查
+python3.12 --version
+python3.12 -m venv .venv
+source .venv/bin/activate
+
+# 之后不再单独使用含义不明的 pip
+python -m pip --version
+python -m pip install --upgrade pip
+python -m pip install requests==2.32.5
+python -c &quot;import sys, requests; print(sys.executable); print(requests.__version__)&quot;
+</code></pre>
+<p>Windows PowerShell 对应入口（<strong>未实跑</strong>）：</p>
+<pre><code class="language-powershell">py -3.12 -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip --version
+python -m pip install requests==2.32.5
+</code></pre>
+<p>如果 PowerShell 阻止激活脚本，不要第一步就放宽整台机器的执行策略；可直接调用 <code>.venv\Scripts\python.exe</code>，或只针对当前进程按组织安全策略处理。Linux 若缺少 <code>venv</code>，应安装发行版对应的 <code>python3.xx-venv</code> 系统包，而不是用 <code>pip install venv</code>。</p>
+<h3 id="8-环境验收脚本先证明入口与依赖目录一致">8. 环境验收脚本：先证明入口与依赖目录一致</h3>3
+<p>保存为 <code>verify_env.py</code>，在项目环境中执行 <code>python -I verify_env.py</code>。脚本只读版本、路径和包元数据，<strong>已实跑</strong>：</p>
+<pre><code class="language-python">from importlib import metadata
+from pathlib import Path
+import platform
+import site
+import sys
+import sysconfig
+
+print(&quot;version:&quot;, sys.version.replace(&quot;\n&quot;, &quot; &quot;))
+print(&quot;executable:&quot;, sys.executable)
+print(&quot;platform:&quot;, platform.platform())
+print(&quot;prefix:&quot;, sys.prefix)
+print(&quot;base_prefix:&quot;, sys.base_prefix)
+print(&quot;purelib:&quot;, sysconfig.get_paths()[&quot;purelib&quot;])
+print(&quot;in_venv:&quot;, sys.prefix != sys.base_prefix)
+
+if sys.prefix == sys.base_prefix:
+    print(&quot;WARN: 当前不在虚拟环境；临时全局工具可接受，项目开发应重建 .venv&quot;)
+
+for dist in [&quot;requests&quot;]:
+    try:
+        print(dist, metadata.version(dist))
+    except metadata.PackageNotFoundError:
+        print(dist, &quot;NOT_INSTALLED（按需安装，不作为基础环境失败）&quot;)
+
+print(&quot;cwd:&quot;, Path.cwd())
+print(&quot;sitepackages:&quot;, getattr(site, &quot;getsitepackages&quot;, lambda: [])())
+</code></pre>
+<p>验收不是要求所有输出相同，而是能回答：解释器路径是否属于本项目、<code>purelib</code> 是否属于同一环境、包版本是否与记录一致、当前目录是否放错。<code>-I</code> 是隔离模式，可避免当前目录偶然提供同名模块；日常项目测试是否使用它要看项目导入需求。</p>
+<h3 id="9-记录依赖直接依赖与完整冻结分开">9. 记录依赖：直接依赖与完整冻结分开</h3>3
+<p>最小练习可执行（<strong>未实跑</strong>）：</p>
+<pre><code class="language-bash">python -m pip install requests==2.32.5
+python -m pip freeze &gt; requirements-lock.txt
+python -m pip check
+</code></pre>
+<p><code>requirements-lock.txt</code> 是当时环境解析出的完整 Python 包集合，但不一定跨 OS、跨 Python 小版本通用。团队协作可再维护只写直接依赖的 <code>requirements.in</code> 或 <code>pyproject.toml</code>，用选定工具生成锁文件；工具未统一前，不要同时维护多份互相漂移的「唯一 lock」。</p>
+<p>重建验证（会创建新环境，<strong>未实跑</strong>）：</p>
+<pre><code class="language-bash">python3.12 -m venv .venv-rebuild
+.venv-rebuild/bin/python -m pip install -r requirements-lock.txt
+.venv-rebuild/bin/python -m pip check
+.venv-rebuild/bin/python -I verify_env.py
+</code></pre>
+<p>真正的重建测试应在不含旧 <code>.venv</code> 的目录或干净容器中进行；只运行 <code>pip freeze</code> 不算完成复现。</p>
+<h3 id="10-网络排错一次只改变一个变量">10. 网络排错：一次只改变一个变量</h3>3
+<p>按层记录错误：</p>
+<ol>
+<li><strong>包名/版本问题</strong>：索引明确返回「No matching distribution」，先查包名、Python 版本和平台，不换镜像。</li>
+<li><strong>DNS/TLS/超时</strong>：保留完整错误与时间，区分名称解析、证书和连接超时。</li>
+<li><strong>HTTP 层</strong>：用无凭据 GET 检查官方文档或索引页；状态 200 只证明该次请求可达，不证明所有文件可下载。</li>
+<li><strong>代理/镜像层</strong>：确需替代源时只在当前命令或当前项目配置，核对包名、版本与哈希，不复制旧清单。</li>
+<li><strong>编译/系统库层</strong>：错误涉及 compiler、header、shared library 时，换 Python 包镜像通常无效。</li>
+</ol>
+<p>可达性 GET 示例（会访问公开站点，<strong>未实跑</strong>）：</p>
+<pre><code class="language-bash">curl -L --max-time 30 -sS -o /dev/null -w 'python_docs=%{http_code}\n' \
+  https://docs.python.org/3/tutorial/venv.html
+curl -L --max-time 30 -sS -o /dev/null -w 'pypi_simple=%{http_code}\n' \
+  https://pypi.org/simple/requests/
+</code></pre>
+<p>临时指定 Hugging Face 镜像的写法是 <code>HF_ENDPOINT=https://hf-mirror.com</code>，但这只是一项可选环境变量，不应写成「必须配置」。第三方下载仍需核对模型仓库、文件 SHA-256、许可证与组织安全要求。旧稿中的 GitHub 代理地址不再作为推荐命令保留。</p>
+<h3 id="11-最小交付清单与翻车排查">11. 最小交付清单与翻车排查</h3>3
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>第一检查</th>
+<th>修复方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>安装后仍找不到包</td>
+<td><code>python -m pip --version</code> 与 <code>sys.executable</code></td>
+<td>用目标解释器的 <code>python -m pip</code> 重装</td>
+</tr>
+<tr>
+<td>激活后仍是旧版本</td>
+<td><code>sys.prefix</code> / <code>base_prefix</code> 与 shell 命令路径</td>
+<td>重建或正确激活 <code>.venv</code></td>
+</tr>
+<tr>
+<td>换机器后包冲突</td>
+<td>lock、Python 小版本、OS 平台</td>
+<td>按兼容环境重建，不复制 <code>.venv</code></td>
+</tr>
+<tr>
+<td>Windows 正常、WSL 失败</td>
+<td>是否误用 Windows <code>python.exe</code></td>
+<td>在 WSL 内单独建 POSIX 环境</td>
+</tr>
+<tr>
+<td>只有某镜像能下</td>
+<td>官方源错误、镜像版本与哈希</td>
+<td>限制镜像作用域，保留证据，定期复测</td>
+</tr>
+<tr>
+<td>构建包时报编译错误</td>
+<td>编译器、头文件、系统库</td>
+<td>补系统构建依赖或选兼容 wheel</td>
+</tr>
+</tbody>
+</table>
+<p>环境交付至少包含：支持的 OS 与 Python 版本、创建命令、直接依赖、锁定产物、验证脚本、网络与系统依赖说明。不要包含真实凭据、全局代理配置或来历不明的安装脚本。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>环境隔离的真实形态：三套解释器共存，没有容器兜底（<code>ls /home/wuyafang/.venv-hermes/bin/python</code>、<code>rag/.venv/bin/python</code>、<code>/usr/bin/python3</code> 本次实测均可执行）</strong>：<br />
+  | 解释器 | 位置 | 本次实际用途 |<br />
+  |---|---|---|<br />
+  | 3.14.4 | <code>/home/wuyafang/.venv-hermes/bin/python</code> | 跑 <code>~/.hermes</code> 体系脚本（<code>receipt.py</code>/<code>lookup_error.py</code> 本次用它） |<br />
+  | 3.12.14 | <code>rag/.venv/bin/python</code> | 跑 <code>rag/query.py</code>、<code>rag/agentic_query.py</code>（本次实跑用） |<br />
+  | 系统 3.x | <code>/usr/bin/python3</code> | 跑 <code>rag/check_ttl.py</code>（纯标准库，本次实跑 PASS） |</li>
+<li><strong>环境隔离链的第一环是 <code>PYTHONPATH</code>，不是 venv（本次实测两次失败后才定位）</strong>：本库没有用 Docker 包住 <code>rag/</code>，shell 里只要挂着 Hermes 内核的 site-packages，项目 venv 就会被污染。<br />
+  正确姿势不是「再建一个 venv」，而是<strong>启动命令里显式剥离</strong>：<br />
+<code>bash
+  env -u PYTHONPATH rag/.venv/bin/python query.py "问题"</code><br />
+  同一份代码，加不加 <code>env -u PYTHONPATH</code> 是「<code>ImportError</code>」和「exit 0 出答案」的区别。</li>
+<li><strong>工具链版本要 pin 在仓库里，不靠机器状态（<code>rag/pyproject.toml</code> L4-31，本次读取）</strong>：<code>requires-python = "&gt;=3.12"</code> + 全部依赖带 <code>==</code>（如 <code>chromadb==1.5.9</code>、<code>langgraph==1.2.11</code>、<code>mcp==2.3.0</code>），配 <code>.python-version</code>（3.12）。<br />
+  再加上 <code>rag/.prek.toml</code> 的 pre-commit 钩子（ruff check / ruff format / ty check / pytest），工具链才算可复现。</li>
+<li><strong>和课件讲法的差异</strong>：课件讲「装个 Python + pip install 就能跑」；本库的真实约束是<strong>多解释器共存 + 宿主注入的 <code>PYTHONPATH</code></strong>，<code>pip install</code> 之前要先回答「我这条命令会用哪个 python」。IDE/编辑器选的解释器也可能与命令行不同。</li>
+<li><strong>本库暂无</strong>：没有 <code>uv.lock</code>-级的锁文件进 git（<code>rag/</code> 不在 git 仓库内，<code>git status</code> 本次报 <code>fatal: not a git repository</code>），依赖一致性靠 <code>pyproject.toml</code> 的 <code>==</code> 约束保证。</li>
+</ul>
+<h4 id="本库真实落地状态源码核对2026-11-04">本库真实落地状态（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>实跑</strong>：本机实测：解释器有三套共存——<code>/usr/bin/python3</code>（系统）、<code>.venv</code>（3.12，rag 项目）、<code>~/.hermes/installs/.../venv</code>（3.14，Hermes 内核）；PATH 里还挂着 <code>PYTHONPATH=/home/wuyafang/.hermes/installs/6aa14c4d456e3a44/environments/698c77abcb5a4924bf64547d0923d7e7/venv/lib/python3.14/site-packages</code>。</li>
+<li><strong>读源码</strong>：环境隔离链；下文每条路径与行号均为本次在 <code>/mnt/c/Documents/wuyafang-l</code> 下实读，代码块为逐字摘录（可 grep 复核）。</li>
+</ul>
+<h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<ul>
+<li><strong>[课1] 课件</strong>：<a href="../../raw/courseware/python/chapter01-environment-setup.md">Python 环境搭建与工具链</a>：提供版本选择、三平台安装、虚拟环境与工具链骨架；其中带日期的版本状态改由官方页面复核。</li>
+<li><strong>[课2] 历史课件/速查来源</strong>：<a href="../../raw/sources/%E5%9B%BD%E5%86%85AI%E4%BF%A1%E6%81%AF%E6%BA%90%E5%8F%AF%E8%BE%BE%E6%80%A7%E5%AE%9E%E6%B5%8B-20260928.md">国内 AI 信息源可达性实测</a>：保留「镜像需定期实测」的教训；2026-09-28 的状态不冒充 2026-11-04 结果。</li>
+<li><strong>[书1] 书籍摘录</strong>：<a href="../../raw/weread/3300233154/best_bookmarks.json">《Python大语言模型应用开发入门实战》划线 JSON</a>、<a href="../../raw/weread/3300233154/chapters.json">目录</a>：用于虚拟环境和开发基础的学习落点；只使用目录与划线，不声称书籍全文。</li>
+<li><strong>[书2] 书籍摘录</strong>：<a href="../../raw/weread/43208843/best_bookmarks.md">《持续交付2.0》目录与划线</a>：用于「一次构建、多次使用、质量内建与快速反馈」的重建验收思路；不声称书籍全文。</li>
+<li><strong>[业1] 业内官方文档</strong>：<a href="https://docs.python.org/3/tutorial/venv.html">Python venv 官方教程</a>（GET 200，2026-11-04）：核对虚拟环境创建、激活与解释器入口。</li>
+<li><strong>[业2] 业内官方文档</strong>：<a href="https://devguide.python.org/versions/">Python 版本状态</a>（官方版本入口；版本状态以页面为准，本次未逐行抽取表格）：纠正课件中随时间过期的版本标签。</li>
+<li><strong>[业3] 论文</strong>：<a href="../../raw/sources/arxiv-daily/2026-10-14-2610.20578.md">Creating SquashFS Images 本地摘要</a>，<strong>arXiv:2610.20578</strong>：融入数据布局、只读镜像和工作流基准的边界，不在本机复现 HPC 测试。</li>
+</ul></div></body></html>

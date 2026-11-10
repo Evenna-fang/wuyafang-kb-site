@@ -1,0 +1,667 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L0-环境与工具链</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L0-环境与工具链</span></div><div class="wrap"><h1 id="l0-环境与工具链从装-python-到一条可复现的工具链">L0 环境与工具链：从装 Python 到一条可复现的工具链</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/courseware/python/chapter01-environment-setup.md">chapter01-environment-setup</a> · <a href="../../raw/courseware/python/python-student-manual-outline.md">python-student-manual-outline</a></p>
+<p><strong>TL;DR</strong>：选 Python 3.12 或 3.13 作为起点；每个项目一个 <code>.venv</code> 虚拟环境（数据科学用 Conda，发包用 Poetry）；pip 走清华镜像并用 <code>requirements.txt</code> 或 <code>pip-tools</code> 锁版本；编辑器用 VS Code（必装 Python/Pylance/Python Debugger/Ruff 四件套）或 PyCharm；WSL 用户只用 Linux 版 Python，警惕 <code>python.exe</code> 混入 PATH。本文覆盖版本选择、三平台安装、pyenv、venv/Conda/Poetry 三种环境方案对比、IDE 配置、pip 与镜像源、验证脚本、常见翻车现场 8 例，以及三问（何时用/何时别用/翻车长什么样）。</p>
+<p><strong>金标证据</strong>：gold_tier=input_digest ｜ 产出声明=消化提炼（内容来自 chapter01 课件与学生手册大纲的重排与融合，非原创调研）｜ 排他性证据=融合了 chapter01-environment-setup.md 的 1.1-1.8 全部八节安装细节（含 Windows PATH 勾选坑、WSL 混淆排查、verify_env.py 完整脚本）与 python-student-manual-outline.md 的学习路线分段（第一部分基础奠基→第五部分大神之路的 5 段结构），这两份素材只在本库 raw/courseware/python/ 下存在 ｜ 抽查入口=raw/courseware/python/chapter01-environment-setup.md 第 1.5.4 节"使用国内镜像源"与第 1.7 节"常见问题 FAQ"</p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">1. 这篇文档解决什么问题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>写代码之前先把"地基"打对：解释器版本、虚拟环境、包管理器、编辑器、验证手段</li><li>本篇按一条推荐路径走通全流程，并给出每个决策点的替代方案与反例</li><li>地基错了的典型症状是"在我电脑上能跑"——同事故障复现不了、部署时依赖冲突、CI（Continuous Integration，持续集成）红灯</li></ul></div>2
+<p>写代码之前先把"地基"打对：解释器版本、虚拟环境、包管理器、编辑器、验证手段。地基错了的典型症状是"在我电脑上能跑"——同事故障复现不了、部署时依赖冲突、CI（Continuous Integration，持续集成）红灯。本篇按一条推荐路径走通全流程，并给出每个决策点的替代方案与反例。</p>
+<p><strong>适用场景</strong>：新机器从零搭建 Python 开发环境；接手一个没有依赖锁定的老项目；团队里 Windows、macOS、WSL 三种系统混用需要统一口径。</p>
+<p><strong>前置条件</strong>：能用命令行（终端）执行基本命令；知道自己用的是 Windows、macOS 还是 Linux 或 WSL；有管理员权限或至少能写入用户目录。</p>
+<p><strong>本文的阅读法</strong>：第 2 到 6 节是决策与操作主线，照着做即可完成搭建；第 7 节的验证脚本是验收手段；第 8 节的三问是判断"我这套环境该不该这么配"的决策依据；第 9 节术语表供遇到缩写时回查。如果你只想要一条最短路径：装 3.12、建 .venv、配清华镜像、用 VS Code、跑 verify_env.py，五步收工。</p>
+<h2 id="2-python-版本选择该从哪个版本开始">2. Python 版本选择：该从哪个版本开始</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.1 Python 2 与 Python 3</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Python 2 已于 2020-01-01 停止维护（EOL，End of Life），不再有安全补丁</li><li>所有新项目一律 Python 3，遇到只支持 Python 2 的老库要么找替代品要么放弃该库</li><li>判断方法只有一条：跑 「python3 --version」 看输出的主次版本号，别信命令名</li></ul></div>3
+<p>Python 2 已于 2020-01-01 停止维护（EOL，End of Life），不再有安全补丁。所有新项目一律 Python 3，遇到只支持 Python 2 的老库要么找替代品要么放弃该库。命令层面：Windows 上用 <code>py -3</code> 启动器或 <code>python</code>；macOS 与 Linux 上用 <code>python3</code>，因为系统自带的 <code>python</code> 可能指向 Python 2 或 Xcode 命令行工具链。判断方法只有一条：跑 <code>python3 --version</code> 看输出的主次版本号，别信命令名。</p>
+<h3 id="22-python-3x-小版本选择建议">2.2 Python 3.x 小版本选择建议</h3>3
+<ul>
+<li><strong>3.12</strong>：当前最稳的生产基线，错误消息大幅改进，性能比 3.11 有官方宣称的个位数百分比提升。</li>
+<li><strong>3.13</strong>：新交互式解释器（PyREPL，支持多行编辑与语法高亮）与实验性 <code>--disable-gil</code> 构建选项；部分第三方库的 wheel 可能滞后发布，装不上时退回 3.12。</li>
+<li><strong>3.10 与 3.11</strong>：已有项目锁定就继续用，新项目不必主动降级到这两档。</li>
+<li><strong>3.9 及以下</strong>：3.9 的安全支持已按 PEP 659 时间表结束，不要再用于新项目。</li>
+</ul>
+<p>经验阈值一句话：<strong>新项目选 3.12，追新特性选 3.13，第三方包装不上就降 3.12，绝不选 3.9 以下</strong>。判断"某库支持不支持 3.13"的方法：打开该库的 PyPI 页面看 "Requires: Python" 字段和最新 release 的 wheel 列表（cp313 即支持 3.13）。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.3 Python 3.10 起的重要新特性速览</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>其中 「ExceptionGroup」 的真实用法是"批量任务同时收集多个失败再一起抛出"，比"抛第一个就停"保留了更多信息；类型注解联合写法在 3.10 之前必须借助 「typing.Union」，3.10 起直接写竖线即可被解释器识别</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>版本</th>
+<th>特性</th>
+<th>一句话价值</th>
+<th>代码形态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3.10</td>
+<td><code>match/case</code> 结构化模式匹配</td>
+<td>替代多层 if-elif 分发</td>
+<td><code>case {"op": "add"}:</code></td>
+</tr>
+<tr>
+<td>3.10</td>
+<td><code>X \| Y</code> 联合类型注解</td>
+<td>不用再 <code>from __future__ import annotations</code></td>
+<td><code>def f(x: int \| str)</code></td>
+</tr>
+<tr>
+<td>3.11</td>
+<td><code>ExceptionGroup</code> 与 <code>add_note</code></td>
+<td>一次抛出多个异常、给异常附上下文</td>
+<td><code>raise ValueError("x").add_note("第42行")</code></td>
+</tr>
+<tr>
+<td>3.12</td>
+<td>更精准的错误消息</td>
+<td>f-string 语法错误能准确定位缺引号</td>
+<td>报错指向列号</td>
+</tr>
+<tr>
+<td>3.13</td>
+<td>PyREPL、<code>--disable-gil</code> 实验</td>
+<td>真正多线程并行（需特殊编译）</td>
+<td><code>python -X disable-gil</code></td>
+</tr>
+</tbody>
+</table>
+<p>其中 <code>ExceptionGroup</code> 的真实用法是"批量任务同时收集多个失败再一起抛出"，比"抛第一个就停"保留了更多信息；类型注解联合写法在 3.10 之前必须借助 <code>typing.Union</code>，3.10 起直接写竖线即可被解释器识别。</p>
+<h2 id="3-安装-python三大操作系统">3. 安装 Python：三大操作系统</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.1 Windows</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>推荐方法一：官方安装包，地址 python.org 的 downloads 页</li><li>方法三：Microsoft Store 版本，注意 Store 版有应用沙箱目录限制，读写用户任意路径时可能出权限问题；团队统一口径时不要一半人用 Store 版一半人用官方版，因为安装路径不同会连带影响 IDE 解释器配置</li><li>安装时必须勾选底部 "Add python.exe to PATH"——这是新手最常见的翻车来源，不勾选则命令行里敲 「python」 得到"不是内部或外部命令"</li></ul></div>3
+<p>推荐方法一：官方安装包，地址 python.org 的 downloads 页。安装时<strong>必须勾选底部 "Add python.exe to PATH"</strong>——这是新手最常见的翻车来源，不勾选则命令行里敲 <code>python</code> 得到"不是内部或外部命令"。方法二：<code>winget install Python.Python.3.12</code>，Windows 10 与 11 自带 winget 包管理器。方法三：Microsoft Store 版本，注意 Store 版有应用沙箱目录限制，读写用户任意路径时可能出权限问题；团队统一口径时不要一半人用 Store 版一半人用官方版，因为安装路径不同会连带影响 IDE 解释器配置。</p>
+<h3 id="32-macos">3.2 macOS</h3>3
+<p>官方安装包或 Homebrew：<code>brew install python@3.12</code>。macOS 自带的 <code>python3</code> 可能是旧版或指向 Xcode 命令行工具，验证时认 <code>python3 --version</code> 的输出版本号。需要多个版本共存时用第 3.4 节的 pyenv。Homebrew 装的 Python 路径通常在 <code>/opt/homebrew/bin/python3.12</code>（Apple Silicon）或 <code>/usr/local/bin/python3.12</code>（Intel）。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.3 Linux</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Fedora 与 RHEL：「sudo dnf install python3.12」</li><li>注意 Debian 系从 12 起给系统 Python 加了 PEP 668 "externally-managed" 标记，直接 「pip install」 会被拒绝，必须走 venv 或 「--break-system-packages」（后者不推荐）</li><li>Arch：「sudo pacman -S python」</li></ul></div>3
+<p>Ubuntu 与 Debian：<code>sudo apt update &amp;&amp; sudo apt install python3.12 python3.12-venv python3-pip</code>；默认仓库没有目标版本时加 deadsnakes PPA：<code>sudo add-apt-repository ppa:deadsnakes/ppa</code> 后重装。Fedora 与 RHEL：<code>sudo dnf install python3.12</code>。Arch：<code>sudo pacman -S python</code>。注意 Debian 系从 12 起给系统 Python 加了 PEP 668 "externally-managed" 标记，直接 <code>pip install</code> 会被拒绝，必须走 venv 或 <code>--break-system-packages</code>（后者不推荐）。</p>
+<h3 id="34-pyenv管理多个-python-版本">3.4 pyenv：管理多个 Python 版本</h3>3
+<p>pyenv 让一台机器并存 3.10、3.12、3.13，项目目录内放一个 <code>.python-version</code> 文件即可自动切换。它只管 Python 版本，不管包，所以仍要配合 venv 使用。</p>
+<pre><code class="language-bash"># 安装 pyenv（macOS/Linux；Windows 用 pyenv-win）
+curl https://pyenv.run | bash
+# 写入 ~/.bashrc: eval &quot;$(pyenv init -)&quot; 后 source ~/.bashrc
+pyenv install 3.12.7        # 编译安装指定版本
+pyenv global 3.12.7         # 全局默认
+cd my_project &amp;&amp; pyenv local 3.13.0   # 本项目用 3.13，生成 .python-version
+pyenv versions              # 验证：带 * 的是当前生效版本
+</code></pre>
+<p><strong>可直接跑的完整脚本（Python 3.12）——检查本机多版本共存情况：</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# check_pyenv_versions.py —— Python 3.12
+# 用法: python check_pyenv_versions.py
+# 真实路径: 脚本放在项目根目录, 结果写到同目录 env_report.txt
+import shutil, subprocess, sys
+from pathlib import Path
+
+report = Path(__file__).parent / &quot;env_report.txt&quot;
+lines = [f&quot;当前解释器: {sys.executable}&quot;, f&quot;版本: {sys.version.split()[0]}&quot;]
+if shutil.which(&quot;pyenv&quot;):
+    out = subprocess.run([&quot;pyenv&quot;, &quot;versions&quot;, &quot;--bare&quot;],
+                         capture_output=True, text=True).stdout
+    lines.append(&quot;pyenv 已安装版本: &quot; + out.replace(&quot;\n&quot;, &quot;, &quot;))
+else:
+    lines.append(&quot;pyenv 未安装（可选）&quot;)
+report.write_text(&quot;\n&quot;.join(lines), encoding=&quot;utf-8&quot;)
+print(report.read_text(encoding=&quot;utf-8&quot;))
+</code></pre>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">4. 虚拟环境：隔离项目依赖</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="41-为什么需要虚拟环境">4.1 为什么需要虚拟环境</h3>3
+<p>全局 Python 里装 50 个包之后，A 项目要 <code>requests==2.28</code>、B 项目要 <code>requests==2.31</code> 就会互相覆盖，谁后装谁赢。虚拟环境把"解释器加一组包"锁在项目目录里，<code>pip install</code> 只影响当前项目。反例：用 <code>sudo pip install</code> 往系统 Python 里装包，会污染 apt 或 dnf 管理的系统包，Debian 系甚至直接报 <code>externally-managed-environment</code> 拒绝执行，此时的正确动作是退出 sudo、建 venv、在 venv 里装。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">4.2 venv（推荐起点）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>mkdir my_project && cd my_project</li></ul></div>3
+<pre><code class="language-bash">mkdir my_project &amp;&amp; cd my_project
+python3 -m venv .venv                 # 用 .venv 隐藏目录名
+source .venv/bin/activate             # macOS/Linux
+# .venv\Scripts\Activate.ps1          # Windows PowerShell
+# 报&quot;禁止运行脚本&quot;时: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+which python                          # 必须指向 .venv/bin/python
+pip install --upgrade pip
+pip install requests flask
+pip list
+deactivate                            # 退出环境
+echo &quot;.venv/&quot; &gt;&gt; .gitignore           # 不要提交虚拟环境
+</code></pre>
+<p>三个关键校验点：激活后 <code>which python</code> 的输出必须含 <code>.venv</code>；<code>python -m pip --version</code> 的路径也要含 <code>.venv</code>；<code>pip list</code> 里不应出现你没装过的全局大包。<code>python -m venv</code> 建环境时若报 <code>ensurepip is not available</code>，说明系统装的是无 pip 的精简包，补 <code>sudo apt install python3.12-venv</code> 即可。</p>
+<h3 id="43-conda数据科学场景">4.3 Conda（数据科学场景）</h3>3
+<p>Conda 能管 Python 本身和 C 语言、C++ 库等非 Python 依赖，装 GPU 版深度学习栈时最省心。装 Miniconda（比 Anaconda 轻量得多，Anaconda 全家桶动辄 3GB 以上）：</p>
+<pre><code class="language-bash">conda create -n dataproj python=3.12 numpy=1.26 pandas=2.2
+conda activate dataproj
+conda env export &gt; environment.yml    # 导出可复现环境
+conda env create -f environment.yml   # 队友按此文件重建
+conda env list                        # 列出所有环境
+conda env remove -n dataproj          # 删除环境
+</code></pre>
+<p>environment.yml 里 <code>channels</code> 建议优先 <code>conda-forge</code>，<code>dependencies</code> 下的 <code>pip:</code> 小节可以混装 PyPI 独有的包，一条文件同时管住两类依赖。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.4 Poetry（库与应用发包场景）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>poetry new my-tool && cd my-tool</li><li>Poetry 的核心是 「pyproject.toml」 加 「poetry.lock」：前者声明直接依赖的版本范围，后者锁死每个包的具体版本与哈希，「poetry install」 按锁文件复现</li><li>poetry add --group dev pytest ruff</li></ul></div>3
+<pre><code class="language-bash">curl -sSL https://install.python-poetry.org | python3 -
+poetry new my-tool &amp;&amp; cd my-tool
+poetry add requests
+poetry add --group dev pytest ruff
+poetry run pytest                     # 在 poetry 托管的 venv 里跑
+poetry show --tree                    # 依赖树
+poetry build &amp;&amp; poetry publish        # 构建并发布到 PyPI
+</code></pre>
+<p>Poetry 的核心是 <code>pyproject.toml</code> 加 <code>poetry.lock</code>：前者声明直接依赖的版本范围，后者锁死每个包的具体版本与哈希，<code>poetry install</code> 按锁文件复现。发包到 TestPyPI 试水的命令是 <code>poetry config repositories.testpypi https://test.pypi.org/legacy/</code> 加 <code>poetry publish -r testpypi</code>。</p>
+<h3 id="45-三种方案对比与选择">4.5 三种方案对比与选择</h3>3
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>venv</th>
+<th>Conda</th>
+<th>Poetry</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>安装难度</td>
+<td>无需安装</td>
+<td>需单独安装</td>
+<td>需单独安装</td>
+</tr>
+<tr>
+<td>管 Python 版本</td>
+<td>不能</td>
+<td>能</td>
+<td>不能（依赖系统 Python）</td>
+</tr>
+<tr>
+<td>管非 Python 包</td>
+<td>不能</td>
+<td>能</td>
+<td>不能</td>
+</tr>
+<tr>
+<td>依赖锁定</td>
+<td>需配合 pip-tools</td>
+<td>environment.yml</td>
+<td>poetry.lock</td>
+</tr>
+<tr>
+<td>包发布</td>
+<td>无</td>
+<td>无</td>
+<td>完整支持</td>
+</tr>
+<tr>
+<td>适用场景</td>
+<td>小项目、脚本</td>
+<td>数据科学、复杂依赖</td>
+<td>库与应用开发</td>
+</tr>
+<tr>
+<td>学习曲线</td>
+<td>低</td>
+<td>中</td>
+<td>中</td>
+</tr>
+</tbody>
+</table>
+<p>选择规则：刚入门用 venv；做数据科学或装 GPU 栈用 conda；要发包或团队强制锁依赖用 Poetry。反例组合有两组：拿 Conda 管纯 Web 服务依赖，环境重建慢且导出文件动辄上百行；拿 venv 硬装 CUDA 版 PyTorch，编译链问题多，应交给 conda-forge 或官方预编译 wheel。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">5. 编辑器与 IDE</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="51-vs-code推荐">5.1 VS Code（推荐）</h3>3
+<p>安装：Windows <code>winget install Microsoft.VisualStudioCode</code>；macOS <code>brew install --cask visual-studio-code</code>；Linux <code>sudo snap install code --classic</code>。必装扩展四个：<strong>Python</strong>（ms-python.python）提供语言支持核心；<strong>Pylance</strong>（ms-python.vscode-pylance）提供基于 LSP 的高性能补全与跳转；<strong>Python Debugger</strong>（ms-python.debugpy）提供断点调试；<strong>Ruff</strong>（charliermarsh.ruff）一个扩展同时做 Linter 与 Formatter，可替代 flake8 加 black 的组合。</p>
+<p>项目级配置 <code>.vscode/settings.json</code>：</p>
+<pre><code class="language-json">{
+    &quot;python.defaultInterpreterPath&quot;: &quot;${workspaceFolder}/.venv/bin/python&quot;,
+    &quot;python.terminal.activateEnvironment&quot;: true,
+    &quot;[python]&quot;: {
+        &quot;editor.formatOnSave&quot;: true,
+        &quot;editor.defaultFormatter&quot;: &quot;charliermarsh.ruff&quot;,
+        &quot;editor.codeActionsOnSave&quot;: {
+            &quot;source.fixAll.ruff&quot;: &quot;explicit&quot;,
+            &quot;source.organizeImports.ruff&quot;: &quot;explicit&quot;
+        }
+    },
+    &quot;python.analysis.typeCheckingMode&quot;: &quot;basic&quot;,
+    &quot;editor.rulers&quot;: [88]
+}
+</code></pre>
+<p>切解释器：<code>Ctrl+Shift+P</code> 打开命令面板，输入 "Python: Select Interpreter"，选 <code>.venv/bin/python</code>。88 列标尺对应 PEP 8 推荐的行宽上限（Black 与 Ruff 默认 88）。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">5.2 PyCharm</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>社区版免费，覆盖纯 Python 开发；专业版付费（学生邮箱免费），增加 Django 与 Flask 支持、数据库工具、远程开发</li><li>大型项目里 PyCharm 的类型推断和重构（安全重命名、提取方法、内联变量）比 VS Code 深，代价是常驻内存高，通常 1GB 到 2GB 起步</li></ul></div>3
+<p>社区版免费，覆盖纯 Python 开发；专业版付费（学生邮箱免费），增加 Django 与 Flask 支持、数据库工具、远程开发。虚拟环境配置在 <code>File → Settings → Project → Python Interpreter → Add Local Interpreter → Virtualenv Environment</code>。大型项目里 PyCharm 的类型推断和重构（安全重命名、提取方法、内联变量）比 VS Code 深，代价是常驻内存高，通常 1GB 到 2GB 起步。</p>
+<h3 id="53-jupyter">5.3 Jupyter</h3>3
+<p><code>pip install jupyterlab &amp;&amp; jupyter lab</code>，浏览器自动打开 <code>http://localhost:8888</code>。快捷键：单元格执行 <code>Shift+Enter</code>，当前执行停留 <code>Ctrl+Enter</code>，上方插单元格 <code>Esc+A</code>，下方插单元格 <code>Esc+B</code>，删单元格连按两次 D，转 Markdown 说明 <code>Esc+M</code>，显示行号 <code>Esc+L</code>。Jupyter 找不到虚拟环境里的包时，在 venv 里执行 <code>pip install ipykernel &amp;&amp; python -m ipykernel install --user --name myproject</code>，然后在 Jupyter 内核选择器里选 "Python (myproject)"。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">6. 包管理：pip、requirements.txt、pip-tools、镜像源</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="61-pip-常用命令">6.1 pip 常用命令</h3>3
+<pre><code class="language-bash">pip install requests==2.31.0      # 精确版本
+pip install &quot;requests&gt;=2.28,&lt;3&quot;   # 版本范围，注意加引号防 shell 解析
+pip install -U requests           # 升级
+pip list --outdated               # 列出过时包
+pip show requests                 # 包详情与安装位置
+pip download requests -d ./wheels # 下载 wheel 离线安装用
+pip uninstall requests
+</code></pre>
+<p>版本指定语法速记：<code>==</code> 精确、<code>&gt;=</code> 最低、<code>~=1.4.2</code> 兼容版本（等价 <code>&gt;=1.4.2,&lt;1.5.0</code>）、<code>!=1.5.0</code> 排除特定版本。判断"装到哪去了"：<code>python -m pip show requests</code> 的 Location 字段就是答案，路径不含 <code>.venv</code> 就说明装错了环境。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">6.2 requirements.txt 与 pip-tools</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「pip freeze > requirements.txt」 会导出全部间接依赖及其精确版本，适合部署复现；手写 requirements.txt 则只列直接依赖并给版本范围</li><li>加新依赖就编辑 「.in」 再跑一次编译加同步</li></ul></div>3
+<p><code>pip freeze &gt; requirements.txt</code> 会导出全部间接依赖及其精确版本，适合部署复现；手写 requirements.txt 则只列直接依赖并给版本范围。要同时兼顾"声明简洁"和"复现精确"，用 pip-tools 三步走：<code>requirements.in</code> 写直接依赖；<code>pip-compile requirements.in</code> 生成带完整锁版本的 requirements.txt（每行注释标明 via 来源）；<code>pip-sync</code> 精确同步，多出来的包会被卸载。加新依赖就编辑 <code>.in</code> 再跑一次编译加同步。</p>
+<h3 id="63-国内镜像源">6.3 国内镜像源</h3>3
+<pre><code class="language-bash">pip install requests -i https://pypi.tuna.tsinghua.edu.cn/simple       # 临时
+pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple  # 永久
+pip config set global.trusted-host pypi.tuna.tsinghua.edu.cn
+pip install --proxy http://127.0.0.1:7890 requests                     # 走代理
+</code></pre>
+<p>常用镜像三家：清华大学 <code>pypi.tuna.tsinghua.edu.cn/simple</code>、阿里云 <code>mirrors.aliyun.com/pypi/simple</code>、中科大 <code>pypi.mirrors.ustc.edu.cn/simple</code>。镜像源有同步延迟，刚发布的包版本可能几小时后才可见，报 "No matching distribution" 时先换官方源 <code>https://pypi.org/simple</code> 再试一次。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">7. 环境验证：verify_env.py（可直接跑）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>/usr/bin/env python3</li></ul></div>2
+<p><strong>可直接跑的完整脚本（Python 3.12 以上，把文件存为项目根目录的 <code>verify_env.py</code>，在激活的 venv 里运行 <code>python verify_env.py</code>）：</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# verify_env.py —— Python 3.12+
+# 运行: python verify_env.py
+# 期望: 核心检查全部 PASS; 可选项失败不阻塞开工
+import sys, shutil
+from datetime import datetime
+
+def check(name, ok, detail=&quot;&quot;):
+    print(f&quot;  {'✅ PASS' if ok else '❌ FAIL'}  {name}&quot; + (f&quot; → {detail}&quot; if detail else &quot;&quot;))
+    return ok
+
+def main():
+    print(f&quot;Python 环境验证  {datetime.now():%Y-%m-%d %H:%M:%S}&quot;)
+    ok = True
+    major, minor = sys.version_info[:2]
+    ok &amp;= check(f&quot;Python {sys.version.split()[0]}&quot;, major == 3 and minor &gt;= 12,
+                f&quot;建议 3.12 以上，当前 {major}.{minor}&quot;)
+    check(f&quot;解释器路径 {sys.executable}&quot;, True)
+    in_venv = hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix
+    ok &amp;= check(&quot;虚拟环境&quot;, in_venv, &quot;已激活&quot; if in_venv else &quot;未激活，建议在 .venv 中运行&quot;)
+    for mod in [&quot;os&quot;, &quot;sys&quot;, &quot;json&quot;, &quot;re&quot;, &quot;pathlib&quot;, &quot;collections&quot;,
+                &quot;typing&quot;, &quot;logging&quot;, &quot;sqlite3&quot;]:
+        try:
+            __import__(mod); check(f&quot;标准库 {mod}&quot;, True)
+        except ImportError:
+            check(f&quot;标准库 {mod}&quot;, False); ok = False
+    for lib in [&quot;requests&quot;, &quot;pytest&quot;]:
+        try:
+            m = __import__(lib); check(f&quot;{lib} {getattr(m, '__version__', '')}&quot;, True)
+        except ImportError:
+            check(f&quot;{lib}（可选）&quot;, False)
+    for tool in [&quot;git&quot;, &quot;curl&quot;]:
+        check(tool, shutil.which(tool) is not None, shutil.which(tool) or &quot;未找到&quot;)
+    print(&quot;🎉 核心检查通过&quot; if ok else &quot;⚠️ 有失败项，按上面提示修复&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+<p>预期输出形态：每行一个 "PASS 名称" 或 "FAIL 名称"，最后一行是总结。九个标准库模块全部 PASS 说明解释器完整；虚拟环境那行 FAIL 只是提醒，不算硬错误；<code>requests</code> 与 <code>pytest</code> 属于可选项。</p>
+<h2 id="8-三问什么情况用-什么情况别用-翻车长什么样">8. 三问：什么情况用 / 什么情况别用 / 翻车长什么样</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">8.1 什么情况下用（适用场景加前置条件）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>venv 加 pip 加 requirements.txt：单人脚本、小型 Web 服务、CI 里 「pip install -r requirements.txt」 一条命令装完</li><li>前置：装 Miniconda，磁盘预留 3GB 以上，「conda env list」 能正常列出环境</li><li>前置：磁盘 500MB 以上</li></ul></div>3
+<ul>
+<li><strong>venv 加 pip 加 requirements.txt</strong>：单人脚本、小型 Web 服务、CI 里 <code>pip install -r requirements.txt</code> 一条命令装完。前置：系统已装 3.12 以上，网络能访问 PyPI 或已配镜像。</li>
+<li><strong>Conda</strong>：需要 numpy、pandas、scikit-learn、CUDA 等带二进制依赖的栈；机器上有多套 Python 需要并存且不想本地编译。前置：装 Miniconda，磁盘预留 3GB 以上，<code>conda env list</code> 能正常列出环境。</li>
+<li><strong>Poetry 或 pip-tools</strong>：要发布到 PyPI，或团队要求锁文件保证每台机器装出来的依赖完全一致。前置：git 仓库、<code>pyproject.toml</code> 或 <code>requirements.in</code>。</li>
+<li><strong>pyenv</strong>：同一台机器要维护 3.10、3.12、3.13 多个老项目。前置：macOS 或 Linux（Windows 用 pyenv-win），有编译环境（Ubuntu 装 <code>build-essential libssl-dev zlib1g-dev libffi-dev</code>）。</li>
+<li><strong>VS Code</strong>：通用开发、脚本、轻量数据任务。前置：磁盘 500MB 以上。<strong>PyCharm</strong>：大型项目、深度重构、需要内置数据库工具。前置：内存 8GB 以上。<strong>Jupyter</strong>：教学演示、数据分析、逐格试错。前置：已装 jupyterlab 并注册内核。</li>
+</ul>
+<h3 id="82-什么情况下别用反例加替代方案">8.2 什么情况下别用（反例加替代方案）</h3>3
+<ul>
+<li><strong>别用全局 Python 直接 <code>pip install</code> 做项目依赖</strong>：会与其他项目版本冲突。替代：先 <code>python3 -m venv .venv</code> 再装。</li>
+<li><strong>别用 <code>sudo pip install</code></strong>：污染系统包管理器的地盘，Debian 系直接报 <code>externally-managed-environment</code>。替代：venv；临时救急才用 <code>pip install --user</code>。</li>
+<li><strong>别把 <code>.venv/</code> 提交进 git</strong>：目录几百 MB 且绝对路径写死，队友拉下来无法用。替代：<code>.gitignore</code> 忽略，用 requirements.txt 重建。</li>
+<li><strong>别用 Conda 的 defaults 通道和 conda-forge 混着装科学栈</strong>：容易解出两套互相冲突的底层库（典型是 numpy 与 MKL 版本对不上）。替代：一个环境固定一个通道策略。</li>
+<li><strong>别在 Store 版 Python 上做需要读写任意系统路径的开发</strong>：沙箱目录限制会挡路径。替代：官方安装包。</li>
+<li><strong>别在生产容器里装 Jupyter 并暴露 8888 端口</strong>：默认无认证等于开了个远程执行口。替代：只在本机或带 token 的内网用。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">8.3 翻车长什么样（真实失败形态加排查信号加怎么改）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 「python」 不是内部或外部命令（Windows）：安装时没勾 "Add python.exe to PATH"</li><li>排查：「where python」 输出为空或指向意外位置</li><li>改：重装勾选，或手动把 「C:\Users\ \AppData\Local\Programs\Python\Python312」 与它的 Scripts 子目录加进 PATH</li></ul></div>3
+<ol>
+<li><strong><code>python</code> 不是内部或外部命令</strong>（Windows）：安装时没勾 "Add python.exe to PATH"。排查：<code>where python</code> 输出为空或指向意外位置。改：重装勾选，或手动把 <code>C:\Users\&lt;你&gt;\AppData\Local\Programs\Python\Python312</code> 与它的 Scripts 子目录加进 PATH。</li>
+<li><strong>PowerShell 报"无法加载文件…因为在此系统上禁止运行脚本"</strong>：执行策略限制。排查：<code>Get-ExecutionPolicy</code> 显示 Restricted。改：<code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code> 后重新激活。</li>
+<li><strong>pip 安装超时或断流</strong>：网络到 PyPI 慢。排查：<code>pip install requests -v</code> 看卡在哪个域名。改：换清华镜像并加 <code>--timeout 60</code>，或配代理。</li>
+<li><strong>装包出现编译错误（<code>Microsoft Visual C++ 14.0 or greater is required</code>）</strong>：装了需要 C 扩展的源码包而本机无编译器。改：Windows 装 Visual C++ Build Tools；或 <code>pip install --only-binary :all: 包名</code> 只走预编译 wheel。</li>
+<li><strong>多个 Python 版本冲突，包装进 A 解释器但 B 跑不起来</strong>：<code>pip</code> 命令指向别的解释器。排查：<code>which python</code> 与 <code>which pip</code> 不同目录即中招。改：统一用 <code>python -m pip install</code>，让 pip 与解释器绑定。</li>
+<li><strong>Jupyter 里 <code>ModuleNotFoundError: No module named 'requests'</code> 但终端里明明装了</strong>：内核指向的不是那个 venv。排查：Jupyter 里跑 <code>import sys; print(sys.executable)</code>。改：venv 里 <code>python -m ipykernel install --user --name myproject</code> 后切换内核。</li>
+<li><strong>WSL 里跑 <code>python</code> 却调用了 Windows 的 <code>python.exe</code></strong>：PATH 里 Windows 路径排在前面。排查：<code>which python</code> 输出 <code>/mnt/c/...</code> 即中招。改：<code>~/.bashrc</code> 确保 <code>/usr/local/bin:/usr/bin</code> 在 Windows 路径之前，然后重开终端。</li>
+<li><strong><code>ModuleNotFoundError</code> 但 <code>pip list</code> 里有这个包</strong>：装到了另一个 venv 或另一个 Python。排查：<code>python -m pip list</code> 看路径，与 <code>sys.executable</code> 对不上就是。改：激活正确 venv 后用 <code>python -m pip install</code> 重装。</li>
+<li><strong><code>pip install</code> 报 <code>No matching distribution found</code></strong>：镜像未同步或 Python 版本超出该包支持范围。排查：同一命令加 <code>-i https://pypi.org/simple</code> 换官方源再试。改：等镜像同步，或选支持当前版本的包版本号。</li>
+</ol>
+<h2 id="9-术语表">9. 术语表</h2>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>全称</th>
+<th>一句话解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EOL</td>
+<td>End of Life</td>
+<td>官方停止维护的版本终点，之后无安全补丁</td>
+</tr>
+<tr>
+<td>venv</td>
+<td>virtual environment</td>
+<td>Python 标准库自带的轻量虚拟环境工具</td>
+</tr>
+<tr>
+<td>PyPI</td>
+<td>Python Package Index</td>
+<td>Python 官方第三方包仓库（pypi.org）</td>
+</tr>
+<tr>
+<td>pip</td>
+<td>pip installs packages</td>
+<td>Python 官方包管理器，从 PyPI 下载安装包</td>
+</tr>
+<tr>
+<td>wheel</td>
+<td>Python Wheel</td>
+<td><code>.whl</code> 预编译二进制分发格式，装包免编译</td>
+</tr>
+<tr>
+<td>pyenv</td>
+<td>Python Version Manager</td>
+<td>多 Python 版本共存与按项目切换的工具</td>
+</tr>
+<tr>
+<td>IDE</td>
+<td>Integrated Development Environment</td>
+<td>集成编辑、调试、构建的开发环境</td>
+</tr>
+<tr>
+<td>PEP</td>
+<td>Python Enhancement Proposal</td>
+<td>Python 官方提案文档，如 PEP 8 定义代码风格</td>
+</tr>
+<tr>
+<td>CI</td>
+<td>Continuous Integration</td>
+<td>提交代码后自动跑测试与检查的流水线</td>
+</tr>
+<tr>
+<td>WSL</td>
+<td>Windows Subsystem for Linux</td>
+<td>Windows 内运行 Linux 环境的子系统</td>
+</tr>
+<tr>
+<td>PATH</td>
+<td>—</td>
+<td>操作系统查找可执行命令的目录列表</td>
+</tr>
+<tr>
+<td>LSP</td>
+<td>Language Server Protocol</td>
+<td>编辑器与语言服务的通信协议，Pylance 基于此</td>
+</tr>
+<tr>
+<td>REPL</td>
+<td>Read-Eval-Print Loop</td>
+<td>交互式解释器，逐行执行并即时打印结果</td>
+</tr>
+<tr>
+<td>SDK</td>
+<td>Software Development Kit</td>
+<td>软件开发工具包，含解释器、库与文档</td>
+</tr>
+<tr>
+<td>Linter</td>
+<td>—</td>
+<td>静态检查工具，不运行代码就找出风格与潜在错误</td>
+</tr>
+<tr>
+<td>Formatter</td>
+<td>—</td>
+<td>自动按统一规则重排代码格式的工具</td>
+</tr>
+<tr>
+<td>WSL2</td>
+<td>Windows Subsystem for Linux 2</td>
+<td>WSL 的第二代实现，跑真实 Linux 内核</td>
+</tr>
+<tr>
+<td>PPA</td>
+<td>Personal Package Archive</td>
+<td>Ubuntu 个人维护的第三方软件源，如 deadsnakes</td>
+</tr>
+<tr>
+<td>MKL</td>
+<td>Math Kernel Library</td>
+<td>Intel 数学核心库，科学计算底层加速</td>
+</tr>
+<tr>
+<td>CUDA</td>
+<td>Compute Unified Device Architecture</td>
+<td>NVIDIA GPU 通用并行计算平台与编程模型</td>
+</tr>
+</tbody>
+</table>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">10. 五个高频子场景的标准动作</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="101-新机器从零到能写代码的-30-分钟流水线">10.1 新机器从零到"能写代码"的 30 分钟流水线</h3>3
+<p>按顺序执行，每步都有验收命令，任何一步验收不过就停在那一步修，不要带病往下走。第一步装解释器：Windows 跑 <code>winget install Python.Python.3.12</code>，macOS 跑 <code>brew install python@3.12</code>，Ubuntu 跑 <code>sudo apt install python3.12 python3.12-venv</code>，装完 <code>python3 --version</code> 必须输出 3.12 以上。第二步配镜像：<code>pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple</code>，验收方式是 <code>pip config list</code> 能看到 index-url。第三步建项目目录并创建虚拟环境：<code>mkdir demo &amp;&amp; cd demo &amp;&amp; python3 -m venv .venv</code>，验收 <code>ls .venv/bin/python</code> 存在。第四步激活并升级 pip：<code>source .venv/bin/activate &amp;&amp; python -m pip install --upgrade pip</code>，验收 <code>which python</code> 含 <code>.venv</code>。第五步装编辑器与四个扩展，打开 demo 目录选 <code>.venv</code> 解释器。第六步把第 7 节的 verify_env.py 存进 demo 目录跑一遍，核心项全 PASS 即完成。这条流水线的总耗时瓶颈在下载：官方包约 25MB，VS Code 约 90MB，四扩展合计约 60MB，国内网络配好镜像后通常 10 分钟内装完，未配镜像时 pip 阶段可能单包就超时 60 秒以上。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">10.2 接手一个没有锁文件的老项目怎么补环境</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>第三步 「pip freeze > requirements.lock.txt」 固化当前可运行组合，把它提交进 git，原 requirements.txt 保留不动作为历史</li><li>第四步补一个最小冒烟脚本：导入核心模块并调用一个主入口函数，跑通就算接手完成</li></ul></div>3
+<p>老项目的典型症状是根目录只有一个裸 requirements.txt，甚至只有 import 列表。标准动作分四步。第一步看代码里的 import 语句，人工列出直接依赖清单，排除标准库。第二步建干净 venv，用 <code>pip install -r requirements.txt</code> 或逐个 <code>pip install</code> 装，报版本冲突时用 <code>pip install 包名==版本</code> 逐个降级试，把能跑起来的组合记录下来。第三步 <code>pip freeze &gt; requirements.lock.txt</code> 固化当前可运行组合，把它提交进 git，原 requirements.txt 保留不动作为历史。第四步补一个最小冒烟脚本：导入核心模块并调用一个主入口函数，跑通就算接手完成。若老项目声明支持 Python 3.8 而你的机器是 3.12，优先用 pyenv 建一个 3.8 的解释器按原版本跑通，不要直接上 3.12 改代码，因为 3.12 移除了 <code>distutils</code> 等旧模块，老依赖可能整包装不上。</p>
+<h3 id="103-团队统一环境口径的最低配置集">10.3 团队统一环境口径的最低配置集</h3>3
+<p>三个人三台机器要跑出同一结果，最低要锁四样东西。Python 主次版本写进 README 第一行（例如"Python 3.12.7"），团队用 pyenv 的 <code>.python-version</code> 文件固化。依赖写进 requirements.txt 且全部带 <code>==</code> 精确版本，或用 poetry.lock。格式化与检查配置写进 <code>pyproject.toml</code> 的 <code>[tool.ruff]</code> 段，行宽 88，规则至少开 E、F、W 三类。虚拟环境命名统一 <code>.venv</code>，让 VS Code 的 <code>python.defaultInterpreterPath</code> 配置在三台机器上都能直接生效。补一条 CI 检查：GitHub Actions 里跑 <code>pip install -r requirements.txt &amp;&amp; python -m compileall . &amp;&amp; ruff check .</code>，任何成员本地跑不过的代码不允许合入。判断口径是否真的统一的验收方法：把仓库克隆到一台干净机器，按 README 从零到跑通冒烟脚本的时间应当在 30 分钟内。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">10.4 磁盘与网络两大资源的控制点</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>虚拟环境是磁盘大户：一个装了 numpy 加 pandas 加 scikit-learn 的 conda 环境能到 1.5GB 到 2GB，纯 venv 装 requests 加 flask 通常 50MB 到 80MB</li><li>企业内网还可以自建 devpi 或 Nexus 做私有镜像，把外网流量收敛到一台机器</li></ul></div>3
+<p>虚拟环境是磁盘大户：一个装了 numpy 加 pandas 加 scikit-learn 的 conda 环境能到 1.5GB 到 2GB，纯 venv 装 requests 加 flask 通常 50MB 到 80MB。控制手段：项目结束用 <code>conda env remove -n 名字</code> 或直接删 <code>.venv</code> 目录；缓存目录 <code>~/.cache/pip</code> 会随安装次数增长，超过 2GB 时用 <code>pip cache purge</code> 清理；Windows 上 <code>py -0p</code> 列出所有安装的解释器，删掉不再用的版本。网络控制点：离线机器用 <code>pip download requests -d ./wheels</code> 先在有网机器下载 wheel，再 <code>pip install --no-index --find-links ./wheels -r requirements.txt</code> 离线安装；代理环境下 pip 认 <code>HTTP_PROXY</code> 与 <code>HTTPS_PROXY</code> 环境变量，写进 <code>~/.bashrc</code> 免得每次手动传参。企业内网还可以自建 devpi 或 Nexus 做私有镜像，把外网流量收敛到一台机器。</p>
+<h3 id="105-记录与回溯让下一次排查有据可查">10.5 记录与回溯：让下一次排查有据可查</h3>3
+<p>每次环境变更留下三件证据。第一，变更前跑 <code>pip freeze &gt; freeze-$(date +%Y%m%d).txt</code> 留底。第二，重大操作（换 Python 大版本、换包管理器）在 git 提交信息里写清楚"环境变更"字样，方便日后二分定位。第三，翻车修好后把现象、排查命令、修复动作三行写进项目 README 的"已知问题"小节。本库另有 error-ledger 机制专门做这类结构化记录，环境类翻车现场（第 8.3 节的九条）就是它的典型录入对象。回溯的判断标准是：三个月后另一个人能否只凭文档复现你的修复动作，不问你任何问题。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">11. 讲给完全新手的一页：命令行、脚本、解释器到底是什么</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>这一节补给没碰过命令行的读者，老手可跳过</li><li>命令行是一个输入文字命令、按回车执行的窗口：Windows 叫 PowerShell 或 CMD，macOS 叫终端，WSL 里是 bash</li><li>和图形界面点图标的区别是，命令行可以被复制、被记录、被写进脚本批量执行，这正是自动化和可复现的基础</li></ul></div>2
+<p>这一节补给没碰过命令行的读者，老手可跳过。<strong>命令行</strong>是一个输入文字命令、按回车执行的窗口：Windows 叫 PowerShell 或 CMD，macOS 叫终端，WSL 里是 bash。和图形界面点图标的区别是，命令行可以被复制、被记录、被写进脚本批量执行，这正是自动化和可复现的基础。<strong>解释器</strong>是把 <code>.py</code> 文件里的文本逐行翻译成机器动作的程序，<code>python3 xxx.py</code> 的意思就是"用 Python 解释器执行这个文件"。<strong>脚本</strong>就是一个纯文本的 <code>.py</code> 文件，可以用任何编辑器写，VS Code 只是让写的过程更舒服（补全、跳转、高亮），不用它照样能写。<strong>模块和包</strong>是把代码拆成多个文件的办法：<code>import json</code> 是用标准库的 json 模块，<code>pip install requests</code> 是先从 PyPI 下载 requests 包再用 <code>import requests</code> 引入。</p>
+<p>第一次敲命令的三条纪律。第一，命令区分大小写，<code>Python</code> 和 <code>python</code> 不是一回事。第二，路径里有空格要加引号，Windows 路径反斜杠在 Python 字符串里要写成两个 <code>\\</code> 或改用正斜杠 <code>/</code>。第三，看报错从最后一行往上读，最后一行通常是异常类型加消息（例如 <code>FileNotFoundError: [Errno 2] No such file or directory: 'a.txt'</code>），它直接告诉你错在哪个文件哪类问题。</p>
+<p>一个零风险的练手实验：建目录 <code>mkdir ~/py-demo</code>，进入 <code>cd ~/py-demo</code>，用 <code>echo 'print("hello")' &gt; hello.py</code> 生成一个文件，再 <code>python3 hello.py</code> 运行，看到 <code>hello</code> 输出就说明"写文件、跑解释器、看输出"这条链路通了。链路不通时的排查顺序固定为三问：<code>which python3</code> 看解释器在哪、<code>pwd</code> 看当前目录对不对、<code>ls</code> 看文件在不在。这三个命令的答案组合起来就能定位九成的"跑不起来"。</p>
+<p><strong>和虚拟环境的衔接</strong>：上面实验用的是系统 Python，它适合跑一次性的练习脚本；一旦开始 <code>pip install</code> 第三方包，就切到第 4 节的 venv 流程。判断标准很简单：文件里出现 <code>import</code> 一个非标准库模块之前，系统 Python 够用；从第一次 <code>pip install</code> 开始，就用 <code>.venv</code>。这个分界线记住了，就不会把"练习脚本装包"和"项目依赖管理"混成一锅粥。</p>
+<h2 id="12-三套完整演练脚本从安装到验收一条龙">12. 三套完整演练脚本：从安装到验收一条龙</h2>2
+<p>下面三段都是可以直接复制运行的命令块，推荐在一台干净机器（或新建的 <code>~/py-lab</code> 目录）里照做一遍。每段末尾给出验收标准，不满足就按括号里的提示修。</p>
+<p><strong>演练一：一键建项目骨架（bash，Linux/WSL/macOS 通吃）</strong></p>
+<pre><code class="language-bash">#!/usr/bin/env bash
+# new_project.sh —— 用法: bash new_project.sh my_app
+# 真实路径: 存到 ~/bin/new_project.sh 并 chmod +x
+set -euo pipefail
+NAME=&quot;${1:?用法: bash new_project.sh 项目名}&quot;
+ROOT=&quot;$HOME/py-lab/$NAME&quot;
+mkdir -p &quot;$ROOT/src/$NAME&quot; &quot;$ROOT/tests&quot;
+cd &quot;$ROOT&quot;
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip -q
+python -m pip install pytest ruff -q
+printf '.venv/\n__pycache__/\n' &gt; .gitignore
+printf '[tool.ruff]\nline-length = 88\n' &gt; pyproject.toml
+printf 'def add(a: int, b: int) -&gt; int:\n    return a + b\n' &gt; &quot;src/$NAME/core.py&quot;
+printf 'from %s.core import add\n\ndef test_add():\n    assert add(1, 2) == 3\n' &quot;$NAME&quot; &gt; tests/test_core.py
+python -m pytest -q &amp;&amp; ruff check .
+echo &quot;骨架就绪: $ROOT&quot;
+</code></pre>
+<p>验收标准：最后一行输出"骨架就绪"，且 pytest 显示 1 passed。若 <code>python3 -m venv</code> 报 ensurepip 缺失，先装 <code>python3-venv</code> 系统包再重跑。</p>
+<p><strong>演练二：一键验收环境（Python 3.12，把第 7 节脚本的精简版做成体检器）</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# env_health.py —— Python 3.12, 用法: python env_health.py
+# 输出写到 ./health_report.txt, 返回码 0 表示核心全过
+import sys, json
+from pathlib import Path
+
+REQUIRED = [&quot;os&quot;, &quot;sys&quot;, &quot;json&quot;, &quot;re&quot;, &quot;pathlib&quot;, &quot;collections&quot;, &quot;logging&quot;]
+score, missing = 0, []
+for mod in REQUIRED:
+    try:
+        __import__(mod); score += 1
+    except ImportError:
+        missing.append(mod)
+in_venv = hasattr(sys, &quot;base_prefix&quot;) and sys.base_prefix != sys.prefix
+report = {
+    &quot;python&quot;: sys.version.split()[0],
+    &quot;executable&quot;: sys.executable,
+    &quot;in_venv&quot;: in_venv,
+    &quot;stdlib_score&quot;: f&quot;{score}/{len(REQUIRED)}&quot;,
+    &quot;missing&quot;: missing,
+}
+Path(&quot;health_report.txt&quot;).write_text(json.dumps(report, ensure_ascii=False, indent=2),
+                                     encoding=&quot;utf-8&quot;)
+print(json.dumps(report, ensure_ascii=False, indent=2))
+sys.exit(0 if not missing else 1)
+</code></pre>
+<p>验收标准：<code>stdlib_score</code> 显示 7/7、<code>in_venv</code> 为 true、退出码为 0（在终端用 <code>echo $?</code> 查看）。缺模块就重装解释器，不要单独补装标准库。</p>
+<p><strong>演练三：Windows 侧 PowerShell 一键装（winget 路线）</strong></p>
+<pre><code class="language-powershell"># setup_win.ps1 —— 用法: powershell -ExecutionPolicy Bypass -File setup_win.ps1
+# 真实路径: 存到 C:\Users\&lt;你&gt;\setup_win.ps1
+winget install Python.Python.3.12 --accept-source-agreements --accept-package-agreements
+winget install Microsoft.VisualStudioCode --accept-source-agreements
+$py = &quot;$env:LOCALAPPDATA\Programs\Python\Python312\python.exe&quot;
+&amp; $py -m venv &quot;$env:USERPROFILE\py-lab\.venv&quot;
+&amp; &quot;$env:USERPROFILE\py-lab\.venv\Scripts\python.exe&quot; -m pip install --upgrade pip -q
+&amp; &quot;$env:USERPROFILE\py-lab\.venv\Scripts\python.exe&quot; --version
+</code></pre>
+<p>验收标准：最后一行输出 <code>Python 3.12.x</code>。若 winget 报找不到命令，说明系统版本过旧，改用 python.org 官方安装包并勾选 PATH。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">14. 四段逐行注释的可运行脚本（新手跟读版）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>这一节的四段代码都标注了 Python 版本、文件名和运行方式，每行注释解释"这一行在干什么"，适合第一次写 Python 的人逐行对照</li><li>它们和第 7、12 节的脚本不同：那两节是验收工具，这四段是学习材料，跑通后建议自己改动参数再跑一遍，看输出怎么变</li><li>脚本 A：hello_env.py（Python 3.12）——打印解释器信息与第一个程序</li></ul></div>2
+<p>这一节的四段代码都标注了 Python 版本、文件名和运行方式，每行注释解释"这一行在干什么"，适合第一次写 Python 的人逐行对照。它们和第 7、12 节的脚本不同：那两节是验收工具，这四段是学习材料，跑通后建议自己改动参数再跑一遍，看输出怎么变。</p>
+<p><strong>脚本 A：hello_env.py（Python 3.12）——打印解释器信息与第一个程序</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# hello_env.py —— Python 3.12
+# 运行: python hello_env.py
+# 真实路径: 存到 ~/py-demo/hello_env.py
+import platform   # 标准库模块，读操作系统与解释器信息
+import sys        # 标准库模块，读解释器运行时状态
+
+def main():                      # def 定义函数，main 是入口名（惯例）
+    py_ver = platform.python_version()   # 取版本号字符串，例如 &quot;3.12.7&quot;
+    os_name = platform.system()          # 取系统名，例如 &quot;Linux&quot;
+    print(f&quot;Python 版本: {py_ver}&quot;)       # f-string 格式化输出，花括号里放变量
+    print(f&quot;操作系统: {os_name}&quot;)
+    print(f&quot;解释器路径: {sys.executable}&quot;)
+    name = input(&quot;你的名字是: &quot;)          # 阻塞等待用户输入一行文字
+    print(f&quot;你好，{name}！这是你的第一个 Python 脚本。&quot;)
+
+if __name__ == &quot;__main__&quot;:   # 只有直接运行本文件时才执行 main
+    main()
+</code></pre>
+<p>验收标准：运行后打印三行环境信息并等待输入名字，输入后回显问候语。若报 <code>SyntaxError</code>，多半是引号或括号用了中文全角符号，改回英文半角。</p>
+<p><strong>脚本 B：number_play.py（Python 3.12）——数值类型与类型转换的实感</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# number_play.py —— Python 3.12
+# 运行: python number_play.py
+a = 7            # int 整数，Python 的整数没有大小上限
+b = 3
+print(a / b)     # 真除法，结果 2.3333333333333335
+print(a // b)    # 整除（地板除），结果 2
+print(a % b)     # 取余数，结果 1
+print(a ** b)    # 幂运算，7 的 3 次方 = 343
+
+price = &quot;19.90&quot;                # 字符串形式的金额，常见于用户输入
+total = float(price) * 3       # float() 把字符串转成小数，再乘数量
+print(f&quot;3 件总价: {total:.2f} 元&quot;)   # :.2f 保留两位小数
+
+# 类型转换的坑：带小数点的字符串不能直接转 int
+try:
+    int(&quot;19.90&quot;)               # 抛 ValueError
+except ValueError as e:
+    print(&quot;int('19.90') 失败:&quot;, e)   # 正确做法是先 float 再 int
+    print(&quot;正确做法:&quot;, int(float(&quot;19.90&quot;)))   # 结果 19（截断小数，不四舍五入）
+</code></pre>
+<p>验收标准：输出包含 2.3333…、2、1、343 以及 3 件总价 59.70 元，最后两行打印转换失败的消息和正确做法的结果 19。注意 <code>int(float(...))</code> 是截断不是四舍五入，要四舍五入用 <code>round(float("19.90"))</code> 得 20。</p>
+<p><strong>脚本 C：text_play.py（Python 3.12）——字符串索引切片与常用方法</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# text_play.py —— Python 3.12
+s = &quot;Hello, Python 3.12&quot;
+print(s[0])        # 索引从 0 开始，取第一个字符 H
+print(s[-1])       # 负索引从右数，取最后一个字符 2
+print(s[7:13])     # 切片 [起:止]，含头不含尾，取 Python
+print(s[::2])      # 步长 2，每隔一个字符取一个
+
+words = s.split(&quot;, &quot;)         # 按分隔符切成列表
+print(words)                  # ['Hello', 'Python 3.12']
+joined = &quot; | &quot;.join(words)    # 用连接符把列表拼回字符串
+print(joined)                 # Hello | Python 3.12
+
+clean = &quot;  padded  &quot;.strip()  # 去掉两端空白字符
+print(repr(clean))            # repr 显示真实内容，验证空白已去掉
+print(s.startswith(&quot;Hello&quot;), s.count(&quot;o&quot;))   # 判断前缀、统计字符
+</code></pre>
+<p>验收标准：第一行输出 H，第三行输出 Python，split 后打印含两个元素的列表。若切片结果和预期差一个字符，记住"含头不含尾"这条规则。</p>
+<p><strong>脚本 D：mini_calc.py（Python 3.12）——把前三段知识串成小工具</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# mini_calc.py —— Python 3.12
+# 运行: python mini_calc.py &quot;12 + 5&quot;  或  python mini_calc.py
+import sys
+
+def calc(expr: str) -&gt; float:        # 类型注解：参数是字符串，返回小数
+    for op in &quot;+-*/&quot;:                # 依次尝试四种运算符
+        if op in expr:
+            left, right = expr.split(op, 1)   # 只按第一个运算符切开
+            a, b = float(left.strip()), float(right.strip())
+            return {&quot;+&quot;: a + b, &quot;-&quot;: a - b, &quot;*&quot;: a * b, &quot;/&quot;: a / b}[op]
+    raise ValueError(f&quot;不支持的表达式: {expr}&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    expr = sys.argv[1] if len(sys.argv) &gt; 1 else input(&quot;输入如 12 + 5: &quot;)
+    try:
+        print(f&quot;{expr} = {calc(expr)}&quot;)
+    except ZeroDivisionError:
+        print(&quot;除数不能为零&quot;)
+    except ValueError as e:
+        print(&quot;输入错误:&quot;, e)
+</code></pre>
+<p>验收标准：<code>python mini_calc.py "12 + 5"</code> 输出 <code>12 + 5 = 17.0</code>；<code>python mini_calc.py "8 / 0"</code> 输出"除数不能为零"。这个脚本顺带演示了三个工程习惯：函数带类型注解、用字典做运算符分发、异常按类型分别捕获。</p>
+<h2 id="15-faq十二个真实提问与短答案">15. FAQ：十二个真实提问与短答案</h2>2
+<p><strong>问 1：虚拟环境建好后可以整体复制给别人用吗？</strong> 不建议。venv 里写死了绝对路径，换台机器路径就失效。正确做法是给对方 requirements.txt，让他在自己机器重建。</p>
+<p><strong>问 2：<code>.venv</code> 和 <code>venv</code> 命名有讲究吗？</strong> 有。带点前缀是社区惯例，多数 <code>.gitignore</code> 模板和工具会默认忽略它；不带点则容易被误提交进 git。</p>
+<p><strong>问 3：pip 和 python -m pip 有什么区别？</strong> <code>pip</code> 是独立入口，可能指向别的解释器；<code>python -m pip</code> 保证用当前解释器配套的 pip。团队脚本里一律用后者。</p>
+<p><strong>问 4：升级 Python 小版本（3.12.5 到 3.12.7）要重建 venv 吗？</strong> 建议重建。小版本升级后 venv 里的符号链接仍指向旧的可执行文件，重建成本低（一次 <code>python -m venv</code> 加 <code>pip install -r</code>），比排查奇怪报错便宜。</p>
+<p><strong>问 5：Windows 上装了 Python 但终端敲 python 打开的是微软商店？</strong> 这是 Windows 的应用执行别名（App Execution Alias）抢了 PATH。改法：设置里搜"管理应用执行别名"，关掉 python.exe 与 python3.exe 的商店别名。</p>
+<p><strong>问 6：WSL 里要不要同时装 Windows 版和 Linux 版 Python？</strong> 不要。WSL 项目只用 Linux 版，Windows 版留给纯 Windows 项目。两套混用最容易出第 8.3 节第 7 条那种路径混淆。</p>
+<p><strong>问 7：conda 和 venv 能嵌套用吗？</strong> 能但别。conda 环境里再建 venv 会造成"两层隔离"，谁装的包在哪里极难排查。选一个体系走到底。</p>
+<p><strong>问 8：requirements.txt 里要不要写版本号？</strong> 要。不写版本号等于把版本选择权交给安装当天的 PyPI 状态，三个月后重装可能装出完全不同的组合。最低要求是直接依赖写 <code>==</code> 精确版本。</p>
+<p><strong>问 9：pip install 卡在 Building wheel 是什么信号？</strong> 信号是这个包没有预编译 wheel，正在本地编译 C 扩展。等几分钟正常；十分钟以上就是缺编译器，按第 8.3 节第 4 条处理。</p>
+<p><strong>问 10：怎么确认某个包装在哪个环境？</strong> 跑 <code>python -m pip show 包名</code> 看 Location 字段；或在代码里 <code>import 包名; print(包名.__file__)</code> 打印真实文件路径，路径里含 <code>.venv</code> 才对。</p>
+<p><strong>问 11：多个项目共用一个大环境行不行？</strong> 小团队短期可以，长期必翻车。共用环境的依赖升级是全局动作，A 项目的升级会静默改变 B 项目的运行时。项目超过 2 个就一项目一 venv。</p>
+<p><strong>问 12：怎么把本机环境迁移到新电脑？</strong> 三件套：git 仓库（代码加 requirements.txt）、pyenv 的 <code>.python-version</code>（解释器版本）、README 的环境小节（特殊配置）。新机器按第 12 节演练一建骨架、装依赖、跑冒烟即可。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">16. 从 chapter01 素材里提炼的版本决策明细（融合稿补充）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>【chapter01 补充】素材对 2026 年的版本状态有一张判断表，比"选 3.12"更细：Python 3.10 已停止安全更新、3.11 安全维护中但建议升级、3.12 是稳定生产环境首选、3.13 是学习与新项目首选、3.14 实验性仅供尝鲜不建议进生产</li><li>本文主线推荐 3.12 正是取"生产稳"这条腿，追新者选 3.13；若你的项目要上 3.14，先确认所有第三方依赖都发了对应 wheel（PyPI 文件名里的 cp314 标记），否则退 3.13</li><li>3.10 之前这类分发只能写一长串 if-elif 或依赖第三方库</li></ul></div>2
+<p><strong>【chapter01 补充】素材对 2026 年的版本状态有一张判断表</strong>，比"选 3.12"更细：Python 3.10 已停止安全更新、3.11 安全维护中但建议升级、3.12 是稳定生产环境首选、3.13 是学习与新项目首选、3.14 实验性仅供尝鲜不建议进生产。本文主线推荐 3.12 正是取"生产稳"这条腿，追新者选 3.13；若你的项目要上 3.14，先确认所有第三方依赖都发了对应 wheel（PyPI 文件名里的 cp314 标记），否则退 3.13。</p>
+<p><strong>【chapter01 补充】match-case 的完整形态</strong>比一列小表格更值得抄一遍：<code>match code: case 200: ... case _: ...</code> 里下划线是通配符分支，等价于 switch 的 default；它还能解构数据，比如 <code>case {"op": "add", "x": a}</code> 直接把字典字段绑到变量。3.10 之前这类分发只能写一长串 if-elif 或依赖第三方库。</p>
+<p><strong>【chapter01 补充】异常笔记与异常组的两段代码</strong>值得单独记：<code>raise ValueError("数据格式错误").add_note("发生在第42行的数据解析中")</code> 给异常挂上下文，捕获方通过 <code>e.__notes__</code> 读出来；<code>ExceptionGroup</code> 配合 <code>except*</code> 语法可以同时捕获多类异常，适合"批量任务收集全部失败再报告"的场景。这两处语法都要求 Python 3.11 以上，写兼容代码时要做版本守卫。</p>
+<p><strong>【chapter01 补充】素材里的三平台安装细节差异</strong>：Windows 三种方法（官方包、winget、商店版）的风险排序是官方包最稳、winget 次之、商店版有沙箱限制；macOS 强调"始终用 python3 命令"；Linux 三系（Ubuntu/Fedora/Arch）各有包管理命令且 Ubuntu 需要额外装 <code>python3.12-venv</code> 才能建虚拟环境。这些差异的共同验收动作只有一个：装完立刻跑 <code>python3 --version</code> 并把输出记进 README。</p>
+<p><strong>【chapter01 补充】Jupyter 快捷键的取舍逻辑</strong>：<code>Shift+Enter</code> 执行并下移适合连续跑，<code>Ctrl+Enter</code> 停留原格适合反复调同一段，<code>Esc+DD</code> 删格是最高频的误操作来源（删错了用 <code>Esc+Z</code> 或菜单 Edit 撤销）。教学演示时建议先 <code>Esc+M</code> 把说明写成 Markdown 格，再放代码格，观众看到的顺序就是你讲解的顺序。</p>
+<p><strong>【python-student-manual-outline 补充】大纲把学习路径切成五段</strong>：第一部分基础奠基（环境与语法，对应本文和后三篇 L0 文档）、第二部分核心进阶（函数式与常用内置能力）、第三部分高级特性（装饰器、生成器、上下文管理器、元类、类型注解）、第四部分工程实践（项目结构、打包、CI、代码质量）、第五部分大神之路（生态、源码、开源贡献）。环境与工具链属于第一段的最前置，大纲给它的定位是"从零到一"，所以本文刻意不引入任何框架，只讲解释器、环境、编辑器、包管理四件事。</p>
+<h2 id="18-学完环境篇的自测十题含答案">18. 学完环境篇的自测十题（含答案）</h2>2
+<p>判断自己是否真的掌握了本篇，不看文档能否答出八题以上。<strong>第一题</strong>：为什么 Windows 装 Python 时勾选 "Add python.exe to PATH" 是关键一步？答案：不勾选时命令行找不到 python 命令，报"不是内部或外部命令"，新手最容易在这里卡住。<strong>第二题</strong>：venv、Conda、Poetry 三者的分工边界是什么？答案：venv 只隔离包，Conda 连 Python 版本和 C 库一起管，Poetry 专注依赖锁定与发包。<strong>第三题</strong>：<code>pip install</code> 和 <code>python -m pip install</code> 的差别？答案：后者绑定当前解释器，前者可能指向别的 Python。<strong>第四题</strong>：requirements.txt 不写版本号有什么风险？答案：不同时间安装会解析出不同版本组合，破坏可复现性。<strong>第五题</strong>：镜像源报 "No matching distribution" 的两个可能原因？答案：镜像未同步新版本、当前 Python 版本超出该包支持范围。<strong>第六题</strong>：Jupyter 里 import 报错但终端正常，最可能的原因？答案：内核指向的解释器不是那个 venv，用 ipykernel 重新注册。<strong>第七题</strong>：WSL 里 <code>which python</code> 输出 <code>/mnt/c/...</code> 说明什么？答案：PATH 顺序错了，调用了 Windows 的 Python，要在 <code>~/.bashrc</code> 里把 Linux 路径提前。<strong>第八题</strong>：pyenv 和 venv 是替代关系吗？答案：不是，pyenv 管解释器版本、venv 管包，二者常配合使用。<strong>第九题</strong>：<code>pip freeze</code> 生成的文件适合什么场景？答案：部署复现和交接，因为它列出所有间接依赖的精确版本。<strong>第十题</strong>：为什么建议所有项目都把虚拟环境命名为 <code>.venv</code>？答案：带点前缀会被常见 gitignore 模板忽略，且 VS Code 的解释器路径配置可以统一。</p>
+<p>自测不过八题的处理办法：回到第 3 到 6 节重做一遍命令（不看正文敲），再用第 12 节的演练脚本跑通全流程。环境类知识的特点是"看懂不等于会做"，只有命令真的在你手上跑出预期输出，才算掌握。这也是本文把每条命令都配上验收标准的原因：没有验收标准的步骤，等于没教。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">19. 速查清单</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>2. 「python3 -m venv .venv」 加激活，用 「which python」 验证路径含 「.venv」</li><li>6. 跑 「verify_env.py」，核心检查全 PASS 才开工</li></ul></div>2
+<ol>
+<li>装 Python 3.12 以上，Windows 勾选 "Add python.exe to PATH"。</li>
+<li><code>python3 -m venv .venv</code> 加激活，用 <code>which python</code> 验证路径含 <code>.venv</code>。</li>
+<li><code>pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple</code> 配镜像。</li>
+<li>VS Code 装 Python、Pylance、Python Debugger、Ruff 四扩展，选 <code>.venv</code> 解释器。</li>
+<li><code>pip freeze &gt; requirements.txt</code>（或 pip-tools 与 Poetry 锁定），<code>.gitignore</code> 加 <code>.venv/</code>。</li>
+<li>跑 <code>verify_env.py</code>，核心检查全 PASS 才开工。</li>
+</ol></div></details></div></body></html>

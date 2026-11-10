@@ -1,0 +1,379 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L8-技术专项-Ontology私有化多模态-深挖整合</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L8-技术专项-Ontology私有化多模态-深挖整合</span></div><div class="wrap"><p>来源（四类）：【合成教学案例】Shipment 动作、离线部署配置与多模态 Demo，非客户实测；【行业调研】三篇技术专项及 10 月 26 日案例/安全/GraphRAG 调研，含伙伴和厂商博客转述；【Palantir-Anthropic文档解析】Ontology/动作治理与上下文工程原则的本地解析；【一手源】既有素材引用的官方技术文档、论文与监管文件，本次未逐项回溯，摘要中的性能/成本数字不升级为一手验证。</p>
+<blockquote>
+<p>owner: wuyafang · 类型: 深挖整合 · 素材: L8-2-Ontology构建（2026 与最佳答案）、L8-3-私有化部署（2026 与最佳答案）、L8-4-多模态交付（2026 与最佳答案）、FDE客户案例-LLM安全合规-GraphRAG实操调研（取安全合规、GraphRAG 成本、案例4与案例5）</p>
+</blockquote>
+<h1 id="l8-技术专项ontology私有化部署多模态以及安全合规与-graphrag-成本">L8 技术专项：Ontology、私有化部署、多模态，以及安全合规与 GraphRAG 成本</h1>
+<blockquote>
+<p>三段阅读说明：WHY 先确定业务价值与不做的后果；WHYT 再看方法骨架、模式协同和取舍；HOW 最后按步骤、模板与门禁执行。为完整保留原文，原有章节编号、WHYTF 小标题和历史阅读说明均保留，重组后的顺序以三个一级标题为准。新增教学模板是合成教学案例，不是客户记录或已取得的实测结果。</p>
+</blockquote>
+<h1 id="why让业务读写数据驻留与多模态证据都有边界">WHY：让业务读写、数据驻留与多模态证据都有边界</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY：为什么技术专项的本质是边界工程</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>L8 里有三块技术专项，分别回答三个问题</li><li>三块技术专项有一个共同的设计原则：把不确定的东西关进受控的边界里</li><li>L8-2 Ontology 回答“大模型怎样安全地对客户的真实业务对象做读和写”</li></ul></div>2
+<p>L8 里有三块技术专项，分别回答三个问题。L8-2 Ontology 回答“大模型怎样安全地对客户的真实业务对象做读和写”。L8-3 私有化部署回答“客户不允许任何请求出内网时，整套系统怎么交付”。L8-4 多模态回答“客户的知识不只是文本，扫描件、截图、录音怎么进同一个 AI 体系”。2026 年 10 月 26 日的外部调研补了两块相邻内容：LLM 安全与合规的实操资源，以及 GraphRAG 的索引成本。本文把这五块放在一起整理，原因是它们在一个真实项目里很少单独出现。一个金融客户要求离线部署，同时要求合同扫描件能被问答，同时要求大模型只能通过受控动作改动业务数据，最后还要过算法备案。四件事会在同一张验收清单上相遇。</p>
+<p>先交代素材的性质，因为它决定了每个数字能信到什么程度。三篇技术专项的“2026”版都是外部调研整理，frontmatter 里写的来源是“外部调研”，正文末尾列的是博客、官方文档和论文链接，没有一处是某个具体客户的交付复盘。所以本文里凡是“案例”，都分三种：素材自己给的合成示例（物流 Shipment 工单、离线 14B 模型加 4090 的配置、语音问答 Demo）、素材引用的 Palantir 实施伙伴观点、以及 10 月 26 日调研里的客户交付案例。本文不编造任何一个真实客户，也不把示例数字写成实测结果。</p>
+<p>本文的主线可以先说在前面。三块技术专项有一个共同的设计原则：把不确定的东西关进受控的边界里。Ontology 把大模型的写操作关进“带校验、带审计的动作”里，私有化把整个系统关进“断外网也能跑”的离线包里，多模态把不同形态的知识统一到“能被检索、能被引用到页”的索引里。调研补充的安全合规与成本两块，则是在这三道边界之外再加两道闸：前置的合规顺序和事前的成本估算。10 月 26 日调研自己的总结是，这些领域的交叉点是“Demo 与生产的鸿沟”，Demo 只要 4 个方框，上线要 12 个以上的组件，且没有一个是 AI。这句话是素材原文，后面几节会反复回到它。</p>
+<p>下面分五个部分展开。每部分按“概述、分点、案例”的顺序写，最后给总小结，并单独列出素材缺口。</p>
+<h2 id="业务价值不做的后果与适用范围">业务价值、不做的后果与适用范围</h2>2
+<p>技术专项的价值不是组件更多，而是让原本不能安全进入生产的工作流有明确责任边界：业务动作不能越过审批，依赖不能在客户断网后失效，答案不能脱离原始页面或音频定位，成本不能在全量索引后才发现失控。缺任一边界，模型回答得再好也无法成为可持续交付物。</p>
+<p>是否引入某项技术由需求决定。只读查手册未必需要 Ontology；没有数据驻留约束时不应默认做整栈空气隔离；结构化文本足够时不必先上页面多向量；无需多跳或全局归纳时不因热度引入 GraphRAG。反过来，客户已明确限制出域、授权或写入的，不能用模型能力或成本优势绕开。本文的历史型号、性能与成本数字按原有调研口径保留，不升级为当前最佳选型或本次测量结果；合规结论必须由项目合规负责人确认。</p>
+<h1 id="whyt按动作需求部署约束与证据形态选技术">WHYT：按动作需求、部署约束与证据形态选技术</h1>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">WHYTF：三类技术边界及其共同验收逻辑</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>课件提供 Ontology、离线部署和多模态链路骨架，《流程</li><li>三源由此汇成同一原则：读写有边界、依赖可离线、证据可回溯、效果可回归，并且技术没有逼迫业务另走一条流程</li><li>书摘原则要落成可验收动作：Ontology 动作嵌进原泳道而不是另建审批入口，多模态问答回到现场已有作业系统，培训与惯性进入 Go-Live 验收；对应证据分别是原流程中的动作审计、真实岗位连续使用记录和培训/接管演练</li></ul></div>2
+<p>课件提供 Ontology、离线部署和多模态链路骨架，《流程！》提醒技术必须嵌入既有工作流而非制造新的绕行，Palantir/Anthropic 文档与行业调研补充动作治理、最小上下文、安全和成本约束。书摘原则要落成可验收动作：Ontology 动作嵌进原泳道而不是另建审批入口，多模态问答回到现场已有作业系统，培训与惯性进入 Go-Live 验收；对应证据分别是原流程中的动作审计、真实岗位连续使用记录和培训/接管演练。三源由此汇成同一原则：读写有边界、依赖可离线、证据可回溯、效果可回归，并且技术没有逼迫业务另走一条流程。</p>
+<h3 id="一ontology-构建l8-2">一、Ontology 构建（L8-2）</h3>3
+<h4 id="1-概述">1. 概述</h4>
+<p>素材对 Ontology 的定位是：把客户散落在业务系统里的数据、表和模型，抽象成一张可被 AI Agent 安全读写的“业务数字孪生”。它是 Palantir Foundry 与 AIP 的核心方法论，也被素材称作交付行业 RAG 或 Agent 项目时区别于“普通知识库”的护城河。</p>
+<p>素材给出了为什么不能只堆 RAG，理由有三条。第一条是“读得到，改不动”：向量库能回答文档里写了什么，回答不了“把这张工单改派给张三会发生什么、需要谁审批、触发哪些下游”。第二条是“Agent 不敢碰真实业务”：没有受控的写接口，大模型直接调业务 API，素材的比喻是让实习生拿 root 连生产库，Ontology 的价值恰恰是让原始模型安全地指向一家真实公司（素材引 Elementum 2026）。第三条是“Dashboard 是后视镜”：仪表盘告诉你这票货迟到了，Ontology 让你在同一个模型上直接执行改路线、改承运商、通知客户（素材引 BD Emerson 2026）。</p>
+<p>素材还给了客户侧的触发词。客户问“我上了 Coze 或 Dify，为什么业务部门不愿用”，原因是它回答的是文档，不是“我的订单、我的资产、我的患者”。客户问“AI 能不能直接把这批不合格批次隔离”，这需要动作、权限和审批，不只是检索。金融、医药、军工客户要求任何一次 AI 写操作可审计、可回滚、按角色授权，Ontology 的动作类型天然就是受控事务。</p>
+<h4 id="2-分点">2. 分点</h4>
+<p><strong>（1）四个原语。</strong> 素材的小标题写的是“三大原语”，表格里却列了四行：对象类型（Object Type）、属性（Property）、链接类型（Link Type）、动作类型（Action Type）。这是素材自身的小不一致，本文按表格列四个。对象类型是真实世界实体或事件的结构定义，物流场景里是 Shipment、Asset、Order、Incident。属性是对象的特征字段，含主键、展示配置和时序列，例如 Shipment 的目的城市和预计到达时间。链接类型是对象对之间有类型的关系，素材举例 Shipment 到 Asset 是一对多，Order 到 Shipment 是一对一。动作类型是一次受控事务：改属性，改链接，带副作用，例如 RerouteShipment、ApproveClaim、TakeAssetOutOfService。</p>
+<p><strong>（2）动作的设计纪律。</strong> 素材引 Palantir 官方反模式文档，要点有三。动作是带参数、带提交校验（submission criteria）、带副作用的事务，不是“一个按钮改一个字段”。动作命名要用业务动词，如 TransferEmployee、ApprovePurchaseOrder、EscalateSupportTicket，不要用 UpdateInventoryStatus 这类技术动作。计算型动作如 CalculateRegionalSales 应改为每日 pipeline 聚合出一个 Summary 对象类型，不让用户点击触发计算。</p>
+<p><strong>（3）克制与单线推进。</strong> 素材强调克制（restraint）：每一条链接都是一条有人会走的路径，每条路径也是“过期关系导致错误决策”的风险点，所以只建模操作真正会用的关系，其余留在数据层。同时要先把一条工作流端到端做透，再扩第二条，不要一次性把全企业的 E-R 图倒进来。Ontology 的变更要当生产库迁移来管，版本化、权限受控。</p>
+<p><strong>（4）与纯 RAG、GraphRAG 的差异。</strong> 素材给了四维对比。数据形态上，纯 RAG 是文本块，GraphRAG 是实体加关系三元组，Ontology 是对象加链接加动作。写操作上，前两者没有，Ontology 有受控事务。权限模型上，纯 RAG 是文档级，GraphRAG 是三元组级，Ontology 是对象级加动作级加审批流。Agent 的用法上，纯 RAG 是检索回答，GraphRAG 是多跳推理，Ontology 是检索加执行动作。素材的判断是，关键差异在动作层：语义层只读，Ontology 是“读加受控写”的合一操作层。</p>
+<p><strong>（5）什么时候不该上 Ontology。</strong> 这是阶段 0 的两个判断，素材放在启动之前。第一，客户是否真的需要动作层。如果只是“客服查手册”“员工查制度”，纯 RAG 够了，Ontology 的成本主要在动作、权限和写回审批上。第二，有没有一条可端到端跑通的核心工作流：高频、跨系统、现在有人在手工做，例如“客诉、派单、换货、退款”，把它作为第一个建模对象域。</p>
+<p><strong>（6）Definitional Workshop（定义工作坊）。</strong> 素材引 Palantir 实施伙伴 BD Emerson 与 Elementum 的共同观点：Ontology 的质量由工作坊决定，不由平台决定。建议议程两天，共六步。第一步业务流程映射，让业务方画泳道图：谁，对哪个对象，做了什么，改了什么字段，触发谁。第二步列名词清单，反复出现的名词是候选对象类型。第三步列动词清单，反复出现的动词是候选动作类型。第四步确认关系，每两个对象之间是一对一、一对多还是多对多，是强约束还是弱关联。第五步定义动作的提交校验，例如 ApproveClaim 要不要求金额小于一万，要不要求保险单在有效期内。第六步出权限矩阵，哪些角色能看哪些对象、能执行哪些动作。产出物是一份 YAML：对象类型含主键、属性、链接及基数，动作类型含输入、前置条件、效果、副作用和允许的角色。</p>
+<p><strong>（7）自建栈的等价实现。</strong> 客户不一定用 Palantir 平台，素材给的自建等价栈是：PostgreSQL 做对象表、关系表（链接）和时序表（属性历史）；对象字段同时用 bge-m3 向量化，挂在对象 UUID 上做 RAG，例如所有关于某个 Shipment 的聊天记录都链接到这个对象；FastAPI 做动作执行器，每个动作一个 endpoint，强制走事务加审计日志；业务库经 Airflow 或 dbt 清洗后同步为对象表。对应 Palantir 的 Object Data Funnel，从数据源读取，索引进对象库，源系统更新时保持同步。</p>
+<p><strong>（8）Agent 限三个工具。</strong> 素材的关键防线是：给 Agent 的系统提示只暴露 Ontology 的三类工具，查询对象、列出链接、执行动作（apply_action），任何写操作必须走最后一个，禁止直连业务库。理由是模型即使产生幻觉，也只会在受控的对象结构和动作参数校验里被拦下，不会直接删除生产表。素材在不同位置对这三个工具的函数名写法略有不同（get_object 与 query_object，list_links 与 get_links），本文视为同一设计。</p>
+<p><strong>（9）动作服务的实现要点。</strong> 素材给了一个完整的 FastAPI 动作服务。RerouteShipment 的流程是：先用行锁读取运单状态防止并发冲突，再做前置校验（状态必须是在途，原因码必须在三个枚举值内），然后在同一数据库事务内更新目的城市、写审计日志和 outbox 待投递记录；提交后由异步投递器执行通知承运商的 webhook，并以幂等键、有限重试和死信记录防止进程崩溃后永久丢通知。ApproveClaim 则内置了阈值：金额超过一万要求人工审批，否则自动通过并写审计。这两个动作把“前置条件、审计、角色限制、副作用在事务外可靠投递”串成一条链。</p>
+<p><strong>（10）五个常见坑。</strong> 动作泛滥（Action Sprawl）：为每个字段写一个更新动作，应按业务操作捆绑，一个动作等于一次完整业务事务。时间机器（Time Machine）：把历史版本建成独立对象类型，应一个实体一个对象，历史用关联的历史对象或时序属性。把计算塞进动作。把 Ontology 当数据湖，把所有表都建成对象，应只建模操作面。权限事后补：上线前没定角色矩阵，上线后 Agent 乱调，应在工作坊阶段就出权限矩阵。</p>
+<p><strong>（11）验收清单。</strong> 一条核心工作流端到端跑通，人工的每一步都映射到一个动作；每个动作都有前置条件、审计日志和角色限制；Agent 压力测试下没有一次绕过 Ontology 访问业务库；Ontology 变更有版本记录，回滚脚本可执行。</p>
+<p><strong>（12）中小微企业的版本。</strong> 素材最佳答案里还有一个容易漏看的分支：Ontology 不是大企业专属。中小微企业的现状是没有标准流程，数据散在微信、Excel 和人脑里，预算有限，老板要快速见效。所以第一步不是选模型，而是先把最核心的一两个流程理清楚。四步法是：识别每天重复最多、最耗人力、最容易出错的一两个核心流程；把流程写下来，谁、什么时间、用什么工具、做什么动作、产出什么；找出“查信息、判断、回复”这类适合 AI 的环节，“必须人到场”的先别碰；最小化上线，AI 解决八成常见问题，两成复杂的转人工。落地最大的敌人是惯性，破法是把 AI 嵌进员工已经在用的地方（微信、钉钉、企业微信），再找一个内部代言人先用起来。</p>
+<h4 id="3-案例">3. 案例</h4>
+<p>素材里没有一个署名的 Ontology 真实客户案例，所以这一节只用素材自己的合成示例，并如实标注。</p>
+<p><strong>案例 A：物流 Shipment 工单（素材合成示例）。</strong> 对象类型有 Shipment、Order、Asset。动作有 RerouteShipment 与 ApproveClaim。一条典型的业务链是：运输途中因天气原因，调度员发起改派；动作服务检查运单是否在途，检查原因码，写入新的目的城市，写审计日志，事务提交后通知承运商。如果同一件事让 Agent 通过一个“万能更新接口”去做，素材认为就退化成了让实习生拿 root。这个示例说明的是结构：每个人工操作步骤对应一个动作，每个动作带校验和审计。它不说明任何效果数字，素材没有给。</p>
+<p><strong>案例 B：中小微企业的奶茶店（素材举例）。</strong> 素材用奶茶店问了一个问题：核心流程是接单、制作、出餐，还是采购、库存、盘点？老板最痛的那个就是该先改的那个。这只是一个说明“先找最痛流程”的举例，没有后续数据。</p>
+<p><strong>案例 C：智能客服案例里的“边界硬编码”（来自实战方法论的邻近内容）。</strong> 素材另一篇实战方法论提到，客户想要“什么都能答”，真正交付的是“只答退货、物流、商品三类，其余转人工”，边界外的场景用代码硬编码成转人工。这与 Ontology 里“Agent 只能走三个工具”是同一个思路：能力的上限由受控接口决定，而不是由模型的自觉决定。</p>
+<p><strong>素材缺口与不一致，如实标注，不裁决。</strong><br />
+一是缺口清单自述：中小微企业的 Ontology 简版模板（一张 Excel 就够的那种）没有沉淀；工作坊两天议程的具体物料（白板、便利贴、角色卡）缺；跨行业（物流、制造、金融）的首发对象类型清单缺；从纯 RAG 项目升级到 Ontology 项目的迁移步骤缺。<br />
+二是素材内部的不一致：小标题写“三大原语”而表中有四行；对象关系的基数在正文表里写 Order 到 Shipment 为一对一，在 YAML 示例里写 Shipment 到 Order 为多对一，素材没有解释，本文不判断哪个对。<br />
+三是代码层面的提示：素材的对象查询接口把路径参数 type_name 直接拼进 SQL 的表名，素材没有讨论白名单。这是读代码时看到的现象，不是素材的结论；上线前如何处理，素材未给方案。<br />
+四是示例代码里的 password 为占位符，不是真实凭据。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">二、私有化部署（L8-3）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>素材对私有化的定义很干脆：金融、政务、军工、大型制造业客户的硬要求是整库、整模型、整服务全部离线运行，不允许任何一个请求出客户内网</li><li>NVIDIA 数据中心卡（A100、H100、L40S、4090）推荐 AWQ（INT4），理由是 vLLM 与 SGLang 的 INT4 内核快，困惑度比 GPTQ 好一到两个百分点，70B 模型仅 INT4 权重约 35 GB（尚未计入 KV cache、激活与运行时开销）</li><li>关键能力是单个 checkpoint 同时支持稠密、稀疏（BM25 风格）和多向量（ColBERT 风格）三种检索，不用另外部署稀疏编码器（素材引 Tensoria 2026）</li></ul></div>3
+<h4 id="1-概述">1. 概述</h4>
+<p>素材对私有化的定义很干脆：金融、政务、军工、大型制造业客户的硬要求是整库、整模型、整服务全部离线运行，不允许任何一个请求出客户内网。云 API 再便宜也不能用，素材明说这不是钱的问题，是合规红线。</p>
+<p>素材列了四类触发场景：金融和银行处理合同、投研材料与风控规则；政务和军工可能存在物理隔离网闸；大型制造业的 MES 和 ERP 数据留在工厂内网；医疗处理病历等敏感信息。这些场景是否必须私有化，要由具体客户的数据分级、合同、适用监管和内部政策决定；HIPAA、个保法等不能被概括成“一律要求病历不出院”，金融、政务等也不天然等于整栈物理离线，合规负责人必须确认适用范围。</p>
+<p>云方案还有两个“软坑”。即使是国内云，客户 CIO 也会问“你的日志在哪，谁能看到我的 prompt”；按量计费的 API 在客户内网没有计费通道，财务流程走不通。</p>
+<p>素材强调私有化不是“小一点的云”。完整离线栈必须覆盖六件事：Embedding 模型、LLM、向量库、ASR 与 TTS、所有 Docker 镜像、所有 Python 依赖包。素材的话是：缺任何一环，项目交付不了。FDE 要把“空气隔离交付”当成基本功。</p>
+<h4 id="2-分点">2. 分点</h4>
+<p><strong>（1）Embedding：BGE-M3。</strong> 素材称 BGE-M3 是 2026 年自托管的默认选择。来源是 BAAI，MIT 许可。关键能力是单个 checkpoint 同时支持稠密、稀疏（BM25 风格）和多向量（ColBERT 风格）三种检索，不用另外部署稀疏编码器（素材引 Tensoria 2026）。基准方面，素材写 MTEB 检索平均分约 54 到 56，开源模型第一梯队。硬件方面，CPU 能跑批量索引，慢但可用，实时向量建议单卡 A10G、T4 或 L4。精排备选 bge-reranker-v2-m3（交叉编码器）。</p>
+<p><strong>（2）向量库三选一。</strong> Chroma：单机零依赖，Python 原生，适合 100 万 chunk 以内的内网知识库，离线目录可直接拷贝。Qdrant：要混合检索（稠密加稀疏）、分片、过滤时升级到它。LanceDB：列存，磁盘友好，多模态（图加文）时选它。素材明确要避免 MongoDB Atlas 和 pgvector 的云托管版，原因是客户内网没有。</p>
+<p><strong>（3）量化格式按硬件决策。</strong> 这是私有化最需要查表的部分。NVIDIA 数据中心卡（A100、H100、L40S、4090）推荐 AWQ（INT4），理由是 vLLM 与 SGLang 的 INT4 内核快，困惑度比 GPTQ 好一到两个百分点，70B 模型仅 INT4 权重约 35 GB（尚未计入 KV cache、激活与运行时开销）。较老的 NVIDIA 卡或需要 ExLlamaV2 生态时用 GPTQ（INT4），HuggingFace 上预量化模型最多，显存同样约 35 GB。消费级显卡、AMD、Apple Silicon 与 CPU 用 GGUF 的 Q4_K_M，借助 llama.cpp 或 Ollama，CPU 与 GPU 混合卸载，回退能力强，约 40 GB。质量敏感的微调与评测用 FP16 或 BF16，约 140 GB，素材说它只是参考精度，不算部署格式。通用经验是“AWQ 能跑就别用 GPTQ”。Ollama 的 q4_K_M 是 GGUF 家族里质量与体积的甜点：9B 模型约 5.5 GB，13B 约 8 GB，32B 约 20 GB。客户内网常见硬件是一张 4090（24G）或一张 A10（24G），在上面跑 Qwen2.5-14B-AWQ 或 Qwen3-8B 是素材所说的甜点配置。</p>
+<p><strong>（4）LLM 本体与推理引擎。</strong> 素材推荐的开源权重有：Qwen2.5 的 7B、14B、32B Instruct（阿里，Apache 2.0，中文场景首选）；Qwen3 的 8B 与 32B（2025 年底发布，含 Instruct 与 Thinking 双版本）；DeepSeek-V3 与 R1-Distill（需要推理能力时）；Llama-3.1 的 8B 与 70B（英文场景，注意 Meta 社区许可）。推理引擎三选：vLLM 做高吞吐生产部署（PagedAttention 加连续批处理，OpenAI 兼容 API）；Ollama 做单机快速起服务（GGUF 原生，开发者友好）；llama.cpp 的 llama-server 用于 CPU 与边缘场景。</p>
+<p><strong>（5）airgap bundle：跳板机准备，内网加载。</strong> 完整流程分两侧。联网跳板机侧先建目录结构（models、images、wheels、charts），再做四件事。拉模型：BGE-M3、bge-reranker-v2-m3、Qwen2.5-14B-Instruct-AWQ，下载到本地目录。准备 pip wheelhouse，素材标注“关键！客户内网 pip install 必炸”，用 pip download 指定平台与 Python 版本，只取二进制包。导出 Docker 镜像：vLLM、Chroma、Ollama 三个镜像用 docker save 存成一个 tar。打校验和：对权重、镜像和 wheel 包生成 SHA256SUMS，整体打成 airgap bundle。客户内网侧解压，用 sha256sum -c 校验未被篡改，docker load 导入镜像，用 pip 的 no-index 与 find-links 参数从本地目录离线安装，然后启动向量库、vLLM 与 RAG 服务。</p>
+<p><strong>（6）离线 RAG 的代码骨架。</strong> 素材给的 FastAPI 服务全程本地：本地 embedding 和 reranker，本地 Chroma 持久化目录，本地 vLLM 的 OpenAI 兼容端点。流程是检索 top_k（默认 20）、交叉编码器精排取 final_k（默认 5）、拼上下文、提示词要求“基于内部资料回答，不知道就说不知道”，温度 0.2，同时返回来源。</p>
+<p><strong>（7）vLLM 启动 AWQ 模型。</strong> 素材的 docker 命令里，模型目录挂载进容器，指定量化方式为 awq，GPU 显存利用率 0.90，最大模型长度 8192，并设定对外的模型名。</p>
+<p><strong>（8）验收清单。</strong> 断外网（拔网线，或用 iptables 丢弃所有出站）后问答全流程正常；用 tcpdump 确认没有任何出站连接；单机 4090 跑 14B-AWQ，首 token 小于 1.5 秒，吞吐不低于 30 tok/s；向量库冷启动小于 5 秒，冷查询 P95 小于 800 毫秒；所有权重、镜像、wheel 包的 SHA256 与跳板机一致。</p>
+<p><strong>（9）五个常见坑。</strong> pip wheel 漏包：只导了直接依赖，漏掉传递依赖，应该用 pip download 而不是拷 site-packages。PyTorch 的 CUDA 版本错位：镜像里 torch 是 cu118，客户机器驱动是 cu121，应从一开始就用官方 vLLM 或 PyTorch 镜像，不要自己 pip install torch。GGUF 与 AWQ 混用：本文示例选择 Ollama+GGUF、vLLM+AWQ/GPTQ，具体格式支持范围必须按锁定版本官方文档核对；vLLM 也支持非量化及其他量化格式，不要把示例组合误解为穷举。向量库索引忘导出：Chroma 或 Qdrant 的索引数据要挂载到宿主机目录，镜像重建不丢。大镜像拷不进 U 盘：FAT32 单文件 4G 上限，用 split 按 4000M 分包，客户侧 cat 合并。</p>
+<h4 id="3-案例">3. 案例</h4>
+<p><strong>案例 D：24G 单卡的内网问答（素材合成配置）。</strong> 素材描述的典型交付是：一张 4090 或 A10，跑 Qwen2.5-14B-AWQ，配 BGE-M3 与 bge-reranker，向量库用 Chroma，推理用 vLLM。验收的数字（首 token 1.5 秒、30 tok/s、冷查询 P95 800 毫秒）是验收目标，不是实测结果，素材没有给出哪家客户跑出这些数。</p>
+<p><strong>案例 E：与“智能客服端到端”实战的交叉印证。</strong> 素材另一篇实战方法论里提到 Embedding 选型三标准：是否支持稠密加稀疏一体化，中文与垂直领域语义强度，能否本地部署（数据合规）。向量库选择上，十万级、简单过滤用嵌入式 Chroma，千万级、多条件权限过滤用服务式 Qdrant，并强调“两者切换应是预案而非返工，因为向量本身与库无关”。这几条与私有化选型相互印证。同一篇还给出成本数字：月活一万用户的实测，全量大模型约 9360 元一个月，加模型路由（75% 请求走小模型）降到约 3700 元，再加语义缓存最终约 2400 元，省 74%。这是云端 API 场景下的数字，私有化场景的成本构成不同，素材没有给私有化的等价数据，本文不作类比。</p>
+<p><strong>素材缺口，如实标注。</strong> 缺“跳板机到内网”的标准交付清单（含 SSH 隧道、离线同步脚本）；缺 24G、48G、80G 三档硬件的推荐部署矩阵，现在只有 24G 一档；缺 vLLM 与 Ollama 在离线环境的版本锁定表和升级回退脚本；缺私有化交付后 SLA 与远程运维（怎样合法地远程看日志）的方案。</p>
+<p><strong>素材内部可对照的细节。</strong> 一是离线 RAG 骨架里只用了 BGE-M3 的稠密输出去查 Chroma，而正文称 BGE-M3 同时支持三种检索；骨架并没有演示稀疏或多向量，使用混合检索需要自行扩展，素材未给代码。二是 2026 版与最佳答案版对同一条 pip 下载命令的参数写法一致；2026 版里有一处包名写作 huggingface_hack，这是素材原文，本文不改。三是素材对 Chroma 的适用规模给的是 100 万 chunk 以内，而对多模态页面级多向量索引的体积则说“1 万页 PDF 约几亿向量”，两处合看，多模态场景下 Chroma 的规模边界要另行评估，素材未讨论。</p>
+<h3 id="三多模态交付l8-4">三、多模态交付（L8-4）</h3>3
+<h4 id="1-概述">1. 概述</h4>
+<p>素材对多模态的开场是客户知识库不再只是 PDF 和 Word：合同扫描件带印章与手写批注，产线摄像头拍的质检图，车间 SOP 截图，客服通话录音，工人戴手套不能打字只能说话。纯文本 RAG 在这些场景里残废，素材写了三个具体原因：OCR 只能认字，认不出图表含义、印章真伪、红笔批注重点；表格走 OCR、切分、向量化之后行列关系全丢，问到“Q3 华南区收入”时检不到正确的单元格；音频如果先转文字再入库，情绪、语气、说话人和时间轴全丢。</p>
+<p>素材给出的“为什么是 2026 年”是开源栈成熟：视觉语言模型方面，Qwen2.5-VL 与 Qwen3-VL 系列开源，中文文档理解达到商用水平；语音识别方面，FunASR 与 Whisper large-v3-turbo 的准确率接近商业 API；语音合成方面，CosyVoice3 开源并支持零样本克隆音色；多模态 RAG 方面，ColPali 与 VisRAG 等新范式让“整页当图检索”变得可行。素材认为，这一整套让多模态交付从“PPT 概念”变成“可落地方案”，也是 FDE 区别于普通 RAG 外包的关键能力。</p>
+<p>触发场景素材分五类：制造业（SOP 是 JPG 或截图，质检报告是扫描件，设备报警带照片）；金融与法务（合同 PDF 有大量印章、手写批注、扫描表格）；客服与呼叫中心（每天几万通 wav 或 mp3）；医疗与教育（病历单、试卷、板书天生非文本）；现场作业（工人戴手套，需要语音输入加语音播报）。</p>
+<h4 id="2-分点">2. 分点</h4>
+<p><strong>（1）VLM 选型。</strong> Qwen2.5-VL 的 7B 与 32B：中文强，7B 单卡 24G，32B 需要两张 A100，用于合同、票据、SOP 理解，素材称首选。Qwen3-VL（2025 年第四季度）：2B、4B、8B、32B、235B-A22B 全档位，2B 与 4B 可在 CPU 或边缘运行，8B 单卡，支持图像理解与 thinking。InternVL3：中文良，开源备选。MiniCPM-V 2.6 与 4：2B 到 8B，边缘设备，资源受限场景。SmolVLM：256M 到 2.2B，中文弱，只适合简单分类与字幕。部署上用 vLLM，通过 OpenAI 兼容的多模态 API 传图片地址或 base64。显存经验数字（素材引 Spheron 2026）：VLM 显存要在 LLM 基础上加 ViT 编码器占用，并预留 20% 到 30% 的 KV cache 余量，Qwen3-VL-8B 在 BF16 下约 18 到 20 GB，4090 可跑。</p>
+<p><strong>（2）ASR 选型。</strong> 素材将 FunASR 工具箱与 SenseVoiceSmall、Paraformer 等模型混在一处介绍，实施时必须按“工具箱能力”和“具体模型能力”分开。SenseVoiceSmall 可用于多语识别等任务，但不能据此承诺它支持 hotword 参数；需要热词时应选择锁定版本文档明确支持该能力的 Paraformer/SeACo 类模型，或只做词表实测验收入口，不写未核实参数。流式、说话人分离、VAD、标点与 Docker 部署也要逐项确认由哪个组件提供。素材中的 RTF、并发与 Whisper 加速比均缺本库统一实测条件，只能作为调研线索，不能作为容量承诺。</p>
+<p><strong>（3）TTS 选型。</strong> CosyVoice3（阿里开源，2025）：零样本音色克隆、多语言、情感控制。Bark 与 Piper 是轻量备选，中文效果一般。素材的分级建议是：客服呼叫中心直接上 CosyVoice3，简单播报用 Piper 够了。</p>
+<p><strong>（4）多模态 RAG 的新范式。</strong> 传统做法是 OCR、切文本、向量化、文本向量库。新做法要按模型实际输出拆成两条链路：ColPali/ColQwen2 类模型把每页渲染成图，提取 patch 多向量，查询也用同一模型编码，并按多向量 MaxSim 检索；Qwen3-VL-Embedding 类模型则按官方模型卡确定的单向量或多向量协议建库和查询，不能直接套用 ColPali 的 MaxSim。不同模型的向量空间、维度与检索协议不兼容，切换模型必须重建索引。页面图与问题再交给 VLM 生成带页码的答案。保留版面是这条路线的目标，但“向量体积大 5 到 10 倍”等素材数字须按模型与语料实测。</p>
+<p><strong>（5）端到端链路。</strong> 工人说话产生 wav，经 ASR 识别成文字；文本查询由与建库完全相同的多模态 embedding 模型编码，按该模型支持的协议取回 top-k 页面图，再交给 Qwen2.5-VL 读图并生成答案，最后由 TTS 使用预置或已授权音色播报。建库与查询模型、向量维度、相似度协议和索引版本必须同时锁定，禁止把 ColQwen2 与 Qwen3-VL-Embedding 当可热插拔组件。</p>
+<p><strong>（6）搭建步骤。</strong> 离线准备资产时先锁定每个模型的精确 revision 与官方能力表，不把 VLM、embedding、ASR、TTS 的版本混写。VLM 服务可按锁定版本用 vLLM 启动，并限制上下文长度和每 prompt 图片数。ASR 若只需 SenseVoiceSmall 的识别能力就按其实际接口调用；若需热词，改选文档明确支持热词的模型，VAD、标点、说话人时间戳分别验收。多模态索引用 PyMuPDF 渲染页面（150 dpi 仅为素材起点），然后二选一：用 ColQwen2 建 patch 多向量索引并以同模型查询和 MaxSim；或按 Qwen3-VL-Embedding 官方协议建同模型索引。切换任一模型都重建索引，取回页面图后再交给 VLM。TTS 只使用预置或书面授权音色。</p>
+<p><strong>（7）验收清单。</strong> 合同扫描件（含手写批注）能被问到具体条款位置，答案引用到具体页而不是文本片段；质检照片入库后，问“图里有几个红色按钮”能直接答对；1 小时通话录音的中文 ASR 字错率低于 10%；TTS 输出音色与参考音频的相似度人工评分大于 4 分（满分 5 分）；多模态查询端到端延迟小于 5 秒（4090 单卡）。</p>
+<p><strong>（8）五个常见坑。</strong> VLM 显存算错，只算了 LLM 权重，忘了 ViT 与 KV cache，应预留 30% 余量。ColPali 索引体积爆炸，每页几百个 patch 向量，1 万页 PDF 约几亿向量，应限制 top-k，使用 Qdrant 的磁盘 HNSW，别全放内存。ASR 热词没定制，产品名、型号、人名识别错；不得默认 SenseVoice 支持 hotword 参数，应选择锁定版本文档明确支持热词的模型，并用方言、噪声、型号词黄金集实测，达不到线就保留人工回听与修正。TTS 克隆音色侵权，直接克隆员工或客户声音有合规风险，应在合同里明确录音授权，或使用预置音色库。多模态 RAG 仍走 OCR 老路，切完图再 OCR 再向量化等于没做多模态，要么上 ColPali，要么至少把图本身挂到 chunk 上让 VLM 现场读。</p>
+<h4 id="3-案例">3. 案例</h4>
+<p><strong>案例 F：车间语音问 SOP 页（素材合成 Demo）。</strong> 素材给了一段“语音进、读图、语音出”的演示代码：工人对着设备说话，录音经 SenseVoice 转成文字；文字连同一张 SOP 页的 JPG 一起送给 Qwen2.5-VL，温度设为 0.1；答案文字再用 CosyVoice3 合成，克隆操作员的参考音色。这是演示脚本，不是项目复盘，素材没有给出延迟与准确率的实测值，只给了验收目标（端到端小于 5 秒）。</p>
+<p><strong>案例 G：合同扫描件按页引用（素材合成场景）。</strong> 素材的验收条目之一，是合同扫描件含手写批注，要能问到具体条款位置，并且答案引用到页。这说明多模态 RAG 的目标不是“更会读图”，而是让每个答案可以回溯到一张具体的页面图，这与下文医疗器械案例中“AI 必须可追溯引用、会拒答”的要求一致。</p>
+<p><strong>案例 H：医疗器械售后的多格式知识库（10 月 26 日调研，转述）。</strong> 调研里的案例 2 是医疗器械厂商的售后 AI Agent（腾讯云 ADP 的 FDE 交付）。素材给出的背景数字：产品覆盖 190 多个国家，服务 11 万家医疗机构，知识库 400G，500 多个机型，10 多种格式。挑战是知识庞杂，型号相近容易串线，版本更新频繁，多权限多语种，幻觉不可接受。做法是知识清洗、标签体系、元数据过滤、检索调优、上线治理，86 万份材料结构化检索。结果是一期年工单拦截率 60% 以上，并延伸为 300 多个 Agent 的 AI 平台底座。关键经验：型号串线造成的 10% 以上坏样例，靠元数据与标签传递解决。这个案例的来源是云厂商 FDE 博客，素材未做第三方核验。它与多模态的关联在于“10 多种格式”的现实：知识并不规整，多模态与元数据过滤常常要一起上。</p>
+<p><strong>案例 I：日本精密零部件质检（10 月 26 日调研，转述）。</strong> 调研案例 1 里，400 人规模的企业靠两位老师傅目视质检，素材写准确率 99.7%，面临退休断层。FDE 现场发现老师傅做的是多维度根因诊断（模具磨损、材料杂质、热处理异常），不是二分类。交付三层方案：60 小时的老师傅口述整理成知识库，RAG 辅助新人质检，视觉分类模型。踩坑有两个：老师傅不愿配合录音（职业自尊），靠部长用“传承”的说法才说服；灯光不均匀让图片质量差，额外花了 3 周做标准化。结果是 A/B 测试 3 个月，新人质检准确率从 96% 提到 99.2%，知识库被产线调试工程师复用。注意素材的一个细节：新人 96% 起点与老师傅 99.7% 并列出现，二者口径是否一致，素材没有说明。这个案例与多模态的关联是：视觉模型的输入质量（灯光）是工程问题，不是模型问题。</p>
+<p><strong>素材缺口，如实标注。</strong> 缺从单模态 RAG 到多模态 RAG 的渐进迁移路径（先给文档挂图，再上 ColPali）；缺 VLM 离线打包（权重加 vLLM 镜像）的完整 docker save 命令清单，这一条与上一节私有化直接相连；缺热词定制（产品名、型号、方言口音）的标准流程；缺多模态场景 golden set 的构造方法（图加问题加期望答案）。</p>
+<p><strong>素材内部可对照的细节。</strong> 一是正文说多模态检索需要多向量索引与 MaxSim，但索引示例里 Qdrant 的集合以单个 128 维向量的配置创建，距离写法也与常见写法不同，没有演示多向量比较方式；示例更像示意，不是可直接运行的配置，素材未交代。二是端到端链路图里用 Qwen3-VL-Embedding 做编码，而索引代码里用的是 ColQwen2；素材所谓“互换关系”不成立，不同模型的向量空间、维度和检索协议不能直接混用，切换必须重建索引，并按官方输出选择单向量相似度或多向量 MaxSim。三是 TTS 示例里的 CosyVoice 模型名与导入路径在不同位置写法不同（CosyVoice3 类与 CosyVoice-300M 目录），素材没有核对版本，本文不改动。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">四、LLM 安全合规与 GraphRAG 成本（10 月 26 日调研）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>这部分素材来自 2026 年 10 月 26 日的一份三部分调研：FDE 客户交付案例十条、LLM 安全与合规实战资源十二条、GraphRAG 与 Agentic RAG 实操资源八条</li><li>关键数字（73.2%、8.7%、$33K、75%）在素材里只有一句话，没有测试条件、语料规模或原始表格，本文也不补</li><li>素材的结论很直接：GraphRAG 的索引成本有一个约 3.3 万美元的“成本悬崖”（$33K cost cliff），其中图抽取约占索引成本的 75%，因此大规模语料前要先估算</li></ul></div>3
+<h4 id="1-概述">1. 概述</h4>
+<p>这部分素材来自 2026 年 10 月 26 日的一份三部分调研：FDE 客户交付案例十条、LLM 安全与合规实战资源十二条、GraphRAG 与 Agentic RAG 实操资源八条。它的核心论点，素材写作“三者共同指向：FDE 交付的核心是把 AI 嵌入原工作流，安全合规前置，成本可控，不是技术选型本身”。对应前三节，这一部分的角色是在技术方案之外补上两条硬约束：合规顺序与成本天花板。</p>
+<p>需要提醒的一点：该调研文档给的主要是资源清单与摘要，不是原文全文。关键数字（73.2%、8.7%、$33K、75%）在素材里只有一句话，没有测试条件、语料规模或原始表格，本文也不补。</p>
+<h4 id="2-分点">2. 分点</h4>
+<p><strong>（1）Prompt Injection 防御。</strong> 素材引 openlayer 的防御框架数据：攻击成功率从 73.2% 降到 8.7%。素材同时列了相关资源：AWS 官方基于 OWASP 十大 LLM 风险的深度防御架构；PII 与 LLM 隐私保护实战；一篇 arXiv 论文（编号 2606.19660）给出的 RAG 聊天机器人的 Prompt Injection 分层防御框架；还有一份 AI 安全部署实战指南。落地建议是：参考 OWASP 十大风险构建深度防御，RAG 系统参考分层防御框架，PII 保护参考泄露案例与防护实践。这一点与 Ontology 一节的“Agent 只走三个工具”相互呼应：前者在模型输入侧防，后者在动作侧防。</p>
+<p><strong>（2）AI 生成内容标识。</strong> 素材列了《人工智能生成合成内容标识办法》（cac.gov.cn 官方）与阿里云的 TC260 最佳实践案例，落地建议是按办法对 AI 生成内容做标识。这条与上一节多模态里的 TTS 克隆音色风险有直接联系：合成音频同样属于生成内容，素材的常见坑也提示要有录音授权。</p>
+<p><strong>（3）数据出境。</strong> 素材列了 2026 年 7 月 cac.gov.cn 的数据出境安全管理政策法规问答。它与私有化一节的“数据不出内网”要求互为表里：不能出境的最强做法是不出网，不得不出境则要走政策规定的路径。素材没有展开出境评估的具体流程，本文不补。</p>
+<p><strong>（4）国内合规落地顺序。</strong> 素材给了一个顺序：算法备案（腾讯云 2026 年最新版全流程）；大模型备案与登记要分清（腾讯云）；《安全评估报告》撰写（阿里云指南）；备案后按《生成式人工智能服务管理暂行办法》答记者问的口径持续合规。素材在这里只给了标题和顺序，每一步的具体材料和时限没有展开，是缺口。</p>
+<p><strong>（5）GraphRAG 的成本天花板。</strong> 素材的结论很直接：GraphRAG 的索引成本有一个约 3.3 万美元的“成本悬崖”（$33K cost cliff），其中图抽取约占索引成本的 75%，因此大规模语料前要先估算。素材列了五个实操资源：微软 GraphRAG 的快速上手文档，覆盖安装、初始化、索引、查询；微软的成本说明（GraphRAG Costs Explained）；中文社区的原理与部署实战；GraphRAG 配合 Ollama 本地部署的避坑指南（涉及 settings.yaml 配置）；微软 GraphRAG 2.0.0 基于 Ollama 的本地部署教程。另有成本悬崖的分析文章，素材标题是“GraphRAG Indexing: Why the $33K Cost Cliff Hits”。</p>
+<p>这里有两处需要读者注意。一是素材没有说明 $33K 对应多大的语料、用哪个模型的单价，所以它只能用作“量级警示”，不能用作报价依据。二是 Ontology 一节的参考表里还列了 LightRAG，称其成本为 GraphRAG 的约百分之一，这是该表中一个简短的说明，素材没有给出对比条件；与 $33K 放在一起，只能说素材给了两个方向相反的提示，一个是成本很高，一个是有轻量替代，二者的实验条件都没有披露。</p>
+<p><strong>（6）Agentic RAG 的开发资源。</strong> 素材列了 LangChain 官方的 LangGraph 教程（构建自定义 RAG Agent，素材称走通 6 节点图结构），以及 CrewAI 构建第一个智能体团队的教程。素材没有给出这些教程在客户项目中的使用效果。</p>
+<h4 id="3-案例">3. 案例</h4>
+<p><strong>案例 J：连锁零售 AI 客服的失败与重构（调研案例 4，转述）。</strong> 客户有 500 多家门店、500 万会员，CEO 的目标是 6 个月降本 40%。上线头两周数据亮眼：日均 12000 通，自助解决率 75%。6 月底客户投诉录音上了热搜，播放量 50 万以上。素材给的数据是：投诉量从 500 涨到 2100，增长 320%；满意度从 87% 降到 71%；实际还反向增员 3 人处理舆情。素材归纳出三层根因：训练数据是 3 年前的 FAQ，与现实错配；情感识别准确率低于 60%；流程与 KPI 没有同步重构，并且决策初衷是减员而不是体验。修复动作：用 50 个关键词触发转人工；重新标注 2 万条数据；把 AI 班与专家班分离；确立伦理红线，投诉永远不让 AI 独立处理。结果是自助解决率降到 48%，满意度升到 94%，投诉降到 580，200 人优化到 135 人，客单价提高 8%。这个案例与合规的关系是，所谓伦理红线（高风险场景不让 AI 独立处理）在本质上与 Ontology 的“写操作必须审批”同构。注意数字来自一篇博客，本文无法核验。</p>
+<p><strong>案例 K：三个团队死在生产环境（调研案例 5，转述）。</strong> 素材的教训有四点。意图识别不该用大模型：一个银行 AI 机器人把板球赛问题塞进利率知识库，自信地胡答，应改用小型分类器。缓存的核心是语义匹配，不是键值对。AI 应作兜底，不应作核心决策者。最后一句是素材的核心结论：Demo 只要 4 个方框，上线要 12 个以上组件，没有一个是 AI。这个案例把三块技术专项串到一起：Ontology 里的权限与审计、私有化里的镜像与依赖、多模态里的热词与显存，都是这 12 个组件里“不是 AI”的那一部分。</p>
+<p><strong>案例 L：共享财务智能审核（调研案例 3，转述）。</strong> 客户想要“AI 自学习审核，替代人工”。坑在于历史数据只有正样本（通过的单据），没有退单、人工意见与修改痕迹，AI 无法倒推出不通过的规则。调整方案是：制度规则打底，通过单据做合规画像，人工补典型负样本，AI 生成候选规则，人工确认，再形成反馈闭环。验收用混淆矩阵（误拦对漏拦），早期宁可谨慎。素材归纳的经验是：场景不能从技术热词里选，AI 要嵌入原工作流而不是另开入口，“AI-ready”等于流程留痕、专家参与、反馈闭环。它对 Ontology 的启示是：动作的提交校验（ApproveClaim 金额阈值）和人工确认，正是把“候选规则”变成“可审计规则”的位置。</p>
+<h2 id="三类专项不是互斥选项按约束叠加而不是按产品捆绑">三类专项不是互斥选项：按约束叠加，而不是按产品捆绑</h2>2
+<table>
+<thead>
+<tr>
+<th>决策问题</th>
+<th>优先考虑</th>
+<th>必须一起设计</th>
+<th>不值得引入时的替代</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>是否需要改变真实业务状态</td>
+<td>对象、链接与受控动作</td>
+<td>身份、前置条件、事务、审计和副作用</td>
+<td>只读 RAG 或规则查询</td>
+</tr>
+<tr>
+<td>系统是否必须在受限网络运行</td>
+<td>私有化或约定的部署边界</td>
+<td>模型、镜像、依赖、索引、监控和更新</td>
+<td>满足授权与驻留条件的既有服务</td>
+</tr>
+<tr>
+<td>正确证据是否依赖版面、图像或声音</td>
+<td>多模态解析与检索</td>
+<td>页码、时间戳、版本、ACL 和回听复核</td>
+<td>文本检索加原始附件</td>
+</tr>
+<tr>
+<td>问题是否需要关系路径或全局视图</td>
+<td>受控图分支小样验证</td>
+<td>索引成本、更新频率和回滚</td>
+<td>先保留文本检索基线</td>
+</tr>
+</tbody>
+</table>
+<p>协同次序是先确认业务名词和动词，再确认可见范围与部署边界，随后选择证据编码和检索协议，最后让动作与回答共享版本和审计标识。Ontology、GraphRAG 和 RAG 的权限粒度是具体实现的选择，不由产品类别天然保证；原文比较表用于理解动作层差异，不能当作所有产品的能力上限。</p>
+<p>Palantir 文档解析提供对象、动作及变更验证的参照，Anthropic 原则提供最小上下文与最小工具集的约束，九天Hector 相关方法要求技术最终回到业务基线与组织采用。对标的是控制点，不是照搬平台或部署数字。历史调研中不一致、缺条件的内容保留为待核线索；不得靠未经验证的参数填补模型接口差异。</p>
+<h1 id="how以动作契约离线包和黄金集完成可验证交付">HOW：以动作契约、离线包和黄金集完成可验证交付</h1>
+</div></details></div></details><h2 id="开工条件与责任分工">开工条件与责任分工</h2>2
+<p>业务 Owner 先确认核心工作流和非目标；数据与安全 Owner 确认对象、文档、页面和音频的授权边界；工程负责版本锁定、依赖包和动作服务；维护者负责运行与回滚演练。入口产物缺失时先补证，不从运行命令倒推需求。第五节 Runbook 中带“锁定版本”的命令仍是操作模板，不能原样当成已验证部署。</p>
+<h2 id="how离线交付多模态链路与安全成本落地">HOW：离线交付、多模态链路与安全成本落地</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">五、可直接执行的交付 Runbook（示例未在本机实跑）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>下面把前面的原则落成命令与配置</li><li>xargs -0 sha256sum > SHA256SUMS</li><li>sha256sum -c SHA256SUMS</li></ul></div>3
+<p>下面把前面的原则落成命令与配置。它们是按素材整理的操作模板，不是本次在客户环境或本机 GPU 上取得的实测结果；实际执行前必须按目标操作系统、CUDA、Python、模型许可和官方版本文档锁定版本，并先在非生产环境验证。</p>
+<h4 id="51-ontology先写业务动作契约再开放-agent-工具">5.1 Ontology：先写业务动作契约，再开放 Agent 工具</h4>
+<pre><code class="language-yaml">object_types:
+  Shipment:
+    primary_key: shipment_id
+    properties: [status, destination_city, eta]
+action_types:
+  RerouteShipment:
+    input:
+      shipment_id: string
+      destination_city: string
+      reason_code: {enum: [WEATHER, CAPACITY, CUSTOMER_REQUEST]}
+    submission_criteria:
+      - &quot;object.status == 'IN_TRANSIT'&quot;
+      - &quot;role in ['dispatcher', 'operations_admin']&quot;
+    effects:
+      - &quot;update destination_city&quot;
+      - &quot;append audit_event&quot;
+      - &quot;insert outbox_event in the same DB transaction&quot;
+    side_effects_after_commit:
+      worker: &quot;outbox_dispatcher&quot;
+      action: &quot;notify_carrier&quot;
+      idempotency_key: &quot;shipment_id + action_version&quot;
+      retry: &quot;bounded exponential backoff&quot;
+      exhausted: &quot;dead_letter + alert&quot;
+    approval: &quot;required when destination_city crosses customs_zone&quot;
+</code></pre>
+<p>验收时逐项检查：对象与属性有权威数据源；动作名是业务动词；提交校验在服务端而非提示词里；角色与审计强制；业务变更、审计和 outbox 记录在同一事务提交，异步投递器按幂等键重试，耗尽后进入死信并告警；Agent 没有业务库凭据，只能调用查询对象、列链接和受控动作。自建查询接口还须用对象类型白名单映射表名，禁止把用户输入直接拼进 SQL。</p>
+<pre><code class="language-text">动作测试最小集：
+1. 正常在途运单改派 → 成功且有审计。
+2. 已完成运单改派 → 前置条件拒绝。
+3. 非调度角色调用 → 权限拒绝。
+4. 非法 reason_code → 参数拒绝。
+5. 并发改派 → 行锁/版本号阻止后写覆盖。
+6. 提交后、投递前杀死进程 → outbox 记录仍在，重启后可按幂等键续投。
+7. 通知持续失败 → 有界重试后进入死信并告警，不静默丢失，也不把业务状态伪装成未提交。
+</code></pre>
+<h4 id="52-私有化联网侧做包离线侧先校验再启动">5.2 私有化：联网侧做包，离线侧先校验再启动</h4>
+<p>联网准备机的目录建议固定为 <code>bundle/{models,images,wheels,charts,data}</code>。以下用变量代替客户特定版本：</p>
+<pre><code class="language-bash">export BUNDLE=&quot;$PWD/bundle&quot;
+export PY_TAG=&quot;312&quot;                 # 示例：按目标机实际版本修改
+export PLATFORM=&quot;manylinux2014_x86_64&quot;
+mkdir -p &quot;$BUNDLE&quot;/{models,images,wheels,charts,data}
+cp requirements.lock.txt &quot;$BUNDLE/requirements.lock.txt&quot;
+
+python -m pip download \
+  --dest &quot;$BUNDLE/wheels&quot; \
+  --platform &quot;$PLATFORM&quot; \
+  --python-version &quot;$PY_TAG&quot; \
+  --only-binary=:all: \
+  -r requirements.lock.txt
+
+: &quot;${VLLM_IMAGE:?先设置完整镜像名及已审核 tag 或 digest}&quot;
+: &quot;${QDRANT_IMAGE:?先设置完整镜像名及已审核 tag 或 digest}&quot;
+docker pull &quot;$VLLM_IMAGE&quot;
+docker pull &quot;$QDRANT_IMAGE&quot;
+docker save -o &quot;$BUNDLE/images/runtime.tar&quot; &quot;$VLLM_IMAGE&quot; &quot;$QDRANT_IMAGE&quot;
+
+(
+  cd &quot;$BUNDLE&quot;
+  find . -type f ! -name SHA256SUMS -print0 | sort -z | \
+    xargs -0 sha256sum &gt; SHA256SUMS
+)
+</code></pre>
+<p>模型权重同样放进 <code>models/</code>，使用官方下载工具并记录精确 revision；不要在文档或命令中写访问令牌。离线侧按顺序执行：</p>
+<pre><code class="language-bash">cd /path/to/bundle
+sha256sum -c SHA256SUMS
+docker load -i images/runtime.tar
+python -m pip install --no-index --find-links=./wheels -r requirements.lock.txt
+# 启动前确认模型目录、向量索引目录均为宿主机持久卷，而非容器可写层。
+</code></pre>
+<p>坑点对应检查：<code>--only-binary</code> 找不到包时不能直接在离线机编译，要回准备机补匹配 wheel；CUDA 与镜像不匹配时锁官方兼容矩阵；GGUF 与 AWQ/GPTQ 不混用；FAT32 单文件限制用分卷并在目标侧复核 SHA256；向量索引必须随 bundle 或有可重建脚本。</p>
+<p><strong>断网验收</strong>在获批变更窗口内进行：记录测试前基线，隔离出站后跑“ ingest → retrieve → rerank → generate → citation ”主链路，同时用主机连接日志或 <code>tcpdump</code> 观察是否有外连；恢复网络后再核对测试记录。首 token、吞吐和 P95 用目标数据集实测，不把素材中的 1.5 秒、30 tok/s、800 毫秒当默认承诺。</p>
+<h4 id="53-多模态页面音频与权限一起进黄金集">5.3 多模态：页面、音频与权限一起进黄金集</h4>
+<pre><code class="language-yaml">multimodal_eval:
+  document_pages:
+    positives: [&quot;表格跨行跨列&quot;, &quot;印章与手写批注&quot;, &quot;图表趋势&quot;]
+    negatives: [&quot;问题答案不在本页&quot;, &quot;过期版本同名制度&quot;]
+    required_citation: &quot;document_id + page_no + version&quot;
+  audio:
+    strata: [&quot;产品型号&quot;, &quot;人名&quot;, &quot;方言/噪声&quot;, &quot;多说话人&quot;]
+    preserve: [&quot;audio_uri&quot;, &quot;speaker&quot;, &quot;start_ms&quot;, &quot;end_ms&quot;]
+    hotwords: [&quot;按客户真实词表填写&quot;]
+  permissions:
+    - &quot;A角色不可检索B角色页面图或转写文本&quot;
+    - &quot;权限撤销后索引与缓存同步失效&quot;
+  performance:
+    measure: [&quot;ASR字错率&quot;, &quot;页面召回&quot;, &quot;端到端P95&quot;, &quot;人工复核率&quot;]
+    thresholds: &quot;由试点基线与客户风险共同冻结&quot;
+</code></pre>
+<p>页面图不只是生成时的附件，也要与 <code>document_id/page_no/version/acl_tags</code> 一起进索引。ASR 入库时保留音频定位与说话人时间戳，否则文本答对也无法回听核证。TTS 使用预置音色或取得书面授权，不能把“能克隆”当成交付目标。</p>
+<h4 id="54-安全与成本上线前的最后两张表">5.4 安全与成本：上线前的最后两张表</h4>
+<p>安全表至少覆盖：不可信文档是否被当指令执行；检索与动作是否都强制身份；提示词、音频、页面和日志是否含 PII；写操作是否需审批；生成内容与合成音色是否按适用规则标识；备案与数据出境是否由合规负责人确认。素材中“攻击成功率 73.2% 到 8.7%”缺少本库可核对的测试条件，只能当线索，项目必须用自己的注入样本复测。</p>
+<p>成本表按<code>语料页数 × 每页抽取调用 × 单价 + 重试 + 重建频率</code>估算 GraphRAG/多模态索引，再叠加在线推理与人工复核。素材中的 <code>$33K</code> 和“图抽取约 75%”没有完整语料与单价条件，只能提醒先估算，不能直接报价。先用一个代表性主题域跑小样，记录实际 token、页数、失败重试与耗时，再外推全量并留回滚点。</p>
+<h2 id="联合验收每条技术边界都要有反例">联合验收：每条技术边界都要有反例</h2>2
+<p>按第五节执行时，先在授权的隔离环境验证一条主工作流，再逐项故障注入。下面是依据原有检查合并的合成教学案例验收单：</p>
+<pre><code class="language-text">版本契约：模型revision / 推理引擎 / 编码模型 / 维度与检索协议 / 索引版本
+动作证据：正常提交 / 越权拒绝 / 条件不符拒绝 / 并发冲突 / 重试与副作用
+离线证据：包清单 / SHA256 / 无外连主路径 / 冷启动 / 索引持久化
+多模态证据：页面引用 / 音频定位 / 无答案 / 过期版 / 跨权限
+容量与成本：固定样本 / 页数与token / 重试 / 端到端延迟 / 人工复核
+运营交接：接手人主路径 / 故障升级 / 回滚恢复 / 已知限制
+决策：Go / 受限继续 / 缩范围 / No-Go；责任人与日期
+</code></pre>
+<p>验收判据不是把目标数字照抄成“通过”：校验和需全项成功；禁止动作不得通过模型改写绕过服务端；离线验证要覆盖全部实际依赖；切换编码模型必须重建并回归，不能混用向量空间；故障恢复由接手人实际操作。安全或质量失败时不扩量，成本小样缺失时不承诺全量费用。已有 Runbook 的命令只是手段，这张联合验收单才决定是否具备移交条件。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">小结</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>三块技术专项加两个补充主题，可以收成一张对照表</li><li>第一，三块技术专项的共同原则是把不确定的东西关进边界</li><li>素材在 10 月 26 日调研里反复强调这一点，各专项的“常见坑”清单也印证了：wheel 漏包、CUDA 版本错位、权限事后补、热词没定制、索引没挂宿主机，没有一个是模型能力问题</li></ul></div>3
+<p>三块技术专项加两个补充主题，可以收成一张对照表。</p>
+<table>
+<thead>
+<tr>
+<th>主题</th>
+<th>要解决的问题</th>
+<th>核心做法（素材）</th>
+<th>验收抓手（素材）</th>
+<th>素材明确承认的缺口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ontology</td>
+<td>大模型怎样安全地读写业务对象</td>
+<td>对象、属性、链接、动作；工作坊定义；Agent 只走三个工具</td>
+<td>核心工作流端到端；每个动作有前置条件、审计、角色；无绕过</td>
+<td>中小微简版模板、工作坊物料、跨行业首发对象清单、纯 RAG 升级路径</td>
+</tr>
+<tr>
+<td>私有化部署</td>
+<td>不出内网的完整交付</td>
+<td>跳板机备齐模型、镜像、wheel；内网校验后加载；按硬件选量化</td>
+<td>断网可用；tcpdump 无出站；首 token 与吞吐；SHA256 一致</td>
+<td>内网交付清单、三档硬件矩阵、版本锁定表、交付后运维</td>
+</tr>
+<tr>
+<td>多模态</td>
+<td>扫描件、截图、录音进入同一体系</td>
+<td>页面当图检索；ASR 加热词；TTS 须授权</td>
+<td>条款引用到页；字错率低于 10%；端到端小于 5 秒</td>
+<td>渐进迁移路径、VLM 离线打包、热词流程、多模态 golden set</td>
+</tr>
+<tr>
+<td>安全合规</td>
+<td>防注入、防泄露、合规上线</td>
+<td>分层防御；按备案顺序推进；高风险场景不让 AI 独立处理</td>
+<td>素材只给结果数字，未给验收清单</td>
+<td>各步骤材料与时限、测试条件未披露</td>
+</tr>
+<tr>
+<td>GraphRAG 成本</td>
+<td>索引成本可控</td>
+<td>大规模语料前先估算；图抽取占约 75%</td>
+<td>素材未给</td>
+<td>语料规模与模型单价未披露</td>
+</tr>
+</tbody>
+</table>
+<p>读完这些材料，值得带走的有三点。</p>
+<p>第一，三块技术专项的共同原则是把不确定的东西关进边界。Ontology 的边界是动作与审计，私有化的边界是离线包与校验和，多模态的边界是页面引用与热词表。边界之外靠自觉的做法，素材一律不信任。</p>
+<p>第二，Demo 与生产的差距主要在“不是 AI 的那部分”。素材在 10 月 26 日调研里反复强调这一点，各专项的“常见坑”清单也印证了：wheel 漏包、CUDA 版本错位、权限事后补、热词没定制、索引没挂宿主机，没有一个是模型能力问题。FDE 在验收时，应当把这些非模型项和模型指标放在同一张表上。</p>
+<p>第三，数字有口径，不要混用。本文涉及的数字大致分三类：素材合成配置或验收目标（如首 token 1.5 秒、30 tok/s、端到端 5 秒），来自博客或厂商文章的转述（如 73.2% 到 8.7%、$33K、75%、60% 工单拦截率），以及单个转述案例的结果（如 96% 到 99.2%、满意度 94%）。三类可信度依次不同，且都没有在本文里独立核验。对客户报价或做承诺时，只有第一类能当作内部目标，后两类只能当作方向性参考。</p>
+<p>最后对素材缺口做一次汇总，供后续补课。Ontology 缺中小微简版模板与跨行业对象清单；私有化缺三档硬件矩阵与交付后运维；多模态缺渐进迁移路径与 golden set 构造；安全合规缺备案各步骤的材料与时限，以及防御数字的测试条件；GraphRAG 缺 $33K 对应的语料规模。这些空白素材自己已经承认或能从行文中看出，本文没有用外部内容去填，留待后续有来源时再补。</p>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>技术专项在本库的真实切面：三个"深坑"各有独立实现与文档（路径 grep 可验）</strong>：<br />
+<code>python
+  # 1) Ontology: 三元组审校 + 别名消歧（rag/build_wiki_graph.py::resolve_aliases）
+  #    知识图谱 -&gt; Neo4j: rag/migrate_graph_to_neo4j.py
+  #    图谱 -&gt; 检索: rag/link_ontology_chunks.py（实体 "-" chunk 链接表 + 覆盖率统计）
+  # 2) 私有化: rag/ingest.py::_resolve_bge_m3_path（本地 bge-m3）+ RAG_LOCAL_DENSE 回退
+  # 3) 多模态: 暂无 PDF/图片解析（rag/ingest.py 只收文本类文件）</code><br />
+  （上面是本文对本库三个专项的落点摘要，逐条可核：<code>ls rag/build_wiki_graph.py rag/migrate_graph_to_neo4j.py rag/link_ontology_chunks.py</code> 均存在。）<br />
+<code>rag/link_ontology_chunks.py</code> L111 的统计字段就是 <code>"ontology_chunks_covered": len(cov &amp; ont_ids)</code> / <code>"ontology_chunks_total": len(ont_ids)</code>——覆盖率用数字说话——<strong>专项做成什么样，用覆盖率数字说话</strong>，不是"已支持"。</li>
+<li><strong>专项之间的耦合点（<code>rag/query.py</code> L1131 <code>_build_graph_context()</code>）</strong>：图谱上下文只在 <code>complex_reasoning</code>/<code>multi_hop</code> 路由注入，且图谱 hit 豁免 rerank（结构文本送 reranker 必被判无关）——<strong>专项能力必须有"何时不用"的开关</strong>，否则专项会污染主链路。</li>
+<li><strong>和课件讲法的差异</strong>：课件把 Ontology/私有化/多模态作为三项并列能力讲；本库实现深度差异很大：Ontology=完整（含 Neo4j 迁移与实体-chunk 链接），私有化=代码级可离线（无容器交付物），多模态=暂无。<strong>三者不能等权宣传</strong>。</li>
+</ul>
+<h2 id="三源与论文融合落点2026-11-04">三源与论文融合落点（2026-11-04）</h2>2
+<ul>
+<li><strong>课件</strong>：量化采用 <code>raw/courseware/AI大模型私有化微调篇__AI大模型私有化微调篇__3-⼤模型微调_量化-2025-8-20-陈钢__day03微调之量化/_代码课件汇总.md</code>，多模态采用 <code>raw/courseware/AI大模型私有化微调篇__AI大模型私有化微调篇__6-多模态⼤模型（下）基于_Transformers_的模型-2025-8-27-陈钢__day05微调之多模态模型（下）/_代码课件汇总.md</code>；它们解释模型与量化基础，不证明具体推理引擎、向量协议或吞吐兼容。</li>
+<li><strong>书籍/摘录</strong>：<code>raw/weread/持续交付2.0：业务引领的DevOps精要（增订本）.md</code> 的本地目录/摘录用于制品、回归和回滚视角；<code>raw/weread/FDE/FDE-AI落地实战指南.md</code> 第 15—20 章目录与划线用于检索、成本、安全边界。均未声称阅读全书。</li>
+<li><strong>业内一手材料</strong>：<code>raw/sources/Anthropic-FDE与Palantir-Ontology一手-20260930.md</code> 的 Palantir 官方 Ontology 与 Anthropic 工程材料约束 Action/权限/最小上下文；<code>raw/sources/FDE私有化离线部署-外部调研-20261012.md</code> 的版本化离线记录只作对应环境证据。</li>
+<li><strong>论文结论→执行动作</strong>：arXiv:2610.20576 提醒 action 名称和接口记法扰动会造成 agent 退化，Ontology 回归因此加入语义不变重命名与参数格式负例；arXiv:2610.20578 的只读小文件镜像研究只支持在目标环境小样评估 SquashFS，不能替代挂载、SHA256、冷启动和回滚测试；arXiv:2610.31385 将长文档 VQA 拆成解析、证据组织、生成与评估，多模态验收因此分别检查页面解析、证据充分性、页码/版本引用和预算。对应本地论文为 <code>2026-10-14-2610.20576.md</code>、<code>2026-10-14-2610.20578.md</code>、<code>2026-10-22-2610.31385.md</code>，均位于 <code>raw/sources/arxiv-daily/</code>。</li>
+</ul>
+<blockquote>
+<p>三段结构补齐 2026-11-03；三源与论文落点补齐 2026-11-04</p>
+</blockquote></div></details></div></body></html>

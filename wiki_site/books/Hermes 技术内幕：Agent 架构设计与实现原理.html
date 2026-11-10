@@ -1,0 +1,167 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Hermes 技术内幕：Agent 架构设计与实现原理</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ Hermes 技术内幕：Agent 架构设计与实现原理</span></div><div class="wrap"><h1 id="书章节重点-hermes-技术内幕agent-架构设计与实现原理">书章节重点 · Hermes 技术内幕：Agent 架构设计与实现原理</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书以“四层架构”为骨架，源码级解剖开源 AI Agent 框架 Hermes 的内部机制——从 Agent Loop、工具安全、上下文压缩、技能与记忆系统，到多 Agent 协作、MCP 生态、消息网关与 RL 训练，最终落地为可运维的工程实践</li><li>核心价值在于揭示一个生产级 Agent 系统如何在“技能学习”与“自我改进”闭环中实现工程化落地</li><li>全书也说明，Agent的可靠性并不来自一个神奇模型，而来自清晰的边界、可追踪的状态、可替换的组件和持续验证的运行链路</li></ul></div>2
+<p>本书以“四层架构”为骨架，源码级解剖开源 AI Agent 框架 Hermes 的内部机制——从 Agent Loop、工具安全、上下文压缩、技能与记忆系统，到多 Agent 协作、MCP 生态、消息网关与 RL 训练，最终落地为可运维的工程实践。核心价值在于揭示一个生产级 Agent 系统如何在“技能学习”与“自我改进”闭环中实现工程化落地。全书也说明，Agent的可靠性并不来自一个神奇模型，而来自清晰的边界、可追踪的状态、可替换的组件和持续验证的运行链路。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 Hermes Agent系统架构全景</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：Hermes定位在“技能学习”与“自我改进”生态，强调程序化记忆和持续进化，而不是只完成一次性的通用问答</li><li>核心观点2：四层架构把入口层、Agent核心、工具与记忆层、外部生态层解耦，使同一内核能够服务多种交互入口</li><li>核心观点3：CLI、TUI、Web Dashboard、消息网关和IDE的ACP适配器共享Agent内核，入口变化不会迫使推理、工具和记忆逻辑重复实现</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：Hermes定位在“技能学习”与“自我改进”生态，强调程序化记忆和持续进化，而不是只完成一次性的通用问答。</li>
+<li><strong>核心观点2</strong>：四层架构把入口层、Agent核心、工具与记忆层、外部生态层解耦，使同一内核能够服务多种交互入口。</li>
+<li><strong>核心观点3</strong>：CLI、TUI、Web Dashboard、消息网关和IDE的ACP适配器共享Agent内核，入口变化不会迫使推理、工具和记忆逻辑重复实现。</li>
+<li><strong>核心观点4</strong>：一次完整交互可抽象为消息进入、会话恢复、提示组装、模型决策、工具执行、结果回写和输出适配，任何环节都需要日志和错误边界。<blockquote>
+<p>• 入口层：hermes _cli/（CLI命令路由）、ui-tui/（TUI终端界面，TypeScript 实现）、web/（Web Dashboard）、gateway/与plugins/platforms/（消息网关与各平台适配器）、acp_adapter/（面向IDE的ACP适配器）。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第2章-agent-loop核心机制">第2章 Agent Loop核心机制</h3>3
+<ul>
+<li><strong>核心观点1</strong>：迭代式执行是 Agent 循环的核心，决策架构的演进体现了从单轮推理到多轮工具调用的范式转变。迭代式执行把单轮生成扩展为多轮“决策—工具—观察”循环，适合需要读取环境、逐步修正和长程推进的任务。</li>
+<li><strong>核心观点2</strong>：AIAgent类封装决策、工具调度、状态维护与流式响应生命周期，是连接模型和外部世界的中枢。并行工具执行引擎与 System Prompt 动态组装共同决定了 Agent 的响应效率与行为边界。</li>
+<li><strong>核心观点3</strong>：循环必须有迭代预算、终止条件和中断机制，避免工具反复调用、错误重试无限增长或任务在没有进展时空转。</li>
+<li><strong>核心观点4</strong>：并行工具执行可以降低等待，但只有互不依赖、不会竞争同一状态的调用才适合并行；依赖关系不清时应保持顺序执行。</li>
+<li><strong>核心观点5</strong>：System Prompt动态组装把身份、工具说明、安全规则和任务上下文按层拼接，既保持全局边界，又避免无关文本长期占用窗口。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 工具系统与安全模型</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：工具注册表架构支撑 40 余种工具的统一生命周期管理，注册与调度分离</li><li>核心观点2：终端工具提供六种执行后端，适配不同隔离与权限场景；选择后端本质上是在选择风险边界</li><li>核心观点3：安全模型采用纵深防御，从工具编排层到执行层逐级设防</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：工具注册表架构支撑 40 余种工具的统一生命周期管理，注册与调度分离。工具注册表把工具发现、元数据、参数模式和执行入口统一管理，便于扩展和测试。</li>
+<li><strong>核心观点2</strong>：终端工具提供六种执行后端，适配不同隔离与权限场景；选择后端本质上是在选择风险边界。</li>
+<li><strong>核心观点3</strong>：安全模型采用纵深防御，从工具编排层到执行层逐级设防。不能只依赖模型“听话”，参数层校验输入，执行层隔离进程，审批层处理高风险动作。</li>
+<li><strong>核心观点4</strong>：统一工具入口还要处理同步与异步、参数类型转换、异常封装和超时，否则工具越多，Agent越难判断结果是否可信。</li>
+</ul>
+<h3 id="第4章-上下文管理与故障转移">第4章 上下文管理与故障转移</h3>3
+<ul>
+<li><strong>核心观点1</strong>：预压缩可大幅缩减文本——数千字符的测试输出被压缩为约 50 字符的一句话摘要。上下文压缩把过长工具输出转成保留命令、退出状态和关键结果的短摘要，让后续决策看到高信号信息而非原始噪声。</li>
+<li><strong>核心观点2</strong>：压缩触发设有防抖设计，防止“压缩→微量节省→再次触发”的无效循环；也要保证JSON或结构化结果不被截断破坏。</li>
+<li><strong>核心观点3</strong>：Credential Pool统一管理凭证轮换、错误分类和跨Provider故障转移；错误分类与重试逻辑解耦，才能针对限流、认证失败和服务故障采取不同动作。</li>
+<li><strong>核心观点4</strong>：OAuth凭证在池内自动刷新并同步回auth.json，减少多进程继续使用过期token的概率；凭证本身仍应隔离，绝不能进入普通日志和上下文。<blockquote>
+<p>预压缩可明显减少文本长度：一个terminal工具返回的数千字符测试输出被压缩为一句[terminal] ran 'npm test' -&gt; exit 0,47 lines output（约50字符）。<br />
+这一设计防止了“压缩→微量节省→再次触发→再次微量节省”的无效循环。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 技能学习系统：Agent的程序化记忆</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：技能系统是 Agent 的程序化记忆载体，Skills Hub 负责分发并引入信任分级机制，把“应该怎样做”沉淀为可加载、可复用和可审查的技能包</li><li>核心观点3：结构安全守卫在扫描入口检查技能包组成，不依赖脆弱的文本正则；文件数不超过50、总大小不超过1024KB、单文件不超过256KB，超限或可疑二进制会产生finding</li><li>核心观点2：技能安全守卫分 structural 与文本两类，structural 类在扫描入口做体积与组成检查（文件数≤50、总大小≤1024KB、单文件≤256KB），不依赖正则</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：技能系统是 Agent 的程序化记忆载体，Skills Hub 负责分发并引入信任分级机制，把“应该怎样做”沉淀为可加载、可复用和可审查的技能包。</li>
+<li><strong>核心观点2</strong>：技能安全守卫分 structural 与文本两类，structural 类在扫描入口做体积与组成检查（文件数≤50、总大小≤1024KB、单文件≤256KB），不依赖正则。</li>
+<li><strong>核心观点3</strong>：结构安全守卫在扫描入口检查技能包组成，不依赖脆弱的文本正则；文件数不超过50、总大小不超过1024KB、单文件不超过256KB，超限或可疑二进制会产生finding。</li>
+<li><strong>核心观点4</strong>：自我改进循环让 Agent 在使用中沉淀和迭代技能，形成能力增长的闭环。失败经验转成技能更新，再通过测试验证更新是否真的减少错误，形成“使用—复盘—沉淀—再使用”的闭环。<blockquote>
+<p>structural类不依赖文本正则，而是在扫描入口处对技能包做体积与组成检查，对应源码常量为MAX_FILE_COUNT=50、MAX_TOTAL_SIZE_KB=1024、MAX_SINGLE_FILE_KB=256，超限或包含可疑二进制将记为finding。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第6章-记忆系统与用户建模">第6章 记忆系统与用户建模</h3>3
+<ul>
+<li><strong>核心观点1</strong>：双层Provider设计让内建记忆和插件记忆后端可以替换，核心Agent不必绑定某一种数据库或存储方案。</li>
+<li><strong>核心观点2</strong>：MEMORY.md、USER.md等文件记忆适合保存稳定事实和用户偏好，会话搜索则负责从历史交互中按需找回具体上下文；内建记忆配合会话搜索，记忆写入指引在 prompt_builder 中维护并持续扩展“不该写入”的负面清单。</li>
+<li><strong>核心观点3</strong>：记忆写入指引要同时维护“应该写什么”和“不该写什么”的负面清单，敏感信息、偶然状态和低价值噪声不应无条件持久化。</li>
+<li><strong>核心观点4</strong>：用户建模的目标不是给用户贴固定标签，而是让系统在后续会话中更准确地理解偏好、工作方式和已确认事实，并允许用户修正或删除。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 多Agent编排与协作</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点2：子Agent提示词会剥离父Agent的身份定义、记忆指导和工具强制说明，减少职责漂移，让子任务围绕自己的交付契约工作</li><li>核心观点3：子Agent共享凭证池，遇到限流或凭证轮换时可切换而不是整体阻塞；共享资源同时需要并发限制和结果隔离</li><li>核心观点4：Mixture of Agents利用模型间协作增益，一个模型看到其他模型的候选答案后再综合，往往比完全独立作答获得更丰富的视角</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：子Agent委托默认扁平、按需嵌套，通过delegation.max_spawn_depth显式提高嵌套上限，根节点标记role=“orchestrator”以区分协调者与执行者。</li>
+<li><strong>核心观点2</strong>：子Agent提示词会剥离父Agent的身份定义、记忆指导和工具强制说明，减少职责漂移，让子任务围绕自己的交付契约工作。</li>
+<li><strong>核心观点3</strong>：子Agent共享凭证池，遇到限流或凭证轮换时可切换而不是整体阻塞；共享资源同时需要并发限制和结果隔离。</li>
+<li><strong>核心观点4</strong>：Mixture of Agents利用模型间协作增益，一个模型看到其他模型的候选答案后再综合，往往比完全独立作答获得更丰富的视角。<blockquote>
+<p>该论文的核心观察是：大语言模型之间存在协作增益效应——当一个模型能看到其他模型对同一问题的输出时，它生成的回答质量往往高于独立作答的情况。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第8章-mcp协议与工具生态">第8章 MCP协议与工具生态</h3>3
+<ul>
+<li><strong>核心观点1</strong>：MCP为工具、资源和提示提供标准化接入，使不同服务能够以一致协议暴露能力；Hermes同时扮演客户端与Server角色。</li>
+<li><strong>核心观点2</strong>：MCP客户端通过_run_on_mcp_loop()完成线程桥接，把协程提交到后台事件循环，以0.1秒间隔轮询并检查用户中断信号。</li>
+<li><strong>核心观点3</strong>：作为Server暴露能力后，Hermes可以接入更大的工具互操作生态，但仍要对外部工具实施命名、权限、超时和错误隔离。</li>
+<li><strong>核心观点4</strong>：协议层统一不等于业务层自动安全；工具描述、返回内容和认证流程仍需在本地编排层做验证和审计。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第9章 多平台消息网关</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：单进程多平台网关统一接入消息渠道，平台差异由适配器处理，Agent核心只面对统一消息和会话模型；单进程多平台网关统一接入各消息平台，会话管理采用三态设计（未设置/已设置为空/已设置为值）保障并发安全与向后兼容</li><li>核心观点2：会话变量采用“未设置、已设置为空、已设置为值”三态设计，兼顾并发安全、CLI与cron兼容，以及清理后不读取旧环境变量</li><li>核心观点3：connect()以is_reconnect区分冷启动和重连：冷启动清空积压，重连保留离线消息，以减少网络抖动造成的消息丢失</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：单进程多平台网关统一接入消息渠道，平台差异由适配器处理，Agent核心只面对统一消息和会话模型；单进程多平台网关统一接入各消息平台，会话管理采用三态设计（未设置/已设置为空/已设置为值）保障并发安全与向后兼容。</li>
+<li><strong>核心观点2</strong>：会话变量采用“未设置、已设置为空、已设置为值”三态设计，兼顾并发安全、CLI与cron兼容，以及清理后不读取旧环境变量。流式输出需针对不同平台做适配，安全防线贯穿网关各层。</li>
+<li><strong>核心观点3</strong>：connect()以is_reconnect区分冷启动和重连：冷启动清空积压，重连保留离线消息，以减少网络抖动造成的消息丢失。</li>
+<li><strong>核心观点4</strong>：流式输出必须按平台适配编辑、追加、长度限制和思考标签过滤，同时把安全检查贯穿消息进入、生成和发送过程。<blockquote>
+<p>这种三态设计（未设置/已设置为空/已设置为值）确保：网关模式下的并发安全、CLI与cron模式下的向后兼容，以及clear_session_vars()后不会读取到过时的环境变量。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第10章-rl训练与轨迹系统">第10章 RL训练与轨迹系统</h3>3
+<ul>
+<li><strong>核心观点1</strong>：Agent RL训练关注多轮决策的连贯性，不只评价单次回答；YC-Bench让Agent扮演创业公司负责人追踪资金与生存状况，与TerminalBench形成互补。</li>
+<li><strong>核心观点2</strong>：Hermes RL环境分Phase 1与Phase 2（ManagedServer），解析器仅在Phase 2启用，说明训练环境需要与实际运行阶段对齐。</li>
+<li><strong>核心观点3</strong>：轨迹系统保存模型决策、工具调用、观察结果和最终状态，为训练数据生成、失败分析和策略比较提供依据；轨迹压缩服务于训练数据生成，在保留决策信号的前提下降低数据体积。</li>
+<li><strong>核心观点4</strong>：轨迹压缩应保留决策信号、错误原因和奖励相关信息，降低数据体积但不能把关键因果链压成不可学习的摘要。<blockquote>
+<p>YC-Bench关注一个与TerminalBench完全不同的维度：让Agent扮演早期AI创业公司的负责人，在多轮战略决策中保持连贯性并追踪其资金与生存状况。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第11章 部署与运维实战</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：部署方式要按场景选择，本地开发强调迭代速度，容器强调环境一致性，systemd则提供自动重启、日志管理和开机自启等生产能力</li><li>核心观点2：hermes chat支持模型、工具集、技能预加载、Provider自动选择、yolo、git worktree等运行时参数，-q和-Q适合脚本化、非交互调用</li><li>核心观点4：生产运维不仅是启动进程，还包括配置变更、凭证轮换、错误恢复、资源监控和回滚验证；每项变更都应留下可追踪记录</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：部署方式要按场景选择，本地开发强调迭代速度，容器强调环境一致性，systemd则提供自动重启、日志管理和开机自启等生产能力。</li>
+<li><strong>核心观点2</strong>：hermes chat支持模型、工具集、技能预加载、Provider自动选择、yolo、git worktree等运行时参数，-q和-Q适合脚本化、非交互调用。</li>
+<li><strong>核心观点3</strong>：SessionResetPolicy默认mode=“both”、空闲1440分钟、每日4点重置，先触发者生效；会话策略应与业务连续性和隐私要求配合。</li>
+<li><strong>核心观点4</strong>：生产运维不仅是启动进程，还包括配置变更、凭证轮换、错误恢复、资源监控和回滚验证；每项变更都应留下可追踪记录。<blockquote>
+<p>systemd提供了自动重启（Restart=on-failure）、日志管理（journalctl）和开机自启（WantedBy=default.target）等服务管理能力。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第12章-应用场景与实战案例">第12章 应用场景与实战案例</h3>3
+<ul>
+<li><strong>核心观点1</strong>：四个实战任务覆盖从安装初始化到扩展开发的完整路径，包括编写自定义 Skill（会议纪要助手）、开发消息平台适配器与自定义记忆插件，形成从入门到扩展的实践路径。</li>
+<li><strong>核心观点2</strong>：会议纪要助手案例验证技能描述、触发条件、输入输出规范和测试验收，说明Skill必须能被稳定调用而不是只在作者环境中可用。</li>
+<li><strong>核心观点3</strong>：消息平台适配器案例验证统一消息模型与平台差异隔离，新增平台应遵守既有接口，而不是复制整套Agent逻辑。</li>
+<li><strong>核心观点4</strong>：记忆插件案例验证Provider抽象、声明式发现、持久化和测试集成，体现扩展点设计对长期维护的重要性。</li>
+<li><strong>核心观点5</strong>：实战的共同验收标准是可安装、可运行、可观察、可恢复和可扩展；只展示一次成功对话不能证明系统已经生产就绪。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">适用场景标签</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>AI Agent 框架架构设计</li></ul></div>2
+<ul>
+<li>AI Agent 框架架构设计</li>
+<li>高级开发者/架构师技术参考</li>
+<li>源码级系统剖析</li>
+<li>生产级 Agent 部署运维</li>
+<li>多 Agent 协作与工具生态</li>
+</ul>
+<h2 id="一句话推荐">一句话推荐</h2>2
+<p>源码级解剖生产级 Agent 框架。</p></div></details></div></body></html>

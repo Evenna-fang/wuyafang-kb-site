@@ -1,0 +1,160 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>pgvector两百万向量内免调优-ef_search与规模阈值</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ pgvector两百万向量内免调优-ef_search与规模阈值</span></div><div class="wrap"><h1 id="pgvector-200万向量内免调优ef_search与规模阈值调优方法论">pgvector 200万向量内免调优：ef_search与规模阈值调优方法论</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/sources/%E5%90%91%E9%87%8F%E6%95%B0%E6%8D%AE%E5%BA%93%E5%B7%A5%E7%A8%8B%E7%BB%86%E8%8A%82-%E8%B0%83%E7%A0%94-20261012.md">向量数据库工程细节-调研-20261012</a> · <a href="../../raw/distill/%E5%90%91%E9%87%8F%E6%95%B0%E6%8D%AE%E5%BA%93%E5%B7%A5%E7%A8%8B%E7%BB%86%E8%8A%82.distill.json">向量数据库工程细节.distill.j</a></p>
+<p>类型:方法论笔记(Evergreen/Zettelkasten原子化) ｜ 生成:CODE Distill 生产线三级渐进摘要(DeepSeek-V3 Pro)<br />
+一手源:<code>raw/sources/向量数据库工程细节-调研-20261012.md</code>（2026-10-12，pgvector 部署与调优工程细节）<br />
+溯源（tier1 一手）:github.com/pgvector/pgvector｜neon.com/docs/ai/ai-vector-search-optimization（ef_search 实测）<br />
+二手实测引用源:crunchydata.com（HNSW 索引与 Postgres）｜pgdog.dev（pgvector 分片）｜firecrawl.dev（向量库评测） ｜ 素材:<code>raw/distill/向量数据库工程细节.distill.json</code></p>
+</blockquote>
+<h2 id="why">WHY</h2>2
+<h3 id="核心论点">核心论点</h3>3
+<p><strong>pgvector 的调优第一杠杆是查询期参数 <code>ef_search</code>，不是重建索引</strong>——默认 40 只召回约 50%，提到 100-200 即可 80-100% 召回且查询 1.5-2.3ms；200 万向量以内 pgvector 零运维免调优，100 万是单节点性能拐点、5000 万是硬上限。盲目重建 HNSW 是最常见的过度工程（100 万×1536 维构建约 60 分钟，构建时间随 <code>m</code> 线性增长）。</p>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">为什么成立</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 查询参数与索引解耦：ef_search 是运行时旋钮，零重建成本；重建索引是小时级运维动作——先旋钮后重建</li><li>3. 压缩换的是维度与磁盘：halfvec/DiskANN 以少量精度换 90% 体积和维度上限解除，对大 embedding（3072 维）是刚需</li><li>2. RAG 的向量规模天然小：知识库多在百万级以内，正好落在 pgvector 舒适区，过早上专用向量库是负资产</li></ul></div>3
+<ol>
+<li><strong>查询参数与索引解耦</strong>：ef_search 是运行时旋钮，零重建成本；重建索引是小时级运维动作——先旋钮后重建。</li>
+<li><strong>RAG 的向量规模天然小</strong>：知识库多在百万级以内，正好落在 pgvector 舒适区，过早上专用向量库是负资产。</li>
+<li><strong>压缩换的是维度与磁盘</strong>：halfvec/DiskANN 以少量精度换 90% 体积和维度上限解除，对大 embedding（3072 维）是刚需。</li>
+</ol>
+<h2 id="what">WHAT</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">机制拆解</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>ef_search 机制：HNSW 搜索期的候选队列宽度，默认 40 太窄；设 100-200 是"不重建索引的召回修复"</li><li>超过 200 可能触发 Seq Scan 降级；只有召回仍 <95% 才值得重建索引</li><li>选型原则：2026 前 pgvector（含 pgvectorscale）是 RAG 默认选择——优势是零额外运维 + 200 万内免调优；超规模再谈 Qdrant/专用库/分片（pgdog）</li></ul></div>3
+<ul>
+<li><strong>ef_search 机制</strong>：HNSW 搜索期的候选队列宽度，默认 40 太窄；设 100-200 是"不重建索引的召回修复"。超过 200 可能触发 Seq Scan 降级；只有召回仍 &lt;95% 才值得重建索引。</li>
+<li><strong>规模阈值</strong>：&lt;100 万 良好；100 万-1000 万需参数调优/分区；&gt;1000 万需分区或专用向量库；&gt;5000 万必须专用方案。</li>
+<li><strong>构建瓶颈</strong>：HNSW 构建时间与 <code>m</code> 线性正比（100 万 1536 维约 60 分钟）；默认 <code>m=16, ef_construction=64</code> 通常不动。</li>
+<li><strong>存储压缩</strong>：<code>halfvec</code> 类型减半索引、并绕开 HNSW 2000 维限制（3072 维可用）；pgvectorscale 的 DiskANN+SBQ 压缩实测 193MB→21MB（-90%）。</li>
+<li><strong>选型原则</strong>：2026 前 pgvector（含 pgvectorscale）是 RAG 默认选择——优势是零额外运维 + 200 万内免调优；超规模再谈 Qdrant/专用库/分片（pgdog）。</li>
+</ul>
+<h3 id="是什么定义与边界">是什么（定义与边界）</h3>3
+<p><strong>定义</strong>：pgvector = PostgreSQL 的向量检索扩展（HNSW/IVFFlat 索引），<code>ef_search</code> 是 HNSW 查询期的候选队列宽度参数（默认 40）。本篇是其调优方法论：ef_search 旋钮（100-200 即可 80-100% 召回）、规模阈值（100 万拐点 / 5000 万硬上限）、HNSW 构建瓶颈、halfvec/DiskANN 压缩、选型原则（200 万内免调优）。</p>
+<p><strong>边界</strong>：<br />
+- ✅ 管：pgvector 的查询参数调优、规模阈值、索引构建成本、压缩方案、分片决策。<br />
+- ❌ 不管：检索融合（<a href="RRF%E8%9E%8D%E5%90%88%E5%8A%A0%E9%87%8D%E6%8E%92%E8%A7%A3%E5%86%B3%E6%A3%80%E7%B4%A2%E7%9F%AD%E6%9D%BF-%E6%B7%B7%E5%90%88%E6%A3%80%E7%B4%A2%E6%B5%81%E6%B0%B4%E7%BA%BF.html">RRF融合加重排</a>）、向量库整体选型（<a href="Agentic-RAG%E4%B8%8E%E5%A4%9A%E6%A8%A1%E6%80%81RAG%E8%B0%83%E7%A0%94.html">Agentic-RAG与多模态RAG调研</a> 的向量数据库工程节）、embedding 选型（<a href="Embedding%E6%A8%A1%E5%9E%8B%E9%80%89%E5%9E%8B%E5%AF%B9%E6%AF%94.html">Embedding模型选型对比</a>）。<br />
+- ⚠️ 本库当前用 ChromaDB 非 pgvector——ef_search 旋钮暂无本地可 grep 代码，接入时按本文 SQL 落地；本地等价物是 <code>retrieval.dense_top_n/sparse_top_n</code>（先开大候选池再精排，同一逻辑）。<br />
+- ⚠️ "先旋钮后重建"是顺序硬规则：ef_search 是运行时旋钮（零重建成本），重建 HNSW 是小时级运维动作——只有 ef_search=200 仍 &lt;95% 召回才值得重建。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">一句话洞见（L3）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>2. 规模阈值：单节点 pgvector 的 100 万向量为性能拐点，5000 万是硬上限，超限需专用方案</li><li>这篇源文回答的核心问题：如何基于向量规模和数据特征选择最优的 pgvector 部署与调优策略</li><li>4. 存储优化：「halfvec」+DiskANN 组合可压缩索引 90%（193MB→21MB），突破维度限制</li></ul></div>3
+<ol>
+<li>参数调优：<code>ef_search=100-200</code> 实现 80-100% 召回率且保持 1.5-2.3ms 查询性能，避免盲目重建索引。</li>
+<li>规模阈值：单节点 pgvector 的 100 万向量为性能拐点，5000 万是硬上限，超限需专用方案。</li>
+<li>索引瓶颈：HNSW 构建时间与 <code>m</code> 参数线性正比，100 万 1536 维数据约需 60 分钟。</li>
+<li>存储优化：<code>halfvec</code>+DiskANN 组合可压缩索引 90%（193MB→21MB），突破维度限制。</li>
+<li>选型策略：200 万向量内优先 pgvector（零运维成本），2026 年前仍是 RAG 默认选择。</li>
+</ol>
+<p><strong>这篇源文回答的核心问题</strong>：如何基于向量规模和数据特征选择最优的 pgvector 部署与调优策略？</p>
+<h2 id="how">HOW</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">怎么用（阈值与参数表）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>维度>2000 时用 halfvec 建列</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>动作</th>
+<th>阈值/参数</th>
+<th>依据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>先调 ef_search</td>
+<td>100-200（默认 40 只召回 ~50%）</td>
+<td>neon.com 实测 1.5-2.3ms</td>
+</tr>
+<tr>
+<td>警惕 Seq Scan 降级</td>
+<td>ef_search &gt; 200</td>
+<td>查询计划用 <code>EXPLAIN</code> 查</td>
+</tr>
+<tr>
+<td>重建索引门槛</td>
+<td>ef_search=200 仍 &lt;95% 召回</td>
+<td>先旋钮后重建</td>
+</tr>
+<tr>
+<td>单节点分界</td>
+<td>100 万拐点 / 5000 万硬上限</td>
+<td>超限→分区/专用库</td>
+</tr>
+<tr>
+<td>HNSW 构建预算</td>
+<td>100 万×1536 维 ≈ 60min，随 m 线性</td>
+<td>默认 m=16, ef_construction=64 不动</td>
+</tr>
+<tr>
+<td>压缩</td>
+<td>halfvec（减半+破 2000 维限制）+ pgvectorscale DiskANN/SBQ（193MB→21MB）</td>
+<td>crunchydata/pgvectorscale</td>
+</tr>
+<tr>
+<td>分片</td>
+<td>超 1000 万用 pgdog 等分片方案</td>
+<td>pgdog.dev</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-sql">-- 查询期调优（无需重建）
+SET hnsw.ef_search = 150;
+-- 维度&gt;2000 时用 halfvec 建列
+CREATE TABLE docs (id bigserial, embedding halfvec(3072));
+</code></pre>
+<h4 id="本库真实落地源码核对2026-10-26">本库真实落地（源码核对，2026-10-26）</h4>
+<ul>
+<li>本库向量层是 <strong>ChromaDB（bge-m3 dense+sparse）</strong>，非 pgvector，故 ef_search 旋钮暂无本地可 grep 代码；接入 pgvector 时按上表 SQL 落地。</li>
+<li><strong>规模对照</strong>：本库当前 chunk 数在万级（远低于 100 万拐点），属 pgvector "200 万内免调优"舒适区——真要迁 pgvector，<code>m=16/ef_construction=64</code> 默认值不动、只调查询期 <code>ef_search</code>。</li>
+<li><strong>召回旋钮的本地等价物</strong>：<code>rag/config.yaml::retrieval.dense_top_n: 1000</code>、<code>sparse_top_n: 100</code> 就是"先把候选池开大、再精排"的本地形态，与 ef_search 开大候选队列是同一逻辑（先旋钮后重建）。</li>
+</ul>
+<h4 id="选型旁证什么时候不必上-pgvector什么时候该升级">选型旁证：什么时候不必上 pgvector，什么时候该升级</h4>
+<p>据[一手源]：RAG优化-外部调研-20260929（方向 3，向量库横评，tier2）：①pgvector 是"隐藏选项"——已有 Postgres 的团队比 Chroma 更优，单 VM 约 $50/月起步；②Chroma 适合本地开发/原型/notebook，几百万向量内 + 简单过滤够用，团队需要"自有基础设施上的过滤 + 持久化"时才毕业到 Qdrant（Rust，p95 &lt; 10ms @ 1000 万向量，过滤模型强，量化成熟）；③Milvus/Weaviate 分布式运维复杂，不适合个人/小团队；④所有向量库共享同一个天花板——"你 embed 的内容质量"，换库不是当前瓶颈。该源对 162 chunk 库的裁决是<strong>暂不换库</strong>，监控 chunk 数 &gt; 1 万再迁 Qdrant，并把精力放 chunking + metadata（<code>source_file / heading_path / date / chunk_type</code>）+ eval。口诀：数据量在百万以内，先优化内容和元数据，再谈换库；换库的触发是"过滤 + 持久化 + 规模"需求，不是"听说某库更好"。</p>
+<h3 id="关联笔记">关联笔记</h3>3
+<ul>
+<li>[[RRF融合加重排解决检索短板-混合检索流水线]]</li>
+<li>[[成本是RAG第一约束-k值缓存分层路由三杠杆]]</li>
+</ul>
+</div></details><h2 id="来源与三源融合落点">来源与三源融合落点</h2>2
+<h3 id="三源融合清单">三源融合清单</h3>3
+<ul>
+<li>[业1] 业内：<a href="https://github.com/pgvector/pgvector">pgvector 官方仓库</a> 与 <a href="https://neon.com/docs/ai/ai-vector-search-optimization">Neon 向量检索优化文档</a>。</li>
+<li>[业2] 业内：<a href="https://github.com/timescale/pgvectorscale">pgvectorscale</a>；工程调研原文见 <a href="../../raw/sources/%E5%90%91%E9%87%8F%E6%95%B0%E6%8D%AE%E5%BA%93%E5%B7%A5%E7%A8%8B%E7%BB%86%E8%8A%82-%E8%B0%83%E7%A0%94-20261012.md">向量数据库工程细节</a>。</li>
+<li>说明：原文未列课件、书籍或 arXiv 来源，本次不补造。</li>
+</ul></div></body></html>

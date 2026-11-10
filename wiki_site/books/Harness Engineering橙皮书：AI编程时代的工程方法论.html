@@ -1,0 +1,228 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Harness Engineering橙皮书：AI编程时代的工程方法论</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ Harness Engineering橙皮书：AI编程时代的工程方法论</span></div><div class="wrap"><h1 id="书章节重点-harness-engineering橙皮书ai编程时代的工程方法论">书章节重点 · Harness Engineering橙皮书：AI编程时代的工程方法论</h1>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心主题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>本书提出“Harness Engineering”这一工程方法论：AI模型是马，Harness是缰绳</li><li>全书通过7个一线团队案例与逐层实操，论证一个反直觉原则——好的Harness不是规则最多，而是每条规则都在干活的</li><li>当模型能力不再是瓶颈，决定产出质量的是套在模型外面的指令、约束、反馈、记忆、编排五层系统</li></ul></div>2
+<p>本书提出“Harness Engineering”这一工程方法论：AI模型是马，Harness是缰绳。当模型能力不再是瓶颈，决定产出质量的是套在模型外面的指令、约束、反馈、记忆、编排五层系统。全书通过7个一线团队案例与逐层实操，论证一个反直觉原则——好的Harness不是规则最多，而是每条规则都在干活的。它把AI编程从“让模型生成代码”推进到“设计一个能持续交付、检查、修正和演化的工程环境”。</p>
+<h2 id="章节重点提炼">章节重点提炼</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">第1章 Harness到底是什么</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：Harness原意是马具/缰绳，在AI编程语境中指包裹模型的外层工程系统——读文件、改代码、跑测试、部署生产都发生在Harness内部</li><li>核心观点2：模型是大脑，Harness是手和脚；模型没换，换的是套在模型外面的那层东西，产出即可天差地别</li><li>核心观点3：Harness把意图、环境、工具、权限、反馈和状态连接起来，解决的不是单次回答是否漂亮，而是任务能否稳定完成</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：Harness原意是马具/缰绳，在AI编程语境中指包裹模型的外层工程系统——读文件、改代码、跑测试、部署生产都发生在Harness内部。</li>
+<li><strong>核心观点2</strong>：模型是大脑，Harness是手和脚；模型没换，换的是套在模型外面的那层东西，产出即可天差地别。</li>
+<li><strong>核心观点3</strong>：Harness把意图、环境、工具、权限、反馈和状态连接起来，解决的不是单次回答是否漂亮，而是任务能否稳定完成。</li>
+<li><strong>核心观点4</strong>：这不是新发明，而是AI圈终于意识到自己需要几十年前就有的工程纪律；版本控制、测试、审查和回滚依然是可靠性的基础。<blockquote>
+<p>AI圈不是发明了 harness engineering，是终于意识到自己需要学几十年前就有的工程纪律</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第2章-六十年简史人和工具的关系">第2章 六十年简史：人和工具的关系</h3>3
+<ul>
+<li><strong>核心观点1</strong>：从1968软件危机、瀑布模型、设计模式、敏捷、DevOps到Copilot、Agent时代，每次工具翻转都有人说“程序员要完了”，但真正变的是程序员在做什么。</li>
+<li><strong>核心观点2</strong>：软件危机暴露规模化协作和质量控制问题，瀑布、设计模式和敏捷分别从流程、结构和反馈角度寻找解决方式，工具变化始终伴随工程组织变化。</li>
+<li><strong>核心观点3</strong>：DevOps把“描述你要什么，而不是怎么做”的思想带入交付，自动化流水线和可观测反馈让软件从一次性交付变成持续运行系统。</li>
+<li><strong>核心观点4</strong>：一条暗线贯穿六十年：人的角色持续从“执行者”向“流程设计者”迁移；AI越能执行，越需要人明确目标、边界和验收。</li>
+<li><strong>核心观点5</strong>：到2026年，写代码不再是最重要的技能，工程师的主要工作是设计环境、明确意图、构建反馈循环。<blockquote>
+<p>从打孔卡到CLAUDE.md，六十年间人和编程工具的关系翻了好几次。每次翻转都有人说「程序员要完了」，但每次真正变的是程序员在做什么。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第3章 三次命名</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：Prompt Engineering → Context Engineering → Harness Engineering，三次命名对应三次觉醒，层层包含</li><li>核心观点2：Prompt关注一句话如何表达，Context关注模型需要看到哪些任务信息，Harness进一步关注工具、权限、反馈、记忆和编排如何组成完整系统</li><li>核心观点3：命名的真正价值在于——一个概念有了名字，就可以被讨论、被拆解、被教；团队才能围绕同一对象建立职责和指标</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：Prompt Engineering → Context Engineering → Harness Engineering，三次命名对应三次觉醒，层层包含。</li>
+<li><strong>核心观点2</strong>：Prompt关注一句话如何表达，Context关注模型需要看到哪些任务信息，Harness进一步关注工具、权限、反馈、记忆和编排如何组成完整系统。</li>
+<li><strong>核心观点3</strong>：命名的真正价值在于——一个概念有了名字，就可以被讨论、被拆解、被教；团队才能围绕同一对象建立职责和指标。</li>
+<li><strong>核心观点4</strong>：三次命名的演进本质是认知范围的扩大：从“怎么说”到“给什么上下文”再到“造什么系统”。</li>
+<li><strong>核心观点5</strong>：在实践中三者并不互相替代，Prompt仍是入口，Context是动态材料，Harness是使入口和材料可靠工作的工程外壳。<blockquote>
+<p>一个概念有了名字，就可以被讨论、被拆解、被教。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第4章-harness的五个组件">第4章 Harness的五个组件</h3>3
+<ul>
+<li><strong>核心观点1</strong>：五组件为指令、约束、反馈、记忆、编排，构成Harness的完整骨架；指令规定目标，约束限定边界，反馈判断结果，记忆保存经验，编排安排协作。</li>
+<li><strong>核心观点2</strong>：指令不是写一次就完的文档，而是持续演化的工程制品，Boris称之为“复利工程”；每次真实错误都应推动规则变得更准确。</li>
+<li><strong>核心观点3</strong>：约束把“建议”变成可执行边界，可由Hooks、检查器、Sandbox、审批和权限系统共同实现，不能只依赖模型自觉。</li>
+<li><strong>核心观点4</strong>：反馈层的关键洞察——模型对自己的第一个可行方案有天然偏好，不是不会做得更好，是太容易满足于“看起来可以”。</li>
+<li><strong>核心观点5</strong>：记忆层的目标是找到最小的高信号token集合，最大化期望结果的可能性；编排层则决定何时串行、并行或交给不同角色。<blockquote>
+<p>模型对自己的第一个可行方案有天然偏好。它不是不会做得更好，是太容易满足于「看起来可以」。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第5章 少即是多：Harness的减法哲学</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：上下文焦虑——模型也会慌，信息过载反而降低表现；“推理三明治”表明全程拉满推理反而更差</li><li>核心观点2：给地图不要给说明书：薄入口文件当地图，指向深层专业文档，而非把所有东西平铺在一个文件里</li><li>核心观点3：判断标准——每一行都问“删掉它会导致Claude犯错吗</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：上下文焦虑——模型也会慌，信息过载反而降低表现；“推理三明治”表明全程拉满推理反而更差。</li>
+<li><strong>核心观点2</strong>：给地图不要给说明书：薄入口文件当地图，指向深层专业文档，而非把所有东西平铺在一个文件里。</li>
+<li><strong>核心观点3</strong>：判断标准——每一行都问“删掉它会导致Claude犯错吗？如果不会，就删掉”；规则应与具体失败模式绑定。</li>
+<li><strong>核心观点4</strong>：减法不是少写文档，而是把低信号、重复和过期内容移出主路径，让模型在关键节点看到准确材料。</li>
+<li><strong>核心观点5</strong>：好的Harness不是规则最多的那个，是每条规则都在干活的那个。<blockquote>
+<p>好的 harness 不是规则最多的那个，是每条规则都在干活的那个。</p>
+</blockquote>
+</li>
+</ul>
+<h3 id="第6章-openai-codex团队零行手写代码的百万行产品">第6章 OpenAI Codex团队：零行手写代码的百万行产品</h3>3
+<ul>
+<li><strong>核心观点1</strong>：7人、5个月、零行手写代码、交付100万行产品——证明Harness的杠杆效应，规模来自系统化协作而不是个人手速。</li>
+<li><strong>核心观点2</strong>：五条原则逐条落地，配合“垃圾回收”机制对抗代码熵增，构成第三支柱；持续清理与生成同样重要。</li>
+<li><strong>核心观点3</strong>：AI适合快速产出大量实现，但需要明确目录结构、接口约定、测试和审查入口，否则代码量增长会先于理解能力增长。</li>
+<li><strong>核心观点4</strong>：质量问号——AI写代码只解决眼前任务，不会像人一样无意识留下结构线索方便后续维护，因此必须把可读性和长期责任写进Harness。<blockquote>
+<p>AI 写的代码和人写的代码有个关键区别：人写代码时会无意识地留下结构线索，方便将来的自己理解。AI 不会。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第7章 Mitchell Hashimoto：每次犯错加一条规则</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：核心方法论极朴素——每次犯错就加一条规则，规则库随错误增长而生长</li><li>核心观点2：新增规则要描述可复现的失败、触发条件和正确动作，而不是写成泛泛的“注意质量”；这样规则才能真正改变下一次行为</li><li>核心观点3：六步采纳框架 + Ghostty的AGENTS.md作为活标本，展示规则如何从实践中沉淀，并通过目录和范围控制避免全局污染</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：核心方法论极朴素——每次犯错就加一条规则，规则库随错误增长而生长。</li>
+<li><strong>核心观点2</strong>：新增规则要描述可复现的失败、触发条件和正确动作，而不是写成泛泛的“注意质量”；这样规则才能真正改变下一次行为。</li>
+<li><strong>核心观点3</strong>：六步采纳框架 + Ghostty的AGENTS.md作为活标本，展示规则如何从实践中沉淀，并通过目录和范围控制避免全局污染。</li>
+<li><strong>核心观点4</strong>：底线原则：不发布自己不理解的代码；AI生成越快，人越需要保留解释、审查和负责的能力。</li>
+<li><strong>核心观点5</strong>：朴素方法最有效，因为它把每次失败转化为系统的永久免疫，但规则仍需定期合并、删除冲突和验证有效性。</li>
+</ul>
+<h3 id="第8章-anthropic让ai查ai">第8章 Anthropic：让AI查AI</h3>3
+<ul>
+<li><strong>核心观点1</strong>：三Agent流水线（Planner/Generator/Evaluator）源于GAN直觉——与其教一个模型自我批判，不如训练另一个模型专门挑刺。</li>
+<li><strong>核心观点2</strong>：Planner先明确任务和验收，Generator负责实现，Evaluator依据标准独立检查，三个角色的分离减少“自己写、自己说好”的偏差。</li>
+<li><strong>核心观点3</strong>：冲刺合约（Sprint Contract）——写代码前先签合同，明确验收标准，把模糊愿望变成可判断的完成条件。</li>
+<li><strong>核心观点4</strong>：Evaluator同样遵循减法哲学；Boris Cherny用100行CLAUDE.md管理10个并发会话，说明高并发不等于高噪声。</li>
+<li><strong>核心观点5</strong>：Claude Code的六大Harness机制 + 六个团队六种用法，说明Harness需按场景定制，没有一套规则能覆盖所有工作。<blockquote>
+<p>这背后是一个来自生成对抗网络（GAN）的直觉：与其教一个模型自我批判，不如训练另一个模型专门挑刺。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第9章 Stripe Minions：每周1300个PR的流水线</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：一条Slack消息触发完整流水线，每周产出1300个PR，展示规模化Harness的形态</li><li>核心观点2：基于Goose魔改 + devbox 10秒启动完整开发环境，基础设施是Harness的底座，环境一致性直接影响模型行为</li><li>核心观点3：把AI当新员工——需要入职引导、明确职责、质量审查，而非当工具调用；任务描述、代码规范和交付流程要显式化</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：一条Slack消息触发完整流水线，每周产出1300个PR，展示规模化Harness的形态。</li>
+<li><strong>核心观点2</strong>：基于Goose魔改 + devbox 10秒启动完整开发环境，基础设施是Harness的底座，环境一致性直接影响模型行为。</li>
+<li><strong>核心观点3</strong>：把AI当新员工——需要入职引导、明确职责、质量审查，而非当工具调用；任务描述、代码规范和交付流程要显式化。</li>
+<li><strong>核心观点4</strong>：把任务拆成可独立审查的PR，使并发产出不会直接进入主干；自动检查负责机械问题，人类保留最终责任。</li>
+<li><strong>核心观点5</strong>：质量控制模式：AI写，人类审查，责任边界清晰；速度提升不能成为跳过审查和回滚准备的理由。</li>
+</ul>
+<h3 id="第10章-langchain同一匹马换套缰绳">第10章 LangChain：同一匹马，换套缰绳</h3>3
+<ul>
+<li><strong>核心观点1</strong>：同一模型、换套Harness，排名跳升20名——直接证明Harness是独立于模型的变量。</li>
+<li><strong>核心观点2</strong>：三个优化变量 + 6个hook点，构成可操作的调优空间；工程师可以从输入、工具调用、输出检查和迭代流程逐点实验。</li>
+<li><strong>核心观点3</strong>：推理三明治再次验证：全拉满反而更差；迭代方法论借鉴机器学习boosting思路。不同阶段应使用不同强度的推理，让模型在探索与收敛之间保持平衡。</li>
+<li><strong>核心观点4</strong>：失败模式清单是Harness迭代的起点——先识别失败，再针对性加规则，并用同一组任务比较前后差异。</li>
+<li><strong>核心观点5</strong>：失败模式清单是Harness迭代的起点——先识别失败，再针对性加规则，并用同一组任务比较前后差异。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第11章 Kent Beck：极限编程教父的CLAUDE.md</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：把30年XP智慧浓缩进一个CLAUDE.md，前两次失败说明Harness需要迭代而非一次成型</li><li>核心观点2：XP强调短反馈、测试、重构和持续沟通，这些原则在AI时代仍然适用，只是执行者从人扩展到人机协作系统</li><li>核心观点3：Augmented Coding vs Vibe Coding的区分——前者是系统化协作，后者是碰运气；差别在于是否有计划、约束、验证和责任链</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：把30年XP智慧浓缩进一个CLAUDE.md，前两次失败说明Harness需要迭代而非一次成型。</li>
+<li><strong>核心观点2</strong>：XP强调短反馈、测试、重构和持续沟通，这些原则在AI时代仍然适用，只是执行者从人扩展到人机协作系统。</li>
+<li><strong>核心观点3</strong>：Augmented Coding vs Vibe Coding的区分——前者是系统化协作，后者是碰运气；差别在于是否有计划、约束、验证和责任链。</li>
+<li><strong>核心观点4</strong>：老工程纪律在AI时代不过期，反而因AI的“易满足”更需要被强制执行。</li>
+</ul>
+<h3 id="第12章-花叔零代码经验到百万用户">第12章 花叔：零代码经验到百万用户</h3>3
+<ul>
+<li><strong>核心观点1</strong>：真实成长路径是一个持续循环：空文件→加规则→太杂→路由器重构→加hooks→封装skills→冲突→再重构。</li>
+<li><strong>核心观点2</strong>：经验不能跳过——对自己诚实，规则体系是从踩坑中长出来的，不是设计出来的。</li>
+<li><strong>核心观点3</strong>：空文件阶段追求可用，规则变多后追求分层与路由，hooks增多后追求自动化边界，skills冲突后再做能力拆分。</li>
+<li><strong>核心观点4</strong>：只要经验是关于“如何让复杂系统可靠运转”，在AI时代都不会过期；真正可迁移的是发现问题和建立反馈的能力。<blockquote>
+<p>这个循环一直在转。空文件→加规则→太杂了→路由器重构→发现规则不够→加 hooks→hooks 太多→封装 skills→skills 之间冲突→再重构。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第13章 从空白开始：你的第一个Harness</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：第一天的CLAUDE.md应该极简，从最小可用规则起步，先写项目目的、常用命令、目录结构和不可违反的边界</li><li>核心观点2：通过具体演练展示从零构建的路径，强调动手而非设计完美：让模型完成一个小任务，记录它犯的错，再把高频错误转成下一版规则</li><li>核心观点3：不要预先设计庞大体系；先跑起来，再根据真实失败增加指令、约束、反馈和记忆</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：第一天的CLAUDE.md应该极简，从最小可用规则起步，先写项目目的、常用命令、目录结构和不可违反的边界。</li>
+<li><strong>核心观点2</strong>：通过具体演练展示从零构建的路径，强调动手而非设计完美：让模型完成一个小任务，记录它犯的错，再把高频错误转成下一版规则。</li>
+<li><strong>核心观点3</strong>：不要预先设计庞大体系；先跑起来，再根据真实失败增加指令、约束、反馈和记忆。</li>
+<li><strong>核心观点4</strong>：三条启动建议的核心是：先跑起来，再迭代；规则写给未来的模型，也写给未来的自己。</li>
+</ul>
+<h3 id="第14章-指令层给ai一张地图">第14章 指令层：给AI一张地图</h3>3
+<ul>
+<li><strong>核心观点1</strong>：三工具指令系统对比 + 路由器模式适合多任务管理，AGENTS.md采用目录指针模式。</li>
+<li><strong>核心观点2</strong>：Glob Scoping实战用法实现按文件范围精准加载指令，使前端、后端、测试和部署规则只在相关目录生效。</li>
+<li><strong>核心观点3</strong>：趋同趋势——指令文件正在变成同一个东西；写好指令要具体、可验证、与项目现实一致。</li>
+<li><strong>核心观点4</strong>：路由器的价值是把薄入口和深文档连接起来，避免一份全局文件既过长又无法适应局部差异。</li>
+<li><strong>核心观点5</strong>：写指令前应区分项目事实、操作步骤、禁止事项和验收命令；不确定或过期内容不应伪装成规则。<blockquote>
+<p>正确做法是分层：一个薄入口文件当地图，指向更深层的专业文档。别把所有东西平铺在一个文件里。</p>
+</blockquote>
+</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第15章 约束层：建议和约束是两回事</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：根本性区分——建议是软性的（模型可忽略），约束是硬性的（机制强制执行）</li><li>核心观点2：Claude Code的Hooks系统实现软约束；OpenAI用机械化强制执行和Sandbox物理隔离实现硬约束</li><li>核心观点3：约束谱系从软到硬：提示提醒、自动检查、审批拦截、权限隔离和物理沙箱逐步提高强制力，同时也提高实现成本</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：根本性区分——建议是软性的（模型可忽略），约束是硬性的（机制强制执行）。</li>
+<li><strong>核心观点2</strong>：Claude Code的Hooks系统实现软约束；OpenAI用机械化强制执行和Sandbox物理隔离实现硬约束。</li>
+<li><strong>核心观点3</strong>：约束谱系从软到硬：提示提醒、自动检查、审批拦截、权限隔离和物理沙箱逐步提高强制力，同时也提高实现成本。</li>
+<li><strong>核心观点4</strong>：高风险动作应优先使用硬约束，低风险偏好可保留为建议；所有约束都应说明触发条件、失败提示和恢复路径。</li>
+<li><strong>核心观点5</strong>：约束是Harness从“建议”走向“可靠”的转折点，因为它把行为要求从文字层推进到执行机制。</li>
+</ul>
+<h3 id="第16章-反馈层与记忆层">第16章 反馈层与记忆层</h3>3
+<ul>
+<li><strong>核心观点1</strong>：反馈层让AI查AI，形成自我纠错闭环；记忆层让错误不再重犯。</li>
+<li><strong>核心观点2</strong>：Claude玩Pokemon的标志案例展示反馈+记忆组合如何驱动长程任务：系统不断观察状态、记录经验、选择下一步行动。</li>
+<li><strong>核心观点3</strong>：上下文管理不是越多越好；能力层（Skills/MCP）与记忆层分工不同——能力是“会做”，记忆是“记得”。</li>
+<li><strong>核心观点4</strong>：反馈应优先使用可验证信号，如测试结果、工具状态、评估器意见和明确的用户修正，而非仅凭模型自我感觉；两层合起来构成Agent的复盘能力。</li>
+<li><strong>核心观点5</strong>：一次任务产生的经验可以影响后续任务，但记忆仍需筛选以防噪声累积。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">第17章 编排层：让十匹马同时跑</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>核心观点1：从单Agent到多Agent编排，Boris的10-15并发会话是个人级实践样本</li><li>核心观点2：Anthropic三智能体架构、Agent Teams内置多智能体、Writer/Reviewer并行模式、Stripe流水线编排，构成编排的多种形态</li><li>核心观点3：编排需要定义任务分解、角色边界、输入输出契约、共享状态和汇总规则；并发本身不是方法论</li></ul></div>3
+<ul>
+<li><strong>核心观点1</strong>：从单Agent到多Agent编排，Boris的10-15并发会话是个人级实践样本。</li>
+<li><strong>核心观点2</strong>：Anthropic三智能体架构、Agent Teams内置多智能体、Writer/Reviewer并行模式、Stripe流水线编排，构成编排的多种形态。</li>
+<li><strong>核心观点3</strong>：编排需要定义任务分解、角色边界、输入输出契约、共享状态和汇总规则；并发本身不是方法论。</li>
+<li><strong>核心观点4</strong>：多智能体不是默认选项——需要判断何时该用，避免为编排而编排；任务不可拆、共享状态强或协调成本高时，单Agent更合适。</li>
+<li><strong>核心观点5</strong>：并发系统还要考虑冲突写入、资源配额、失败重试和最终审查，不能只统计启动了多少Agent。</li>
+</ul>
+<h3 id="第18章-经验工程谁来设计下一代的缰绳">第18章 经验工程：谁来设计下一代的缰绳</h3>3
+<ul>
+<li><strong>核心观点1</strong>：开放问题——在没人写代码的时代，谁来设计下一代的缰绳。</li>
+<li><strong>核心观点2</strong>：人的工作转向定义问题、设计环境、建立反馈和承担责任；这要求工程师理解系统而不只是会发指令。</li>
+<li><strong>核心观点3</strong>：警示：如果AI替代初级开发者产出却剥夺其成长路径，不是效率提升，是透支未来。</li>
+<li><strong>核心观点4</strong>：团队应把学习路径纳入Harness，让新人能通过审查、解释、测试和逐步扩大权限理解系统，而不是只接收黑盒结果。</li>
+<li><strong>核心观点5</strong>：人的核心能力转向“设计缰绳的能力”，这是AI时代工程师的立身之本。<blockquote>
+<p>如果 AI 替代了初级开发者的产出，但同时也剥夺了他们的成长路径，这不是效率提升，是在透支未来。</p>
+</blockquote>
+</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">适用场景标签</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>AI编程工具进阶（Claude Code / Codex / Cursor）</li></ul></div>2
+<ul>
+<li>AI编程工具进阶（Claude Code / Codex / Cursor）</li>
+<li>工程方法论与团队协作流程设计</li>
+<li>多智能体系统架构</li>
+<li>开发者职业转型与能力升级</li>
+<li>AI Native产品研发管理</li>
+</ul>
+<h2 id="一句话推荐">一句话推荐</h2>2
+<p>给AI造缰绳，而非等它变聪明。</p></div></details></div></body></html>

@@ -1,0 +1,474 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RAGAS生产级评估-CI集成与线上流量评估-20261030</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ RAGAS生产级评估-CI集成与线上流量评估-20261030</span></div><div class="wrap"><h1 id="ragas-生产级评估ci-集成与线上流量评估">RAGAS 生产级评估：CI 集成与线上流量评估</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="RAGAS%E4%B8%89%E5%B1%82%E8%AF%84%E6%B5%8B%E8%90%BD%E5%9C%B0-%E6%8C%87%E6%A0%87%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BB%A3%E7%A0%81%E5%AE%9E%E6%88%98-20261030.html">RAGAS三层评测落地-指标原理与代码实战</a> · <a href="RAG%E7%AE%A1%E7%BA%BF%E7%8E%B0%E7%8A%B6%E4%B8%8E%E9%98%88%E5%80%BC%E6%A0%87%E5%AE%9A.html">RAG管线现状与阈值标定</a> · <a href="LLM%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB-Evals-2026.html">LLM评估体系Evals</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心论点</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>跑通 RAGAS 只是起点，生产级评估要解决的是"评测什么时候跑、跑哪部分、分数怎么变成门禁和告警"</li><li>落地骨架是三层节奏（Hamel 分级）：断言级每次提交跑（秒级、零成本）、RAGAS 模型评测按 PR/夜间跑（分钟级、控成本）、线上流量评估持续跑（采样、异步、回流）</li><li>本文给 CI 集成与线上评估的完整设计 + 可直接跑的代码</li></ul></div>2
+<p>跑通 RAGAS 只是起点，生产级评估要解决的是"评测什么时候跑、跑哪部分、分数怎么变成门禁和告警"。落地骨架是三层节奏（Hamel 分级）：<strong>断言级每次提交跑（秒级、零成本）、RAGAS 模型评测按 PR/夜间跑（分钟级、控成本）、线上流量评估持续跑（采样、异步、回流）</strong>。三个最容易做错的点：①门禁看<strong>同尺子 delta</strong> 不看绝对分——绝对分会随题集演进漂移，跨轮比较是假数；②线上评估必须异步旁路（影子评测），绝不进请求主链路；③评测失败题必须回流 golden set（badcase.jsonl → 人工裁决 → 进题集），否则评测系统只报警不进化。本文给 CI 集成与线上评估的完整设计 + 可直接跑的代码。</p>
+<h2 id="一生产级评估全景与节奏">一、生产级评估全景与节奏</h2>2
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>触发</th>
+<th>内容</th>
+<th>时延</th>
+<th>成本</th>
+<th>失败处置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>断言级</td>
+<td>每次提交/每次请求</td>
+<td>代码单测、schema 校验、chunks&gt;0、答案非空、含来源标注</td>
+<td>秒级</td>
+<td>零</td>
+<td>直接红灯，禁止合并</td>
+</tr>
+<tr>
+<td>模型评测（离线）</td>
+<td>PR 冒烟 + 夜间全量</td>
+<td>RAGAS 5 指标（PR 跑 10~15 条子集，夜间跑全量 golden set）</td>
+<td>分钟级</td>
+<td>低~中</td>
+<td>delta 超阈值 → 阻断合并/告警</td>
+</tr>
+<tr>
+<td>线上评估（在线）</td>
+<td>持续采样</td>
+<td>Faithfulness + Answer Relevancy（无 reference 两件套）+ 用户反馈</td>
+<td>准实时</td>
+<td>可控</td>
+<td>漂移告警 → 回流 badcase</td>
+</tr>
+</tbody>
+</table>
+<p><strong>图：三层评估节奏与反馈回路</strong></p>
+<pre><code class="language-mermaid">flowchart LR
+    COMMIT[&quot;提交代码&quot;] --&gt; L1[&quot;断言级 秒级 零成本&quot;]
+    L1 --&gt;|&quot;失败&quot;| RED[&quot;红灯 禁止合并&quot;]
+    L1 --&gt;|&quot;通过&quot;| PR[&quot;PR 冒烟 RAGAS 10 到 15 条&quot;]
+    PR --&gt;|&quot;delta 超阈值&quot;| BLOCK[&quot;阻断合并&quot;]
+    PR --&gt;|&quot;通过&quot;| MAIN[&quot;合并主分支&quot;]
+    MAIN --&gt; NIGHT[&quot;夜间全量 golden set&quot;]
+    NIGHT --&gt; BASE[&quot;更新 baseline.json&quot;]
+    PROD[&quot;线上流量&quot;] --&gt; LOG[&quot;全量落日志&quot;]
+    LOG --&gt; SHADOW[&quot;影子评测 按预算采样&quot;]
+    SHADOW --&gt; ALERT[&quot;漂移告警&quot;]
+    ALERT --&gt; BAD[&quot;badcase 回流 golden set&quot;]
+    BAD --&gt; NIGHT
+</code></pre>
+<p>三条节奏对应 Hamel Husain 的三级：单元断言→人工+模型评测→线上 A/B。<strong>不要在 PR 里跑全量 RAGAS</strong>——50 条 × 5 指标 ≈ 300~500 次裁判调用，既慢又烧钱，PR 只需要"没变坏"的快速信号。</p>
+<p>据[一手源]：raw/sources/RAG优化-外部调研-20260929.md（方向 4）：业内的工具分工口诀是 "DeepEval catches regressions at PR time, RAGAS monitors drift over time"。DeepEval 是 pytest-based CI runner，拦 PR 回归（golden-question 套件）；RAGAS 以定时任务采样生产流量算 faithfulness / context precision / answer relevance，在 Grafana 看 <strong>7 天滚动平均</strong>。生产 pattern 是 CronJob 每小时采样 1–5% traces，<strong>faithfulness &lt; 0.80 触发告警</strong>（本文 §3.3 地板 0.75 比该业界线更松，上线初期可先用 0.80 收紧一轮看误报率）。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">二、CI 集成（门禁设计 + 代码）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="21-门禁设计原则">2.1 门禁设计原则</h3>3
+<ol>
+<li><strong>比 delta 不比绝对分</strong>：基线文件 <code>eval/baseline.json</code> 存上一轮同尺子分数，当前轮与基线逐指标比差值。绝对分（如 faithfulness=0.83）随题集增删天然漂移，"高于阈值就放行"会把退化放过去——本库评测纪律明确"基线必须每轮实测，别引用旧数"。</li>
+<li><strong>同尺子才可比</strong>：题集变了（golden set 加题）必须先重跑基线，否则 delta 是两把尺子的差，无意义。</li>
+<li><strong>失败分档</strong>：关键指标（faithfulness / answer_correctness）跌 &gt;0.05 阻断；次要指标跌只告警。阈值来自 <a href="RAG%E7%AE%A1%E7%BA%BF%E7%8E%B0%E7%8A%B6%E4%B8%8E%E9%98%88%E5%80%BC%E6%A0%87%E5%AE%9A.html">RAG管线现状与阈值标定</a> 的实测标定，不是拍脑袋。</li>
+<li><strong>统计噪声意识</strong>：20 条以内的题集单指标抖动 ±0.03 正常（裁判 temperature=0 也仍有网络/解析抖动）。判"真退化"要求 delta 超阈值<strong>且</strong>低分题明细能对上具体病因，两者齐了才回滚。</li>
+</ol>
+<p><strong>图：CI 门禁决策流程</strong></p>
+<pre><code class="language-mermaid">flowchart TD
+    T[&quot;PR 触发&quot;] --&gt; S[&quot;取分层抽样子集 10 到 15 条&quot;]
+    S --&gt; CHG{&quot;题集有变更&quot;}
+    CHG --&gt;|&quot;是&quot;| RB[&quot;先重跑基线 保证同尺子&quot;]
+    CHG --&gt;|&quot;否&quot;| RUN
+    RB --&gt; RUN[&quot;跑 RAGAS 裁判 temperature 为 0&quot;]
+    RUN --&gt; NAN{&quot;nan 失败率大于 5 个百分点&quot;}
+    NAN --&gt;|&quot;是&quot;| FAIL[&quot;评测本身失败 先查超时与上下文长度&quot;]
+    NAN --&gt;|&quot;否&quot;| DELTA[&quot;逐指标与 baseline.json 比 delta&quot;]
+    DELTA --&gt; K{&quot;关键指标跌幅大于 0.05&quot;}
+    K --&gt;|&quot;是&quot;| BLOCK[&quot;阻断合并 附低分题明细&quot;]
+    K --&gt;|&quot;否&quot;| M{&quot;次要指标下跌&quot;}
+    M --&gt;|&quot;是&quot;| WARN[&quot;告警但放行&quot;]
+    M --&gt;|&quot;否&quot;| PASS[&quot;通过&quot;]
+</code></pre>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.2 门禁脚本 eval/ci_eval.py（可直接跑）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>/usr/bin/env python3</li><li>"""RAGAS CI 门禁：跑指定题集子集 → 与基线比 delta → 超阈值退出非 0</li></ul></div>3
+<pre><code class="language-python">#!/usr/bin/env python3
+&quot;&quot;&quot;RAGAS CI 门禁：跑指定题集子集 → 与基线比 delta → 超阈值退出非 0。&quot;&quot;&quot;
+import json, os, sys, argparse
+from datetime import datetime, timezone
+
+from ragas import evaluate, EvaluationDataset, SingleTurnSample
+from ragas.metrics import Faithfulness, AnswerRelevancy, AnswerCorrectness
+from ragas.llms import LangchainLLMWrapper
+from ragas.run_config import RunConfig
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from ragas.embeddings import LangchainEmbeddingsWrapper
+
+# 关键指标阈值：跌超此值阻断（经基线标定，勿拍脑袋）
+BLOCK_METRICS = {&quot;faithfulness&quot;: 0.05, &quot;answer_correctness&quot;: 0.05, &quot;answer_relevancy&quot;: 0.08}
+
+def build_judge():
+    llm = LangchainLLMWrapper(ChatOpenAI(
+        model=&quot;qwen-plus&quot;,
+        api_key=os.environ[&quot;DASHSCOPE_API_KEY&quot;],
+        base_url=&quot;https://dashscope.aliyuncs.com/compatible-mode/v1&quot;,
+        temperature=0.0, max_tokens=2048, timeout=60,
+    ))
+    emb = LangchainEmbeddingsWrapper(OpenAIEmbeddings(
+        model=&quot;text-embedding-v3&quot;,
+        api_key=os.environ[&quot;DASHSCOPE_API_KEY&quot;],
+        base_url=&quot;https://dashscope.aliyuncs.com/compatible-mode/v1&quot;,
+    ))
+    return llm, emb
+
+def load_samples(path, limit=None):
+    &quot;&quot;&quot;golden-q.jsonl → EvaluationDataset；contexts 为空的题 SKIP 不污染均值。&quot;&quot;&quot;
+    samples, skipped = [], 0
+    with open(path, encoding=&quot;utf-8&quot;) as f:
+        for line in f:
+            g = json.loads(line)
+            if not g.get(&quot;answer&quot;) or not g.get(&quot;contexts&quot;):
+                skipped += 1
+                continue
+            samples.append(SingleTurnSample(
+                user_input=g[&quot;question&quot;],
+                retrieved_contexts=g[&quot;contexts&quot;],
+                response=g.get(&quot;actual_answer&quot;, &quot;&quot;),
+                reference=g[&quot;answer&quot;],
+            ))
+            if limit and len(samples) &gt;= limit:
+                break
+    print(f&quot;[load] usable={len(samples)} skipped={skipped}&quot;)
+    if not samples:
+        print(&quot;[FATAL] 无可用样本（全空）——大概率检索超时/chunks=0，禁止静默 0 分通过&quot;)
+        sys.exit(2)
+    return EvaluationDataset(samples=samples)
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument(&quot;--golden&quot;, default=&quot;rag/eval/golden-q.jsonl&quot;)
+    ap.add_argument(&quot;--limit&quot;, type=int, default=15, help=&quot;PR 冒烟子集条数&quot;)
+    ap.add_argument(&quot;--baseline&quot;, default=&quot;eval/baseline.json&quot;)
+    ap.add_argument(&quot;--json-out&quot;, default=&quot;eval/ci_result.json&quot;)
+    args = ap.parse_args()
+
+    llm, emb = build_judge()
+    dataset = load_samples(args.golden, limit=args.limit)
+    metrics = [
+        Faithfulness(llm=llm),
+        AnswerRelevancy(llm=llm, embeddings=emb),
+        AnswerCorrectness(llm=llm, embeddings=emb),
+    ]
+    result = evaluate(dataset, metrics=metrics,
+                      run_config=RunConfig(timeout=120, max_retries=3, max_workers=4),
+                      raise_exceptions=False)
+    scores = {k: float(v) for k, v in result.items() if v == v}   # 滤 nan
+    fail_rate = 1 - len(scores) / max(len(metrics), 1)
+    if fail_rate &gt; 0.05:
+        print(f&quot;[FATAL] 裁判失败率 {fail_rate:.0%} &gt; 5%（超时/上下文过长），不判门禁&quot;)
+        sys.exit(2)
+
+    baseline = {}
+    if os.path.exists(args.baseline):
+        baseline = json.load(open(args.baseline, encoding=&quot;utf-8&quot;))
+
+    out_dir = os.path.dirname(args.json_out)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)   # dirname 为空会 FileNotFoundError，必须判
+    json.dump({&quot;scores&quot;: scores, &quot;ts&quot;: datetime.now(timezone.utc).isoformat()},
+              open(args.json_out, &quot;w&quot;, encoding=&quot;utf-8&quot;), ensure_ascii=False, indent=2)
+
+    blocked = []
+    for m, thresh in BLOCK_METRICS.items():
+        cur, base = scores.get(m), baseline.get(m)
+        if base is None:
+            print(f&quot;[warn] {m}: 无基线（首轮），仅记录 {cur:.3f}&quot;)
+            continue
+        delta = cur - base
+        flag = &quot;BLOCK&quot; if delta &lt; -thresh else &quot;ok&quot;
+        print(f&quot;[{flag}] {m}: {base:.3f} -&gt; {cur:.3f} (delta {delta:+.3f}, 阈值 -{thresh})&quot;)
+        if flag == &quot;BLOCK&quot;:
+            blocked.append(m)
+
+    if blocked:
+        print(f&quot;[FAIL] 阻断合并：{blocked} 跌幅超阈值。先看 eval/ci_result.json 低分题明细归因，&quot;
+              f&quot;别直接调阈值。&quot;)
+        sys.exit(1)
+    print(&quot;[PASS] 三层关键指标未显著退化&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre>
+<p>坑已在脚本里内置规避：①<code>os.makedirs(dirname)</code> 前判空（纯文件名时 dirname 为空会 FileNotFoundError，本库所有 <code>--json-out</code> 脚本都踩过）；②无可用样本直接 exit(2)，不静默出 0 分；③裁判失败率单独设卡——失败率本身超阈说明基础设施坏了，此时任何分数都不可信。</p>
+<h3 id="23-github-actions-gitlab-ci-接线">2.3 GitHub Actions / GitLab CI 接线</h3>3
+<pre><code class="language-yaml"># .github/workflows/rag-eval.yml
+name: rag-eval
+on:
+  pull_request:
+    paths: [&quot;rag/**&quot;, &quot;prompts/**&quot;, &quot;config.yaml&quot;]   # 只有动了管线才触发
+jobs:
+  smoke-eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: &quot;3.11&quot; }
+      - run: pip install ragas langchain-openai pandas
+      - name: RAGAS 冒烟门禁（15 条子集）
+        env:
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+        run: python eval/ci_eval.py --limit 15
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: ragas-result, path: eval/ci_result.json }
+
+  nightly-full:
+    if: github.event_name == 'schedule'     # cron 触发夜间全量
+    # ... 同上，--limit 0（全量）+ 更新 baseline.json 回主分支
+</code></pre>
+<p>配套约定：<br />
+- <strong>基线更新走主分支夜间任务</strong>，不走 PR——否则每个 PR 自己改基线 = 门禁自我放水。<br />
+- <strong>触发条件限定路径</strong>（rag/、prompt、config）：改文档不触发评测，省成本。<br />
+- 密钥只进 CI secrets（对应本库密钥纪律：key 存 <code>~/.hermes/secrets.env</code> / CI secret，代码只写变量名）。<br />
+- 夜间全量跑完自动产出对比报告（当前 vs 基线逐指标 delta + 低分题 top5），发到团队频道/工单。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.4 成本控制</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>PR 子集 10~15 条、夜间全量 50~200 条；子集必须分层抽样（简单/多跳/全局/负例各占比例），别取前 15 条——排序靠前的题往往最简单</li><li>「token_usage_parser」 接上后统计每轮 token，成本异常（裁判模型换了/题变长）能第一时间看到</li><li>裁判调用失败重试 2 次后放弃该条计 nan，不无限重试烧钱</li></ul></div>3
+<ul>
+<li>PR 子集 10~15 条、夜间全量 50~200 条；子集必须<strong>分层抽样</strong>（简单/多跳/全局/负例各占比例），别取前 15 条——排序靠前的题往往最简单。</li>
+<li><code>token_usage_parser</code> 接上后统计每轮 token，成本异常（裁判模型换了/题变长）能第一时间看到。</li>
+<li>裁判调用失败重试 2 次后放弃该条计 nan，不无限重试烧钱。</li>
+<li>免费额度路线：小米 mimo-flash / 百炼免费档当裁判足够跑门禁量级；夜间全量再用强模型。</li>
+</ul>
+<h2 id="三线上流量评估">三、线上流量评估</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.1 原则</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 旁路异步，绝不进主链路：线上请求先把四元组（question / retrieved_contexts / response / metadata）落日志，影子评测 worker 异步消费打分</li><li>3. 采样而非全量：默认 2%~5% 采样 + 100% 采集日志</li><li>采样率按预算反推：裁判单次 ≈ 千 token 级，日活 1 万问 × 3% × 2 指标 ≈ 600 次调用/天，免费档可覆盖</li></ul></div>3
+<ol>
+<li><strong>旁路异步，绝不进主链路</strong>：线上请求先把四元组（question / retrieved_contexts / response / metadata）落日志，影子评测 worker 异步消费打分。进主链路 = 每请求加 3~6 次裁判调用的延迟和成本，用户直接感知。</li>
+<li><strong>无 reference 两件套</strong>：线上流量没有标准答案，能跑的是 Faithfulness + Answer Relevancy（都不依赖 reference）；Answer Correctness 只对回流后人工补了 reference 的题跑。</li>
+<li><strong>采样而非全量</strong>：默认 2%~5% 采样 + 100% 采集日志。采样率按预算反推：裁判单次 ≈ 千 token 级，日活 1 万问 × 3% × 2 指标 ≈ 600 次调用/天，免费档可覆盖。</li>
+<li><strong>分群看分数</strong>：按业务线/问题类型（简单事实/多跳/全局）分桶看均值，总均值会被题型分布漂移带偏。</li>
+</ol>
+<p><strong>图：线上影子评测的数据流（评测始终在主链路之外）</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant U as 用户
+    participant S as RAG 服务
+    participant Q as 日志队列
+    participant W as 影子评测 worker
+    participant J as 裁判 LLM
+    participant M as 指标库与告警
+    U-&gt;&gt;S: 提问
+    S--&gt;&gt;U: 返回答案 主链路结束
+    S-&gt;&gt;Q: 异步写入 四元组与 metadata
+    W-&gt;&gt;Q: 按采样率拉取
+    W-&gt;&gt;J: Faithfulness 与 Answer Relevancy
+    J--&gt;&gt;W: 分数
+    W-&gt;&gt;M: 按 route 分桶写入
+    M--&gt;&gt;M: 滚动窗口比较 触发漂移告警
+</code></pre>
+<h3 id="32-采集-schema请求日志一条一-json">3.2 采集 schema（请求日志一条一 JSON）</h3>3
+<pre><code class="language-json">{
+  &quot;req_id&quot;: &quot;a1b2c3&quot;, &quot;ts&quot;: &quot;2026-10-30T10:21:00+08:00&quot;,
+  &quot;question&quot;: &quot;sparse 头缺哪个文件会随机初始化？&quot;,
+  &quot;retrieved_contexts&quot;: [&quot;chunk1文本...&quot;, &quot;chunk2文本...&quot;],
+  &quot;response&quot;: &quot;缺少 sparse_linear.pt ...&quot;,
+  &quot;route&quot;: &quot;simple_fact&quot;, &quot;latency_ms&quot;: 2300,
+  &quot;model&quot;: &quot;doubao-seed-2.1-lite&quot;, &quot;top1_dist&quot;: 0.31,
+  &quot;feedback&quot;: null
+}
+</code></pre>
+<p>关键字段：<code>route</code>（问题路由，分桶用）、<code>top1_dist</code>（检索置信度，低置信题优先采样）、<code>feedback</code>（用户 👍/👎，事后回填）。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.3 影子评测 worker（可直接跑）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>/usr/bin/env python3</li><li>"""影子评测：采样消费生产日志 → Faithfulness+AnswerRelevancy → 落分数流</li></ul></div>3
+<pre><code class="language-python">#!/usr/bin/env python3
+&quot;&quot;&quot;影子评测：采样消费生产日志 → Faithfulness+AnswerRelevancy → 落分数流。&quot;&quot;&quot;
+import json, os, random, time
+from ragas import evaluate, EvaluationDataset, SingleTurnSample
+from ragas.metrics import Faithfulness, AnswerRelevancy
+# build_judge 同 ci_eval.py
+
+SAMPLE_RATE = float(os.environ.get(&quot;EVAL_SAMPLE_RATE&quot;, &quot;0.03&quot;))
+ALERT_BELOW = {&quot;faithfulness&quot;: 0.75, &quot;answer_relevancy&quot;: 0.70}
+
+def should_sample(rec: dict) -&gt; bool:
+    # 低置信检索 / 用户点过踩的必采，其余随机采
+    if rec.get(&quot;feedback&quot;) == &quot;down&quot; or rec.get(&quot;top1_dist&quot;, 0) &gt; 0.75:
+        return True
+    return random.random() &lt; SAMPLE_RATE
+
+def run(log_path=&quot;logs/rag_requests.jsonl&quot;):
+    llm, emb = build_judge()
+    rows = [json.loads(l) for l in open(log_path, encoding=&quot;utf-8&quot;)]
+    picked = [r for r in rows if should_sample(r)]
+    dataset = EvaluationDataset(samples=[SingleTurnSample(
+        user_input=r[&quot;question&quot;],
+        retrieved_contexts=r[&quot;retrieved_contexts&quot;],
+        response=r[&quot;response&quot;],
+    ) for r in picked])                       # 线上无 reference，只跑两件套
+    result = evaluate(dataset,
+                      metrics=[Faithfulness(llm=llm), AnswerRelevancy(llm=llm, embeddings=emb)],
+                      run_config=RunConfig(timeout=120, max_retries=2, max_workers=2),
+                      raise_exceptions=False)
+    with open(&quot;logs/eval_scores.jsonl&quot;, &quot;a&quot;, encoding=&quot;utf-8&quot;) as f:
+        for rec, row in zip(picked, result.to_pandas().to_dict(&quot;records&quot;)):
+            f.write(json.dumps({&quot;req_id&quot;: rec[&quot;req_id&quot;],
+                                &quot;faithfulness&quot;: row.get(&quot;faithfulness&quot;),
+                                &quot;answer_relevancy&quot;: row.get(&quot;answer_relevancy&quot;),
+                                &quot;route&quot;: rec.get(&quot;route&quot;)}, ensure_ascii=False) + &quot;\n&quot;)
+            for m, floor in ALERT_BELOW.items():
+                if row.get(m) is not None and row[m] &lt; floor:
+                    print(f&quot;[ALERT] req_id={rec['req_id']} {m}={row[m]:.2f} &lt; {floor}&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    run()
+</code></pre>
+<p>生产部署形态：cron 每小时消费上一小时日志（本库同类同步任务的既有姿势），或消息队列消费者常驻；<strong>由常驻服务/主会话托管，不由会退出的执行者进程托管</strong>（本库踩过：执行者退出把它起的后台任务一起带走）。</p>
+<h3 id="34-漂移监控与告警">3.4 漂移监控与告警</h3>3
+<p>监控四个信号，全部按天/周滚动窗口：</p>
+<ol>
+<li><strong>分数趋势</strong>：Faithfulness / Answer Relevancy 7 日滚动均值跌 &gt;0.05 或单日跌破地板（0.75/0.70）→ 告警。分数下跌先分桶定位（哪个 route、哪个业务线跌），再查根因。据[一手源]：raw/rag-arch/外部调研-雷点知识学习-20260925.md（主题 1，渠道健康哨兵）：同构的阈值做法是"错误率 &gt;20%/2 min 停止路由、用量漂移 &gt;15% 告警"，即告警要同时给<strong>窗口</strong>和<strong>比例</strong>两个量，不要只写"明显下降"。本文的 0.05 与 7 日窗口属于这一类，落地时把窗口、阈值、触发后动作三项写进告警配置。</li>
+<li><strong>检索置信度分布</strong>：top1_dist 分布右移（越来越不确定）→ 知识库过期/新问题类型涌入，早于分数下跌暴露。</li>
+<li><strong>词/主题漂移</strong>：问题 embedding 与 golden set 的分布距离变大 → 题型漂移，提示补题。</li>
+<li><strong>裁判自身漂移</strong>：裁判模型被供应商静默升级会让分数整体跳变——每轮评测固定带 5 条"金标哨兵样本"（人工已知分数），哨兵分数跳变 = 裁判变了，不是产品变了。</li>
+</ol>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.5 反馈回流闭环（评测系统的进化机制）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>线上日志 → 采样评测 → 低分题/用户点踩 → badcase.jsonl（含 expected/actual_top5/route）</li><li>→ 人工裁决（语义档必须人审）→ 修订 wiki/补齐 golden set → 重跑基线</li><li>图：badcase 回流闭环（机械档自动，语义档必须人审）</li></ul></div>3
+<pre><code>线上日志 → 采样评测 → 低分题/用户点踩 → badcase.jsonl（含 expected/actual_top5/route）
+        → 人工裁决（语义档必须人审）→ 修订 wiki/补齐 golden set → 重跑基线
+</code></pre>
+<p><strong>图：badcase 回流闭环（机械档自动，语义档必须人审）</strong></p>
+<pre><code class="language-mermaid">flowchart TD
+    LOG[&quot;线上日志&quot;] --&gt; SAMP[&quot;采样评测&quot;]
+    SAMP --&gt; LOW[&quot;低分题或用户点踩&quot;]
+    LOW --&gt; BC[&quot;badcase.jsonl&quot;]
+    BC --&gt; TYPE{&quot;问题类型&quot;}
+    TYPE --&gt;|&quot;机械档 缺 chunk&quot;| ING[&quot;自动触发增量 ingest&quot;]
+    TYPE --&gt;|&quot;语义档 答案错或知识过期&quot;| HUM[&quot;出改写草稿 人工裁决&quot;]
+    HUM --&gt; WIKI[&quot;修订 wiki&quot;]
+    ING --&gt; GS[&quot;补入 golden set&quot;]
+    WIKI --&gt; GS
+    GS --&gt; BASE[&quot;重跑基线 同尺子&quot;]
+    BASE --&gt; SAMP
+</code></pre>
+<ul>
+<li>机械档（缺 chunk → 触发增量 ingest）可自动化；<strong>语义档（答案错/知识过期）必须人审</strong>——出改写草稿→人改→同步进库→回归 badcase 集。</li>
+<li>阈值/rerank 调优<strong>只出建议报告、人执行</strong>：评测脚本永不代改生产 config（写 config = 生产改动）。</li>
+<li>golden set 每季度清理一次：反复全对的简单题降采样（省成本），新 badcase 补入（保敏感度）。加题后必须重跑基线（同尺子规则）。</li>
+</ul>
+<h3 id="36-线上-ab重大变更才用">3.6 线上 A/B（重大变更才用）</h3>3
+<p>换 prompt/换模型/换检索策略时：双跑分流（5%/5%）→ RAGAS 两件套 + 用户侧指标（点赞率、追问率、人工转接率）联合判胜。<strong>RAGAS 分数只代表质量维度，不替代业务指标</strong>——答案更"忠实"但更啰嗦，用户追问率可能反而升。判胜规则要事前写死：质量指标不降<strong>且</strong>至少一项业务指标显著提升才算赢；只有分数涨、业务不动的改动不值得付双跑成本。分流期间两组都要跑影子评测，防止"实验组分数涨是因为题目分布碰巧简单"。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">四、踩坑清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 绝对分门禁必失灵：题集一变基线就废，delta 门禁 + 同尺子是唯一可持续做法</li><li>3. 线上评测进主链路：延迟 +300%、成本爆炸，一次事故后整个评测系统会被砍掉——旁路是底线</li><li>11. 评测报告不采信自报：据[一手源]：raw/rag-arch/反面教材-踩坑Top10-20260928.md（Top3 自报不采信/只测正例）：门禁要用故意退化（改坏 prompt）验证真能红灯，并带负例；本文路线图第 2 周验收就是这条</li></ul></div>2
+<ol>
+<li><strong>绝对分门禁必失灵</strong>：题集一变基线就废，delta 门禁 + 同尺子是唯一可持续做法。</li>
+<li><strong>PR 跑全量 = 没人跑</strong>：又慢又贵，团队会绕过它。冒烟子集 15 条 3~5 分钟出结果才有人看。</li>
+<li><strong>线上评测进主链路</strong>：延迟 +300%、成本爆炸，一次事故后整个评测系统会被砍掉——旁路是底线。</li>
+<li><strong>均值掩盖分桶退化</strong>：某 route 跌 0.2、其他涨 0.05，总均值几乎不动。分桶监控是必须项。</li>
+<li><strong>nan 混进均值</strong>：裁判超时的条目是 nan，<code>pandas.mean()</code> 默认跳过——失败率必须单独报，否则"分数没掉"可能是"掉的题都没跑出来"。</li>
+<li><strong>基线被 PR 顺手更新</strong>：门禁自我放水，基线更新权收归夜间主分支任务。</li>
+<li><strong>哨兵样本缺失</strong>：裁判模型被供应商静默升级，分数整体跳变被误判为产品退化，白查一周。</li>
+<li><strong>回流只进不出</strong>：badcase.jsonl 积压不裁决、不进题集，评测系统只报警不进化，三个月后题集与线上严重脱节。</li>
+<li><strong>门禁里的断言必须可重放，失败先智能重跑再定性</strong>：据[一手源]：raw/rag-arch/外部调研-雷点知识学习-20260925.md（主题 5，Google Testing Blog 与 flaky 论文）：断言不依赖墙钟、上一轮残留计数器、共享可变状态（<code>assertEquals(4, timer.count())</code> 第二次运行变 8 就红）；失败后先重跑一次判可复现，可复现直接红，盲目自动重跑会把红洗成绿（调研引用 47% 重启即过的失败 job 掩盖了真问题）；不稳定的检查进 quarantine，必须写 owner 和 deadline（一个 sprint），是队列不是坟场。</li>
+<li><strong>baseline.json 并发写要原子</strong>：据[一手源]：raw/rag-arch/外部调研-雷点知识学习-20260925.md（主题 6）：flock 是 advisory 锁，官方 man 明说进程可以无视它，且锁不保证原子与落盘；写入要配"临时文件 + fsync + rename"原子替换，读-改-写型更新加版本号/内容 hash 乐观校验，冲突则重读重试而非盲写。基线文件属于这一类。对应上面"基线更新归夜间主分支任务"，同一时刻只许一个写者。</li>
+<li><strong>评测报告不采信自报</strong>：据[一手源]：raw/rag-arch/反面教材-踩坑Top10-20260928.md（Top3 自报不采信/只测正例）：门禁要用故意退化（改坏 prompt）验证真能红灯，并带负例；本文路线图第 2 周验收就是这条。据[一手源]：raw/rag-arch/RAG基线评测-20261013.md：golden 标注自身会错（B010 的 top1 score 0.7572 却被判 miss），所以 CI 开跑前先过 <code>--check-golden</code> 尺子守卫，exit=0 才谈分数。</li>
+</ol>
+<h2 id="五30-天落地路线图按周推进每步有验收">五、30 天落地路线图（按周推进，每步有验收）</h2>2
+<ul>
+<li><strong>第 1 周：离线基线</strong>。接好裁判（云端、temperature=0），用 golden-q.jsonl 现有正例跑出第一版 5 指标基线，落 <code>eval/baseline.json</code>。验收：5 条人工标注样本上裁判判定一致率 ≥80%，否则先换裁判模型再往下走。</li>
+<li><strong>第 2 周：CI 门禁</strong>。<code>ci_eval.py</code> 挂 PR（15 条分层子集）+ 夜间全量，基线更新归主分支夜间任务。验收：造一次故意退化（改坏 prompt）确认门禁真能红灯——没验过红灯的门禁等于没有。</li>
+<li><strong>第 3 周：线上影子评测</strong>。请求日志 schema 落地、采样 worker 旁路跑起来、四信号监控出图。验收：能从日志里捞出任意一条低分题并还原当时的 question/contexts/response 全链路。</li>
+<li><strong>第 4 周：回流闭环</strong>。badcase 裁决流程跑通一轮（至少 1 条语义档走完"人工裁决→改 wiki→重跑回归"），评审会固定看夜间报告。验收：badcase 积压数可见且当周有净减少。</li>
+</ul>
+<p>常见卡点：第 1 周裁判判定与人工不一致——多数是中文判定 prompt 不适配，换强模型或给判定加中文 few-shot，不要急着改指标权重。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">与本库既有设施的衔接</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>门禁脚本可直接挂本库 「rag/eval/」（与 「eval_recall.py」、「_e2e_eval.py」 并列）；badcase 回流落 「rag/eval/badcase.jsonl」（已有 「_e2e_eval.py」 自动 append 机制，键面统一 「query」）</li><li>每日收尾闭环（ingest → query 验证 → 入口页刷新）之上再挂"评测收尾打印 badcase 积压"，事件驱动提醒即可，不建独立提醒 cron</li><li>阈值标定数据以 RAG管线现状与阈值标定 为准；改动标定走"先出建议报告、人执行"</li></ul></div>2
+<ul>
+<li>门禁脚本可直接挂本库 <code>rag/eval/</code>（与 <code>eval_recall.py</code>、<code>_e2e_eval.py</code> 并列）；badcase 回流落 <code>rag/eval/badcase.jsonl</code>（已有 <code>_e2e_eval.py</code> 自动 append 机制，键面统一 <code>query</code>）。</li>
+<li>每日收尾闭环（ingest → query 验证 → 入口页刷新）之上再挂"评测收尾打印 badcase 积压"，事件驱动提醒即可，不建独立提醒 cron。</li>
+<li>阈值标定数据以 <a href="RAG%E7%AE%A1%E7%BA%BF%E7%8E%B0%E7%8A%B6%E4%B8%8E%E9%98%88%E5%80%BC%E6%A0%87%E5%AE%9A.html">RAG管线现状与阈值标定</a> 为准；改动标定走"先出建议报告、人执行"。</li>
+</ul>
+<h2 id="术语表">术语表</h2>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>全称/含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CI</td>
+<td>Continuous Integration，持续集成；此处指 PR/定时触发的自动评测门禁</td>
+</tr>
+<tr>
+<td>Golden set</td>
+<td>金标题集（本库 golden-q.jsonl），评测的"尺子"，含生产失败回流题</td>
+</tr>
+<tr>
+<td>Baseline</td>
+<td>同尺子上一轮实测分数，delta 门禁的对照物</td>
+</tr>
+<tr>
+<td>影子评测</td>
+<td>旁路异步对生产流量打分，不影响用户请求</td>
+</tr>
+<tr>
+<td>漂移（drift）</td>
+<td>分数/输入分布/置信度随时间系统性偏移</td>
+</tr>
+<tr>
+<td>哨兵样本</td>
+<td>人工已知分数的固定样本，用于检测裁判模型自身变化</td>
+</tr>
+<tr>
+<td>分桶（bucketing）</td>
+<td>按 route/业务线分组统计，防均值掩盖局部退化</td>
+</tr>
+<tr>
+<td>Delta 门禁</td>
+<td>与基线比差值的合并拦截规则，替代绝对分阈值</td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">验收清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>[ ] PR 冒烟（15 条子集）+ 夜间全量两级 CI 跑通，基线更新归主分支夜间任务</li><li>[ ] 门禁比 delta、失败率单独设卡、无样本显式 exit(2)</li><li>[ ] 线上影子评测旁路运行，采样率与成本可核算</li></ul></div>2
+<ul>
+<li>[ ] PR 冒烟（15 条子集）+ 夜间全量两级 CI 跑通，基线更新归主分支夜间任务</li>
+<li>[ ] 门禁比 delta、失败率单独设卡、无样本显式 exit(2)</li>
+<li>[ ] 线上影子评测旁路运行，采样率与成本可核算</li>
+<li>[ ] 四信号漂移监控 + 哨兵样本在位</li>
+<li>[ ] badcase 回流闭环有归宿（机械档自动/语义档人审），积压可见</li>
+<li>[ ] 大变更走 A/B：RAGAS 两件套 + 业务指标联合判胜</li>
+</ul></div></details></div></body></html>

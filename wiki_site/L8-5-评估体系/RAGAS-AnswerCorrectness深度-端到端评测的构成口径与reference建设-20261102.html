@@ -1,0 +1,339 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RAGAS-AnswerCorrectness深度-端到端评测的构成口径与reference建设-20261102</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ RAGAS-AnswerCorrectness深度-端到端评测的构成口径与reference建设-20261102</span></div><div class="wrap"><h1 id="ragas-answer-correctness-深度端到端评测的构成口径与-reference-建设">RAGAS Answer Correctness 深度：端到端评测的构成、口径与 reference 建设</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a><br />
+相关：<a href="RAGAS-Faithfulness%E6%B7%B1%E5%BA%A6-%E7%94%9F%E6%88%90%E5%B1%82%E5%BF%A0%E5%AE%9E%E5%BA%A6%E7%9A%84%E5%8E%9F%E7%90%86%E5%B1%80%E9%99%90%E4%B8%8E%E6%9C%AC%E5%BA%93%E5%AE%9E%E6%B5%8B-20261102.html">Faithfulness 深度</a>（生成层姊妹篇） · <a href="RAGAS%E4%B8%89%E5%B1%82%E8%AF%84%E6%B5%8B%E8%90%BD%E5%9C%B0-%E6%8C%87%E6%A0%87%E5%8E%9F%E7%90%86%E4%B8%8E%E4%BB%A3%E7%A0%81%E5%AE%9E%E6%88%98-20261030.html">RAGAS三层评测落地</a>（三层总览） · <a href="RAG%E8%AF%84%E6%B5%8B%E4%B8%89%E5%B1%82%E6%96%B9%E6%B3%95%E8%AE%BA-20261009.html">RAG评测三层方法论</a> · <a href="RAGAS%E7%94%9F%E4%BA%A7%E7%BA%A7%E8%AF%84%E4%BC%B0-CI%E9%9B%86%E6%88%90%E4%B8%8E%E7%BA%BF%E4%B8%8A%E6%B5%81%E9%87%8F%E8%AF%84%E4%BC%B0-20261030.html">RAGAS生产级评估</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">核心论点</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Answer Correctness 回答的是评测体系里最终的问题：把答案和标准答案放在一起，对不对</li><li>论文的结论段说得很明确，它提出的是三个"无需标准答案"的维度：faithfulness、answer relevance、context relevance</li><li>这个设计带来三个必须知道的性质：①答案说得更全也会扣分（多出的内容算 FP）；②语义相似度对"一个关键数字错了"几乎不敏感，会给错误答案抬分；③整个分数的上限由 reference 质量决定，本库 golden-q 56 条里有 1 条（Q001）标注了与实测冲突的待裁定标记，这样的题不能用来打分</li></ul></div>2
+<p>Answer Correctness 回答的是评测体系里最终的问题：<strong>把答案和标准答案放在一起，对不对</strong>。它是三层评测里的端到端指标，也是 Faithfulness 的盲区补位：Faithfulness 看不到漏答和"忠于错误材料"，Answer Correctness 因为直接对比标准答案，两者都能扣分。</p>
+<p>先澄清一个常见的引用错误：<strong>RAGAS 原论文（arXiv:2309.15217）没有定义 Answer Correctness</strong>。论文的结论段说得很明确，它提出的是三个"无需标准答案"的维度：faithfulness、answer relevance、context relevance。Answer Correctness 是 ragas 库后来加入的、需要 reference 的指标，它的定义来自官方文档和源码，不来自论文。所以引用时应写"RAGAS 论文提出了无参考评测框架，Answer Correctness 属于库在其后扩展的有参考指标"，不要写成"论文 Table 1 的指标"。</p>
+<p>它的构成是两部分加权：<strong>事实重合的 F1（默认权重 0.75）加答案与标准答案的语义相似度（默认权重 0.25）</strong>。这个设计带来三个必须知道的性质：①答案说得<strong>更全</strong>也会扣分（多出的内容算 FP）；②语义相似度对"一个关键数字错了"几乎不敏感，会给错误答案抬分；③整个分数的上限由 reference 质量决定，本库 golden-q 56 条里有 1 条（Q001）标注了与实测冲突的待裁定标记，这样的题不能用来打分。</p>
+<h2 id="为什么需要端到端指标动机与代价">为什么需要端到端指标（动机与代价）</h2>2
+<p><strong>动机</strong>：检索层指标证明材料找到了，Faithfulness 证明答案没越界，但两者都不能证明<strong>用户拿到了正确答案</strong>。三层方法论篇记录的本库实测是：5 条 golden-q 上检索 Recall@5 = 100%，端到端 answer_correctness = 0.787，严格答对率 80%，同题内差约 20 个百分点。这就是"找到不等于答对"，需要一个以标准答案为锚的指标才能量化。动库门禁里 Answer Correctness 是最后一道关：检索没掉、Faithfulness 没掉，但答案变差了，只有它能抓住。</p>
+<p><strong>代价</strong>：①<strong>必须有 reference</strong>，每道题需要人工写（或审核）一份标准答案，这是三个指标里人力成本最高的；②每条样本要抽两遍 statement（答案与 reference）、一遍分类、一遍 embedding；③分数含义依赖 reference 的写法，换一批人写 reference，分数分布会整体移动。</p>
+<p><strong>不适合的场景</strong>：线上流量没有标准答案，跑不了；多种表述都正确的开放题，F1 会误扣；答案很长且包含大量合理的补充信息，会被 FP 扣分。这些场景用 Faithfulness、Answer Relevancy 或人工抽检。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">是什么（定义与边界）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>官方定义：官方文档写"gauging the accuracy of the generated answer when compared to the ground truth"，分数 0 到 1，越高越好</li><li>它把两个方面合在一起：答案与标准答案的事实重合（factual correctness），以及两者的语义相似度（semantic similarity）</li><li>✅ 管：答案相对标准答案的事实准确度和完整度</li></ul></div>2
+<p><strong>官方定义</strong>：官方文档写"gauging the accuracy of the generated answer when compared to the ground truth"，分数 0 到 1，越高越好。它把两个方面合在一起：答案与标准答案的<strong>事实重合</strong>（factual correctness），以及两者的<strong>语义相似度</strong>（semantic similarity）。</p>
+<p><strong>边界</strong>：<br />
+- ✅ 管：答案相对标准答案的事实准确度和完整度。<br />
+- ❌ 不管：材料从哪来（检索）、说得有没有依据（Faithfulness）、答案是否切题（Answer Relevancy）、标准答案本身是否正确。<br />
+- ⚠️ 它是<strong>相对 reference 的相对指标</strong>。reference 错了，分数就是错的。</p>
+<h2 id="构成拆解">构成拆解</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">步骤总览</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>图：Answer Correctness 的计算过程</li></ul></div>3
+<p><strong>图：Answer Correctness 的计算过程</strong></p>
+<pre><code class="language-mermaid">flowchart TD
+    R[&quot;response 答案&quot;] --&gt; S1[&quot;LLM 抽取答案 statements&quot;]
+    REF[&quot;reference 标准答案&quot;] --&gt; S2[&quot;LLM 抽取标准答案 statements&quot;]
+    S1 --&gt; C[&quot;LLM 分类 TP FP FN&quot;]
+    S2 --&gt; C
+    C --&gt; F1[&quot;Factual F1&quot;]
+    R --&gt; E1[&quot;embedding 余弦相似度&quot;]
+    REF --&gt; E1
+    E1 --&gt; SIM[&quot;Semantic Similarity&quot;]
+    F1 --&gt; W[&quot;加权平均 0.75 与 0.25&quot;]
+    SIM --&gt; W
+    W --&gt; OUT[&quot;Answer Correctness&quot;]
+</code></pre>
+<h3 id="事实重合tp-fp-fn-与-f1">事实重合：TP / FP / FN 与 F1</h3>3
+<p>官方 Factual Correctness 页的定义：先由 LLM 把答案和标准答案各拆成 claims，再用 NLI 判断每组里哪些 claim 出现在另一组中。</p>
+<ul>
+<li><strong>TP</strong>：答案里有、标准答案里也有的 claim</li>
+<li><strong>FP</strong>：答案里有、标准答案里没有的 claim（多说的）</li>
+<li><strong>FN</strong>：标准答案里有、答案里没有的 claim（漏说的）</li>
+</ul>
+<p>Answer Correctness 页给出 F1 = TP / (TP + 0.5 × (FP + FN))。它和常见的 F1 = 2PR / (P + R) 是同一个量，代数上等价，所以下面两个官方示例可以互相验证。</p>
+<p><strong>官方示例一（Einstein）</strong>：标准答案"Einstein was born in 1879 in Germany."，低分答案"Einstein was born in Spain in 1879."。TP 是"出生于 1879"，FP 是"出生在西班牙"，FN 是"出生在德国"。F1 = 1 / (1 + 0.5 × 2) = 0.5。我在本机用纯 Python 复算得到 0.5，一致。</p>
+<p><strong>官方示例二（Eiffel，来自 Factual Correctness 页）</strong>：答案"The Eiffel Tower is located in Paris."（1 条 claim），标准答案多一句"It has a height of 1000ft."（2 条 claim）。TP=1，FP=0，FN=1，精确率 1，召回率 0.5，F1 = 0.667，文档输出 0.67，本机复算一致。</p>
+<p>注意这个示例说明了<strong>漏答的代价</strong>：答案没有任何错误，只因为少说一半，事实分就掉到 0.67。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">语义相似度</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>答案与标准答案各算一个 embedding，取余弦相似度</li><li>代价是它对局部关键错误几乎没有区分力</li><li>它的作用是兜底：同义改写、措辞不同但意思一致的情况，事实抽取可能漏判，相似度补一点分</li></ul></div>3
+<p>答案与标准答案各算一个 embedding，取余弦相似度。它的作用是兜底：同义改写、措辞不同但意思一致的情况，事实抽取可能漏判，相似度补一点分。代价是它对<strong>局部关键错误</strong>几乎没有区分力。"出生在西班牙"和"出生在德国"两句话，embedding 之间非常接近。</p>
+<h3 id="加权合并与默认值">加权合并与默认值</h3>3
+<p>官方 Answer Correctness 页<strong>没有写默认权重</strong>，而且描述自相矛盾：概述说用"加权方案"合并，计算一节又说"是 factual correctness 与 semantic similarity 之和"，同一页还说是"加权平均"。默认权重只能从源码读到：<code>collections/answer_correctness/metric.py</code> 里 <code>weights: List[float] = [0.75, 0.25]</code>（顺序是事实、相似度），<code>beta: float = 1.0</code>，最终用 <code>np.average([factuality, similarity], weights=weights)</code> 合并。因此"0.75 加 0.25"是<strong>源码默认值</strong>，引用时应写明来源是源码而非文档，且按加权平均理解，不是求和。</p>
+<p>源码里的其他行为（读自抓取的源码文件，未在本机运行）：<br />
+- 构造函数校验：权重必须是两个非负数且和不为零；相似度权重大于 0 时必须提供 embeddings；<code>beta</code> 必须是 float。<br />
+- 相似度权重为 0 时，跳过 embedding 计算。<br />
+- 任一 embedding 范数为零时，相似度记 0。<br />
+- <strong>答案或标准答案的 statement 列表任一为空时，事实分直接设为 1.0。</strong><br />
+- 没有阈值逻辑，分数是连续值。（旧版接口的文档提到过 <code>threshold</code> 参数，可以把分数舍入成二值，新版 collections 接口的源码里没有。）</p>
+<p>最后一条需要特别警惕。按此行为，<strong>一个空答案或抽取失败的答案，事实分会是满分</strong>，只靠 0.25 权重的相似度把总分拉下来。这是需要在用到的版本里实测确认的风险（见下文"怎么用"）。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">敏感性演算</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>观察：①关键事实错了，总分仍可达 0.6，相似度项把它抬高；②漏答 2 条和多答 2 条在事实 F1 上完全对称，都是 0.80，指标不区分"漏"和"多"，需要看 TP/FP/FN 明细才能分辨；③相似度从 0.90 升到 0.97，总分只变 0.018，说明权重 0.25 的影响有限，主要由事实项决定</li></ul></div>3
+<p>下面用纯 Python 算的例子（本机已运行），相似度的值是<strong>我假设的</strong>，用来说明这一项的作用，不是实测：</p>
+<table>
+<thead>
+<tr>
+<th>情形</th>
+<th>TP / FP / FN</th>
+<th>事实 F1</th>
+<th>假设语义相似度</th>
+<th>Answer Correctness</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>官方 Einstein 低分答案</td>
+<td>1 / 1 / 1</td>
+<td>0.50</td>
+<td>0.90</td>
+<td>0.600</td>
+</tr>
+<tr>
+<td>同上，相似度更高</td>
+<td>1 / 1 / 1</td>
+<td>0.50</td>
+<td>0.97</td>
+<td>0.618</td>
+</tr>
+<tr>
+<td>漏答：6 条标准事实答出 4 条，无错误</td>
+<td>4 / 0 / 2</td>
+<td>0.80</td>
+<td>0.85</td>
+<td>0.8125</td>
+</tr>
+<tr>
+<td>多答：4 条全对，另加 2 条标准答案里没有的</td>
+<td>4 / 2 / 0</td>
+<td>0.80</td>
+<td>未设</td>
+<td>事实 F1 同为 0.80</td>
+</tr>
+</tbody>
+</table>
+<p>观察：①关键事实错了，总分仍可达 0.6，相似度项把它抬高；②漏答 2 条和多答 2 条在事实 F1 上完全对称，都是 0.80，指标不区分"漏"和"多"，需要看 TP/FP/FN 明细才能分辨；③相似度从 0.90 升到 0.97，总分只变 0.018，说明权重 0.25 的影响有限，主要由事实项决定。</p>
+<h2 id="与-faithfulness-的联合判读">与 Faithfulness 的联合判读</h2>2
+<p>两个指标正交，联合起来才能定位。</p>
+<table>
+<thead>
+<tr>
+<th>Faithfulness</th>
+<th>Answer Correctness</th>
+<th>含义</th>
+<th>处置方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>高</td>
+<td>高</td>
+<td>有据且答对</td>
+<td>正常</td>
+</tr>
+<tr>
+<td>高</td>
+<td>低</td>
+<td>忠于材料但答案不对：漏答，或材料本身缺失、过时</td>
+<td>查 Context Recall；查材料里是否新旧值并存</td>
+</tr>
+<tr>
+<td>低</td>
+<td>高</td>
+<td>答对了，但夹带了材料没有的说法（可能来自模型自身知识）</td>
+<td>抽查无据说法；收紧提示词，但注意别误伤正确补充</td>
+</tr>
+<tr>
+<td>低</td>
+<td>低</td>
+<td>既不忠实也不正确</td>
+<td>先判断是检索没找到还是生成乱写，再对症</td>
+</tr>
+</tbody>
+</table>
+<p>本库的 10-15 那轮 RAGAS 库评测（<code>rag/eval_ragas_report.csv</code>，5 题）就是"高、低"象限的典型。其中"总地图工作流有哪六个节点"一题，Faithfulness 1.0，Context Recall 0.0，答案自己说只找到 N3–N6 四个节点，标准答案列了 N1 到 N6 六个节点。这一轮没有跑 Answer Correctness，下面是我<strong>手工推演</strong>（不是实测）：若标准答案抽出 6 条 claim，答案命中其中 4 条且没有错误，则 TP=4，FP=0，FN=2，事实 F1=0.80，再加相似度项，总分大约在 0.8 上下。也就是说 Answer Correctness 会对这种半截答案给出明显低于 Faithfulness 的分数，但分数不会很低，因为它是按 claim 比例算的。这个推演的准确性取决于两点：标准答案怎么拆 claim，以及答案里"没有找到 N1、N2"这句话怎么被归类。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">reference 建设：这个指标最容易出错的地方</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>Answer Correctness 的可信度上限就是 reference 的质量</li><li>数字本身自洽，但它和本库自己的消融实验结论冲突，所以这条题不应参与打分，否则答对和答错都说不清</li><li>这条的 reference 写的是 hybrid-only 相对 dense-only 的 Recall@5 从 0.587 升到 0.695（相对提升 18.4%）、hybrid+rerank 达 0.816</li></ul></div>2
+<p>Answer Correctness 的可信度上限就是 reference 的质量。以本库 <code>rag/eval/golden-q.jsonl</code> 为例：</p>
+<ul>
+<li>共 56 条：5 条负例（<code>is_no_answer</code> 为真，没有标准答案）；51 条有 <code>reference_answer</code>。</li>
+<li>其中 Q001 带有 <code>TODO_conflict</code> 字段，内容是"与 2026-10-16 E 消融实测 0 提升冲突，待人工裁定"。这条的 reference 写的是 hybrid-only 相对 dense-only 的 Recall@5 从 0.587 升到 0.695（相对提升 18.4%）、hybrid+rerank 达 0.816。我复算：0.695/0.587 − 1 = 18.4%，0.816/0.587 − 1 = 39.0%。数字本身自洽，但它和本库自己的消融实验结论冲突，所以这条题<strong>不应参与打分</strong>，否则答对和答错都说不清。</li>
+<li>去掉负例和冲突题，可用于 Answer Correctness 的是 <strong>50 条</strong>（我用脚本逐条核对得出）。</li>
+</ul>
+<p><strong>reference 的写法规范</strong>：</p>
+<ol>
+<li><strong>一句一事实</strong>，便于 LLM 拆成原子 claim；不要把三个事实塞进一个长句。</li>
+<li><strong>只写必要事实</strong>。标准答案里的每条 claim 都会成为答案必须覆盖的 FN 候选，写多了会让正确但简洁的答案被判漏答。</li>
+<li><strong>数字、单位、条件写全</strong>，例如"rerank 阈值 0.45，归一化得分"，别只写"0.45"。</li>
+<li><strong>有争议或待裁定的题单独标记并排除</strong>，如 Q001 的做法，这个习惯应保持。</li>
+<li><strong>reference 与来源文档同步更新</strong>。知识库内容改了而 reference 没改，分数会无故下降，且很难归因。</li>
+<li>每条 reference 写明出处文件，方便复核。</li>
+</ol>
+<h2 id="怎么用">怎么用</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">转换 golden-q：已有文档里的函数在真实数据上会得到空集</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>《RAGAS三层评测落地》§5.5 的 「goldenq_to_ragas()」 读取字段 「g["answer"]」，而 「golden-q.jsonl」 的实际字段是 「reference_answer」（另有 「answer_keywords」，没有 「answer」）</li><li>我用该函数的判断逻辑在真实文件上跑了一遍：保留 0 条，因为每一行 「g.get("answer")」 都是空，函数会静默返回一个空数据集</li><li>return usable, skipped</li></ul></div>3
+<p>《RAGAS三层评测落地》§5.5 的 <code>goldenq_to_ragas()</code> 读取字段 <code>g["answer"]</code>，而 <code>golden-q.jsonl</code> 的实际字段是 <code>reference_answer</code>（另有 <code>answer_keywords</code>，没有 <code>answer</code>）。我用该函数的判断逻辑在真实文件上跑了一遍：<strong>保留 0 条</strong>，因为每一行 <code>g.get("answer")</code> 都是空，函数会静默返回一个空数据集。</p>
+<p>正确的读取方式（已在本机运行，输出"可用 50 条；跳过 5 条无答案负例、1 条冲突题"）：</p>
+<pre><code class="language-python">import json
+
+def load_reference_set(path):
+    usable, skipped = [], {&quot;no_answer_q&quot;: 0, &quot;no_reference&quot;: 0, &quot;conflict_todo&quot;: 0}
+    with open(path, encoding=&quot;utf-8&quot;) as f:
+        for line in f:
+            g = json.loads(line)
+            if g.get(&quot;is_no_answer&quot;):
+                skipped[&quot;no_answer_q&quot;] += 1; continue
+            if not g.get(&quot;reference_answer&quot;):
+                skipped[&quot;no_reference&quot;] += 1; continue
+            if g.get(&quot;TODO_conflict&quot;):
+                skipped[&quot;conflict_todo&quot;] += 1; continue
+            usable.append({&quot;id&quot;: g[&quot;id&quot;], &quot;user_input&quot;: g[&quot;question&quot;],
+                           &quot;reference&quot;: g[&quot;reference_answer&quot;]})
+    return usable, skipped
+</code></pre>
+<p>之后需要用生产管线对每道题实际跑一遍，得到 <code>response</code>（和 Faithfulness 所需的 <code>retrieved_contexts</code>），再组装成评测样本。</p>
+<h3 id="官方-collections-接口按文档未在本机运行">官方 collections 接口（按文档，未在本机运行）</h3>3
+<pre><code class="language-python">from openai import AsyncOpenAI
+from ragas.llms import llm_factory
+from ragas.embeddings.base import embedding_factory
+from ragas.metrics.collections import AnswerCorrectness
+
+client = AsyncOpenAI(base_url=&quot;&lt;云端 OpenAI 兼容端点&gt;&quot;, api_key=&quot;&lt;从环境变量读取&gt;&quot;)
+llm = llm_factory(&quot;&lt;强模型名&gt;&quot;, client=client)
+embeddings = embedding_factory(&quot;openai&quot;, model=&quot;&lt;embedding 模型名&gt;&quot;, client=client)
+
+scorer = AnswerCorrectness(llm=llm, embeddings=embeddings)   # 默认权重来自源码 [0.75, 0.25]
+result = await scorer.ascore(
+    user_input=&quot;Where was Einstein born and when?&quot;,
+    response=&quot;Einstein was born in Spain in 1879.&quot;,
+    reference=&quot;Einstein was born in 1879 in Germany.&quot;,
+)
+print(result.value)
+</code></pre>
+<p>本机 <code>ragas</code> 版本为 0.4.3，直接导入 <code>ragas.llms</code> 会报缺少 <code>langchain_community.chat_models.vertexai</code>，所以这段代码<strong>没有在本机跑过</strong>。上线前必须在隔离环境验证，并同时验证下面的"空答案"行为。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">纯 Python 复算工具（已在本机运行）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>return math.nan if strict else 1.0 官方源码行为是 1.0，strict 让它显式暴露</li><li>return tp / (tp + 0.5 * (fp + fn))</li><li>return (weights[0] * f + weights[1] * sim) / sum(weights)</li></ul></div>3
+<p>用于把评测器返回的 TP/FP/FN 与相似度手工复核一遍，也用于审计时对照：</p>
+<pre><code class="language-python">import math
+
+def factual_f1(tp, fp, fn, strict=True):
+    if tp + fp == 0 or tp + fn == 0:
+        return math.nan if strict else 1.0   # 官方源码行为是 1.0，strict 让它显式暴露
+    return tp / (tp + 0.5 * (fp + fn))
+
+def answer_correctness(tp, fp, fn, sim, weights=(0.75, 0.25)):
+    f = factual_f1(tp, fp, fn)
+    if math.isnan(f):
+        return math.nan
+    return (weights[0] * f + weights[1] * sim) / sum(weights)
+
+print(factual_f1(1, 1, 1))                         # 0.5  官方 Einstein 示例
+print(round(factual_f1(1, 0, 1), 2))               # 0.67 官方 Eiffel 示例
+print(round(answer_correctness(1, 1, 1, 0.90), 4)) # 0.6  相似度为假设值
+</code></pre>
+<h3 id="必做的版本实测">必做的版本实测</h3>3
+<p>在你实际使用的 ragas 版本上，用三条构造样本验证行为，再信任分数：</p>
+<ol>
+<li>空字符串答案：分数是否被拉高（源码摘要显示事实分会取 1.0）。</li>
+<li>答案与标准答案完全一致：应接近 1。</li>
+<li>关键数字改错、其余全对：分数应明显下降，而不是只降一点点。</li>
+</ol>
+<p>三条里任一不符合预期，就在评测脚本里加显式断言（如空答案直接记 ERROR，不送评测器）。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">动库门禁怎么用它</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>门禁判据是三层联合不降：Recall@5、Faithfulness、Answer Correctness 在同一份 golden set上前后对比</li><li>1. 只在同一批 reference 上比</li><li>中途改了 reference，必须重跑基线</li></ul></div>2
+<p>门禁判据是三层联合不降：Recall@5、Faithfulness、Answer Correctness 在<strong>同一份 golden set</strong>上前后对比。对 Answer Correctness 要补充几条规则：</p>
+<ol>
+<li><strong>只在同一批 reference 上比</strong>。中途改了 reference，必须重跑基线。</li>
+<li><strong>逐题配对比较</strong>，并给出降幅最大的几道题，不只给均值。50 条的均值，单题变化 0.3 就能让均值动 0.006，噪声和真实变化要靠逐题明细区分。</li>
+<li><strong>同时看 TP/FP/FN 分布</strong>，因为漏答和多答的总分可以一样，处置完全不同：漏答往往要查检索或提示词里的长度限制，多答往往要收紧"只回答问到的"。</li>
+<li><strong>本库没有为 Answer Correctness 标定过绝对阈值</strong>。三层评测落地篇的"低于某值需查"和生产级篇的"跌超 0.05 阻断"都是经验或规则设定，没有本库的校准数据支撑；0.787 这个数是 5 条样本的均值，不能当线。建议先在 50 条可用题上跑出基线，再用重复运行的波动（同一批跑 3 次的标准差）定出"噪声带"，降幅超过噪声带才算显著。</li>
+<li>0.787 的原始报告（<code>/tmp/ragas_answer_eval_report.md</code>）已被清理，数据只在三层方法论篇里留有引用，无法复核计算细节。</li>
+</ol>
+<h2 id="局限">局限</h2>2
+<ol>
+<li><strong>多种正确说法会被误扣</strong>：标准答案只写了一种表述，答案换了说法且正确，NLI 判定可能漏判。</li>
+<li><strong>多答被扣</strong>：答案补充了正确但标准答案没写的信息，会计入 FP。reference 写得越省，这类误扣越多。</li>
+<li><strong>语义相似度会抬高错误答案</strong>：见上文敏感性演算，关键数字错误时相似度项仍然偏高。如果业务上"数字对不对"是核心，可考虑把权重调向事实项（例如 <code>weights=[0.9, 0.1]</code>），或另加精确匹配类指标做兜底。调整权重要把新旧口径分开留档，不能与旧基线混比。</li>
+<li><strong>长答案的 claim 抽取不稳</strong>：抽取的粒度和数量会随裁判模型变化，同一答案在不同裁判下的 TP/FP/FN 不同，所以裁判模型必须固定。</li>
+<li><strong>英文提示词</strong>：官方判定提示词是英文，对中文语料，强模型一般够用，小模型要先用人工标注样本校准。</li>
+<li><strong>一个分数压缩了多种错误</strong>：漏答、多答、错答、措辞不同都落在同一个 0 到 1 的数里，所以每次报告必须附 TP/FP/FN 明细。</li>
+</ol>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">验收清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>[ ] reference 全部经人工审核，冲突/待裁定题已排除（本库 Q001 已标记）</li><li>[ ] 在实际 ragas 版本上完成"空答案、完全一致、关键数字改错"三条构造样本验证</li><li>[ ] 转换脚本读 「reference_answer」 字段，并打印保留题数与跳过原因，不能静默得到空集</li></ul></div>2
+<ul>
+<li>[ ] reference 全部经人工审核，冲突/待裁定题已排除（本库 Q001 已标记）</li>
+<li>[ ] 转换脚本读 <code>reference_answer</code> 字段，并打印保留题数与跳过原因，不能静默得到空集</li>
+<li>[ ] 在实际 ragas 版本上完成"空答案、完全一致、关键数字改错"三条构造样本验证</li>
+<li>[ ] 裁判模型和 embedding 模型固定，temperature=0，报告里写明型号</li>
+<li>[ ] 每次报告附 TP/FP/FN 明细和降幅最大的题</li>
+<li>[ ] 基线与对比使用同一批 reference，并留档（含 reference 的版本标识）</li>
+<li>[ ] 报告里写明权重（默认 0.75/0.25 来自源码）</li>
+</ul>
+<h2 id="术语表">术语表</h2>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Reference / Ground truth</td>
+<td>标准答案，Answer Correctness 的比较基准</td>
+</tr>
+<tr>
+<td>Factual Correctness</td>
+<td>答案与标准答案的事实重合 F1，Answer Correctness 的事实项</td>
+</tr>
+<tr>
+<td>Semantic Similarity</td>
+<td>答案与标准答案 embedding 的余弦相似度</td>
+</tr>
+<tr>
+<td>TP / FP / FN</td>
+<td>答案与标准答案共有的 claim / 答案多出的 claim / 答案漏掉的 claim</td>
+</tr>
+<tr>
+<td>NLI</td>
+<td>自然语言推断，判断 claim 是否被另一段文本支持</td>
+</tr>
+<tr>
+<td>Golden set</td>
+<td>带标准答案的评测题集，本库为 <code>rag/eval/golden-q.jsonl</code></td>
+</tr>
+</tbody>
+</table>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">来源</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>已读原文确认：论文的三个指标是 faithfulness、answer relevance、context relevance，结论段没有 Answer Correctness</li><li>本库产物：「rag/eval/golden-q.jsonl」（字段与可用题数由脚本核对）、「rag/eval_ragas_report.csv」、RAG评测三层方法论（0.787、80%、Q004 案例）</li></ul></div>2
+<ul>
+<li>论文：Es, James, Espinosa-Anke, Schockaert. <em>Ragas: Automated Evaluation of Retrieval Augmented Generation</em>. arXiv:2309.15217（2023-09-26 提交，2025-04-28 修订 v2）；EACL 2024 System Demonstrations（aclanthology.org/2024.eacl-demo.16）。已读原文确认：论文的三个指标是 faithfulness、answer relevance、context relevance，结论段没有 Answer Correctness。</li>
+<li>官方文档：docs.ragas.io 的 Answer Correctness 页（定义、F1 公式、Einstein 示例、collections 接口；权重描述自相矛盾且未给默认值）与 Factual Correctness 页（TP/FP/FN、f1/precision/recall 模式、Eiffel 示例 0.67）。</li>
+<li>源码：ragas 仓库 <code>src/ragas/metrics/collections/answer_correctness/metric.py</code>（默认权重 [0.75, 0.25]、beta=1.0、空列表与零范数处理），经网络抓取读取，未在本机运行。</li>
+<li>本库产物：<code>rag/eval/golden-q.jsonl</code>（字段与可用题数由脚本核对）、<code>rag/eval_ragas_report.csv</code>、<a href="RAG%E8%AF%84%E6%B5%8B%E4%B8%89%E5%B1%82%E6%96%B9%E6%B3%95%E8%AE%BA-20261009.html">RAG评测三层方法论</a>（0.787、80%、Q004 案例）。</li>
+</ul></div></details></div></body></html>

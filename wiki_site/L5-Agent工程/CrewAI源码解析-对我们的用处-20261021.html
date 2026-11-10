@@ -1,0 +1,60 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>CrewAI源码解析-对我们的用处-20261021</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/CrewAI源码解析-对我们的用处-20261021</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="crewai-2026-10-21">CrewAI 源码解析：对我们的多智能体优化有什么用（2026-10-21）</h1>
+<blockquote>
+<p>一句话：CrewAI 是和我们六员同类的多智能体框架，我们<strong>不换框架</strong>，但它的源码里有 6 个能直接抄的工程做法，能让派单更靠谱。
+想看源码细节（真实代码片段）→ <a href="file:///C:/MyData/Documents/wuyafang-l/wiki_site/raw/sources/CrewAI%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-%E5%8F%AF%E6%8A%84%E5%B7%A5%E7%A8%8B%E5%AE%9E%E7%8E%B0-20261021.html">CrewAI源码解析-可抄工程实现-20261021.md</a>；想看七条机制对照 → <a href="file:///C:/MyData/Documents/wuyafang-l/wiki_site/raw/sources/CrewAI%E7%B2%BE%E5%8D%8E%E5%90%B8%E6%94%B6%E5%AF%B9%E7%85%A7-20261021.html">CrewAI精华吸收对照-20261021.md</a>。</p>
+</blockquote>
+<h2 id="_1">它是什么</h2>
+<p>一个 Python 多智能体框架：给每个 Agent 定义"角色+目标+背景"，给每个 Task 定义"做什么+完成长什么样+依赖谁"，然后按顺序或分层跑。我们的六员（Hermes/DSH/Claude/Codex/OpenClaw/Qwen）是同样思想的自研版。</p>
+<h2 id="3">对我们最有用的 3 个做法（白话版）</h2>
+<ol>
+<li><strong>任务要写清"完成长什么样"，而且直接发给干活的</strong>——不是写给旁人看的备注。我们的派单卡也要把"完成态"写进任务正文，执行者才知道做到什么程度算完。</li>
+<li><strong>任务之间的依赖要"传产物"不是"标个记号"</strong>——前置任务的产出直接拼进下一个任务的输入。我们"等 S5 收口再做 X"现在靠口头，改成显式传产物更稳。</li>
+<li><strong>限流和次数上限是程序强制的，不靠自觉</strong>——CrewAI 把"每分钟最多几次""最多迭代几轮"写死在执行层。这正好治我们今天撞的 429 限流、执行者反复重试卡住。</li>
+</ol>
+<h2 id="_2">结论</h2>
+<p>不换框架（切换成本太大，且我们已有 LangGraph 同级能力），抄上面 3+3 个实现进派单卡模板和任务台账，让"派出去的单"更可控。</p></div></body></html>

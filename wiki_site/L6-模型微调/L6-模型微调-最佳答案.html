@@ -1,0 +1,308 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L6-模型微调-最佳答案</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L6-模型微调-最佳答案</span></div><div class="wrap"><h1 id="l6-模型微调-最佳答案">L6 模型微调 · 最佳答案</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>大模型不是一步训出来的，而是三阶段接力：预训练（海量无标注文本上下一词预测）→ SFT（万到十万条"指令-回答"对学答题格式）→ 对齐（RLHF/DPO 学人类偏好）</li><li>在这三阶段之上，LoRA/QLoRA 让普通人单卡 16GB 也能做领域适配——但微调不是万能药：缺知识用 RAG，数据少于 500 条用 Few-shot，需要频繁更新知识用 RAG</li><li>预训练决定"有多聪明"，SFT 和对齐决定"好不好用"</li></ul></div>2
+<p>大模型不是一步训出来的，而是<strong>三阶段接力</strong>：预训练（海量无标注文本上下一词预测）→ SFT（万到十万条"指令-回答"对学答题格式）→ 对齐（RLHF/DPO 学人类偏好）。预训练决定"有多聪明"，SFT 和对齐决定"好不好用"。在这三阶段之上，LoRA/QLoRA 让普通人单卡 16GB 也能做领域适配——但<strong>微调不是万能药</strong>：缺知识用 RAG，数据少于 500 条用 Few-shot，需要频繁更新知识用 RAG。底层能训得动，靠的是 Transformer 架构 + 四大梯度稳定手段（ReLU / 残差 / LayerNorm / 参数初始化）。</p>
+<h2 id="what这个节点的最佳答案">WHAT：这个节点的最佳答案</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">一、什么时候需要微调 / 什么时候不要</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. RAG 解决不了——需要模型改变行为方式（输出风格、语气、特定格式），不是"知道更多事实"</li><li>├── 单卡 16GB → QLoRA (4-bit)</li><li>├── 单卡 24GB → LoRA (fp16)</li></ul></div>3
+<p><strong>触发条件（全部满足才值得做）</strong>：<br />
+1. RAG 解决不了——需要模型<strong>改变行为方式</strong>（输出风格、语气、特定格式），不是"知道更多事实"。<br />
+2. 数据量足够：<strong>至少 500-1000 条</strong>高质量标注样本。少于这个量级，噪声大于信号。<br />
+3. 延迟/成本敏感：RAG 每次推理要注入上下文，微调后模型内化知识/风格，推理更轻。<br />
+4. 领域特异性强（医疗对话、法律文书、代码补全）。<br />
+5. 数据私密性：不能把私有数据发给云端 API，需私有化部署。</p>
+<p><strong>不要微调</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>情况</th>
+<th>正确做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>只是缺知识</td>
+<td>RAG 或 Prompt</td>
+</tr>
+<tr>
+<td>数据少于 500 条</td>
+<td>Few-shot Prompt</td>
+</tr>
+<tr>
+<td>需要频繁更新知识</td>
+<td>RAG（微调后更新要重新训练）</td>
+</tr>
+<tr>
+<td>只有通用 GPU</td>
+<td>云 API，别自己部署</td>
+</tr>
+</tbody>
+</table>
+<p><strong>决策树</strong>：</p>
+<pre><code>问题需要&quot;更多知识&quot;还是&quot;更好的行为方式&quot;？
+├── 更多知识 → RAG（上传文档即可）
+└── 更好的行为方式 → 有 500+ 条标注数据吗？
+    ├── 没有 → Few-shot Prompt
+    └── 有 → 有 GPU 吗？
+        ├── 单卡 16GB → QLoRA (4-bit)
+        ├── 单卡 24GB → LoRA (fp16)
+        └── 多卡 A100 → 全量微调
+</code></pre>
+<h3 id="二三阶段训练底层全景">二、三阶段训练（底层全景）</h3>3
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>数据</th>
+<th>目标</th>
+<th>产物</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>预训练</strong></td>
+<td>无标注文本（TB 级，Common Crawl 权重 ~0.44 + 高质量语料配比）</td>
+<td>下一词预测（自监督，模型自己生成标签）</td>
+<td>基座模型（聪明但不会聊天，只会"接话"）</td>
+</tr>
+<tr>
+<td><strong>SFT</strong></td>
+<td>指令-回答对（万-十万条，可 Self-Instruct 强模型生成再人工筛）</td>
+<td>学习问答格式</td>
+<td>会答题的模型</td>
+</tr>
+<tr>
+<td><strong>对齐（RLHF/DPO）</strong></td>
+<td>偏好排序数据（万条）</td>
+<td>优化人类偏好</td>
+<td>有用无害的助手</td>
+</tr>
+</tbody>
+</table>
+<p><strong>RLHF 三步走</strong>：① 收集同问题多回答人类排序；② 训练奖励模型模仿打分；③ PPO 强化学习让语言模型最大化奖励分数。</p>
+<p><strong>DPO</strong>：跳过单独训练奖励模型，<strong>直接用偏好数据优化语言模型</strong>，数学上等价于简化版 RLHF，省去 PPO 稳定性问题，现在很多团队默认用 DPO。</p>
+<p>⚠️ "生成得像真的 ≠ 一定是真的"——三阶段训练目标里没有"必须正确"这一项，只有"像不像人写的"，事实性错误仍需 RAG/校验兜底。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">三、Transformer 为什么有效（三个底层支撑）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>1. 自注意力：同一层里每个词直接跟所有其他词算"我该多看你一眼还是少看你一眼"（Q/K/V 三矩阵：Q 跟每个 K 算相似度得权重，对 V 加权求和）</li><li>2. 位置编码：自注意力对词序不敏感（打乱排列相似度不变），所以必须给每个位置加"位置向量"跟词向量相加，告诉模型顺序</li><li>3. 并行计算：RNN 串行（等前一个词算完才能算下一个），Transformer 把所有词的自注意力矩阵一次性丢给 GPU Tensor Core 并行——这就是 GPT 能从几百万参数涨到几千亿的硬件基础</li></ul></div>3
+<ol>
+<li><strong>自注意力</strong>：同一层里每个词直接跟所有其他词算"我该多看你一眼还是少看你一眼"（Q/K/V 三矩阵：Q 跟每个 K 算相似度得权重，对 V 加权求和）。长句里相距很远的两个词（如"它"和 50 字外的主语）能立刻建立联系，不靠层层传递。</li>
+<li><strong>位置编码</strong>：自注意力对词序不敏感（打乱排列相似度不变），所以必须给每个位置加"位置向量"跟词向量相加，告诉模型顺序。</li>
+<li><strong>并行计算</strong>：RNN 串行（等前一个词算完才能算下一个），Transformer 把所有词的自注意力矩阵一次性丢给 GPU Tensor Core 并行——这就是 GPT 能从几百万参数涨到几千亿的硬件基础。</li>
+</ol>
+<h3 id="四梯度消失四大解法深层网络才训得动">四、梯度消失四大解法（深层网络才训得动）</h3>3
+<p>深度网络反向传播时每过一层乘小于 1 的数，前几层梯度归零——前层学不到东西。四招一起上：</p>
+<ol>
+<li><strong>ReLU 激活</strong>：正区间导数恒等于 1，反向传播梯度不衰减（sigmoid 导数最大 0.25，叠 10 层 ≈ 0.000001）。</li>
+<li><strong>残差连接</strong>：y = F(x) + x，+x 直连通道让梯度不经过权重层直接流回前面（"给梯度修高速公路"）。GPT 每个 Transformer block 都用。</li>
+<li><strong>LayerNorm</strong>：对每个样本在该层所有神经元输出归一化到均值 0、方差 1，再学缩放平移。不用 BatchNorm 是因为大模型 batch 小、句子长度不一，batch 维度统计不稳。</li>
+<li><strong>参数初始化</strong>：Xavier / He 初始化按输入输出维度缩放随机数方差，保证前向反向数值不指数级变大或变小。</li>
+</ol>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">五、LoRA 到底省了什么（三个维度）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>语言微调时权重变化本身是低秩的，这个近似够用</li><li>LoRA 可训练参数降到几百万，优化器状态缩到几百 MB；原权重以 FP16 冻结加载，不配套梯度——这是单张 24GB 卡能微调 7B 的关键</li><li>全量微调 7B 模型光优化器状态就吃 7B×4×2 ≈ 56GB</li></ul></div>3
+<p><strong>核心思想</strong>：冻结原模型权重 W，只训练两个小矩阵 A 和 B，使 W' = W + BA（低秩分解）。语言微调时权重变化本身是低秩的，这个近似够用。</p>
+<p><strong>参数量</strong>：原 W 形状 (d,d) = (4096,4096) ≈ 1600 万；r=8 时 A=(4096,8)、B=(8,4096)，可训练参数降到 ~6.5 万（<strong>约 0.4%</strong>）。</p>
+<p><strong>显存</strong>：训练时每个可训练参数要配套梯度（同大）+ Adam 动量 m（同大）+ Adam 方差 v（同大）+ 混合精度副本——1 个参数实际占 4-8 倍显存。全量微调 7B 模型光优化器状态就吃 7B×4×2 ≈ 56GB。LoRA 可训练参数降到几百万，优化器状态缩到几百 MB；原权重以 FP16 冻结加载，不配套梯度——这是单张 24GB 卡能微调 7B 的关键。</p>
+<p><strong>速度与部署</strong>：① 训练时可训练参数少，反向传播快；冻结权重可用更低精度加载。② 推理时 B×A 可<strong>直接合并回 W</strong>，得到 W' = W + B×A，跟全量微调无区别，无额外开销。③ 一个基座可挂<strong>多个 LoRA</strong>（不同任务/风格），切换只换几 MB 小矩阵，不用重载几十 GB 权重。</p>
+<h3 id="六lora-qlora-超参与-pipeline">六、LoRA / QLoRA 超参与 Pipeline</h3>3
+<p><strong>关键超参数</strong>：<br />
+- <code>r</code>（秩）：8/16/32/64。默认 8 或 16。<br />
+- <code>alpha</code>（缩放系数）：通常设为 r 的 2 倍。实际缩放 = alpha / r。<br />
+- <code>dropout</code>：0.05~0.1，防过拟合。<br />
+- <code>target_modules</code>：对哪些层加 LoRA。通常对 attention 的 <code>q_proj, v_proj</code> 加。</p>
+<p><strong>三方案对比</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>训练参数量</th>
+<th>显存需求</th>
+<th>效果</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>全量微调</td>
+<td>100%（7B≈14GB fp16）</td>
+<td>40GB+</td>
+<td>最好</td>
+<td>有大量数据、A100</td>
+</tr>
+<tr>
+<td>LoRA</td>
+<td>0.1%-1%（7B≈10MB 增量）</td>
+<td>16-24GB</td>
+<td>接近全量</td>
+<td>绝大多数场景首选</td>
+</tr>
+<tr>
+<td>QLoRA</td>
+<td>0.1%-1%（量化基座）</td>
+<td>8-12GB</td>
+<td>略低于 LoRA</td>
+<td>单卡消费级 GPU</td>
+</tr>
+</tbody>
+</table>
+<p><strong>量化</strong>：fp16（1x，无损失）→ int8（2x，极小损失，推理部署）→ nf4（4x，小损失，QLoRA 训练基座）。QLoRA = 4-bit 量化基座 + LoRA 以 fp16 训练。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">HOW：完整 Pipeline 代码模板</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<pre><code class="language-bash">pip install transformers peft accelerate bitsandbytes datasets trl torch
+# 加速版：pip install unsloth（2× 训练速度，省显存）
+</code></pre>
+<pre><code class="language-python">import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from peft import LoraConfig, get_peft_model, TaskType
+
+bnb_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_quant_type=&quot;nf4&quot;,
+    bnb_4bit_compute_dtype=torch.float16,
+    bnb_4bit_use_double_quant=True,
+)
+
+model_name = &quot;Qwen/Qwen2-7B-Instruct&quot;
+tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+tokenizer.pad_token = tokenizer.eos_token   # 关键：不设 pad_token 输出会乱码
+
+model = AutoModelForCausalLM.from_pretrained(
+    model_name, quantization_config=bnb_config,
+    device_map=&quot;auto&quot;, trust_remote_code=True,
+)
+
+lora_config = LoraConfig(
+    task_type=TaskType.CAUSAL_LM, r=16, lora_alpha=32,
+    lora_dropout=0.05, target_modules=[&quot;q_proj&quot;, &quot;v_proj&quot;],
+)
+model = get_peft_model(model, lora_config)
+model.print_trainable_parameters()
+# trainable params: 16,777,216 || all params: 7,740,073,472 || trainable%: 0.2167
+</code></pre>
+<p>训练（SFTConfig 关键参数）：</p>
+<pre><code class="language-python">from trl import SFTTrainer, SFTConfig
+
+training_args = SFTConfig(
+    output_dir=&quot;./qwen2-7b-lora-output&quot;,
+    num_train_epochs=3,
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=4,   # 等效 batch = 16
+    learning_rate=2e-4,              # LoRA 学习率通常比全量大（1e-4~5e-4）
+    warmup_ratio=0.03,
+    logging_steps=10,
+    save_strategy=&quot;epoch&quot;,
+    bf16=True,                      # A100/H100 用 bf16
+    optim=&quot;paged_adamw_8bit&quot;,        # 配合 QLoRA
+    report_to=&quot;none&quot;,
+)
+trainer = SFTTrainer(model=model, args=training_args,
+    train_dataset=dataset[&quot;train&quot;], eval_dataset=dataset[&quot;test&quot;],
+    peft_config=lora_config, max_seq_length=1024)
+trainer.train()
+trainer.save_model(&quot;./qwen2-7b-lora-final&quot;)
+</code></pre>
+<p><strong>合并 LoRA 用于部署</strong>：</p>
+<pre><code class="language-python">from peft import PeftModel
+base = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16, device_map=&quot;auto&quot;)
+lora_model = PeftModel.from_pretrained(base, &quot;./qwen2-7b-lora-final&quot;)
+merged = lora_model.merge_and_unload()
+merged.save_pretrained(&quot;./qwen2-7b-merged-16bit&quot;)
+</code></pre>
+<p><strong>常见坑</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OOM 显存不足</td>
+<td>降 batch_size，开 4-bit，用 gradient_checkpointing</td>
+</tr>
+<tr>
+<td>loss 不下降</td>
+<td>LoRA 用 1e-4~5e-4；检查 chat_template 是否正确</td>
+</tr>
+<tr>
+<td>输出乱码</td>
+<td><code>tokenizer.pad_token = tokenizer.eos_token</code></td>
+</tr>
+<tr>
+<td>过拟合（训练好测试差）</td>
+<td>加 dropout，减 epoch（1-2 轮起步），数据加多样性</td>
+</tr>
+<tr>
+<td>训练后模型没变化</td>
+<td>确认 target_modules 选对（q_proj/v_proj 对应模型架构）</td>
+</tr>
+</tbody>
+</table>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>"完整 pipeline 骨架"的本库版本：灌库 → 检索 → 评测三段（<code>rag/ingest.py</code> / <code>rag/query.py</code> / <code>rag/eval_ragas.py</code>）</strong>，每段都有独立入口与 CLI，可单段重跑：<br />
+<code>python
+  # rag/ingest.py L1075 单实例锁包住整个灌库
+  with _ingest_lock() as acquired:
+      if not acquired:
+          return 0
+      return _run_ingest(args)</code><br />
+<code>python
+  # rag/eval_ragas.py main(): 评测复用生产检索, 不另写一套
+  hits = query.retrieve_hybrid(col, s["question"], dense_top=12, sparse_top=12)
+  contexts.append([h["text"] if isinstance(h, dict) else str(h) for h in hits[:5]])
+  answers.append(query.ollama_chat(prompt))</code><br />
+  关键纪律：<strong>评测调用生产同一条 <code>retrieve_hybrid</code> + <code>ollama_chat</code></strong>，不在评测脚本里重写检索——否则评测分数不代表线上。</li>
+<li><strong>可复跑的口径</strong>：<code>rag/eval_ragas.py</code> 把明细写 <code>eval_ragas_report.csv</code>（<code>df.to_csv(out, index=False)</code>），指标均值与逐样本明细同时留档。</li>
+<li><strong>和课件讲法的差异</strong>：课件 pipeline 是"数据集 → Unsloth/TRL 训练 → merge → 评测"；本库 pipeline 是"语料 → 灌库 → 检索 → 生成 → 评测"，<strong>训练段本库暂无</strong>。两者共用同一套纪律：每段独立可跑、每段留产物、评测复用生产链路。</li>
+</ul>
+<h2 id="缺口清单">缺口清单</h2>2
+<ul>
+<li>[ ] 500-1000 条高质量标注数据的 SFT 数据集构造流程未沉淀（Self-Instruct 强模型生成 + 人工筛选模板）</li>
+<li>[ ] DPO 训练 pipeline（trl 的 DPOTrainer）未在本库实操验证</li>
+<li>[ ] LoRA 多适配器挂载（一底座多场景切换）的工程模板未沉淀</li>
+<li>[ ] 微调 vs RAG 的决策树在本库 RAG 管线中未做自动化判定</li>
+</ul></div></details></div></body></html>

@@ -1,0 +1,681 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L0-Python-OOP与爬虫</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L0-Python-OOP与爬虫</span></div><div class="wrap"><h1 id="l0-python-oop-与爬虫类与对象继承多态封装与-requests-实战">L0 Python OOP 与爬虫：类与对象、继承多态、封装与 requests 实战</h1>
+<blockquote>
+<p>📄 <strong>一手源</strong>：<a href="../../raw/courseware/python/python-handbook-part2-oop.md">python-handbook-part2-oop</a> · <a href="../../raw/courseware/python/chapter10-projects.md">chapter10-projects</a></p>
+<p><strong>TL;DR</strong>：类是图纸、对象是实物，<code>__init__</code> 构造、<code>self</code> 指当前实例、类属性共享实例属性独有；继承复用代码、多态让同一接口处理不同类型、封装用下划线约定加 property 保护内部状态；魔术方法 <code>__str__</code>/<code>__repr__</code>/<code>__eq__</code>/<code>__len__</code> 让自定义对象像内置类型一样好用。爬虫部分用 requests 加 BeautifulSoup 抓 quotes.toscrape.com，带礼貌延迟与 JSON 落盘。本文覆盖 OOP 四支柱、魔术方法速查、插件系统实战、爬虫完整脚本，以及三问（何时用/何时别用/翻车长什么样）。</p>
+<p><strong>金标证据</strong>：gold_tier=input_digest ｜ 产出声明=消化提炼（内容来自 python-handbook-part2-oop.md 与 chapter10-projects.md 两期课件的融合重排，非原创调研）｜ 排他性证据=融合了 python-handbook-part2-oop.md 的四大章节（类与对象、继承多态、封装抽象、特殊方法）与 chapter10-projects.md 的爬虫实战代码（quotes.toscrape.com 抓取、礼貌延迟、JSON 落盘），两份素材的这段组合只在本库 raw/courseware/python/ 下存在 ｜ 抽查入口=raw/courseware/python/python-handbook-part2-oop.md 第 3.3 节"Property：优雅的属性访问"与 chapter10-projects.md 第 3.1 节"爬虫基础"</p>
+</blockquote>
+<hr />
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">1. 这篇文档解决什么问题</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>函数解决"动作的复用"，类解决"数据加动作的绑定"</li><li>一个银行账户有余额（数据）和存取款（动作），用散装函数传余额参数容易传错，用类把余额和方法绑在一起就不可能搞混</li><li>爬虫是 OOP 的天然练兵场：「WebScraper」 类封装 session、抓取、解析、保存四个动作，比散装脚本好维护得多</li></ul></div>2
+<p>函数解决"动作的复用"，类解决"数据加动作的绑定"。一个银行账户有余额（数据）和存取款（动作），用散装函数传余额参数容易传错，用类把余额和方法绑在一起就不可能搞混。爬虫是 OOP 的天然练兵场：<code>WebScraper</code> 类封装 session、抓取、解析、保存四个动作，比散装脚本好维护得多。本篇按"类与对象 → 继承多态 → 封装抽象 → 魔术方法 → 插件系统 → 爬虫实战"展开。适合写完函数与模块篇、需要组织复杂数据的人。</p>
+<p><strong>适用场景</strong>：数据和操作要绑定（账户、用户、订单、爬虫）；多个类型要共用一套接口（图形、员工、支付方式）；要保护内部状态不被外部乱改。</p>
+<p><strong>前置条件</strong>：掌握函数与模块篇（参数、返回值、装饰器、包结构）；理解数据结构篇的字典与元组；会用 requests 发 HTTP 请求（爬虫部分）。</p>
+<p><strong>怎么读</strong>：第 2 到 5 节是 OOP 四支柱；第 6 节魔术方法速查；第 7 节插件系统综合案例；第 8 到 9 节爬虫实战；第 10 节三问。</p>
+<h2 id="2-类与对象">2. 类与对象</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">2.1 类是图纸、对象是实物</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>类（Class）是设计图纸，对象（Object/实例）是造出来的实物</li><li>属性是数据（狗的名字、年龄），方法是行为（狗叫、吃东西）</li></ul></div>3
+<p>面向过程写 <code>create_dog()</code>、<code>feed_dog()</code> 一堆散函数，动物种类一多就乱麻；面向对象把"属性加方法"绑进类，<code>Dog("旺财", 3).bark()</code> 一个对象管到底。类（Class）是设计图纸，对象（Object/实例）是造出来的实物。属性是数据（狗的名字、年龄），方法是行为（狗叫、吃东西）。</p>
+<h3 id="22-定义第一个类">2.2 定义第一个类</h3>3
+<pre><code class="language-python">class Dog:
+    &quot;&quot;&quot;一只狗的类&quot;&quot;&quot;
+    species = &quot;犬科&quot;                      # 类属性：所有狗共享
+
+    def __init__(self, name: str, age: int):   # 构造方法
+        self.name = name                  # 实例属性：每只狗独有
+        self.age = age
+
+    def bark(self) -&gt; str:
+        return f&quot;{self.name}：汪汪汪！&quot;
+
+    def info(self) -&gt; str:
+        return f&quot;名字：{self.name}，年龄：{self.age}岁，物种：{self.species}&quot;
+
+dog1 = Dog(&quot;旺财&quot;, 3)
+print(dog1.name, dog1.species, dog1.bark())
+</code></pre>
+<p>四个关键点：<code>__init__</code> 是构造方法（<code>__</code> 包裹的是魔术方法，Python 特定时机自动调用）；<code>self</code> 是当前实例自己，每个实例方法第一个参数必须是 self；<code>self.name = name</code> 把参数存成实例属性；类属性写在方法外所有实例共享、实例属性写在 <code>__init__</code> 里各实例独有。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">2.3 对象生命周期</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>对象创建时 「__init__」 自动调用，销毁时 「__del__」 自动调用（不推荐依赖 「__del__」 做清理，用 with 或显式 close 更可靠）</li><li>「id(obj)」 看对象内存地址，判断两个变量是否同一对象用 「is」</li></ul></div>3
+<p>对象创建时 <code>__init__</code> 自动调用，销毁时 <code>__del__</code> 自动调用（不推荐依赖 <code>__del__</code> 做清理，用 with 或显式 close 更可靠）。类属性 <code>Counter.count</code> 统计创建了多少个实例（<code>__init__</code> 里 <code>Counter.count += 1</code>）。<code>id(obj)</code> 看对象内存地址，判断两个变量是否同一对象用 <code>is</code>。</p>
+<h2 id="3-继承与多态">3. 继承与多态</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.1 继承：复用代码</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>子类继承父类的属性和方法，「class Animal: ... class Dog(Animal): ...」</li></ul></div>3
+<p>子类继承父类的属性和方法，<code>class Animal: ... class Dog(Animal): ...</code>。子类可重写（override）父类方法（同名方法优先用子类的），也可用 <code>super().方法名()</code> 调用父类实现。价值是"共性上提、差异下放"：Animal 提供 eat()，Dog 加 bark()，Cat 加 meow()，不用每个子类重写 eat。</p>
+<h3 id="32-多态同一接口不同行为">3.2 多态：同一接口不同行为</h3>3
+<p>多态是"同一个函数处理不同类型的对象"：<code>def make_sound(animal): animal.speak()</code> 传 Dog 打"汪"、传 Cat 打"喵"。Python 是鸭子类型（duck typing），不检查继承关系，只要有 <code>speak()</code> 方法就能用，比 Java 的强类型多态更灵活。<code>isinstance(x, Animal)</code> 判断归属（支持子类），<code>type(x) == Animal</code> 只认精确类型。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3.3 多重继承与 MRO</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>类可继承多个父类 「class D(B, C)」，方法查找顺序（MRO，Method Resolution Order）用 C3 线性化算法，「D.mro()」 可查看</li><li>「super()」 沿 MRO 链调用下一个实现</li><li>经验规则：多重继承能不用就不用，用 Mixin 模式（功能单一的小基类组合）比深层继承树安全</li></ul></div>3
+<p>类可继承多个父类 <code>class D(B, C)</code>，方法查找顺序（MRO，Method Resolution Order）用 C3 线性化算法，<code>D.mro()</code> 可查看。<code>super()</code> 沿 MRO 链调用下一个实现。经验规则：多重继承能不用就不用，用 Mixin 模式（功能单一的小基类组合）比深层继承树安全。</p>
+<h2 id="4-封装与抽象">4. 封装与抽象</h2>2
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.1 访问控制</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>Python 没有真正的私有，用下划线约定：「_name」 单下划线表示"内部使用"（约定不外部访问）；「__salary」 双下划线触发名称改写（「_Person__salary」），外部直接访问会 AttributeError</li><li>经验规则：默认用单下划线，真要防止子类覆盖用双下划线</li><li>反例是所有属性都公开，外部随意改内部状态导致 bug</li></ul></div>3
+<p>Python 没有真正的私有，用下划线约定：<code>_name</code> 单下划线表示"内部使用"（约定不外部访问）；<code>__salary</code> 双下划线触发名称改写（<code>_Person__salary</code>），外部直接访问会 AttributeError。经验规则：默认用单下划线，真要防止子类覆盖用双下划线。反例是所有属性都公开，外部随意改内部状态导致 bug。</p>
+<h3 id="42-property像属性一样访问方法">4.2 property：像属性一样访问方法</h3>3
+<pre><code class="language-python">class Person:
+    def __init__(self, age: int):
+        self._age = age
+
+    @property
+    def age(self) -&gt; int:
+        return self._age
+
+    @age.setter
+    def age(self, value: int):
+        if not 0 &lt;= value &lt;= 150:
+            raise ValueError(&quot;年龄需在 0 到 150 之间&quot;)
+        self._age = value
+</code></pre>
+<p><code>p.age</code> 读取走 getter、<code>p.age = 20</code> 赋值走 setter（带校验）。价值是"外部像访问属性一样用，内部加逻辑不改接口"。classmethod（<code>@classmethod</code> 第一个参数是 cls）做工厂方法，staticmethod（<code>@staticmethod</code> 无 self）做工具函数。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">4.3 抽象类与抽象方法</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>「abc.ABC」 加 「@abstractmethod」 定义接口规范，子类必须实现抽象方法否则不能实例化</li><li>插件系统（第 7 节）是抽象类的典型应用</li></ul></div>3
+<p><code>abc.ABC</code> 加 <code>@abstractmethod</code> 定义接口规范，子类必须实现抽象方法否则不能实例化。用途是"强制子类实现某方法"，如数据库驱动的 <code>connect()</code>/<code>execute()</code>。插件系统（第 7 节）是抽象类的典型应用。</p>
+<h2 id="5-魔术方法速查">5. 魔术方法速查</h2>2
+<p>魔术方法（dunder method）让自定义对象像内置类型一样好用：<code>__str__</code> 面向用户的可读输出（print 时调用）、<code>__repr__</code> 面向开发者的调试输出（repr() 和交互式回显调用）、<code>__eq__</code> 定义 <code>==</code>、<code>__hash__</code> 定义哈希（改 <code>__eq__</code> 必须同时改 <code>__hash__</code>，否则对象不能作字典键）、<code>__len__</code> 支持 <code>len()</code>、<code>__getitem__</code> 支持下标访问、<code>__iter__</code>/<code>__next__</code> 支持 for 遍历、<code>__enter__</code>/<code>__exit__</code> 支持 with、<code>__call__</code> 让实例可调用（<code>obj()</code>）。规则：<code>__repr__</code> 必写（调试无它寸步难行），<code>__str__</code> 与 <code>__repr__</code> 不同写法二选一即可。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">6. 三问：什么情况用 / 什么情况别用 / 翻车长什么样</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<h3 id="61-什么情况下用适用场景加前置条件">6.1 什么情况下用（适用场景加前置条件）</h3>3
+<ul>
+<li><strong>类</strong>：数据和操作要绑定（账户、爬虫、连接池）、需要多个实例各带状态。</li>
+<li><strong>继承</strong>：有明确的 is-a 关系（Dog is Animal）、要复用父类代码。</li>
+<li><strong>多态</strong>：同一接口要处理多种类型（支付方式、图形绘制、通知渠道）。</li>
+<li><strong>封装（property/下划线）</strong>：内部状态需要校验或计算、不希望外部直接改。</li>
+<li><strong>抽象类</strong>：要强制子类实现某方法（插件接口、驱动规范）。</li>
+<li><strong>爬虫类</strong>：抓取逻辑超过 50 行、要复用 session 或状态。</li>
+</ul>
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">6.2 什么情况下别用（反例加替代方案）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>别用继承复用工具方法：is-a 不成立时继承是滥用</li><li>别写超过 3 层的继承链：MRO 难推理</li><li>别用 「__del__」 做资源清理：调用时机不确定</li></ul></div>3
+<ul>
+<li><strong>别用类包装单个函数</strong>：<code>class Math: def add(a, b)</code> 没状态，直接写函数。替代：模块级函数。</li>
+<li><strong>别用继承复用工具方法</strong>：is-a 不成立时继承是滥用。替代：组合（把工具类作为属性）。</li>
+<li><strong>别写超过 3 层的继承链</strong>：MRO 难推理。替代：Mixin 或组合。</li>
+<li><strong>别用 <code>__del__</code> 做资源清理</strong>：调用时机不确定。替代：with 上下文管理器或显式 close。</li>
+<li><strong>别把所有属性设公开</strong>：外部随意改内部状态。替代：单下划线加 property。</li>
+<li><strong>别在爬虫类里写死 URL 和选择器</strong>：页面改版就全挂。替代：配置化（类属性或配置文件）。</li>
+<li><strong>别用同步 requests 做大规模并发抓取</strong>：性能差且易被封。替代：asyncio 加 aiohttp（进阶）。</li>
+</ul>
+<h3 id="63-翻车长什么样真实失败形态加排查信号加怎么改">6.3 翻车长什么样（真实失败形态加排查信号加怎么改）</h3>3
+<ol>
+<li><strong><code>TypeError: __init__() missing 1 required positional argument: 'self'</code></strong>：直接调类的 <code>__init__</code> 忘了实例化。改：<code>obj = MyClass()</code> 而不是 <code>MyClass.__init__(...)</code>。</li>
+<li><strong>实例方法里忘写 self 参数</strong>：<code>def bark():</code> 调用 <code>dog1.bark()</code> 报缺参数。改：每个实例方法第一个参数加 self。</li>
+<li><strong>类属性被实例修改影响所有实例</strong>：<code>dog1.species = "猫科"</code> 只改 dog1（实例属性遮蔽类属性），但 <code>Dog.species = "猫科"</code> 改所有。排查：打印 <code>dog1.species</code> 与 <code>Dog.species</code>。</li>
+<li><strong>重写 <code>__eq__</code> 后对象不能作字典键</strong>：忘同时定义 <code>__hash__</code>（Python 自动把 <code>__hash__</code> 设为 None）。改：<code>__eq__</code> 和 <code>__hash__</code> 成对写。</li>
+<li><strong>property 改成普通属性后代码全崩</strong>：外部一直在用 <code>p.age = 20</code>（走 setter），改公开属性后语义变化。改：保持 property 接口不变。</li>
+<li><strong>多继承方法调用错乱</strong>：MRO 顺序不直观。排查：<code>print(D.mro())</code>。改：显式用 <code>super()</code> 沿链调用。</li>
+<li><strong>爬虫抓到空数据</strong>：页面是 JavaScript 动态渲染，requests 拿到的 HTML 没有目标节点。排查：打印 <code>response.text</code> 长度、用浏览器开发者工具看真实 DOM。改：找页面的真实 API 接口（XHR 请求）或用 Selenium/Playwright 渲染。</li>
+<li><strong>爬虫被封 IP（403/429）</strong>：请求太频繁或没带 User-Agent。改：加 <code>User-Agent</code> 请求头、<code>time.sleep(1)</code> 礼貌延迟、控制并发数。</li>
+<li><strong>BeautifulSoup 选择器找不到节点</strong>：class 名带空格（多类名）或页面结构变了。改：用 <code>soup.select("div.quote")</code> CSS 选择器、多写几个备选选择器。</li>
+</ol>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">7. 术语表</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>全称</th>
+<th>一句话解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OOP</td>
+<td>Object-Oriented Programming</td>
+<td>面向对象编程</td>
+</tr>
+<tr>
+<td>class</td>
+<td>—</td>
+<td>类，对象的蓝图</td>
+</tr>
+<tr>
+<td>object/instance</td>
+<td>—</td>
+<td>对象/实例，类的具体化</td>
+</tr>
+<tr>
+<td>attribute</td>
+<td>—</td>
+<td>属性，对象的数据</td>
+</tr>
+<tr>
+<td>method</td>
+<td>—</td>
+<td>方法，对象的函数</td>
+</tr>
+<tr>
+<td><code>__init__</code></td>
+<td>constructor</td>
+<td>构造方法，创建实例时自动调用</td>
+</tr>
+<tr>
+<td>self</td>
+<td>—</td>
+<td>当前实例的引用，实例方法首参数</td>
+</tr>
+<tr>
+<td>class attribute</td>
+<td>类属性</td>
+<td>类上定义、所有实例共享</td>
+</tr>
+<tr>
+<td>instance attribute</td>
+<td>实例属性</td>
+<td><code>__init__</code> 里定义、实例独有</td>
+</tr>
+<tr>
+<td>inheritance</td>
+<td>继承</td>
+<td>子类复用父类代码</td>
+</tr>
+<tr>
+<td>polymorphism</td>
+<td>多态</td>
+<td>同一接口处理不同类型</td>
+</tr>
+<tr>
+<td>override</td>
+<td>重写</td>
+<td>子类同名方法覆盖父类</td>
+</tr>
+<tr>
+<td>MRO</td>
+<td>Method Resolution Order</td>
+<td>方法解析顺序（C3 线性化）</td>
+</tr>
+<tr>
+<td>encapsulation</td>
+<td>封装</td>
+<td>隐藏内部细节、暴露接口</td>
+</tr>
+<tr>
+<td>abstraction</td>
+<td>抽象</td>
+<td>定义接口规范不实现</td>
+</tr>
+<tr>
+<td>ABC</td>
+<td>Abstract Base Class</td>
+<td>抽象基类</td>
+</tr>
+<tr>
+<td>property</td>
+<td>—</td>
+<td>属性访问器，getter/setter</td>
+</tr>
+<tr>
+<td>classmethod</td>
+<td>—</td>
+<td>类方法，首个参数是 cls</td>
+</tr>
+<tr>
+<td>staticmethod</td>
+<td>—</td>
+<td>静态方法，无 self/cls</td>
+</tr>
+<tr>
+<td>dunder method</td>
+<td>double underscore</td>
+<td>魔术方法（<code>__str__</code> 等）</td>
+</tr>
+<tr>
+<td>duck typing</td>
+<td>鸭子类型</td>
+<td>有对应方法就能用，不看继承</td>
+</tr>
+<tr>
+<td>Mixin</td>
+<td>—</td>
+<td>功能单一的小基类，用于组合</td>
+</tr>
+<tr>
+<td>web scraping</td>
+<td>网页抓取</td>
+<td>从网页提取结构化数据</td>
+</tr>
+<tr>
+<td>User-Agent</td>
+<td>—</td>
+<td>请求头标识客户端身份</td>
+</tr>
+<tr>
+<td>CSS selector</td>
+<td>—</td>
+<td>CSS 选择器，定位 HTML 元素</td>
+</tr>
+<tr>
+<td>XHR</td>
+<td>XMLHttpRequest</td>
+<td>浏览器异步请求，常是真实数据接口</td>
+</tr>
+</tbody>
+</table>
+<h2 id="8-两段可直接跑的脚本跟读版">8. 两段可直接跑的脚本（跟读版）</h2>2
+<p><strong>脚本 A：oop_tour.py（Python 3.12）——类、继承、多态、property 一次跑通</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# oop_tour.py —— Python 3.12
+# 运行: python oop_tour.py
+
+class Animal:
+    &quot;&quot;&quot;抽象基类：定义 speak 接口&quot;&quot;&quot;
+    def speak(self) -&gt; str:
+        raise NotImplementedError
+
+class Dog(Animal):
+    def __init__(self, name: str, age: int):
+        self._name = name          # 单下划线：内部使用
+        self._age = age
+
+    @property
+    def age(self) -&gt; int:          # property getter
+        return self._age
+
+    @age.setter
+    def age(self, value: int):     # property setter 带校验
+        if not 0 &lt;= value &lt;= 30:
+            raise ValueError(&quot;狗的年龄需在 0 到 30 之间&quot;)
+        self._age = value
+
+    def speak(self) -&gt; str:
+        return f&quot;{self._name}：汪！&quot;
+
+    def __repr__(self) -&gt; str:     # 调试输出必写
+        return f&quot;Dog(name={self._name!r}, age={self._age})&quot;
+
+class Cat(Animal):
+    def __init__(self, name: str):
+        self._name = name
+
+    def speak(self) -&gt; str:
+        return f&quot;{self._name}：喵~&quot;
+
+def make_sound(animal: Animal) -&gt; str:   # 多态：同一接口不同行为
+    return animal.speak()
+
+dog, cat = Dog(&quot;旺财&quot;, 3), Cat(&quot;咪咪&quot;)
+print(make_sound(dog), make_sound(cat))
+print(repr(dog))
+dog.age = 5
+print(&quot;改年龄后:&quot;, dog.age)
+try:
+    dog.age = 99                   # 超范围触发 setter 校验
+except ValueError as e:
+    print(&quot;校验拦截:&quot;, e)
+</code></pre>
+<p>验收标准：make_sound 分别打印"汪"和"喵"（多态）、repr 打印 Dog(name='旺财', age=3)、<code>dog.age = 99</code> 抛 ValueError。四支柱（封装 property、继承 Animal、多态 make_sound、抽象 NotImplementedError）一次演示。</p>
+<p><strong>脚本 B：scraper_lab.py（Python 3.12）——requests 加 BeautifulSoup 抓名言（真实端点）</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# scraper_lab.py —— Python 3.12
+# 需先装: pip install requests beautifulsoup4
+# 运行: python scraper_lab.py
+import json, time
+from pathlib import Path
+import requests
+from bs4 import BeautifulSoup
+
+class WebScraper:
+    &quot;&quot;&quot;简单网页爬虫：抓 quotes.toscrape.com&quot;&quot;&quot;
+    BASE = &quot;https://quotes.toscrape.com&quot;
+
+    def __init__(self, delay: float = 1.0):
+        self.session = requests.Session()
+        self.session.headers.update({&quot;User-Agent&quot;: &quot;Mozilla/5.0 (Student Bot)&quot;})
+        self.delay = delay
+        self.results = []
+
+    def fetch(self, url: str) -&gt; str | None:
+        try:
+            resp = self.session.get(url, timeout=10)
+            resp.raise_for_status()
+            return resp.text
+        except requests.RequestException as e:
+            print(f&quot;请求失败 {url}: {e}&quot;)
+            return None
+
+    def parse(self, html: str) -&gt; list[dict]:
+        soup = BeautifulSoup(html, &quot;html.parser&quot;)
+        out = []
+        for div in soup.find_all(&quot;div&quot;, class_=&quot;quote&quot;):
+            text = div.find(&quot;span&quot;, class_=&quot;text&quot;)
+            author = div.find(&quot;small&quot;, class_=&quot;author&quot;)
+            tags = [a.text for a in div.find_all(&quot;a&quot;, class_=&quot;tag&quot;)]
+            if text and author:
+                out.append({&quot;text&quot;: text.text, &quot;author&quot;: author.text, &quot;tags&quot;: tags})
+        return out
+
+    def scrape(self, pages: int = 2):
+        for page in range(1, pages + 1):
+            url = f&quot;{self.BASE}/page/{page}/&quot;
+            print(f&quot;抓取 {url}&quot;)
+            html = self.fetch(url)
+            if html:
+                quotes = self.parse(html)
+                self.results.extend(quotes)
+                print(f&quot;  得到 {len(quotes)} 条&quot;)
+            time.sleep(self.delay)          # 礼貌爬取
+        return self.results
+
+    def save(self, path: str):
+        Path(path).write_text(json.dumps(self.results, ensure_ascii=False, indent=2),
+                              encoding=&quot;utf-8&quot;)
+        print(f&quot;已保存 {len(self.results)} 条到 {path}&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    s = WebScraper(delay=0.5)
+    s.scrape(pages=2)
+    s.save(&quot;/tmp/quotes.json&quot;)
+</code></pre>
+<p>验收标准：运行后打印两行"抓取"加两行"得到 N 条"，<code>/tmp/quotes.json</code> 存在且含名言数据。真实端点 <code>https://quotes.toscrape.com/page/1/</code> 是公开的练习爬虫站点，适合学习。翻车排查：抓到 0 条是选择器错了（打印 <code>soup.prettify()</code> 看结构）；403/429 是被限速（加 delay、换 User-Agent）。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">10. 继承与多态的实战细节（handbook 补充）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>继承的价值验证：「dog.info()」 直接用 Animal 的实现，一行代码不用重写</li><li>反模式是调用方写 「if isinstance(x, Circle): ... elif isinstance(x, Rectangle): ...」，类型一多就爆炸，正确做法是把差异推给多态</li><li>这是"面向接口编程"的最小模型：基类定义契约，子类各显神通，调用方只认契约</li></ul></div>2
+<p><strong>【handbook 补充】继承的标准结构</strong>（Animal 加 Dog 加 Cat）：Animal 提供 <code>__init__(name, age)</code>、<code>speak()</code>、<code>info()</code>；Dog 继承后 <code>super().__init__(name, age)</code> 调父类构造（避免重复写 name/age 赋值）、重写 <code>speak()</code> 输出"汪汪"、新增 <code>fetch()</code> 子类独有方法；Cat 同理重写 speak 输出"喵"、新增 <code>scratch()</code>。三个关键动作记牢：括号写父类 <code>class Dog(Animal)</code>、<code>super().__init__()</code> 复用父类构造、同名方法重写父类行为。继承的价值验证：<code>dog.info()</code> 直接用 Animal 的实现，一行代码不用重写。</p>
+<p><strong>多态的 Shape 案例</strong>：Shape 基类的 <code>area()</code> 抛 <code>NotImplementedError("子类必须实现 area() 方法")</code>，Circle、Rectangle、Triangle 各自实现 area。<code>def describe(shape: Shape): print(f"面积 {shape.area():.2f}")</code> 一个函数处理所有图形——传 Circle 算圆面积、传 Rectangle 算矩形面积，调用方不用关心具体类型。这是"面向接口编程"的最小模型：基类定义契约，子类各显神通，调用方只认契约。反模式是调用方写 <code>if isinstance(x, Circle): ... elif isinstance(x, Rectangle): ...</code>，类型一多就爆炸，正确做法是把差异推给多态。</p>
+<p><strong>isinstance 与类型检查</strong>：<code>isinstance(dog, Animal)</code> 为 True（子类是父类实例），<code>type(dog) == Animal</code> 为 False（不是精确类型）。写库函数时参数注解用基类 <code>def make_sound(animal: Animal)</code>，isinstance 检查也用基类，这样所有子类都能通过。想接受任何有 speak 方法的对象（不限继承），用 duck typing 直接调用 <code>animal.speak()</code>，或用 typing.Protocol 声明结构化接口。</p>
+<h2 id="12-封装三例访问控制propertyclassmethodhandbook-补充">12. 封装三例：访问控制、property、classmethod（handbook 补充）</h2>2
+<p><strong>【handbook 补充】访问控制的三档约定</strong>（Person 案例）：<code>name</code> 公开（谁都能访问）、<code>_age</code> 受保护（约定仅供类内部和子类用，外部访问不报错但不礼貌）、<code>__salary</code> 私有（Python 做名称改写，<code>p.__salary</code> 直接访问抛 AttributeError，强制访问要写 <code>p._Person__salary</code> 但不推荐）。经验规则：内部状态默认加单下划线，真要防子类覆盖才用双下划线；把"能否直接改"当成接口设计问题而不是语言限制问题。</p>
+<p><strong>property 的完整案例</strong>（Temperature 温度类）：<code>celsius</code> 是 getter 加 setter（setter 里校验 <code>value &lt; -273.15</code> 抛 ValueError 绝对零度底线），<code>fahrenheit</code> 和 <code>kelvin</code> 是只读计算属性（getter 里实时换算，不存冗余数据）。<code>temp.celsius = -300</code> 会被 setter 拦截，<code>temp.fahrenheit</code> 只读没有 setter 所以赋值会 AttributeError。三种 property 用法对应三种需求：受控访问（校验）、计算属性（派生值）、只读属性（不许改）。对照 dataclass：dataclass 的字段是公开的，要校验得手写 <code>__post_init__</code>，property 更适合单字段的精细控制。</p>
+<p><strong>classmethod 与 staticmethod</strong>：<code>@classmethod</code> 第一个参数是 cls（类本身），适合做"替代构造器"（工厂方法）：<code>Date.from_string("2026-10-23")</code> 比 <code>Date(2026, 10, 23)</code> 更表达意图；<code>@staticmethod</code> 无 self 无 cls，就是"放在类命名空间里的普通函数"，适合工具函数（<code>DateUtils.is_leap_year(2024)</code>）。判断用哪个：要访问类属性或做实例化用 classmethod，纯工具逻辑用 staticmethod，访问实例状态用普通方法。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">14. 魔术方法对照表与 Money 案例（handbook 补充）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>想让自定义对象支持哪个运算/内置函数，就实现对应的魔术方法</li><li>工程要点：比较操作要对"不可比"情况明确报错（不同币种），别静默返回 False；「__eq__」 与 「__hash__」 成对实现（Money 若要作字典键）；「NotImplemented」 是"我不知道怎么比"的正确返回值，比抛异常更符合协议</li><li>命名规律：「__」 开头结尾、方法名是运算符或内置函数的小写名</li></ul></div>2
+<p><strong>【handbook 补充】运算符到魔术方法的映射表</strong>是重载的速查入口：<code>a + b</code> 调 <code>__add__</code>、<code>len(a)</code> 调 <code>__len__</code>、<code>print(a)</code> 调 <code>__str__</code>、<code>a == b</code> 调 <code>__eq__</code>、<code>a[0]</code> 调 <code>__getitem__</code>、<code>a in b</code> 调 <code>__contains__</code>。想让自定义对象支持哪个运算/内置函数，就实现对应的魔术方法。命名规律：<code>__</code> 开头结尾、方法名是运算符或内置函数的小写名。</p>
+<p><strong><code>__repr__</code> 与 <code>__str__</code> 的分工</strong>（Point 案例）：<code>__repr__</code> 给开发者看，标准是"能用 eval() 还原对象"（<code>Point(3, 4)</code>）；<code>__str__</code> 给用户看，标准是"好看易读"（<code>(3, 4)</code>）。print 调 <code>__str__</code>（没实现则回退 <code>__repr__</code>），交互式回显和 repr() 调 <code>__repr__</code>。规则：<code>__repr__</code> 必写，<code>__str__</code> 可选。</p>
+<p><strong>Money 案例是运算符重载的完整示范</strong>：<code>__eq__</code> 判断金额和币种都相等（类型不匹配返回 <code>NotImplemented</code> 让 Python 尝试反射比较），<code>__lt__</code>/<code>__gt__</code> 比大小（不同币种抛 ValueError 防止误比），<code>__le__</code>/<code>__ge__</code> 由 eq 和 lt/gt 组合，<code>__bool__</code> 让零金额为假。工程要点：比较操作要对"不可比"情况明确报错（不同币种），别静默返回 False；<code>__eq__</code> 与 <code>__hash__</code> 成对实现（Money 若要作字典键）；<code>NotImplemented</code> 是"我不知道怎么比"的正确返回值，比抛异常更符合协议。</p>
+<h2 id="16-插件系统完整案例abc-加管理器handbook-补充">16. 插件系统完整案例：ABC 加管理器（handbook 补充）</h2>2
+<p><strong>【handbook 补充】插件系统是抽象类的最佳练兵</strong>：<code>Plugin(ABC)</code> 定义两个契约——<code>name</code> property（插件名）和 <code>execute(data) -&gt; str</code>（执行逻辑），<code>@abstractmethod</code> 强制子类实现否则不能实例化。三个实现各司其职：UpperPlugin（<code>data.upper()</code> 大写转换）、ReversePlugin（<code>data[::-1]</code> 反转）、EncryptPlugin（凯撒密码偏移 3 位，<code>chr((ord(ch) - base + shift) % 26 + base)</code> 循环移位）。新增插件只需加一个类，管理器代码一行不改——这就是"开闭原则"（对扩展开放、对修改关闭）的直观体现。</p>
+<p><strong>PluginManager 是注册表加调度器</strong>：<code>register(plugin)</code> 把插件存进 <code>self._plugins</code> 字典（键是 plugin.name）、<code>list_plugins()</code> 列出所有已注册、<code>run(name, data)</code> 按名调度执行（未注册抛 KeyError）。<code>_plugins</code> 用单下划线表示内部状态不希望外部乱改。整个模式的三层结构：接口（ABC 插件基类）→ 实现（三个具体插件）→ 调度（管理器），这是所有插件架构的通用骨架，Web 框架的中间件、数据管道的转换器、IDE 的扩展都是这个模式。</p>
+<p><strong>判断何时用这个模式</strong>：要支持"用户后续能加新实现而不动核心代码"时；只有一两个固定实现时用简单 if-elif 更直接。反例是给每个类都建 ABC 基类但只有一种实现，过度设计；正确做法是等第二种实现出现时再抽象。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">18. 爬虫工程化：项目实战的 OOP 组织法（chapter10 补充）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>【chapter10 补充】chapter10 项目实战的组织模式可以完整搬到爬虫工程里：每个项目是"目录加虚拟环境加 requirements 加配置文件加模块拆分"</li><li>智能客服项目（10.1 节）的结构是 「.env」 配 API Key（敏感信息不进代码）、「knowledge_base.py」 数据、「vector_store.py」 检索、「customer_service.py」 核心逻辑、「app.py」 Web 界面，四个模块各管一层</li><li>反例是把 Key 写死在代码里提交进 git（泄露后只能作废重发）</li></ul></div>2
+<p><strong>【chapter10 补充】chapter10 项目实战的组织模式</strong>可以完整搬到爬虫工程里：每个项目是"目录加虚拟环境加 requirements 加配置文件加模块拆分"。智能客服项目（10.1 节）的结构是 <code>.env</code> 配 API Key（敏感信息不进代码）、<code>knowledge_base.py</code> 数据、<code>vector_store.py</code> 检索、<code>customer_service.py</code> 核心逻辑、<code>app.py</code> Web 界面，四个模块各管一层。爬虫项目照搬这个分层：<code>config.py</code>（URL、headers、延迟参数）、<code>fetcher.py</code>（requests 抓取）、<code>parser.py</code>（BeautifulSoup 解析）、<code>storage.py</code>（JSON/CSV 落盘）、<code>main.py</code>（编排调度），五个文件各司其职，改页面选择器只动 parser.py。</p>
+<p><strong>静态方法组织工具逻辑</strong>是 chapter10 的 ImageHandler 模式：<code>@staticmethod load_image(source)</code> 支持文件路径和 URL 两种来源（URL 用 <code>requests.get(source, timeout=10)</code> 拉取后 <code>Image.open(io.BytesIO(content))</code>）、<code>validate_image</code> 检查格式白名单和大小上限（<code>SUPPORTED_FORMATS = {"JPEG", "PNG", ...}</code>、<code>MAX_SIZE_MB = 20</code>）、<code>image_to_base64</code> 转 Base64（RGBA 转 RGB 白底合成，<code>image.save(buffer, format="JPEG", quality=90)</code>）、<code>resize_image</code> 按长边缩放保比例（<code>Image.Resampling.LANCZOS</code> 重采样质量最好）。爬虫抓图片时直接复用这套静态方法。</p>
+<p><strong>API Key 管理的铁律</strong>（chapter10 的 .env 模式）：敏感信息放 <code>.env</code> 文件、代码里 <code>os.getenv("OPENAI_API_KEY")</code> 读取、<code>.gitignore</code> 忽略 .env。反例是把 Key 写死在代码里提交进 git（泄露后只能作废重发）。爬虫同理：Cookie、Token、认证头都走环境变量或配置文件，不进版本控制。</p>
+<h2 id="20-多重继承mixin-与员工薪资系统handbook-补充">20. 多重继承、Mixin 与员工薪资系统（handbook 补充）</h2>2
+<p><strong>【handbook 补充】isinstance 经验法则</strong>：类型检查优先用 <code>isinstance(dog, Animal)</code>（能正确处理继承关系），不用 <code>type(dog) is Animal</code>（只认精确类型，子类判 False）。<code>isinstance</code> 还支持元组多选 <code>isinstance(x, (Dog, Cat))</code>，比写两个 or 简洁。只有在"必须精确匹配某类型、排除子类"时才用 <code>type() is</code>。</p>
+<p><strong>多重继承与 Mixin 模式</strong>（Duck 案例）：<code>class Duck(Animal, Flyable, Swimmable)</code> 一次继承三个基类，鸭子既有 Animal 的 info/speak、又有 Flyable 的 fly、Swimmable 的 swim。Flyable 和 Swimmable 是"能力型"基类（只给方法不给状态），这就是 Mixin 模式——把横切能力拆成小基类按需组合。风险是"菱形继承"（两个父类继承同一个祖辈导致方法冲突），Python 用 MRO（C3 线性化）解决，<code>Duck.__mro__</code> 查看查找顺序。经验规则：初学阶段少用多重继承，优先组合（把能力对象作为属性）；真要用就用"一个主类加多个能力 Mixin"结构，不要出现两个都有状态的基类。</p>
+<p><strong>员工薪资系统是多态的业务化案例</strong>：Employee 基类定义 <code>calculate_salary()</code> 抛 NotImplementedError、<code>__str__</code> 返回工号加姓名；FullTimeEmployee（固定月薪，<code>calculate_salary</code> 返回 monthly_salary）、PartTimeEmployee（时薪，返回 <code>hourly_rate * hours</code>）各自实现。统一处理 <code>for emp in employees: print(emp, emp.calculate_salary())</code> 一行代码处理所有员工类型，加 Contractor（外包）只需新增类不动主循环。这是"薪资计算、订单结算、通知发送"这类业务的通用骨架。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">22. 上下文管理器与可调用对象（handbook 补充）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>爬虫的 session、数据库连接、文件句柄都该用这个模式，比手写 try/finally 可靠</li><li>比 lambda 强的地方是能存状态（self.index），比普通函数强的地方是能当对象传递和复用</li><li>想自定义"像内置类型的容器"，就照这个清单实现容器协议四件套加运算符方法</li></ul></div>2
+<p><strong>【handbook 补充】类实现上下文管理器的两个方法</strong>（Timer 与 DBConnection 案例）：<code>__enter__</code> 进入 with 块时调用（返回 self 赋给 as 变量、记录开始时间），<code>__exit__(exc_type, exc_val, exc_tb)</code> 离开时调用（计算耗时、<strong>返回 False 不吞异常</strong>）。DBConnection 案例把连接和断开配对：<code>with DBConnection("localhost") as db:</code> 进入打印"连接到 localhost"、退出打印"断开"，有异常时 <code>if exc_type is not None: print(f"发生异常：{exc_val}")</code> 记录后继续抛出。爬虫的 session、数据库连接、文件句柄都该用这个模式，比手写 try/finally 可靠。</p>
+<p><strong><code>__call__</code> 让对象像函数一样调用</strong>：Multiplier(factor) 案例 <code>double = Multiplier(2)</code> 后 <code>double(5)</code> 得 10（<code>__call__(self, value)</code> 被触发），<code>callable(double)</code> 为 True。实用场景是"带状态的函数"：<code>SortByKey(index)</code> 做排序 key（<code>students.sort(key=SortByKey(1))</code> 按成绩排）、带配置的过滤器、带计数的统计器。比 lambda 强的地方是能存状态（self.index），比普通函数强的地方是能当对象传递和复用。</p>
+<p><strong>IntSet 自定义集合类是魔术方法的综合演练</strong>：<code>__len__</code> 支持 len()、<code>__contains__</code> 支持 in、<code>__iter__</code> 支持 for（按排序顺序迭代）、<code>__or__</code> 支持并集 <code>A | B</code>、<code>__and__</code>/<code>__sub__</code>/<code>__xor__</code> 对应交差对称差。想自定义"像内置类型的容器"，就照这个清单实现容器协议四件套加运算符方法。翻车点：<code>__iter__</code> 里 <code>return iter(sorted(self._data))</code> 每次迭代都排序，大集合频繁迭代会慢，需要固定顺序就缓存排序结果。</p>
+<h2 id="24-多模态引擎与-api-客户端封装chapter10-补充">24. 多模态引擎与 API 客户端封装（chapter10 补充）</h2>2
+<p><strong>【chapter10 补充】MultimodalEngine 是"API 客户端封装"的标准范式</strong>：<code>__init__</code> 里 <code>load_dotenv()</code> 加载 .env、<code>OpenAI(api_key=os.getenv("OPENAI_API_KEY"), base_url=os.getenv("OPENAI_BASE_URL"))</code> 建客户端（Key 从环境变量读不硬编码）、<code>self.model = "gpt-4o"</code> 配模型、组合 <code>self.image_handler = ImageHandler()</code>（用组合不用继承）。私有方法 <code>_call_vision(messages, max_tokens=1500)</code> 统一收口 API 调用（<code>temperature=0.3</code> 低随机性、<code>response.choices[0].message.content</code> 取结果），公开方法 <code>describe_image(image_path, detail)</code> 编排"加载图片 → 缩放 → 转 Base64 → 构建消息 → 调用"五步。爬虫同理：把 requests 的调用收口到 <code>fetch()</code> 一个方法，超时、重试、headers 都在这里统一处理。</p>
+<p><strong>图片消息的多模态格式</strong>：<code>messages</code> 里的 content 是列表，<code>{"type": "text", "text": prompt}</code> 加 <code>{"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,...", "detail": "high"}}</code>。<code>detail</code> 参数控制视觉精度（high/low/auto），high 精度高但 token 贵。爬虫抓图转 Base64 后塞进这个格式就能做"看图说话"，是爬虫与大模型结合的常见入口。</p>
+<p><strong>客户端封装的三个工程习惯</strong>：敏感配置走环境变量（<code>os.getenv</code>）、API 调用收口到一个私有方法（改模型/加日志只动一处）、公开方法只做编排不做细节（describe_image 五步流程一目了然）。翻车点：<code>base_url</code> 写错或忘了设置会打到默认端点（国内访问 OpenAI 直连会超时）；<code>max_tokens</code> 不设限会被长响应吃掉配额；<code>temperature</code> 用默认 1.0 做描述任务会输出飘忽。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">26. Web 界面封装与事件绑定（Gradio 模式，chapter10 补充）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>爬虫结果展示可以照搬：抓取完的数据用 「gr.Dataframe」 展示、下载链接用 「gr.File」</li><li>教训是"Web 框架共享实例的并发问题"：多个用户同时访问会共享同一个 cs 对象，需要线程安全或每请求新建</li><li>前端与逻辑分离的工程价值：customer_service.py 管逻辑、app.py 管界面，两者通过函数接口解耦</li></ul></div>2
+<p><strong>【chapter10 补充】Gradio Blocks 的界面构造模式</strong>（app.py 案例）：<code>gr.Blocks(title=..., theme=gr.themes.Soft())</code> 建界面容器、<code>gr.Markdown</code> 放说明文字、<code>gr.Chatbot(height=400)</code> 放对话窗、<code>gr.Row()</code> 加 <code>gr.Textbox</code> 加 <code>gr.Button</code> 做输入行、事件绑定 <code>msg.submit(chat, [msg, chatbot], [msg, chatbot])</code> 把回车/点击接到回调函数（输入是 msg 和 chatbot、输出也是这两个）。回调函数签名 <code>def chat(message, history)</code> 收消息和历史、返回空输入加新历史。爬虫结果展示可以照搬：抓取完的数据用 <code>gr.Dataframe</code> 展示、下载链接用 <code>gr.File</code>。</p>
+<p><strong>回调与状态管理</strong>：<code>cs = CustomerService()</code> 建全局实例（Gradio 多用户共享，注意并发安全）、<code>reset_chat()</code> 里 <code>global cs; cs = CustomerService()</code> 重建实例清空状态。教训是"Web 框架共享实例的并发问题"：多个用户同时访问会共享同一个 cs 对象，需要线程安全或每请求新建。<code>if __name__ == "__main__": demo.launch(server_name="0.0.0.0", server_port=7860)</code> 启动服务，<code>0.0.0.0</code> 允许外部访问（局域网/容器场景），生产环境前面要加反向代理和鉴权。</p>
+<p><strong>前端与逻辑分离的工程价值</strong>：customer_service.py 管逻辑、app.py 管界面，两者通过函数接口解耦。爬虫同理：<code>main.py</code> 跑抓取逻辑、<code>app.py</code> 用 Gradio 展示结果，逻辑层可独立测试。判断何时上 Web 界面：结果要给非技术用户看、要做交互式探索、要演示，三者任一；纯自己用的脚本写命令行就够，别为炫技上界面。</p>
+<h2 id="28-系统提示词与意图识别的封装chapter10-补充">28. 系统提示词与意图识别的封装（chapter10 补充）</h2>2
+<p><strong>【chapter10 补充】CustomerService 的核心是"系统提示词加意图分发"</strong>：<code>self.system_prompt</code> 写死三段规则——回答规则（基于参考资料、不知道就说不确定、简洁友好）、转人工规则（用户要求/投诉/退款争议/不确定就转）、禁止行为（不编造政策、不泄露内部、不讨论竞品）。这是"给大模型立规矩"的标准写法：分点列规则、每条可执行、覆盖边界情况。爬虫结合大模型时同理：提示词里写清楚"只根据抓到的原文回答、抓不到就说没有"，防止模型编造。</p>
+<p><strong>意图识别 <code>identify_intent</code></strong> 用一次 LLM 调用分类：system 消息定义三个类别（faq 产品问题、transfer 转人工、chat 闲聊）、<code>temperature=0</code>（分类任务要确定性输出）、<code>max_tokens=10</code>（只回类别名，省 token）。返回后主流程按类别分发：faq 走 RAG 检索、transfer 直接转人工、chat 闲聊回复。这是"分类前置、分而治之"的工程模式，比让一个大 prompt 处理所有情况更稳、更省 token。</p>
+<p><strong>对话历史管理</strong>：<code>self.conversation_history = []</code>、<code>self.max_history = 10</code> 保留最近 10 轮（太长 token 贵、太短丢上下文）。发请求时把历史拼进 messages 数组（system 加 history 加 user）。工程细节：历史要按角色正确组装（role: assistant/user 交替），截断时保留最近的轮次别砍最新的。翻车点：历史不截断会随着对话变长撞上下文窗口上限；角色组装错误（连续两个 user）会让模型困惑。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">30. 对象生命周期与容器协议（handbook 补充）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>「del c1」 显式删除触发 「__del__」，打印"剩余 1 个"</li><li>判断何时实现容器协议：你的类本质是"一组东西的集合"且希望用户用熟悉的列表/字典语法访问时</li><li>但要警惕：「__del__」 的调用时机由垃圾回收决定（引用计数归零或 GC 触发），不确定性高，不该在 「__del__」 里做关键清理（关文件、提交事务），要用 with 或显式 close</li></ul></div>2
+<p><strong>【handbook 补充】Counter 案例演示对象生命周期</strong>：类属性 <code>count = 0</code> 统计实例数、<code>__init__</code> 里 <code>Counter.count += 1</code>、<code>__del__</code> 里 <code>Counter.count -= 1</code>（对象销毁时自动调用）。<code>del c1</code> 显式删除触发 <code>__del__</code>，打印"剩余 1 个"。但要警惕：<code>__del__</code> 的调用时机由垃圾回收决定（引用计数归零或 GC 触发），不确定性高，不该在 <code>__del__</code> 里做关键清理（关文件、提交事务），要用 with 或显式 close。类属性计数的另一种用法是"生成唯一 ID"：<code>__init__</code> 里 <code>self.id = Counter.count; Counter.count += 1</code>。</p>
+<p><strong>BankAccount 银行账户是"封装保护数据"的教科书案例</strong>：<code>self._balance</code> 单下划线标记内部数据、<code>self._history: list[str] = []</code> 记流水、<code>deposit(amount)</code> 方法里校验 <code>amount &lt;= 0</code> 拒绝、加钱、记流水三步一气呵成。外部想看余额只能通过方法或 property，不能直接 <code>account._balance = 999999</code>（虽然 Python 拦不住，但下划线是强烈信号）。这个模式推广到所有"有状态加约束"的场景：购物车（数量非负）、积分系统（不能倒扣）、配额管理（不能超上限）。</p>
+<p><strong>Playlist 容器协议四件套</strong>：<code>__len__</code> 支持 len()、<code>__getitem__</code> 支持 <code>playlist[0]</code> 索引、<code>__setitem__</code> 支持 <code>playlist[1] = "青花瓷"</code> 赋值、<code>__contains__</code> 支持 <code>"稻香" in playlist</code>、<code>__iter__</code> 支持 for 遍历。实现后自定义对象就能像列表一样用，<code>sorted(playlist)</code>、<code>playlist[1:3]</code>（要另实现 <code>__getitem__</code> 的切片分支）等内置操作也部分兼容。判断何时实现容器协议：你的类本质是"一组东西的集合"且希望用户用熟悉的列表/字典语法访问时。</p>
+<h2 id="32-dateutils-与-database工厂方法闰年校验模板方法handbook-补充">32. DateUtils 与 Database：工厂方法、闰年校验、模板方法（handbook 补充）</h2>2
+<p><strong>【handbook 补充】三种方法的对比表</strong>（handbook 原文）：实例方法（无装饰器，首参 self，操作实例数据）、类方法（<code>@classmethod</code>，首参 cls，工厂方法/操作类属性）、静态方法（<code>@staticmethod</code>，无首参，工具函数）。DateUtils 案例把三者用齐：<code>__init__(year, month, day)</code> 实例方法建对象、<code>from_string(cls, date_str)</code> 类方法从字符串工厂构造（<code>date_str.split("-")</code> 拆分后 <code>cls(...)</code> 调用构造器，比 <code>DateUtils(...)</code> 更能适应继承）、<code>is_valid_date(year, month, day)</code> 静态方法做纯校验（不碰 self 也不碰 cls）。</p>
+<p><strong>闰年校验的完整逻辑</strong>（is_valid_date）：月份 1 到 12、日期 1 到 31、小月（4/6/9/11）不超过 30 天、二月按闰年判断（<code>(year % 4 == 0 and year % 100 != 0) or (year % 400 == 0)</code> 是闰年则 29 天否则 28 天）。这个函数把"业务规则"写进静态方法，是"校验逻辑集中管理"的好例子，替代方案是每次调用前散写 if 判断。</p>
+<p><strong>Database 抽象类加模板方法</strong>：<code>connect()</code>、<code>execute(sql)</code>、<code>close()</code> 三个抽象方法定义数据库驱动契约，<code>run_query(sql)</code> 是模板方法（具体方法）——固定"连接 → 执行 → 关闭"三步骨架，子类只实现三步的细节。这是 Template Method 模式：父类定义流程骨架、子类填充步骤。MySQL、PostgreSQL、SQLite 驱动各自实现三个抽象方法，<code>run_query</code> 一行不改。判断何时用：流程固定但每步实现不同时（数据库驱动、数据导入导出、爬虫的"抓取-解析-存储"三步）。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">34. VectorStore：向量检索的 OOP 封装（chapter10 补充）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>爬虫抓到的文档做语义检索时，这套封装直接复用，改 「get_embedding」 用本地模型（sentence-transformers）即可脱离 OpenAI</li><li>翻车点：索引和 documents 文件不同步（改了文档忘了重建索引）会导致检索结果错位，工程上要么两个文件一起存、要么用单一文件格式</li></ul></div>2
+<p><strong>【chapter10 补充】VectorStore 是"外部服务封装"的又一范式</strong>：<code>__init__(dimension=1536)</code> 建 FAISS 索引（<code>faiss.IndexFlatL2(dimension)</code> L2 距离索引，1536 是 text-embedding-3-small 的输出维度）、<code>self.documents</code> 平行数组存原始文档（索引只存向量，文档靠下标对齐）、<code>self.index_file</code>/<code>self.docs_file</code> 持久化路径。<code>get_embedding(text)</code> 收口 Embedding API 调用（<code>response.data[0].embedding</code> 取向量）、<code>add_documents</code> 把"问题加答案"拼接后转向量（拼接提高检索质量）、<code>search(query, top_k=3)</code> 搜最相似的 top_k 条（<code>self.index.search(query_array, top_k)</code> 返回距离和下标，下标映射回 documents）。</p>
+<p><strong>向量检索的三个工程细节</strong>：文本拼接（<code>f"问题：{doc['question']} 答案：{doc['answer']}"</code> 让向量同时编码问题和答案，比只编码问题检索准）；空索引保护（<code>if self.index.ntotal == 0: return []</code> 防止空库崩溃）；结果对齐（FAISS 返回的 indices 是下标，要 <code>self.documents[idx]</code> 映射回原文档，<code>idx &lt; len(self.documents)</code> 防越界）。爬虫抓到的文档做语义检索时，这套封装直接复用，改 <code>get_embedding</code> 用本地模型（sentence-transformers）即可脱离 OpenAI。</p>
+<p><strong>持久化与加载</strong>：<code>load()</code> 从 <code>vector_index.faiss</code> 加载索引、<code>save()</code> 落盘，<code>CustomerService.__init__</code> 里 <code>if not self.vector_store.load(): 建索引并 save()</code> 是"有缓存就用、没缓存就建"的标准模式。翻车点：索引和 documents 文件不同步（改了文档忘了重建索引）会导致检索结果错位，工程上要么两个文件一起存、要么用单一文件格式。</p>
+<h2 id="36-rag-六步流程与-faq-数据组织chapter10-补充">36. RAG 六步流程与 FAQ 数据组织（chapter10 补充）</h2>2
+<p><strong>【chapter10 补充】generate_response 的 RAG 六步</strong>是"检索增强生成"的标准骨架：识别意图（identify_intent）→ 意图分流（transfer 直接转人工）→ 检索知识库（search_knowledge 调 VectorStore 搜 top_k=2）→ 构建消息（system prompt 加历史加带检索结果的用户问题）→ 生成回答（temperature=0.7、max_tokens=500）→ 更新历史（user 和 assistant 各 append 一条）。爬虫抓到的网页内容就是"知识库"，把网页文本切块塞进 VectorStore，用户问题检索出相关网页段落喂给 LLM，就是"网页问答机器人"。</p>
+<p><strong>检索质量的关键参数</strong>（search_knowledge）：<code>top_k=2</code> 取最相似 2 条；距离阈值 <code>if results[0]["distance"] &gt; 1.5: return "未找到相关信息"</code> 防止"强行匹配无关文档"（L2 距离越大越不相似，超过阈值宁可说没有）。上下文拼接成"参考资料：\n1. 问题：...\n 答案：..."的编号列表，让 LLM 能引用。工程教训：没有距离阈值的 RAG 会把无关文档塞给 LLM，导致答非所问，阈值必须调（1.5 是经验值，要按 embedding 模型实测调）。</p>
+<p><strong>FAQ 数据的组织格式</strong>（knowledge_base.py）：<code>FAQ_DATA = [{"question": "...", "answer": "..."}, ...]</code> 十条电商 FAQ（退货政策、物流查询、支付方式、会员权益、发票、质量问题、修改地址、优惠券、客服时间、注册账号），每条答案都写得具体可执行（有步骤、有时间、有条件）。爬虫抓 FAQ 页面后照这个格式整理，就是现成的 RAG 知识库。答案写得越具体（带数字、步骤、边界条件），LLM 生成的回答越可靠；写"详见官网"这种空话，检索出来也没用。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">38. 文档问答架构与提示词模板化（chapter10 补充）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>【chapter10 补充】文档问答助手（10.7 节）的架构是爬虫结合 RAG 的完整形态：用户上传 PDF/TXT → 文档处理（读取、文本分块、向量化存储）→ 向量数据库 FAISS 存分块向量 → 用户提问时相似度检索 → LLM 基于"检索片段加问题"生成回答</li><li>爬虫的对应关系：爬虫抓网页代替"上传文档"，其余流程完全一致</li><li>文本分块是 RAG 质量的第一道关：整篇文档直接转向量会稀释语义（一个 5000 字的向量什么都检索不准），必须切块</li></ul></div>2
+<p><strong>【chapter10 补充】文档问答助手（10.7 节）的架构</strong>是爬虫结合 RAG 的完整形态：用户上传 PDF/TXT → 文档处理（读取、文本分块、向量化存储）→ 向量数据库 FAISS 存分块向量 → 用户提问时相似度检索 → LLM 基于"检索片段加问题"生成回答。依赖 <code>openai faiss-cpu numpy gradio python-dotenv PyPDF2 tiktoken</code>（PyPDF2 解析 PDF、tiktoken 算 token 数）。爬虫的对应关系：爬虫抓网页代替"上传文档"，其余流程完全一致。</p>
+<p><strong>文本分块是 RAG 质量的第一道关</strong>：整篇文档直接转向量会稀释语义（一个 5000 字的向量什么都检索不准），必须切块。常见参数：每块 200 到 500 token、块间重叠 50 到 100 token（防止语义在边界被切断）、按段落或标题切比按固定字符数切更保语义。tiktoken 计 token 数（<code>tiktoken.get_encoding("cl100k_base").encode(text)</code>），中文约 1 字 1 token、英文约 4 字符 1 token。翻车点：块太大检索不准、块太小上下文断裂、无重叠会丢失跨块信息。</p>
+<p><strong>提示词模板化</strong>（10.16.1 代码生成器）：<code>self.prompts = {"optimize": "...", "fix": "..."}</code> 把不同任务的提示词存字典，主流程按任务类型取模板、填参数。每个模板都有明确的"输出格式"约定（### 问题分析、### 优化后代码、### 优化说明），让 LLM 输出结构化、可解析。爬虫结合 LLM 的场景（抽取结构化字段、生成摘要、翻译）都应该照这个模式：任务模板化、输出格式化、主流程按任务取模板。反例是把所有任务塞一个大 prompt 让模型自己猜格式，输出不稳定难解析。</p>
+<h2 id="40-持久化测试用例与项目扩展chapter10-补充">40. 持久化、测试用例与项目扩展（chapter10 补充）</h2>2
+<p><strong>【chapter10 补充】VectorStore 的 save/load 持久化</strong>：<code>save()</code> 用 <code>faiss.write_index(self.index, self.index_file)</code> 存向量索引、<code>json.dump(self.documents, f, ensure_ascii=False, indent=2)</code> 存原始文档（<code>ensure_ascii=False</code> 让中文直接显示不转义）；<code>load()</code> 先 <code>os.path.exists</code> 检查两个文件都在才加载（<code>faiss.read_index</code> 加 <code>json.load</code>），任一缺失返回 False 触发重建。爬虫抓取结果的持久化同理：JSON 存结构化数据、原始 HTML 存 <code>raw/</code> 目录、检查文件存在再加载，保证"重跑不重复抓"。</p>
+<p><strong>测试用例表是交付的最低标准</strong>（10.5 节）："你们怎么退货"→退货政策详情、"怎么查快递"→物流查询方法、"我要转人工"→转人工提示、"今天天气怎么样"→礼貌说明只能答客服问题。四个用例覆盖三条路径：正常检索、意图分流、越界拒绝。爬虫同理要测：正常抓取（页面有数据）、异常抓取（页面 404/超时）、边界（第一页最后一页、空页面）。没有测试用例的项目不算交付完成，这是硬标准不是建议。</p>
+<p><strong>项目扩展思路五条</strong>（10.6 节）：接真实数据库（MySQL/PostgreSQL 存 FAQ）、加工单系统、接微信/钉钉 Webhook、加情感分析、统计高频问题优化知识库。这五条按"数据层 → 业务层 → 渠道层 → 智能层 → 运营层"递进，是任何 LLM 应用的通用扩展路径。爬虫项目的对应扩展：数据层存数据库、业务层加去重和增量抓取、渠道层加定时调度、智能层加 LLM 抽取结构化字段、运营层加抓取质量监控。扩展前先确认核心链路（抓取到落盘）稳定，别在不稳的地基上加楼层。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">42. 二段可直接跑的进阶脚本（跟读版补全）</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>脚本 C：abc_plugin.py（Python 3.12）——抽象类、工厂方法、模板方法一次跑通</li><li>/usr/bin/env python3</li></ul></div>2
+<p><strong>脚本 C：abc_plugin.py（Python 3.12）——抽象类、工厂方法、模板方法一次跑通</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# abc_plugin.py —— Python 3.12
+# 运行: python abc_plugin.py
+from abc import ABC, abstractmethod
+
+class Database(ABC):
+    &quot;&quot;&quot;数据库抽象基类：三个抽象方法定义契约&quot;&quot;&quot;
+    @abstractmethod
+    def connect(self) -&gt; None: ...
+    @abstractmethod
+    def execute(self, sql: str) -&gt; list[dict]: ...
+    @abstractmethod
+    def close(self) -&gt; None: ...
+
+    def run_query(self, sql: str) -&gt; list[dict]:    # 模板方法
+        self.connect()
+        try:
+            return self.execute(sql)
+        finally:
+            self.close()
+
+class SqliteDB(Database):
+    def connect(self): print(&quot;✅ 连接 SQLite&quot;)
+    def execute(self, sql): print(f&quot;📝 执行 {sql}&quot;); return [{&quot;result&quot;: &quot;mock&quot;}]
+    def close(self): print(&quot;🔌 断开&quot;)
+
+class DateUtils:
+    def __init__(self, year: int, month: int, day: int):
+        self.year, self.month, self.day = year, month, day
+
+    @classmethod
+    def from_string(cls, date_str: str) -&gt; &quot;DateUtils&quot;:    # 工厂方法
+        y, m, d = date_str.split(&quot;-&quot;)
+        return cls(int(y), int(m), int(d))
+
+    @staticmethod
+    def is_leap(year: int) -&gt; bool:                        # 静态方法
+        return (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0)
+
+    def __str__(self): return f&quot;{self.year}年{self.month}月{self.day}日&quot;
+
+db = SqliteDB()
+print(db.run_query(&quot;SELECT 1&quot;))
+d = DateUtils.from_string(&quot;2024-02-29&quot;)
+print(d, &quot;2024是闰年:&quot;, DateUtils.is_leap(2024))
+</code></pre>
+<p>验收标准：run_query 打印"连接 → 执行 → 断开"三步（模板方法骨架）、from_string 构造日期、is_leap(2024) 返回 True。抽象类不能实例化（<code>Database()</code> 会抛 TypeError）是契约的强制力。</p>
+<p><strong>脚本 D：money.py（Python 3.12）——运算符重载与容器协议</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# money.py —— Python 3.12
+# 运行: python money.py
+class Money:
+    def __init__(self, amount: float, currency: str = &quot;CNY&quot;):
+        self.amount, self.currency = amount, currency
+
+    def __eq__(self, other) -&gt; bool:
+        if not isinstance(other, Money): return NotImplemented
+        return self.amount == other.amount and self.currency == other.currency
+
+    def __lt__(self, other: &quot;Money&quot;) -&gt; bool:
+        if self.currency != other.currency: raise ValueError(&quot;不能比较不同币种&quot;)
+        return self.amount &lt; other.amount
+
+    def __bool__(self) -&gt; bool: return self.amount != 0
+    def __str__(self): return f&quot;¥{self.amount:.2f}&quot;
+    def __repr__(self): return f&quot;Money({self.amount}, {self.currency!r})&quot;
+
+a, b, c = Money(100), Money(200), Money(0)
+print(a &lt; b, a == Money(100), bool(c))       # True True False
+try:
+    print(a &lt; Money(100, &quot;USD&quot;))             # 不同币种抛 ValueError
+except ValueError as e:
+    print(&quot;拦截:&quot;, e)
+
+class Playlist:
+    def __init__(self, name): self.name, self._songs = name, []
+    def add(self, song): self._songs.append(song)
+    def __len__(self): return len(self._songs)               # len()
+    def __getitem__(self, i): return self._songs[i]          # playlist[0]
+    def __contains__(self, s): return s in self._songs       # in
+    def __iter__(self): return iter(self._songs)             # for
+
+p = Playlist(&quot;最爱&quot;); p.add(&quot;晴天&quot;); p.add(&quot;七里香&quot;)
+print(len(p), p[0], &quot;七里香&quot; in p, [s for s in p])
+</code></pre>
+<p>验收标准：<code>a &lt; b</code> True、<code>bool(c)</code> False、不同币种抛 ValueError、Playlist 支持 len/下标/in/for 四种操作。运算符重载和容器协议各演示一半，组合起来就是"像内置类型一样用的自定义类"。</p>
+<h2 id="44-三段工程化脚本爬虫工程收尾">44. 三段工程化脚本（爬虫工程收尾）</h2>2
+<p><strong>脚本 E：scraper_config.py（Python 3.12）——配置化的爬虫骨架（对照第 8 节脚本 B 的改进）</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# scraper_config.py —— Python 3.12
+# 运行: python scraper_config.py
+# 真实路径: 项目根/scraper_config.py, 输出写 ./data/quotes.json
+import json, time
+from pathlib import Path
+import requests
+from bs4 import BeautifulSoup
+
+class ScraperConfig:                     # 配置与逻辑分离
+    BASE_URL = &quot;https://quotes.toscrape.com&quot;
+    HEADERS = {&quot;User-Agent&quot;: &quot;Mozilla/5.0 (Student Bot)&quot;}
+    DELAY = 1.0                          # 礼貌延迟秒数
+    TIMEOUT = 10                         # 请求超时秒数
+    OUTPUT = Path(&quot;data/quotes.json&quot;)
+
+class QuoteScraper:
+    def __init__(self, config: ScraperConfig):
+        self.cfg = config
+        self.session = requests.Session()
+        self.session.headers.update(self.cfg.HEADERS)
+        self.results: list[dict] = []
+
+    def fetch(self, url: str) -&gt; str | None:
+        try:
+            r = self.session.get(url, timeout=self.cfg.TIMEOUT)
+            r.raise_for_status()
+            return r.text
+        except requests.RequestException as e:
+            print(f&quot;抓取失败 {url}: {e}&quot;)
+            return None
+
+    def parse(self, html: str) -&gt; list[dict]:
+        soup = BeautifulSoup(html, &quot;html.parser&quot;)
+        out = []
+        for div in soup.select(&quot;div.quote&quot;):          # CSS 选择器
+            text = div.select_one(&quot;span.text&quot;)
+            author = div.select_one(&quot;small.author&quot;)
+            if text and author:
+                out.append({&quot;text&quot;: text.text, &quot;author&quot;: author.text})
+        return out
+
+    def run(self, pages: int = 2):
+        for p in range(1, pages + 1):
+            html = self.fetch(f&quot;{self.cfg.BASE_URL}/page/{p}/&quot;)
+            if html:
+                self.results.extend(self.parse(html))
+            time.sleep(self.cfg.DELAY)
+        self.cfg.OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+        self.cfg.OUTPUT.write_text(json.dumps(self.results, ensure_ascii=False, indent=2),
+                                   encoding=&quot;utf-8&quot;)
+        print(f&quot;共 {len(self.results)} 条 → {self.cfg.OUTPUT}&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    QuoteScraper(ScraperConfig()).run(pages=2)
+</code></pre>
+<p>验收标准：<code>data/quotes.json</code> 生成且含名言条目。对照第 8 节脚本 B 的改进点：配置集中在 ScraperConfig（改 URL/延迟不用翻代码）、用 CSS 选择器 <code>select</code>/<code>select_one</code>（比 find_all 可读）、输出目录自动创建。工程习惯：选择器多写注释标注"对应页面哪个元素"，页面改版时好定位。</p>
+<p><strong>脚本 F：crawler_guard.py（Python 3.12）——爬虫的礼貌与容错三件套</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# crawler_guard.py —— Python 3.12
+# 运行: python crawler_guard.py
+import time, random
+import requests
+
+def fetch_with_retry(url: str, max_attempts: int = 3) -&gt; str | None:
+    for attempt in range(1, max_attempts + 1):
+        try:
+            r = requests.get(url, timeout=10,
+                             headers={&quot;User-Agent&quot;: &quot;Mozilla/5.0&quot;})
+            if r.status_code == 429:                  # 被限速
+                wait = 2 ** attempt
+                print(f&quot;429 限速，等 {wait}s 后重试&quot;)
+                time.sleep(wait); continue
+            r.raise_for_status()
+            return r.text
+        except requests.Timeout:
+            print(f&quot;第{attempt}次超时&quot;)
+        except requests.ConnectionError:
+            print(f&quot;第{attempt}次连接失败&quot;)
+        time.sleep(random.uniform(0.5, 1.5))          # 随机延迟防检测
+    return None
+
+if __name__ == &quot;__main__&quot;:
+    html = fetch_with_retry(&quot;https://quotes.toscrape.com/page/1/&quot;)
+    print(&quot;抓取成功&quot; if html else &quot;抓取失败&quot;, len(html or &quot;&quot;))
+</code></pre>
+<p>验收标准：正常情况一次成功打印字符数；网络抖动时最多重试 3 次；429 状态码按指数退避等待（2、4、8 秒）。三件套：User-Agent 标识身份、随机延迟防规律检测、指数退避应对限速。</p>
+<p><strong>脚本 G：html_table.py（Python 3.12）——把抓取结果落成 CSV 报表</strong></p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# html_table.py —— Python 3.12
+# 运行: python html_table.py
+# 输出: ./data/report.csv
+import csv
+from pathlib import Path
+
+records = [                               # 爬虫结果（示意）
+    {&quot;author&quot;: &quot;Einstein&quot;, &quot;text&quot;: &quot;Imagination is more important.&quot;},
+    {&quot;author&quot;: &quot;Twain&quot;, &quot;text&quot;: &quot;The secret of getting ahead is getting started.&quot;},
+    {&quot;author&quot;: &quot;Einstein&quot;, &quot;text&quot;: &quot;Life is like riding a bicycle.&quot;},
+]
+
+counts: dict[str, int] = {}               # 统计每位作者名言数
+for r in records:
+    counts[r[&quot;author&quot;]] = counts.get(r[&quot;author&quot;], 0) + 1
+
+out = Path(&quot;data/report.csv&quot;)
+out.parent.mkdir(parents=True, exist_ok=True)
+with out.open(&quot;w&quot;, newline=&quot;&quot;, encoding=&quot;utf-8-sig&quot;) as f:   # utf-8-sig 防 Excel 乱码
+    writer = csv.writer(f)
+    writer.writerow([&quot;作者&quot;, &quot;名言数&quot;, &quot;名言&quot;])
+    for r in records:
+        writer.writerow([r[&quot;author&quot;], counts[r[&quot;author&quot;]], r[&quot;text&quot;]])
+
+print(&quot;作者统计:&quot;, counts)
+print(&quot;报表已写入&quot;, out)
+</code></pre>
+<p>验收标准：<code>data/report.csv</code> 生成三行数据、Excel 打开中文不乱码（<code>utf-8-sig</code> 带 BOM）、作者统计字典正确。这是"爬虫结果 → 落盘 → 报表"的最后一步，配合第 8 节脚本 B 就是完整爬虫流水线。</p>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">45. 速查清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 类是图纸对象是实物，「__init__」 构造、self 是当前实例、类属性共享实例属性独有</li><li>2. 继承复用代码、多态统一接口、封装用下划线加 property、抽象用 ABC 强制实现</li><li>3. 魔术方法必写 「__repr__」，改 「__eq__」 必须同时改 「__hash__」</li></ul></div>2
+<ol>
+<li>类是图纸对象是实物，<code>__init__</code> 构造、self 是当前实例、类属性共享实例属性独有。</li>
+<li>继承复用代码、多态统一接口、封装用下划线加 property、抽象用 ABC 强制实现。</li>
+<li>魔术方法必写 <code>__repr__</code>，改 <code>__eq__</code> 必须同时改 <code>__hash__</code>。</li>
+<li>继承链不超过 3 层，优先组合和 Mixin。</li>
+<li>爬虫四件套：requests 加 headers、BeautifulSoup 解析、time.sleep 礼貌延迟、JSON 落盘。</li>
+<li>抓不到数据先查选择器和动态渲染，被封先查请求频率和 User-Agent。</li>
+</ol></div></details></div></body></html>

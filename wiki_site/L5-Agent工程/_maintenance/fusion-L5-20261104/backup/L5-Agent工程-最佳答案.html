@@ -1,0 +1,293 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L5-Agent工程-最佳答案</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../../../../index.html">🏠 总入口</a><a href="../../../../graph.html">🕸 关联图谱</a><a href="../../../../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程-最佳答案</span></div><div class="wrap"><h1 id="l5-agent-工程-最佳答案">L5 Agent 工程 · 最佳答案</h1>
+<blockquote>
+<p><a href="../00-%E7%9F%A5%E8%AF%86%E5%BA%93%E6%80%BB%E5%85%A5%E5%8F%A3.html">← 返回总入口</a></p>
+</blockquote>
+<h2 id="why这个能力域为什么重要">WHY：这个能力域为什么重要</h2>2
+<p>Agent 是 FDE 交付的进阶能力——从"问答系统"到"自主工作流"。Anthropic 的前置原则：<strong>「找最简单的可行方案，只有在需要时才增加复杂度」</strong>——能用工作流（固定路径）就别上 agent（动态路径）。Agent 的本质就是「LLM 在循环里根据环境反馈调工具」。7 本书交叉验证：<strong>Agent 不是"通用智能助手"，而是"某个具体痛点的数字员工"</strong>——一个明确的重复劳动 + 一个可验证的输出 + 一个能被工具化的数据源。</p>
+<h2 id="what这个节点到底是什么">WHAT：这个节点到底是什么</h2>2
+<h3 id="agent-定义与四大关键能力">Agent 定义与四大关键能力</h3>3
+<p>规划（Planning）/ 记忆（Memory）/ 工具调用（Tool Use）/ 多智能体协作（Multi-Agent）。三本书共同警告：追求"通用 Agent" = 什么都干不好；所有成功案例都是单痛点。</p>
+<h3 id="三种-agent-循环按任务复杂度分层">三种 Agent 循环（按任务复杂度分层）</h3>3
+<table>
+<thead>
+<tr>
+<th>循环</th>
+<th>节奏</th>
+<th>适合</th>
+<th>不适合</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ReAct</strong></td>
+<td>观察→思考→行动→再观察</td>
+<td>步骤 ≤ 5、路径不明确</td>
+<td>长任务（必须设 <code>max_iterations</code>，一般 10–20 步）</td>
+</tr>
+<tr>
+<td><strong>Plan-and-Execute</strong></td>
+<td>先拆 N 步计划再逐步执行</td>
+<td>任务清晰、步骤 ≥ 5（库存调度/标书阅读）</td>
+<td>路径高度不确定（计划做了也白做）</td>
+</tr>
+<tr>
+<td><strong>Reflection</strong></td>
+<td>产出→自我批判→修订</td>
+<td>高质量要求（代码/文案/法律）</td>
+<td>低成本高并发（反思贵，token 翻倍）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>判断口诀</strong>：默认先上 ReAct，跑偏了加 Planner，产出不满意加 Reflection。三层可叠加——Plan-and-Execute 每步内部是 ReAct，最终产出再过 Reflection。</p>
+<h3 id="框架选型2026">框架选型（2026）</h3>3
+<p><strong>没有单一赢家，按负载选。</strong></p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>选</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>显式状态机、断点续跑、HITL 人审、长任务</td>
+<td><strong>LangGraph</strong>（checkpointer + <code>interrupt()</code> 一等公民）</td>
+</tr>
+<tr>
+<td>快速搭多角色协作原型、周五演示</td>
+<td><strong>CrewAI</strong>（role/backstory + sequential/hierarchical process）</td>
+</tr>
+<tr>
+<td>Claude 为主、工具密集、开箱工具/权限/子代理</td>
+<td><strong>Claude Agent SDK</strong>（spawn Claude Code CLI 子进程，约 1 GiB RAM/agent）</td>
+</tr>
+<tr>
+<td>OpenAI 生态、最短上手</td>
+<td><strong>OpenAI Agents SDK</strong>（四原语：Agents/Handoffs/Guardrails/Sessions）</td>
+</tr>
+<tr>
+<td>纯 TypeScript 聊天/流式/轻 agent</td>
+<td><strong>Vercel AI SDK</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Anthropic 工具设计原则</strong>（不论选哪个框架都适用）：<br />
+1. 简单优先——工具文档和测试花的功夫应超过花在 prompt 上的<br />
+2. <strong>token 预算</strong>——58 个工具约 55K token 起步；优化前工具定义能吃掉 134K token。对策：<strong>defer_loading / Tool Search</strong>，按需加载，延迟加载的工具不进初始 prompt，不破坏 prompt caching<br />
+3. <strong>响应截断</strong>——Claude Code 默认把工具响应限制在 25,000 token<br />
+4. 抽象层级越高，细粒度控制越贵——选框架前先确认"你要调的那个参数在它那层暴露了吗"</p>
+<p><strong>LangGraph 两个持久化原语</strong>：Checkpointer（图状态快照，单线程，短期记忆）+ Store（应用自定义 KV，跨线程，长期记忆）。</p>
+<h3 id="coze-dify-langchain-边界阶梯不是并列">Coze / Dify / LangChain 边界（阶梯不是并列）</h3>3
+<ul>
+<li><strong>Coze</strong>（零代码，字节云）：周五给老板演示 Bot、发票识别、文案仿写。<strong>不能做</strong>：私有化、深度定制、长任务状态机</li>
+<li><strong>Dify</strong>（开源可私有化）：企业内网 RAG、知识问答、数据不出内网。<strong>不能做</strong>：复杂多 Agent、精细状态图控制</li>
+<li><strong>LangChain/LangGraph</strong>（代码框架）：生产级、断点续跑、多 Agent、和业务系统深度耦合。<strong>不能做</strong>：非工程师快速搭原型</li>
+</ul>
+<p><strong>判断口诀</strong>：Coze 验证想法（1 天）→ Dify 落企业（1 周）→ LangGraph 生产（1 个月+）。错配是最大浪费。</p>
+<h3 id="工具层function-calling-vs-mcp-vs-自定义工具">工具层：Function Calling vs MCP vs 自定义工具</h3>3
+<p><strong>三者不在同一层，是叠加关系，不是三选一。</strong></p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>解决</th>
+<th>典型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Function Calling</td>
+<td>模型怎么决定调哪个函数</td>
+<td>prompt 塞 JSON schema，模型输出 <code>{"name","arguments"}</code></td>
+</tr>
+<tr>
+<td><strong>MCP</strong></td>
+<td>工具怎么被标准化发现/授权/复用</td>
+<td>工具 server 暴露 <code>tools/list</code>、<code>tools/call</code>，客户端即插即用</td>
+</tr>
+<tr>
+<td>自定义工具</td>
+<td>业务函数怎么写</td>
+<td>Python 函数 + docstring + 装饰器</td>
+</tr>
+</tbody>
+</table>
+<p><strong>MCP 解决 N×M 集成爆炸</strong>：5 个应用接 5 个工具 = 25 份定制代码 → MCP 降到 N+M。三类原语：Resources（只读）/ Tools（有副作用）/ Prompts（模板）。<strong>安全红线</strong>：OAuth 内建、高风险操作人审弹窗、工具描述必须标注"只读 vs 会改状态"、pin 版本不用 latest、每 agent 活跃 MCP ≤ 6 个。</p>
+<p><strong>MCP vs A2A</strong>：MCP 解决"Agent ↔ 工具"（手），A2A 解决"Agent ↔ Agent"（嘴）。互补不竞争。A2A 核心是 Agent Card + Task Lifecycle（submitted→working→input-required→completed）。</p>
+<h3 id="记忆双进程范式system-1-system-2">记忆双进程范式（System-1 / System-2）</h3>3
+<p>模仿人类快思考/慢思考：<strong>System-1 轻量快检索/快路由（90% 查询直接出），System-2 重读原始历史/慢推理（10% 复杂查询），中间用低开销门控决定"这次要不要慢下来"。</strong> D-Mem 实测 35.8% token 拿 96.7% 上限效果。</p>
+<p>反例：每轮全量历史塞上下文（纯 System-2，token 爆炸）；只用向量召回从不重读原文（纯 System-1，复杂问题答不准）；门控用 LLM 做自然语言判定（门控本身比省的还贵）。</p>
+<h3 id="g-memory-三层图记忆多-agent-共享">G-Memory 三层图记忆（多 Agent 共享）</h3>3
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>存什么</th>
+<th>谁用</th>
+<th>成本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Insight Graph</strong></td>
+<td>泛化经验/教训/模式（"flaky 测试不要盲目重跑"）</td>
+<td>编排层复用</td>
+<td>最低</td>
+</tr>
+<tr>
+<td><strong>Query Graph</strong></td>
+<td>任务指纹→派谁→结果</td>
+<td>编排层派单时查</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>Interaction Graph</strong></td>
+<td>完整交互原始记录/diff</td>
+<td>工程层 debug 多跳追溯</td>
+<td>最高</td>
+</tr>
+</tbody>
+</table>
+<p>多视图并行检索：semantic / temporal / causal / entity 四种边同时召回。</p>
+<h3 id="单-agent-vs-多-agent">单 Agent vs 多 Agent</h3>3
+<p><strong>多 Agent 不是更高级，是更贵（2–5 倍 token）、更慢（3–10 倍延迟）、更难调试。</strong> 只有 4 个信号才拆：<br />
+1. prompt 已经装不下（30 个工具描述 + 5 套业务规则 + 2 个人格）<br />
+2. 工具选错率高（同一个 Agent 既查 DB 又发邮件又写代码）<br />
+3. 需要"对抗"或"批判"（写代码的 Agent 不该自己审自己——Reflection 必须独立 Critic）<br />
+4. 任务天然分阶段（调研→设计→执行→验收）</p>
+<p><strong>默认结论</strong>：先上单 Agent（ReAct 或 Plan-and-Execute），跑一周遇到真实瓶颈再拆。<strong>简单任务拆多 Agent 是 N 倍 API 成本换不来收益。</strong></p>
+<h2 id="how怎么落地">HOW：怎么落地</h2>2
+<h3 id="落地-5-步通用流程跨-7-本书提炼">落地 5 步通用流程（跨 7 本书提炼）</h3>3
+<ol>
+<li><strong>找痛点</strong>：挑"每周重复 ≥ 3 次、单次 ≥ 30 分钟、出错代价高"的活</li>
+<li><strong>定输入输出</strong>：输入格式（PDF/Excel/聊天记录）、输出格式（结构化 JSON / 卡片 / 邮件）</li>
+<li><strong>选工具</strong>：哪些 RAG（查知识库）、哪些 FC（调 API）、哪些代码执行（Python 算）</li>
+<li><strong>搭循环</strong>：简单用 ReAct，复杂用 Plan-and-Execute，要质量加 Reflection</li>
+<li><strong>接日志和回调</strong>：每次用户提问、链的运行状态、模型输出都记录到日志——<strong>这一步是从 demo 到生产的分水岭</strong></li>
+</ol>
+<h3 id="生产化必备-4-件事">生产化必备 4 件事</h3>3
+<ol>
+<li><strong>错误处理 &amp; 重试</strong>：每个工具调用包 try/except；设 <code>max_iterations</code> 硬上限；高风险操作（写库/发邮件/删文件）必须人工确认（MCP 原生支持弹窗）</li>
+<li><strong>观测 &amp; 日志</strong>：最少记——完整 prompt、每步工具调用（名/参/返回/耗时）、最终输出 + 用户反馈、异常堆栈</li>
+<li><strong>安全 &amp; 权限</strong>：OAuth 授权、令牌传递、高风险操作确认弹窗、工具描述标注影响等级、API key 用环境变量不写进 prompt</li>
+<li><strong>状态检查点</strong>：每完成一步落盘当前状态（已完成步骤/中间结果/下一步计划），崩溃后从最近检查点恢复。长任务（&gt;30 步）必须有这个</li>
+</ol>
+<p><strong>常见生产化坑</strong>：不设超时（LLM 挂死整个 Agent 跟着挂）、不设速率限制（API 限流被封）、把 API key 写进 prompt、多 Agent 之间没有共享状态、不做评估（只看"能不能跑"不看"跑对了多少"）。</p>
+<h3 id="多智能体协作编排模式六员实测">多智能体协作编排模式（六员实测）</h3>3
+<p>默认骨架：<strong>orchestrator-worker + 步骤间自动校验 + 独立 LLM 评审层（OpenClaw）+ 确定性终门</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>流程</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pipeline</strong></td>
+<td>Hermes→DSH执行→OC审</td>
+<td>线性流水线、需要逐步校验</td>
+</tr>
+<tr>
+<td><strong>Fan-out（并行）</strong></td>
+<td>同一题派多个 worker 并行</td>
+<td>可并行拆解、上下文装不下</td>
+</tr>
+<tr>
+<td><strong>Debate（辩论）</strong></td>
+<td>Claude+Codex 独立作答→OC 对比归并</td>
+<td>选型/架构/排障方向等高风险决策</td>
+</tr>
+</tbody>
+</table>
+<p><strong>四条落地教训</strong>（arXiv 12 篇核心论文对照）：<br />
+1. <strong>通信结构化</strong>：派单 context 用 JSON 契约（需求/输入/输出格式/验收），不写散文——消息体曾占 token 预算 40–60%，结构化后 3.2× 压缩不掉点<br />
+2. <strong>先试单 Agent 再拆</strong>：派单前先问"单 Agent 能不能干"<br />
+3. <strong>失败先归因再反思</strong>：先定位 decisive error 是哪一步向下游传的错，只让那个反思（pre-hoc 上游筛查比事后救火便宜 65×）<br />
+4. <strong>共享记忆来源 gating</strong>：RAG 无差别照收会让假信念被下游 97–99% 采信，进库要过来源门</p>
+<h3 id="agentic-rag-六种模式图谱列出当前缺代码模板">Agentic RAG 六种模式（图谱列出，当前缺代码模板）</h3>3
+<p>Router / Agent-as-retriever / CRAG / Self-RAG / Adaptive / Agentic-GraphRAG。CRAG 思路：加轻量检索质量评估组件，自动判断检索质量并触发 web 搜索 fallback（876 人划线）。</p>
+<h2 id="我们库当前的落地点">我们库当前的落地点</h2>2
+<p><strong>六员协作体系</strong>（Hermes/DSH/Claude Code/Codex/OpenClaw/QwenCode）本质是「不选框架的路线」：用进程级 agent + 派单协议替代图编排——与 Anthropic「最简单方案优先」原则一致。已有 MCP 落地：codebase-memory（158 语言代码图）、GitHub MCP、Docker MCP。记忆双进程范式已建 wiki + Quality Gating τ=0.5 起步。error-ledger 技能已具备错误记录，但<strong>自动应用已验证修复方案</strong>的闭环还没做。</p>
+<p><strong>循环形态</strong>：Hermes 主对话 = ReAct + 软 Reflection（<code>self-verification-blindspots</code> 技能）；Claude Code = Plan + ReAct 执行 + Reflection（跑测试自验）；OpenClaw = ReAct 为主。</p>
+<p><strong>待落地</strong>：Playwright/Tavily/Context7 三个 MCP（P0）；A2A 思维借用（agent_card.md + task envelope JSON）；G-Memory 三层图升级 error-ledger；PRIME 慢思考升级触发器；六员统一"高风险操作确认"机制。</p>
+<h2 id="缺口清单">缺口清单</h2>2
+<ul>
+<li>Agentic RAG 六种模式代码模板（当前覆盖度 🟢 60%，此项零代码）</li>
+<li>Playwright / Tavily / Context7 三个 MCP server 接入（P0）</li>
+<li>error-ledger 从"记录错误"升级到"自动应用已验证修复方案"</li>
+<li>六员统一高风险操作确认（参考 MCP 弹窗设计，写操作前自动问人类）</li>
+<li>评估集（20–50 个真实 query），每次改 prompt/换模型后跑一遍成功率</li>
+<li>OpenClaw 浏览器自动化包成统一 MCP server，让 Claude Desktop/Cursor 复用</li>
+<li>A2A agent_card.md + task envelope JSON 标准化（短期不真上 JSON-RPC server）</li>
+<li>G-Memory 三层图升级（Insight/Query/Interaction 分层，error-ledger 当前只有单层）</li>
+<li>多轮对话 query rewriting（当前把全部历史塞进去会 token 爆炸）</li>
+</ul>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>单 Agent 主链路 + 业务级循环上限（<code>rag/agentic_query.py</code>，grep 可验）</strong>：<br />
+<code>python
+  DEFAULT_MAX_REWRITES = 3
+  ROUTE = "complex_reasoning"
+  def route_after_grade(state: AgenticState) -&gt; str:
+      if state.get("relevant_docs"):
+          return "generate"
+      if state.get("rewrite_count", 0) &lt; state.get("max_rewrites", DEFAULT_MAX_REWRITES):
+          return "rewrite"
+      _log(f"已改写 {state.get('rewrite_count', 0)} 次仍无相关片段, 拒答")
+      return "refuse"</code><br />
+  循环上限写在<strong>业务状态</strong>里（<code>max_rewrites</code> 可被 CLI <code>--max-rewrites</code> 覆盖），不靠框架保护。这正是"先上单 Agent、跑一周遇真瓶颈再拆"的可执行形态。</li>
+<li><strong>工具失败不炸链（<code>rag/query.py::rerank</code> L890）+ 配额耗尽进程内切换（<code>rag/agentic_query.py::chat</code>）</strong>：rerank 超时/异常返回 <code>None</code>（熔断）而非抛异常，由 <code>rerank_node</code> 决定降级；生成端点 429 时 <code>chat()</code> 切到 <code>FALLBACK_GENERATION</code> 重试一次。工具层统一"返回可解释的空值/降级结果"，上层据此决策。</li>
+<li><strong>状态检查点（<code>/home/wuyafang/.hermes/scripts/handoff_state.py</code>）</strong>：<code>HANDOFF.md</code> 六段式含 <strong>Still unverified</strong> 段，把不确定性显式化，长任务靠它恢复，而不是靠"再问一遍模型记得啥"。</li>
+<li><strong>和课件讲法的差异</strong>：课件 <code>L5-Agent工程-最佳答案</code> 里的 ReAct / Plan-and-Execute 都是<strong>单次任务内</strong>的推理循环；本库把"计划"外置到 <code>raw/_task_orders/总地图.md</code> + 派单卡，Agent 只负责单步执行。原因是这些 Agent 多为短命 CLI 调用，推理循环越长越容易中途丢上下文——外置计划 = 可审计、可换执行者重跑。</li>
+</ul>
+<h2 id="相关条目">相关条目</h2>2
+<ul>
+<li><a href="L5-Agent%E5%B7%A5%E7%A8%8B-%E8%AF%BE%E4%BB%B6%E5%AE%9E%E6%93%8D.html">L5 Agent 工程 · 课件实操代码库</a></li>
+</ul></div></body></html>

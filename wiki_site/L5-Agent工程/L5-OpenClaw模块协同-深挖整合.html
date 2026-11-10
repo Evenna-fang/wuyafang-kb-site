@@ -1,0 +1,1608 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>L5-OpenClaw模块协同-深挖整合</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/L5-OpenClaw模块协同-深挖整合</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="openclaw">OpenClaw 模块协同（深挖整合）</h1>
+<h2 id="_1">导读</h2>
+<p>本文把 OpenClaw 的四个核心模块（Routing 路由、Memory RAG 记忆检索、Sandbox 沙箱、Subagent 子代理）和一份端到端协同流程图合并为一篇。模块章节讲各自的机制，横切章节把配置项、Prometheus 指标和错误码放到同一张表里对照。</p>
+<p>核心结论：</p>
+<ol>
+<li>Routing 是任务进入平台后的第一道决策点。它把 Task 拆成 Job，为每个 Job 选择 Target，并标记 <code>rag.enabled</code> 与 <code>sandbox</code> 等属性，决定后续走哪条路径。</li>
+<li>Sandbox 是子代理执行的必经环境。命名空间、cgroup 配额、chroot 文件系统根限定、seccomp 系统调用过滤、iptables 域名白名单共同限制子代理的资源、文件和网络。</li>
+<li>Subagent 的生命周期可以用 7 个状态描述：Pending、Spawning、Running、Succeeded、Failed、Timeout、Recycled。失败或超时的任务按 <code>maxRetries</code> 重试，重试耗尽后回收。</li>
+<li>Memory RAG 用 Chroma 存文档向量，用 SQLite 存时序记忆，两者在生成前融合成 Prompt。子代理的输出写回 <code>subagent_history</code> 表，Routing 再读取它做复用、重试或升级，从而形成闭环。</li>
+<li>错误码（SBOX001 至 SBOX004、SUB001 至 SUB004）和 Prometheus 指标分别对应不同的排查入口。源材料中有若干处数值和命名前后不一致，已在第八节列出，使用前需要核对。</li>
+</ol>
+<hr />
+<h2 id="_2">一、整体架构与模块职责</h2>
+<h3 id="11">1.1 三层视角</h3>
+<p>OpenClaw 的 Routing、Memory RAG、Sandbox、Subagent 四个模块位于用户请求入口与底层执行环境之间。用户通过 OpenClaw CLI、API 或 UI 提交 Task，Gateway 接收后交给 Routing。Routing 决定任务怎样拆分、去哪里执行、是否需要检索上下文。执行结果经过 Subagent Manager 与 Sandbox 回到 Memory RAG，最后由 Gateway 返回给用户。</p>
+<p>下面的字符示意图展示 Routing 与 Memory RAG 之间的关系：</p>
+<pre><code>+-------------------+      +----------------------+      +-------------------+
+|   用户请求（Task）| ---&gt; |   Routing（分发）      | ---&gt; |   Memory RAG 组件  |
++-------------------+      +----------------------+      +-------------------+
+                                                                |
+                                                                v
+                           +--------------------------+   +------------------------+
+                           | 向量检索引擎（Chroma）   |   | 时序记忆数据库（SQLite） |
+                           +--------------------------+   +------------------------+
+</code></pre>
+<p>从职责划分看，协同流程图把组件分成三层。控制面包含 Routing 与 Subagent Manager，负责决策与资源分配。数据面包含 Chroma 向量库与 SQLite 时序记忆，负责存储与检索。执行面包含 Sandbox 与子代理本身（Model 或 Script），负责真正运行业务逻辑。</p>
+<p><strong>图：模块职责与数据存储的分层架构（控制面，数据面，执行面）</strong></p>
+<pre><code class="language-mermaid">flowchart LR
+    subgraph CTRL[&quot;控制面&quot;]
+        RT[&quot;Routing&quot;]
+        SM[&quot;Subagent Manager&quot;]
+    end
+    subgraph DATA[&quot;数据面&quot;]
+        VS[&quot;Chroma 向量库&quot;]
+        TS[&quot;SQLite 时序记忆&quot;]
+    end
+    subgraph EXEC[&quot;执行面&quot;]
+        SB[&quot;Sandbox&quot;]
+        AG[&quot;子代理 Model 或 Script&quot;]
+    end
+    RT --&gt;|&quot;rag.enabled&quot;| VS
+    RT --&gt;|&quot;session_id 查询&quot;| TS
+    RT --&gt;|&quot;runtime sandbox 属性&quot;| SM
+    SM --&gt; SB
+    SB --&gt; AG
+    AG --&gt;|&quot;输出与日志&quot;| TS
+    TS --&gt;|&quot;历史结果复用&quot;| RT
+</code></pre>
+<h3 id="12">1.2 模块职责对照</h3>
+<p>下表从输入、输出、持久化存储三个维度对比四个模块。</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Routing</th>
+<th>Memory RAG</th>
+<th>Sandbox</th>
+<th>Subagent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>核心职责</td>
+<td>拆分任务，选择 Target，入队</td>
+<td>向量检索加时序记忆融合，生成 Prompt</td>
+<td>为执行提供进程、文件、网络隔离</td>
+<td>派生子代理，分配资源，回收实例</td>
+</tr>
+<tr>
+<td>主要输入</td>
+<td>Task（CLI 或 API 请求）</td>
+<td>子任务与 <code>rag.enabled</code> 标记，<code>session_id</code>，<code>task_type</code></td>
+<td><code>sandbox=true</code> 标记与资源配置</td>
+<td>Routing 给出的 <code>runtime</code>、<code>sandbox</code>、<code>priority</code></td>
+</tr>
+<tr>
+<td>主要输出</td>
+<td>带 Target 的 Job 列表</td>
+<td>富上下文 Prompt，写回的时序记录</td>
+<td>隔离执行后的 <code>stdout</code>、<code>stderr</code>、审计日志</td>
+<td><code>subagent_history</code> 记录与执行结果</td>
+</tr>
+<tr>
+<td>持久化存储</td>
+<td>调度队列，Prometheus 指标，JSON 日志</td>
+<td>Chroma 向量库，SQLite 时序记忆</td>
+<td><code>sandbox_audit.log</code></td>
+<td>SQLite 表 <code>subagent_history</code></td>
+</tr>
+<tr>
+<td>关键错误码</td>
+<td>无独立错误码</td>
+<td>无独立错误码</td>
+<td>SBOX001 至 SBOX004</td>
+<td>SUB001 至 SUB004</td>
+</tr>
+</tbody>
+</table>
+<h3 id="13">1.3 模块间的标记传递</h3>
+<p>模块之间主要通过属性标记传递决策。Routing 为子任务写入 <code>rag.enabled=true</code>，Memory RAG 据此参与生成。Routing 为需要隔离执行的任务写入 <code>sandbox=true</code>，Sandbox 据此启用隔离。Routing 或 Subagent 的配置决定 <code>runtime</code>（Codex、OpenClaw、Custom）与 <code>priority</code>。下一章起各模块的细节展开说明这些标记。</p>
+<hr />
+<h2 id="routing">二、Routing：任务路由</h2>
+<h3 id="21">2.1 背景与设计目标</h3>
+<p>OpenClaw 作为多智能体协同平台的核心组件之一，承担任务分发与路由调度的职责。它位于用户请求入口与具体执行子代理之间，负责把高层业务需求划分为可由各子代理执行的子任务。它还要根据策略把这些子任务路由到合适的执行环境，包括本地进程、容器、远程服务等。</p>
+<p>Routing 有三个设计目标：</p>
+<ol>
+<li>高可用：路由层必须在 Gateway 异常、子代理崩溃时仍能提供降级路径；</li>
+<li>可扩展：支持插件化的路由策略，能够随时接入新型调度器，例如 K8s 调度、云函数等；</li>
+<li>可观测：提供完整的路由日志与监控指标，便于运维排障。</li>
+</ol>
+<h3 id="22">2.2 关键概念</h3>
+<ul>
+<li><strong>Task（任务）</strong>：用户通过 OpenClaw CLI 或 API 发送的原始请求。</li>
+<li><strong>Job（作业）</strong>：Task 在内部拆解后的最小执行单元，包含 <code>job_id</code>、<code>payload</code>、<code>deadline</code>、<code>priority</code> 等字段。</li>
+<li><strong>Router（路由器）</strong>：实现 <code>route(job) -&gt; target</code> 接口的组件。默认实现为 <code>RoundRobinRouter</code>，可通过 <code>router.custom</code> 配置自定义实现。</li>
+<li><strong>Target（目标）</strong>：具体的执行环境描述，例如 <code>{type:"local", runtime:"codex"}</code>、<code>{type:"container", image:"openclaw/agent:2026.9"}</code>。</li>
+</ul>
+<h3 id="23">2.3 路由流程</h3>
+<p>Dispatch 函数的伪代码分三步：拆分 Task，为每个 Job 选择 Target，把 Job 写入调度队列。</p>
+<pre><code class="language-go">func Dispatch(task Task) []Job {
+    // 1️⃣ 将原始任务拆分
+    jobs := splitTask(task)
+    // 2️⃣ 为每个 Job 选择目标
+    for i, job := range jobs {
+        target := router.Route(job)
+        jobs[i].Target = target
+    }
+    // 3️⃣ 将 Job 写入调度队列
+    queue.Enqueue(jobs)
+    return jobs
+}
+</code></pre>
+<p><strong>图：Routing 模块架构（拆分，路由，入队）</strong></p>
+<pre><code class="language-mermaid">flowchart LR
+    T[&quot;Task 原始请求&quot;] --&gt; SP{&quot;拆分策略&quot;}
+    SP --&gt;|&quot;命令式&quot;| S1[&quot;正则或关键词拆分&quot;]
+    SP --&gt;|&quot;结构化&quot;| S2[&quot;JSON 或 YAML 直接映射&quot;]
+    SP --&gt;|&quot;AI 辅助&quot;| S3[&quot;调用内部 Agent 解析意图&quot;]
+    S1 --&gt; J[&quot;Job 列表&quot;]
+    S2 --&gt; J
+    S3 --&gt; J
+    J --&gt; R{&quot;Router.route&quot;}
+    R --&gt;|&quot;roundRobin&quot;| TG1[&quot;Target 本地 Runtime&quot;]
+    R --&gt;|&quot;priority&quot;| TG2[&quot;Target 容器&quot;]
+    R --&gt;|&quot;k8s 插件&quot;| TG3[&quot;Target 远程集群&quot;]
+    TG1 --&gt; Q[&quot;调度队列 Enqueue&quot;]
+    TG2 --&gt; Q
+    TG3 --&gt; Q
+    Q --&gt; MET[&quot;Prometheus 指标与 JSON 日志&quot;]
+</code></pre>
+<h3 id="24">2.4 拆分策略</h3>
+<p>Routing 支持三种拆分策略，按任务的输入形态选择：</p>
+<ul>
+<li><strong>命令式拆分</strong>：基于正则或关键词匹配，将复合指令拆成多个子指令；</li>
+<li><strong>结构化拆分</strong>：如果 Task 中提供了 JSON 或 YAML 结构，则直接映射为多个 <code>Job</code>；</li>
+<li><strong>AI 辅助拆分</strong>：当任务含有自然语言描述时，OpenClaw 会调用内部 <code>Agent</code>（如 Claude）进行意图解析，并返回拆分方案。</li>
+</ul>
+<p>三种策略对应三类输入：命令式拆分处理复合指令，结构化拆分处理带 JSON 或 YAML 结构的 Task，AI 辅助拆分处理自然语言描述的 Task。</p>
+<h3 id="25">2.5 路由配置</h3>
+<p>路由配置位于 <code>openclaw.json</code> 的 <code>routing</code> 节点下：</p>
+<pre><code class="language-json5">{
+  &quot;routing&quot;: {
+    &quot;defaultRouter&quot;: &quot;roundRobin&quot;,
+    &quot;routers&quot;: {
+      &quot;roundRobin&quot;: {
+        &quot;type&quot;: &quot;builtin&quot;,
+        &quot;maxConcurrency&quot;: 32
+      },
+      &quot;priority&quot;: {
+        &quot;type&quot;: &quot;builtin&quot;,
+        &quot;policy&quot;: &quot;priorityQueue&quot;,
+        &quot;preemptive&quot;: true
+      },
+      &quot;k8s&quot;: {
+        &quot;type&quot;: &quot;plugin&quot;,
+        &quot;pluginPath&quot;: &quot;~/openclaw/plugins/k8s-router.so&quot;,
+        &quot;namespace&quot;: &quot;openclaw&quot;,
+        &quot;maxPods&quot;: 64
+      }
+    }
+  }
+}
+</code></pre>
+<ul>
+<li><code>defaultRouter</code> 决定默认使用的路由器；</li>
+<li><code>maxConcurrency</code> 控制同一目标的并发上限，防止资源争用。</li>
+</ul>
+<p>三个路由器的差异体现在 <code>type</code> 与 <code>policy</code> 上。<code>roundRobin</code> 与 <code>priority</code> 是内置实现，<code>k8s</code> 是插件实现，需要 <code>pluginPath</code> 指向可执行的共享库。<code>priority</code> 路由器启用了 <code>priorityQueue</code> 策略和抢占（<code>preemptive: true</code>）。</p>
+<h3 id="26">2.6 故障恢复</h3>
+<p>Routing 层有三种故障恢复机制：</p>
+<ol>
+<li><strong>目标不可用</strong>：路由器在发现 <code>target.health==false</code> 时，会自动降级至 <code>fallbackTarget</code>（默认本地 Runtime）；</li>
+<li><strong>作业超时</strong>：若 <code>job.deadline</code> 超过 <code>target.timeout</code>，调度器会重新分配至 <code>backupTarget</code> 并记录 <code>retryCount</code>；</li>
+<li><strong>幂等保证</strong>：所有 Job 必须实现幂等 ID（<code>job_id</code>），路由层在重复投递时会检测已有记录并直接返回成功响应，避免业务层面重复执行。</li>
+</ol>
+<p><strong>图：Routing 故障恢复流程（幂等，降级，改派）</strong></p>
+<pre><code class="language-mermaid">flowchart TD
+    J[&quot;Job 到达路由层&quot;] --&gt; DUP{&quot;job_id 已存在&quot;}
+    DUP --&gt;|&quot;是&quot;| RET[&quot;直接返回已有结果 幂等&quot;]
+    DUP --&gt;|&quot;否&quot;| H{&quot;target.health&quot;}
+    H --&gt;|&quot;异常&quot;| FB[&quot;降级到 fallbackTarget 默认本地 Runtime&quot;]
+    H --&gt;|&quot;正常&quot;| EXE[&quot;投递执行&quot;]
+    FB --&gt; EXE
+    EXE --&gt; TO{&quot;deadline 超过 target.timeout&quot;}
+    TO --&gt;|&quot;是&quot;| BK[&quot;改派 backupTarget 并记录 retryCount&quot;]
+    TO --&gt;|&quot;否&quot;| OK[&quot;完成&quot;]
+    BK --&gt; EXE
+</code></pre>
+<h3 id="27">2.7 路由监控与坑点</h3>
+<p>路由相关的 Prometheus 指标有三个：<code>openclaw_router_jobs_total{router="roundRobin"}</code> 统计已调度的作业总数，<code>openclaw_router_job_latency_seconds{router="priority"}</code> 统计作业路由延迟，<code>openclaw_router_target_active{target="local"}</code> 统计当前活跃目标数量。</p>
+<p>日志为 JSON 格式，示例如下：</p>
+<pre><code class="language-json">{&quot;time&quot;:&quot;2026-10-30T12:34:56Z&quot;,&quot;level&quot;:&quot;INFO&quot;,&quot;msg&quot;:&quot;job routed&quot;,&quot;job_id&quot;:&quot;c7f9a1&quot;,&quot;router&quot;:&quot;priority&quot;,&quot;target&quot;:&quot;container&quot;,&quot;latency_ms&quot;:12}
+</code></pre>
+<p>常见坑点有三个：</p>
+<ul>
+<li><strong>插件路径错误</strong>：<code>router.k8s.pluginPath</code> 必须是绝对路径且文件可执行，否则路由器启动失败，Gateway 会报 <code>Plugin load error</code>；</li>
+<li><strong>并发阈值过低</strong>：默认 <code>maxConcurrency=32</code> 在高负载场景会成为瓶颈，需要根据业务峰值调高；</li>
+<li><strong>日志噪声</strong>：开启 <code>debug</code> 模式会产生大量 <code>job routed</code> 日志，建议在生产环境关闭 <code>debug</code>。</li>
+</ul>
+<hr />
+<h2 id="sandbox">三、Sandbox：沙箱隔离</h2>
+<h3 id="31">3.1 沙箱的定位</h3>
+<p>在开放式 AI 平台中，安全与可控是最关键的运营指标。OpenClaw 通过 Sandbox 为每一次子代理（Sub-agent）的执行提供进程级别的资源隔离与 IO 沙箱，防止恶意代码、无限循环或资源泄露影响主系统。</p>
+<p>Sandbox 同时兼顾两个目标。一是低延迟，对即时任务快速响应；二是高可配置，支持容器、虚拟机、用户命名空间等多种后端。</p>
+<h3 id="32">3.2 核心特性</h3>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>进程隔离</td>
+<td>每个子任务在独立的 Linux 命名空间（pid、net、mnt）中运行，使用 <code>unshare</code> 与 <code>cgroups</code> 限制 CPU、内存、IO。</td>
+</tr>
+<tr>
+<td>文件系统根限定</td>
+<td>通过 <code>chroot</code> 将可见文件系统限制在 <code>/home/wuyafang/.openclaw/sandbox_root</code>，防止子代理读取系统敏感文件。</td>
+</tr>
+<tr>
+<td>网络白名单</td>
+<td>支持 <code>iptables</code> 规则，仅允许访问白名单域名（如 <code>api.openai.com</code>、<code>*.bailian.aliyun.com</code>），默认阻断所有外网。</td>
+</tr>
+<tr>
+<td>资源配额</td>
+<td><code>cpu_quota=200%</code>、<code>memory_limit=512Mi</code>、<code>pids_limit=64</code>，可在配置中自行调整。</td>
+</tr>
+<tr>
+<td>审计日志</td>
+<td>每一次执行产生 <code>sandbox_audit.log</code>，记录 <code>pid</code>、<code>uid</code>、resource usage、<code>exit_code</code>、stderr 与 stdout。</td>
+</tr>
+<tr>
+<td>快速回滚</td>
+<td>运行结束后自动 <code>umount</code>、<code>delete</code> 临时挂载点，确保无残留文件。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="33">3.3 多层隔离架构</h3>
+<p>Sandbox 的隔离由内到外逐层限制。子代理进程先受命名空间隔离，再受 cgroup 配额约束，然后被 chroot 限定文件系统，之后经过 seccomp 与 AppArmor 过滤系统调用，网络层由 iptables 白名单控制，最外层由 auditd 与审计日志记录全部行为。</p>
+<p><strong>图：Sandbox 多层隔离架构（由内到外逐层限制）</strong></p>
+<pre><code class="language-mermaid">flowchart TB
+    SUB[&quot;Sub-agent 进程&quot;] --&gt; NS[&quot;命名空间隔离 pid net mnt&quot;]
+    NS --&gt; CG[&quot;cgroup 配额 cpu 200 percent 内存 512Mi pids 64&quot;]
+    CG --&gt; FS[&quot;chroot 限定 sandbox_root&quot;]
+    FS --&gt; SEC[&quot;seccomp 与 AppArmor 系统调用过滤&quot;]
+    SEC --&gt; NET[&quot;iptables 域名白名单&quot;]
+    NET --&gt; AUD[&quot;auditd 与 sandbox_audit.log 审计&quot;]
+    AUD --&gt; OUT[&quot;stdout stderr 写入 Memory RAG&quot;]
+</code></pre>
+<h3 id="34">3.4 工作流程</h3>
+<p>Sandbox 的工作流程由下面的时序图表示。</p>
+<pre><code class="language-mermaid">flowchart LR
+    A[Routing] --&gt; B[Sandbox Manager]
+    B --&gt; C[Create Namespace]
+    C --&gt; D[Copy Exec Binary]
+    D --&gt; E[Run Sub‑agent]
+    E --&gt; F[Collect Output]
+    F --&gt; G[Write to Memory RAG]
+    G --&gt; H[Return Result]
+</code></pre>
+<p>按步骤说明：</p>
+<ol>
+<li>Routing 把子任务交给 Sandbox Manager；</li>
+<li>Sandbox Manager 根据配置创建 <code>cgroup</code> 与 <code>namespace</code>；</li>
+<li>将可执行文件（<code>openclaw-agent</code>、<code>python</code>、<code>node</code>）拷贝至沙箱根目录；</li>
+<li>通过 <code>unshare --mount --uts --ipc --net --pid</code> 启动子进程；</li>
+<li>子进程完成后，Sandbox Manager 收集 <code>stdout</code> 与 <code>stderr</code>，写入 Memory RAG 供后续子代理使用。</li>
+</ol>
+<h3 id="35">3.5 配置</h3>
+<p>Sandbox 配置位于 <code>openclaw.json</code> 的 <code>sandbox</code> 节点：</p>
+<pre><code class="language-json5">{
+  &quot;sandbox&quot;: {
+    &quot;enabled&quot;: true,
+    &quot;rootPath&quot;: &quot;~/openclaw/sandbox_root&quot;,
+    &quot;cpuQuota&quot;: &quot;200%&quot;,
+    &quot;memoryLimit&quot;: &quot;512Mi&quot;,
+    &quot;pidsLimit&quot;: 64,
+    &quot;networkWhitelist&quot;: [
+      &quot;api.openai.com&quot;,
+      &quot;*.bailian.aliyun.com&quot;
+    ],
+    &quot;auditLog&quot;: &quot;~/openclaw/logs/sandbox_audit.log&quot;
+  }
+}
+</code></pre>
+<ul>
+<li><code>rootPath</code> 必须在用户可写的目录下；首次运行时会自动 <code>mkdir -p</code> 并 <code>chmod 700</code>；</li>
+<li><code>networkWhitelist</code> 支持通配符，内部使用 <code>iptables -d</code> 实现。</li>
+</ul>
+<h3 id="36">3.6 安全加固</h3>
+<p>Sandbox 在默认隔离之上有四项加固措施：</p>
+<ol>
+<li><strong>Seccomp 过滤</strong>：默认禁用 <code>fork</code>、<code>execveat</code>、<code>ptrace</code> 等危险系统调用；需要额外二进制时可在 <code>sandbox.seccompProfile</code> 中白名单；</li>
+<li><strong>AppArmor</strong>（如系统支持）可在 <code>/etc/apparmor.d/openclaw-sandbox</code> 中添加 <code>profile</code>；</li>
+<li><strong>透明日志</strong>：<code>auditd</code> 记录所有 <code>execve</code>、<code>open</code> 系统调用；</li>
+<li><strong>资源泄漏检测</strong>：监控 <code>cgroup.memory.max_usage_in_bytes</code> 与 <code>cpu.stat</code>，若超过阈值则自动 <code>kill</code> 子进程。</li>
+</ol>
+<h3 id="37">3.7 沙箱错误码</h3>
+<p>Sandbox 的错误码为 SBOX001 至 SBOX004：</p>
+<table>
+<thead>
+<tr>
+<th>错误码</th>
+<th>含义</th>
+<th>可能原因</th>
+<th>解决方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SBOX001</code></td>
+<td>创建 Namespace 失败</td>
+<td><code>unshare</code> 权限不足（需要 <code>CAP_SYS_ADMIN</code>）</td>
+<td>检查用户是否在 <code>docker</code> 或 <code>unprivileged</code> 组；若在 WSL，确认 <code>kernel.unprivileged_userns_clone=1</code> 已启用。</td>
+</tr>
+<tr>
+<td><code>SBOX002</code></td>
+<td>文件系统访问受限</td>
+<td><code>chroot</code> 路径缺失或权限不足</td>
+<td>确认 <code>sandbox.rootPath</code> 已存在且 <code>chmod 700</code>。</td>
+</tr>
+<tr>
+<td><code>SBOX003</code></td>
+<td>网络被阻断</td>
+<td>目标域名未在白名单</td>
+<td>将域名加入 <code>sandbox.networkWhitelist</code> 并执行 <code>openclaw sandbox reload</code>。</td>
+</tr>
+<tr>
+<td><code>SBOX004</code></td>
+<td>资源超限</td>
+<td>CPU 或 Memory 超出配额</td>
+<td>调整 <code>sandbox.cpuQuota</code>、<code>sandbox.memoryLimit</code>，或优化子任务代码。</td>
+</tr>
+</tbody>
+</table>
+<p><strong>图：Sandbox 错误码判定路径</strong></p>
+<pre><code class="language-mermaid">flowchart TD
+    S[&quot;启动沙箱&quot;] --&gt; A{&quot;创建 Namespace&quot;}
+    A --&gt;|&quot;失败&quot;| E1[&quot;SBOX001 检查 CAP_SYS_ADMIN 与 userns 开关&quot;]
+    A --&gt;|&quot;成功&quot;| B{&quot;挂载 chroot 根目录&quot;}
+    B --&gt;|&quot;失败&quot;| E2[&quot;SBOX002 检查 rootPath 与权限 700&quot;]
+    B --&gt;|&quot;成功&quot;| C{&quot;运行中访问网络&quot;}
+    C --&gt;|&quot;不在白名单&quot;| E3[&quot;SBOX003 加入 networkWhitelist 并 reload&quot;]
+    C --&gt;|&quot;允许&quot;| D{&quot;资源是否超限&quot;}
+    D --&gt;|&quot;超限&quot;| E4[&quot;SBOX004 调整 cpuQuota 或 memoryLimit&quot;]
+    D --&gt;|&quot;正常&quot;| OK[&quot;执行完成 回收挂载点&quot;]
+</code></pre>
+<h3 id="38-api">3.8 实战案例：安全调用第三方 API</h3>
+<p>下面的命令在隔离环境中调用第三方 API：</p>
+<pre><code class="language-bash">openclaw agent exec '调用 https://api.openai.com/v1/chat/completions' \
+    --model deepseek/deepseek-v4-pro \
+    --sandbox true \
+    --timeout 120
+</code></pre>
+<ul>
+<li>通过 <code>--sandbox true</code> 强制在隔离环境中执行；</li>
+<li>请求仅能访问 <code>api.openai.com</code>（已在白名单），若代码尝试访问其他域名会返回 <code>SBOX003</code> 错误。</li>
+</ul>
+<hr />
+<h2 id="subagent">四、Subagent：子代理调度</h2>
+<h3 id="41-subagent">4.1 什么是 Subagent</h3>
+<p>在 OpenClaw 中，Subagent 是指由主 Agent（Gateway）派生的、具备独立运行环境的子任务执行体。它们可以是以下三类：</p>
+<ul>
+<li>语言模型实例，如 Claude、DeepSeek、OpenAI；</li>
+<li>脚本执行器，如 Python、Node、Shell；</li>
+<li>外部服务代理，如调用内部微服务、数据库、HTTP API。</li>
+</ul>
+<p>Subagent 的目标是实现业务细化。它把一个大任务拆解成若干细粒度子任务，每个子任务交给最适合的执行单元，从而提升整体吞吐与可靠性。</p>
+<h3 id="42">4.2 生命周期</h3>
+<p>Subagent 的生命周期分四步。</p>
+<pre><code>+-------------------+      +----------------------+      +-------------------+
+|   Routing 层      | ---&gt; | Subagent Manager     | ---&gt; |  Subagent 实例   |
++-------------------+      +----------------------+      +-------------------+
+          |                         |                         |
+          v                         v                         v
+    调度决策                资源分配                执行/返回
+</code></pre>
+<ol>
+<li>调度决策（Routing）为每个子任务决定 <code>runtime</code>、<code>sandbox</code>、<code>priority</code> 等属性；</li>
+<li>资源分配（Subagent Manager）为每个 Subagent 分配 cgroup、namespace、网络配额，并记录 <code>subagent_id</code>；</li>
+<li>执行：Subagent 在 Sandbox 中启动，完成任务后将结果、状态、日志写回 Memory RAG；</li>
+<li>回收：Manager 根据 <code>ttl</code> 以及 <code>exit_code</code> 自动回收容器或进程。</li>
+</ol>
+<p><strong>图：Subagent 生命周期状态机</strong></p>
+<pre><code class="language-mermaid">stateDiagram-v2
+    [*] --&gt; Pending
+    Pending: 排队中 等待资源
+    Pending --&gt; Spawning: 分配 cgroup 与 namespace
+    Spawning: 创建中
+    Spawning --&gt; Running: 启动成功
+    Spawning --&gt; Failed: SUB001 启动失败
+    Running: 执行中
+    Running --&gt; Succeeded: exit_code 为 0
+    Running --&gt; Failed: 非零退出
+    Running --&gt; Timeout: 超过 timeoutSeconds
+    Timeout --&gt; Pending: retryCount 小于 maxRetries
+    Failed --&gt; Pending: retryCount 小于 maxRetries
+    Timeout --&gt; Recycled: 重试耗尽 SUB004
+    Failed --&gt; Recycled: 重试耗尽
+    Succeeded --&gt; Recycled: 结果写回 Memory RAG
+    Recycled --&gt; [*]
+</code></pre>
+<p>状态机的 7 个状态及其含义如下：</p>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>含义</th>
+<th>进入条件</th>
+<th>离开条件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pending</td>
+<td>排队中，等待资源</td>
+<td>任务进入调度</td>
+<td>分配 cgroup 与 namespace</td>
+</tr>
+<tr>
+<td>Spawning</td>
+<td>创建中</td>
+<td>资源已分配</td>
+<td>启动成功进入 Running，启动失败进入 Failed（SUB001）</td>
+</tr>
+<tr>
+<td>Running</td>
+<td>执行中</td>
+<td>启动成功</td>
+<td><code>exit_code</code> 为 0 进入 Succeeded，非零进入 Failed，超过 <code>timeoutSeconds</code> 进入 Timeout</td>
+</tr>
+<tr>
+<td>Succeeded</td>
+<td>执行成功</td>
+<td><code>exit_code</code> 为 0</td>
+<td>结果写回 Memory RAG 后进入 Recycled</td>
+</tr>
+<tr>
+<td>Failed</td>
+<td>执行失败</td>
+<td>启动失败或非零退出</td>
+<td><code>retryCount</code> 小于 <code>maxRetries</code> 时回到 Pending，否则进入 Recycled</td>
+</tr>
+<tr>
+<td>Timeout</td>
+<td>执行超时</td>
+<td>超过 <code>timeoutSeconds</code></td>
+<td><code>retryCount</code> 小于 <code>maxRetries</code> 时回到 Pending，否则进入 Recycled（SUB004）</td>
+</tr>
+<tr>
+<td>Recycled</td>
+<td>已回收</td>
+<td>重试耗尽或执行成功后</td>
+<td>终态</td>
+</tr>
+</tbody>
+</table>
+<h3 id="43">4.3 配置模型</h3>
+<p>Subagent 的配置位于 <code>openclaw.json</code> 的 <code>subagents</code> 节点：</p>
+<pre><code class="language-json5">{
+  &quot;subagents&quot;: {
+    &quot;defaults&quot;: {
+      &quot;runtime&quot;: &quot;codex&quot;,          // 可选：codex、openclaw、custom
+      &quot;sandbox&quot;: true,
+      &quot;timeoutSeconds&quot;: 180,
+      &quot;maxRetries&quot;: 2,
+      &quot;priority&quot;: &quot;normal&quot;
+    },
+    &quot;overrides&quot;: {
+      &quot;rag&quot;: {
+        &quot;runtime&quot;: &quot;openclaw&quot;,
+        &quot;sandbox&quot;: false,
+        &quot;timeoutSeconds&quot;: 300
+      },
+      &quot;highPriority&quot;: {
+        &quot;priority&quot;: &quot;high&quot;,
+        &quot;cpuQuota&quot;: &quot;400%&quot;
+      }
+    }
+  }
+}
+</code></pre>
+<ul>
+<li><code>defaults</code> 为全局默认值；</li>
+<li><code>overrides</code> 按标签（如 <code>rag</code>、<code>highPriority</code>）自定义；</li>
+<li><code>runtime</code> 决定使用哪种 Agent Harness（Codex、OpenClaw、Claude Code）。</li>
+</ul>
+<p>配置中有几个字段需要区分。<code>timeoutSeconds</code> 与 <code>maxRetries</code> 决定状态机中 Timeout 与 Failed 状态的重试次数。<code>sandbox</code> 决定子代理是否进入 Sandbox。<code>overrides</code> 中 <code>rag</code> 标签的子代理设置了 <code>sandbox=false</code>，与 <code>defaults</code> 的 <code>sandbox=true</code> 相反，这一点在第八节列为待核对项。</p>
+<h3 id="44">4.4 三种运行方式</h3>
+<p>Subagent 有三种运行方式，对应三类 runtime。</p>
+<p><strong>1. Codex Runtime</strong></p>
+<pre><code class="language-bash">openclaw agent exec '生成 Python 代码' \
+    --model xiaomimimo/mimo-v2.6-pro \
+    --runtime codex \
+    --sandbox true
+</code></pre>
+<ul>
+<li>Codex 通过内部插件 <code>codex</code> 与 OpenClaw 交互，返回代码片段并自动写入 <code>~/openclaw/tmp/</code>；</li>
+<li>结果会被 Sandbox 包装，防止恶意代码直接访问系统。</li>
+</ul>
+<p><strong>2. OpenClaw Runtime（内置 LLM）</strong></p>
+<pre><code class="language-bash">openclaw subagent run \
+    --task-id 0x1a2b3c \
+    --payload '{&quot;action&quot;:&quot;summarize&quot;,&quot;text&quot;:&quot;...&quot;}'
+</code></pre>
+<ul>
+<li>OpenClaw 自带的轻量 LLM（默认 <code>deepseek-v4-pro</code>）用于低延迟的短文本处理；</li>
+<li><code>subagent_id</code> 自动生成，日志中可追踪 <code>subagent_id</code> 与 <code>task_id</code> 的对应关系。</li>
+</ul>
+<p><strong>3. 自定义 Runtime（插件）</strong></p>
+<pre><code class="language-bash">openclaw plugins enable my_custom_agent --accept-capabilities
+openclaw subagent run --runtime my_custom_agent --payload ...
+</code></pre>
+<ul>
+<li>插件提供自定义入口，例如调用内部微服务或运行 Rust 二进制，需要在 <code>plugins.load.extraDirs</code> 中声明路径。</li>
+</ul>
+<p>按源材料的描述，Codex 的结果由 Sandbox 包装，OpenClaw Runtime 的业务代码在 Sandbox 中执行。Custom Runtime 是否经过 Sandbox，源材料未明确说明，实际是否隔离由 <code>sandbox</code> 配置决定。</p>
+<h3 id="45-memory-rag">4.5 结果回流至 Memory RAG</h3>
+<p>子代理完成后，Subagent Manager 会调用 <code>MemoryRAG.append_history</code>，把结果写入 SQLite 表 <code>subagent_history</code>，结构如下：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>subagent_id</code></td>
+<td>TEXT</td>
+<td>子代理实例标识</td>
+</tr>
+<tr>
+<td><code>task_id</code></td>
+<td>TEXT</td>
+<td>任务标识，用于幂等检查</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>TEXT</td>
+<td><code>success</code>、<code>error</code> 或 <code>timeout</code></td>
+</tr>
+<tr>
+<td><code>output</code></td>
+<td>TEXT</td>
+<td>子代理输出</td>
+</tr>
+<tr>
+<td><code>stderr</code></td>
+<td>TEXT</td>
+<td>标准错误输出</td>
+</tr>
+<tr>
+<td><code>timestamp</code></td>
+<td>INTEGER</td>
+<td>时间戳</td>
+</tr>
+<tr>
+<td><code>resource_usage</code></td>
+<td>JSON</td>
+<td>资源用量</td>
+</tr>
+</tbody>
+</table>
+<p>示例记录：</p>
+<pre><code class="language-json">{&quot;subagent_id&quot;:&quot;sub-20261030-001&quot;,&quot;task_id&quot;:&quot;0x1a2b&quot;,&quot;status&quot;:&quot;success&quot;,&quot;output&quot;:&quot;生成的 Python 代码...&quot;,&quot;stderr&quot;:&quot;&quot;,&quot;timestamp&quot;:1730304001,&quot;resource_usage&quot;:{&quot;cpu_ms&quot;:124,&quot;mem_kb&quot;:3124}}
+</code></pre>
+<p>后续的 Routing 或 Memory RAG 在需要时可以直接查询此表，完成状态闭环与结果复用，例如缓存同类任务的输出。</p>
+<p><strong>图：Subagent 运行时选择与结果回流数据流</strong></p>
+<pre><code class="language-mermaid">flowchart LR
+    P[&quot;任务 payload 含 tags&quot;] --&gt; M[&quot;Subagent Manager&quot;]
+    M --&gt; RT{&quot;选择 runtime&quot;}
+    RT --&gt;|&quot;codex&quot;| C1[&quot;Codex Runtime 生成代码&quot;]
+    RT --&gt;|&quot;openclaw&quot;| C2[&quot;内置轻量 LLM&quot;]
+    RT --&gt;|&quot;custom&quot;| C3[&quot;自定义插件 Runtime&quot;]
+    C1 --&gt; SB[&quot;Sandbox 内执行&quot;]
+    C2 --&gt; SB
+    C3 --&gt; SB
+    SB --&gt; H[&quot;MemoryRAG.append_history 写入 subagent_history&quot;]
+    H --&gt; RO[&quot;Routing 读取历史 复用 重试或升级模型&quot;]
+</code></pre>
+<h3 id="46">4.6 资源池与调度</h3>
+<p>OpenClaw 支持两类资源池：</p>
+<ol>
+<li><strong>本地进程池</strong>（默认）：直接在本机创建 <code>cgroup</code>，适用于低延迟的轻任务；</li>
+<li><strong>容器池</strong>：基于 Docker（或 Podman）启动轻量容器 <code>openclaw/agent:&lt;runtime&gt;</code>，适用于需要特定运行时（如 Node、Java）的任务。</li>
+</ol>
+<p>动态伸缩通过 <code>SubagentPool</code> 实现：</p>
+<pre><code class="language-python">from openclaw.subagent import SubagentPool
+pool = SubagentPool()
+# 根据当前负载自动扩容至 16 实例
+pool.scale(target=16)
+# 运行任务
+result = pool.run(task_id=&quot;0xdeadbeef&quot;, payload={&quot;action&quot;:&quot;scrape&quot;,&quot;url&quot;:&quot;https://example.com&quot;})
+print(result.output)
+</code></pre>
+<p>资源池选择的依据是任务的标签。实践建议中提到，任务 payload 可以带 <code>tags</code>，例如 <code>{"tags":["highPriority","ioBound"]}</code>，由 Subagent Manager 据此选取资源池。</p>
+<h3 id="47-subagent">4.7 Subagent 故障码</h3>
+<p>Subagent 的错误码为 SUB001 至 SUB004：</p>
+<table>
+<thead>
+<tr>
+<th>错误码</th>
+<th>含义</th>
+<th>可能原因</th>
+<th>解决办法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SUB001</code></td>
+<td>子代理启动失败</td>
+<td><code>unshare</code> 权限缺失、cgroup 配置错误</td>
+<td>确认用户在 <code>unprivileged_userns_clone=1</code>（WSL）或 <code>docker</code> 组；检查 <code>/etc/cgconfig.conf</code> 是否启用 <code>cpu,memory</code> 控制器。</td>
+</tr>
+<tr>
+<td><code>SUB002</code></td>
+<td>沙箱内网络不可达</td>
+<td>域名未加入白名单</td>
+<td>更新 <code>sandbox.networkWhitelist</code> 并执行 <code>openclaw sandbox reload</code>。</td>
+</tr>
+<tr>
+<td><code>SUB003</code></td>
+<td>结果写入 Memory RAG 失败</td>
+<td>SQLite 锁冲突或磁盘满</td>
+<td>查看 <code>openclaw memory status</code>；若锁冲突，执行 <code>openclaw memory reset --mode sqlite</code>。</td>
+</tr>
+<tr>
+<td><code>SUB004</code></td>
+<td>超时</td>
+<td><code>timeoutSeconds</code> 设得过低</td>
+<td>根据任务复杂度调高，例如 <code>--timeout 300</code>。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="48">4.8 实践建议</h3>
+<ol>
+<li><strong>标签化</strong>：在任务 payload 中加入 <code>tags</code>，让 Subagent Manager 根据标签选取合适的资源池；</li>
+<li><strong>幂等设计</strong>：子任务必须使用唯一 <code>task_id</code>，子代理在异常重试时应检查历史，避免重复写入导致业务重复；</li>
+<li><strong>日志统一</strong>：所有 Subagent 的 <code>stdout</code> 与 <code>stderr</code> 必须统一写入 <code>sandbox_audit.log</code>，并在 Memory RAG 中保存 <code>log_snapshot</code>，便于事后审计；</li>
+<li><strong>监控阈值</strong>：生产环境建议 <code>cpuQuota</code> 不超过 <code>300%</code>、<code>memoryLimit</code> 不超过 <code>1Gi</code>，以免单个子代理耗尽节点资源。</li>
+</ol>
+<hr />
+<h2 id="memory-ragchroma-sqlite">五、Memory RAG：Chroma 与 SQLite 的融合</h2>
+<h3 id="51-memory-rag">5.1 为什么需要 Memory RAG</h3>
+<p>在多智能体系统中，记忆（Memory）用于保存上下文、历史对话与业务状态，检索（Retrieval）负责快速定位相关信息。单独的记忆或检索往往不足以满足复杂业务需求：</p>
+<ul>
+<li>记忆的线性增长导致查询效率下降；</li>
+<li>检索只能返回文档片段，缺少业务状态的时序关联。</li>
+</ul>
+<p>Memory RAG（Retrieval-Augmented Generation）将两者融合。它先通过向量检索定位相关文档，再在记忆库中补充时序状态，实现上下文感知的生成，从而提升回答的准确性与一致性。</p>
+<h3 id="52">5.2 两个存储的分工</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Chroma 向量检索引擎</th>
+<th>SQLite 时序记忆数据库</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>存储内容</td>
+<td>文档向量</td>
+<td>每次 Agent 调用的输入、输出、状态与时间戳，使用 JSON 列</td>
+</tr>
+<tr>
+<td>检索方式</td>
+<td>Hybrid（dense 加 sparse），返回 Top-k 片段</td>
+<td>按 <code>session_id</code>、<code>task_type</code> 等条件查询</td>
+</tr>
+<tr>
+<td>可替代实现</td>
+<td>Zilliz</td>
+<td>无</td>
+</tr>
+<tr>
+<td>配置键</td>
+<td><code>memory.rag.vectorStore</code></td>
+<td><code>memory.rag.temporalStore</code></td>
+</tr>
+<tr>
+<td>嵌入模型</td>
+<td><code>bge-m3</code>（<code>embeddingModel</code>）</td>
+<td>不涉及</td>
+</tr>
+<tr>
+<td>数据保留</td>
+<td>未说明</td>
+<td><code>purgeAfterDays: 180</code></td>
+</tr>
+</tbody>
+</table>
+<p>向量库回答“哪些文档和问题相关”，时序库回答“这个会话之前发生过什么”。两者合在一起，生成阶段既有语义依据，也有状态连续性。</p>
+<h3 id="53-rag">5.3 RAG 流程</h3>
+<p>RAG 流程分五步：</p>
+<ol>
+<li>Chunk 化：用户请求先进行语义 Chunk；</li>
+<li>向量检索：返回候选文档片段；</li>
+<li>记忆筛选：在 SQLite 中检索符合 <code>session_id</code>、<code>task_type</code> 的历史记录；</li>
+<li>融合：把检索到的文档与时序记忆拼接为 Prompt；</li>
+<li>生成：交给模型（Claude、OpenAI、DeepSeek）生成答案。</li>
+</ol>
+<p><strong>图：Memory RAG 查询数据流</strong></p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant R as Routing
+    participant M as MemoryRAG
+    participant V as Chroma 向量库
+    participant T as SQLite 时序记忆
+    participant L as 模型
+    R-&gt;&gt;M: 子任务 rag.enabled 为 true
+    M-&gt;&gt;M: 语义 Chunk 化
+    M-&gt;&gt;V: 向量检索 topK
+    V--&gt;&gt;M: 候选文档片段
+    M-&gt;&gt;T: 按 session_id 与 task_type 查询
+    T--&gt;&gt;M: 历史状态记录
+    M-&gt;&gt;M: 融合 concat 或 weighted 或 rerank
+    M-&gt;&gt;L: 富上下文 Prompt
+    L--&gt;&gt;M: 生成答案
+    M-&gt;&gt;T: 写回本次输入输出与时间戳
+    M--&gt;&gt;R: 返回答案
+</code></pre>
+<h3 id="54">5.4 关键配置与融合策略</h3>
+<p>配置位于 <code>openclaw.json</code> 的 <code>memory.rag</code> 节点：</p>
+<pre><code class="language-json5">{
+  &quot;memory&quot;: {
+    &quot;rag&quot;: {
+      &quot;enabled&quot;: true,
+      &quot;vectorStore&quot;: {
+        &quot;type&quot;: &quot;chroma&quot;,
+        &quot;path&quot;: &quot;~/openclaw/data/chroma&quot;,
+        &quot;embeddingModel&quot;: &quot;bge-m3&quot;,
+        &quot;topK&quot;: 8
+      },
+      &quot;temporalStore&quot;: {
+        &quot;type&quot;: &quot;sqlite&quot;,
+        &quot;path&quot;: &quot;~/openclaw/data/memory.sqlite&quot;,
+        &quot;purgeAfterDays&quot;: 180
+      },
+      &quot;fusionStrategy&quot;: &quot;concat&quot;,   // concat | weighted | rerank
+      &quot;weights&quot;: {
+        &quot;vector&quot;: 0.6,
+        &quot;temporal&quot;: 0.4
+      }
+    }
+  }
+}
+</code></pre>
+<ul>
+<li><code>topK</code> 控制检索返回数量；</li>
+<li><code>fusionStrategy</code> 支持三种取值：<code>concat</code> 直接拼接，<code>weighted</code> 加权融合（在生成前对每段打分），<code>rerank</code> 调用二次检索模型进行排序。</li>
+</ul>
+<p>三种融合策略对比如下：</p>
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>做法</th>
+<th>配置依赖</th>
+<th>适用场景（源材料描述）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>concat</td>
+<td>直接拼接向量片段与时序记录</td>
+<td>无</td>
+<td>配置默认值，源材料未给出适用场景</td>
+</tr>
+<tr>
+<td>weighted</td>
+<td>生成前对每段打分，按 <code>weights</code> 中 <code>vector</code>（0.6）与 <code>temporal</code>（0.4）加权</td>
+<td><code>weights</code></td>
+<td>融合 Prompt 超长时的降级选择</td>
+</tr>
+<tr>
+<td>rerank</td>
+<td>调用二次检索模型排序</td>
+<td><code>bge-reranker</code></td>
+<td>检索片段噪声大导致幻觉时启用</td>
+</tr>
+</tbody>
+</table>
+<h3 id="55">5.5 动态查询示例</h3>
+<p>Python 示例展示 <code>MemoryRAG.build_prompt</code> 的调用方式：</p>
+<pre><code class="language-python">from openclaw.rag import MemoryRAG
+
+rag = MemoryRAG()
+prompt = rag.build_prompt(
+    user_query=&quot;本月的用户活跃度下降原因是什么？&quot;,
+    session_id=&quot;sess-20261001&quot;,
+    task_type=&quot;analysis&quot;
+)
+# prompt 已经包含向量检索结果 + 时序记忆
+print(prompt)
+</code></pre>
+<p>输出示例（截取）：</p>
+<pre><code>[向量检索] 文档片段1: “… 2026 年 9 月用户活跃度下降 12% …”
+[时序记忆] 2026‑09‑01 10:12:34 - 生成日报 – 活跃度 78% → 70%
+[时序记忆] 2026‑09‑02 09:45:12 - 部署新功能 – “社交分享”导致活跃度波动
+---
+请基于以上信息回答用户问题。
+</code></pre>
+<p>输出中向量检索的结果和时序记忆分属两个前缀，说明融合后两类信息在 Prompt 中是并列出现的。</p>
+<h3 id="56">5.6 失效检测与恢复</h3>
+<p>Memory RAG 有三类失效场景，每类有对应的恢复命令：</p>
+<ol>
+<li><strong>向量库损坏</strong>：<code>chroma check --path …</code> 若返回错误，执行 <code>chroma rebuild</code> 并从备份恢复；</li>
+<li><strong>时序记忆库锁死</strong>：SQLite 锁超时时，<code>openclaw memory reset --mode sqlite</code> 会自动切换到 WAL 模式并进行 <code>VACUUM</code>；</li>
+<li><strong>检索准确率下降</strong>：监控 <code>openclaw rag eval --metric recall</code>，当 Recall 低于 0.7 时自动提示重新 embeddings（<code>openclaw rag reembed</code>）。</li>
+</ol>
+<p><strong>图：Memory RAG 失效检测与恢复路径</strong></p>
+<pre><code class="language-mermaid">flowchart TD
+    M[&quot;监控或告警触发&quot;] --&gt; Q{&quot;症状&quot;}
+    Q --&gt;|&quot;检索准确率下降 Recall 小于 0.7&quot;| A1[&quot;openclaw rag reembed 重新生成 embeddings&quot;]
+    Q --&gt;|&quot;向量库 check 报错&quot;| A2[&quot;chroma rebuild 并从备份恢复&quot;]
+    Q --&gt;|&quot;SQLite 锁超时&quot;| A3[&quot;openclaw memory reset 切换 WAL 并 VACUUM&quot;]
+    Q --&gt;|&quot;融合 Prompt 超长&quot;| A4[&quot;降低 topK 并改用 weighted 融合&quot;]
+    A1 --&gt; V[&quot;复测 openclaw rag eval --metric recall&quot;]
+    A2 --&gt; V
+    A3 --&gt; V
+    A4 --&gt; V
+</code></pre>
+<h3 id="57-memory-rag">5.7 Memory RAG 监控指标</h3>
+<p>Memory RAG 的 Prometheus 指标有四个：</p>
+<ul>
+<li><code>openclaw_rag_vector_hits_total</code>：向量检索命中次数；</li>
+<li><code>openclaw_rag_temporal_hits_total</code>：时序记忆命中次数；</li>
+<li><code>openclaw_rag_fusion_latency_seconds</code>：融合构建 Prompt 所用时间；</li>
+<li><code>openclaw_rag_query_total{status="error"}</code>：异常查询计数，包括库文件损坏、超时等。</li>
+</ul>
+<h3 id="58">5.8 常见坑点与推荐方案</h3>
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>可能原因</th>
+<th>解决方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>检索返回空</td>
+<td>向量库未同步，或文档未嵌入</td>
+<td>执行 <code>openclaw rag index --path &lt;doc_dir&gt;</code>，并确认 <code>embeddingModel</code> 正常。</td>
+</tr>
+<tr>
+<td>时序记忆查询慢</td>
+<td>SQLite 未开启 WAL，磁盘 IO 瓶颈</td>
+<td>执行 <code>openclaw memory config --sqlite-wal true</code>，或设置 <code>PRAGMA journal_mode=WAL</code>。</td>
+</tr>
+<tr>
+<td>融合 Prompt 超长</td>
+<td><code>topK</code> 设得过大，或 <code>fusionStrategy=concat</code></td>
+<td>将 <code>topK</code> 调低至 6，并改为 <code>weighted</code> 融合。</td>
+</tr>
+<tr>
+<td>RAG 生成出现幻觉</td>
+<td>检索片段噪声大</td>
+<td>启用 <code>rerank</code>，并使用 <code>bge-reranker</code> 进行二次过滤。</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_3">六、端到端协同流程</h2>
+<h3 id="61">6.1 主链路</h3>
+<p>协同流程图把四个模块串成一条主链路。下面的流程图标出了是否需要 RAG 的分支，以及 Memory RAG、Sandbox 等关键节点。</p>
+<pre><code class="language-mermaid">flowchart LR
+    %% 节点定义
+    A[用户请求（Task）] --&gt; B[Routing 路由]
+    B --&gt; C{是否需要 RAG?}
+    C --&gt;|是| D[Memory RAG]
+    D --&gt; E[检索向量库 &amp; 时序记忆]
+    E --&gt; F[融合 Prompt]
+    F --&gt; G[Subagent 调度]
+    G --&gt; H[Sandbox 隔离执行]
+    H --&gt; I[子代理（Model/Script）执行]
+    I --&gt; J[结果写回 Memory RAG]
+    J --&gt; K[生成最终答案]
+    K --&gt; L[返回给用户]
+    C --&gt;|否| M[直接 Subagent]
+    M --&gt; H
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style L fill:#bbf,stroke:#333,stroke-width:2px
+    style D fill:#efe,stroke:#333,stroke-width:2px
+    style H fill:#ffe,stroke:#333,stroke-width:2px
+</code></pre>
+<p>主链路的 8 个步骤如下：</p>
+<ol>
+<li>用户请求通过 OpenClaw CLI、API 或 UI 进入系统；</li>
+<li>Routing 根据任务属性（标签、优先级、是否需要 RAG）决定后续路径；</li>
+<li>Memory RAG（若需要）进行向量检索与时序记忆融合，生成富上下文 Prompt；</li>
+<li>Subagent 调度根据 Prompt 的 <code>runtime</code>（如 Codex、OpenClaw、Custom）创建对应 Subagent 实例；</li>
+<li>Sandbox 为 Subagent 提供进程或容器级别的安全隔离，并限制资源使用与网络访问；</li>
+<li>子代理执行完成业务逻辑（代码生成、API 调用、文档摘要等），输出 <code>stdout</code> 与状态；</li>
+<li>结果写回 Memory RAG，将执行产物、日志、资源使用写入时序记忆，供后续任务或审计使用；</li>
+<li>生成最终答案（可能再次走 RAG 进行二次检索），并通过 OpenClaw Gateway 返回给用户。</li>
+</ol>
+<h3 id="62">6.2 端到端时序</h3>
+<p>时序图展示同一条链路上各参与者之间的消息顺序，包括 Gateway 与 Subagent Manager 的交互。</p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant U as 用户
+    participant G as Gateway
+    participant R as Routing
+    participant M as Memory RAG
+    participant S as Subagent Manager
+    participant B as Sandbox
+    participant A as 子代理
+    U-&gt;&gt;G: 提交 Task
+    G-&gt;&gt;R: 拆分为 Job 并选择 Target
+    R-&gt;&gt;M: 需要 RAG 时请求上下文
+    M--&gt;&gt;R: 融合后的 Prompt
+    R-&gt;&gt;S: 下发 Job 与 runtime sandbox priority
+    S-&gt;&gt;B: 申请隔离环境
+    B-&gt;&gt;A: 启动子代理
+    A--&gt;&gt;B: stdout 与退出状态
+    B--&gt;&gt;S: 收集结果与资源用量
+    S-&gt;&gt;M: 写回 subagent_history
+    S--&gt;&gt;G: 汇总结果
+    G--&gt;&gt;U: 返回最终答案
+</code></pre>
+<h3 id="63">6.3 交接点</h3>
+<p>把各模块的交接点单独列出，便于定位一个任务在哪一步断开。</p>
+<table>
+<thead>
+<tr>
+<th>交接</th>
+<th>发起方</th>
+<th>接收方</th>
+<th>交接内容</th>
+<th>依据章节</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>请求入口</td>
+<td>用户</td>
+<td>Gateway</td>
+<td>Task</td>
+<td>二、2.1</td>
+</tr>
+<tr>
+<td>拆分与选址</td>
+<td>Gateway</td>
+<td>Routing</td>
+<td>Task，产出 Job 与 Target</td>
+<td>二、2.3</td>
+</tr>
+<tr>
+<td>RAG 标记</td>
+<td>Routing</td>
+<td>Memory RAG</td>
+<td><code>rag.enabled=true</code>，<code>session_id</code>，<code>task_type</code></td>
+<td>五、5.3</td>
+</tr>
+<tr>
+<td>融合上下文</td>
+<td>Memory RAG</td>
+<td>Routing</td>
+<td>融合后的 Prompt</td>
+<td>五、5.5</td>
+</tr>
+<tr>
+<td>下发执行</td>
+<td>Routing</td>
+<td>Subagent Manager</td>
+<td><code>runtime</code>，<code>sandbox</code>，<code>priority</code></td>
+<td>四、4.2</td>
+</tr>
+<tr>
+<td>隔离申请</td>
+<td>Subagent Manager</td>
+<td>Sandbox</td>
+<td>资源配额与隔离环境请求</td>
+<td>三、3.4</td>
+</tr>
+<tr>
+<td>结果回流</td>
+<td>Subagent Manager</td>
+<td>Memory RAG</td>
+<td><code>subagent_history</code> 记录</td>
+<td>四、4.5</td>
+</tr>
+<tr>
+<td>状态复用</td>
+<td>Memory RAG</td>
+<td>Routing</td>
+<td>历史结果，用于复用、重试或升级</td>
+<td>四、4.5</td>
+</tr>
+</tbody>
+</table>
+<h3 id="64">6.4 控制面与数据流的对应</h3>
+<p>控制面（Routing、Subagent Manager）决定做什么，数据面（Chroma、SQLite）保存与检索信息，执行面（Sandbox、子代理）真正运行代码。第一章的分层图给出了三者之间的连接关系：Routing 对向量库与时序库发起查询，对 Subagent Manager 下发属性，Subagent Manager 驱动 Sandbox，子代理把输出与日志写入 SQLite，SQLite 的历史结果再回到 Routing。</p>
+<h3 id="65">6.5 故障回退路径</h3>
+<p>协同流程图给出了四类故障的回退规则：</p>
+<ul>
+<li><strong>Routing 失效</strong>：使用默认本地 Runtime（OpenClaw）直接执行；</li>
+<li><strong>RAG 检索为空</strong>：直接跳过 RAG，进入 Subagent（纯生成）；</li>
+<li><strong>Sandbox 资源超限</strong>：降级为本地进程（不启用网络隔离），并记录 <code>SBOX004</code> 错误；</li>
+<li><strong>Subagent 超时</strong>：触发重试（最多 <code>maxRetries</code>），若仍失败则返回错误给用户并记录 <code>SUB004</code>。</li>
+</ul>
+<p><strong>图：故障回退决策图</strong></p>
+<pre><code class="language-mermaid">flowchart TD
+    S[&quot;请求进入&quot;] --&gt; R{&quot;Routing 可用&quot;}
+    R --&gt;|&quot;否&quot;| L[&quot;回退默认本地 Runtime 直接执行&quot;]
+    R --&gt;|&quot;是&quot;| G{&quot;需要 RAG&quot;}
+    G --&gt;|&quot;是&quot;| Q{&quot;检索结果为空&quot;}
+    Q --&gt;|&quot;是&quot;| SK[&quot;跳过 RAG 纯生成&quot;]
+    Q --&gt;|&quot;否&quot;| SUB[&quot;Subagent 调度&quot;]
+    G --&gt;|&quot;否&quot;| SUB
+    SK --&gt; SUB
+    SUB --&gt; SBX{&quot;Sandbox 资源是否超限&quot;}
+    SBX --&gt;|&quot;是&quot;| DG[&quot;降级为本地进程 记录 SBOX004&quot;]
+    SBX --&gt;|&quot;否&quot;| RUN[&quot;子代理执行&quot;]
+    DG --&gt; RUN
+    RUN --&gt; TO{&quot;是否超时&quot;}
+    TO --&gt;|&quot;是 且未超 maxRetries&quot;| RUN
+    TO --&gt;|&quot;是 重试耗尽&quot;| ERR[&quot;返回错误 记录 SUB004&quot;]
+    TO --&gt;|&quot;否&quot;| DONE[&quot;写回 Memory RAG 并返回&quot;]
+    L --&gt; DONE
+</code></pre>
+<p>第六章的故障回退规则与第三章的隔离要求有张力。回退图中 Sandbox 超限后的降级动作是“本地进程（不启用网络隔离）”，这意味着降级后的执行脱离了网络白名单。第八节对此单独列出。</p>
+<hr />
+<h2 id="_4">七、横切对照</h2>
+<p>本节把散落在各模块的配置项、指标和错误码按横切维度汇总，方便按主题查找。</p>
+<h3 id="71">7.1 配置项总表</h3>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>配置键</th>
+<th>示例值</th>
+<th>作用</th>
+<th>所在章节</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Routing</td>
+<td><code>routing.defaultRouter</code></td>
+<td><code>roundRobin</code></td>
+<td>默认路由器</td>
+<td>二、2.5</td>
+</tr>
+<tr>
+<td>Routing</td>
+<td><code>routing.routers.roundRobin.maxConcurrency</code></td>
+<td><code>32</code></td>
+<td>同一目标并发上限</td>
+<td>二、2.5</td>
+</tr>
+<tr>
+<td>Routing</td>
+<td><code>routing.routers.priority.policy</code></td>
+<td><code>priorityQueue</code></td>
+<td>优先级队列策略</td>
+<td>二、2.5</td>
+</tr>
+<tr>
+<td>Routing</td>
+<td><code>routing.routers.priority.preemptive</code></td>
+<td><code>true</code></td>
+<td>启用抢占</td>
+<td>二、2.5</td>
+</tr>
+<tr>
+<td>Routing</td>
+<td><code>routing.routers.k8s.pluginPath</code></td>
+<td><code>~/openclaw/plugins/k8s-router.so</code></td>
+<td>K8s 路由插件路径，需绝对路径</td>
+<td>二、2.7</td>
+</tr>
+<tr>
+<td>Routing</td>
+<td><code>routing.routers.k8s.maxPods</code></td>
+<td><code>64</code></td>
+<td>K8s 路由插件的 Pod 上限</td>
+<td>二、2.5</td>
+</tr>
+<tr>
+<td>Sandbox</td>
+<td><code>sandbox.enabled</code></td>
+<td><code>true</code></td>
+<td>启用沙箱</td>
+<td>三、3.5</td>
+</tr>
+<tr>
+<td>Sandbox</td>
+<td><code>sandbox.rootPath</code></td>
+<td><code>~/openclaw/sandbox_root</code></td>
+<td>文件系统根目录，<code>chmod 700</code></td>
+<td>三、3.5</td>
+</tr>
+<tr>
+<td>Sandbox</td>
+<td><code>sandbox.cpuQuota</code></td>
+<td><code>200%</code></td>
+<td>CPU 配额</td>
+<td>三、3.5</td>
+</tr>
+<tr>
+<td>Sandbox</td>
+<td><code>sandbox.memoryLimit</code></td>
+<td><code>512Mi</code></td>
+<td>内存上限</td>
+<td>三、3.5</td>
+</tr>
+<tr>
+<td>Sandbox</td>
+<td><code>sandbox.pidsLimit</code></td>
+<td><code>64</code></td>
+<td>进程数上限</td>
+<td>三、3.5</td>
+</tr>
+<tr>
+<td>Sandbox</td>
+<td><code>sandbox.networkWhitelist</code></td>
+<td><code>api.openai.com</code>，<code>*.bailian.aliyun.com</code></td>
+<td>域名白名单，支持通配符</td>
+<td>三、3.5</td>
+</tr>
+<tr>
+<td>Sandbox</td>
+<td><code>sandbox.auditLog</code></td>
+<td><code>~/openclaw/logs/sandbox_audit.log</code></td>
+<td>审计日志路径</td>
+<td>三、3.5</td>
+</tr>
+<tr>
+<td>Sandbox</td>
+<td><code>sandbox.seccompProfile</code></td>
+<td>未给出示例</td>
+<td>额外二进制的系统调用白名单</td>
+<td>三、3.6</td>
+</tr>
+<tr>
+<td>Subagent</td>
+<td><code>subagents.defaults.runtime</code></td>
+<td><code>codex</code></td>
+<td>默认 Harness，可选 codex、openclaw、custom</td>
+<td>四、4.3</td>
+</tr>
+<tr>
+<td>Subagent</td>
+<td><code>subagents.defaults.sandbox</code></td>
+<td><code>true</code></td>
+<td>默认启用沙箱</td>
+<td>四、4.3</td>
+</tr>
+<tr>
+<td>Subagent</td>
+<td><code>subagents.defaults.timeoutSeconds</code></td>
+<td><code>180</code></td>
+<td>超时阈值</td>
+<td>四、4.3</td>
+</tr>
+<tr>
+<td>Subagent</td>
+<td><code>subagents.defaults.maxRetries</code></td>
+<td><code>2</code></td>
+<td>最大重试次数</td>
+<td>四、4.3</td>
+</tr>
+<tr>
+<td>Subagent</td>
+<td><code>subagents.defaults.priority</code></td>
+<td><code>normal</code></td>
+<td>默认优先级</td>
+<td>四、4.3</td>
+</tr>
+<tr>
+<td>Subagent</td>
+<td><code>subagents.overrides.rag</code></td>
+<td><code>runtime=openclaw</code>，<code>sandbox=false</code>，<code>timeoutSeconds=300</code></td>
+<td>rag 标签的覆盖配置</td>
+<td>四、4.3</td>
+</tr>
+<tr>
+<td>Subagent</td>
+<td><code>subagents.overrides.highPriority</code></td>
+<td><code>priority=high</code>，<code>cpuQuota=400%</code></td>
+<td>高优先级标签的覆盖配置</td>
+<td>四、4.3</td>
+</tr>
+<tr>
+<td>Memory RAG</td>
+<td><code>memory.rag.enabled</code></td>
+<td><code>true</code></td>
+<td>启用 RAG</td>
+<td>五、5.4</td>
+</tr>
+<tr>
+<td>Memory RAG</td>
+<td><code>memory.rag.vectorStore.type</code></td>
+<td><code>chroma</code></td>
+<td>向量库类型</td>
+<td>五、5.4</td>
+</tr>
+<tr>
+<td>Memory RAG</td>
+<td><code>memory.rag.vectorStore.path</code></td>
+<td><code>~/openclaw/data/chroma</code></td>
+<td>向量库路径</td>
+<td>五、5.4</td>
+</tr>
+<tr>
+<td>Memory RAG</td>
+<td><code>memory.rag.vectorStore.embeddingModel</code></td>
+<td><code>bge-m3</code></td>
+<td>嵌入模型</td>
+<td>五、5.4</td>
+</tr>
+<tr>
+<td>Memory RAG</td>
+<td><code>memory.rag.vectorStore.topK</code></td>
+<td><code>8</code></td>
+<td>检索返回数量</td>
+<td>五、5.4</td>
+</tr>
+<tr>
+<td>Memory RAG</td>
+<td><code>memory.rag.temporalStore.type</code></td>
+<td><code>sqlite</code></td>
+<td>时序存储类型</td>
+<td>五、5.4</td>
+</tr>
+<tr>
+<td>Memory RAG</td>
+<td><code>memory.rag.temporalStore.path</code></td>
+<td><code>~/openclaw/data/memory.sqlite</code></td>
+<td>SQLite 文件路径</td>
+<td>五、5.4</td>
+</tr>
+<tr>
+<td>Memory RAG</td>
+<td><code>memory.rag.temporalStore.purgeAfterDays</code></td>
+<td><code>180</code></td>
+<td>时序记录保留天数</td>
+<td>五、5.4</td>
+</tr>
+<tr>
+<td>Memory RAG</td>
+<td><code>memory.rag.fusionStrategy</code></td>
+<td><code>concat</code></td>
+<td>融合策略，可选 concat、weighted、rerank</td>
+<td>五、5.4</td>
+</tr>
+<tr>
+<td>Memory RAG</td>
+<td><code>memory.rag.weights.vector</code></td>
+<td><code>0.6</code></td>
+<td>加权融合中向量权重</td>
+<td>五、5.4</td>
+</tr>
+<tr>
+<td>Memory RAG</td>
+<td><code>memory.rag.weights.temporal</code></td>
+<td><code>0.4</code></td>
+<td>加权融合中时序权重</td>
+<td>五、5.4</td>
+</tr>
+</tbody>
+</table>
+<p>配置值的横向对照可以看出：Sandbox 的 <code>cpuQuota</code> 默认为 200%，Subagent 的 <code>overrides.highPriority</code> 把 <code>cpuQuota</code> 提到 400%，超过第四章给出的生产建议 300%。这一差异列在第八节。</p>
+<h3 id="72-prometheus">7.2 Prometheus 指标总表</h3>
+<table>
+<thead>
+<tr>
+<th>指标名</th>
+<th>类型（源材料未标注，按名称推断）</th>
+<th>所属模块</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>openclaw_router_jobs_total{router="roundRobin"}</code></td>
+<td>计数</td>
+<td>Routing</td>
+<td>已调度作业总数</td>
+</tr>
+<tr>
+<td><code>openclaw_router_job_latency_seconds{router="priority"}</code></td>
+<td>时延</td>
+<td>Routing</td>
+<td>作业路由延迟</td>
+</tr>
+<tr>
+<td><code>openclaw_router_target_active{target="local"}</code></td>
+<td>计数或瞬时值</td>
+<td>Routing</td>
+<td>活跃目标数量</td>
+</tr>
+<tr>
+<td><code>openclaw_routing_latency_seconds</code></td>
+<td>时延</td>
+<td>协同流程（05）</td>
+<td>路由延迟，名称与 Routing 模块不一致，见第八节</td>
+</tr>
+<tr>
+<td><code>openclaw_rag_vector_hits_total</code></td>
+<td>计数</td>
+<td>Memory RAG</td>
+<td>向量检索命中次数</td>
+</tr>
+<tr>
+<td><code>openclaw_rag_temporal_hits_total</code></td>
+<td>计数</td>
+<td>Memory RAG</td>
+<td>时序记忆命中次数</td>
+</tr>
+<tr>
+<td><code>openclaw_rag_fusion_latency_seconds</code></td>
+<td>时延</td>
+<td>Memory RAG，协同流程</td>
+<td>融合构建 Prompt 耗时</td>
+</tr>
+<tr>
+<td><code>openclaw_rag_query_total{status="error"}</code></td>
+<td>计数</td>
+<td>Memory RAG</td>
+<td>异常查询计数</td>
+</tr>
+<tr>
+<td><code>openclaw_subagent_active_total</code></td>
+<td>计数或瞬时值</td>
+<td>Subagent</td>
+<td>当前活跃 Subagent 数量</td>
+</tr>
+<tr>
+<td><code>openclaw_subagent_spawn_latency_seconds</code></td>
+<td>时延</td>
+<td>Subagent，协同流程</td>
+<td>创建 Subagent 耗时</td>
+</tr>
+<tr>
+<td><code>openclaw_subagent_execution_seconds{runtime="codex"}</code></td>
+<td>时延</td>
+<td>Subagent</td>
+<td>单个 Subagent 执行时长</td>
+</tr>
+<tr>
+<td><code>openclaw_subagent_failure_total{reason="timeout"}</code></td>
+<td>计数</td>
+<td>Subagent</td>
+<td>超时失败计数</td>
+</tr>
+<tr>
+<td><code>openclaw_sandbox_execution_seconds</code></td>
+<td>时延</td>
+<td>协同流程（05）</td>
+<td>沙箱执行耗时，其他文件未定义</td>
+</tr>
+<tr>
+<td><code>openclaw_response_total</code></td>
+<td>计数</td>
+<td>协同流程（05）</td>
+<td>响应计数，其他文件未定义</td>
+</tr>
+</tbody>
+</table>
+<p>协同流程图列出的关键链路指标是 <code>openclaw_routing_latency_seconds</code>、<code>openclaw_rag_fusion_latency_seconds</code>、<code>openclaw_subagent_spawn_latency_seconds</code>、<code>openclaw_sandbox_execution_seconds</code>、<code>openclaw_response_total</code> 五个。其中前三个在各自模块中有对应定义，后两个只在协同流程图中出现。</p>
+<h3 id="73">7.3 错误码汇总</h3>
+<table>
+<thead>
+<tr>
+<th>错误码</th>
+<th>所属模块</th>
+<th>含义</th>
+<th>典型原因</th>
+<th>首要处置</th>
+<th>出现位置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SBOX001</code></td>
+<td>Sandbox</td>
+<td>创建 Namespace 失败</td>
+<td><code>unshare</code> 权限不足，缺 <code>CAP_SYS_ADMIN</code></td>
+<td>检查用户组，WSL 下检查 userns 开关</td>
+<td>三、3.7；流程图三、3.7</td>
+</tr>
+<tr>
+<td><code>SBOX002</code></td>
+<td>Sandbox</td>
+<td>文件系统访问受限</td>
+<td><code>chroot</code> 路径缺失或权限不足</td>
+<td>确认 <code>rootPath</code> 存在且 <code>chmod 700</code></td>
+<td>三、3.7</td>
+</tr>
+<tr>
+<td><code>SBOX003</code></td>
+<td>Sandbox</td>
+<td>网络被阻断</td>
+<td>目标域名未在白名单</td>
+<td>加入 <code>networkWhitelist</code> 并 reload</td>
+<td>三、3.7；实战案例三、3.8</td>
+</tr>
+<tr>
+<td><code>SBOX004</code></td>
+<td>Sandbox</td>
+<td>资源超限</td>
+<td>CPU 或内存超出配额</td>
+<td>调整 <code>cpuQuota</code> 或 <code>memoryLimit</code></td>
+<td>三、3.7；故障回退六、6.5</td>
+</tr>
+<tr>
+<td><code>SUB001</code></td>
+<td>Subagent</td>
+<td>子代理启动失败</td>
+<td><code>unshare</code> 权限缺失，cgroup 配置错误</td>
+<td>检查 userns 与 cgroup 控制器</td>
+<td>四、4.7；状态机四、4.2</td>
+</tr>
+<tr>
+<td><code>SUB002</code></td>
+<td>Subagent</td>
+<td>沙箱内网络不可达</td>
+<td>域名未加入白名单</td>
+<td>更新白名单并 reload</td>
+<td>四、4.7</td>
+</tr>
+<tr>
+<td><code>SUB003</code></td>
+<td>Subagent</td>
+<td>结果写入 Memory RAG 失败</td>
+<td>SQLite 锁冲突或磁盘满</td>
+<td>查看 <code>openclaw memory status</code></td>
+<td>四、4.7</td>
+</tr>
+<tr>
+<td><code>SUB004</code></td>
+<td>Subagent</td>
+<td>超时</td>
+<td><code>timeoutSeconds</code> 过低</td>
+<td>调高超时，如 <code>--timeout 300</code></td>
+<td>四、4.2；六、6.5</td>
+</tr>
+</tbody>
+</table>
+<p>同一故障在两个模块中可能有两个错误码。例如 Namespace 创建失败，Sandbox 报 SBOX001，Subagent 报 SUB001。两者都提到 <code>unshare</code> 权限和 userns，但 SUB001 的排查项还包括 cgroup 控制器。排查时应先看报错来自哪一层。</p>
+<h3 id="74">7.4 排查入口</h3>
+<p>按症状找模块，再按模块找错误码与命令：</p>
+<table>
+<thead>
+<tr>
+<th>症状</th>
+<th>先看模块</th>
+<th>对应错误码或指标</th>
+<th>首要动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>任务没有进入执行</td>
+<td>Routing</td>
+<td><code>openclaw_router_jobs_total</code>，<code>Plugin load error</code></td>
+<td>检查 <code>pluginPath</code> 是否为可执行的绝对路径</td>
+</tr>
+<tr>
+<td>检索为空或命中低</td>
+<td>Memory RAG</td>
+<td><code>openclaw_rag_vector_hits_total</code>，Recall 低于 0.7</td>
+<td>执行 <code>openclaw rag index</code> 或 <code>openclaw rag reembed</code></td>
+</tr>
+<tr>
+<td>SQLite 查询慢或锁死</td>
+<td>Memory RAG，Subagent</td>
+<td><code>SUB003</code>，<code>openclaw_rag_query_total{status="error"}</code></td>
+<td>开启 WAL，执行 <code>openclaw memory reset --mode sqlite</code></td>
+</tr>
+<tr>
+<td>子代理启动即失败</td>
+<td>Subagent，Sandbox</td>
+<td><code>SUB001</code>，<code>SBOX001</code></td>
+<td>检查 userns、cgroup 与用户组</td>
+</tr>
+<tr>
+<td>外部请求被拒</td>
+<td>Sandbox</td>
+<td><code>SBOX003</code>，<code>SUB002</code></td>
+<td>更新白名单并 <code>openclaw sandbox reload</code></td>
+</tr>
+<tr>
+<td>资源被截断</td>
+<td>Sandbox</td>
+<td><code>SBOX004</code></td>
+<td>调整配额或优化子任务</td>
+</tr>
+<tr>
+<td>子任务反复超时</td>
+<td>Subagent</td>
+<td><code>SUB004</code>，<code>openclaw_subagent_failure_total{reason="timeout"}</code></td>
+<td>调高 <code>timeoutSeconds</code>，检查 <code>maxRetries</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_5">八、源材料待核对点</h2>
+<p>以下是源材料内部的不一致或未说明的地方。本文按原文转述，没有擅自改值。使用前需要对照原始配置确认。</p>
+<ol>
+<li><strong>沙箱根路径不一致</strong>：第三章特性表写 <code>/home/wuyafang/.openclaw/sandbox_root</code>，配置示例写 <code>~/openclaw/sandbox_root</code>，两处路径前缀不同。</li>
+<li><strong>资源上限不一致</strong>：Sandbox 默认 <code>cpuQuota</code> 为 200%、<code>memoryLimit</code> 为 512Mi。Subagent 生产建议写 <code>cpuQuota</code> 不超过 300%、<code>memoryLimit</code> 不超过 1Gi，但 <code>overrides.highPriority</code> 配置了 <code>cpuQuota</code> 为 400%。</li>
+<li><strong>隔离降级语义冲突</strong>：第三章说 Sandbox 默认阻断外网，第六章的回退规则在 Sandbox 超限时降级为“本地进程（不启用网络隔离）”。降级是否允许跳过网络白名单，源材料没有给出判断依据。</li>
+<li><strong>Subagent 覆盖配置关闭了 Sandbox</strong>：<code>overrides.rag</code> 设置 <code>sandbox=false</code>，而 Subagent 默认值为 <code>sandbox=true</code>。源材料对关闭隔离的条件没有说明。</li>
+<li><strong><code>memory reset</code> 的语义未说明</strong>：第五章写 <code>openclaw memory reset --mode sqlite</code> 会切换 WAL 并 <code>VACUUM</code>，第四章的 SUB003 同样使用它处理锁冲突。命令名中含 <code>reset</code>，源材料没有说明它是否清空记录。执行前需要确认。</li>
+<li><strong>指标名不一致</strong>：Routing 模块的延迟指标为 <code>openclaw_router_job_latency_seconds</code>，协同流程图使用 <code>openclaw_routing_latency_seconds</code>。<code>openclaw_sandbox_execution_seconds</code> 与 <code>openclaw_response_total</code> 只在协同流程图中出现。</li>
+<li><strong>runtime 决策归属</strong>：第四章写 runtime 由 Routing 决定，第六章的主链路写 Subagent 调度根据 Prompt 的 <code>runtime</code> 创建实例。两处对 runtime 的决策方归属写法不同。</li>
+<li><strong>示例模型与白名单不匹配</strong>：Sandbox 实战案例使用 <code>deepseek/deepseek-v4-pro</code> 模型，但请求的目标是 <code>api.openai.com</code>，白名单中也只有这一个 OpenAI 域名。源材料没有说明 DeepSeek 调用的目标域名是否需要加入白名单。</li>
+<li><strong>数据保留未说明机制</strong>：<code>purgeAfterDays: 180</code> 出现在配置中，文中没有说明清理的触发方式与执行者。</li>
+<li><strong>图文件名</strong>：协同流程图备注中提到 <code>05_Flowchart.mmd</code>，实际文件名为 <code>05_协同流程图.md</code>。</li>
+</ol>
+<hr />
+<h2 id="_6">小结</h2>
+<p>OpenClaw 的五个模块文件分别讲了四个核心模块和一张端到端流程图。Routing 决定任务的拆分与去向。Sandbox 为每次子代理执行提供命名空间、cgroup、chroot、seccomp 与 iptables 白名单等隔离层。Subagent 通过 7 个状态的生命周期和 <code>maxRetries</code> 管理执行与重试。Memory RAG 用 Chroma 做语义检索，用 SQLite 做时序记忆，并以 concat、weighted、rerank 三种策略融合。四个模块通过 <code>rag.enabled</code>、<code>sandbox</code>、<code>runtime</code> 等标记和 <code>subagent_history</code> 表串成闭环。</p>
+<p>排查时可以从症状出发，先定位模块，再对应错误码与 Prometheus 指标。使用配置前，应先核对第八节列出的不一致点。</p>
+<hr />
+<h2 id="_7">来源</h2>
+<ul>
+<li><code>01_Routing模块.md</code></li>
+<li><code>02_Memory_RAG模块.md</code></li>
+<li><code>03_Sandbox模块.md</code></li>
+<li><code>04_Subagent模块.md</code></li>
+<li><code>05_协同流程图.md</code></li>
+</ul>
+<p>以上五个文件位于 <code>wiki/L5-Agent工程/OpenClaw模块协同/</code> 目录下，本文按主题重组，没有引入其他来源的内容。</p>
+<h2 id="_8">相关条目</h2>
+<ul>
+<li><a href="Agent框架实操选型-2026.html">Agent框架实操选型-2026</a></li>
+<li><a href="Agent生产化要注意什么.html">Agent生产化要注意什么</a></li>
+<li><a href="生产级Agent与Evals实操.html">生产级Agent与Evals实操</a></li>
+<li><a href="多智能体生产化缺口与断点续传.html">多智能体生产化缺口与断点续传</a></li>
+<li><a href="多智能体协作工作流调研.html">多智能体协作工作流调研</a></li>
+<li><a href="Agent记忆保鲜与冲突治理.html">Agent记忆保鲜与冲突治理</a></li>
+<li><a href="Agent记忆双进程范式.html">Agent记忆双进程范式</a></li>
+<li><a href="多Agent还是单Agent怎么选.html">多Agent还是单Agent怎么选</a></li>
+<li><a href="MCP到底解决什么问题.html">MCP到底解决什么问题</a></li>
+</ul></div></body></html>

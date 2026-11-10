@@ -1,0 +1,179 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI工程和传统软件工程的区别</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ AI工程和传统软件工程的区别</span></div><div class="wrap"><h1 id="ai工程和传统软件工程的区别">AI工程和传统软件工程的区别</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">这个问题的答案是什么</span><span class="chap-cnt">2 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>传统软件工程面对的是确定性系统——输入固定则输出固定，需求可以写成明确的验收标准，质量用"对/错"衡量</li><li>AI工程面对的是概率性系统——同一个输入跑两次可能得到不同输出，需求天然模糊，质量用"好到什么程度"衡量</li></ul></div>2
+<p>传统软件工程面对的是<strong>确定性系统</strong>——输入固定则输出固定，需求可以写成明确的验收标准，质量用"对/错"衡量。AI工程面对的是<strong>概率性系统</strong>——同一个输入跑两次可能得到不同输出，需求天然模糊，质量用"好到什么程度"衡量。这个根本差异贯穿四个环节：需求定义从"写清楚要什么"变成"定义清楚什么算好"；开发流程从"写代码"变成"调提示词+选模型+做评估"；质量评估从"单元测试过没过"变成"评测集上的得分分布"；迭代方式从"改代码上线"变成"改prompt/换模型/补数据"。</p>
+<h2 id="详细内容">详细内容</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">一、需求定义：从"规格说明"到"成功标准"</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>传统软件工程可以在开工前写出明确的需求文档：登录页支持邮箱+密码、接口返回200或401</li><li>这是AI需求定义的核心动作：不是定义"做什么"，而是定义"怎么判断做得好不好"以及"问题出在哪一层"</li><li>AI应用很难这样写——"帮我写一封好的求职信"，什么是"好"</li></ul></div>3
+<p>传统软件工程可以在开工前写出明确的需求文档：登录页支持邮箱+密码、接口返回200或401。AI应用很难这样写——"帮我写一封好的求职信"，什么是"好"？</p>
+<p>《AI工程：大模型应用开发实战》指出："补全结果是基于概率的预测，并不能保证正确。这种语言模型的概率特性让人们在实际使用过程中既爱又恨。"这意味着你不能像写传统需求那样写"系统必须返回X"，而必须定义<strong>评估标准</strong>：什么样的输出算合格、合格的阈值是多少、哪些边缘情况必须拦截。</p>
+<p>《大模型应用开发极简入门》给出了一个实用的拆解方法："如果结果需要改进，确定是因为内容还是因为风格和格式。"——先判断问题出在内容（模型不知道）还是风格（模型知道但表达方式不对），再决定下一步是加RAG还是调prompt。这是AI需求定义的核心动作：<strong>不是定义"做什么"，而是定义"怎么判断做得好不好"以及"问题出在哪一层"</strong>。</p>
+<h3 id="二开发流程从编码到编排">二、开发流程：从"编码"到"编排"</h3>3
+<p>传统开发的核心动作是写代码、调试、集成。AI工程的核心动作变成了四件事：</p>
+<ol>
+<li><strong>模型选择</strong>：不是所有场景都需要最强模型。《AI工程》提到"AI在前端开发方面的表现远远优于后端开发"，说明不同任务对模型能力的需求差异很大。</li>
+<li><strong>提示工程</strong>：《30个可执行案例设计》反复使用"多种不同的模板，构建与语言模型的交互，通过生成合适的提示引导模型生成所需的输出"，还特别指出"由于ChatGPT的'母语'是英文，需要使用英文作为Prompt的语言"。</li>
+<li><strong>外部知识接入</strong>：RAG不是可选项而是基础架构。《极简入门》划线最多的观点之一就是"如果问题出在内容上，那么可以将RAG作为下一步的选择"。</li>
+<li><strong>状态管理</strong>：OpenAI模型"默认是无状态的，不会记住先前的对话，通常需要开发者自己管理历史记录"——这在传统软件工程里是不需要操心的事。</li>
+</ol>
+<p>《30个案例》中的项目6（职业匹配）是典型缩影：解析网页→提取职位名称/公司/地点存入<code>info_dict</code>→构建英文prompt引导GPT→生成匹配结果。整个流程没有一行传统意义上的"业务逻辑代码"，全是编排。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">三、质量评估：从"对/错"到"分布"</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>《AI工程》直言："评估是AI工程中最困难的挑战之一（甚至没有'之一'）</li><li>在100个测试用例上，输出合格的比例是多少</li><li>"传统软件测试是确定性的——输入A预期输出B，过了就过了</li></ul></div>3
+<p>这是两者差距最大的环节。《AI工程》直言："评估是AI工程中最困难的挑战之一（甚至没有'之一'）。"传统软件测试是确定性的——输入A预期输出B，过了就过了。AI评估必须回答：</p>
+<ul>
+<li>在100个测试用例上，输出合格的比例是多少？</li>
+<li>合格的边界在哪里？温度调高后创造力提升但准确率下降，平衡点在哪？</li>
+<li>《AI工程》提到"采样策略解释了许多看似令人困惑的AI行为（包括幻觉和不一致性）"——同一个prompt用不同温度跑出来的结果分布完全不同，评估必须覆盖这个分布。</li>
+</ul>
+<p>《极简入门》补充了幻觉问题："AI幻觉指的是模型以自信的语气提供错误或基于虚构事实的回答"，因此"必须对其输出进行核实和批判性审查"。传统软件没有"自信地返回错误结果"这种bug类型。</p>
+<h3 id="四迭代方式从改代码到改配方">四、迭代方式：从"改代码"到"改配方"</h3>3
+<p>传统迭代是：改代码→跑测试→部署。AI迭代的杠杆点完全不同：</p>
+<table>
+<thead>
+<tr>
+<th>杠杆</th>
+<th>效果</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>改prompt模板</td>
+<td>改变输出风格/格式/引导方向</td>
+<td>极低，即改即测</td>
+</tr>
+<tr>
+<td>调温度/采样策略</td>
+<td>在创造力和确定性之间取平衡</td>
+<td>极低</td>
+</tr>
+<tr>
+<td>加RAG数据源</td>
+<td>解决"不知道"的问题</td>
+<td>中，需要建检索管道</td>
+</tr>
+<tr>
+<td>换模型</td>
+<td>整体能力跃迁</td>
+<td>中，需要重新评估</td>
+</tr>
+<tr>
+<td>微调</td>
+<td>改变模型行为模式</td>
+<td>高，需要数据和训练</td>
+</tr>
+</tbody>
+</table>
+<p>《AI工程》还指出一个关键的架构原则："规划最好与执行解耦。你可以先要求智能体生成一个计划，只有在这个计划通过验证后才执行。"——这在传统软件工程里对应"先评审再合并"，但在AI里变成了运行时的动态验证，因为模型的规划本身是概率生成的，不可信。</p>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">来自哪些书的哪些观点（标注来源）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>2
+<table>
+<thead>
+<tr>
+<th>观点</th>
+<th>来源书</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>语言模型补全是概率预测，不能保证正确</td>
+<td>《AI工程：大模型应用开发实战》</td>
+</tr>
+<tr>
+<td>评估是AI工程中最困难的挑战之一</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>采样策略解释幻觉和不一致性</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>规划最好与执行解耦</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>AI在前端开发表现优于后端</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>如果问题出在内容上，RAG是下一步选择</td>
+<td>《大模型应用开发极简入门》</td>
+</tr>
+<tr>
+<td>OpenAI模型默认无状态，需开发者管理历史</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>AI幻觉指自信语气提供错误回答</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>改进时先判断是内容问题还是风格格式问题</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>GPT根据用户查询决定是否调用插件API</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>多种不同模板构建与语言模型的交互</td>
+<td>《30个可执行案例设计》</td>
+</tr>
+<tr>
+<td>ChatGPT母语是英文，需用英文做Prompt</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>提取职位名称/公司/地点存入info_dict（结构化解析）</td>
+<td>同上</td>
+</tr>
+</tbody>
+</table>
+<h2 id="相关条目">相关条目</h2>2
+<ul>
+<li><a href="30%E4%B8%AA%E6%A1%88%E4%BE%8B%E9%87%8C%E6%9C%80%E6%9C%89%E4%BB%B7%E5%80%BC%E7%9A%845%E4%B8%AA%E6%A8%A1%E5%BC%8F.html">30个案例里最有价值的5个模式</a></li>
+</ul></div></details></div></body></html>

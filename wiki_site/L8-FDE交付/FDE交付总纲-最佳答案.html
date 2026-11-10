@@ -1,0 +1,209 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>FDE交付总纲-最佳答案</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ FDE交付总纲-最佳答案</span></div><div class="wrap"><h1 id="fde-交付总纲-最佳答案">FDE 交付总纲 · 最佳答案</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a></p>
+</blockquote>
+<details class="chap d2"><summary class="chap-s"><span class="chap-t">WHY</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>FDE（Forward Deployed Engineer，前沿部署工程师）是 Palantir 起源的角色，2026 年 Anthropic/OpenAI/AWS/微软/Google Cloud 都设了 FDE 部门</li><li>它和"售前对方案负责、咨询对建议负责"的关键区别是——FDE 对生产环境里真实发生的业务结果负责</li><li>FDE 主干要把"怎么交付一个 AI 项目"讲成一套可复用的骨架：从发现需求到设计、部署、复盘，加上定价和商业模式</li></ul></div>2
+<p>FDE（Forward Deployed Engineer，前沿部署工程师）是 Palantir 起源的角色，2026 年 Anthropic/OpenAI/AWS/微软/Google Cloud 都设了 FDE 部门。它和"售前对方案负责、咨询对建议负责"的关键区别是——<strong>FDE 对生产环境里真实发生的业务结果负责</strong>。FDE 主干要把"怎么交付一个 AI 项目"讲成一套可复用的骨架：从发现需求到设计、部署、复盘，加上定价和商业模式。这一篇是整个 L8-FDE 子域的总入口。</p>
+<h2 id="what这个节点的最佳答案是什么">WHAT：这个节点的最佳答案是什么</h2>2
+<details class="chap d3"><summary class="chap-s"><span class="chap-t">1. 交付主骨架：DDDR 四阶段（VanGong1999/FDE 一手）</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>每阶段有明确的入口条件、关键动作、出口产物、出口检查</li><li>最常见翻车：Discover 没做完就 Deploy，以及没有 Eval 计划就不算 Design 完成</li><li>Discover 1-2 周、窄 Pilot 2-6 周是常见时间盒</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>一句话</th>
+<th>核心问题</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Discover</strong></td>
+<td>弄清真相</td>
+<td>谁痛？被什么指标衡量？约束是什么？</td>
+</tr>
+<tr>
+<td><strong>Design</strong></td>
+<td>变成可执行计划</td>
+<td>做什么、不做什么、如何证明成功？</td>
+</tr>
+<tr>
+<td><strong>Deploy</strong></td>
+<td>在约束内实现并上线</td>
+<td>权限、数据、集成、培训、观测齐了吗？</td>
+</tr>
+<tr>
+<td><strong>Review</strong></td>
+<td>学习与杠杆</td>
+<td>有效吗？为何？怎样复用/反馈产品？</td>
+</tr>
+</tbody>
+</table>
+<p>每阶段有明确的入口条件、关键动作、出口产物、出口检查。最常见翻车：<strong>Discover 没做完就 Deploy</strong>，以及<strong>没有 Eval 计划就不算 Design 完成</strong>。</p>
+<p>关键规则：<br />
+- Discover 1-2 周、窄 Pilot 2-6 周是常见时间盒。<br />
+- Design 阶段方案至少 2 个，<strong>含"不做 LLM"选项</strong>。<br />
+- Deploy 要分阶段 rollout（影子模式 → 建议模式 → 自动模式）。<br />
+- Review 必须把知识沉淀到 Playbook，不能只停在 FDE 个人笔记本。</p>
+<h3 id="2-fde-loop-五步闭环openfde-一手">2. FDE Loop 五步闭环（OpenFDE 一手）</h3>3
+<p>DDDR 是项目级流程；FDE Loop 是判断力沉淀的微观循环，每个阶段内部都在跑：</p>
+<pre><code>DEPLOY 面（驻场：连接器 · 授权 · 审计）
+① OBSERVE 看 → ② ELICIT 问 → ③ INDUCE 学 → ④ ACT 做 → ⑤ EVOLVE 长
+ATTRIBUTION 面（归因：哪一次判断推动了真实结果？）
+</code></pre>
+<ul>
+<li><strong>OBSERVE</strong>：坐专家旁边看真实工作流（观察告诉你 what）。</li>
+<li><strong>ELICIT</strong>：关键时刻追问"你刚才为什么这么判断、看了什么、什么情况下会不这么做"（引出 why）。</li>
+<li><strong>INDUCE</strong>：归纳成<strong>判断单元（Judgment Unit）</strong>——触发信号、决策、理由、被放弃的备选、<strong>反转条件</strong>（只存在于专家脑子里，主动引出才拿得到）、渐进自主度（suggest→approve→auto）。</li>
+<li><strong>ACT</strong>：编译成内建治理的 Agent 配置，写操作强制审批。</li>
+<li><strong>EVOLVE</strong>：信任是挣来的——真实结果归因 +1 后才从 suggest 提升到 approve。</li>
+</ul>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">3. 4C 验收维度（OpenFDE 一手）</span><span class="chap-cnt">1 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>（本章节内容见子章节/表格，展开查看原文。）</li></ul></div>3
+<table>
+<thead>
+<tr>
+<th>面</th>
+<th>内容</th>
+<th>交付验收口径</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Context</strong></td>
+<td>深入客户真实环境：流程、数据、权限、买单者、失败成本</td>
+<td>问题不是"客户要什么功能"，而是"业务结果卡在哪"</td>
+</tr>
+<tr>
+<td><strong>Code</strong></td>
+<td>亲手把方案写到生产环境</td>
+<td>不是 demo/PPT/配置，是能在客户基础设施上真实运行的系统</td>
+</tr>
+<tr>
+<td><strong>Calibration</strong></td>
+<td>用真实业务指标和失败模式做 eval</td>
+<td>正确率、覆盖率、越权率、人工接管率、采用率——"被用起来、指标真的变好"才算</td>
+</tr>
+<tr>
+<td><strong>Compounding</strong></td>
+<td>把现场反复出现的摩擦沉淀成连接器、模板、评估集、产品需求</td>
+<td>让下一个客户更快落地</td>
+</tr>
+</tbody>
+</table>
+<h3 id="4-实战提炼智能客服端到端三原则">4. 实战提炼：智能客服端到端三原则</h3>3
+<p>来自一个完整 RAG 项目复盘，最可迁移的三条：<br />
+1. <strong>先上线再优化，但边界先划死</strong>：真实 query 分布只有上线后才暴露；但"什么必须转人工"第一天就要硬编码。<br />
+2. <strong>评测集 &gt; 模型选型</strong>：纠结"哪个模型更好"不如建一个 500 条真实 query 标注集，每次改动回归跑一遍。准确率是磨出来的，不是换出来的。<br />
+3. <strong>架构里埋省钱设计</strong>：模型路由和语义缓存不是事后补丁，是第一天默认设计。单个本地项目复盘的口径是：月活 1 万时，全量大模型 9360 元/月 → 加模型路由（75% 走小模型）→ 加语义缓存 → 最终 2400 元/月，省 74%。<strong>本库未独立复测，不能外推为其他项目收益承诺</strong>；正式报价须重算模型单价、命中率、流量和人工复核成本。</p>
+<p>“幻觉根因 80% 在检索层”也只是该素材的项目复盘经验，<strong>不是通用统计结论</strong>。可迁移动作是先查召回（top-k 里有没有正确答案），再分诊模型、上下文与生成；召回漏了，模型再强也可能拿错误上下文编造。</p>
+</div></details><details class="chap d3"><summary class="chap-s"><span class="chap-t">5. 定价：按成果价值，不按工时</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本节重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本节重点</div><ul><li>FDE 定价不是"我做了多少事你就付多少钱"，而是按客户能感知到的成果价值算</li><li>核心原则（《赢利》）：价是本，量是末——你收多少钱决定利润正负，做多少单只决定规模大小</li><li>报价时把准确率拆成阶段：第一版 80% 解决 80% 场景，后续迭代到 90%</li></ul></div>3
+<p>FDE 定价不是"我做了多少事你就付多少钱"，而是<strong>按客户能感知到的成果价值算</strong>。核心原则（《赢利》）：<strong>价是本，量是末</strong>——你收多少钱决定利润正负，做多少单只决定规模大小。</p>
+<p>素材转述的制造业设备维修知识库例子称：维修工每单查历史故障 20 分钟、日耗 140 小时，AI 上线后变成“看一眼 AI 提取结果、重点复核标黄项”，并给出“一年省 200 万人力”的测算。<strong>这些数字未由本库独立核验，只能演示价值定价的计算方式，不是客户案例实证或收益承诺。</strong>若按 3 天工时报价收 2 万，说明报价可能被工时锚定；真实项目必须由客户确认基线、分子分母与可实现价值后再定价。</p>
+<p>三种模型：<br />
+| 模型 | 适用场景 | 参考逻辑 |<br />
+|------|---------|---------|<br />
+| 按成果定价 | 客户能算清省了多少人力/时间 | 节省人力 × 3-6 个月 |<br />
+| 按项目定价 | 交付物明确（知识库搭建、流程改造） | 行业基准 + 复杂度系数 |<br />
+| 按 retainer 定价 | 持续优化、上线后迭代 | 月度固定费 + 超量按次 |</p>
+<p>实操要点：<br />
+- 第一次合作可用“小额收费 Demo + 后续转化”模式验证双方投入；5000—10000 元只是原素材示例，不是市场报价依据，价格须按范围、风险与成果另算。<br />
+- 报价时把准确率拆成阶段；80%、83%、90% 均为教学示例，不是推荐阈值。实际每阶段门槛要由基线、任务难度、错误代价与冻结 Eval 决定，不能用“超预期”替代书面验收。<br />
+- 中小微客户要把服务拆成标准化小模块卖——知识库梳理一次固定价、流程诊断一次固定价、月度维护月度固定费。不要给小客户报"整体 AI 改造方案"，他们会被价格吓跑。</p>
+<h3 id="6-anthropic-工程共识2025">6. Anthropic 工程共识（2025）</h3>3
+<ul>
+<li>《Building Effective Agents》："most successful implementations use simple, composable patterns rather than complex frameworks"——方案阶段先选<strong>最简单可组合的模式</strong>（prompt chaining / routing / parallelization / orchestrator-workers / evaluator-optimizer），复杂度只在被证明必要时增加。</li>
+<li>《Effective Context Engineering》："good context engineering means finding the <em>smallest possible set of high-signal tokens</em>"——工具要"最小可用集"，如果人类工程师都不能明确说什么场景用哪个工具，AI agent 也不行。</li>
+</ul>
+</div></details></div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">HOW：FDE 现场工作节奏</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>1. 第一周：Discover——旁看一线、画流程图、找硬点、定非目标</li><li>2. 第二到六周：Design + 窄 Pilot——写 golden set、跑通一条核心工作流、出"可勾选"的验收标准</li><li>5. 商业模式：第一次小额收费 Demo 建立信任 → 项目制交付核心场景 → retainer 持续优化</li></ul></div>2
+<ol>
+<li><strong>第一周</strong>：Discover——旁看一线、画流程图、找硬点、定非目标。</li>
+<li><strong>第二到六周</strong>：Design + 窄 Pilot——写 golden set、跑通一条核心工作流、出"可勾选"的验收标准。</li>
+<li><strong>部署期</strong>：分 rollout、嵌进员工现有系统、找内部代言人、出 Runbook。</li>
+<li><strong>运行 2-4 周</strong>：Review——对照指标复盘、把案例补回知识库、把可复用的沉淀成模板反馈产品。</li>
+<li><strong>商业模式</strong>：第一次小额收费 Demo 建立信任 → 项目制交付核心场景 → retainer 持续优化。</li>
+</ol>
+<h3 id="三源与论文融合落点">三源与论文融合落点</h3>3
+<ul>
+<li><strong>课件</strong>：<code>raw/courseware/2603期AI大模型Agent篇__2603期AI大模型Agent篇__7-Agent详解-2026-4-3-初见__day07/_代码课件汇总.md</code> 提供 Agent 与评测实现的工程素材。本文只取“先定义评测任务，再决定是否增加 Agent 复杂度”，不把关课演示当生产验收。</li>
+<li><strong>书籍/摘录</strong>：<code>raw/weread/FDE/赢利：未来10年的经营能力.md</code> 的热门划线强调成果思维、战略边界和知识沉淀；落到 DDDR，就是先写业务结果与非目标，再把复盘结论回流模板。这里只使用目录和划线，未声称阅读全书。</li>
+<li><strong>业内一手材料</strong>：<code>raw/sources/Anthropic-FDE与Palantir-Ontology一手-20260930.md</code> 汇总 Palantir Ontology 官方文档与 Anthropic FDE 相关原文；与上文 Anthropic 工程原则共同约束为先做最简单可组合闭环，再按证据增加工具与自主度。</li>
+<li><strong>论文落地</strong>：arXiv:2610.31657（<code>raw/sources/arxiv-daily/2026-10-22-2610.31657.md</code>）研究成本敏感拒答：用校准集冻结阈值，再在留出集评估错误路由成本，而不是宣称通用部署认证。DDDR 的 Design 阶段因此必须分别记录“正确自动处理、转人工、错误自动处理”的代价；Deploy 只用影子/建议数据校准，冻结后才做上线评审，低置信或高代价动作转人工。</li>
+</ul>
+<p>以下是无模型、无网络的标准库教学验收，检查 DDDR 是否留下可判定的出口字段；真实项目须把示例替换为实际证据路径。</p>
+<pre><code class="language-bash">python -I - &lt;&lt;'PY'
+required = {&quot;Discover&quot;: {&quot;baseline&quot;, &quot;owner&quot;}, &quot;Design&quot;: {&quot;eval&quot;, &quot;non_goals&quot;},
+            &quot;Deploy&quot;: {&quot;rollback&quot;, &quot;audit&quot;}, &quot;Review&quot;: {&quot;business_result&quot;, &quot;next_action&quot;}}
+record = {
+    &quot;Discover&quot;: {&quot;baseline&quot;: &quot;evidence/baseline-v1&quot;, &quot;owner&quot;: &quot;业务Owner&quot;},
+    &quot;Design&quot;: {&quot;eval&quot;: &quot;eval/frozen-v1&quot;, &quot;non_goals&quot;: &quot;禁止自动付款&quot;},
+    &quot;Deploy&quot;: {&quot;rollback&quot;: &quot;runbook/rollback-v1&quot;, &quot;audit&quot;: &quot;audit/day-1&quot;},
+    &quot;Review&quot;: {&quot;business_result&quot;: &quot;review/week-2&quot;, &quot;next_action&quot;: &quot;保持建议模式&quot;},
+}
+for stage, fields in required.items():
+    missing = sorted(fields - record[stage].keys())
+    assert not missing, f&quot;{stage} 缺字段: {missing}&quot;
+print(&quot;DDDR 出口字段检查：PASS（仅检查结构，不证明业务收益）&quot;)
+PY
+</code></pre>
+<h4 id="本库真实落地源码核对2026-11-04">本库真实落地（源码核对，2026-11-04）</h4>
+<ul>
+<li><strong>"先定验收口径、再干活"的机械实现：派单卡预埋 check（<code>/home/wuyafang/.hermes/scripts/dispatch-guard.py</code>，grep 可验）</strong>：<br />
+<code>python
+  # 4核必填（拦死，语义稳定保持精确匹配，勿动）
+  CORE = ["objective", "原始输出", "任务边界", "预埋check"]
+  # [2026-10-27] 真通道证据卡(治假六员):派单必须贴真通道命令/进程,否则=delegate_task内部代跑=假六员。</code><br />
+<code>预埋check</code> 是<strong>派单前就写死</strong>的可执行验收命令——这正对应 FDE "结果先于功能"：先写"怎么算交付成功"，再谈怎么实现。</li>
+<li><strong>过程可审计（<code>/home/wuyafang/.hermes/scripts/handoff_state.py</code> 的 <code>TEMPLATE</code>）</strong>：HANDOFF.md 的 <code>## Evidence</code> / <code>## Completed</code> / <code>## Still unverified</code> 三段，要求每步留证据、未证实的必须显式列出——FDE 现场交接给客户时同一份结构可直接复用。</li>
+<li><strong>和课件讲法的差异</strong>：课件 <code>FDE交付总纲</code> 强调 DDDR 四阶段（Discover/Design/Deploy/Review），偏组织流程；本库把它压成"派单卡 + 预埋 check + 收口四问"的脚本门禁。差异在于：课件管"团队怎么协作"，本库管"单次交付怎么不可糊弄"。两者可叠加，本库可视为 DDDR 里每阶段的执行夹具。</li>
+</ul>
+</div></details><details class="chap d2"><summary class="chap-s"><span class="chap-t">缺口清单</span><span class="chap-cnt">3 个重点</span><span class="chev">▾ 点开看本章重点</span></summary><div class="chap-body"><div class="hl"><div class="hl-tag">本章重点</div><ul><li>缺 FDE 报价速算表（按行业 × 按场景的参考价区间）</li><li>缺 Playbook 模板（每类客户跑完一遍后应该沉淀哪些可复用件）</li><li>缺"FDE 从项目交付到产品化"的演进路径（什么时候应该把某个场景做成标准 SaaS 模块）</li></ul></div>2
+<ul>
+<li>缺 FDE 报价速算表（按行业 × 按场景的参考价区间）</li>
+<li>缺 Playbook 模板（每类客户跑完一遍后应该沉淀哪些可复用件）</li>
+<li>缺"FDE 从项目交付到产品化"的演进路径（什么时候应该把某个场景做成标准 SaaS 模块）</li>
+<li>缺 FDE 能力评估/招聘的标准题库（4C 维度的面试题）</li>
+<li>缺六员协作里 FDE 角色与 DSH/Claude/Codex 的分工手册</li>
+</ul></div></details></div></body></html>

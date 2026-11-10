@@ -1,0 +1,485 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LangGraph生产级状态机设计-State-Reducer-路由与错误处理-202611</title><style>
+:root { --bg:#fbfcfd; --fg:#1f2329; --muted:#6b7280; --accent:#2563eb; --line:#e5e7eb; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+  font-family: -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.75; }
+.topbar { position:sticky; top:0; z-index:10; background:rgba(255,255,255,.92);
+  backdrop-filter:blur(6px); border-bottom:1px solid var(--line); padding:10px 20px;
+  display:flex; gap:16px; align-items:center; font-size:14px; }
+.topbar a { color:var(--accent); text-decoration:none; }
+.topbar .cur { color:var(--muted); }
+.wrap { max-width:880px; margin:0 auto; padding:28px 24px 96px; }
+h1 { font-size:1.7em; border-bottom:2px solid var(--line); padding-bottom:.35em; }
+h2 { margin-top:1.8em; border-left:4px solid var(--accent); padding-left:10px; }
+h3 { margin-top:1.4em; }
+a { color:var(--accent); }
+a:hover { text-decoration:underline; }
+table { border-collapse:collapse; width:100%; margin:1em 0; display:block; overflow-x:auto; }
+th,td { border:1px solid var(--line); padding:7px 10px; font-size:14.5px; }
+th { background:#f1f5f9; }
+code { background:#f1f5f9; padding:.15em .4em; border-radius:4px;
+  font-family:"SFMono-Regular",Consolas,monospace; font-size:.9em; }
+pre { background:#0f172a; color:#e2e8f0; padding:14px 16px; border-radius:8px; overflow-x:auto; }
+pre code { background:transparent; color:inherit; padding:0; }
+blockquote { margin:1em 0; padding:.4em 1em; border-left:4px solid var(--line); color:#475569; background:#f8fafc; }
+hr { border:none; border-top:1px solid var(--line); margin:2em 0; }
+.badge { display:inline-block; font-size:12px; color:var(--muted); border:1px solid var(--line);
+  border-radius:999px; padding:1px 10px; margin-left:8px; }
+
+details.chap{margin:1.1em 0 .4em;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+details.chap.d3{margin-left:1.2em;border-left:3px solid #c4b5fd}
+details.chap summary.chap-s{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 14px;user-select:none;background:#f8fafc}
+details.chap summary.chap-s::-webkit-details-marker{display:none}
+details.chap summary.chap-s:hover{background:#eef2ff}
+details.chap.d2 summary .chap-t{font-size:1.15em;font-weight:600}
+details.chap.d3 summary .chap-t{font-size:1.02em;font-weight:600}
+details.chap .chap-t{flex:1}
+details.chap .chap-cnt{background:#eef2ff;color:#4338ca;border-radius:999px;padding:1px 10px;font-size:.78em;white-space:nowrap}
+details.chap .chev{color:var(--muted);font-size:.82em;transition:transform .2s}
+details.chap[open] .chev{transform:rotate(180deg)}
+details.chap .chap-body{padding:.2em 16px 14px;border-top:1px solid var(--line)}
+details.chap .hl{margin:.8em 0;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+details.chap .hl-tag{font-size:.8em;color:#92400e;font-weight:600;margin-bottom:4px}
+details.chap .hl ul{margin:.2em 0 .2em 1.1em;padding:0}
+details.chap .hl li{margin:.35em 0;color:#78350f;line-height:1.7}
+</style></head><body><div class="topbar"><a href="../index.html">🏠 总入口</a><a href="../graph.html">🕸 关联图谱</a><a href="../ontology/index.html">📖 术语表</a><span class="cur">/ L5-Agent工程/LangGraph生产级状态机设计-State-Reducer-路由与错误处理-202611</span></div><div class="wrap"><blockquote><p><a href="../index.html">← 返回总入口</a></p></blockquote><h1 id="langgraph-statereducer">LangGraph 生产级状态机设计：State、Reducer、路由与错误处理</h1>
+<blockquote>
+<p><a href="../index.html">← 返回总入口</a>
+相关：<a href="L5-Agent工程-课件实操.html">课件实操（语法入门）</a> · <a href="Agent框架实操选型-2026.html">Agent框架实操选型</a> · <a href="LangGraph持久化与人机协同-断点续跑-中断-TimeTravel生产实战-202611.html">持久化与人机协同实战</a> · <a href="多Agent协作生产级实战-Subagents-Handoffs-CrewAI-AutoGen-202611.html">多Agent协作生产级实战</a></p>
+</blockquote>
+<h2 id="0">0. 本篇补什么缺口</h2>
+<p>L5 现有文档对 LangGraph 的覆盖集中在两处：<a href="L5-Agent工程-课件实操.html">课件实操</a> 第 5 章讲了 <code>StateGraph</code>、条件边、<code>Send</code>、父子图的<strong>语法</strong>；<a href="Agent框架实操选型-2026.html">框架实操选型</a> 讲了<strong>为什么选</strong> LangGraph。两者之间缺一块：<strong>怎么把一个业务流程设计成一张在生产上不出事故的图</strong>。具体缺口有四项。</p>
+<ol>
+<li>State 里该放什么、不该放什么，没有判断标准。</li>
+<li>Reducer 只讲了 <code>add_messages</code>，没讲并行写同一个 key 时会发生什么。</li>
+<li>错误处理没有分类，所有异常都靠"外面包 try/except"。</li>
+<li>递归上限、死循环兜底、节点粒度这些上线前必查项没有清单。</li>
+</ol>
+<p>本篇的代码全部在本机 <code>~/ai-stack</code>（langgraph 1.2.11）上用确定性节点（不调真实 LLM）跑通过，文中标 🧪 的结论即来自这次实测。官方文档对应的结论标 📄。</p>
+<p><strong>版本说明</strong>：GitHub Releases 显示 langgraph 最新版为 1.2.19（2026-10-30 发布，📄 api.github.com 实查），本机是 1.2.11。文中个别 API（<code>error_handler</code>、<code>set_node_defaults</code>）官方标注需要 <code>langgraph&gt;=1.2</code>，本机未逐一验证，已在对应位置标注"未实测"。</p>
+<hr />
+<h2 id="1">1. 官方心智模型：节点干活，边决定下一步</h2>
+<p>📄 官方 Graph API 文档的原话是："nodes do the work, edges tell what to do next"。一张图由三部分组成：</p>
+<table>
+<thead>
+<tr>
+<th>部分</th>
+<th>是什么</th>
+<th>生产含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>State</td>
+<td>整张图共享的状态快照</td>
+<td>它就是 checkpoint 的内容，也是你排查事故时唯一能看到的"现场"</td>
+</tr>
+<tr>
+<td>Node</td>
+<td>接收 state、返回<strong>部分更新</strong>的函数</td>
+<td>节点边界就是 checkpoint 边界，决定失败后重做多少活</td>
+</tr>
+<tr>
+<td>Edge</td>
+<td>决定下一个执行哪个节点</td>
+<td>普通边是确定性路径，条件边把"LLM 判断"限制在你声明的出口里</td>
+</tr>
+</tbody>
+</table>
+<p>执行模型是 super-step：同一步里能并行的节点一起跑，全部写完状态后进入下一步。这一点决定了后面讲的 reducer 为什么必须设计。</p>
+<p>📄 <code>compile()</code> 之前图只是一个定义，编译时会检查结构（比如有没有悬空节点），并接收 checkpointer、断点等运行选项。<strong>生产代码里应该把"建图"和"调用"分开</strong>：建图在模块加载时做一次，调用时只传 <code>thread_id</code> 和输入。</p>
+<hr />
+<h2 id="2-state">2. State 设计：只存原始数据，不存格式化文本</h2>
+<h3 id="21">2.1 官方的两条判断标准</h3>
+<p>📄 官方《Thinking in LangGraph》给出的标准很简单：</p>
+<ul>
+<li>需要<strong>跨步骤保留</strong>的数据，放进 state。</li>
+<li>能从已有数据<strong>推导出来</strong>的，需要时再算，不存。</li>
+</ul>
+<p>并且明确要求 state 存<strong>原始数据</strong>（邮件原文、分类结果字典、检索到的片段列表），<strong>不存</strong>格式化后的字符串或拼好的 prompt。各节点在用的时候自己格式化。</p>
+<p>这条规则的实际收益有三个：</p>
+<ol>
+<li>不同节点可以用不同格式消费同一份数据。分类节点要结构化字典，起草节点要一段自然语言，同一份 state 都能支持。</li>
+<li>改 prompt 模板不用改 state 结构，也就不会让历史 checkpoint 失效。这点在生产上很重要：线上有大量挂起中的 thread，它们的 checkpoint 是按旧 state 结构存的。</li>
+<li>调试时直接能看到节点拿到的原始输入，而不是一坨拼好的字符串。</li>
+</ol>
+<h3 id="22-typeddict-pydantic">2.2 用 TypedDict 还是 Pydantic</h3>
+<p>📄 官方说法：默认用 <code>TypedDict</code>；需要默认值用 <code>dataclass</code>；需要递归校验用 Pydantic <code>BaseModel</code>，但<strong>更慢</strong>。我们的建议：</p>
+<ul>
+<li>图内部 state 用 <code>TypedDict</code>，轻、快、和 reducer 的 <code>Annotated</code> 写法天然配合。</li>
+<li>图的<strong>入口和出口</strong>（外部输入、返回给调用方的结果）才用 Pydantic 做校验。官方支持输入、输出 schema 与内部 state 不同。</li>
+<li>不想暴露给调用方的中间字段（草稿、重试计数），放进私有 channel，<code>invoke</code> 的返回里不会带出来。注意 📄 官方说明私有 channel <strong>对 streaming 仍可见</strong>，别把密钥放进去。</li>
+</ul>
+<h3 id="23-state">2.3 一个生产级 State 的样子</h3>
+<p>下面是工单处理流程的 state（结构参考官方邮件客服示例，字段为本库改写）：</p>
+<pre><code class="language-python">import operator
+from typing import Annotated, Literal, TypedDict
+
+class Classification(TypedDict):
+    intent: Literal[&quot;question&quot;, &quot;bug&quot;, &quot;billing&quot;, &quot;complex&quot;]
+    urgency: Literal[&quot;low&quot;, &quot;medium&quot;, &quot;high&quot;, &quot;critical&quot;]
+    summary: str
+
+class TicketState(TypedDict):
+    # 输入：只读，不被任何节点覆盖
+    ticket_id: str
+    raw_text: str
+    # 中间产物：原始数据，不是 prompt
+    classification: Classification | None
+    evidence: list[str] | None
+    draft: str | None
+    # 审计轨迹：并行节点都能追加，用 reducer 合并
+    trail: Annotated[list[str], operator.add]
+    # 失败信息：给 LLM 节点读，让它自己修正
+    last_error: str | None
+</code></pre>
+<p>三个设计细节：</p>
+<ul>
+<li><code>ticket_id</code> 和 <code>raw_text</code> 只在入口写一次。节点返回部分更新时不会碰它们，天然只读。</li>
+<li><code>trail</code> 用 <code>operator.add</code> 做 reducer。每个节点只返回 <code>{"trail": ["节点名:结果"]}</code>，不需要先读后写。事后复盘，这个字段就是执行路径的明文记录。</li>
+<li><code>last_error</code> 是后面错误处理一节的"LLM 可恢复错误"通道。</li>
+</ul>
+<hr />
+<h2 id="3-reducer-key">3. Reducer：并行节点写同一个 key 的规则</h2>
+<h3 id="31">3.1 默认行为是覆盖</h3>
+<p>📄 每个 state key 有自己的 reducer，调用形式是 <code>reducer(left, right)</code>，<code>left</code> 是已有值，<code>right</code> 是节点这次的更新。<strong>不声明 reducer 就是覆盖</strong>。</p>
+<p>单线程图里覆盖没问题。一旦出现并行分支（一个节点连出多条边，或者用了 <code>Send</code>），多个节点在同一个 super-step 里写同一个 key，没有 reducer 就会冲突。</p>
+<h3 id="32-reducer">3.2 实测：并行写 + reducer</h3>
+<p>🧪 本机实测（节点 a 同时连到 b、c，b、c 汇入 END，<code>logs</code> 用 <code>operator.add</code>）：</p>
+<pre><code class="language-python">class S1(TypedDict):
+    logs: Annotated[list[str], operator.add]
+    score: int
+
+g = StateGraph(S1)
+g.add_node(&quot;a&quot;, lambda s: {&quot;logs&quot;: [&quot;a&quot;], &quot;score&quot;: 1})
+g.add_node(&quot;b&quot;, lambda s: {&quot;logs&quot;: [&quot;b&quot;]})
+g.add_node(&quot;c&quot;, lambda s: {&quot;logs&quot;: [&quot;c&quot;]})
+g.add_edge(START, &quot;a&quot;)
+g.add_edge(&quot;a&quot;, &quot;b&quot;)
+g.add_edge(&quot;a&quot;, &quot;c&quot;)
+g.add_edge([&quot;b&quot;, &quot;c&quot;], END)      # 数组形式 = 等 b、c 都完成才继续
+out = g.compile().invoke({&quot;logs&quot;: [], &quot;score&quot;: 0})
+# out[&quot;logs&quot;] 包含 a、b、c 三项；score == 1
+</code></pre>
+<p>结果三个日志都保留，没有丢更新。注意 <code>add_edge(["b", "c"], END)</code> 的数组写法表示"等两者都完成"，这是汇合（join）的标准写法。</p>
+<h3 id="33">3.3 几个容易踩的点</h3>
+<ul>
+<li>📄 reducer 是合并语义，所以<strong>返回空列表清不掉旧内容</strong>。官方提供 <code>Overwrite</code> 包装值来强制清空。</li>
+<li>📄 消息列表直接用内置 <code>add_messages</code>：新消息追加，同 ID 的消息原地更新。自己写 <code>operator.add</code> 处理消息会丢掉"按 ID 更新"的能力，在做消息裁剪、撤回时会出问题。</li>
+<li>📄 <code>UntrackedValue</code> 标注的字段不进 checkpoint，恢复时会被重置。适合放数据库连接这类不可序列化对象，但不要放任何恢复后还需要的业务数据。</li>
+<li>并行工具调用同理：📄 官方工具文档明确提醒，多个并行工具可能同时更新同一个 state 字段，要为该字段定义 reducer。</li>
+</ul>
+<p><strong>判断口诀</strong>：画图时只要看到"一个节点后面出了两条以上的边"，或者用了 <code>Send</code>，立刻检查它们写的 key 是否都有 reducer。</p>
+<hr />
+<h2 id="4-commandsend">4. 路由：普通边、条件边、Command、Send 怎么选</h2>
+<p>📄 官方 Graph API 文档给了四种路由手段，我们按"谁来做决定"整理：</p>
+<table>
+<thead>
+<tr>
+<th>手段</th>
+<th>决策者</th>
+<th>适合</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>add_edge</code></td>
+<td>图结构（固定）</td>
+<td>流程固定的步骤</td>
+<td>一个节点多条出边会并行执行</td>
+</tr>
+<tr>
+<td><code>add_conditional_edges(node, router)</code></td>
+<td>独立的路由函数</td>
+<td>路由逻辑和业务逻辑想分开，便于单测</td>
+<td>路由函数只读 state，不改 state</td>
+</tr>
+<tr>
+<td><code>Command(update=..., goto=...)</code></td>
+<td>节点自己</td>
+<td>节点处理完才知道下一步去哪，更新和跳转要原子完成</td>
+<td>官方提醒：静态边仍会和 <code>goto</code> 一起执行，一个节点只用一种路由方式</td>
+</tr>
+<tr>
+<td><code>Send(node, state)</code></td>
+<td>条件边返回</td>
+<td>分支数运行时才知道（map-reduce）</td>
+<td>每个 <code>Send</code> 可带不同的子 state</td>
+</tr>
+</tbody>
+</table>
+<h3 id="41-command">4.1 Command：更新和路由原子完成</h3>
+<p>🧪 实测：</p>
+<pre><code class="language-python">def router(s) -&gt; Command[Literal[&quot;big&quot;, &quot;small&quot;]]:
+    return Command(
+        update={&quot;path&quot;: [&quot;router&quot;]},
+        goto=&quot;big&quot; if s[&quot;n&quot;] &gt; 5 else &quot;small&quot;,
+    )
+</code></pre>
+<p>输入 <code>n=9</code> 路径为 <code>router→big</code>，<code>n=1</code> 为 <code>router→small</code>，均符合预期。返回类型标注 <code>Command[Literal[...]]</code> 不只是给类型检查看的：📄 官方说明它会把节点的可能去向声明出来，画图（<code>get_graph()</code>）时才能画出这些边。<strong>生产代码里不标注，图可视化就缺边，评审时没人看得出流程</strong>。</p>
+<p>📄 <code>Command</code> 还有两个字段在多 Agent 里很关键：<code>graph=Command.PARENT</code>（从子图跳到父图的节点）和 <code>resume</code>（恢复被 <code>interrupt()</code> 暂停的执行）。这两个在后面两篇展开。</p>
+<h3 id="42-send">4.2 Send：运行时扇出</h3>
+<p>🧪 实测 map-reduce：</p>
+<pre><code class="language-python">def fan(s):
+    return [Send(&quot;work&quot;, {&quot;x&quot;: i}) for i in s[&quot;items&quot;]]
+
+g.add_node(&quot;work&quot;, lambda s: {&quot;results&quot;: [s[&quot;x&quot;] * 2]})
+g.add_conditional_edges(START, fan, [&quot;work&quot;])
+# items=[1,2,3] -&gt; results 排序后 [2,4,6]
+</code></pre>
+<p>两条生产经验：</p>
+<ol>
+<li><code>Send</code> 的子 state 是<strong>独立的</strong>，不是主 state 的副本。worker 只能看到你塞进去的字段，天然实现"上下文隔离"，这是多 Agent 并行研究的基础。</li>
+<li>汇总靠 reducer。<code>results</code> 必须有 <code>operator.add</code>，否则只剩最后一个 worker 的结果。扇出数量要有上限（比如最多 N 个），否则一个脏输入能触发几百个并行 LLM 调用，直接烧钱。</li>
+</ol>
+<h3 id="43">4.3 路由函数的写法规范</h3>
+<ul>
+<li>返回值要么是节点名字符串，要么配一个映射字典，<strong>不要返回动态拼接的节点名</strong>。</li>
+<li>LLM 做分类时，用结构化输出把结果限制在枚举里（上面的 <code>Literal</code>），路由函数再根据枚举值走分支。LLM 只负责"判断"，不负责"写出节点名"。</li>
+<li>路由函数里要有<strong>兜底分支</strong>。LLM 返回了意料之外的值时走 <code>human_review</code> 或 <code>END</code>，别抛 KeyError。</li>
+</ul>
+<hr />
+<h2 id="5">5. 递归上限与死循环兜底</h2>
+<p>Agent 图里最典型的循环是"LLM→工具→LLM"。模型偶尔会反复调同一个工具，循环不收敛。</p>
+<p>📄 官方机制：<code>recursion_limit</code> 限制一次运行的 super-step 总数，超出抛 <code>GraphRecursionError</code>。官方说明默认值在 1.1.4 及以后是 10,007。<strong>这个默认值对生产来说太大</strong>：一个死循环要跑上万步才会被拦住，成本早就爆了。</p>
+<p>⚠️ 官方特别说明：<code>recursion_limit</code> 要放在顶层 config，<strong>不是</strong> <code>configurable</code> 里面。</p>
+<h3 id="51">5.1 实测：两种兜底</h3>
+<p>🧪 方案一，让它抛错，调用方捕获：</p>
+<pre><code class="language-python">try:
+    app.invoke(inputs, config={&quot;recursion_limit&quot;: 5})
+except GraphRecursionError:
+    ...   # 记告警、降级回复
+</code></pre>
+<p>实测一个自环节点在 limit=5 时确实抛出 <code>GraphRecursionError</code>。</p>
+<p>🧪 方案二（推荐），图内自己降级，让用户拿到一个可用结果而不是报错。用官方的 <code>RemainingSteps</code> 托管值：</p>
+<pre><code class="language-python">from langgraph.managed import RemainingSteps
+
+class S5(TypedDict):
+    i: int
+    note: str
+    remaining_steps: RemainingSteps     # 由框架维护，节点不用写
+
+def route(s):
+    return &quot;fallback&quot; if s[&quot;remaining_steps&quot;] &lt;= 2 else &quot;loop&quot;
+
+g.add_conditional_edges(&quot;loop&quot;, route, [&quot;loop&quot;, &quot;fallback&quot;])
+out = app.invoke({&quot;i&quot;: 0, &quot;note&quot;: &quot;&quot;}, config={&quot;recursion_limit&quot;: 6})
+# out[&quot;note&quot;] == &quot;degraded&quot;，没有抛错
+</code></pre>
+<p>实测 limit=6 时循环 4 次后进入 <code>fallback</code>，返回 <code>degraded</code>。预留 2 步是给 <code>fallback</code> 本身和收尾用的，预留量要按你降级分支的实际长度定。</p>
+<h3 id="52">5.2 生产建议</h3>
+<table>
+<thead>
+<tr>
+<th>图类型</th>
+<th>建议 recursion_limit</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>固定流程（无循环）</td>
+<td>步数 ×2</td>
+<td>只是防御性上限</td>
+</tr>
+<tr>
+<td>ReAct 型 Agent 循环</td>
+<td>25–50</td>
+<td>按"最多几次工具调用"×2 估</td>
+</tr>
+<tr>
+<td>带人工审批的长流程</td>
+<td>单次运行的步数，不含挂起时间</td>
+<td>挂起不消耗 super-step</td>
+</tr>
+</tbody>
+</table>
+<p>上面的数字是本文给的经验起点，不是官方数据，要按自己业务的 trace 调整。</p>
+<hr />
+<h2 id="6">6. 错误处理：先分类，再选手段</h2>
+<p>这是本篇最重要的一节。📄 官方《Thinking in LangGraph》把错误分成四类，每类有不同的修复者：</p>
+<table>
+<thead>
+<tr>
+<th>错误类型</th>
+<th>谁来修</th>
+<th>处理手段</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>瞬时错误（网络抖动、429 限流）</td>
+<td>系统自动</td>
+<td><code>RetryPolicy</code> 自动重试</td>
+</tr>
+<tr>
+<td>LLM 可恢复错误（工具参数错、解析失败）</td>
+<td>LLM 自己</td>
+<td>把错误写进 state，回到 LLM 节点再来一轮</td>
+</tr>
+<tr>
+<td>需要用户补信息（缺账号 ID）</td>
+<td>用户</td>
+<td><code>interrupt()</code> 暂停等待</td>
+</tr>
+<tr>
+<td>未预期错误</td>
+<td>开发者</td>
+<td>直接抛出，别吞掉</td>
+</tr>
+</tbody>
+</table>
+<p>另外官方文档提到（标注需 <code>langgraph&gt;=1.2</code>）：重试耗尽后的可恢复失败，可以用 <code>error_handler</code> 声明式地跳进补偿分支。🧪 本机 1.2.11 未实测该参数，使用前先查你的版本。</p>
+<h3 id="61-retrypolicy">6.1 瞬时错误：RetryPolicy</h3>
+<p>🧪 实测节点前两次抛 <code>ConnectionError</code>，第三次成功：</p>
+<pre><code class="language-python">g.add_node(
+    &quot;flaky&quot;, flaky,
+    retry_policy=RetryPolicy(max_attempts=3, initial_interval=0.01, retry_on=ConnectionError),
+)
+</code></pre>
+<p>实测节点共执行 3 次后成功。要点：</p>
+<ul>
+<li><strong><code>retry_on</code> 建议显式写</strong>，只对确定是瞬时的异常类型重试。🧪 读本机 1.2.11 源码 <code>default_retry_on</code> 得知：不写时，<code>ConnectionError</code> 和 HTTP 5xx 会重试，<code>ValueError</code>、<code>TypeError</code>、<code>RuntimeError</code>、<code>OSError</code> 等常见内置异常<strong>不重试</strong>，但<strong>其他所有异常（包括你自定义的业务异常类、SDK 抛的专有异常）默认都会重试</strong>。依赖默认值时，一个"余额不足"之类的自定义异常会被白白重试 3 次，放大成本。</li>
+<li>重试单位是<strong>节点</strong>。节点里如果有多个副作用（发邮件 + 写库），重试会让前面成功的副作用重复执行。所以官方强调节点粒度要小，外部调用单独成节点。这点和下一篇的幂等规则直接相关。</li>
+<li>📄 官方提供 <code>timeout=</code> 限制单次尝试时长，以及 <code>StateGraph.set_node_defaults(...)</code> 给全图设默认策略，单节点配置优先。默认值接口标注较新，🧪 未实测。</li>
+</ul>
+<h3 id="62-llm">6.2 LLM 可恢复错误：把错误当数据</h3>
+<p>工具调用失败不要让异常冒泡成图崩溃。📄 官方示例的做法是 catch 后把错误文本作为工具结果回给模型：</p>
+<pre><code class="language-python">def execute_tool(state) -&gt; Command[Literal[&quot;agent&quot;, &quot;execute_tool&quot;]]:
+    try:
+        result = run_tool(state[&quot;tool_call&quot;])
+        return Command(update={&quot;tool_result&quot;: result}, goto=&quot;agent&quot;)
+    except ToolError as e:
+        return Command(update={&quot;tool_result&quot;: f&quot;Tool error: {e}&quot;}, goto=&quot;agent&quot;)
+</code></pre>
+<p>在 <code>create_agent</code> 体系里，📄 官方工具文档用 <code>@wrap_tool_call</code> 中间件统一做这件事，catch 异常后返回带 <code>tool_call_id</code> 的 <code>ToolMessage</code>。<strong>必须带 <code>tool_call_id</code></strong>，否则模型的消息历史会缺配对，下一次调用 API 直接报格式错误。</p>
+<p>要给这条回路加<strong>次数上限</strong>。LLM 可能反复用同一个错误参数重试。state 里放一个计数器（或直接用 <code>RemainingSteps</code>），超限后转人工。</p>
+<h3 id="63-interrupt">6.3 需要用户补充：interrupt</h3>
+<p>缺少用户才能提供的信息时，用 <code>interrupt()</code> 暂停，而不是让 LLM 猜。📄 官方还给出一条硬规矩："<code>interrupt()</code> must come first"，即 interrupt 要放在节点最前面，因为恢复时节点会从头重跑。细节在 <a href="LangGraph持久化与人机协同-断点续跑-中断-TimeTravel生产实战-202611.html">持久化与人机协同实战</a>。</p>
+<h3 id="64">6.4 未预期错误：让它抛</h3>
+<p>不要写 <code>except Exception: pass</code>。未预期错误吞掉后 checkpoint 会继续往下写，坏数据被固化进 thread 历史。让它抛出，调用方记录后，用同一个 <code>thread_id</code> 以 <code>invoke(None, config)</code> 从失败节点续跑（下一篇实测）。</p>
+<hr />
+<h2 id="7-checkpoint">7. 节点粒度：以 checkpoint 为尺子</h2>
+<p>📄 官方原话（概括）：节点边界就是 checkpoint 位置，节点越小，失败后重复的工作越少。外部服务调用（检索、建单、发送）适合各自成节点，这样可以单独配重试。</p>
+<p>用一个具体例子对比：</p>
+<table>
+<thead>
+<tr>
+<th>写法</th>
+<th>失败在"发送"这一步时</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一个大节点：检索 → LLM 起草 → 发送</td>
+<td>重试要重新检索、重新调 LLM（再花一次钱），LLM 输出还可能变</td>
+</tr>
+<tr>
+<td>三个节点：<code>retrieve</code> → <code>draft</code> → <code>send</code></td>
+<td>只重试 <code>send</code>，<code>draft</code> 的结果已在 checkpoint 里</td>
+</tr>
+</tbody>
+</table>
+<p><strong>拆分原则</strong>：</p>
+<ol>
+<li>每个 LLM 调用单独成节点：贵，且结果不确定，不应重复。</li>
+<li>每个有外部副作用的操作单独成节点：便于配幂等和重试策略。</li>
+<li>纯计算、纯格式转换可以合并，它们便宜且确定。</li>
+<li>单个节点超过一屏代码，通常就该拆。</li>
+</ol>
+<hr />
+<h2 id="8">8. 上线前检查清单</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>检查项</th>
+<th>通过标准</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>所有并行写入的 key 都有 reducer</td>
+<td>画图时逐个核对</td>
+</tr>
+<tr>
+<td>2</td>
+<td>State 里无格式化 prompt、无不可序列化对象</td>
+<td>打印一份 checkpoint 看内容</td>
+</tr>
+<tr>
+<td>3</td>
+<td>路由函数有兜底分支</td>
+<td>单测喂入非法枚举值，不抛 KeyError</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>Send</code> 扇出数有上限</td>
+<td>代码里有 <code>[:N]</code> 或前置校验</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>recursion_limit</code> 已显式设置，且在顶层 config</td>
+<td>用 limit=5 的单测确认会降级</td>
+</tr>
+<tr>
+<td>6</td>
+<td>每个外部调用有 <code>RetryPolicy</code> 且写了 <code>retry_on</code></td>
+<td>代码审查</td>
+</tr>
+<tr>
+<td>7</td>
+<td>工具失败回灌为 <code>ToolMessage</code> 且带 <code>tool_call_id</code></td>
+<td>构造失败工具的集成测试</td>
+</tr>
+<tr>
+<td>8</td>
+<td>LLM 自修复回路有次数上限</td>
+<td>超限转人工的测试</td>
+</tr>
+<tr>
+<td>9</td>
+<td>节点返回类型标注了 <code>Command[Literal[...]]</code></td>
+<td>图可视化能看到所有边</td>
+</tr>
+<tr>
+<td>10</td>
+<td>图的构建与调用分离，<code>thread_id</code> 由调用方传入</td>
+<td>代码审查</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_1">测试策略</h3>
+<ul>
+<li><strong>节点单测</strong>：节点就是 <code>state -&gt; 部分更新</code> 的纯函数，LLM 客户端通过参数注入，测试时换假实现。上面所有 🧪 实测脚本都是这个思路：没有任何真实 LLM 调用，几秒内跑完。</li>
+<li><strong>图级测试</strong>：用 <code>InMemorySaver</code> 编译，覆盖正常路径、重试路径、降级路径、超限路径四条。</li>
+<li><strong>评估</strong>：LLM 输出质量另走 eval，不要和流程正确性混在一个测试里。参见 <a href="生产级Agent与Evals实操.html">生产级Agent与Evals实操</a>。</li>
+</ul>
+<hr />
+<h2 id="9">9. 对本库的落地启示</h2>
+<p>本库六员协作的 N1–N6 节点流（总地图第一节）本身就是一张带条件边和回流边的状态机，已有 <code>~/.hermes/shared-tasks.db</code>（<code>task_id=thread_id</code>）作为状态表。结合本篇可以直接对照三点：</p>
+<ol>
+<li><strong>回流边 = 条件边</strong>。"验收不通过→回 N4"、"卡点≥2 次→回 N2"，在 LangGraph 里都是 <code>add_conditional_edges</code> 加一个计数字段，计数超限时转人工，这与第 5、6 节的兜底思路一致。</li>
+<li><strong>子单结果 = 带 reducer 的 key</strong>。多个子单并行回传结果时，用 <code>operator.add</code> 汇总，避免后到的覆盖先到的。</li>
+<li><strong>派单卡的必填字段 = 入口 Pydantic 校验</strong>。dispatch-guard 的"4 核必填"对应入口 schema 校验，内部 state 保持轻量 <code>TypedDict</code>。</li>
+</ol>
+<p>这三点是设计对照，不代表已改造。真正落地走总地图 N2 规划、N3 派单流程。</p>
+<hr />
+<h2 id="_2">来源</h2>
+<p>标注规则：📄 官方一手文档（本次会话 2026-11-02 抓取）；🧪 本机实测（<code>~/ai-stack</code> langgraph 1.2.11，确定性节点，脚本已清理）。</p>
+<ul>
+<li>📄 <a href="https://docs.langchain.com/oss/python/langgraph/graph-api">LangGraph Graph API</a>：State、reducer、节点、边、<code>Send</code>、<code>Command</code>、<code>recursion_limit</code>、<code>RemainingSteps</code></li>
+<li>📄 <a href="https://docs.langchain.com/oss/python/langgraph/thinking-in-langgraph">Thinking in LangGraph</a>：步骤拆分、state 存原始数据、四类错误处理、<code>RetryPolicy</code>、节点粒度</li>
+<li>📄 <a href="https://docs.langchain.com/oss/python/langchain/tools">LangChain Tools 文档</a>：<code>wrap_tool_call</code> 错误处理、并行工具调用与 reducer、<code>Command</code> 更新 state</li>
+<li>📄 <a href="https://github.com/langchain-ai/langgraph">langchain-ai/langgraph 仓库</a>：定位 "Low-level orchestration framework for building stateful agents"</li>
+<li>📄 <a href="https://api.github.com/repos/langchain-ai/langgraph/releases?per_page=8">GitHub Releases API</a>：最新版 langgraph 1.2.19（2026-10-30）</li>
+</ul>
+<h2 id="_3">未验证与边界</h2>
+<ul>
+<li><code>error_handler</code>、<code>set_node_defaults</code>、<code>timeout=</code> 来自官方文档，本机 1.2.11 未实测，使用前核对版本。</li>
+<li>第 5.2 节的 recursion_limit 建议值是经验起点，非官方数据。</li>
+<li>本篇未覆盖 Functional API 的状态设计，见持久化篇。</li>
+</ul></div></body></html>
